@@ -1,371 +1,249 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { getToken } from "../../utils/auth";
-import PageLayout from "../../layout/PageLayout";
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { getToken } from '../utils/auth';
+import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
+import PageLayout from '../layout/PageLayout';
+import { Modal, Button, Form, Spinner, Toast } from 'react-bootstrap';
 
 function SalaryComponents() {
   const [components, setComponents] = useState([]);
-  const [newComponent, setNewComponent] = useState({
-    name: "",
-    type: "addition",
-  });
-  const [editingComponent, setEditingComponent] = useState(null);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({ name: '', type: 'earning', description: '' });
+  const [editingId, setEditingId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [toast, setToast] = useState({ show: false, message: '', variant: '' });
+
   const [currentPage, setCurrentPage] = useState(1);
-  const [componentsPerPage] = useState(10);
-  const [formErrors, setFormErrors] = useState({});
+  const pageSize = 5;
 
-  const validateForm = () => {
-    let errors = {};
-    let isValid = true;
-
-    if (!newComponent.name.trim()) {
-      errors.name = "Name is required";
-      isValid = false;
+  // Fetch components from API
+  const fetchComponents = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get('http://localhost:8000/salary-components', {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      setComponents(res.data);
+    } catch (error) {
+      console.error('Error fetching components:', error);
     }
-
-    setFormErrors(errors);
-    return isValid;
+    setLoading(false);
   };
-
-  const validateEditForm = () => {
-    let errors = {};
-    let isValid = true;
-
-    if (!editingComponent.name.trim()) {
-      errors.name = "Name is required";
-      isValid = false;
-    }
-
-    setFormErrors(errors);
-    return isValid;
-  };
-
-  const handleSearchChange = (event) => {
-    setSearchQuery(event.target.value);
-    setCurrentPage(1); // Reset to first page when search query changes
-  };
-
-  const filteredComponents = components.filter(
-    (component) =>
-      component.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      component.type.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const indexOfLastComponent = currentPage * componentsPerPage;
-  const indexOfFirstComponent = indexOfLastComponent - componentsPerPage;
-  const currentComponents = filteredComponents.slice(
-    indexOfFirstComponent,
-    indexOfLastComponent
-  );
-
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
-  const pageNumbers = [];
-  for (let i = 1; i <= Math.ceil(filteredComponents.length / componentsPerPage); i++) {
-    pageNumbers.push(i);
-  }
 
   useEffect(() => {
     fetchComponents();
   }, []);
 
-  const fetchComponents = async () => {
-    try {
-      const response = await axios.get(
-        "http://localhost:8000/salary-components",
-        {
-          headers: { Authorization: `Bearer ${getToken()}` },
-        }
-      );
-      setComponents(response.data);
-    } catch (error) {
-      console.error("Error fetching salary components:", error);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.name.trim()) {
+      setToast({ show: true, message: 'Component name is required.', variant: 'danger' });
+      return;
     }
-  };
 
-  const handleInputChange = (e) => {  
-    setNewComponent({ ...newComponent, [e.target.name]: e.target.value });
-  };
-
-  const addComponent = async () => {
     try {
-      await axios.post('http://localhost:8000/salary-components', newComponent, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      })
-      if (validateForm()) {
-       
-        setNewComponent({ name: '', type: 'addition' });
-        setShowAddModal(false);
-      fetchComponents();
-      }
-    } catch (error) {
-      console.error('Error adding salary component:', error);
-    }
-  };
-
-  const startEditing = (component) => {
-    setShowEditModal(true)
-    setEditingComponent(component);
-  };
-
-  const handleEditInputChange = (e) => {  
-    setEditingComponent({ ...editingComponent, [e.target.name]: e.target.value });
-  };
-
-  const updateComponent = async () => {
-    try {
-      await axios.put(`http://localhost:8000/salary-components/${editingComponent.id}`, editingComponent, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      setEditingComponent(null);
-      setShowEditModal(false);
-      fetchComponents();
-    } catch (error) {
-      console.error('Error updating salary component:', error);
-    }
-  };
-
-  const deleteComponent = async (id) => {
-    if (window.confirm("Are you sure you want to delete this component?")) {
-      try {
-        await axios.delete(`http://localhost:8000/salary-components/${id}`, {
+      if (editingId) {
+        await axios.put(`http://localhost:8000/salary-components/${editingId}`, formData, {
           headers: { Authorization: `Bearer ${getToken()}` },
         });
-        fetchComponents();
-      } catch (error) {
-        console.error('Error deleting salary component:', error);
+        setToast({ show: true, message: 'Component updated successfully.', variant: 'success' });
+      } else {
+        await axios.post('http://localhost:8000/salary-components', formData, {
+          headers: { Authorization: `Bearer ${getToken()}` },
+        });
+        setToast({ show: true, message: 'Component added successfully.', variant: 'success' });
       }
+      fetchComponents();
+      handleCloseForm();
+    } catch (err) {
+      console.error('Error saving component:', err);
+      setToast({ show: true, message: 'Error saving component.', variant: 'danger' });
     }
   };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this component?')) return;
+
+    try {
+      await axios.delete(`http://localhost:8000/salary-components/${id}`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      setToast({ show: true, message: 'Component deleted.', variant: 'info' });
+      fetchComponents();
+    } catch (err) {
+      console.error('Error deleting component:', err);
+      setToast({ show: true, message: 'Error deleting component.', variant: 'danger' });
+    }
+  };
+
+  const handleEdit = (comp) => {
+    setFormData({ name: comp.name, type: comp.type, description: comp.description });
+    setEditingId(comp.id);
+    setShowForm(true);
+  };
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setFormData({ name: '', type: 'earning', description: '' });
+    setEditingId(null);
+  };
+
+  const filteredComponents = components.filter((comp) =>
+    comp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    comp.type.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filteredComponents.length / pageSize);
+  const paginatedComponents = filteredComponents.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   return (
     <PageLayout>
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <h3>Salary Components</h3>
-          <button
-            className="btn btn-primary"
-            onClick={() => setShowAddModal(true)}
-          >
-            Add New Component
-          </button>
+      <div className="container mt-4">
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h4>Salary Components</h4>
+          <Button onClick={() => setShowForm(true)}>
+            <FaPlus className="me-2" /> Add Component
+          </Button>
         </div>
-        <div className="mb-3">
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Search by name or type"
-            value={searchQuery}
-            onChange={handleSearchChange}
-          />
-        </div>
-        {/* Modal for Add new component */}
-        {/* Add Component Modal */}
-        <div className="modal-backdrop fade show" style={{display: showAddModal ? 'block' : 'none'}}></div>
-        <div className="modal fade show" style={{display: showAddModal ? 'block' : 'none'}}>
-     
-      {/* Add Component Modal */}
-      {showAddModal && (
-        <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
-          <div className="modal-dialog">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Add New Component</h5>
-                <button type="button" className="btn-close" onClick={() => setShowAddModal(false)}></button>
-              </div>
-              <div className="modal-body">  
-                <div className="mb-3">
-                  <label htmlFor="componentName" className="form-label">Name</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="componentName"
-                    name="name"
-                    value={newComponent.name}
-                    onChange={handleInputChange}
-                  />
-                   {formErrors.name && <div className="text-danger">{formErrors.name}</div>}
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="componentType" className="form-label">Type</label>
-                  <select
-                    className="form-select"
-                    id="componentType"
-                    name="type"
-                    value={newComponent.type}
-                    onChange={handleInputChange}
-                  >
-                    <option value="addition">Addition</option>
-                    <option value="deduction">Deduction</option>
-                  </select>
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAddModal(false)}>
-                  Cancel
-                </button>
-                <button type="button" className="btn btn-primary" onClick={addComponent}>
-                  Add Component
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
-      <div className="table-responsive">
-        {/* Edit Component Modal */}
-        {/* Edit component modal */}
-        <div className="modal-backdrop fade show" style={{display: showEditModal ? 'block' : 'none'}}></div>
-        <div className="modal fade show" style={{display: showEditModal ? 'block' : 'none'}}>
-        {showEditModal && (
-          <div
-            className="modal fade show"
-            style={{ display: "block" }}
-            tabIndex="-1"
-          >
-            <div className="modal-dialog">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h5 className="modal-title">Edit Component</h5>
-                  <button
-                    type="button"
-                    className="btn-close"
-                    onClick={() => {setShowEditModal(false)
-                    setEditingComponent(null)}}
-                  ></button>
-                </div>
-                <div className="modal-body">
-                  <div className="mb-3">
-                    <label htmlFor="editComponentName" className="form-label">
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="editComponentName"
-                      name="name"
-                      value={editingComponent?.name || ""}
-                      onChange={handleEditInputChange}
-                    />
-                    {formErrors.name && <div className="text-danger">{formErrors.name}</div>}
-                  </div>
-                  <div className="mb-3">
-                    <label htmlFor="editComponentType" className="form-label">
-                      Type
-                    </label>
-                    <select
-                      className="form-select"
-                      id="editComponentType"
-                      name="type"
-                      value={editingComponent?.type || ""}
-                      onChange={handleEditInputChange}
-                    >
-                      <option value="addition">Addition</option>
-                      <option value="deduction">Deduction</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => {setShowEditModal(false)
-                    setEditingComponent(null)}}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={updateComponent}
-                  >
-                    Update Component
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-         </div>
-         {/* Edit component modal end */}
-        {/* Table to display component */}
-        <table className="table table-striped table-bordered">   
-         <thead className="thead-dark">
+        <Form.Control
+          type="text"
+          placeholder="Search by name or type"
+          className="mb-3"
+          value={searchTerm}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setCurrentPage(1);
+          }}
+        />
 
-          {currentComponents.length === 0 && (
-           <p>No components found.</p>
-          )}
-          <thead className="thead-dark">
-            <tr>
-              <th>Name</th>
-              <th>Type</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>        
-                    component.name
-                  )}
-                </td>
-                <td>
-                  {editingComponent && editingComponent.id === component.id ? (
-                    <select
-                      className="form-select"
-                      name="type"
-                      value={editingComponent.type}
-                      onChange={handleEditInputChange}
-                    >
-                      <option value="addition">Addition</option>
-                      <option value="deduction">Deduction</option>
-                    </select>
-                  ) : (
-                    component.type
-                  )}
-                </td>
-          
-                  <>
-                    <button
-                      className="btn btn-sm btn-warning me-2"
-                      onClick={() => startEditing(component)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      className="btn btn-sm btn-danger"
-                      onClick={() => deleteComponent(component.id)}
-                    >
-                      Delete
-                    </button>
-                  </>
-                
+        {loading ? (
+          <div className="text-center py-5">
+            <Spinner animation="border" variant="primary" />
+          </div>
+        ) : (
+          <table className="table table-bordered table-hover">
+            <thead className="table-light">
+              <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th style={{ width: '100px' }}>Actions</th>
               </tr>
-            ))}            
-          </tbody>
-        </table>
-          </tbody>
-         {/* Table to display component end */}
-      {/* Pagination */}
-      <nav>
-        <ul className="pagination">
-          {pageNumbers.map((number) => (
-            <li
-              key={number}
-              className={
-                "page-item" + (currentPage === number ? " active" : "")
-              }
-            >
-              <button
-                onClick={() => paginate(number)}
-                className="page-link"
-              >
-                {number}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
-      {/* Pagination End*/}
+            </thead>
+            <tbody>
+              {paginatedComponents.length > 0 ? (
+                paginatedComponents.map((comp) => (
+                  <tr key={comp.id}>
+                    <td>{comp.name}</td>
+                    <td className={comp.type === 'earning' ? 'text-success' : 'text-danger'}>
+                      {comp.type.charAt(0).toUpperCase() + comp.type.slice(1)}
+                    </td>
+                    <td>{comp.description}</td>
+                    <td>
+                      <Button variant="outline-primary" size="sm" onClick={() => handleEdit(comp)} className="me-2">
+                        <FaEdit />
+                      </Button>
+                      <Button variant="outline-danger" size="sm" onClick={() => handleDelete(comp.id)}>
+                        <FaTrash />
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" className="text-center">
+                    No components found
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <nav>
+            <ul className="pagination justify-content-center">
+              <li className={`page-item ${currentPage === 1 && 'disabled'}`}>
+                <button className="page-link" onClick={() => setCurrentPage(currentPage - 1)}>Previous</button>
+              </li>
+              {Array.from({ length: totalPages }, (_, i) => (
+                <li key={i} className={`page-item ${currentPage === i + 1 && 'active'}`}>
+                  <button className="page-link" onClick={() => setCurrentPage(i + 1)}>{i + 1}</button>
+                </li>
+              ))}
+              <li className={`page-item ${currentPage === totalPages && 'disabled'}`}>
+                <button className="page-link" onClick={() => setCurrentPage(currentPage + 1)}>Next</button>
+              </li>
+            </ul>
+          </nav>
+        )}
+
+        {/* Add/Edit Modal Form */}
+        <Modal show={showForm} onHide={handleCloseForm}>
+          <Modal.Header closeButton>
+            <Modal.Title>{editingId ? 'Edit' : 'Add'} Salary Component</Modal.Title>
+          </Modal.Header>
+          <Form onSubmit={handleSubmit}>
+            <Modal.Body>
+              <Form.Group className="mb-3">
+                <Form.Label>Name</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Type</Form.Label>
+                <Form.Select
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                >
+                  <option value="earning">Earning</option>
+                  <option value="deduction">Deduction</option>
+                </Form.Select>
+              </Form.Group>
+
+              <Form.Group>
+                <Form.Label>Description</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={2}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                />
+              </Form.Group>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="secondary" onClick={handleCloseForm}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary">
+                {editingId ? 'Update' : 'Add'}
+              </Button>
+            </Modal.Footer>
+          </Form>
+        </Modal>
+
+        {/* Toast */}
+        <Toast
+          show={toast.show}
+          onClose={() => setToast({ ...toast, show: false })}
+          bg={toast.variant}
+          className="position-fixed bottom-0 end-0 m-4"
+          delay={3000}
+          autohide
+        >
+          <Toast.Body className="text-white">{toast.message}</Toast.Body>
+        </Toast>
       </div>
     </PageLayout>
   );

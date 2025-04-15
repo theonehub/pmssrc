@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { getToken } from '../utils/auth';
+import { getToken } from '../../utils/auth';
 import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
-import PageLayout from '../layout/PageLayout';
+import PageLayout from '../../layout/PageLayout';
 import { Modal, Button, Form, Spinner, Toast } from 'react-bootstrap';
 
 function SalaryComponents() {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { isAuthenticated, getUserRole } from '../utils/auth'; // Adjust the path as necessary
+import { isAuthenticated, getUserRole } from '../../utils/auth'; // Adjust the path as necessary
 import Navbar from './Navbar';
 import Sidebar from '../../layout/Sidebar';
 import Topbar from '../../layout/Topbar';

@@ -4,7 +4,7 @@ import Login from './Components/Auth/Login';
 import CreateUser from './Components/Auth/CreateUser';
 import Home from './pages/Home';
 import UsersList from './Components/User/UsersList';
-import ProtectedRoute from './Components/Common/ProtectedRoutes';
+import ProtectedRoute from './Components/Common/ProtectedRoute';
 import UserImport from './Components/User/UserImport';
 import SalaryComponents from './Components/Salary/SalaryComponents';
 import DeclareSalary from './Components/Salary/DeclareSalary';

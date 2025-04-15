@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { getToken } from '../utils/auth';
+import axios from '../utils/axios';
+import { getToken } from '../utils/auth'; 
 import PageLayout from '../layout/PageLayout'; // Adjust path if needed
 
 function Home() {
@@ -9,7 +9,7 @@ function Home() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await axios.get('http://localhost:8000/users/stats', {
+        const res = await axios.get('/users/stats', {
           headers: { Authorization: `Bearer ${getToken()}` },
         });
         setStats(res.data);
@@ -29,7 +29,7 @@ function Home() {
           <div className="card text-white bg-primary">
             <div className="card-body">
               <h5 className="card-title">Total Users</h5>
-              <p className="card-text fs-4">{stats.total_users || 0}</p>
+              <p className="card-text fs-4">{stats.total_users || stats.total_users || 0}</p>
             </div>
           </div>
         </div>
@@ -47,7 +47,7 @@ function Home() {
           <div className="card text-white bg-info">
             <div className="card-body">
               <h5 className="card-title">SuperAdmins</h5>
-              <p className="card-text fs-4">{stats.superadmin || 0}</p>
+              <p className="card-text fs-4">{stats.superadmin || stats.SuperAdmin || 0}</p>
             </div>
           </div>
         </div>

@@ -343,6 +343,7 @@ function SalaryComponents() {
             ))}            
           </tbody>
         </table>
+          </tbody>
          {/* Table to display component end */}
       {/* Pagination */}
       <nav>

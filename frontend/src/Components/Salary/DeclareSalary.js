@@ -38,7 +38,7 @@ function DeclareSalary() {
 
   useEffect(() => {
     fetchComponents();
-  }, []);
+  }, [fetchComponents]);
 
   const handleChange = (componentId, value) => {
     setDeclarations((prev) => ({

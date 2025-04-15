@@ -6,7 +6,7 @@ import Home from './pages/Home';
 import UsersList from './Components/User/UsersList';
 import ProtectedRoute from './Components/Common/ProtectedRoutes';
 import UserImport from './Components/User/UserImport';
-import SalaryComponents from './pages/SalaryComponents';
+import SalaryComponents from './Components/Salary/SalaryComponents';
 import DeclareSalary from './Components/Salary/DeclareSalary';
 import LWPManagement from './features/lwp/components/LWPManagement';
 import ProjectAttributes from './features/project-attributes/components/ProjectAttributes';

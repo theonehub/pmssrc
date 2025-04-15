@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { getToken } from '../utils/auth';
-import PageLayout from '../layout/PageLayout'; // Adjust path if needed
+import { getToken } from '../../utils/auth';
+import PageLayout from '../../layout/PageLayout'; // Adjust path if needed
 
 function DeclareSalary() {
   const [components, setComponents] = useState([]);

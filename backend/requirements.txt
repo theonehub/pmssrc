@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+python-jose
+pymongo
+'passlib[bcrypt]'
+python-multipart
+openpyxl
+'PyJWT[crypto]'
+

@@ -4,7 +4,6 @@ import { isAuthenticated, getUserRole } from '../../utils/auth'; // Adjust the p
 import Navbar from './Navbar';
 import Sidebar from '../../layout/Sidebar';
 import Topbar from '../../layout/Topbar';
-import './ProtectedRoutes.css'; // Optional CSS file
 
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const location = useLocation();

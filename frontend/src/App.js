@@ -1,18 +1,18 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Login from './Components/Login';
-import CreateUser from './Components/CreateUser';
-import Home from './Components/Home';
-import UsersList from './Components/UsersList';
-import ProtectedRoute from './Components/ProtectedRoutes';
-import UserImport from './Components/UserImport';
+import Login from './Components/Auth/Login';
+import CreateUser from './Components/Auth/CreateUser';
+import Home from './pages/Home';
+import UsersList from './Components/User/UsersList';
+import ProtectedRoute from './Components/Common/ProtectedRoutes';
+import UserImport from './Components/User/UserImport';
 import SalaryComponents from './pages/SalaryComponents';
-import DeclareSalary from './Components/DeclareSalary';
-import LWPManagement from './Components/LWPManagement';
-import ProjectAttributes from './Components/ProjectAttributes';
-import ReimbursementTypes from './Components/ReimbursementTypes';
-import MyReimbursements from './Components/MyReimbursements';
-import ReimbursementAssignmentList from './Components/AssignReimbursement';
+import DeclareSalary from './Components/Salary/DeclareSalary';
+import LWPManagement from './features/lwp/components/LWPManagement';
+import ProjectAttributes from './features/project-attributes/components/ProjectAttributes';
+import ReimbursementTypes from './Components/Reimbursements/ReimbursementTypes';
+import MyReimbursements from './Components/Reimbursements/MyReimbursements';
+import ReimbursementAssignmentList from './Components/Reimbursements/AssignReimbursement';
 
 //import { isAuthenticated } from './utils/auth';
 

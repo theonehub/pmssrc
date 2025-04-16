@@ -19,7 +19,7 @@ function MyReimbursements () {
     setLoading(true);
     try {
       const [reqRes, typesRes] = await Promise.all([
-        axios.get('/reimbursements'),
+        axios.get('/reimbursements/assigned'),
         axios.get('/reimbursement-types')
       ]);
       setRequests(reqRes.data);

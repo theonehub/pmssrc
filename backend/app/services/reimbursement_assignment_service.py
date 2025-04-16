@@ -28,8 +28,22 @@ async def assign_reimbursements_to_user(data):
 async def get_user_reimbursement_assignments(user_id: str):
     return reimbursement_assignments_collection.find_one({"user_id": user_id})
 
-async def get_all_user_reimbursement_assignments():
-    users = user_collection.find().to_list(length=None)
+async def get_all_user_reimbursement_assignments(skip: int = 0, limit: int = 10, search: str = None):
+    # Build the query for search
+    query = {}
+    if search:
+        query = {
+            "$or": [
+                {"name": {"$regex": search, "$options": "i"}},
+                {"email": {"$regex": search, "$options": "i"}}
+            ]
+        }
+
+    # Get total count for pagination
+    total_users = user_collection.count_documents(query)
+    
+    # Get paginated users
+    users = user_collection.find(query).skip(skip).limit(limit).to_list(length=None)
     assignments = reimbursement_assignments_collection.find().to_list(length=None)
     types = reimbursement_types_collection.find().to_list(length=None)
 
@@ -43,9 +57,11 @@ async def get_all_user_reimbursement_assignments():
         assigned_ids = assignment_lookup.get(user_id, [])
         assigned_types = [
             {
-                "id": tid,
+                "type_id": tid,
                 "name": type_lookup[tid]["name"],
-                "description": type_lookup[tid].get("description", "")
+                "description": type_lookup[tid].get("description", ""),
+                "monthly_limit": type_lookup[tid].get("max_limit"),
+                "required_docs": type_lookup[tid].get("required_docs", False)
             }
             for tid in assigned_ids if tid in type_lookup
         ]
@@ -53,8 +69,13 @@ async def get_all_user_reimbursement_assignments():
         response.append({
             "id": user_id,
             "name": user["name"],
-            "email":  "",
+            "email": user.get("email", ""),
             "assigned_reimbursements": assigned_types
         })
 
-    return response
+    return {
+        "data": response,
+        "total": total_users,
+        "page": skip // limit + 1,
+        "page_size": limit
+    }

@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Button, Form, Container, Row, Col, Card, Alert } from 'react-bootstrap';
 
 const Login = () => {
-  const [username, setUsername] = useState('');
+  const [empId, setEmpId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -15,9 +15,9 @@ const Login = () => {
 
     try {
       const formData = new URLSearchParams();
-      formData.append('username', username);
+      formData.append('username', empId);
       formData.append('password', password);
-
+      console.log(formData)
       const res = await axios.post('/login', formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -43,8 +43,8 @@ const Login = () => {
               {error && <Alert variant="danger">{error}</Alert>}
               <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">
-                  <Form.Label>Username</Form.Label>
-                  <Form.Control type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
+                  <Form.Label>Employee ID</Form.Label>
+                  <Form.Control type="text" value={empId} onChange={(e) => setEmpId(e.target.value)} required />
                 </Form.Group>
                 <Form.Group className="mb-3">
                   <Form.Label>Password</Form.Label>
@@ -55,11 +55,6 @@ const Login = () => {
                 </div>
               </Form>
             </Card.Body>
-            <Card.Footer className="text-center">
-            <p>
-                Don't have an account? <Link to="/register">Register</Link>
-              </p>
-            </Card.Footer>
           </Card>
         </Col>
       </Row>

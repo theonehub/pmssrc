@@ -2,8 +2,8 @@ fastapi
 uvicorn
 python-jose
 pymongo
-'passlib[bcrypt]'
+passlib[bcrypt]
 python-multipart
 openpyxl
-'PyJWT[crypto]'
+PyJWT[crypto]
 

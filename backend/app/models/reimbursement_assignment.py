@@ -21,3 +21,9 @@ class ReimbursementAssignmentOut(BaseModel):
     name: str
     email: str
     assigned_reimbursements: List[AssignedReimbursement] = []
+
+class PaginatedReimbursementAssignmentOut(BaseModel):
+    data: List[ReimbursementAssignmentOut]
+    total: int
+    page: int
+    page_size: int

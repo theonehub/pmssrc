@@ -6,11 +6,11 @@ logger = logging.getLogger(__name__)
 
 # Create a MongoDB client using the provided URI and enable TLS.
 client = MongoClient(MONGO_URI, tls=True)
-db = client.jwt_login
+db = client.pms
 
 # Define collections for login and user info.
-login_collection = db["loginInfo"]
-user_collection = db["usersInfo"]
+activity_tracker_collection = db["activity_tracker"]
+user_collection = db["users_info"]
 salary_components_collection = db["salary_components"]
 employee_salary_collection = db["employee_salary"]
 salary_declaration_collection = db["salary_declaration"]
@@ -21,8 +21,9 @@ reimbursement_assignments_collection = db["reimbursement_assignments"]
 reimbursement_requests_collection = db["reimbursement_requests_collection"]
 
 # Create indexes to improve query performance and enforce uniqueness.
-login_collection.create_index([("username", ASCENDING)], unique=True)
-user_collection.create_index([("mobile", ASCENDING)])
+user_collection.create_index([("empId", ASCENDING)], unique=True)
+user_collection.create_index([("managerId", ASCENDING)])
+
 attendance_collection.create_index(
     [("user_id", 1), ("month", 1)],
     unique=True

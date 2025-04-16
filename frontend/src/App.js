@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './Components/Auth/Login';
-import CreateUser from './Components/Auth/CreateUser';
+import CreateUser from './Components/User/CreateUser';
 import Home from './pages/Home';
 import UsersList from './Components/User/UsersList';
 import ProtectedRoute from './Components/Common/ProtectedRoute';
@@ -12,7 +12,7 @@ import LWPManagement from './features/lwp/components/LWPManagement';
 import ProjectAttributes from './features/project-attributes/components/ProjectAttributes';
 import ReimbursementTypes from './Components/Reimbursements/ReimbursementTypes';
 import MyReimbursements from './Components/Reimbursements/MyReimbursements';
-import ReimbursementAssignmentList from './Components/Reimbursements/AssignReimbursement';
+import ReimbursementAssignmentList from './Components/Reimbursements/ReimbursementAssignmentList';
 
 //import { isAuthenticated } from './utils/auth';
 
@@ -25,7 +25,7 @@ function App() {
 
         <Route path="/" element={
           <ProtectedRoute allowedRoles={['user', 'lead', 'hr', 'admin', 'superadmin']}>
-            <Home />
+            <Login />
           </ProtectedRoute>
         } />
 
@@ -79,7 +79,7 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path="/my-reimbursements" element={
-          <ProtectedRoute allowedRoles={['superadmin']}>
+          <ProtectedRoute allowedRoles={['superadmin', 'user']}>
             <MyReimbursements />
           </ProtectedRoute>
         } />

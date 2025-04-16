@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-  baseURL: '/', // change this to your actual backend URL
+  baseURL: 'http://localhost:8000', // change this to your actual backend URL
 });
 
 // Optionally, add an interceptor to attach token

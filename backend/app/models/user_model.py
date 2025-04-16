@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import date
+from datetime import datetime
 
 class UserInfo(BaseModel):
     """
@@ -11,25 +11,27 @@ class UserInfo(BaseModel):
     name: str
     email: str
     gender: str
-    dob: date
-    doj: date
+    dob: datetime
+    doj: datetime
     mobile: str = Field(..., pattern="^\\d{10}$")
+    managerId: str
     login_required: bool
-    username: Optional[str] = None
     password: Optional[str] = None
     role: Optional[str] = None
+    is_active: bool = True
 
     class Config:
         extra = "forbid"
 
 
 class UserCreate(BaseModel):
-    username: str
+    empId: str
     password: str
     role: str = "user"
+    is_active: bool = True
     
 class UserOut(BaseModel):
-    username: str
+    empId: str
     role: str
 
 class Token(BaseModel):
@@ -37,6 +39,5 @@ class Token(BaseModel):
     token_type: str
 
 class User(BaseModel):
-    id: str
-    username: str
+    empId: str
     role: str

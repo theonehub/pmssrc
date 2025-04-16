@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 from datetime import datetime
 
@@ -11,17 +11,38 @@ class UserInfo(BaseModel):
     name: str
     email: str
     gender: str
-    dob: datetime
-    doj: datetime
-    mobile: str = Field(..., pattern="^\\d{10}$")
-    managerId: str
-    login_required: bool
-    password: Optional[str] = None
-    role: Optional[str] = None
-    is_active: bool = True
+    dob: str
+    doj: str
+    mobile: str #= Field(..., pattern="^\\d{10}$")
+    managerId: Optional[str] = None
+    password: str
+    role: str
+    is_active: Optional[bool] = True
+
+    @field_validator('gender')
+    def validate_gender(cls, v):
+        valid_genders = ['male', 'female', 'other']
+        if v.lower() not in valid_genders:
+            raise ValueError('Gender must be either "male" or "female" or "other"')
+        return v.lower()
 
     class Config:
         extra = "forbid"
+        json_schema_extra = {
+            "example": {
+                "empId": "EMP001",
+                "name": "John Doe",
+                "email": "john@example.com",
+                "gender": "male",
+                "dob": "1990-01-15",
+                "doj": "2020-01-15",
+                "mobile": "1234567890",
+                "managerId": "EMP002",
+                "password": "password123",
+                "role": "user",
+                "is_active": True
+            }
+        }
 
 
 class UserCreate(BaseModel):

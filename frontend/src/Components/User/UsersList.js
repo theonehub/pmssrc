@@ -4,17 +4,21 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import PageLayout from '../../layout/PageLayout';
-import { Button, Table, Spinner, Modal, Form, Pagination, Dropdown } from 'react-bootstrap';
-import { BsPlusCircle, BsFileEarmarkExcel, BsChevronLeft, BsChevronRight } from 'react-icons/bs';
+import ProtectedRoute from '../Common/ProtectedRoute';
+import { Button, Table, Spinner, Modal, Form, Pagination, Dropdown, InputGroup } from 'react-bootstrap';
+import { BsPlusCircle, BsFileEarmarkExcel, BsChevronLeft, BsChevronRight, BsSearch, BsCaretUpFill, BsCaretDownFill } from 'react-icons/bs';
 
 function UsersList() {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importFile, setImportFile] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -24,6 +28,65 @@ function UsersList() {
   useEffect(() => {
     fetchUsers();
   }, [currentPage, pageSize]);
+
+  // Sort function
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Sort and filter users
+  const getSortedAndFilteredUsers = () => {
+    let filteredUsers = [...users];
+    
+    // Apply search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filteredUsers = filteredUsers.filter(user => 
+        user.empId.toLowerCase().includes(searchLower) ||
+        user.name.toLowerCase().includes(searchLower) ||
+        user.email.toLowerCase().includes(searchLower) ||
+        user.gender.toLowerCase().includes(searchLower) ||
+        user.role.toLowerCase().includes(searchLower) ||
+        user.mobile.includes(searchTerm)
+      );
+    }
+
+    // Apply sorting
+    if (sortConfig.key) {
+      filteredUsers.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+
+        // Special handling for dates
+        if (sortConfig.key === 'dob' || sortConfig.key === 'doj') {
+          aValue = new Date(aValue);
+          bValue = new Date(bValue);
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+
+    return filteredUsers;
+  };
+
+  // Get sort icon
+  const getSortIcon = (columnKey) => {
+    if (sortConfig.key !== columnKey) {
+      return null;
+    }
+    return sortConfig.direction === 'asc' ? <BsCaretUpFill /> : <BsCaretDownFill />;
+  };
 
   const fetchUsers = async () => {
     try {
@@ -37,6 +100,37 @@ function UsersList() {
       setLoading(false);
     }
   };
+
+
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    const userData = {
+      empId: e.target.empId.value,
+      name: e.target.name.value,
+      email: e.target.email.value,
+      gender: e.target.gender.value,
+      dob: e.target.dob.value,
+      doj: e.target.doj.value,
+      mobile: e.target.mobile.value,
+      managerId: e.target.managerId.value,
+      password: e.target.password.value,
+      role: e.target.role.value,
+    };
+    console.log(userData);
+
+    try {
+      const response = await axios.post('/users/create', userData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      toast.success('User created successfully');
+      setShowCreateUserModal(false);
+      fetchUsers();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to create user'); 
+    }
+  }
 
   const handleImport = async (e) => {
     e.preventDefault();
@@ -108,7 +202,7 @@ function UsersList() {
             <Button
               variant="success"
               className="me-2"
-              onClick={() => navigate('/register')}
+              onClick={() => setShowCreateUserModal(true)}
             >
               <BsPlusCircle className="me-2" />
               Add User
@@ -121,6 +215,21 @@ function UsersList() {
               Import Users
             </Button>
           </div>
+        </div>
+
+        {/* Search Box */}
+        <div className="mb-3">
+          <InputGroup>
+            <InputGroup.Text>
+              <BsSearch />
+            </InputGroup.Text>
+            <Form.Control
+              type="text"
+              placeholder="Search users..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </InputGroup>
         </div>
 
         {/* Page Size Selector */}
@@ -166,20 +275,35 @@ function UsersList() {
               <Table striped bordered hover className="align-middle">
                 <thead className="table-dark">
                   <tr>
-                    <th>Emp ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Gender</th>
-                    <th>Date of Birth</th>
-                    <th>Date of Joining</th>
-                    <th>Mobile</th>
-                    <th>Username</th>
-                    <th>Role</th>
+                    <th onClick={() => requestSort('empId')} style={{ cursor: 'pointer' }}>
+                      Employee ID {getSortIcon('empId')}
+                    </th>
+                    <th onClick={() => requestSort('name')} style={{ cursor: 'pointer' }}>
+                      Name {getSortIcon('name')}
+                    </th>
+                    <th onClick={() => requestSort('email')} style={{ cursor: 'pointer' }}>
+                      Email {getSortIcon('email')}
+                    </th>
+                    <th onClick={() => requestSort('gender')} style={{ cursor: 'pointer' }}>
+                      Gender {getSortIcon('gender')}
+                    </th>
+                    <th onClick={() => requestSort('dob')} style={{ cursor: 'pointer' }}>
+                      Date of Birth {getSortIcon('dob')}
+                    </th>
+                    <th onClick={() => requestSort('doj')} style={{ cursor: 'pointer' }}>
+                      Date of Joining {getSortIcon('doj')}
+                    </th>
+                    <th onClick={() => requestSort('mobile')} style={{ cursor: 'pointer' }}>
+                      Mobile {getSortIcon('mobile')}
+                    </th>
+                    <th onClick={() => requestSort('role')} style={{ cursor: 'pointer' }}>
+                      Role {getSortIcon('role')}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((user) => (
-                    <tr key={user._id}>
+                  {getSortedAndFilteredUsers().map((user) => (
+                    <tr key={user.empId}>
                       <td>{user.empId}</td>
                       <td>{user.name}</td>
                       <td>{user.email}</td>
@@ -187,7 +311,6 @@ function UsersList() {
                       <td>{new Date(user.dob).toLocaleDateString()}</td>
                       <td>{new Date(user.doj).toLocaleDateString()}</td>
                       <td>{user.mobile}</td>
-                      <td>{user.username || '-'}</td>
                       <td>
                         <span className={`badge bg-${getRoleBadgeColor(user.role)}`}>
                           {user.role}
@@ -223,6 +346,74 @@ function UsersList() {
             </div>
           </>
         )}
+        
+        {/* Create User Modal */}
+        <Modal show={showCreateUserModal} onHide={() => setShowCreateUserModal(false)}>
+          <Modal.Header closeButton>
+            <Modal.Title>Create User</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form onSubmit={handleCreateUser}>
+              <Form.Group className="mb-3">
+                <Form.Label>Employee ID</Form.Label>
+                <Form.Control type="text" name="empId" required />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Name</Form.Label>
+                <Form.Control type="text" name="name" required />
+              </Form.Group>
+              <Form.Group className="mb-3">   
+                <Form.Label>Email</Form.Label>
+                <Form.Control type="email" name="email" required />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Gender</Form.Label>
+                <Form.Control as="select" name="gender" required>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </Form.Control>
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Date of Birth</Form.Label>
+                <Form.Control type="date" name="dob" required />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Date of Joining</Form.Label>
+                <Form.Control type="date" name="doj" required />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Mobile</Form.Label>
+                <Form.Control type="text" name="mobile" required />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Manager ID</Form.Label>
+                <Form.Control type="text" name="managerId" required />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Password</Form.Label>
+                <Form.Control type="password" name="password" required />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Role</Form.Label>
+                <Form.Control as="select" name="role" required>
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                  <option value="superadmin">Super Admin</option>
+                  <option value="manager">Manager</option>
+                  
+                </Form.Control>
+              </Form.Group>
+              <div className="d-flex justify-content-end">
+                <Button variant="secondary" onClick={() => setShowCreateUserModal(false)}>
+                  Cancel
+                </Button>
+                <Button variant="primary" type="submit">
+                  Create User
+                </Button> 
+              </div>
+            </Form>
+          </Modal.Body>
+        </Modal>
 
         {/* Import Modal */}
         <Modal show={showImportModal} onHide={() => setShowImportModal(false)}>

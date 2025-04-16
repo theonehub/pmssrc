@@ -14,10 +14,9 @@ def create_default_user():
     if user_collection.find_one({"empId": "superadmin"}):
         logger.info("Default user already exists.")
         return
-    user = UserInfo(empId="admin", email="clickankit4u@gmail.com", name="superadmin", \
+    user = UserInfo(empId="superadmin", email="clickankit4u@gmail.com", name="superadmin", \
                     gender="Male", dob="1990-01-01", doj="2021-01-01", mobile="1234567890", 
-                    password="admin123", role="superadmin", managerId="admin", is_active=True, 
-                    login_required=True)
+                    password="admin123", role="superadmin", managerId="admin", is_active=True)
     create_user(user)
 
 
@@ -33,8 +32,8 @@ def create_user(user: UserInfo):
     user.password = hash_password(user.password)
     try:
         user_result = user_collection.insert_one(user.model_dump())
-        logger.info("User created successfully, inserted_id: %s", user_result.inserted_id)
-        return {"msg": "User created successfully", "inserted_id": user_result.inserted_id}
+        logger.info("User created successfully, inserted_id: %s", str(user_result.inserted_id))
+        return {"msg": "User created successfully", "inserted_id": str(user_result.inserted_id)}
     except Exception as e:
         logger.exception("Exception occurred during user/login creation.")
         return {"msg": "Internal Server Error", "error": str(e)}
@@ -44,6 +43,7 @@ def get_all_users():
     Returns all users from user_collection.
     """
     users = user_collection.find()
+    users = list(users)
     logger.info("Fetched all users, count: %d", len(users))
     return users
 
@@ -70,5 +70,7 @@ def get_users_by_managerId(managerId: str):
     Returns user info for a user by managerId.
     """
     users = user_collection.find({"managerId": managerId})
+    users = list(users)
+    logger.info("Fetched users by managerId: %s, count: %d", managerId, len(users))
     return users
 

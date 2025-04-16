@@ -1,11 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './Components/Auth/Login';
-import CreateUser from './Components/User/CreateUser';
 import Home from './pages/Home';
 import UsersList from './Components/User/UsersList';
 import ProtectedRoute from './Components/Common/ProtectedRoute';
-import UserImport from './Components/User/UserImport';
 import SalaryComponents from './Components/Salary/SalaryComponents';
 import DeclareSalary from './Components/Salary/DeclareSalary';
 import LWPManagement from './features/lwp/components/LWPManagement';
@@ -22,34 +20,17 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="declareSalary" element={<DeclareSalary />} />
+        <Route path="/home" element={<Home />} />
+
 
         <Route path="/" element={
           <ProtectedRoute allowedRoles={['user', 'lead', 'hr', 'admin', 'superadmin']}>
             <Login />
           </ProtectedRoute>
         } />
-
-        <Route path="/register" element={
-          <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
-            <CreateUser />
-          </ProtectedRoute>
-        } />
-
         <Route path="/users" element={
-          <ProtectedRoute allowedRoles={['hr', 'admin', 'superadmin']}>
+          <ProtectedRoute allowedRoles={['manager', 'admin', 'superadmin']}>
             <UsersList />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/home" element={
-          <ProtectedRoute allowedRoles={['hr', 'admin', 'superadmin']}>
-            <Home />
-          </ProtectedRoute>
-        } />
-
-        <Route path="/import-users" element={
-          <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
-            <UserImport />
           </ProtectedRoute>
         } />
 

@@ -17,21 +17,21 @@ const Sidebar = () => {
     >
       <h5 className="mb-4 text-center">📋 Menu</h5>
       <div className="list-group">
-        {(role === 'admin' || role === 'superadmin') && (
+        {/* {(role === 'admin' || role === 'superadmin') && (
           <button
             className="list-group-item list-group-item-action list-group-item-success py-3"
             onClick={() => navigate('/register')}
           >
             <i className="bi bi-person-plus me-2"></i> Create/Register User
           </button>
-        )}
+        )} */}
 
-        {(role === 'superadmin' || role === 'admin' || role === 'hr') && (
+        {(role === 'superadmin' || role === 'admin' || role === 'manager') && (
           <button
-            className="list-group-item list-group-item-action list-group-item-secondary py-3"
+            className="list-group-item list-group-item-action list-group-item-success py-3"
             onClick={() => navigate('/users')}
           >
-            <i className="bi bi-people me-2"></i> View All Users
+            <i className="bi bi-people me-2"></i>Team
           </button>
         )}
 

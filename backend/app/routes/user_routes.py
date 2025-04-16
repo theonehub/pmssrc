@@ -1,5 +1,6 @@
 from datetime import datetime
 import logging
+import uuid
 from fastapi import APIRouter, HTTPException, Depends, status, Query, UploadFile, File
 from openpyxl import load_workbook
 from fastapi.security import OAuth2PasswordBearer
@@ -28,14 +29,16 @@ router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 @router.post("/users/create", status_code=status.HTTP_201_CREATED)
-async def create_user(user: UserInfo, current_user: UserInfo = Depends(extract_empId)):
+async def create_user(user: UserInfo, current_user: UserInfo = Depends(get_current_user)):
     """
     Endpoint to create a new user.
     Stores general user info and, if login is required, creates a login entry.
     """
     logger.info("Creating user: %s", user.name)
     us.validate_user_data(user)
+    print(user.model_dump())
     activity = ActivityTracker(
+        activityId=str(uuid.uuid4()),
         empId=current_user.empId,
         activity="createUser",
         date=datetime.now(),
@@ -43,7 +46,7 @@ async def create_user(user: UserInfo, current_user: UserInfo = Depends(extract_e
     )
     track_activity(activity)
     result = us.create_user(user)
-    logger.info("User creation result: %s", result)
+    logger.info(result)
     return result
 
 
@@ -69,7 +72,7 @@ async def import_users_from_excel(file: UploadFile = File(...), current_user: Us
         raise HTTPException(status_code=500, detail="Error reading Excel file")
 
     headers = [cell.value for cell in sheet[1]]
-    expected_headers = ["empId", "email","name", "gender", "dob", "doj", "mobile", "managerId", "login_required", "password", "role"]
+    expected_headers = ["empId", "email","name", "gender", "dob", "doj", "mobile", "managerId", "password", "role"]
     logger.info("Parsed headers from Excel: %s", headers)
 
     if headers != expected_headers:
@@ -82,7 +85,7 @@ async def import_users_from_excel(file: UploadFile = File(...), current_user: Us
     logger.info("Starting user creation loop")
     for idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
         try:
-            logger.debug("Processing row %d: %s", idx, row)
+            logger.info("Processing row %d: %s", idx, row)
             user = UserInfo(
                 empId=row[0],
                 email=row[1],
@@ -92,9 +95,8 @@ async def import_users_from_excel(file: UploadFile = File(...), current_user: Us
                 doj=row[5], 
                 mobile=row[6],
                 managerId=row[7],
-                login_required=row[8],
-                password=row[9],
-                role=row[10]
+                password=row[8],
+                role=row[9]
             )
             us.create_user(user)
             created += 1
@@ -138,14 +140,20 @@ async def read_users_me(current_user: UserInfo = Depends(get_current_user)):
 async def list_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1),
-    role: str = Depends(role_checker("admin", "superadmin"))
+    role: str = Depends(role_checker("admin", "superadmin", "manager")),
+    current_user: UserInfo = Depends(get_current_user)
 ):
     """
     Lists all login info entries, paginated.
     Only accessible by admin or superadmin.
     """
     logger.info("Listing users with skip=%d, limit=%d", skip, limit)
-    users = us.get_all_users()
+    if role == "manager":
+        logger.info("Listing users for manager: %s", current_user.empId)
+        users = us.get_users_by_managerId(current_user.empId)
+    else:
+        logger.info("Listing all users")
+        users = us.get_all_users()
     paginated_users = [serialize_user(u) for u in users[skip:skip + limit]]
 
     logger.info("Returning %d users out of %d", len(paginated_users), len(users))

@@ -1,0 +1,57 @@
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar-header {
+  display: contents;
+}
+
+.calendar-body {
+  display: contents;
+}
+
+.calendar-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.header-cell {
+  font-weight: bold;
+  background-color: #f8f9fa;
+}
+
+.present {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.approved {
+    background-color: #d4edda;
+    color: #153f57;
+}
+
+.pending {
+  background-color: #f8d7da;
+  color: #b8bb2e;
+}
+
+.public_holiday {
+  background-color: #f8d7da;
+  color: #4e7d4c;
+}
+
+.lwp {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.empty {
+  background-color: #f8f9fa;
+} 

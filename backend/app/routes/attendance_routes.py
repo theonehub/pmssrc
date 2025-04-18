@@ -1,6 +1,8 @@
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from typing import List
+from models.attendance import Attendance
 from services import attendance_service
 from auth.auth import get_current_user
 from models.user_model import User
@@ -15,62 +17,58 @@ routes = APIRouter(
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 logger = logging.getLogger(__name__)
 
-# ----------- Pydantic Models -----------
+@routes.post("/dummy/checkin")
+async def dummy_checkin():
+    return await attendance_service.dummy_checkin()
 
-class LWPUpdateRequest(BaseModel):
-    user_id: str
-    month: str  # Format: "YYYY-MM"
-    lwp_days: int = Field(..., ge=0, le=31)
+@routes.post("/checkin")
+async def checkin(user: User = Depends(get_current_user)):
+    return await attendance_service.checkin(user)
 
+@routes.post("/checkout")
+async def checkout(user: User = Depends(get_current_user)):
+    return await attendance_service.checkout(user)
 
-class LWPMultiUserRequest(BaseModel):
-    month: str
-    data: List[LWPUpdateRequest]
+@routes.post("/all")
+async def get_attendance(user: User = Depends(get_current_user)):
+    if user.role == "superadmin":
+        return await attendance_service.get_all_attendance()
+    else:
+        raise HTTPException(status_code=403, detail="Forbidden")
 
+@routes.get("/user/{empId}/{month}/{year}")
+async def get_attendance(empId: str, month: int, year: int, user: User = Depends(get_current_user)):
+    return await attendance_service.get_employee_attendance_by_month(empId, month, year)
 
-# ----------- Routes -----------
+@routes.get("/my/month/{month}/{year}")
+async def get_attendance(month: int, year: int, user: User = Depends(get_current_user)):
+    return await attendance_service.get_employee_attendance_by_month(user.empId, month, year) 
 
-@routes.post("/update", summary="Upsert LWP for a single user")
-def update_lwp(data: LWPUpdateRequest, current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["admin", "superadmin", "hr"]:
-        raise HTTPException(status_code=403, detail="Access denied")
-
-    #logger.info(f"[LWP-Update] {current_user.email} updating LWP for user {data.user_id}, month: {data.month}, days: {data.lwp_days}")
-    return attendance_service.upsert_lwp_for_user(data.user_id, data.month, data.lwp_days)
-
-
-@routes.post("/bulk-update", summary="Upsert LWP for multiple users")
-def bulk_update_lwp(data: LWPMultiUserRequest, current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["admin", "superadmin", "hr"]:
-        raise HTTPException(status_code=403, detail="Access denied")
-
-    #logger.info(f"[LWP-Bulk-Update] {current_user.email} bulk updating LWP for {len(data.data)} users for month {data.month}")
-
-    responses = []
-    for record in data.data:
-        if record.lwp_days < 0 or record.lwp_days > 31:
-            logger.warning(f"Skipping invalid LWP for {record.user_id} (lwp_days: {record.lwp_days})")
-            continue
-        res = attendance_service.upsert_lwp_for_user(record.user_id, data.month, record.lwp_days)
-        responses.append(res)
-
-    return {"results": responses}
+@routes.get("/my/year/{year}")
+async def get_attendance(year: int, user: User = Depends(get_current_user)):
+    return await attendance_service.get_employee_attendance_by_year(user.empId, year)
 
 
-@routes.get("/month/{month}", summary="Get LWP for all users for a specific month")
-def get_lwp_by_month(month: str, current_user: User = Depends(get_current_user)):
-    if current_user.role not in ["admin", "superadmin", "hr"]:
-        raise HTTPException(status_code=403, detail="Access denied")
+@routes.get("/manager/date/{date}/{month}/{year}")
+async def get_attendance(date: int, month: int, year: int, user: User = Depends(get_current_user)):
+    return await attendance_service.get_team_attendance_by_date(date, month, year)
 
-    logger.info(f"[LWP-Fetch] {current_user.username} fetching LWP records for month: {month}")
-    return attendance_service.get_lwp_by_month(month)
+@routes.get("/manager/month/{month}/{year}")
+async def get_attendance(month: int, year: int, user: User = Depends(get_current_user)):
+    return await attendance_service.get_team_attendance_by_month(month, year)    
 
+@routes.get("/manager/year/{year}")
+async def get_attendance(year: int, user: User = Depends(get_current_user)):
+    return await attendance_service.get_team_attendance_by_year(year)
 
-@routes.get("/user/{user_id}", summary="Get LWP history for a specific user")
-def get_lwp_for_user(user_id: str, current_user: User = Depends(get_current_user)):
-    # Employees can only view their own LWP
-    if current_user.role == "user" and current_user.id != user_id:
-        raise HTTPException(status_code=403, detail="Access denied")
+@routes.get("/admin/date/{date}/{month}/{year}")
+async def get_attendance(date: int, month: int, year: int, user: User = Depends(get_current_user)):
+    return await attendance_service.get_attendance_by_date(date, month, year)
 
-    #logger.info(f"[LWP-User-Fetch] {current_user.email} fetching LWP history for user: {user_id}")
-    return attendance_service.get_lwp_for_user(user_id)
+@routes.get("/admin/month/{month}/{year}")
+async def get_attendance(month: int, year: int, user: User = Depends(get_current_user)):
+    return await attendance_service.get_attendance_by_month(month, year)    
+
+@routes.get("/admin/year/{year}")
+async def get_attendance(year: int, user: User = Depends(get_current_user)):
+    return await attendance_service.get_attendance_by_year(year)

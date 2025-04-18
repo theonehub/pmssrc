@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './Components/Auth/Login';
 import Home from './pages/Home';
 import UsersList from './Components/User/UsersList';
+import AttendanceUserList from './Components/Attendence/AttendenceUserList';
 import ProtectedRoute from './Components/Common/ProtectedRoute';
 import SalaryComponents from './Components/Salary/SalaryComponents';
 import DeclareSalary from './Components/Salary/DeclareSalary';
@@ -18,19 +19,20 @@ function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
         <Route path="declareSalary" element={<DeclareSalary />} />
         <Route path="/home" element={<Home />} />
-
-
-        <Route path="/" element={
-          <ProtectedRoute allowedRoles={['user', 'lead', 'hr', 'admin', 'superadmin']}>
-            <Login />
-          </ProtectedRoute>
-        } />
+       
         <Route path="/users" element={
           <ProtectedRoute allowedRoles={['manager', 'admin', 'superadmin']}>
             <UsersList />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/attendance" element={
+          <ProtectedRoute allowedRoles={['manager', 'admin', 'superadmin']}>
+            <AttendanceUserList />
           </ProtectedRoute>
         } />
 

@@ -24,9 +24,9 @@ reimbursement_requests_collection = db["reimbursement_requests_collection"]
 user_collection.create_index([("empId", ASCENDING)], unique=True)
 user_collection.create_index([("managerId", ASCENDING)])
 
+
 attendance_collection.create_index(
-    [("user_id", 1), ("month", 1)],
-    unique=True
+    [("empId", 1), ("date", 1), ("month", 1), ("year", 1)],
 )
 
 logger.info("Database connected and indexes ensured.")

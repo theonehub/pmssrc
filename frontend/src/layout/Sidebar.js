@@ -35,7 +35,16 @@ const Sidebar = () => {
           </button>
         )}
 
-        {(role === 'superadmin' || role === 'admin' || role === 'hr') && (
+        {(role === 'superadmin' || role === 'admin' || role === 'manager') && (
+          <button
+            className="list-group-item list-group-item-action list-group-item-success py-3"
+            onClick={() => navigate('/attendance')}
+          >
+            <i className="bi bi-people me-2"></i>Attendance
+          </button>
+        )}
+
+        {(role === 'superadmin' || role === 'admin' || role === 'manager') && (
           <button
             className="list-group-item list-group-item-action list-group-item-info py-3"
             onClick={() => navigate('/salary-components')}

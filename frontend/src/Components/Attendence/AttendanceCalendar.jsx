@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import axios from '../../utils/axios';
 import { Modal, Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { BsChevronLeft, BsChevronRight } from 'react-icons/bs';
+import './AttendanceCalendar.css';
 
 function AttendanceCalendar({ empId, show, onHide }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [attendanceData, setAttendanceData] = useState([]);
+  const [holidays, setHolidays] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,6 +23,9 @@ function AttendanceCalendar({ empId, show, onHide }) {
       const year = currentDate.getFullYear();
       const response = await axios.get(`/attendance/user/${empId}/${month}/${year}`);
       setAttendanceData(response.data);
+      const holidayResponse = await axios.get(`/public-holidays/month/${month}/${year}`);
+      setHolidays(holidayResponse.data);
+      console.log('Holidays:', holidays);
     } catch (error) {
       console.error('Error fetching attendance data:', error);
     } finally {
@@ -61,6 +66,17 @@ function AttendanceCalendar({ empId, show, onHide }) {
     return attendance;
   };
 
+  const isPublicHoliday = (date) => {
+    if (!date) return false;
+    
+    return holidays.some(holiday => {
+      const holidayDate = new Date(holiday.date);
+      return holidayDate.getDate() === date.getDate() &&
+             holidayDate.getMonth() === date.getMonth() &&
+             holidayDate.getFullYear() === date.getFullYear();
+    });
+  };
+
   const formatTime = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -68,18 +84,28 @@ function AttendanceCalendar({ empId, show, onHide }) {
   };
 
   const renderTooltip = (date) => {
+    if (!date) return <Tooltip id="tooltip-empty">No data</Tooltip>;
+    
     const attendance = getAttendanceStatus(date);
+    const holiday = holidays.find(h => {
+      const holidayDate = new Date(h.date);
+      return holidayDate.getDate() === date.getDate() &&
+             holidayDate.getMonth() === date.getMonth() &&
+             holidayDate.getFullYear() === date.getFullYear();
+    });
     
     return (
-      <Tooltip id={`tooltip-${date?.getDate() || 'empty'}`}>
+      <Tooltip id={`tooltip-${date.getDate()}`}>
         <div className="text-start">
-          {attendance ? (
+          {holiday ? (
+            <div><strong>Holiday:</strong> {holiday.name}</div>
+          ) : attendance ? (
             <>
               <div><strong>Check-in:</strong> {formatTime(attendance.checkin_time)}</div>
               <div><strong>Check-out:</strong> {formatTime(attendance.checkout_time)}</div>
             </>
           ) : (
-            <div>No attendance record</div>
+            <div>Absent</div>
           )}
         </div>
       </Tooltip>
@@ -121,8 +147,16 @@ function AttendanceCalendar({ empId, show, onHide }) {
           </div>
           <div className="calendar-body">
             {days.map((date, index) => {
-              const attendance = getAttendanceStatus(date);
-              const status = date ? (attendance ? 'present' : 'lwp') : 'empty';
+              let status = 'empty';
+              
+              if (date) {
+                if (isPublicHoliday(date)) {
+                  status = 'public_holiday';
+                } else {
+                  const attendance = getAttendanceStatus(date);
+                  status = attendance ? 'present' : 'absent';
+                }
+              }
               
               return (
                 <OverlayTrigger

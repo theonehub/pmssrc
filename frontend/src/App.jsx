@@ -12,6 +12,7 @@ import ProjectAttributes from './features/project-attributes/components/ProjectA
 import ReimbursementTypes from './Components/Reimbursements/ReimbursementTypes';
 import MyReimbursements from './Components/Reimbursements/MyReimbursements';
 import ReimbursementAssignmentList from './Components/Reimbursements/ReimbursementAssignmentList';
+import PublicHolidays from './Components/PublicHolidays/PublicHolidays';
 
 //import { isAuthenticated } from './utils/auth';
 
@@ -64,6 +65,11 @@ function App() {
         <Route path="/my-reimbursements" element={
           <ProtectedRoute allowedRoles={['superadmin', 'user']}>
             <MyReimbursements />
+          </ProtectedRoute>
+        } />
+        <Route path="/public-holidays" element={
+          <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
+            <PublicHolidays />
           </ProtectedRoute>
         } />
       </Routes>

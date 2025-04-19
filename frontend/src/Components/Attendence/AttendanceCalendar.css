@@ -32,24 +32,14 @@
   color: #155724;
 }
 
-.approved {
-    background-color: #d4edda;
-    color: #153f57;
-}
-
-.pending {
+.absent {
   background-color: #f8d7da;
-  color: #b8bb2e;
+  color: #721c24;
 }
 
 .public_holiday {
-  background-color: #f8d7da;
-  color: #4e7d4c;
-}
-
-.lwp {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: #fff3cd;
+  color: #856404;
 }
 
 .empty {

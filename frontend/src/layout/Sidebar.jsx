@@ -38,6 +38,15 @@ const Sidebar = () => {
         {(role === 'superadmin' || role === 'admin' || role === 'manager') && (
           <button
             className="list-group-item list-group-item-action list-group-item-success py-3"
+            onClick={() => navigate('/public-holidays')}
+          >
+            <i className="bi bi-calendar-check me-2"></i> Public Holidays
+          </button>
+        )}
+
+        {(role === 'superadmin' || role === 'admin' || role === 'manager') && (
+          <button
+            className="list-group-item list-group-item-action list-group-item-success py-3"
             onClick={() => navigate('/attendance')}
           >
             <i className="bi bi-people me-2"></i>Attendance

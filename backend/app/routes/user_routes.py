@@ -98,7 +98,7 @@ async def import_users_from_excel(file: UploadFile = File(...), current_user: Us
                 password=row[8],
                 role=row[9]
             )
-            us.create_user(user)
+            await us.create_user(user)
             created += 1
             activity = ActivityTracker(
                 empId=current_user.empId,

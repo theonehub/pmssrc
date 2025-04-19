@@ -15,6 +15,7 @@ class UserInfo(BaseModel):
     doj: str
     mobile: str #= Field(..., pattern="^\\d{10}$")
     managerId: Optional[str] = None
+    leave_balance: Optional[dict] = {}
     password: str
     role: str
     is_active: Optional[bool] = True

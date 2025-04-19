@@ -5,7 +5,7 @@ from services.user_service import create_default_user
 from routes import auth_routes, user_routes, salary_component_routes, \
         employee_salary_routes, salary_declaration_routes, \
         attendance_routes, project_attributes_routes, reimbursement_type_routes, \
-        reimbursement_assignment_route, reimbursements, public_holiday_routes
+        reimbursement_assignment_route, reimbursements, public_holiday_routes, company_leave_routes
 
 
 create_default_user()
@@ -45,6 +45,7 @@ app.include_router(reimbursement_type_routes.router, tags=["Reimbursement Types"
 app.include_router(reimbursement_assignment_route.router, tags=["Reimbursements Assignment"])
 app.include_router(reimbursements.router, tags=["My-Reimbursements"])
 app.include_router(public_holiday_routes.router, tags=["Public Holidays"])
+app.include_router(company_leave_routes.router, tags=["Company Leaves"])
 
 
 if __name__ == "__main__":

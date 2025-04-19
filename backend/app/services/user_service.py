@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from auth.password_handler import hash_password
 from models.user_model import UserInfo
 from database import user_collection
+from services.company_leave_service import get_all_leaves
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +32,11 @@ def create_user(user: UserInfo):
     """
     user.password = hash_password(user.password)
     try:
+        leaves = get_all_leaves()
+        print(leaves)
+        for leave in leaves:
+            user.leave_balance[leave["name"]] = leave["count"]
+        print(user.leave_balance)
         user_result = user_collection.insert_one(user.model_dump())
         logger.info("User created successfully, inserted_id: %s", str(user_result.inserted_id))
         return {"msg": "User created successfully", "inserted_id": str(user_result.inserted_id)}

@@ -5,8 +5,36 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import PageLayout from '../../layout/PageLayout';
 import ProtectedRoute from '../Common/ProtectedRoute';
-import { Button, Table, Spinner, Modal, Form, Pagination, Dropdown, InputGroup } from 'react-bootstrap';
-import { BsPlusCircle, BsFileEarmarkExcel, BsChevronLeft, BsChevronRight, BsSearch, BsCaretUpFill, BsCaretDownFill } from 'react-icons/bs';
+import {
+  Box,
+  Button,
+  Container,
+  TextField,
+  IconButton,
+  InputAdornment,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  CircularProgress,
+  Alert,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Pagination as MuiPagination
+} from '@mui/material';
+import {
+  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward as ArrowDownwardIcon,
+  Search as SearchIcon,
+  KeyboardArrowLeft as KeyboardArrowLeftIcon,
+  KeyboardArrowRight as KeyboardArrowRightIcon
+} from '@mui/icons-material';
 import AttendanceCalendar from './AttendanceCalendar';
 import './AttendanceCalendar.css';
 
@@ -83,7 +111,7 @@ function AttendenceUserList() {
     if (sortConfig.key !== columnKey) {
       return null;
     }
-    return sortConfig.direction === 'asc' ? <BsCaretUpFill /> : <BsCaretDownFill />;
+    return sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />;
   };
 
   const fetchUsers = async () => {
@@ -100,175 +128,187 @@ function AttendenceUserList() {
   };
 
   const handleViewAttendance = (empId) => {
-    console.log(empId);
     setSelectedEmpId(empId);
     setShowCalendar(true);
   };
+
+  const handleSearch = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
   // Calculate total pages
   const totalPages = Math.ceil(totalUsers / pageSize);
 
-  // Generate page numbers
-  const getPageNumbers = () => {
-    const pages = [];
-    const maxVisiblePages = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-    if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(
-        <Pagination.Item
-          key={i}
-          active={i === currentPage}
-          onClick={() => setCurrentPage(i)}
-        >
-          {i}
-        </Pagination.Item>
-      );
-    }
-
-    return pages;
+  // Handle page change
+  const handlePageChange = (event, newPage) => {
+    setCurrentPage(newPage);
   };
 
   return (
     <PageLayout title="Users Management">
-      <div className="container-fluid">
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <h4>Users List</h4>
-        </div>
+      <Container>
+        <Box sx={{ my: 4 }}>
+          <Typography variant="h4" gutterBottom>
+            Users List
+          </Typography>
 
-        {/* Search Box */}
-        <div className="mb-3">
-          <InputGroup>
-            <InputGroup.Text>
-              <BsSearch />
-            </InputGroup.Text>
-            <Form.Control
-              type="text"
+          {/* Search Box */}
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              fullWidth
+              variant="outlined"
               placeholder="Search users..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearch}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
             />
-          </InputGroup>
-        </div>
+          </Box>
 
-        {/* Page Size Selector */}
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <div className="d-flex align-items-center">
-            <span className="me-2">Show</span>
-            <Dropdown>
-              <Dropdown.Toggle variant="outline-secondary" size="sm">
-                {pageSize}
-              </Dropdown.Toggle>
-              <Dropdown.Menu>
-                {[5, 10, 20, 50, 100].map((size) => (
-                  <Dropdown.Item
-                    key={size}
-                    onClick={() => {
-                      setPageSize(size);
-                      setCurrentPage(1);
-                    }}
-                  >
-                    {size}
-                  </Dropdown.Item>
-                ))}
-              </Dropdown.Menu>
-            </Dropdown>
-            <span className="ms-2">entries</span>
-          </div>
-          <div>
-            Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalUsers)} of {totalUsers} entries
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="text-center">
-            <Spinner animation="border" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </Spinner>
-          </div>
-        ) : error ? (
-          <div className="alert alert-danger">{error}</div>
-        ) : (
-          <>
-            <div className="table-responsive">
-              <Table striped bordered hover className="align-middle">
-                <thead className="table-dark">
-                  <tr>
-                    <th onClick={() => requestSort('empId')} style={{ cursor: 'pointer' }}>
-                      Employee ID {getSortIcon('empId')}
-                    </th>
-                    <th onClick={() => requestSort('name')} style={{ cursor: 'pointer' }}>
-                      Name {getSortIcon('name')}
-                    </th>
-                    <th onClick={() => requestSort('email')} style={{ cursor: 'pointer' }}>
-                      Email {getSortIcon('email')}
-                    </th>
-                    <th onClick={() => requestSort('doj')} style={{ cursor: 'pointer' }}>
-                      Date of Joining {getSortIcon('doj')}
-                    </th>
-                    <th onClick={() => requestSort('mobile')} style={{ cursor: 'pointer' }}>
-                      Mobile {getSortIcon('mobile')}
-                    </th>
-                    <th>
-                      Action
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {getSortedAndFilteredUsers().map((user) => (
-                    <tr key={user.empId}>
-                      <td>{user.empId}</td>
-                      <td>{user.name}</td>
-                      <td>{user.email}</td>
-                      <td>{user.doj}</td>
-                      <td>{user.mobile}</td>
-                      <td>
-                        <Button variant="primary" onClick={() => handleViewAttendance(user.empId)}>
-                          View Attendance
-                        </Button>
-                      </td>
-                    </tr>
+          {/* Page Size Selector */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography variant="body2" sx={{ mr: 2 }}>
+                Show
+              </Typography>
+              <FormControl sx={{ minWidth: 80 }}>
+                <Select
+                  value={pageSize}
+                  size="small"
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                >
+                  {[5, 10, 20, 50, 100].map((size) => (
+                    <MenuItem key={size} value={size}>
+                      {size}
+                    </MenuItem>
                   ))}
-                </tbody>
-              </Table>
-            </div>
+                </Select>
+              </FormControl>
+              <Typography variant="body2" sx={{ ml: 2 }}>
+                entries
+              </Typography>
+            </Box>
+            <Typography variant="body2">
+              Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalUsers)} of {totalUsers} entries
+            </Typography>
+          </Box>
 
-            {/* Pagination */}
-            <div className="d-flex justify-content-center mt-4">
-              <Pagination>
-                <Pagination.First
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                />
-                <Pagination.Prev
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                />
-                {getPageNumbers()}
-                <Pagination.Next
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                />
-                <Pagination.Last
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={currentPage === totalPages}
-                />
-              </Pagination>
-            </div>
-          </>
-        )}
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : error ? (
+            <Alert severity="error">{error}</Alert>
+          ) : (
+            <>
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableHead>
+                    <TableRow sx={{ 
+                      '& .MuiTableCell-head': { 
+                        backgroundColor: 'primary.main',
+                        color: 'white',
+                        fontWeight: 'bold',
+                        fontSize: '0.875rem',
+                        padding: '12px 16px'
+                      }
+                    }}>
+                      <TableCell onClick={() => requestSort('empId')} sx={{ cursor: 'pointer' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          Employee ID {getSortIcon('empId')}
+                        </Box>
+                      </TableCell>
+                      <TableCell onClick={() => requestSort('name')} sx={{ cursor: 'pointer' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          Name {getSortIcon('name')}
+                        </Box>
+                      </TableCell>
+                      <TableCell onClick={() => requestSort('email')} sx={{ cursor: 'pointer' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          Email {getSortIcon('email')}
+                        </Box>
+                      </TableCell>
+                      <TableCell onClick={() => requestSort('doj')} sx={{ cursor: 'pointer' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          Date of Joining {getSortIcon('doj')}
+                        </Box>
+                      </TableCell>
+                      <TableCell onClick={() => requestSort('mobile')} sx={{ cursor: 'pointer' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          Mobile {getSortIcon('mobile')}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        Action
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {getSortedAndFilteredUsers().map((user) => (
+                      <TableRow 
+                        key={user.empId}
+                        sx={{ 
+                          '&:hover': { 
+                            backgroundColor: 'action.hover',
+                            cursor: 'pointer'
+                          }
+                        }}
+                      >
+                        <TableCell>{user.empId}</TableCell>
+                        <TableCell>{user.name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>{user.doj}</TableCell>
+                        <TableCell>{user.mobile}</TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="contained" 
+                            color="primary"
+                            size="small"
+                            onClick={() => handleViewAttendance(user.empId)}
+                          >
+                            View Attendance
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
 
-        <AttendanceCalendar
-          empId={selectedEmpId}
-          show={showCalendar}
-          onHide={() => setShowCalendar(false)}
-        />
-      </div>
+              {/* Pagination */}
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                <MuiPagination 
+                  count={totalPages}
+                  page={currentPage}
+                  onChange={handlePageChange}
+                  color="primary"
+                  showFirstButton
+                  showLastButton
+                />
+              </Box>
+            </>
+          )}
+
+          {/* Attendance Calendar Modal */}
+          {selectedEmpId && (
+            <AttendanceCalendar
+              empId={selectedEmpId}
+              show={showCalendar}
+              onHide={() => setShowCalendar(false)}
+            />
+          )}
+        </Box>
+      </Container>
     </PageLayout>
   );
-};
+}
+
 export default AttendenceUserList;

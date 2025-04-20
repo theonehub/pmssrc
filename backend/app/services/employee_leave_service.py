@@ -224,3 +224,17 @@ def get_all_employee_leaves(manager_id: str = None):
     except Exception as e:
         logger.exception(f"Error fetching all leaves for manager {manager_id}")
         raise HTTPException(status_code=500, detail=str(e)) 
+    
+def get_leaves_by_month_for_user(empId: str, month: int, year: int):
+    """
+    Returns all leaves for a specific employee in a specific month and year.
+    """
+    try:
+        leaves = list(employee_leave_collection.find({"empId": empId, "start_date": {"$regex": f"^{year}-{month:02d}-"}}))
+        for leave in leaves:
+            leave["id"] = str(leave["_id"])
+            del leave["_id"]
+        return leaves
+    except Exception as e:
+        logger.exception(f"Error fetching leaves for user {empId} in month {month} and year {year}")
+        raise HTTPException(status_code=500, detail=str(e))

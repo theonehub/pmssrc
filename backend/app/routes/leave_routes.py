@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from models.user_model import User
 from models.leave_model import EmployeeLeave, LeaveStatus
-from services.employee_leave_service import apply_leave, get_user_leaves, get_pending_leaves, update_leave_status, leave_balance, delete_leave_request, get_all_employee_leaves
+from services.employee_leave_service import apply_leave, get_user_leaves, get_pending_leaves, update_leave_status, leave_balance, delete_leave_request, get_all_employee_leaves, get_leaves_by_month_for_user
 from auth.auth import extract_empId, get_current_user
 from typing import List
 from auth.dependencies import role_checker
@@ -31,7 +31,6 @@ async def get_my_leaves(empId: str = Depends(extract_empId)):
     Get all leave applications for the current user.
     """
     leaves = get_user_leaves(empId)
-    print("Ankit leaves", leaves)
     return leaves
 
 @router.get("/pending", response_model=List[dict])
@@ -75,3 +74,10 @@ async def get_all_leaves(
         return get_all_employee_leaves(manager_id=current_user["empId"])
     else:  # superadmin
         return get_all_employee_leaves()
+    
+@router.get("/user/{empId}/{month}/{year}", response_model=List[dict])
+async def get_user_leaves_by_month(empId: str, month: int, year: int):
+    """
+    Get all leaves for a specific employee in a specific month and year.
+    """
+    return get_leaves_by_month_for_user(empId, month, year)

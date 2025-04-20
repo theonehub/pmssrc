@@ -30,17 +30,15 @@ const Topbar = ({ title, onMenuClick }) => {
       }}
     >
       <Toolbar sx={{ minHeight: '64px !important' }}>
-        {isMobile && (
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            edge="start"
-            onClick={onMenuClick}
-            sx={{ mr: 2 }}
-          >
-            <MenuIcon />
-          </IconButton>
-        )}
+        <IconButton
+          color="inherit"
+          aria-label="toggle menu"
+          edge="start"
+          onClick={onMenuClick}
+          sx={{ mr: 2 }}
+        >
+          <MenuIcon />
+        </IconButton>
         <Box sx={{ flexGrow: 1 }}>
           <Typography 
             variant="h6" 

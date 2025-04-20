@@ -116,9 +116,9 @@ const AllLeaves = () => {
                 }}
               >
                 <option value="ALL">All Statuses</option>
-                <option value="PENDING">Pending</option>
-                <option value="APPROVED">Approved</option>
-                <option value="REJECTED">Rejected</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
               </TextField>
             </Grid>
           </Grid>
@@ -135,6 +135,7 @@ const AllLeaves = () => {
                     padding: '12px 16px'
                   }
                 }}>
+                  <TableCell>Employee ID</TableCell>
                   <TableCell>Employee</TableCell>
                   <TableCell>Email</TableCell>
                   <TableCell>Leave Type</TableCell>
@@ -161,6 +162,7 @@ const AllLeaves = () => {
                         }
                       }}
                     >
+                      <TableCell>{leave.empId}</TableCell>
                       <TableCell>{leave.employee_name}</TableCell>
                       <TableCell>{leave.employee_email}</TableCell>
                       <TableCell>{leave.leave_name}</TableCell>

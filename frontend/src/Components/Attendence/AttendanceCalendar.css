@@ -13,12 +13,12 @@
 }
 
 .calendar-cell {
-  aspect-ratio: 1;
+  aspect-ratio: 4;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 1px solid #dee2e6;
-  border-radius: 4px;
+  border-radius: 1px;
   font-size: 0.9rem;
 }
 
@@ -28,20 +28,62 @@
 }
 
 .present {
-  background-color: #d4edda;
-  color: #155724;
+  background-color: #c8e6c9;
+  color: #2e7d32;
 }
 
 .absent {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: #ffcdd2;
+  color: #c62828;
 }
 
 .public_holiday {
-  background-color: #fff3cd;
-  color: #856404;
+  background-color: #bbdefb;
+  color: #1565c0;
+}
+
+.approved {
+  background-color: #dcedc8;
+  color: #33691e;
+}
+
+.rejected {
+  background-color: #ffccbc;
+  color: #bf360c;
+}
+
+.pending {
+  background-color: #fff9c4;
+  color: #f57f17;
 }
 
 .empty {
   background-color: #f8f9fa;
+}
+
+.attendance-calendar-modal {
+  max-width: 95%;
+  margin: 1.75rem auto;
+}
+
+@media (max-width: 768px) {
+  .calendar-cell {
+    font-size: 0.8rem;
+    padding: 4px;
+  }
+  
+  .calendar-grid {
+    gap: 2px;
+  }
+}
+
+@media (max-width: 576px) {
+  .calendar-cell {
+    font-size: 0.7rem;
+    padding: 2px;
+  }
+  
+  .calendar-grid {
+    gap: 1px;
+  }
 } 

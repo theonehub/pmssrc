@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Paper, Button, Container, Table, Alert, Card, TableContainer, TableHead, TableBody, TableRow, TableCell, Box, Grid } from '@mui/material';
-import { Modal, Form } from 'react-bootstrap';
+import { Paper, Container, Table, TableContainer, TableHead, TableBody, TableRow, TableCell, Box, Grid } from '@mui/material';
+import { Modal, Form, Card, Button, Alert } from 'react-bootstrap';
 import axios from '../../utils/axios';
 //import { getCurrentUser } from '../../utils/auth';
 import DatePicker from 'react-datepicker';
@@ -190,9 +190,10 @@ const LeaveManagement = () => {
                     }
                   }}>
                     <TableCell>Leave Type</TableCell>
-                    <TableCell>Total Days</TableCell>
+                    <TableCell>Start Date</TableCell>
+                    <TableCell>End Date</TableCell>
                     <TableCell>Used Days</TableCell>
-                    <TableCell>Remaining Days</TableCell>
+                    <TableCell>Reason</TableCell>
                     <TableCell>Status</TableCell>
                   </TableRow>
                 </TableHead>
@@ -212,10 +213,11 @@ const LeaveManagement = () => {
                           }
                         }}
                       >
-                        <TableCell>{leave.leave_type}</TableCell>
-                        <TableCell>{leave.total_days}</TableCell>
-                        <TableCell>{leave.used_days}</TableCell>
-                        <TableCell>{leave.remaining_days}</TableCell>
+                        <TableCell>{leave.leave_name}</TableCell>
+                        <TableCell>{leave.start_date}</TableCell>
+                        <TableCell>{leave.end_date}</TableCell>
+                        <TableCell>{leave.leave_count}</TableCell>
+                        <TableCell>{leave.reason}</TableCell>
                         <TableCell>
                           <Box
                             component="span"
@@ -223,13 +225,13 @@ const LeaveManagement = () => {
                               display: 'inline-block',
                               padding: '4px 8px',
                               borderRadius: '4px',
-                              backgroundColor: leave.remaining_days > 0 ? 'success.main' : 'error.main',
+                              backgroundColor: leave.status === 'approved' ? 'success.main' : 'error.main',
                               color: 'white',
                               fontSize: '0.75rem',
                               fontWeight: 'bold'
                             }}
                           >
-                            {leave.remaining_days > 0 ? 'Available' : 'Exhausted'}
+                            {leave.status.toUpperCase()}
                           </Box>
                         </TableCell>
                       </TableRow>

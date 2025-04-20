@@ -17,10 +17,10 @@ def convert_objectid_to_str(doc):
 
 async def get_assigned_components_for_employee(user):
     print(user)
-    employee_id = str(user.id)
+    empId = str(user.empId)
 
     assignments =  employee_salary_collection.find({
-        "employee_id": employee_id
+        "empId": empId
     }).to_list(None)
 
     enriched_assignments = []

@@ -38,7 +38,7 @@ class EmployeeSalaryInDB(EmployeeSalaryBase):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
         
 class BulkEmployeeSalaryCreate(BaseModel):
     components: List[EmployeeSalaryCreate]
@@ -71,4 +71,4 @@ class EmployeeSalaryWithComponentName(BaseModel):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True

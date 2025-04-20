@@ -13,6 +13,9 @@ import ReimbursementTypes from './Components/Reimbursements/ReimbursementTypes';
 import MyReimbursements from './Components/Reimbursements/MyReimbursements';
 import ReimbursementAssignmentList from './Components/Reimbursements/ReimbursementAssignmentList';
 import PublicHolidays from './Components/PublicHolidays/PublicHolidays';
+import LeaveManagement from './Components/Leave/LeaveManagement';
+import AllLeaves from './pages/AllLeaves';
+import CompanyLeaves from './Components/CompanyLeaves/CompanyLeaves';
 
 //import { isAuthenticated } from './utils/auth';
 
@@ -34,6 +37,11 @@ function App() {
         <Route path="/attendance" element={
           <ProtectedRoute allowedRoles={['manager', 'admin', 'superadmin']}>
             <AttendanceUserList />
+          </ProtectedRoute>
+        } />
+        <Route path="/company-leaves" element={
+          <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
+            <CompanyLeaves />
           </ProtectedRoute>
         } />
 
@@ -70,6 +78,16 @@ function App() {
         <Route path="/public-holidays" element={
           <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
             <PublicHolidays />
+          </ProtectedRoute>
+        } />
+        <Route path="/leaves" element={
+          <ProtectedRoute allowedRoles={['user', 'manager', 'admin', 'superadmin']}>
+            <LeaveManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="/all-leaves" element={
+          <ProtectedRoute allowedRoles={['manager', 'superadmin']}>
+            <AllLeaves />
           </ProtectedRoute>
         } />
       </Routes>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { getUserRole } from '../utils/auth';
 
 const Sidebar = () => {
@@ -124,6 +124,12 @@ const Sidebar = () => {
             <i className="bi bi-gear-fill me-2"></i> Project Attributes
           </button>
         )}
+
+        <li className="list-group-item bg-dark text-white">
+          <Link to="/leaves" className="text-white text-decoration-none">
+            <i className="bi bi-calendar-check me-2"></i>Leave Management
+          </Link>
+        </li>
 
         <button
           className="list-group-item list-group-item-action list-group-item-danger py-3"

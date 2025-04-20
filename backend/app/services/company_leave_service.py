@@ -9,7 +9,7 @@ async def create_leave(data: CompanyLeaveCreate):
     result = company_leave_collection.insert_one(doc)
     return str(result.inserted_id)
 
-def get_all_leaves():
+async def get_all_leaves():
     cursor = company_leave_collection.find().to_list(length=1000)
     leaves = []
     for leave in cursor:

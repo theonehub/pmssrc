@@ -22,7 +22,7 @@ reimbursement_types_collection = db["reimbursement_types"]
 reimbursement_assignments_collection = db["reimbursement_assignments"]
 reimbursement_requests_collection = db["reimbursement_requests_collection"]
 company_leave_collection = db["company_leave_collection"]
-
+employee_leave_collection = db["employee_leave_collection"]
 # Create indexes to improve query performance and enforce uniqueness.
 user_collection.create_index([("empId", ASCENDING)], unique=True)
 user_collection.create_index([("managerId", ASCENDING)])

@@ -12,10 +12,12 @@ class EmployeeLeave(BaseModel):
     """
     Model for employee leave applications
     """
-    empId: str
+    empId: Optional[str] = None
+    leave_id: Optional[str] = None
     leave_name: str
     start_date: str
     end_date: str
+    leave_count: Optional[int] = None
     status: LeaveStatus = LeaveStatus.PENDING
     applied_date: str = Field(default_factory=lambda: datetime.now().strftime("%Y-%m-%d"))
     approved_by: Optional[str] = None

@@ -109,6 +109,11 @@ def update_leave_status(leave_id: str, status: LeaveStatus, approved_by: str):
             {"leave_id": leave_id},
             {"$set": update_data}
         )
+
+        leave = employee_leave_collection.find_one({"leave_id": leave_id})
+        user = user_collection.find_one({"empId": leave["empId"]})
+        user["leave_balance"][leave["leave_name"]] -= leave["leave_count"]
+        user_collection.update_one({"empId": leave["empId"]}, {"$set": {"leave_balance": user["leave_balance"]}})
         
         if result.modified_count == 0:
             raise HTTPException(status_code=404, detail="Leave application not found")

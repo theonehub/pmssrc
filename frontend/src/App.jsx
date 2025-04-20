@@ -13,8 +13,8 @@ import ReimbursementTypes from './Components/Reimbursements/ReimbursementTypes';
 import MyReimbursements from './Components/Reimbursements/MyReimbursements';
 import ReimbursementAssignmentList from './Components/Reimbursements/ReimbursementAssignmentList';
 import PublicHolidays from './Components/PublicHolidays/PublicHolidays';
-import LeaveManagement from './Components/Leave/LeaveManagement';
-import AllLeaves from './pages/AllLeaves';
+import LeaveManagement from './Components/Leaves/LeaveManagement';
+import AllLeaves from './Components/Leaves/AllLeaves';
 import CompanyLeaves from './Components/CompanyLeaves/CompanyLeaves';
 
 //import { isAuthenticated } from './utils/auth';

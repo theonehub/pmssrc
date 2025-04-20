@@ -19,9 +19,9 @@ import {
   Grid,
 } from '@mui/material';
 import { toast } from 'react-toastify';
-import axios from '../utils/axios';
-import Sidebar from '../layout/Sidebar';
-import Topbar from '../layout/Topbar';
+import axios from '../../utils/axios';
+import Sidebar from '../../layout/Sidebar';
+import Topbar from '../../layout/Topbar';
 
 const AllLeaves = () => {
   const [leaves, setLeaves] = useState([]);

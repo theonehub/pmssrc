@@ -62,6 +62,15 @@ const Sidebar = () => {
           </button>
         )}
 
+{(role === 'superadmin' || role === 'admin' || role === 'manager') && (
+          <button
+            className="list-group-item list-group-item-action list-group-item-success py-3"
+            onClick={() => navigate('/all-leaves')}
+          >
+            <i className="bi bi-people me-2"></i>Leaves-Approval
+          </button>
+        )}
+
         {(role === 'superadmin' || role === 'admin' || role === 'manager') && (
           <button
             className="list-group-item list-group-item-action list-group-item-info py-3"

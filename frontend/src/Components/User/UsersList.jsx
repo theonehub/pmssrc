@@ -1,11 +1,47 @@
 import React, { useState, useEffect } from 'react';
+import { 
+  Box, 
+  Button, 
+  Typography, 
+  Paper, 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableContainer, 
+  TableHead, 
+  TableRow,
+  TextField,
+  InputAdornment,
+  IconButton,
+  Pagination,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Snackbar,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControlLabel,
+  Radio,
+  RadioGroup
+} from '@mui/material';
+import { 
+  Add as AddIcon, 
+  UploadFile as UploadFileIcon,
+  Search as SearchIcon,
+  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward as ArrowDownwardIcon
+} from '@mui/icons-material';
 import axios from '../../utils/axios';
 import { useNavigate } from 'react-router-dom';
+import PageLayout from '../../layout/PageLayout';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import PageLayout from '../../layout/PageLayout';
 import ProtectedRoute from '../Common/ProtectedRoute';
-import { Button, Table, Spinner, Modal, Form, Pagination, Dropdown, InputGroup } from 'react-bootstrap';
+import { Spinner } from 'react-bootstrap';
 import { BsPlusCircle, BsFileEarmarkExcel, BsChevronLeft, BsChevronRight, BsSearch, BsCaretUpFill, BsCaretDownFill } from 'react-icons/bs';
 
 function UsersList() {
@@ -19,6 +55,7 @@ function UsersList() {
   const [importing, setImporting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  const [alert, setAlert] = useState({ open: false, message: '', severity: 'success' });
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -95,12 +132,15 @@ function UsersList() {
       setTotalUsers(response.data.total);
     } catch (err) {
       setError(err.message || 'An error occurred while fetching users.');
-      toast.error(err.message || 'Failed to fetch users');
+      setAlert({
+        open: true,
+        message: err.message || 'Failed to fetch users',
+        severity: 'error'
+      });
     } finally {
       setLoading(false);
     }
   };
-
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
@@ -116,26 +156,33 @@ function UsersList() {
       password: e.target.password.value,
       role: e.target.role.value,
     };
-    console.log(userData);
 
     try {
-      const response = await axios.post('/users/create', userData, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      await axios.post('/users/create', userData);
+      setAlert({
+        open: true,
+        message: 'User created successfully',
+        severity: 'success'
       });
-      toast.success('User created successfully');
       setShowCreateUserModal(false);
       fetchUsers();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to create user'); 
+      setAlert({
+        open: true,
+        message: error.response?.data?.detail || 'Failed to create user',
+        severity: 'error'
+      });
     }
-  }
+  };
 
   const handleImport = async (e) => {
     e.preventDefault();
     if (!importFile) {
-      toast.warning('Please select a file to upload');
+      setAlert({
+        open: true,
+        message: 'Please select a file to upload',
+        severity: 'warning'
+      });
       return;
     }
 
@@ -144,24 +191,32 @@ function UsersList() {
     formData.append('file', importFile);
 
     try {
-      const response = await axios.post('/users/import', formData, {
+      await axios.post('/users/import', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      toast.success('Users imported successfully');
+      setAlert({
+        open: true,
+        message: 'Users imported successfully',
+        severity: 'success'
+      });
       setShowImportModal(false);
       setImportFile(null);
-      fetchUsers(); // Refresh the user list
+      fetchUsers();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to import users');
+      setAlert({
+        open: true,
+        message: error.response?.data?.detail || 'Failed to import users',
+        severity: 'error'
+      });
     } finally {
       setImporting(false);
     }
   };
 
-  const handleFileChange = (e) => {
-    setImportFile(e.target.files[0]);
+  const handleCloseAlert = () => {
+    setAlert({ ...alert, open: false });
   };
 
   // Calculate total pages
@@ -195,279 +250,268 @@ function UsersList() {
 
   return (
     <PageLayout title="Users Management">
-      <div className="container-fluid">
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <h4>Users List</h4>
-          <div>
+      <Box sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+          <Typography variant="h4">Users List</Typography>
+          <Box>
             <Button
-              variant="success"
-              className="me-2"
+              variant="contained"
+              startIcon={<AddIcon />}
               onClick={() => setShowCreateUserModal(true)}
+              sx={{ mr: 2 }}
             >
-              <BsPlusCircle className="me-2" />
               Add User
             </Button>
             <Button
-              variant="primary"
+              variant="outlined"
+              startIcon={<UploadFileIcon />}
               onClick={() => setShowImportModal(true)}
             >
-              <BsFileEarmarkExcel className="me-2" />
               Import Users
             </Button>
-          </div>
-        </div>
+          </Box>
+        </Box>
 
-        {/* Search Box */}
-        <div className="mb-3">
-          <InputGroup>
-            <InputGroup.Text>
-              <BsSearch />
-            </InputGroup.Text>
-            <Form.Control
-              type="text"
-              placeholder="Search users..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </InputGroup>
-        </div>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+          <TextField
+            placeholder="Search users..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ width: '300px' }}
+          />
+          <FormControl sx={{ minWidth: 120 }}>
+            <InputLabel>Show</InputLabel>
+            <Select
+              value={pageSize}
+              label="Show"
+              onChange={(e) => {
+                setPageSize(e.target.value);
+                setCurrentPage(1);
+              }}
+            >
+              {[5, 10, 20, 50, 100].map((size) => (
+                <MenuItem key={size} value={size}>
+                  {size}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
 
-        {/* Page Size Selector */}
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <div className="d-flex align-items-center">
-            <span className="me-2">Show</span>
-            <Dropdown>
-              <Dropdown.Toggle variant="outline-secondary" size="sm">
-                {pageSize}
-              </Dropdown.Toggle>
-              <Dropdown.Menu>
-                {[5, 10, 20, 50, 100].map((size) => (
-                  <Dropdown.Item
-                    key={size}
-                    onClick={() => {
-                      setPageSize(size);
-                      setCurrentPage(1);
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ 
+                '& .MuiTableCell-head': { 
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '0.875rem',
+                  padding: '12px 16px'
+                }
+              }}>
+                <TableCell>Employee ID</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Role</TableCell>
+                <TableCell>Gender</TableCell>
+                <TableCell>Mobile</TableCell>
+                <TableCell>Date of Birth</TableCell>
+                <TableCell>Date of Joining</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={8} align="center">Loading...</TableCell>
+                </TableRow>
+              ) : users.length > 0 ? (
+                getSortedAndFilteredUsers().map((user) => (
+                  <TableRow 
+                    key={user.empId}
+                    sx={{ 
+                      '&:hover': { 
+                        backgroundColor: 'action.hover',
+                        cursor: 'pointer'
+                      }
                     }}
                   >
-                    {size}
-                  </Dropdown.Item>
-                ))}
-              </Dropdown.Menu>
-            </Dropdown>
-            <span className="ms-2">entries</span>
-          </div>
-          <div>
-            Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalUsers)} of {totalUsers} entries
-          </div>
-        </div>
+                    <TableCell>{user.empId}</TableCell>
+                    <TableCell>{user.name}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Box
+                        component="span"
+                        sx={{
+                          display: 'inline-block',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          backgroundColor: getRoleBadgeColor(user.role),
+                          color: 'white',
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {user.role}
+                      </Box>
+                    </TableCell>
+                    <TableCell>{user.gender}</TableCell>
+                    <TableCell>{user.mobile}</TableCell>
+                    <TableCell>{new Date(user.dob).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(user.doj).toLocaleDateString()}</TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={8} align="center">No users found</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
 
-        {loading ? (
-          <div className="text-center">
-            <Spinner animation="border" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </Spinner>
-          </div>
-        ) : error ? (
-          <div className="alert alert-danger">{error}</div>
-        ) : (
-          <>
-            <div className="table-responsive">
-              <Table striped bordered hover className="align-middle">
-                <thead className="table-dark">
-                  <tr>
-                    <th onClick={() => requestSort('empId')} style={{ cursor: 'pointer' }}>
-                      Employee ID {getSortIcon('empId')}
-                    </th>
-                    <th onClick={() => requestSort('name')} style={{ cursor: 'pointer' }}>
-                      Name {getSortIcon('name')}
-                    </th>
-                    <th onClick={() => requestSort('email')} style={{ cursor: 'pointer' }}>
-                      Email {getSortIcon('email')}
-                    </th>
-                    <th onClick={() => requestSort('gender')} style={{ cursor: 'pointer' }}>
-                      Gender {getSortIcon('gender')}
-                    </th>
-                    <th onClick={() => requestSort('dob')} style={{ cursor: 'pointer' }}>
-                      Date of Birth {getSortIcon('dob')}
-                    </th>
-                    <th onClick={() => requestSort('doj')} style={{ cursor: 'pointer' }}>
-                      Date of Joining {getSortIcon('doj')}
-                    </th>
-                    <th onClick={() => requestSort('mobile')} style={{ cursor: 'pointer' }}>
-                      Mobile {getSortIcon('mobile')}
-                    </th>
-                    <th onClick={() => requestSort('role')} style={{ cursor: 'pointer' }}>
-                      Role {getSortIcon('role')}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {getSortedAndFilteredUsers().map((user) => (
-                    <tr key={user.empId}>
-                      <td>{user.empId}</td>
-                      <td>{user.name}</td>
-                      <td>{user.email}</td>
-                      <td>{user.gender}</td>
-                      <td>{new Date(user.dob).toLocaleDateString()}</td>
-                      <td>{new Date(user.doj).toLocaleDateString()}</td>
-                      <td>{user.mobile}</td>
-                      <td>
-                        <span className={`badge bg-${getRoleBadgeColor(user.role)}`}>
-                          {user.role}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </div>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+          <Pagination
+            count={Math.ceil(totalUsers / pageSize)}
+            page={currentPage}
+            onChange={(event, value) => setCurrentPage(value)}
+            color="primary"
+          />
+        </Box>
 
-            {/* Pagination */}
-            <div className="d-flex justify-content-center mt-4">
-              <Pagination>
-                <Pagination.First
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                />
-                <Pagination.Prev
-                  onClick={() => setCurrentPage(currentPage - 1)}
-                  disabled={currentPage === 1}
-                />
-                {getPageNumbers()}
-                <Pagination.Next
-                  onClick={() => setCurrentPage(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                />
-                <Pagination.Last
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={currentPage === totalPages}
-                />
-              </Pagination>
-            </div>
-          </>
-        )}
-        
-        {/* Create User Modal */}
-        <Modal show={showCreateUserModal} onHide={() => setShowCreateUserModal(false)}>
-          <Modal.Header closeButton>
-            <Modal.Title>Create User</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <Form onSubmit={handleCreateUser}>
-              <Form.Group className="mb-3">
-                <Form.Label>Employee ID</Form.Label>
-                <Form.Control type="text" name="empId" required />
-              </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Label>Name</Form.Label>
-                <Form.Control type="text" name="name" required />
-              </Form.Group>
-              <Form.Group className="mb-3">   
-                <Form.Label>Email</Form.Label>
-                <Form.Control type="email" name="email" required />
-              </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Label>Gender</Form.Label>
-                <Form.Control as="select" name="gender" required>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                </Form.Control>
-              </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Label>Date of Birth</Form.Label>
-                <Form.Control type="date" name="dob" required />
-              </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Label>Date of Joining</Form.Label>
-                <Form.Control type="date" name="doj" required />
-              </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Label>Mobile</Form.Label>
-                <Form.Control type="text" name="mobile" required />
-              </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Label>Manager ID</Form.Label>
-                <Form.Control type="text" name="managerId" required />
-              </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Label>Password</Form.Label>
-                <Form.Control type="password" name="password" required />
-              </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Label>Role</Form.Label>
-                <Form.Control as="select" name="role" required>
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                  <option value="superadmin">Super Admin</option>
-                  <option value="manager">Manager</option>
-                  
-                </Form.Control>
-              </Form.Group>
-              <div className="d-flex justify-content-end">
-                <Button variant="secondary" onClick={() => setShowCreateUserModal(false)}>
-                  Cancel
-                </Button>
-                <Button variant="primary" type="submit">
-                  Create User
-                </Button> 
-              </div>
-            </Form>
-          </Modal.Body>
-        </Modal>
+        {/* Create User Dialog */}
+        <Dialog open={showCreateUserModal} onClose={() => setShowCreateUserModal(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Create New User</DialogTitle>
+          <DialogContent>
+            <Box component="form" onSubmit={handleCreateUser} sx={{ mt: 2 }}>
+              <TextField
+                fullWidth
+                label="Employee ID"
+                name="empId"
+                required
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                label="Name"
+                name="name"
+                required
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                label="Email"
+                name="email"
+                type="email"
+                required
+                sx={{ mb: 2 }}
+              />
+              <FormControl component="fieldset" sx={{ mb: 2 }}>
+                <RadioGroup row name="gender">
+                  <FormControlLabel value="male" control={<Radio />} label="Male" />
+                  <FormControlLabel value="female" control={<Radio />} label="Female" />
+                  <FormControlLabel value="other" control={<Radio />} label="Other" />
+                </RadioGroup>
+              </FormControl>
+              <TextField
+                fullWidth
+                label="Date of Birth"
+                name="dob"
+                type="date"
+                required
+                sx={{ mb: 2 }}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                fullWidth
+                label="Date of Joining"
+                name="doj"
+                type="date"
+                required
+                sx={{ mb: 2 }}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                fullWidth
+                label="Mobile"
+                name="mobile"
+                required
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                label="Manager ID"
+                name="managerId"
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                label="Password"
+                name="password"
+                type="password"
+                required
+                sx={{ mb: 2 }}
+              />
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Role</InputLabel>
+                <Select name="role" label="Role" required>
+                  <MenuItem value="user">User</MenuItem>
+                  <MenuItem value="manager">Manager</MenuItem>
+                  <MenuItem value="admin">Admin</MenuItem>
+                  <MenuItem value="superadmin">Super Admin</MenuItem>
+                </Select>
+              </FormControl>
+              <DialogActions>
+                <Button onClick={() => setShowCreateUserModal(false)}>Cancel</Button>
+                <Button type="submit" variant="contained">Create</Button>
+              </DialogActions>
+            </Box>
+          </DialogContent>
+        </Dialog>
 
-        {/* Import Modal */}
-        <Modal show={showImportModal} onHide={() => setShowImportModal(false)}>
-          <Modal.Header closeButton>
-            <Modal.Title>Import Users from Excel</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <Form onSubmit={handleImport}>
-              <Form.Group className="mb-3">
-                <Form.Label>Select Excel File (.xlsx)</Form.Label>
-                <Form.Control
-                  type="file"
-                  accept=".xlsx"
-                  onChange={handleFileChange}
-                  required
-                />
-                <Form.Text className="text-muted">
-                  Please ensure the Excel file follows the required format.
-                </Form.Text>
-              </Form.Group>
-              <div className="d-flex justify-content-end">
-                <Button
-                  variant="secondary"
-                  className="me-2"
-                  onClick={() => setShowImportModal(false)}
-                >
-                  Cancel
+        {/* Import Users Dialog */}
+        <Dialog open={showImportModal} onClose={() => setShowImportModal(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>Import Users</DialogTitle>
+          <DialogContent>
+            <Box component="form" onSubmit={handleImport} sx={{ mt: 2 }}>
+              <input
+                type="file"
+                accept=".xlsx"
+                onChange={(e) => setImportFile(e.target.files[0])}
+                style={{ marginBottom: '16px' }}
+              />
+              <DialogActions>
+                <Button onClick={() => setShowImportModal(false)}>Cancel</Button>
+                <Button type="submit" variant="contained" disabled={!importFile || importing}>
+                  {importing ? 'Importing...' : 'Import'}
                 </Button>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  disabled={importing}
-                >
-                  {importing ? (
-                    <>
-                      <Spinner
-                        as="span"
-                        animation="border"
-                        size="sm"
-                        role="status"
-                        aria-hidden="true"
-                        className="me-2"
-                      />
-                      Importing...
-                    </>
-                  ) : (
-                    'Import'
-                  )}
-                </Button>
-              </div>
-            </Form>
-          </Modal.Body>
-        </Modal>
-      </div>
+              </DialogActions>
+            </Box>
+          </DialogContent>
+        </Dialog>
+
+        <Snackbar 
+          open={alert.open} 
+          autoHideDuration={6000} 
+          onClose={handleCloseAlert}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert 
+            onClose={handleCloseAlert} 
+            severity={alert.severity}
+            sx={{ width: '100%' }}
+          >
+            {alert.message}
+          </Alert>
+        </Snackbar>
+      </Box>
     </PageLayout>
   );
 }
@@ -476,17 +520,15 @@ function UsersList() {
 const getRoleBadgeColor = (role) => {
   switch (role?.toLowerCase()) {
     case 'admin':
-      return 'primary';
+      return 'primary.main';
     case 'superadmin':
-      return 'danger';
-    case 'hr':
-      return 'info';
-    case 'lead':
-      return 'warning';
+      return 'error.main';
+    case 'manager':
+      return 'info.main';
     case 'user':
-      return 'success';
+      return 'success.main';
     default:
-      return 'secondary';
+      return 'grey.500';
   }
 };
 

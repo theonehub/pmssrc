@@ -1,5 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Modal, Form, Table, Spinner, Alert, Container } from 'react-bootstrap';
+import {
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Checkbox,
+  FormControlLabel,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Alert,
+  Container,
+  CircularProgress,
+  Box,
+  Typography
+} from '@mui/material';
 import axios from 'axios';
 import { getToken } from '../../utils/auth';
 import PageLayout from '../../layout/PageLayout';
@@ -78,83 +99,88 @@ function CompanyLeaves() {
 
   return (
     <PageLayout>
-      <Container>
-        <div className="mt-4 d-flex justify-content-between align-items-center">
-          <h2>Company Leaves</h2>
-          <Button onClick={() => setShowModal(true)}>Add New Leave</Button>
-        </div>
+      <Container maxWidth="lg">
+        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h4">Company Leaves</Typography>
+          <Button variant="contained" color="primary" onClick={() => setShowModal(true)}>Add New Leave</Button>
+        </Box>
 
-        {error && <Alert variant="danger">{error}</Alert>}
+        {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
 
         {loading ? (
-          <div className="text-center py-5">
-            <Spinner animation="border" variant="primary" />
-          </div>
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
+            <CircularProgress color="primary" />
+          </Box>
         ) : (
-          <Table striped bordered hover>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Count</th>
-                <th>Active</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leaves.map((leave) => (
-                <tr key={leave.id}>
-                  <td>{leave.name}</td>
-                  <td>{leave.count}</td>
-                  <td>{leave.is_active ? 'Yes' : 'No'}</td>
-                  <td>
-                    <Button size="sm" variant="info" className="me-2" onClick={() => handleEdit(leave)}>Edit</Button>
-                    <Button size="sm" variant="danger" onClick={() => handleDelete(leave.id)}>Delete</Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
+          <TableContainer component={Paper} sx={{ mt: 2 }}>
+            <Table>
+              <TableHead>
+                <TableRow sx={{
+                  '& .MuiTableCell-head': {
+                    backgroundColor: 'primary.main',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    fontSize: '0.875rem',
+                    padding: '12px 16px'
+                  }
+                }}>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Count</TableCell>
+                  <TableCell>Active</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {leaves.map((leave) => (
+                  <TableRow key={leave.id}>
+                    <TableCell>{leave.name}</TableCell>
+                    <TableCell>{leave.count}</TableCell>
+                    <TableCell>{leave.is_active ? 'Yes' : 'No'}</TableCell>
+                    <TableCell>
+                      <Button size="small" variant="contained" color="info" sx={{ mr: 1 }} onClick={() => handleEdit(leave)}>Edit</Button>
+                      <Button size="small" variant="contained" color="error" onClick={() => handleDelete(leave.id)}>Delete</Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         )}
 
-        <Modal show={showModal} onHide={() => { setShowModal(false); setFormData({ name: '', count: 0, is_active: true }); setEditingId(null); }}>
-          <Form onSubmit={handleSubmit}>
-            <Modal.Header closeButton><Modal.Title>{editingId ? 'Edit' : 'Add'} Company Leave</Modal.Title></Modal.Header>
-            <Modal.Body>
-              <Form.Group className="mb-3">
-                <Form.Label>Leave Name</Form.Label>
-                <Form.Control 
-                  required 
-                  type="text" 
-                  placeholder="e.g. Casual Leave, Sick Leave" 
-                  value={formData.name} 
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
-                />
-              </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Label>Leave Count</Form.Label>
-                <Form.Control 
-                  required 
-                  type="number" 
-                  placeholder="Number of days allowed" 
-                  value={formData.count} 
-                  onChange={(e) => setFormData({ ...formData, count: parseInt(e.target.value) })} 
-                />
-              </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Check 
-                  type="checkbox" 
-                  label="Active" 
-                  checked={formData.is_active} 
-                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} 
-                />
-              </Form.Group>
-            </Modal.Body>
-            <Modal.Footer>
-              <Button variant="secondary" onClick={() => { setShowModal(false); setFormData({ name: '', count: 0, is_active: true }); setEditingId(null); }}>Cancel</Button>
-              <Button type="submit" variant="primary">{editingId ? 'Update' : 'Save'}</Button>
-            </Modal.Footer>
-          </Form>
-        </Modal>
+        <Dialog open={showModal} onClose={() => { setShowModal(false); setFormData({ name: '', count: 0, is_active: true }); setEditingId(null); }}>
+          <DialogTitle>{editingId ? 'Edit' : 'Add'} Company Leave</DialogTitle>
+          <DialogContent>
+            <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+              <TextField
+                required
+                fullWidth
+                label="Leave Name"
+                placeholder="e.g. Casual Leave, Sick Leave"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                required
+                fullWidth
+                type="number"
+                label="Leave Count"
+                placeholder="Number of days allowed"
+                value={formData.count}
+                onChange={(e) => setFormData({ ...formData, count: parseInt(e.target.value) })}
+                sx={{ mb: 2 }}
+              />
+              <FormControlLabel
+                control={<Checkbox checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />}
+                label="Active"
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => { setShowModal(false); setFormData({ name: '', count: 0, is_active: true }); setEditingId(null); }}>Cancel</Button>
+            <Button type="submit" variant="contained" color="primary">{editingId ? 'Update' : 'Save'}</Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     </PageLayout>
   );

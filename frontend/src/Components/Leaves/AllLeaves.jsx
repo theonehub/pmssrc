@@ -8,7 +8,6 @@ import {
   TableRow,
   Paper,
   Button,
-  Chip,
   Typography,
   Box,
   Dialog,
@@ -29,6 +28,7 @@ const AllLeaves = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchLeaves();
@@ -40,6 +40,8 @@ const AllLeaves = () => {
       setLeaves(response.data);
     } catch (error) {
       toast.error('Failed to fetch leaves');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -60,15 +62,15 @@ const AllLeaves = () => {
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'APPROVED':
-        return 'success';
-      case 'REJECTED':
-        return 'error';
-      case 'PENDING':
-        return 'warning';
+    switch (status?.toLowerCase()) {
+      case 'approved':
+        return 'success.main';
+      case 'pending':
+        return 'warning.main';
+      case 'rejected':
+        return 'error.main';
       default:
-        return 'default';
+        return 'grey.500';
     }
   };
 
@@ -124,7 +126,15 @@ const AllLeaves = () => {
           <TableContainer component={Paper}>
             <Table>
               <TableHead>
-                <TableRow>
+                <TableRow sx={{ 
+                  '& .MuiTableCell-head': { 
+                    backgroundColor: 'primary.main',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    fontSize: '0.875rem',
+                    padding: '12px 16px'
+                  }
+                }}>
                   <TableCell>Employee</TableCell>
                   <TableCell>Email</TableCell>
                   <TableCell>Leave Type</TableCell>
@@ -136,48 +146,76 @@ const AllLeaves = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredLeaves.map((leave) => (
-                  <TableRow key={leave.id}>
-                    <TableCell>{leave.employee_name}</TableCell>
-                    <TableCell>{leave.employee_email}</TableCell>
-                    <TableCell>{leave.leave_name}</TableCell>
-                    <TableCell>{leave.start_date}</TableCell>
-                    <TableCell>{leave.end_date}</TableCell>
-                    <TableCell>{leave.leave_count}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={leave.status}
-                        color={getStatusColor(leave.status)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {leave.status && leave.status.toUpperCase() === 'PENDING' ? (
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Button
-                            variant="contained"
-                            color="success"
-                            size="small"
-                            onClick={() => handleApproveReject(leave, 'approved')}
-                          >
-                            Approve
-                          </Button>
-                          <Button
-                            variant="contained"
-                            color="error"
-                            size="small"
-                            onClick={() => handleApproveReject(leave, 'rejected')}
-                          >
-                            Reject
-                          </Button>
-                        </Box>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          No actions available
-                        </Typography>
-                      )}
-                    </TableCell>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={8} align="center">Loading...</TableCell>
                   </TableRow>
-                ))}
+                ) : leaves.length > 0 ? (
+                  filteredLeaves.map((leave) => (
+                    <TableRow 
+                      key={leave.id}
+                      sx={{ 
+                        '&:hover': { 
+                          backgroundColor: 'action.hover',
+                          cursor: 'pointer'
+                        }
+                      }}
+                    >
+                      <TableCell>{leave.employee_name}</TableCell>
+                      <TableCell>{leave.employee_email}</TableCell>
+                      <TableCell>{leave.leave_name}</TableCell>
+                      <TableCell>{leave.start_date}</TableCell>
+                      <TableCell>{leave.end_date}</TableCell>
+                      <TableCell>{leave.leave_count}</TableCell>
+                      <TableCell>
+                        <Box
+                          component="span"
+                          sx={{
+                            display: 'inline-block',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            backgroundColor: getStatusColor(leave.status),
+                            color: 'white',
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          {leave.status}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        {leave.status && leave.status.toUpperCase() === 'PENDING' ? (
+                          <Box sx={{ display: 'flex', gap: 1 }}>
+                            <Button
+                              variant="contained"
+                              color="success"
+                              size="small"
+                              onClick={() => handleApproveReject(leave, 'approved')}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              variant="contained"
+                              color="error"
+                              size="small"
+                              onClick={() => handleApproveReject(leave, 'rejected')}
+                            >
+                              Reject
+                            </Button>
+                          </Box>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            No actions available
+                          </Typography>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={8} align="center">No leaves found</TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </TableContainer>

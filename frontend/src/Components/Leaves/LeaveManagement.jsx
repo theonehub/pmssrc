@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Form, Button, Table, Alert, Modal } from 'react-bootstrap';
+import { Paper, Button, Container, Table, Alert, Card, TableContainer, TableHead, TableBody, TableRow, TableCell, Box, Grid } from '@mui/material';
+import { Modal, Form } from 'react-bootstrap';
 import axios from '../../utils/axios';
 //import { getCurrentUser } from '../../utils/auth';
 import DatePicker from 'react-datepicker';
@@ -19,9 +20,7 @@ const LeaveManagement = () => {
   const [editingLeave, setEditingLeave] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [leaveToDelete, setLeaveToDelete] = useState(null);
-
-  //const currentUser = getCurrentUser();
-  const empId = localStorage.getItem('empId');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchLeaveBalance();
@@ -41,8 +40,10 @@ const LeaveManagement = () => {
     try {
       const response = await axios.get(`http://localhost:8000/leaves/my-leaves`);
       setLeaves(response.data);
+      setLoading(false);
     } catch (error) {
       setError('Failed to fetch leave history');
+      setLoading(false);
     }
   };
 
@@ -148,9 +149,9 @@ const LeaveManagement = () => {
         </div>
 
         {/* Leave Balance Tiles */}
-        <Row className="mb-4">
+        <Grid container spacing={2} className="mb-4">
           {Object.entries(leaveBalance).map(([type, balance]) => (
-            <Col key={type} md={4} className="mb-3">
+            <Grid item md={4} className="mb-3">
               <Card 
                 bg={getLeaveTypeColor(type)}
                 text="white"
@@ -166,9 +167,9 @@ const LeaveManagement = () => {
                   <small>days remaining</small>
                 </Card.Body>
               </Card>
-            </Col>
+            </Grid>
           ))}
-        </Row>
+        </Grid>
 
         {/* Leave History */}
         <Card>
@@ -176,61 +177,71 @@ const LeaveManagement = () => {
             <h4>Leave History</h4>
           </Card.Header>
           <Card.Body>
-            <Table striped bordered hover>
-              <thead>
-                <tr>
-                  <th>Leave Type</th>
-                  <th>Start Date</th>
-                  <th>End Date</th>
-                  <th>Status</th>
-                  <th>Reason</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {leaves.map((leave) => (
-                  <tr key={leave._id}>
-                    <td>{leave.leave_name.replace('_', ' ')}</td>
-                    <td>{leave.start_date}</td>
-                    <td>{leave.end_date}</td>
-                    <td>
-                      <span
-                        className={`badge ${
-                          leave.status === 'approved'
-                            ? 'bg-success'
-                            : leave.status === 'rejected'
-                            ? 'bg-danger'
-                            : 'bg-warning'
-                        }`}
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ 
+                    '& .MuiTableCell-head': { 
+                      backgroundColor: 'primary.main',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      fontSize: '0.875rem',
+                      padding: '12px 16px'
+                    }
+                  }}>
+                    <TableCell>Leave Type</TableCell>
+                    <TableCell>Total Days</TableCell>
+                    <TableCell>Used Days</TableCell>
+                    <TableCell>Remaining Days</TableCell>
+                    <TableCell>Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center">Loading...</TableCell>
+                    </TableRow>
+                  ) : leaves.length > 0 ? (
+                    leaves.map((leave) => (
+                      <TableRow 
+                        key={leave.id}
+                        sx={{ 
+                          '&:hover': { 
+                            backgroundColor: 'action.hover',
+                            cursor: 'pointer'
+                          }
+                        }}
                       >
-                        {leave.status}
-                      </span>
-                    </td>
-                    <td>{leave.reason}</td>
-                    <td>
-                      {canModifyLeave(leave) && (
-                        <div className="d-flex gap-2">
-                          <Button
-                            variant="outline-primary"
-                            size="sm"
-                            onClick={() => handleEdit(leave)}
+                        <TableCell>{leave.leave_type}</TableCell>
+                        <TableCell>{leave.total_days}</TableCell>
+                        <TableCell>{leave.used_days}</TableCell>
+                        <TableCell>{leave.remaining_days}</TableCell>
+                        <TableCell>
+                          <Box
+                            component="span"
+                            sx={{
+                              display: 'inline-block',
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              backgroundColor: leave.remaining_days > 0 ? 'success.main' : 'error.main',
+                              color: 'white',
+                              fontSize: '0.75rem',
+                              fontWeight: 'bold'
+                            }}
                           >
-                            <i className="bi bi-pencil"></i>
-                          </Button>
-                          <Button
-                            variant="outline-danger"
-                            size="sm"
-                            onClick={() => handleDelete(leave)}
-                          >
-                            <i className="bi bi-trash"></i>
-                          </Button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
+                            {leave.remaining_days > 0 ? 'Available' : 'Exhausted'}
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center">No leaves found</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Card.Body>
         </Card>
 
@@ -246,8 +257,8 @@ const LeaveManagement = () => {
             {error && <Alert variant="danger">{error}</Alert>}
             {success && <Alert variant="success">{success}</Alert>}
             <Form onSubmit={handleSubmit}>
-              <Row>
-                <Col md={6}>
+              <Grid container spacing={2}>
+                <Grid item md={6}>
                   <Form.Group className="mb-3">
                     <Form.Label>Leave Type</Form.Label>
                     <Form.Select
@@ -263,8 +274,8 @@ const LeaveManagement = () => {
                       ))}
                     </Form.Select>
                   </Form.Group>
-                </Col>
-                <Col md={6}>
+                </Grid>
+                <Grid item md={6}>
                   <Form.Group className="mb-3">
                     <Form.Label>Reason</Form.Label>
                     <Form.Control
@@ -274,10 +285,10 @@ const LeaveManagement = () => {
                       onChange={(e) => setReason(e.target.value)}
                     />
                   </Form.Group>
-                </Col>
-              </Row>
-              <Row>
-                <Col md={6}>
+                </Grid>
+              </Grid>
+              <Grid container spacing={2}>
+                <Grid item md={6}>
                   <Form.Group className="mb-3">
                     <Form.Label>Start Date</Form.Label>
                     <DatePicker
@@ -289,8 +300,8 @@ const LeaveManagement = () => {
                       required
                     />
                   </Form.Group>
-                </Col>
-                <Col md={6}>
+                </Grid>
+                <Grid item md={6}>
                   <Form.Group className="mb-3">
                     <Form.Label>End Date</Form.Label>
                     <DatePicker
@@ -302,8 +313,8 @@ const LeaveManagement = () => {
                       required
                     />
                   </Form.Group>
-                </Col>
-              </Row>
+                </Grid>
+              </Grid>
               <div className="d-flex justify-content-end gap-2">
                 <Button variant="secondary" onClick={() => setShowModal(false)}>
                   Cancel

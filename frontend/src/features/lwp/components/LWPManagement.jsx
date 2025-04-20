@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Container, Table, Form, Spinner, Alert } from 'react-bootstrap';
+import { Button, Container, Table, CircularProgress, Alert, TableContainer, TableHead, TableBody, TableRow, TableCell, Box, TextField, Typography } from '@mui/material';
 import axios from 'axios';
 import { getToken } from '../../../utils/auth';
 import PageLayout from '../../../layout/PageLayout';
 import * as XLSX from 'xlsx';
+import { Paper } from '@mui/material';
 
 const LWPManagement = () => {
   const [lwpRecords, setLwpRecords] = useState([]);
@@ -104,39 +105,112 @@ const LWPManagement = () => {
     }
   };
 
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'approved':
+        return 'success.main';
+      case 'pending':
+        return 'warning.main';
+      case 'rejected':
+        return 'error.main';
+      default:
+        return 'grey.500';
+    }
+  };
+
   return (
     <PageLayout>
       <Container>
         <h3 className="mt-4 mb-4">LWP Management</h3>
         {/* Existing LWP Records */}
-        <Table striped bordered hover>
-          <thead>
-            <tr>
-              <th>Employee Name</th>
-              <th>Month</th>
-              <th>Year</th>
-              <th>Present Days</th>
-            </tr>
-          </thead>
-          <tbody>
-            {lwpRecords.map((record) => (
-              <tr key={record.id}>
-                <td>{record.employee_name}</td>
-                <td>{record.month}</td>
-                <td>{record.year}</td>
-                <td>
-                  <Form.Control type="number" value={record.present_days} onChange={(e) => {
-                    const newPresentDays = parseInt(e.target.value, 10);
-                    setLwpRecords(lwpRecords.map(r => r.id === record.id ? { ...r, present_days: newPresentDays } : r));
-                  }} />
-                </td>
-                <td>
-                  <Button size="sm" onClick={() => handleUpdateLWP(record.id, record.present_days)}>Update</Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ 
+                '& .MuiTableCell-head': { 
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '0.875rem',
+                  padding: '12px 16px'
+                }
+              }}>
+                <TableCell>Employee</TableCell>
+                <TableCell>Start Date</TableCell>
+                <TableCell>End Date</TableCell>
+                <TableCell>Days</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} align="center">Loading...</TableCell>
+                </TableRow>
+              ) : lwpRecords.length > 0 ? (
+                lwpRecords.map((lwp) => (
+                  <TableRow 
+                    key={lwp.id}
+                    sx={{ 
+                      '&:hover': { 
+                        backgroundColor: 'action.hover',
+                        cursor: 'pointer'
+                      }
+                    }}
+                  >
+                    <TableCell>{lwp.employee_name}</TableCell>
+                    <TableCell>{new Date(lwp.start_date).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(lwp.end_date).toLocaleDateString()}</TableCell>
+                    <TableCell>{lwp.days}</TableCell>
+                    <TableCell>
+                      <Box
+                        component="span"
+                        sx={{
+                          display: 'inline-block',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          backgroundColor: getStatusColor(lwp.status),
+                          color: 'white',
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {lwp.status}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="small"
+                          onClick={() => handleUpdateLWP(lwp.id, lwp.present_days)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="contained"
+                          color="error"
+                          size="small"
+                          onClick={() => {
+                            // Implement delete functionality
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={6} align="center">No LWP records found</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
         {updateStatus.message && (
           <Alert variant={updateStatus.type}>{updateStatus.message}</Alert>
         )}
@@ -144,7 +218,7 @@ const LWPManagement = () => {
         <Button className="mt-3" variant="warning" onClick={handleBulkUpdate} disabled={isUpdatingBulk}>
           {isUpdatingBulk ? (
             <>
-              <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+              <CircularProgress color="primary" />
               Updating...
             </>
           ) : (
@@ -157,7 +231,7 @@ const LWPManagement = () => {
         <Button className="mb-3" variant="outline-success" onClick={handleExport} disabled={isExporting}>
           {isExporting ? (
             <>
-              <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" />
+              <CircularProgress color="primary" />
               Exporting...
             </>
           ) : (
@@ -165,10 +239,15 @@ const LWPManagement = () => {
           )}
         </Button>
         {/* Import Section */}
-        <Form.Group className="mb-3">
-          <Form.Label>Import LWP Data</Form.Label>
-          <Form.Control type="file" accept=".xlsx, .xls" onChange={(e) => setFile(e.target.files[0])} />
-        </Form.Group>
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="body1">Import LWP Data</Typography>
+          <TextField
+            type="file"
+            inputProps={{ accept: ".xlsx, .xls" }}
+            onChange={(e) => setFile(e.target.files[0])}
+            fullWidth
+          />
+        </Box>
         <Button onClick={handleImport}>Import</Button>
         {uploadStatus.message && (
           <Alert variant={uploadStatus.type} className="mt-3">{uploadStatus.message}</Alert>

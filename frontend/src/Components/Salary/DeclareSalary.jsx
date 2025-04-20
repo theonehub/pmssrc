@@ -2,12 +2,15 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { getToken } from '../../utils/auth';
 import PageLayout from '../../layout/PageLayout'; // Adjust path if needed
+import { TableContainer, Table, TableHead, TableBody, TableRow, TableCell, Box, Button, Paper } from '@mui/material';
 
 function DeclareSalary() {
   const [components, setComponents] = useState([]);
   const [declarations, setDeclarations] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [alert, setAlert] = useState({ type: '', message: '', show: false });
+  const [loading, setLoading] = useState(true);
+  const [salaries, setSalaries] = useState([]);
 
   const showAlert = (type, message) => {
     setAlert({ type, message, show: true });
@@ -33,6 +36,8 @@ function DeclareSalary() {
     } catch (err) {
       console.error('Error fetching components', err);
       showAlert('danger', 'Failed to fetch salary components');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -82,6 +87,32 @@ function DeclareSalary() {
     }
   };
 
+  const fetchSalaries = async () => {
+    try {
+      const res = await axios.get('http://localhost:8000/employee/salaries', {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+
+      const fetchedSalaries = res.data;
+      setSalaries(fetchedSalaries);
+    } catch (err) {
+      console.error('Error fetching salaries', err);
+      showAlert('danger', 'Failed to fetch salaries');
+    }
+  };
+
+  useEffect(() => {
+    fetchSalaries();
+  }, []);
+
+  const handleEdit = (salary) => {
+    // Implement edit functionality
+  };
+
+  const handleDelete = (salary) => {
+    // Implement delete functionality
+  };
+
   return (
     <PageLayout>
       <div className="container mt-4">
@@ -94,63 +125,94 @@ function DeclareSalary() {
           </div>
         )}
 
-        {components.length === 0 ? (
-          <p>No salary components assigned.</p>
-        ) : (
-          <table className="table table-bordered">
-            <thead>
-              <tr>
-                <th>Component</th>
-                <th>Min Amount (₹)</th>
-                <th>Max Amount (₹)</th>
-                <th>Already Declared (₹)</th>
-                <th>Your Declaration (₹)</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {components.map((comp, idx) => (
-                <tr key={idx}>
-                  <td>{comp.component_name}</td>
-                  <td>{comp.min_amount}</td>
-                  <td>{comp.max_amount}</td>
-                  <td>
-                    {comp.declared_amount !== undefined ? (
-                      <span className="text-success fw-semibold">{comp.declared_amount}</span>
-                    ) : (
-                      <span className="text-muted">—</span>
-                    )}
-                  </td>
-                  <td>
-                    {comp.is_editable ? (
-                      <input
-                        type="number"
-                        className="form-control"
-                        value={declarations[comp.component_id] || ''}
-                        onChange={(e) => handleChange(comp.component_id, e.target.value)}
-                      />
-                    ) : comp.declared_amount ? (
-                      <span>{comp.declared_amount}</span>
-                    ) : (
-                      <span className="text-muted">Not editable</span>
-                    )}
-                  </td>
-                  <td>
-                    {comp.is_editable && (
-                      <button
-                        className="btn btn-sm btn-primary"
-                        onClick={() => handleSubmit(comp)}
-                        disabled={submitting}
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ 
+                '& .MuiTableCell-head': { 
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '0.875rem',
+                  padding: '12px 16px'
+                }
+              }}>
+                <TableCell>Employee</TableCell>
+                <TableCell>Basic Salary</TableCell>
+                <TableCell>Allowances</TableCell>
+                <TableCell>Deductions</TableCell>
+                <TableCell>Net Salary</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">Loading...</TableCell>
+                </TableRow>
+              ) : salaries.length > 0 ? (
+                salaries.map((salary) => (
+                  <TableRow 
+                    key={salary.id}
+                    sx={{ 
+                      '&:hover': { 
+                        backgroundColor: 'action.hover',
+                        cursor: 'pointer'
+                      }
+                    }}
+                  >
+                    <TableCell>{salary.employee_name}</TableCell>
+                    <TableCell>{salary.basic_salary}</TableCell>
+                    <TableCell>{salary.allowances}</TableCell>
+                    <TableCell>{salary.deductions}</TableCell>
+                    <TableCell>{salary.net_salary}</TableCell>
+                    <TableCell>
+                      <Box
+                        component="span"
+                        sx={{
+                          display: 'inline-block',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          backgroundColor: salary.is_active ? 'success.main' : 'error.main',
+                          color: 'white',
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold'
+                        }}
                       >
-                        Submit
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+                        {salary.is_active ? 'Active' : 'Inactive'}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="small"
+                          onClick={() => handleEdit(salary)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="contained"
+                          color="error"
+                          size="small"
+                          onClick={() => handleDelete(salary)}
+                        >
+                          Delete
+                        </Button>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">No salary declarations found</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </div>
     </PageLayout>
   );

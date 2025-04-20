@@ -12,6 +12,7 @@ const PublicHolidays = () => {
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openImportDialog, setOpenImportDialog] = useState(false);
   const [alert, setAlert] = useState({ open: false, message: '', severity: 'success' });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchHolidays();
@@ -29,6 +30,8 @@ const PublicHolidays = () => {
         message: 'Failed to fetch holidays. Please try again.',
         severity: 'error'
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -111,7 +114,15 @@ const PublicHolidays = () => {
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
-              <TableRow>
+              <TableRow sx={{ 
+                '& .MuiTableCell-head': { 
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '0.875rem',
+                  padding: '12px 16px'
+                }
+              }}>
                 <TableCell>Name</TableCell>
                 <TableCell>Date</TableCell>
                 <TableCell>Description</TableCell>
@@ -119,9 +130,21 @@ const PublicHolidays = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {holidays.length > 0 ? (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={4} align="center">Loading...</TableCell>
+                </TableRow>
+              ) : holidays.length > 0 ? (
                 holidays.map((holiday) => (
-                  <TableRow key={holiday.id}>
+                  <TableRow 
+                    key={holiday.id}
+                    sx={{ 
+                      '&:hover': { 
+                        backgroundColor: 'action.hover',
+                        cursor: 'pointer'
+                      }
+                    }}
+                  >
                     <TableCell>{holiday.name}</TableCell>
                     <TableCell>{new Date(holiday.date).toLocaleDateString()}</TableCell>
                     <TableCell>{holiday.description}</TableCell>

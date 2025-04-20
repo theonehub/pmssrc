@@ -3,7 +3,8 @@ import axios from 'axios';
 import { getToken } from '../../utils/auth';
 import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
 import PageLayout from '../../layout/PageLayout';
-import { Modal, Button, Form, Spinner, Toast } from 'react-bootstrap';
+import { Paper, Button, Container, Table, CircularProgress, Alert, TableContainer, TableHead, TableBody, TableRow, TableCell, Box, TextField, Typography } from '@mui/material';
+import { Modal, Form, Spinner, Toast } from 'react-bootstrap';
 
 function SalaryComponents() {
   const [components, setComponents] = useState([]);
@@ -121,49 +122,90 @@ function SalaryComponents() {
           }}
         />
 
-        {loading ? (
-          <div className="text-center py-5">
-            <Spinner animation="border" variant="primary" />
-          </div>
-        ) : (
-          <table className="table table-bordered table-hover">
-            <thead className="table-light">
-              <tr>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Description</th>
-                <th style={{ width: '100px' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedComponents.length > 0 ? (
-                paginatedComponents.map((comp) => (
-                  <tr key={comp.id}>
-                    <td>{comp.name}</td>
-                    <td className={comp.type === 'earning' ? 'text-success' : 'text-danger'}>
-                      {comp.type.charAt(0).toUpperCase() + comp.type.slice(1)}
-                    </td>
-                    <td>{comp.description}</td>
-                    <td>
-                      <Button variant="outline-primary" size="sm" onClick={() => handleEdit(comp)} className="me-2">
-                        <FaEdit />
-                      </Button>
-                      <Button variant="outline-danger" size="sm" onClick={() => handleDelete(comp.id)}>
-                        <FaTrash />
-                      </Button>
-                    </td>
-                  </tr>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ 
+                '& .MuiTableCell-head': { 
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '0.875rem',
+                  padding: '12px 16px'
+                }
+              }}>
+                <TableCell>Component Name</TableCell>
+                <TableCell>Type</TableCell>
+                <TableCell>Description</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} align="center">Loading...</TableCell>
+                </TableRow>
+              ) : components.length > 0 ? (
+                components.map((component) => (
+                  <TableRow 
+                    key={component.id}
+                    sx={{ 
+                      '&:hover': { 
+                        backgroundColor: 'action.hover',
+                        cursor: 'pointer'
+                      }
+                    }}
+                  >
+                    <TableCell>{component.name}</TableCell>
+                    <TableCell>{component.type}</TableCell>
+                    <TableCell>{component.description}</TableCell>
+                    <TableCell>
+                      <Box
+                        component="span"
+                        sx={{
+                          display: 'inline-block',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          backgroundColor: component.is_active ? 'success.main' : 'error.main',
+                          color: 'white',
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {component.is_active ? 'Active' : 'Inactive'}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="small"
+                          onClick={() => handleEdit(component)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="contained"
+                          color="error"
+                          size="small"
+                          onClick={() => handleDelete(component)}
+                        >
+                          Delete
+                        </Button>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
                 ))
               ) : (
-                <tr>
-                  <td colSpan="4" className="text-center">
-                    No components found
-                  </td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={5} align="center">No salary components found</TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
-        )}
+            </TableBody>
+          </Table>
+        </TableContainer>
 
         {/* Pagination Controls */}
         {totalPages > 1 && (

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getToken } from '../../utils/auth';
-import { Modal, Button, Table, Form, Alert } from 'react-bootstrap';
+import { Modal, Button, Table, Form, Alert, TableContainer, TableHead, TableBody, TableRow, TableCell, Box, TextField } from 'react-bootstrap';
 
 const AssignSalary = ({ show, onClose, userId }) => {
   const [components, setComponents] = useState([]);
@@ -70,32 +70,86 @@ const AssignSalary = ({ show, onClose, userId }) => {
       <Modal.Body>
         {error && <Alert variant="danger">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
-        <Table striped bordered hover responsive>
-          <thead>
-            <tr>
-              <th>Component Name</th>
-              <th>Min Amount</th>
-              <th>Max Amount</th>
-              <th>Editable</th>
-            </tr>
-          </thead>
-          <tbody>
-            {components.map((component) => (
-              <tr key={component.id}>
-                <td>{component.name}</td>
-                <td>
-                  <Form.Control type="number" onChange={(e) => handleComponentChange(component.id, 'min_amount', e.target.value)} />
-                </td>
-                <td>
-                  <Form.Control type="number" onChange={(e) => handleComponentChange(component.id, 'max_amount', e.target.value)} />
-                </td>
-                <td>
-                  <Form.Check type="checkbox" onChange={(e) => handleComponentChange(component.id, 'is_editable', e.target.checked)} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ 
+                '& .MuiTableCell-head': { 
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '0.875rem',
+                  padding: '12px 16px'
+                }
+              }}>
+                <TableCell>Component Name</TableCell>
+                <TableCell>Type</TableCell>
+                <TableCell>Amount</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={4} align="center">Loading...</TableCell>
+                </TableRow>
+              ) : components.length > 0 ? (
+                components.map((component) => (
+                  <TableRow 
+                    key={component.id}
+                    sx={{ 
+                      '&:hover': { 
+                        backgroundColor: 'action.hover',
+                        cursor: 'pointer'
+                      }
+                    }}
+                  >
+                    <TableCell>{component.name}</TableCell>
+                    <TableCell>
+                      <Box
+                        component="span"
+                        sx={{
+                          display: 'inline-block',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          backgroundColor: component.type === 'earning' ? 'success.main' : 'error.main',
+                          color: 'white',
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {component.type.charAt(0).toUpperCase() + component.type.slice(1)}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <TextField
+                        type="number"
+                        value={component.amount}
+                        onChange={(e) => handleAmountChange(component.id, e.target.value)}
+                        size="small"
+                        fullWidth
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="contained"
+                        color="error"
+                        size="small"
+                        onClick={() => handleRemove(component.id)}
+                      >
+                        Remove
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={4} align="center">No components added yet</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={onClose}>

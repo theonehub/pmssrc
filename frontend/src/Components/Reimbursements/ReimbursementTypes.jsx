@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Modal, Form, Table, Spinner, Alert, Container } from 'react-bootstrap';
+import { Paper, TableContainer, TableHead, TableBody, TableRow, TableCell, Box } from '@mui/material';
 import axios from 'axios';
 import { getToken } from '../../utils/auth';
 import PageLayout from '../../layout/PageLayout';
@@ -87,37 +88,90 @@ function ReimbursementTypes() {
 
         {error && <Alert variant="danger">{error}</Alert>}
 
-        {loading ? (
-          <div className="text-center py-5">
-            <Spinner animation="border" variant="primary" />
-          </div>
-        ) : (
-          <Table striped bordered hover>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Max Limit</th>
-                <th>Description</th>
-                <th>Active</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {types.map((type) => (
-                <tr key={type.id}>
-                  <td>{type.name}</td>
-                  <td>{type.max_limit}</td>
-                  <td>{type.description}</td>
-                  <td>{type.is_active ? 'Yes' : 'No'}</td>
-                  <td>
-                    <Button size="sm" variant="info" className="me-2" onClick={() => handleEdit(type)}>Edit</Button>
-                    <Button size="sm" variant="danger" onClick={() => handleDelete(type.id)}>Delete</Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ 
+                '& .MuiTableCell-head': { 
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '0.875rem',
+                  padding: '12px 16px'
+                }
+              }}>
+                <TableCell>Type Name</TableCell>
+                <TableCell>Description</TableCell>
+                <TableCell>Max Amount</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} align="center">Loading...</TableCell>
+                </TableRow>
+              ) : types.length > 0 ? (
+                types.map((type) => (
+                  <TableRow 
+                    key={type.id}
+                    sx={{ 
+                      '&:hover': { 
+                        backgroundColor: 'action.hover',
+                        cursor: 'pointer'
+                      }
+                    }}
+                  >
+                    <TableCell>{type.name}</TableCell>
+                    <TableCell>{type.description}</TableCell>
+                    <TableCell>{type.max_amount}</TableCell>
+                    <TableCell>
+                      <Box
+                        component="span"
+                        sx={{
+                          display: 'inline-block',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          backgroundColor: type.is_active ? 'success.main' : 'error.main',
+                          color: 'white',
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {type.is_active ? 'Active' : 'Inactive'}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="small"
+                          onClick={() => handleEdit(type)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="contained"
+                          color="error"
+                          size="small"
+                          onClick={() => handleDelete(type)}
+                        >
+                          Delete
+                        </Button>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} align="center">No reimbursement types found</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
           </Table>
-        )}
+        </TableContainer>
 
         <Modal show={showModal} onHide={() => { setShowModal(false); setFormData({ name: '', max_limit: 0, description: '', is_active: true }); setEditingId(null); }}>
           <Form onSubmit={handleSubmit}>

@@ -1,7 +1,7 @@
 // ViewAssignedSalary.js
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Modal, Button, Spinner, Alert, Table } from "react-bootstrap";
+import { Modal, Button, Spinner, Alert, Table, TableContainer, TableHead, TableBody, TableRow, TableCell, Box } from "react-bootstrap";
 import { getToken } from "../utils/auth"; // Adjust path as needed
 
 const ViewAssignedSalary = ({ show, onClose, userId }) => {
@@ -40,36 +40,54 @@ const ViewAssignedSalary = ({ show, onClose, userId }) => {
         <Modal.Title>Assigned Salary Components</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {loading ? (
-          <div className="text-center py-3">
-            <Spinner animation="border" />
-          </div>
-        ) : error ? (
-          <Alert variant="danger">{error}</Alert>
-        ) : assignedSalary.length === 0 ? (
-          <p>No salary components assigned yet.</p>
-        ) : (
-          <Table striped bordered hover responsive>
-            <thead>
-              <tr>
-                <th>Component Name</th>
-                <th>Min Amount</th>
-                <th>Max Amount</th>
-                <th>Editable</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assignedSalary.map((item) => (
-                <tr key={item.component_id}>
-                  <td>{item.component_name}</td>
-                  <td>{item.min_amount}</td>
-                  <td>{item.max_amount}</td>
-                  <td>{item.is_editable ? "Yes" : "No"}</td>
-                </tr>
-              ))}
-            </tbody>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ 
+                '& .MuiTableCell-head': { 
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '0.875rem',
+                  padding: '12px 16px'
+                }
+              }}>
+                <TableCell>Component Name</TableCell>
+                <TableCell>Min Amount</TableCell>
+                <TableCell>Max Amount</TableCell>
+                <TableCell>Editable</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">Loading...</TableCell>
+                </TableRow>
+              ) : assignedSalary.length > 0 ? (
+                assignedSalary.map((item) => (
+                  <TableRow 
+                    key={item.component_id}
+                    sx={{ 
+                      '&:hover': { 
+                        backgroundColor: 'action.hover',
+                        cursor: 'pointer'
+                      }
+                    }}
+                  >
+                    <TableCell>{item.component_name}</TableCell>
+                    <TableCell>{item.min_amount}</TableCell>
+                    <TableCell>{item.max_amount}</TableCell>
+                    <TableCell>{item.is_editable ? "Yes" : "No"}</TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">No salary components assigned yet</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
           </Table>
-        )}
+        </TableContainer>
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={() => onClose(false)}>

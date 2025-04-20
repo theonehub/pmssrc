@@ -1,9 +1,28 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Table, Button, Spinner, Pagination, Form, Row, Col } from 'react-bootstrap';
+import {
+  Button,
+  Container,
+  Table,
+  Alert,
+  TableContainer,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  Box,
+  Pagination,
+  Grid,
+  TextField,
+  Select,
+  MenuItem,
+  Typography
+} from '@mui/material';
+import { Modal, Spinner } from 'react-bootstrap';
 import axios from '../../utils/axios';
 import { toast } from 'react-toastify';
 import PageLayout from '../../layout/PageLayout';
 import AssignReimbursementModal from './AssignReimbursementModal';
+import { Paper } from '@mui/material';
 
 const ReimbursementAssignmentList = () => {
   const [users, setUsers] = useState([]);
@@ -40,6 +59,10 @@ const ReimbursementAssignmentList = () => {
     setShowModal(true);
   };
 
+  const handleDelete = (user) => {
+    console.log("Delete requested for not implemented yet");
+  };
+
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedUser(null);
@@ -57,85 +80,126 @@ const ReimbursementAssignmentList = () => {
   return (
     <PageLayout>
       <Container className="mt-4">
-        <h4>Manage Reimbursement Assignments</h4>
+        <Typography variant="h4" gutterBottom>Manage Reimbursement Assignments</Typography>
 
         {/* Search and Page Size Controls */}
-        <Row className="mb-3">
-          <Col md={6}>
-            <Form onSubmit={handleSearch}>
-              <Form.Control
-                type="text"
-                placeholder="Search by name or email"
+        <Grid container spacing={2} className="mb-3">
+          <Grid item md={6}>
+            <form onSubmit={handleSearch}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                label="Search by name or email"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-            </Form>
-          </Col>
-          <Col md={6} className="d-flex justify-content-end align-items-center">
-            <span className="me-2">Show</span>
-            <Form.Select
-              style={{ width: 'auto' }}
+            </form>
+          </Grid>
+          <Grid item md={6} sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+            <Typography variant="body1" sx={{ mr: 2 }}>Show</Typography>
+            <Select
               value={pageSize}
               onChange={(e) => {
                 setPageSize(Number(e.target.value));
                 setCurrentPage(1);
               }}
+              sx={{ width: 'auto' }}
             >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-            </Form.Select>
-            <span className="ms-2">entries</span>
-          </Col>
-        </Row>
+              <MenuItem value={5}>5</MenuItem>
+              <MenuItem value={10}>10</MenuItem>
+              <MenuItem value={20}>20</MenuItem>
+              <MenuItem value={50}>50</MenuItem>
+            </Select>
+            <Typography variant="body1" sx={{ ml: 2 }}>entries</Typography>
+          </Grid>
+        </Grid>
 
         {loading ? (
-          <div className="text-center py-5">
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
             <Spinner animation="border" variant="primary" />
-          </div>
+          </Box>
         ) : (
           <>
-            <Table bordered hover>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Assigned Reimbursements</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr key={user.id}>
-                    <td>{user.name}</td>
-                    <td>{user.email}</td>
-                    <td>
-                      {user.assigned_reimbursements?.length > 0
-                        ? user.assigned_reimbursements.map((r) => (
-                            <div key={r.type_id}>
-                              {r.name}
-                              {r.monthly_limit && ` (Limit: ${r.monthly_limit})`}
-                              {r.required_docs && ' (Docs Required)'}
-                            </div>
-                          ))
-                        : 'None Assigned'}
-                    </td>
-                    <td>
-                      <Button size="sm" onClick={() => handleAssign(user)}>
-                        {user.assigned_reimbursements?.length > 0 ? 'Edit' : 'Assign'}
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ 
+                    '& .MuiTableCell-head': { 
+                      backgroundColor: 'primary.main',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      fontSize: '0.875rem',
+                      padding: '12px 16px'
+                    }
+                  }}>
+                    <TableCell>Employee</TableCell>
+                    <TableCell>Type</TableCell>
+                    <TableCell>Amount</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow 
+                      key={user.id}
+                      sx={{ 
+                        '&:hover': { 
+                          backgroundColor: 'action.hover',
+                          cursor: 'pointer'
+                        }
+                      }}
+                    >
+                      <TableCell>{user.name}</TableCell>
+                      <TableCell>{user.type_name}</TableCell>
+                      <TableCell>{user.amount}</TableCell>
+                      <TableCell>
+                        <Box
+                          component="span"
+                          sx={{
+                            display: 'inline-block',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            backgroundColor: user.is_active ? 'success.main' : 'error.main',
+                            color: 'white',
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          {user.is_active ? 'Active' : 'Inactive'}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            size="small"
+                            onClick={() => handleAssign(user)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="contained"
+                            color="error"
+                            size="small"
+                            onClick={() => handleDelete(user)}
+                          >
+                            Delete
+                          </Button>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
 
             {/* Pagination */}
-            <div className="d-flex justify-content-between align-items-center">
-              <div>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 3 }}>
+              <Typography variant="body2">
                 Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalUsers)} of {totalUsers} entries
-              </div>
+              </Typography>
               <Pagination>
                 <Pagination.First onClick={() => setCurrentPage(1)} disabled={currentPage === 1} />
                 <Pagination.Prev onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1} />
@@ -151,7 +215,7 @@ const ReimbursementAssignmentList = () => {
                 <Pagination.Next onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages} />
                 <Pagination.Last onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} />
               </Pagination>
-            </div>
+            </Box>
           </>
         )}
 

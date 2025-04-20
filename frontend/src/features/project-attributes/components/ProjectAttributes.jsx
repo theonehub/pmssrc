@@ -1,5 +1,24 @@
 import React, { useEffect, useState } from "react";
-import { Container, Table, Button, Modal, Form, Alert } from "react-bootstrap";
+import {
+  Container,
+  Table,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Alert,
+  TableContainer,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  Box,
+  Paper,
+  Typography,
+  CircularProgress
+} from "@mui/material";
 import PageLayout from "../../../layout/PageLayout";
 import { useAuth } from "../../../hooks/useAuth";
 import axios from "axios";
@@ -11,6 +30,7 @@ const ProjectAttributes = () => {
   const [form, setForm] = useState({ key: "", value: "", default_value: "", description: "" });
   const [editKey, setEditKey] = useState(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const isSuperAdmin = user?.role === "superadmin";
 
@@ -26,6 +46,8 @@ const ProjectAttributes = () => {
       setAttributes(res.data);
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -77,8 +99,8 @@ const ProjectAttributes = () => {
   if (!isSuperAdmin) {
     return (
       <PageLayout>
-        <Container className="mt-4">
-          <Alert variant="danger">Access Denied</Alert>
+        <Container maxWidth="lg" sx={{ mt: 4 }}>
+          <Alert severity="error">Access Denied</Alert>
         </Container>
       </PageLayout>
     );
@@ -86,100 +108,146 @@ const ProjectAttributes = () => {
 
   return (
     <PageLayout>
-      <Container className="mt-4">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <h4>Project Attributes</h4>
-          <Button variant="primary" onClick={() => setShowModal(true)}>
+      <Container maxWidth="lg" sx={{ mt: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4">Project Attributes</Typography>
+          <Button variant="contained" color="primary" onClick={() => setShowModal(true)}>
             + Add Attribute
           </Button>
-        </div>
+        </Box>
 
-        <Table bordered hover>
-          <thead>
-            <tr>
-              <th>Key</th>
-              <th>Value</th>
-              <th>Default Value</th>
-              <th>Description</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {attributes.map((attr) => (
-              <tr key={attr.key}>
-                <td>{attr.key}</td>
-                <td>{attr.value}</td>
-                <td>{attr.default_value}</td>
-                <td>{attr.description}</td>
-                <td>
-                  <Button size="sm" variant="info" onClick={() => handleEdit(attr)} className="me-2">
-                    Edit
-                  </Button>
-                  <Button size="sm" variant="danger" onClick={() => handleDelete(attr.key)}>
-                    Delete
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        <TableContainer component={Paper} elevation={2}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ 
+                '& .MuiTableCell-head': { 
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '0.875rem',
+                  padding: '12px 16px'
+                }
+              }}>
+                <TableCell>Attribute Name</TableCell>
+                <TableCell>Description</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={4} align="center">
+                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+                      <CircularProgress />
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ) : attributes.length > 0 ? (
+                attributes.map((attribute) => (
+                  <TableRow 
+                    key={attribute.id}
+                    sx={{ 
+                      '&:hover': { 
+                        backgroundColor: 'action.hover',
+                        cursor: 'pointer'
+                      }
+                    }}
+                  >
+                    <TableCell>{attribute.name}</TableCell>
+                    <TableCell>{attribute.description}</TableCell>
+                    <TableCell>
+                      <Box
+                        component="span"
+                        sx={{
+                          display: 'inline-block',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          backgroundColor: attribute.is_active ? 'success.main' : 'error.main',
+                          color: 'white',
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {attribute.is_active ? 'Active' : 'Inactive'}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="small"
+                          onClick={() => handleEdit(attribute)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="contained"
+                          color="error"
+                          size="small"
+                          onClick={() => handleDelete(attribute)}
+                        >
+                          Delete
+                        </Button>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={4} align="center">No project attributes found</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Container>
 
-      {/* Add/Edit Modal */}
-      <Modal show={showModal} onHide={() => setShowModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>{editKey ? "Edit Attribute" : "Add Attribute"}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {error && <Alert variant="danger">{error}</Alert>}
-            <Form>
-              <Form.Group className="mb-3">
-                <Form.Label>Key</Form.Label>
-                <Form.Control
-                  type="text"
-                  value={form.key}
-                  disabled={!!editKey}
-                  onChange={(e) => setForm({ ...form, key: e.target.value })}
-                />
-              </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Label>Value</Form.Label>
-                <Form.Control
-                  type="text"
-                  value={form.value}
-                  onChange={(e) => setForm({ ...form, value: e.target.value })}
-                />
-              </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Label>Default Value</Form.Label>
-                <Form.Control
-                  type="text"
-                  value={form.default_value}
-                  onChange={(e) => setForm({ ...form, default_value: e.target.value })}
-                />
-              </Form.Group>
-              <Form.Group className="mb-3">
-                <Form.Label>Description (optional)</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={2}
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                />
-              </Form.Group>
-            </Form>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowModal(false)}>
-              Cancel
-            </Button>
-            <Button variant="primary" onClick={handleSubmit}>
-              {editKey ? "Update" : "Save"}
-            </Button>
-          </Modal.Footer>
-        </Modal>
-      </PageLayout>
-    );
-  };
+      {/* Add/Edit Dialog */}
+      <Dialog open={showModal} onClose={() => setShowModal(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{editKey ? "Edit Attribute" : "Add Attribute"}</DialogTitle>
+        <DialogContent>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+            <TextField
+              label="Key"
+              value={form.key}
+              disabled={!!editKey}
+              onChange={(e) => setForm({ ...form, key: e.target.value })}
+              fullWidth
+            />
+            <TextField
+              label="Value"
+              value={form.value}
+              onChange={(e) => setForm({ ...form, value: e.target.value })}
+              fullWidth
+            />
+            <TextField
+              label="Default Value"
+              value={form.default_value}
+              onChange={(e) => setForm({ ...form, default_value: e.target.value })}
+              fullWidth
+            />
+            <TextField
+              label="Description (optional)"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              multiline
+              rows={2}
+              fullWidth
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowModal(false)}>Cancel</Button>
+          <Button onClick={handleSubmit} variant="contained" color="primary">
+            {editKey ? "Update" : "Save"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </PageLayout>
+  );
+};
 
-  export default ProjectAttributes;
+export default ProjectAttributes;

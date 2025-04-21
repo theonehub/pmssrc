@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import PageLayout from '../../layout/PageLayout';
-import ProtectedRoute from '../Common/ProtectedRoute';
 import {
   Box,
   Button,
@@ -26,14 +25,16 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  Pagination as MuiPagination
+  Pagination as MuiPagination,
+  Tooltip
 } from '@mui/material';
 import {
   ArrowUpward as ArrowUpwardIcon,
   ArrowDownward as ArrowDownwardIcon,
   Search as SearchIcon,
   KeyboardArrowLeft as KeyboardArrowLeftIcon,
-  KeyboardArrowRight as KeyboardArrowRightIcon
+  KeyboardArrowRight as KeyboardArrowRightIcon,
+  Info as InfoIcon
 } from '@mui/icons-material';
 import AttendanceCalendar from './AttendanceCalendar';
 import './AttendanceCalendar.css';
@@ -47,6 +48,7 @@ function AttendenceUserList() {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [selectedEmpId, setSelectedEmpId] = useState(null);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [lwpData, setLwpData] = useState({});
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -56,6 +58,36 @@ function AttendenceUserList() {
   useEffect(() => {
     fetchUsers();
   }, [currentPage, pageSize]);
+
+  useEffect(() => {
+    if (users.length > 0) {
+      fetchLWPData();
+    }
+  }, [users]);
+
+  const fetchLWPData = async () => {
+    try {
+      const currentDate = new Date();
+      const month = currentDate.getMonth() + 1;
+      const year = currentDate.getFullYear();
+
+      const lwpPromises = users.map(user =>
+        axios.get(`/leaves/lwp/${user.empId}/${month}/${year}`)
+      );
+
+      const lwpResponses = await Promise.all(lwpPromises);
+      const lwpMap = {};
+      
+      users.forEach((user, index) => {
+        lwpMap[user.empId] = lwpResponses[index].data.lwp_days;
+      });
+
+      setLwpData(lwpMap);
+    } catch (error) {
+      console.error('Error fetching LWP data:', error);
+      toast.error('Failed to fetch LWP data');
+    }
+  };
 
   // Sort function
   const requestSort = (key) => {
@@ -246,6 +278,16 @@ function AttendenceUserList() {
                           Mobile {getSortIcon('mobile')}
                         </Box>
                       </TableCell>
+                      <TableCell onClick={() => requestSort('lwp')} sx={{ cursor: 'pointer' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          LWP (Current Month) {getSortIcon('lwp')}
+                          <Tooltip title="Leave Without Pay - Days absent without approved leave" arrow>
+                            <IconButton size="small" sx={{ ml: 0.5, color: 'inherit' }}>
+                              <InfoIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
                       <TableCell>
                         Action
                       </TableCell>
@@ -267,6 +309,15 @@ function AttendenceUserList() {
                         <TableCell>{user.email}</TableCell>
                         <TableCell>{user.doj}</TableCell>
                         <TableCell>{user.mobile}</TableCell>
+                        <TableCell>
+                          <Box sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center',
+                            color: lwpData[user.empId] > 0 ? 'error.main' : 'success.main'
+                          }}>
+                            {lwpData[user.empId] || 0}
+                          </Box>
+                        </TableCell>
                         <TableCell>
                           <Button 
                             variant="contained" 

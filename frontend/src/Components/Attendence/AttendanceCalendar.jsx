@@ -1,8 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from '../../utils/axios';
-import { Modal, Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
-import { BsChevronLeft, BsChevronRight } from 'react-icons/bs';
 import './AttendanceCalendar.css';
+import {
+  Modal,
+  Box,
+  Button,
+  Typography,
+  IconButton,
+  Tooltip,
+  Paper
+} from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 function AttendanceCalendar({ empId, show, onHide }) {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -10,31 +20,11 @@ function AttendanceCalendar({ empId, show, onHide }) {
   const [holidays, setHolidays] = useState([]);
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modalSize, setModalSize] = useState('lg');
-  const modalRef = useRef(null);
 
   useEffect(() => {
     if (show && empId) {
       fetchAttendanceData();
     }
-
-    // Responsive modal size based on screen width
-    const handleResize = () => {
-      if (window.innerWidth < 576) {
-        setModalSize('sm');
-      } else if (window.innerWidth < 992) {
-        setModalSize('md');
-      } else {
-        setModalSize('lg');
-      }
-    };
-
-    handleResize(); // Set initial size
-    window.addEventListener('resize', handleResize);
-    
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
   }, [show, empId, currentDate]);
 
   const fetchAttendanceData = async () => {
@@ -91,9 +81,16 @@ function AttendanceCalendar({ empId, show, onHide }) {
 
   const getLeaveStatus = (date) => {
     if (!date) return null;
+    
+    // Convert the current date to YYYY-MM-DD format for comparison
+    const dateFormatted = date.toISOString().split('T')[0];
+    
+    // Find any leave that includes this date
     return leaves.find(leave => {
       const startDate = new Date(leave.start_date);
       const endDate = new Date(leave.end_date);
+      
+      // Check if the date is within the leave period (inclusive)
       return date >= startDate && date <= endDate;
     });
   };
@@ -115,8 +112,8 @@ function AttendanceCalendar({ empId, show, onHide }) {
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
-  const renderTooltip = (date) => {
-    if (!date) return <Tooltip id="tooltip-empty">No data</Tooltip>;
+  const renderTooltipContent = (date) => {
+    if (!date) return "No data";
     
     const attendance = getAttendanceStatus(date);
     const holiday = holidays.find(h => {
@@ -127,24 +124,37 @@ function AttendanceCalendar({ empId, show, onHide }) {
     });
     const leave = getLeaveStatus(date);
     
-    return (
-      <Tooltip id={`tooltip-${date.getDate()}`}>
-        <div className="text-start">
-          {holiday ? (
-            <div><strong>Holiday:</strong> {holiday.name}</div>
-          ) : leave ? (
-            <div><strong>Leave:</strong> {leave.status}</div>
-          ) : attendance ? (
-            <>
-              <div><strong>Check-in:</strong> {formatTime(attendance.checkin_time)}</div>
-              <div><strong>Check-out:</strong> {formatTime(attendance.checkout_time)}</div>
-            </>
-          ) : (
-            <div>Absent</div>
-          )}
-        </div>
-      </Tooltip>
-    );
+    if (holiday) {
+      return (
+        <Typography>
+          <strong>Holiday:</strong> {holiday.name}
+        </Typography>
+      );
+    }
+    
+    if (leave) {
+      return (
+        <>
+          <Typography><strong>Leave:</strong> {leave.leave_name}</Typography>
+          <Typography><strong>Status:</strong> {leave.status}</Typography>
+          <Typography><strong>Duration:</strong> {new Date(leave.start_date).toLocaleDateString()} - {new Date(leave.end_date).toLocaleDateString()}</Typography>
+          <Typography><strong>Working Days:</strong> {leave.leave_count}</Typography>
+          {leave.days_in_month && <Typography><strong>Days in current month:</strong> {leave.days_in_month}</Typography>}
+          <Typography><strong>Reason:</strong> {leave.reason || 'Not specified'}</Typography>
+        </>
+      );
+    }
+    
+    if (attendance) {
+      return (
+        <>
+          <Typography><strong>Check-in:</strong> {formatTime(attendance.checkin_time)}</Typography>
+          <Typography><strong>Check-out:</strong> {formatTime(attendance.checkout_time)}</Typography>
+        </>
+      );
+    }
+    
+    return "Absent";
   };
 
   const changeMonth = (increment) => {
@@ -154,80 +164,178 @@ function AttendanceCalendar({ empId, show, onHide }) {
   const days = getDaysInMonth(currentDate);
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-  return (
-    <Modal 
-      show={show} 
-      onHide={onHide} 
-      size={modalSize}
-      dialogClassName="attendance-calendar-modal"
-      centered
-      ref={modalRef}
-    >
-      <Modal.Header closeButton>
-        <Modal.Title>Attendance Calendar - {empId}</Modal.Title>
-      </Modal.Header>
-      <Modal.Body className="px-2 py-3">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <Button variant="outline-primary" onClick={() => changeMonth(-1)}>
-            <BsChevronLeft />
-          </Button>
-          <h4 className="mb-0">
-            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-          </h4>
-          <Button variant="outline-primary" onClick={() => changeMonth(1)}>
-            <BsChevronRight />
-          </Button>
-        </div>
+  const modalStyle = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: {
+      xs: '95%',
+      sm: '85%',
+      md: '75%',
+      lg: '70%'
+    },
+    maxWidth: '1000px',
+    maxHeight: {
+      xs: '95vh',
+      sm: '90vh',
+      md: '85vh'
+    },
+    bgcolor: 'background.paper',
+    boxShadow: 24,
+    borderRadius: 2,
+    overflow: 'hidden',
+    display: 'flex',
+    flexDirection: 'column'
+  };
 
-        <div className="calendar-grid">
-          <div className="calendar-header">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-              <div key={day} className="calendar-cell header-cell">
-                {day}
-              </div>
-            ))}
-          </div>
-          <div className="calendar-body">
-            {days.map((date, index) => {
-              let status = 'empty';
-              console.log('Date:', date);
-              if (date) {
-                if (isPublicHoliday(date)) {
-                  console.log('Public Holiday:', date);
-                  status = 'public_holiday';
-                } else {
-                  const attendance = getAttendanceStatus(date);
-                  const leave = getLeaveStatus(date);
-                  if (leave) {
-                    status = leave.status.toLowerCase();
-                    console.log('Leave:', leave);
-                  } else {
-                    status = attendance ? 'present' : 'absent';
-                  }
-                }
-              }
-              
-              return (
-                <OverlayTrigger
-                  key={index}
-                  placement="top"
-                  overlay={renderTooltip(date)}
-                  delay={{ show: 250, hide: 400 }}
-                >
-                  <div
-                    className={`calendar-cell ${status}`}
-                  >
-                    {date ? date.getDate() : ''}
+  const headerStyle = {
+    px: 2,
+    py: 1.5,
+    borderBottom: 1,
+    borderColor: 'divider'
+  };
+
+  const contentStyle = {
+    p: {
+      xs: 1,
+      sm: 1.5,
+      md: 2
+    },
+    flex: 1,
+    overflow: 'auto'
+  };
+
+  const footerStyle = {
+    p: 2,
+    borderTop: 1,
+    borderColor: 'divider',
+    display: 'flex',
+    justifyContent: 'flex-end'
+  };
+
+  return (
+    <Modal
+      open={show}
+      onClose={onHide}
+      aria-labelledby="attendance-calendar-modal"
+      sx={{
+        zIndex: (theme) => theme.zIndex.drawer + 2
+      }}
+    >
+      <Box sx={modalStyle}>
+        {/* Header */}
+        <Box sx={headerStyle}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography 
+              variant="h6" 
+              component="h2"
+              sx={{ 
+                fontSize: { 
+                  xs: '1rem',
+                  sm: '1.1rem',
+                  md: '1.25rem' 
+                } 
+              }}
+            >
+              Attendance Calendar - {empId}
+            </Typography>
+            <IconButton onClick={onHide} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Box>
+          
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1.5 }}>
+            <IconButton onClick={() => changeMonth(-1)} size="small">
+              <ChevronLeftIcon />
+            </IconButton>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                fontSize: { 
+                  xs: '0.9rem',
+                  sm: '1rem',
+                  md: '1.1rem' 
+                } 
+              }}
+            >
+              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+            </Typography>
+            <IconButton onClick={() => changeMonth(1)} size="small">
+              <ChevronRightIcon />
+            </IconButton>
+          </Box>
+        </Box>
+
+        {/* Content */}
+        <Box sx={contentStyle}>
+          <Paper 
+            elevation={3} 
+            sx={{ 
+              p: { xs: 0.5, sm: 1, md: 1.5 },
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <div className="calendar-grid">
+              <div className="calendar-header">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                  <div key={day} className="calendar-cell header-cell">
+                    {day}
                   </div>
-                </OverlayTrigger>
-              );
-            })}
-          </div>
-        </div>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onHide}>Close</Button>
-      </Modal.Footer>
+                ))}
+              </div>
+              <div className="calendar-body">
+                {days.map((date, index) => {
+                  let status = 'empty';
+                  if (date) {
+                    if (isPublicHoliday(date)) {
+                      status = 'public_holiday';
+                    } else {
+                      const attendance = getAttendanceStatus(date);
+                      const leave = getLeaveStatus(date);
+                      if (leave) {
+                        status = leave.status.toLowerCase();
+                      } else {
+                        status = attendance ? 'present' : 'absent';
+                      }
+                    }
+                  }
+                  
+                  return (
+                    <Tooltip
+                      key={index}
+                      title={
+                        <Box>
+                          {renderTooltipContent(date)}
+                        </Box>
+                      }
+                      arrow
+                      placement="top"
+                    >
+                      <div className={`calendar-cell ${status}`}>
+                        {date ? date.getDate() : ''}
+                      </div>
+                    </Tooltip>
+                  );
+                })}
+              </div>
+            </div>
+          </Paper>
+        </Box>
+
+        {/* Footer */}
+        <Box sx={footerStyle}>
+          <Button 
+            variant="contained" 
+            onClick={onHide}
+            size="small"
+          >
+            Close
+          </Button>
+        </Box>
+      </Box>
     </Modal>
   );
 }

@@ -17,8 +17,6 @@ import {
 } from '@mui/material';
 import {
   People as PeopleIcon,
-  SupervisorAccount as AdminIcon,
-  Security as SuperAdminIcon,
   Work as HRIcon,
   AccountTree as LeadIcon,
   Person as UserIcon,

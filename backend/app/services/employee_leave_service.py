@@ -1,11 +1,44 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import HTTPException
 from models.leave_model import EmployeeLeave, LeaveStatus
-from database import employee_leave_collection, user_collection
+from database import employee_leave_collection, user_collection, public_holidays_collection, attendance_collection
 from uuid import uuid4
 
 logger = logging.getLogger(__name__)
+
+def is_weekend(date):
+    """Check if a date is a weekend (Saturday or Sunday)"""
+    return date.weekday() >= 5  # 5 is Saturday, 6 is Sunday
+
+def is_public_holiday(date):
+    """Check if a date is a public holiday"""
+    date_str = date.strftime("%Y-%m-%d")
+    holiday = public_holidays_collection.find_one({"date": date_str})
+    return holiday is not None
+
+def get_working_days(start_date, end_date):
+    """
+    Calculate the number of working days between two dates,
+    excluding weekends and public holidays.
+    """
+    start = datetime.strptime(start_date, "%Y-%m-%d")
+    end = datetime.strptime(end_date, "%Y-%m-%d")
+    
+    # Initialize counter for working days
+    working_days = 0
+    
+    # Iterate through each day in the range
+    current_date = start
+    while current_date <= end:
+        # Check if the current day is not a weekend and not a public holiday
+        if not is_weekend(current_date) and not is_public_holiday(current_date):
+            working_days += 1
+        
+        # Move to the next day
+        current_date += timedelta(days=1)
+    
+    return working_days
 
 def apply_leave(leave: EmployeeLeave):
     """
@@ -23,14 +56,12 @@ def apply_leave(leave: EmployeeLeave):
         if leave.leave_name not in user.get("leave_balance", {}):
             raise HTTPException(status_code=400, detail="Invalid leave type")
         
-        # Calculate number of days
-        start_date = datetime.strptime(leave.start_date, "%Y-%m-%d")
-        end_date = datetime.strptime(leave.end_date, "%Y-%m-%d")
-        days = (end_date - start_date).days + 1
-        leave.leave_count = days
+        # Calculate number of working days (excluding weekends and public holidays)
+        working_days = get_working_days(leave.start_date, leave.end_date)
+        leave.leave_count = working_days
         
         # Validate if user has enough leave balance
-        if user["leave_balance"][leave.leave_name] < days:
+        if user["leave_balance"][leave.leave_name] < working_days:
             raise HTTPException(status_code=400, detail="Insufficient leave balance")
         
         # Create leave application
@@ -110,10 +141,27 @@ def update_leave_status(leave_id: str, status: LeaveStatus, approved_by: str):
             {"$set": update_data}
         )
 
-        leave = employee_leave_collection.find_one({"leave_id": leave_id})
-        user = user_collection.find_one({"empId": leave["empId"]})
-        user["leave_balance"][leave["leave_name"]] -= leave["leave_count"]
-        user_collection.update_one({"empId": leave["empId"]}, {"$set": {"leave_balance": user["leave_balance"]}})
+        # Only deduct leaves from balance if approved
+        if status == LeaveStatus.APPROVED:
+            leave = employee_leave_collection.find_one({"leave_id": leave_id})
+            if leave:
+                # Recalculate working days to ensure accuracy
+                working_days = get_working_days(leave["start_date"], leave["end_date"])
+                
+                # Update the leave count with the accurate working days
+                employee_leave_collection.update_one(
+                    {"leave_id": leave_id},
+                    {"$set": {"leave_count": working_days}}
+                )
+                
+                # Update user's leave balance
+                user = user_collection.find_one({"empId": leave["empId"]})
+                if user and "leave_balance" in user and leave["leave_name"] in user["leave_balance"]:
+                    user["leave_balance"][leave["leave_name"]] -= working_days
+                    user_collection.update_one(
+                        {"empId": leave["empId"]}, 
+                        {"$set": {"leave_balance": user["leave_balance"]}}
+                    )
         
         if result.modified_count == 0:
             raise HTTPException(status_code=404, detail="Leave application not found")
@@ -138,14 +186,12 @@ def update_leave_request(leave_id: str, leave_data: dict):
         if start_date < datetime.now():
             raise HTTPException(status_code=400, detail="Cannot modify leave request that has already started")
             
-        # Calculate new number of days
-        new_start_date = datetime.strptime(leave_data["start_date"], "%Y-%m-%d")
-        new_end_date = datetime.strptime(leave_data["end_date"], "%Y-%m-%d")
-        new_days = (new_end_date - new_start_date).days + 1
+        # Calculate new number of working days (excluding weekends and public holidays)
+        new_working_days = get_working_days(leave_data["start_date"], leave_data["end_date"])
         
         # Validate if user has enough leave balance
         user = user_collection.find_one({"empId": existing_leave["empId"]})
-        if user["leave_balance"][leave_data["leave_name"]] < new_days:
+        if user["leave_balance"][leave_data["leave_name"]] < new_working_days:
             raise HTTPException(status_code=400, detail="Insufficient leave balance")
             
         # Update leave request
@@ -154,14 +200,14 @@ def update_leave_request(leave_id: str, leave_data: dict):
             "start_date": leave_data["start_date"],
             "end_date": leave_data["end_date"],
             "reason": leave_data["reason"],
-            "leave_count": new_days,
+            "leave_count": new_working_days,
             "status": LeaveStatus.PENDING,  # Reset status to pending
             "approved_by": None,
             "approved_date": None
         }
         
         result = employee_leave_collection.update_one(
-            {"_id": leave_id},
+            {"leave_id": leave_id},
             {"$set": update_data}
         )
         
@@ -228,13 +274,156 @@ def get_all_employee_leaves(manager_id: str = None):
 def get_leaves_by_month_for_user(empId: str, month: int, year: int):
     """
     Returns all leaves for a specific employee in a specific month and year.
+    This also includes leaves that span across months.
     """
     try:
-        leaves = list(employee_leave_collection.find({"empId": empId, "start_date": {"$regex": f"^{year}-{month:02d}-"}}))
+        month_start = datetime(year, month, 1)
+        
+        # Calculate month end (first day of next month minus 1 day)
+        if month == 12:
+            month_end = datetime(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            month_end = datetime(year, month + 1, 1) - timedelta(days=1)
+        
+        month_start_str = month_start.strftime("%Y-%m-%d")
+        month_end_str = month_end.strftime("%Y-%m-%d")
+        
+        # Find leaves where:
+        # 1. Leave start date is within the month, OR
+        # 2. Leave end date is within the month, OR
+        # 3. Leave spans over the month (start before, end after)
+        leaves = list(employee_leave_collection.find({
+            "empId": empId,
+            "$or": [
+                # Leave starts in this month
+                {"start_date": {"$gte": month_start_str, "$lte": month_end_str}},
+                # Leave ends in this month
+                {"end_date": {"$gte": month_start_str, "$lte": month_end_str}},
+                # Leave spans over this month
+                {"$and": [
+                    {"start_date": {"$lt": month_start_str}},
+                    {"end_date": {"$gt": month_end_str}}
+                ]}
+            ]
+        }))
+        
         for leave in leaves:
             leave["id"] = str(leave["_id"])
             del leave["_id"]
+            
+            # Calculate working days in the specified month for this leave
+            start_date = datetime.strptime(leave["start_date"], "%Y-%m-%d")
+            end_date = datetime.strptime(leave["end_date"], "%Y-%m-%d")
+            
+            # Adjust start and end date to be within the month if needed
+            start_in_month = max(start_date, month_start)
+            end_in_month = min(end_date, month_end)
+            
+            # Convert back to string format for our function
+            start_in_month_str = start_in_month.strftime("%Y-%m-%d")
+            end_in_month_str = end_in_month.strftime("%Y-%m-%d")
+            
+            # Calculate working days for this part of the leave in this month
+            leave["days_in_month"] = get_working_days(start_in_month_str, end_in_month_str)
+            
         return leaves
     except Exception as e:
         logger.exception(f"Error fetching leaves for user {empId} in month {month} and year {year}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+def calculate_lwp_for_month(empId: str, month: int, year: int):
+    """
+    Calculate Leave Without Pay (LWP) for a specific month.
+    LWP is counted for days where employee is:
+    1. Absent without leave
+    2. Has pending leave
+    3. Has rejected leave
+    Excludes weekends and public holidays.
+    """
+    try:
+        # Get month start and end dates
+        month_start = datetime(year, month, 1)
+        if month == 12:
+            month_end = datetime(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            month_end = datetime(year, month + 1, 1) - timedelta(days=1)
+
+        month_start_str = month_start.strftime("%Y-%m-%d")
+        month_end_str = month_end.strftime("%Y-%m-%d")
+
+        # Get attendance records for the month
+        attendance_records = list(attendance_collection.find({
+            "empId": empId,
+            "checkin_time": {
+                "$gte": month_start_str,
+                "$lte": month_end_str
+            }
+        }))
+        
+        # Get leaves for the month
+        leaves = list(employee_leave_collection.find({
+            "empId": empId,
+            "$or": [
+                {"start_date": {"$gte": month_start_str, "$lte": month_end_str}},
+                {"end_date": {"$gte": month_start_str, "$lte": month_end_str}},
+                {"$and": [
+                    {"start_date": {"$lt": month_start_str}},
+                    {"end_date": {"$gt": month_end_str}}
+                ]}
+            ]
+        }))
+
+        lwp_days = 0
+        current_date = month_start
+
+        print("************************************************")
+        print("empId", empId)
+        print("leaves", leaves)
+        print("attendance_records", attendance_records)
+        print("month_start", month_start)
+        print("month_end", month_end)
+        print("************************************************")
+
+
+        while current_date <= month_end:
+            current_date_str = current_date.strftime("%Y-%m-%d")
+            
+            # Skip weekends and public holidays
+            if is_weekend(current_date) or is_public_holiday(current_date):
+                current_date += timedelta(days=1)
+                continue
+
+            # Check if present on this day
+            is_present = any(
+                datetime.strptime(att["checkin_time"], "%Y-%m-%d").date() == current_date.date()
+                for att in attendance_records
+            )
+
+            if not is_present:
+                # Check if on approved leave
+                has_approved_leave = any(
+                    datetime.strptime(leave["start_date"], "%Y-%m-%d").date() <= current_date.date() <= 
+                    datetime.strptime(leave["end_date"], "%Y-%m-%d").date() and
+                    leave["status"] == LeaveStatus.APPROVED
+                    for leave in leaves
+                )
+
+                if not has_approved_leave:
+                    # Check if day has pending or rejected leave
+                    has_pending_rejected_leave = any(
+                        datetime.strptime(leave["start_date"], "%Y-%m-%d").date() <= current_date.date() <= 
+                        datetime.strptime(leave["end_date"], "%Y-%m-%d").date() and
+                        leave["status"] in [LeaveStatus.PENDING, LeaveStatus.REJECTED]
+                        for leave in leaves
+                    )
+
+                    # Count as LWP if absent without approved leave
+                    if not has_approved_leave or has_pending_rejected_leave:
+                        lwp_days += 1
+
+            current_date += timedelta(days=1)
+
+        return lwp_days
+    except Exception as e:
+        logger.exception(f"Error calculating LWP for user {empId}")
         raise HTTPException(status_code=500, detail=str(e))

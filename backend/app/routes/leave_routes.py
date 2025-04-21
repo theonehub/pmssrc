@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from models.user_model import User
 from models.leave_model import EmployeeLeave, LeaveStatus
-from services.employee_leave_service import apply_leave, get_user_leaves, get_pending_leaves, update_leave_status, leave_balance, delete_leave_request, get_all_employee_leaves, get_leaves_by_month_for_user
+from services.employee_leave_service import apply_leave, get_user_leaves, get_pending_leaves, update_leave_status, leave_balance, delete_leave_request, get_all_employee_leaves, get_leaves_by_month_for_user, calculate_lwp_for_month
 from auth.auth import extract_empId, get_current_user
 from typing import List
 from auth.dependencies import role_checker
@@ -81,3 +81,19 @@ async def get_user_leaves_by_month(empId: str, month: int, year: int):
     Get all leaves for a specific employee in a specific month and year.
     """
     return get_leaves_by_month_for_user(empId, month, year)
+
+@router.get("/lwp/{empId}/{month}/{year}")
+async def get_lwp(empId: str, month: int, year: int):
+    """
+    Get Leave Without Pay (LWP) days for a specific month and year.
+    LWP is calculated for days where the employee is:
+    1. Absent without leave
+    2. Has pending leave
+    3. Has rejected leave
+    Excludes weekends and public holidays.
+    """
+    try:
+        lwp_days = calculate_lwp_for_month(empId, month, year)
+        return {"lwp_days": lwp_days}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

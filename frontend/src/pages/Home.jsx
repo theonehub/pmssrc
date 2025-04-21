@@ -27,7 +27,8 @@ import {
 } from '@mui/icons-material';
 
 function Home() {
-  const [stats, setStats] = useState({});
+  const [usersStats, setUsersStats] = useState({});
+  const [attendanceStats, setAttendanceStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({
@@ -44,7 +45,11 @@ function Home() {
         const res = await axios.get('/users/stats', {
           headers: { Authorization: `Bearer ${getToken()}` },
         });
-        setStats(res.data);
+        setUsersStats(res.data);
+        const res2 = await axios.get('/attendance/stats/today', {
+          headers: { Authorization: `Bearer ${getToken()}` },
+        });
+        setAttendanceStats(res2.data);
       } catch (error) {
         console.error('Error fetching stats:', error);
         setSnackbar({
@@ -108,12 +113,12 @@ function Home() {
 
   // Dashboard card data
   const dashboardCards = [
-    { title: 'Total Users', value: stats.total_users || 0, color: theme.palette.primary.main, icon: <PeopleIcon fontSize="large" /> },
-    { title: 'Admins', value: stats.admin || 0, color: theme.palette.success.main, icon: <AdminIcon fontSize="large" /> },
-    { title: 'SuperAdmins', value: stats.superadmin || 0, color: theme.palette.info.main, icon: <SuperAdminIcon fontSize="large" /> },
-    { title: 'HR', value: stats.hr || 0, color: theme.palette.warning.main, icon: <HRIcon fontSize="large" /> },
-    { title: 'Leads', value: stats.lead || 0, color: theme.palette.secondary.main, icon: <LeadIcon fontSize="large" /> },
-    { title: 'Users', value: stats.user || 0, color: theme.palette.grey[800], icon: <UserIcon fontSize="large" /> }
+    { title: 'Total Users', value: usersStats.total_users || 0, color: theme.palette.primary.main, icon: <PeopleIcon fontSize="large" /> },
+    { title: 'Today\'s Check-Ins', value: attendanceStats.checkin_count || 0, color: theme.palette.success.main, icon: <CheckInIcon fontSize="large" /> },
+    { title: 'Today\'s Check-Outs', value: attendanceStats.checkout_count || 0, color: theme.palette.info.main, icon: <CheckInIcon fontSize="large" /> },
+    { title: 'HR', value: usersStats.hr || 0, color: theme.palette.warning.main, icon: <HRIcon fontSize="large" /> },
+    { title: 'Leads', value: usersStats.lead || 0, color: theme.palette.secondary.main, icon: <LeadIcon fontSize="large" /> },
+    { title: 'Users', value: usersStats.user || 0, color: theme.palette.grey[800], icon: <UserIcon fontSize="large" /> }
   ];
 
   return (

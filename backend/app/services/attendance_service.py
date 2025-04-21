@@ -104,3 +104,12 @@ async def get_team_attendance_by_year(user: User, year: int):
     attendances = attendance_collection.find({"empId": {"$in": team_member_ids}, "year": year})
     attendance_list = list(attendances)
     return [serialize_attendance(attendance) for attendance in attendance_list]     
+
+async def get_todays_attendance_stats():
+    today = datetime.now().date()
+    attendances = attendance_collection.find({"date": today.day, "month": today.month, "year": today.year})
+    attendance_list = list(attendances)
+    return {
+        "checkin_count": sum(1 for attendance in attendance_list if attendance["checkin_time"] is not None),
+        "checkout_count": sum(1 for attendance in attendance_list if attendance["checkout_time"] is not None)
+    }

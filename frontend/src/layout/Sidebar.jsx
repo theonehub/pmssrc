@@ -10,10 +10,10 @@ import {
   Divider,
   useTheme,
   Typography,
-  IconButton,
   useMediaQuery
 } from '@mui/material';
 import {
+  Home as HomeIcon,
   People as PeopleIcon,
   CalendarToday as CalendarIcon,
   CalendarMonth as CalendarMonthIcon,
@@ -34,6 +34,12 @@ const Sidebar = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const menuItems = [
+    {
+      title: 'Home',
+      icon: <HomeIcon />,
+      path: '/home',
+      roles: ['manager', 'admin', 'superadmin', 'user']
+    },
     {
       title: 'Team',
       icon: <PeopleIcon />,

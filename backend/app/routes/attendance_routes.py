@@ -72,3 +72,7 @@ async def get_attendance(month: int, year: int, user: User = Depends(get_current
 @routes.get("/admin/year/{year}")
 async def get_attendance(year: int, user: User = Depends(get_current_user)):
     return await attendance_service.get_attendance_by_year(year)
+
+@routes.get("/stats/today")
+async def get_attendance_stats(user: User = Depends(get_current_user)):
+    return await attendance_service.get_todays_attendance_stats()

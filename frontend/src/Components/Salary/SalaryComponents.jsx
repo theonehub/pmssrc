@@ -3,8 +3,33 @@ import axios from 'axios';
 import { getToken } from '../../utils/auth';
 import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
 import PageLayout from '../../layout/PageLayout';
-import { Paper, Button, Container, Table, CircularProgress, Alert, TableContainer, TableHead, TableBody, TableRow, TableCell, Box, TextField, Typography } from '@mui/material';
-import { Modal, Form, Spinner, Toast } from 'react-bootstrap';
+import { 
+  Paper, 
+  Button, 
+  Container, 
+  Table, 
+  CircularProgress, 
+  Alert, 
+  TableContainer, 
+  TableHead, 
+  TableBody, 
+  TableRow, 
+  TableCell, 
+  Box, 
+  TextField, 
+  Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Snackbar,
+  FormControlLabel,
+  Checkbox
+} from '@mui/material';
 
 function SalaryComponents() {
   const [components, setComponents] = useState([]);
@@ -13,7 +38,7 @@ function SalaryComponents() {
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [toast, setToast] = useState({ show: false, message: '', variant: '' });
+  const [toast, setToast] = useState({ show: false, message: '', severity: 'success' });
 
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
@@ -39,7 +64,7 @@ function SalaryComponents() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      setToast({ show: true, message: 'Component name is required.', variant: 'danger' });
+      setToast({ show: true, message: 'Component name is required.', severity: 'error' });
       return;
     }
 
@@ -48,18 +73,18 @@ function SalaryComponents() {
         await axios.put(`http://localhost:8000/salary-components/${editingId}`, formData, {
           headers: { Authorization: `Bearer ${getToken()}` },
         });
-        setToast({ show: true, message: 'Component updated successfully.', variant: 'success' });
+        setToast({ show: true, message: 'Component updated successfully.', severity: 'success' });
       } else {
         await axios.post('http://localhost:8000/salary-components', formData, {
           headers: { Authorization: `Bearer ${getToken()}` },
         });
-        setToast({ show: true, message: 'Component added successfully.', variant: 'success' });
+        setToast({ show: true, message: 'Component added successfully.', severity: 'success' });
       }
       fetchComponents();
       handleCloseForm();
     } catch (err) {
       console.error('Error saving component:', err);
-      setToast({ show: true, message: 'Error saving component.', variant: 'danger' });
+      setToast({ show: true, message: 'Error saving component.', severity: 'error' });
     }
   };
 
@@ -70,29 +95,31 @@ function SalaryComponents() {
       await axios.delete(`http://localhost:8000/salary-components/${id}`, {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
-      setToast({ show: true, message: 'Component deleted.', variant: 'info' });
+      setToast({ show: true, message: 'Component deleted.', severity: 'info' });
       fetchComponents();
     } catch (err) {
       console.error('Error deleting component:', err);
-      setToast({ show: true, message: 'Error deleting component.', variant: 'danger' });
+      setToast({ show: true, message: 'Error deleting component.', severity: 'error' });
     }
   };
 
   const handleEdit = (comp) => {
-    setFormData({ name: comp.name, type: comp.type, description: comp.description });
-    setEditingId(comp.id);
+    setFormData({ name: comp.name, type: comp.type, formula: comp.formula, is_active: comp.is_active, description: comp.description });
+    setEditingId(comp.sc_id);
     setShowForm(true);
   };
 
   const handleCloseForm = () => {
     setShowForm(false);
-    setFormData({ name: '', type: 'earning', description: '' });
+    setFormData({ name: '', type: 'earning', formula: '', is_active: true, description: '' });
     setEditingId(null);
   };
 
   const filteredComponents = components.filter((comp) =>
     comp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    comp.type.toLowerCase().includes(searchTerm.toLowerCase())
+    comp.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    comp.formula.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    comp.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const totalPages = Math.ceil(filteredComponents.length / pageSize);
@@ -104,22 +131,24 @@ function SalaryComponents() {
   return (
     <PageLayout>
       <div className="container mt-4">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <h4>Salary Components</h4>
-          <Button onClick={() => setShowForm(true)}>
-            <FaPlus className="me-2" /> Add Component
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4">Salary Components</Typography>
+          <Button variant="contained" startIcon={<FaPlus />} onClick={() => setShowForm(true)}>
+            Add Component
           </Button>
-        </div>
+        </Box>
 
-        <Form.Control
-          type="text"
+        <TextField
+          fullWidth
+          variant="outlined"
           placeholder="Search by name or type"
-          className="mb-3"
+          size="small"
           value={searchTerm}
           onChange={(e) => {
             setSearchTerm(e.target.value);
             setCurrentPage(1);
           }}
+          sx={{ mb: 3 }}
         />
 
         <TableContainer component={Paper}>
@@ -136,8 +165,9 @@ function SalaryComponents() {
               }}>
                 <TableCell>Component Name</TableCell>
                 <TableCell>Type</TableCell>
+                <TableCell>Formula</TableCell>
+                <TableCell>Is Active</TableCell>
                 <TableCell>Description</TableCell>
-                <TableCell>Status</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -159,23 +189,10 @@ function SalaryComponents() {
                   >
                     <TableCell>{component.name}</TableCell>
                     <TableCell>{component.type}</TableCell>
+                    <TableCell>{component.formula}</TableCell>
+                    <TableCell>{component.is_active ? 'Yes' : 'No'}</TableCell>
                     <TableCell>{component.description}</TableCell>
-                    <TableCell>
-                      <Box
-                        component="span"
-                        sx={{
-                          display: 'inline-block',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          backgroundColor: component.is_active ? 'success.main' : 'error.main',
-                          color: 'white',
-                          fontSize: '0.75rem',
-                          fontWeight: 'bold'
-                        }}
-                      >
-                        {component.is_active ? 'Active' : 'Inactive'}
-                      </Box>
-                    </TableCell>
+                    
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
                         <Button
@@ -226,66 +243,84 @@ function SalaryComponents() {
           </nav>
         )}
 
-        {/* Add/Edit Modal Form */}
-        <Modal show={showForm} onHide={handleCloseForm}>
-          <Modal.Header closeButton>
-            <Modal.Title>{editingId ? 'Edit' : 'Add'} Salary Component</Modal.Title>
-          </Modal.Header>
-          <Form onSubmit={handleSubmit}>
-            <Modal.Body>
-              <Form.Group className="mb-3">
-                <Form.Label>Name</Form.Label>
-                <Form.Control
-                  type="text"
+        {/* Add/Edit Dialog Form */}
+        <Dialog 
+          open={showForm} 
+          onClose={handleCloseForm}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>{editingId ? 'Edit' : 'Add'} Salary Component</DialogTitle>
+          <form onSubmit={handleSubmit}>
+            <DialogContent>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <TextField
+                  label="Name"
+                  fullWidth
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
                 />
-              </Form.Group>
 
-              <Form.Group className="mb-3">
-                <Form.Label>Type</Form.Label>
-                <Form.Select
-                  value={formData.type}
-                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                >
-                  <option value="earning">Earning</option>
-                  <option value="deduction">Deduction</option>
-                </Form.Select>
-              </Form.Group>
+                <FormControl fullWidth>
+                  <InputLabel>Type</InputLabel>
+                  <Select
+                    value={formData.type}
+                    label="Type"
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  >
+                    <MenuItem value="earning">Earning</MenuItem>
+                    <MenuItem value="deduction">Deduction</MenuItem>
+                  </Select>
+                </FormControl>
 
-              <Form.Group>
-                <Form.Label>Description</Form.Label>
-                <Form.Control
-                  as="textarea"
+                <TextField
+                  label="Formula"
+                  fullWidth
+                  multiline
+                  rows={2}
+                  value={formData.formula}
+                  onChange={(e) => setFormData({ ...formData, formula: e.target.value })}
+                />
+
+                <TextField
+                  label="Description" 
+                  fullWidth
+                  multiline
                   rows={2}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 />
-              </Form.Group>
-            </Modal.Body>
-            <Modal.Footer>
-              <Button variant="secondary" onClick={handleCloseForm}>
-                Cancel
-              </Button>
-              <Button type="submit" variant="primary">
+                <FormControlLabel
+                  control={<Checkbox checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />}
+                  label="Is Active"
+                />
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseForm}>Cancel</Button>
+              <Button type="submit" variant="contained">
                 {editingId ? 'Update' : 'Add'}
               </Button>
-            </Modal.Footer>
-          </Form>
-        </Modal>
+            </DialogActions>
+          </form>
+        </Dialog>
 
-        {/* Toast */}
-        <Toast
-          show={toast.show}
+        {/* Snackbar for notifications */}
+        <Snackbar
+          open={toast.show}
+          autoHideDuration={3000}
           onClose={() => setToast({ ...toast, show: false })}
-          bg={toast.variant}
-          className="position-fixed bottom-0 end-0 m-4"
-          delay={3000}
-          autohide
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
-          <Toast.Body className="text-white">{toast.message}</Toast.Body>
-        </Toast>
+          <Alert 
+            onClose={() => setToast({ ...toast, show: false })} 
+            severity={toast.severity}
+            sx={{ width: '100%' }}
+          >
+            {toast.message}
+          </Alert>
+        </Snackbar>
       </div>
     </PageLayout>
   );

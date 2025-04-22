@@ -26,7 +26,9 @@ import {
   DialogActions,
   FormControlLabel,
   Radio,
-  RadioGroup
+  RadioGroup,
+  Grid,
+  Input
 } from '@mui/material';
 import { 
   Add as AddIcon, 
@@ -144,6 +146,9 @@ function UsersList() {
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
+    const formData = new FormData();
+    
+    // Add user data
     const userData = {
       empId: e.target.empId.value,
       name: e.target.name.value,
@@ -155,10 +160,35 @@ function UsersList() {
       managerId: e.target.managerId.value,
       password: e.target.password.value,
       role: e.target.role.value,
+      pan_number: e.target.pan_number.value || null,
+      uan_number: e.target.uan_number.value || null,
+      aadhar_number: e.target.aadhar_number.value || null,
+      department: e.target.department.value || null,
+      designation: e.target.designation.value || null,
+      location: e.target.location.value || null,
+      esi_number: e.target.esi_number.value || null,
     };
 
+    // Append user data as JSON
+    formData.append('user_data', JSON.stringify(userData));
+
+    // Append files if they exist
+    if (e.target.pan_file.files[0]) {
+      formData.append('pan_file', e.target.pan_file.files[0]);
+    }
+    if (e.target.aadhar_file.files[0]) {
+      formData.append('aadhar_file', e.target.aadhar_file.files[0]);
+    }
+    if (e.target.photo.files[0]) {
+      formData.append('photo', e.target.photo.files[0]);
+    }
+
     try {
-      await axios.post('/users/create', userData);
+      await axios.post('/users/create', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       setAlert({
         open: true,
         message: 'User created successfully',
@@ -387,87 +417,194 @@ function UsersList() {
         </Box>
 
         {/* Create User Dialog */}
-        <Dialog open={showCreateUserModal} onClose={() => setShowCreateUserModal(false)} maxWidth="sm" fullWidth>
+        <Dialog open={showCreateUserModal} onClose={() => setShowCreateUserModal(false)} maxWidth="md" fullWidth>
           <DialogTitle>Create New User</DialogTitle>
           <DialogContent>
             <Box component="form" onSubmit={handleCreateUser} sx={{ mt: 2 }}>
-              <TextField
-                fullWidth
-                label="Employee ID"
-                name="empId"
-                required
-                sx={{ mb: 2 }}
-              />
-              <TextField
-                fullWidth
-                label="Name"
-                name="name"
-                required
-                sx={{ mb: 2 }}
-              />
-              <TextField
-                fullWidth
-                label="Email"
-                name="email"
-                type="email"
-                required
-                sx={{ mb: 2 }}
-              />
-              <FormControl component="fieldset" sx={{ mb: 2 }}>
-                <RadioGroup row name="gender">
-                  <FormControlLabel value="male" control={<Radio />} label="Male" />
-                  <FormControlLabel value="female" control={<Radio />} label="Female" />
-                  <FormControlLabel value="other" control={<Radio />} label="Other" />
-                </RadioGroup>
-              </FormControl>
-              <TextField
-                fullWidth
-                label="Date of Birth"
-                name="dob"
-                type="date"
-                required
-                sx={{ mb: 2 }}
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                fullWidth
-                label="Date of Joining"
-                name="doj"
-                type="date"
-                required
-                sx={{ mb: 2 }}
-                InputLabelProps={{ shrink: true }}
-              />
-              <TextField
-                fullWidth
-                label="Mobile"
-                name="mobile"
-                required
-                sx={{ mb: 2 }}
-              />
-              <TextField
-                fullWidth
-                label="Manager ID"
-                name="managerId"
-                sx={{ mb: 2 }}
-              />
-              <TextField
-                fullWidth
-                label="Password"
-                name="password"
-                type="password"
-                required
-                sx={{ mb: 2 }}
-              />
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel>Role</InputLabel>
-                <Select name="role" label="Role" required>
-                  <MenuItem value="user">User</MenuItem>
-                  <MenuItem value="manager">Manager</MenuItem>
-                  <MenuItem value="admin">Admin</MenuItem>
-                  <MenuItem value="superadmin">Super Admin</MenuItem>
-                </Select>
-              </FormControl>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Employee ID"
+                    name="empId"
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Name"
+                    name="name"
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    name="email"
+                    type="email"
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl component="fieldset">
+                    <RadioGroup row name="gender">
+                      <FormControlLabel value="male" control={<Radio />} label="Male" />
+                      <FormControlLabel value="female" control={<Radio />} label="Female" />
+                      <FormControlLabel value="other" control={<Radio />} label="Other" />
+                    </RadioGroup>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Date of Birth"
+                    name="dob"
+                    type="date"
+                    required
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Date of Joining"
+                    name="doj"
+                    type="date"
+                    required
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Mobile"
+                    name="mobile"
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Department"
+                    name="department"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Designation"
+                    name="designation"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Location"
+                    name="location"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Manager ID"
+                    name="managerId"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Password"
+                    name="password"
+                    type="password"
+                    required
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>Role</InputLabel>
+                    <Select name="role" label="Role" required>
+                      <MenuItem value="user">User</MenuItem>
+                      <MenuItem value="manager">Manager</MenuItem>
+                      <MenuItem value="admin">Admin</MenuItem>
+                      <MenuItem value="superadmin">Super Admin</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                
+                {/* New Fields */}
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="PAN Number"
+                    name="pan_number"
+                    required
+                    inputProps={{ maxLength: 10 }}
+                    helperText="10 characters alphanumeric"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="UAN Number"
+                    name="uan_number"
+                    inputProps={{ maxLength: 12 }}
+                    helperText="12 digits"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Aadhar Number"
+                    name="aadhar_number"
+                    required
+                    inputProps={{ maxLength: 12 }}
+                    helperText="12 digits"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="ESI Number"
+                    name="esi_number"
+                    helperText="Optional"
+                  />
+                </Grid>
+                
+                {/* File Upload Fields */}
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <InputLabel shrink>PAN Card (PDF/Image)</InputLabel>
+                    <Input
+                      type="file"
+                      name="pan_file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                    />
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <InputLabel shrink>Aadhar Card (PDF/Image)</InputLabel>
+                    <Input
+                      type="file"
+                      name="aadhar_file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                    />
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <InputLabel shrink>Photo</InputLabel>
+                    <Input
+                      type="file"
+                      name="photo"
+                      accept=".jpg,.jpeg,.png"
+                    />
+                  </FormControl>
+                </Grid>
+              </Grid>
+              
               <DialogActions>
                 <Button onClick={() => setShowCreateUserModal(false)}>Cancel</Button>
                 <Button type="submit" variant="contained">Create</Button>

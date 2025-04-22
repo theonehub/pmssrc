@@ -14,6 +14,9 @@ user_collection = db["users_info"]
 attendance_collection = db["attendance_collection"]
 public_holidays_collection = db["public_holidays"]
 salary_components_collection = db["salary_components"]
+salary_calculations_collection = db["salary_calculations"]
+
+
 employee_salary_collection = db["employee_salary"]
 salary_declaration_collection = db["salary_declaration"]
 

@@ -19,6 +19,16 @@ class UserInfo(BaseModel):
     password: str
     role: str
     is_active: Optional[bool] = True
+    pan_number: Optional[str] = None
+    uan_number: Optional[str] = None
+    aadhar_number: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    location: Optional[str] = None
+    esi_number: Optional[str] = None
+    pan_file_path: Optional[str] = None
+    aadhar_file_path: Optional[str] = None
+    photo_path: Optional[str] = None
 
     @field_validator('gender')
     def validate_gender(cls, v):
@@ -26,6 +36,22 @@ class UserInfo(BaseModel):
         if v.lower() not in valid_genders:
             raise ValueError('Gender must be either "male" or "female" or "other"')
         return v.lower()
+
+    @field_validator('pan_number')
+    def validate_pan(cls, v):
+        if v is not None and not v.strip():
+            return None
+        if v is not None and (len(v) != 10 or not v.isalnum()):
+            raise ValueError('PAN number must be 10 alphanumeric characters')
+        return v.upper() if v else None
+
+    @field_validator('aadhar_number')
+    def validate_aadhar(cls, v):
+        if v is not None and not v.strip():
+            return None
+        if v is not None and (len(v) != 12 or not v.isdigit()):
+            raise ValueError('Aadhar number must be 12 digits')
+        return v
 
     class Config:
         extra = "forbid"
@@ -41,7 +67,17 @@ class UserInfo(BaseModel):
                 "managerId": "EMP002",
                 "password": "password123",
                 "role": "user",
-                "is_active": True
+                "is_active": True,
+                "pan_number": "ABCDE1234F",
+                "uan_number": "123456789012",
+                "aadhar_number": "123456789012",
+                "department": "IT",
+                "designation": "Software Engineer",
+                "location": "Bangalore",
+                "esi_number": "31001234560000001",
+                "pan_file_path": None,
+                "aadhar_file_path": None,
+                "photo_path": None
             }
         }
 

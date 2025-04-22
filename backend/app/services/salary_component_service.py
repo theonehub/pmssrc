@@ -3,6 +3,7 @@ from datetime import datetime
 from bson import ObjectId
 from fastapi import HTTPException
 from database import salary_components_collection
+import uuid
 from models.salary_component import (
     SalaryComponentCreate,
     SalaryComponentUpdate,
@@ -44,8 +45,12 @@ async def create_salary_component(component: SalaryComponentCreate) -> SalaryCom
         raise HTTPException(status_code=400, detail="Component with this name already exists")
 
     doc = {
+        "sc_id": str(uuid.uuid4()),
         "name": component.name,
         "type": component.type,
+        "key": component.name.lower().replace(" ", ""),
+        "formula": component.formula,
+        "is_active": component.is_active,
         "description": component.description,
         "created_at": datetime.utcnow()
     }

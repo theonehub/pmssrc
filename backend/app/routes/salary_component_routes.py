@@ -46,47 +46,47 @@ async def list_components():
     return await get_all_salary_components()
 
 
-@router.get("/{component_id}", response_model=SalaryComponentInDB)
-async def get_component(component_id: str):
+@router.get("/{sc_id}", response_model=SalaryComponentInDB)
+async def get_component(sc_id: str):
     """
     Endpoint to get a salary component by its ID.
 
     Args:
-        component_id (str): MongoDB ID of the component.
+        sc_id (str): MongoDB ID of the component.
 
     Returns:
         The SalaryComponentInDB object if found.
     """
-    logger.info("API Call: Get salary component with ID: %s", component_id)
-    return await get_salary_component_by_id(component_id)
+    logger.info("API Call: Get salary component with ID: %s", sc_id)
+    return await get_salary_component_by_id(sc_id)
 
 
-@router.put("/{component_id}", response_model=SalaryComponentInDB)
-async def update_component(component_id: str, update_data: SalaryComponentUpdate):
+@router.put("/{sc_id}", response_model=SalaryComponentInDB)
+async def update_component(sc_id: str, update_data: SalaryComponentUpdate):
     """
     Endpoint to update a salary component by ID.
 
     Args:
-        component_id (str): MongoDB ID of the component.
+        sc_id (str): MongoDB ID of the component.
         update_data (SalaryComponentUpdate): Data to update.
 
     Returns:
         Updated SalaryComponentInDB object.
     """
-    logger.info("API Call: Update salary component with ID: %s", component_id)
-    return await update_salary_component(component_id, update_data)
+    logger.info("API Call: Update salary component with ID: %s", sc_id)
+    return await update_salary_component(sc_id, update_data)
 
 
-@router.delete("/{component_id}")
-async def delete_component(component_id: str):
+@router.delete("/{sc_id}")
+async def delete_component(sc_id: str):
     """
     Endpoint to delete a salary component by ID.
 
     Args:
-        component_id (str): MongoDB ID of the component.
+        sc_id (str): MongoDB ID of the component.
 
     Returns:
         Confirmation message.
     """
-    logger.info("API Call: Delete salary component with ID: %s", component_id)
-    return await delete_salary_component(component_id)
+    logger.info("API Call: Delete salary component with ID: %s", sc_id)
+    return await delete_salary_component(sc_id)

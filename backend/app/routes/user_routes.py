@@ -1,6 +1,7 @@
 from datetime import datetime
 import logging
 import uuid
+import os
 from fastapi import APIRouter, HTTPException, Depends, status, Query, UploadFile, File
 from openpyxl import load_workbook
 from fastapi.security import OAuth2PasswordBearer
@@ -16,6 +17,14 @@ from bson import ObjectId
 from io import BytesIO
 from services.activity_tracker_service import track_activity
 
+# Create upload directory if it doesn't exist
+UPLOAD_DIR = "uploads"
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR)
+    os.makedirs(os.path.join(UPLOAD_DIR, "pan"))
+    os.makedirs(os.path.join(UPLOAD_DIR, "aadhar"))
+    os.makedirs(os.path.join(UPLOAD_DIR, "photos"))
+
 def serialize_user(user):
     user = user.copy()
     for key in user:
@@ -23,29 +32,64 @@ def serialize_user(user):
             user[key] = str(user[key])
     return user
 
+def save_uploaded_file(file: UploadFile, directory: str) -> str:
+    if not file:
+        return None
+    
+    file_extension = os.path.splitext(file.filename)[1].lower()
+    allowed_extensions = {'.jpg', '.jpeg', '.png', '.pdf'}
+    
+    if file_extension not in allowed_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File type not allowed. Allowed types: {', '.join(allowed_extensions)}"
+        )
+    
+    filename = f"{uuid.uuid4()}{file_extension}"
+    file_path = os.path.join(directory, filename)
+    
+    try:
+        with open(file_path, "wb") as buffer:
+            buffer.write(file.file.read())
+        return file_path
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Could not save file: {str(e)}")
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 @router.post("/users/create", status_code=status.HTTP_201_CREATED)
-async def create_user(user: UserInfo, current_user: UserInfo = Depends(get_current_user)):
+async def create_user(
+    user_data: UserInfo = Depends(),
+    pan_file: UploadFile = File(None),
+    aadhar_file: UploadFile = File(None),
+    photo: UploadFile = File(None),
+    current_user: UserInfo = Depends(get_current_user)
+):
     """
-    Endpoint to create a new user.
-    Stores general user info and, if login is required, creates a login entry.
+    Endpoint to create a new user with document uploads.
     """
-    logger.info("Creating user: %s", user.name)
-    us.validate_user_data(user)
-    print(user.model_dump())
+    logger.info("Creating user: %s", user_data.name)
+    us.validate_user_data(user_data)
+
+    # Handle file uploads
+    if pan_file:
+        user_data.pan_file_path = save_uploaded_file(pan_file, os.path.join(UPLOAD_DIR, "pan"))
+    if aadhar_file:
+        user_data.aadhar_file_path = save_uploaded_file(aadhar_file, os.path.join(UPLOAD_DIR, "aadhar"))
+    if photo:
+        user_data.photo_path = save_uploaded_file(photo, os.path.join(UPLOAD_DIR, "photos"))
+
     activity = ActivityTracker(
         activityId=str(uuid.uuid4()),
         empId=current_user.empId,
         activity="createUser",
         date=datetime.now(),
-        metadata=user.model_dump()
+        metadata=user_data.model_dump()
     )
     track_activity(activity)
-    result = us.create_user(user)
+    result = us.create_user(user_data)
     logger.info(result)
     return result
 

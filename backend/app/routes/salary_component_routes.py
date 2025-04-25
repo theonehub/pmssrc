@@ -164,3 +164,4 @@ async def create_salary_declarations(
     logger.info("API Call: Create salary component declarations for current user")
     result = await create_salary_component_declarations(emp_id, declaration_data.components)
     return {"message": "Components declared successfully", "declarations": result}
+

@@ -3,7 +3,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from services.user_service import create_default_user
 from routes import auth_routes, user_routes, salary_component_routes, \
-        employee_salary_routes, salary_declaration_routes, \
         attendance_routes, project_attributes_routes, reimbursement_type_routes, \
         reimbursement_assignment_route, reimbursements, public_holiday_routes, \
         company_leave_routes, leave_routes
@@ -38,8 +37,6 @@ app.add_middleware(
 app.include_router(auth_routes.router, tags=["Authentication"])
 app.include_router(user_routes.router, tags=["User Management"])
 app.include_router(salary_component_routes.router, tags=["Salary Components"])
-app.include_router(employee_salary_routes.router, tags=["Employee Salary"])
-app.include_router(salary_declaration_routes.router,tags=["Salary Declaration"])
 app.include_router(attendance_routes.routes, tags=["Attendance"])
 app.include_router(project_attributes_routes.router, tags=["Attibutes"])
 app.include_router(reimbursement_type_routes.router, tags=["Reimbursement Types"])

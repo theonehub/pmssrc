@@ -43,8 +43,7 @@ import PageLayout from '../../layout/PageLayout';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import ProtectedRoute from '../Common/ProtectedRoute';
-import { Spinner } from 'react-bootstrap';
-import { BsPlusCircle, BsFileEarmarkExcel, BsChevronLeft, BsChevronRight, BsSearch, BsCaretUpFill, BsCaretDownFill } from 'react-icons/bs';
+import {BsChevronLeft, BsChevronRight, BsSearch, BsCaretUpFill, BsCaretDownFill } from 'react-icons/bs';
 
 function UsersList() {
   const navigate = useNavigate();

@@ -6,7 +6,6 @@ import UsersList from './Components/User/UsersList';
 import AttendanceUserList from './Components/Attendence/AttendenceUserList';
 import ProtectedRoute from './Components/Common/ProtectedRoute';
 import SalaryComponents from './Components/Salary/SalaryComponents';
-import DeclareSalary from './Components/Salary/DeclareSalary';
 import LWPManagement from './features/lwp/components/LWPManagement';
 import ProjectAttributes from './features/project-attributes/components/ProjectAttributes';
 import ReimbursementTypes from './Components/Reimbursements/ReimbursementTypes';
@@ -16,7 +15,8 @@ import PublicHolidays from './Components/PublicHolidays/PublicHolidays';
 import LeaveManagement from './Components/Leaves/LeaveManagement';
 import AllLeaves from './Components/Leaves/AllLeaves';
 import CompanyLeaves from './Components/CompanyLeaves/CompanyLeaves';
-
+import SalaryUsersList from './Components/Salary/SalaryUsersList';
+import SalaryDeclaration from './Components/Salary/SalaryDeclaration';
 //import { isAuthenticated } from './utils/auth';
 
 function App() {
@@ -25,9 +25,9 @@ function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
-        <Route path="declareSalary" element={<DeclareSalary />} />
         <Route path="/home" element={<Home />} />
-       
+        <Route path="/salary-declaration" element={<SalaryDeclaration />} />
+        
         <Route path="/users" element={
           <ProtectedRoute allowedRoles={['manager', 'admin', 'superadmin']}>
             <UsersList />
@@ -48,6 +48,11 @@ function App() {
         <Route path="/salary-components" element={
           <ProtectedRoute allowedRoles={['admin', 'superadmin', 'hr']}>
             <SalaryComponents />
+          </ProtectedRoute>
+        } />
+        <Route path="/salary-users-list" element={
+          <ProtectedRoute allowedRoles={['admin', 'superadmin', 'hr']}>
+            <SalaryUsersList />
           </ProtectedRoute>
         } />
         <Route path="/lwp" element={

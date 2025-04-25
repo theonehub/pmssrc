@@ -104,14 +104,14 @@ function SalaryComponents() {
   };
 
   const handleEdit = (comp) => {
-    setFormData({ name: comp.name, type: comp.type, formula: comp.formula, is_active: comp.is_active, description: comp.description });
+    setFormData({ name: comp.name, type: comp.type, formula: comp.formula, is_active: comp.is_active, is_visible: comp.is_visible, description: comp.description });
     setEditingId(comp.sc_id);
     setShowForm(true);
   };
 
   const handleCloseForm = () => {
     setShowForm(false);
-    setFormData({ name: '', type: 'earning', formula: '', is_active: true, description: '' });
+    setFormData({ name: '', type: 'earning', formula: '', is_active: true, is_visible: true, description: '' });
     setEditingId(null);
   };
 
@@ -167,6 +167,7 @@ function SalaryComponents() {
                 <TableCell>Type</TableCell>
                 <TableCell>Formula</TableCell>
                 <TableCell>Is Active</TableCell>
+                <TableCell>Is Visible</TableCell>
                 <TableCell>Description</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
@@ -191,6 +192,7 @@ function SalaryComponents() {
                     <TableCell>{component.type}</TableCell>
                     <TableCell>{component.formula}</TableCell>
                     <TableCell>{component.is_active ? 'Yes' : 'No'}</TableCell>
+                    <TableCell>{component.is_visible ? 'Yes' : 'No'}</TableCell>
                     <TableCell>{component.description}</TableCell>
                     
                     <TableCell>
@@ -294,6 +296,10 @@ function SalaryComponents() {
                 <FormControlLabel
                   control={<Checkbox checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />}
                   label="Is Active"
+                />
+                <FormControlLabel
+                  control={<Checkbox checked={formData.is_visible} onChange={(e) => setFormData({ ...formData, is_visible: e.target.checked })} />}
+                  label="Is Visible"
                 />
               </Box>
             </DialogContent>

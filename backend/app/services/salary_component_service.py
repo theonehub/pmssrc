@@ -1,14 +1,18 @@
 import logging
 from datetime import datetime
 from bson import ObjectId
-from fastapi import HTTPException
-from database import salary_components_collection
+from fastapi import HTTPException, status
+from database import salary_components_collection, salary_component_assignments_collection
 import uuid
 from models.salary_component import (
     SalaryComponentCreate,
     SalaryComponentUpdate,
-    SalaryComponentInDB
+    SalaryComponentInDB,
+    SalaryComponentAssignment,
+    SalaryComponentDeclaration
 )
+
+from typing import List
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -18,11 +22,13 @@ def serialize_salary_component(doc) -> SalaryComponentInDB:
     Serialize MongoDB document into a SalaryComponentInDB Pydantic model.
     """
     return SalaryComponentInDB(
-        id=str(doc["_id"]),
+        sc_id=doc["sc_id"],
         name=doc["name"],
         type=doc["type"],
+        formula=doc["formula"],
+        is_active=doc["is_active"],
+        is_visible=doc["is_visible"],
         description=doc.get("description"),
-        created_at=doc["created_at"]
     )
 
 
@@ -51,6 +57,7 @@ async def create_salary_component(component: SalaryComponentCreate) -> SalaryCom
         "key": component.name.lower().replace(" ", ""),
         "formula": component.formula,
         "is_active": component.is_active,
+        "is_visible": component.is_visible,
         "description": component.description,
         "created_at": datetime.utcnow()
     }
@@ -159,3 +166,236 @@ async def delete_salary_component(component_id: str) -> dict:
 
     logger.info("Deleted salary component with ID: %s", component_id)
     return {"msg": "Salary component deleted successfully"}
+
+
+async def create_salary_component_assignments(emp_id: str, components: List[SalaryComponentAssignment]) -> dict:
+    """
+    Create salary component assignments for an employee.
+    Stores all components in a single document with the employee ID.
+
+    Args:
+        emp_id (str): Employee ID
+        components (List[SalaryComponentAssignment]): List of components with min/max values
+
+    Returns:
+        dict: Created assignment document
+    """
+    try:
+        logger.info(f"Creating salary component assignments for employee {emp_id}")
+        
+        # Convert Pydantic models to dictionaries
+        components_array = [
+            {
+                "sc_id": str(component.sc_id),
+                "min_value": float(component.min_value),
+                "max_value": float(component.max_value)
+            }
+            for component in components
+        ]
+
+        # Create the document structure
+        assignment_doc = {
+            "emp_id": str(emp_id),
+            "components": components_array,
+            "updated_at": datetime.utcnow()
+        }
+
+        # Upsert the document (update if exists, insert if not)
+        result = salary_component_assignments_collection.update_one(
+            {"emp_id": emp_id},
+            {"$set": assignment_doc},
+            upsert=True
+        )
+
+        # Fetch and return the created/updated document
+        created_assignment = salary_component_assignments_collection.find_one({"emp_id": emp_id})
+        
+        if created_assignment:
+            # Remove MongoDB's _id field before returning
+            created_assignment.pop('_id', None)
+            return created_assignment
+        
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Failed to retrieve created assignment"
+        )
+
+    except Exception as e:
+        logger.error(f"Error creating salary component assignments: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error creating salary component assignments: {str(e)}"
+        )
+
+async def get_salary_component_assignments(emp_id: str) -> List[SalaryComponentInDB]:
+    """
+    Get salary component assignments for an employee.
+
+    Args:
+        emp_id (str): Employee ID
+
+    Returns:
+        List[SalaryComponentInDB]: List of assigned salary components with their values
+    """
+    try:
+        # Get assignments with component details using aggregation
+        pipeline = [
+            {"$match": {"emp_id": emp_id}},
+            {"$unwind": "$components"},
+            {
+                "$lookup": {
+                    "from": "salary_components",
+                    "localField": "components.sc_id",
+                    "foreignField": "sc_id",
+                    "as": "component_details"
+                }
+            },
+            {"$unwind": "$component_details"},
+            {
+                "$project": {
+                    "sc_id": "$components.sc_id",
+                    "min_value": "$components.min_value",
+                    "max_value": "$components.max_value",
+                    "name": "$component_details.name",
+                    "type": "$component_details.type",
+                    "formula": "$component_details.formula",
+                    "description": "$component_details.description"
+                }
+            }
+        ]
+        
+        # Use list() to convert cursor to list
+        assignments = list(salary_component_assignments_collection.aggregate(pipeline))
+        
+        if not assignments:
+            return []
+            
+        return assignments
+        
+    except Exception as e:
+        logger.error(f"Error fetching salary component assignments: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching salary component assignments: {str(e)}"
+        )
+
+async def create_salary_component_declarations(emp_id: str, components: List[SalaryComponentDeclaration]) -> dict:
+    """
+    Create salary component declarations for an employee.
+    Updates the declared_value in the existing assignments.
+
+    Args:
+        emp_id (str): Employee ID
+        components (List[SalaryComponentDeclaration]): List of components with declared values
+
+    Returns:
+        dict: Updated assignment document
+    """
+    try:
+        logger.info(f"Creating salary component declarations for employee {emp_id}")
+        
+        # Get existing assignments
+        existing_assignments = salary_component_assignments_collection.find_one({"emp_id": emp_id})
+        if not existing_assignments:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No component assignments found for this employee"
+            )
+
+        # Update declared values
+        for component in components:
+            # Find the component in assignments
+            for assigned_component in existing_assignments["components"]:
+                if assigned_component["sc_id"] == component.sc_id:
+                    # Validate declared value is within min/max range
+                    if component.declared_value < assigned_component["min_value"] or \
+                       component.declared_value > assigned_component["max_value"]:
+                        raise HTTPException(
+                            status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Declared value for component {component.sc_id} must be between {assigned_component['min_value']} and {assigned_component['max_value']}"
+                        )
+                    # Update the declared value
+                    assigned_component["declared_value"] = component.declared_value
+                    break
+
+        # Update the document
+        result = salary_component_assignments_collection.update_one(
+            {"emp_id": emp_id},
+            {"$set": {"components": existing_assignments["components"], "updated_at": datetime.utcnow()}}
+        )
+
+        # Fetch and return the updated document
+        updated_assignment = salary_component_assignments_collection.find_one({"emp_id": emp_id})
+        if updated_assignment:
+            # Remove MongoDB's _id field before returning
+            updated_assignment.pop('_id', None)
+            return updated_assignment
+        
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Failed to retrieve updated assignment"
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating salary component declarations: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error creating salary component declarations: {str(e)}"
+        )
+
+async def get_salary_component_declarations(emp_id: str) -> List[dict]:
+    """
+    Get salary component declarations for an employee.
+
+    Args:
+        emp_id (str): Employee ID
+
+    Returns:
+        List[dict]: List of assigned salary components with their declared values
+    """
+    try:
+        # Get assignments with component details using aggregation
+        pipeline = [
+            {"$match": {"emp_id": emp_id}},
+            {"$unwind": "$components"},
+            {
+                "$lookup": {
+                    "from": "salary_components",
+                    "localField": "components.sc_id",
+                    "foreignField": "sc_id",
+                    "as": "component_details"
+                }
+            },
+            {"$unwind": "$component_details"},
+            {
+                "$project": {
+                    "sc_id": "$components.sc_id",
+                    "min_value": "$components.min_value",
+                    "max_value": "$components.max_value",
+                    "declared_value": "$components.declared_value",
+                    "name": "$component_details.name",
+                    "type": "$component_details.type",
+                    "formula": "$component_details.formula",
+                    "description": "$component_details.description"
+                }
+            }
+        ]
+        
+        # Use list() to convert cursor to list
+        declarations = list(salary_component_assignments_collection.aggregate(pipeline))
+        
+        if not declarations:
+            return []
+            
+        return declarations
+        
+    except Exception as e:
+        logger.error(f"Error fetching salary component declarations: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching salary component declarations: {str(e)}"
+        )
+
+

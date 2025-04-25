@@ -77,10 +77,16 @@ const Sidebar = () => {
       roles: ['admin', 'superadmin', 'hr']
     },
     {
-      title: 'Declare Salary',
+      title: 'Salary Users List',
+      icon: <WalletIcon />,
+      path: '/salary-users-list',
+      roles: ['admin', 'superadmin', 'hr']
+    },
+    {
+      title: 'Salary Declaration',
       icon: <EditIcon />,
-      path: '/declareSalary',
-      roles: ['user', 'superadmin', 'admin']
+      path: '/salary-declaration',
+      roles: ['admin', 'superadmin', 'hr', 'manager']
     },
     {
       title: 'LWP Management',

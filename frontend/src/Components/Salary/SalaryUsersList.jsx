@@ -88,7 +88,7 @@ function SalaryUsersList() {
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filteredUsers = filteredUsers.filter(user => 
-        user.empId.toLowerCase().includes(searchLower) ||
+        user.emp_id.toLowerCase().includes(searchLower) ||
         user.name.toLowerCase().includes(searchLower) ||
         user.designation.toLowerCase().includes(searchLower) ||
         user.location.toLowerCase().includes(searchLower)
@@ -281,7 +281,6 @@ function SalaryUsersList() {
     try {
       const componentsData = selectedComponents.map(comp => ({
         sc_id: comp.componentId,
-        min_value: parseFloat(comp.minValue),
         max_value: parseFloat(comp.maxValue)
       }));
 
@@ -312,7 +311,6 @@ function SalaryUsersList() {
     if (showAssignComponentsModal && userComponents.length > 0) {
       const prefilledComponents = userComponents.map(comp => ({
         componentId: comp.sc_id,
-        minValue: comp.min_value.toString(),
         maxValue: comp.max_value.toString()
       }));
       setSelectedComponents(prefilledComponents);
@@ -395,7 +393,7 @@ function SalaryUsersList() {
               ) : users.length > 0 ? (
                 getSortedAndFilteredUsers().map((user) => (
                   <TableRow 
-                    key={user.empId}
+                    key={user.emp_id}
                     sx={{ 
                       '&:hover': { 
                         backgroundColor: 'action.hover',
@@ -403,15 +401,15 @@ function SalaryUsersList() {
                       }
                     }}
                   >
-                    <TableCell>{user.empId}</TableCell>
+                    <TableCell>{user.emp_id}</TableCell>
                     <TableCell>{user.name}</TableCell>
                     <TableCell>{user.designation}</TableCell>
                     <TableCell>{user.location}</TableCell>
                     <TableCell>
-                      <Button variant="contained" color="primary" onClick={() => handleViewComponents(user.empId)}>
+                      <Button variant="contained" color="primary" onClick={() => handleViewComponents(user.emp_id)}>
                         View Components
                       </Button>
-                      <Button variant="contained" color="primary" onClick={() => handleEditComponents(user.empId)}>
+                      <Button variant="contained" color="primary" onClick={() => handleEditComponents(user.emp_id)}>
                         Edit Components
                       </Button>
                     </TableCell>
@@ -458,9 +456,7 @@ function SalaryUsersList() {
                         <TableCell>Component ID</TableCell>
                         <TableCell>Component Name</TableCell>
                         <TableCell>Component Type</TableCell>
-                        <TableCell>Min Value</TableCell>
                         <TableCell>Max Value</TableCell>
-                        <TableCell>Component Formula</TableCell>  
                         <TableCell>Component Description</TableCell>
                       </TableRow>
                     </TableHead>
@@ -470,9 +466,7 @@ function SalaryUsersList() {
                           <TableCell>{component.sc_id}</TableCell>
                           <TableCell>{component.name}</TableCell>
                           <TableCell>{component.type}</TableCell>
-                          <TableCell>{component.min_value}</TableCell>
                           <TableCell>{component.max_value}</TableCell>
-                          <TableCell>{component.formula}</TableCell>
                           <TableCell>{component.description}</TableCell>
                         </TableRow>
                       ))}
@@ -547,13 +541,6 @@ function SalaryUsersList() {
                       </MenuItem>
                     ))}
                   </Select>
-                  <TextField
-                    label="Min Value"
-                    type="number"
-                    value={selected.minValue}
-                    onChange={(e) => handleComponentChange(index, 'minValue', e.target.value)}
-                    sx={{ flex: 1 }}
-                  />
                   <TextField
                     label="Max Value"
                     type="number"

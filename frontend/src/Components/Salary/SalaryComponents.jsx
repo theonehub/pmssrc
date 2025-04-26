@@ -63,6 +63,7 @@ function SalaryComponents() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log(formData);
     if (!formData.name.trim()) {
       setToast({ show: true, message: 'Component name is required.', severity: 'error' });
       return;
@@ -104,21 +105,20 @@ function SalaryComponents() {
   };
 
   const handleEdit = (comp) => {
-    setFormData({ name: comp.name, type: comp.type, formula: comp.formula, is_active: comp.is_active, is_visible: comp.is_visible, description: comp.description });
+    setFormData({ sc_id: comp.sc_id, name: comp.name, type: comp.type, is_active: comp.is_active, is_visible: comp.is_visible, is_mandatory: comp.is_mandatory, declaration_required: comp.declaration_required, description: comp.description });
     setEditingId(comp.sc_id);
     setShowForm(true);
   };
 
   const handleCloseForm = () => {
     setShowForm(false);
-    setFormData({ name: '', type: 'earning', formula: '', is_active: true, is_visible: true, description: '' });
+    setFormData({ name: '', type: 'earning', is_active: true, is_visible: true, is_mandatory: true, declaration_required: true, description: '' });
     setEditingId(null);
   };
 
   const filteredComponents = components.filter((comp) =>
     comp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     comp.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    comp.formula.toLowerCase().includes(searchTerm.toLowerCase()) ||
     comp.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -165,9 +165,10 @@ function SalaryComponents() {
               }}>
                 <TableCell>Component Name</TableCell>
                 <TableCell>Type</TableCell>
-                <TableCell>Formula</TableCell>
                 <TableCell>Is Active</TableCell>
                 <TableCell>Is Visible</TableCell>
+                <TableCell>Is Mandatory</TableCell>
+                <TableCell>Employee Declaration Required</TableCell>
                 <TableCell>Description</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
@@ -189,10 +190,11 @@ function SalaryComponents() {
                     }}
                   >
                     <TableCell>{component.name}</TableCell>
-                    <TableCell>{component.type}</TableCell>
-                    <TableCell>{component.formula}</TableCell>
+                    <TableCell>{component.type.charAt(0).toUpperCase() + component.type.slice(1)}</TableCell>
                     <TableCell>{component.is_active ? 'Yes' : 'No'}</TableCell>
                     <TableCell>{component.is_visible ? 'Yes' : 'No'}</TableCell>
+                    <TableCell>{component.is_mandatory ? 'Yes' : 'No'}</TableCell>
+                    <TableCell>{component.declaration_required ? 'Yes' : 'No'}</TableCell>
                     <TableCell>{component.description}</TableCell>
                     
                     <TableCell>
@@ -209,7 +211,7 @@ function SalaryComponents() {
                           variant="contained"
                           color="error"
                           size="small"
-                          onClick={() => handleDelete(component)}
+                          onClick={() => handleDelete(component.sc_id)}
                         >
                           Delete
                         </Button>
@@ -275,16 +277,6 @@ function SalaryComponents() {
                     <MenuItem value="deduction">Deduction</MenuItem>
                   </Select>
                 </FormControl>
-
-                <TextField
-                  label="Formula"
-                  fullWidth
-                  multiline
-                  rows={2}
-                  value={formData.formula}
-                  onChange={(e) => setFormData({ ...formData, formula: e.target.value })}
-                />
-
                 <TextField
                   label="Description" 
                   fullWidth
@@ -298,8 +290,16 @@ function SalaryComponents() {
                   label="Is Active"
                 />
                 <FormControlLabel
+                  control={<Checkbox checked={formData.is_mandatory} onChange={(e) => setFormData({ ...formData, is_mandatory: e.target.checked })} />}
+                  label="Is Mandatory"
+                />
+                <FormControlLabel
                   control={<Checkbox checked={formData.is_visible} onChange={(e) => setFormData({ ...formData, is_visible: e.target.checked })} />}
                   label="Is Visible"
+                />
+                <FormControlLabel
+                  control={<Checkbox checked={formData.declaration_required} onChange={(e) => setFormData({ ...formData, declaration_required: e.target.checked })} />}
+                  label="Employee Declaration Required"
                 />
               </Box>
             </DialogContent>

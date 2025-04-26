@@ -14,7 +14,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
-function AttendanceCalendar({ empId, show, onHide }) {
+function AttendanceCalendar({ emp_id, show, onHide }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [attendanceData, setAttendanceData] = useState([]);
   const [holidays, setHolidays] = useState([]);
@@ -22,21 +22,21 @@ function AttendanceCalendar({ empId, show, onHide }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (show && empId) {
+    if (show && emp_id) {
       fetchAttendanceData();
     }
-  }, [show, empId, currentDate]);
+  }, [show, emp_id, currentDate]);
 
   const fetchAttendanceData = async () => {
     try {
       setLoading(true);
       const month = currentDate.getMonth() + 1;
       const year = currentDate.getFullYear();
-      const response = await axios.get(`/attendance/user/${empId}/${month}/${year}`);
+      const response = await axios.get(`/attendance/user/${emp_id}/${month}/${year}`);
       setAttendanceData(response.data);
       const holidayResponse = await axios.get(`/public-holidays/month/${month}/${year}`);
       setHolidays(holidayResponse.data);
-      const leaveResponse = await axios.get(`/leaves/user/${empId}/${month}/${year}`);
+      const leaveResponse = await axios.get(`/leaves/user/${emp_id}/${month}/${year}`);
       setLeaves(leaveResponse.data);
       console.log('Leaves:', leaveResponse.data);
     } catch (error) {
@@ -238,7 +238,7 @@ function AttendanceCalendar({ empId, show, onHide }) {
                 } 
               }}
             >
-              Attendance Calendar - {empId}
+              Attendance Calendar - {emp_id}
             </Typography>
             <IconButton onClick={onHide} size="small">
               <CloseIcon />

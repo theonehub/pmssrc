@@ -3,14 +3,14 @@ from datetime import datetime
 from typing import Optional
 
 class ActivityTracker(BaseModel):
-    activityId: str
-    empId: str
+    activity_id: str
+    emp_id: str
     activity: str
     date: datetime
     metadata: dict
     
 class ActivityTrackerMetadata(BaseModel):
-    empId: str
+    emp_id: str
     activity: str
     date: datetime
     metadata: dict

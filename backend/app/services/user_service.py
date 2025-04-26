@@ -8,31 +8,42 @@ from services.company_leave_service import get_all_leaves
 
 logger = logging.getLogger(__name__)
 
-def create_default_user():
+async def create_default_user():
     """
     Creates a default user in the user_collection.
     """
-    if user_collection.find_one({"empId": "superadmin"}):
+    if user_collection.find_one({"emp_id": "superadmin"}):
         logger.info("Default user already exists.")
         return
-    user = UserInfo(empId="superadmin", email="clickankit4u@gmail.com", name="superadmin", \
-                    gender="Male", dob="1990-01-01", doj="2021-01-01", mobile="1234567890", 
-                    password="admin123", role="superadmin", managerId="admin", is_active=True)
-    create_user(user)
+    user = UserInfo(emp_id="superadmin", 
+                    email="clickankit4u@gmail.com", 
+                    name="superadmin", 
+                    gender="Male", 
+                    dob="1990-01-01", 
+                    doj="1990-01-01", 
+                    mobile="1234567890", 
+                    password="admin123", 
+                    role="superadmin",
+                    department="admin",
+                    designation="admin",
+                    location="admin",
+                    manager_id="admin", 
+                    is_active=True) 
+    await create_user(user)
 
 
 def validate_user_data(user: UserInfo):
-    if not user.empId or not user.email or not user.name or not user.gender or not user.dob or not user.doj or not user.mobile:
+    if not user.emp_id or not user.email or not user.name or not user.gender or not user.dob or not user.doj or not user.mobile:
         logger.error("Missing required fields in user data.")
         raise HTTPException(status_code=400, detail="Missing required fields in user data.")
 
-def create_user(user: UserInfo):
+async def create_user(user: UserInfo):
     """
     Creates a new user in the user_collection.
     """
     user.password = hash_password(user.password)
     try:
-        leaves = get_all_leaves()
+        leaves = await get_all_leaves()
         print(leaves)
         for leave in leaves:
             user.leave_balance[leave["name"]] = leave["count"]
@@ -64,19 +75,19 @@ def get_users_stats():
     logger.info("User stats: %s", stats)
     return stats
 
-def get_user_by_empId(empId: str):
+def get_user_by_emp_id(emp_id: str):
     """
-    Returns user info for a user by empId.
+    Returns user info for a user by emp_id.
     """
-    user = user_collection.find_one({"empId": empId})
+    user = user_collection.find_one({"emp_id": emp_id})
     return user
 
-def get_users_by_managerId(managerId: str):
+def get_users_by_manager_id(manager_id: str):
     """
-    Returns user info for a user by managerId.
+    Returns user info for a user by manager_id.
     """
-    users = user_collection.find({"managerId": managerId})
+    users = user_collection.find({"manager_id": manager_id})
     users = list(users)
-    logger.info("Fetched users by managerId: %s, count: %d", managerId, len(users))
+    logger.info("Fetched users by manager_id: %s, count: %d", manager_id, len(users))
     return users
 

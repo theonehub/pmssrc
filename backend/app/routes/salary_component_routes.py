@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, status, HTTPException
-from auth.auth import extract_empId, get_current_user
+from auth.auth import extract_emp_id
 
 from models.salary_component import (
     SalaryComponentCreate,
@@ -136,7 +136,7 @@ async def salary_component_assignments(
 
 
 @router.get("/declarations/self", response_model=List[SalaryComponentInDB])
-async def get_salary_declarations(emp_id: str = Depends(extract_empId)):
+async def get_salary_declarations(emp_id: str = Depends(extract_emp_id)):
     """
     Endpoint to get salary component declarations for the current user.
 
@@ -150,7 +150,7 @@ async def get_salary_declarations(emp_id: str = Depends(extract_empId)):
 @router.post("/declarations/self", status_code=status.HTTP_201_CREATED)
 async def create_salary_declarations(
     declaration_data: SalaryComponentDeclarationRequest,
-    emp_id: str = Depends(extract_empId)
+    emp_id: str = Depends(extract_emp_id)
 ):
     """
     Endpoint to create salary component declarations for the current user.

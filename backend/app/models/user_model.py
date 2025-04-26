@@ -7,14 +7,14 @@ class UserInfo(BaseModel):
     Model for user information. Uses snake_case fields.
     Uses pattern for mobile number validation.
     """
-    empId: str
+    emp_id: str
     name: str
     email: str
     gender: str
     dob: str
     doj: str
     mobile: str #= Field(..., pattern="^\\d{10}$")
-    managerId: Optional[str] = None
+    manager_id: Optional[str] = None
     leave_balance: Optional[dict] = {}
     password: str
     role: str
@@ -57,14 +57,14 @@ class UserInfo(BaseModel):
         extra = "forbid"
         json_schema_extra = {
             "example": {
-                "empId": "EMP001",
+                "emp_id": "EMP001",
                 "name": "John Doe",
                 "email": "john@example.com",
                 "gender": "male",
                 "dob": "1990-01-15",
                 "doj": "2020-01-15",
                 "mobile": "1234567890",
-                "managerId": "EMP002",
+                "manager_id": "EMP002",
                 "password": "password123",
                 "role": "user",
                 "is_active": True,
@@ -83,13 +83,13 @@ class UserInfo(BaseModel):
 
 
 class UserCreate(BaseModel):
-    empId: str
+    emp_id: str
     password: str
     role: str = "user"
     is_active: bool = True
     
 class UserOut(BaseModel):
-    empId: str
+    emp_id: str
     role: str
 
 class Token(BaseModel):
@@ -97,5 +97,5 @@ class Token(BaseModel):
     token_type: str
 
 class User(BaseModel):
-    empId: str
+    emp_id: str
     role: str

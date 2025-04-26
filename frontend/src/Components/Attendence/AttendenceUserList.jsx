@@ -72,14 +72,14 @@ function AttendenceUserList() {
       const year = currentDate.getFullYear();
 
       const lwpPromises = users.map(user =>
-        axios.get(`/leaves/lwp/${user.empId}/${month}/${year}`)
+        axios.get(`/leaves/lwp/${user.emp_id}/${month}/${year}`)
       );
 
       const lwpResponses = await Promise.all(lwpPromises);
       const lwpMap = {};
       
       users.forEach((user, index) => {
-        lwpMap[user.empId] = lwpResponses[index].data.lwp_days;
+        lwpMap[user.emp_id] = lwpResponses[index].data.lwp_days;
       });
 
       setLwpData(lwpMap);
@@ -106,7 +106,7 @@ function AttendenceUserList() {
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filteredUsers = filteredUsers.filter(user => 
-        user.empId.toLowerCase().includes(searchLower) ||
+        user.emp_id.toLowerCase().includes(searchLower) ||
         user.name.toLowerCase().includes(searchLower) ||
         user.email.toLowerCase().includes(searchLower) ||
         user.mobile.includes(searchTerm)
@@ -159,8 +159,8 @@ function AttendenceUserList() {
     }
   };
 
-  const handleViewAttendance = (empId) => {
-    setSelectedEmpId(empId);
+  const handleViewAttendance = (emp_id) => {
+    setSelectedEmpId(emp_id);
     setShowCalendar(true);
   };
 
@@ -253,9 +253,9 @@ function AttendenceUserList() {
                         padding: '12px 16px'
                       }
                     }}>
-                      <TableCell onClick={() => requestSort('empId')} sx={{ cursor: 'pointer' }}>
+                      <TableCell onClick={() => requestSort('emp_id')} sx={{ cursor: 'pointer' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          Employee ID {getSortIcon('empId')}
+                          Employee ID {getSortIcon('emp_id')}
                         </Box>
                       </TableCell>
                       <TableCell onClick={() => requestSort('name')} sx={{ cursor: 'pointer' }}>
@@ -296,7 +296,7 @@ function AttendenceUserList() {
                   <TableBody>
                     {getSortedAndFilteredUsers().map((user) => (
                       <TableRow 
-                        key={user.empId}
+                        key={user.emp_id}
                         sx={{ 
                           '&:hover': { 
                             backgroundColor: 'action.hover',
@@ -304,7 +304,7 @@ function AttendenceUserList() {
                           }
                         }}
                       >
-                        <TableCell>{user.empId}</TableCell>
+                        <TableCell>{user.emp_id}</TableCell>
                         <TableCell>{user.name}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>{user.doj}</TableCell>
@@ -313,9 +313,9 @@ function AttendenceUserList() {
                           <Box sx={{ 
                             display: 'flex', 
                             alignItems: 'center',
-                            color: lwpData[user.empId] > 0 ? 'error.main' : 'success.main'
+                            color: lwpData[user.emp_id] > 0 ? 'error.main' : 'success.main'
                           }}>
-                            {lwpData[user.empId] || 0}
+                            {lwpData[user.emp_id] || 0}
                           </Box>
                         </TableCell>
                         <TableCell>
@@ -323,7 +323,7 @@ function AttendenceUserList() {
                             variant="contained" 
                             color="primary"
                             size="small"
-                            onClick={() => handleViewAttendance(user.empId)}
+                            onClick={() => handleViewAttendance(user.emp_id)}
                           >
                             View Attendance
                           </Button>
@@ -351,7 +351,7 @@ function AttendenceUserList() {
           {/* Attendance Calendar Modal */}
           {selectedEmpId && (
             <AttendanceCalendar
-              empId={selectedEmpId}
+              emp_id={selectedEmpId}
               show={showCalendar}
               onHide={() => setShowCalendar(false)}
             />

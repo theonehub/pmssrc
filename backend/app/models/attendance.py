@@ -3,7 +3,7 @@ from typing import Optional
 from datetime import datetime
 
 class Attendance(BaseModel):
-    empId: str
+    emp_id: str
     checkin_time: Optional[datetime] = None
     checkout_time: Optional[datetime] = None
     date: int = datetime.today().day

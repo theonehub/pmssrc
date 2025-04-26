@@ -25,9 +25,10 @@ def serialize_salary_component(doc) -> SalaryComponentInDB:
         sc_id=doc["sc_id"],
         name=doc["name"],
         type=doc["type"],
-        formula=doc["formula"],
         is_active=doc["is_active"],
         is_visible=doc["is_visible"],
+        is_mandatory=doc["is_mandatory"],
+        declaration_required=doc["declaration_required"],
         description=doc.get("description"),
     )
 
@@ -55,13 +56,14 @@ async def create_salary_component(component: SalaryComponentCreate) -> SalaryCom
         "name": component.name,
         "type": component.type,
         "key": component.name.lower().replace(" ", ""),
-        "formula": component.formula,
         "is_active": component.is_active,
         "is_visible": component.is_visible,
+        "is_mandatory": component.is_mandatory,
+        "declaration_required": component.declaration_required,
         "description": component.description,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now()
     }
-
+    print(doc)
     result = salary_components_collection.insert_one(doc)
     logger.info("Salary component created with ID: %s", result.inserted_id)
 
@@ -95,13 +97,8 @@ async def get_salary_component_by_id(component_id: str) -> SalaryComponentInDB:
         SalaryComponentInDB
     """
     logger.info("Fetching salary component with ID: %s", component_id)
-    try:
-        obj_id = ObjectId(component_id)
-    except Exception as e:
-        logger.error("Invalid ObjectId format: %s", component_id)
-        raise HTTPException(status_code=400, detail="Invalid ID format")
 
-    doc = salary_components_collection.find_one({"_id": obj_id})
+    doc = salary_components_collection.find_one({"sc_id": component_id})
     if not doc:
         logger.warning("Salary component not found with ID: %s", component_id)
         raise HTTPException(status_code=404, detail="Component not found")
@@ -121,24 +118,19 @@ async def update_salary_component(component_id: str, update_data: SalaryComponen
         Updated SalaryComponentInDB
     """
     logger.info("Updating salary component with ID: %s", component_id)
-    try:
-        obj_id = ObjectId(component_id)
-    except Exception as e:
-        logger.error("Invalid ObjectId format: %s", component_id)
-        raise HTTPException(status_code=400, detail="Invalid ID format")
 
     update_fields = {k: v for k, v in update_data.dict().items() if v is not None}
     if not update_fields:
         logger.warning("No valid fields to update for ID: %s", component_id)
         raise HTTPException(status_code=400, detail="No fields to update")
 
-    result = salary_components_collection.update_one({"_id": obj_id}, {"$set": update_fields})
+    result = salary_components_collection.update_one({"sc_id": component_id}, {"$set": update_fields})
     if result.matched_count == 0:
         logger.warning("No salary component found to update with ID: %s", component_id)
         raise HTTPException(status_code=404, detail="Component not found")
 
     logger.info("Updated salary component with ID: %s", component_id)
-    updated_doc = salary_components_collection.find_one({"_id": obj_id})
+    updated_doc = salary_components_collection.find_one({"sc_id": component_id})
     return serialize_salary_component(updated_doc)
 
 
@@ -153,13 +145,8 @@ async def delete_salary_component(component_id: str) -> dict:
         Dict with success message.
     """
     logger.info("Deleting salary component with ID: %s", component_id)
-    try:
-        obj_id = ObjectId(component_id)
-    except Exception:
-        logger.error("Invalid ObjectId format: %s", component_id)
-        raise HTTPException(status_code=400, detail="Invalid ID format")
 
-    result = salary_components_collection.delete_one({"_id": obj_id})
+    result = salary_components_collection.delete_one({"sc_id": component_id})
     if result.deleted_count == 0:
         logger.warning("No salary component found to delete with ID: %s", component_id)
         raise HTTPException(status_code=404, detail="Component not found")
@@ -187,7 +174,6 @@ async def create_salary_component_assignments(emp_id: str, components: List[Sala
         components_array = [
             {
                 "sc_id": str(component.sc_id),
-                "min_value": float(component.min_value),
                 "max_value": float(component.max_value)
             }
             for component in components
@@ -254,12 +240,14 @@ async def get_salary_component_assignments(emp_id: str) -> List[SalaryComponentI
             {
                 "$project": {
                     "sc_id": "$components.sc_id",
-                    "min_value": "$components.min_value",
                     "max_value": "$components.max_value",
                     "name": "$component_details.name",
                     "type": "$component_details.type",
-                    "formula": "$component_details.formula",
-                    "description": "$component_details.description"
+                    "description": "$component_details.description",
+                    "is_mandatory": "$component_details.is_mandatory",
+                    "declaration_required": "$component_details.declaration_required",
+                    "is_active": "$component_details.is_active",
+                    "is_visible": "$component_details.is_visible"
                 }
             }
         ]
@@ -308,11 +296,10 @@ async def create_salary_component_declarations(emp_id: str, components: List[Sal
             for assigned_component in existing_assignments["components"]:
                 if assigned_component["sc_id"] == component.sc_id:
                     # Validate declared value is within min/max range
-                    if component.declared_value < assigned_component["min_value"] or \
-                       component.declared_value > assigned_component["max_value"]:
+                    if component.declared_value > assigned_component["max_value"]:
                         raise HTTPException(
                             status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=f"Declared value for component {component.sc_id} must be between {assigned_component['min_value']} and {assigned_component['max_value']}"
+                            detail=f"Declared value for component {component.sc_id} must be less than or equal to {assigned_component['max_value']}"
                         )
                     # Update the declared value
                     assigned_component["declared_value"] = component.declared_value
@@ -321,7 +308,7 @@ async def create_salary_component_declarations(emp_id: str, components: List[Sal
         # Update the document
         result = salary_component_assignments_collection.update_one(
             {"emp_id": emp_id},
-            {"$set": {"components": existing_assignments["components"], "updated_at": datetime.utcnow()}}
+            {"$set": {"components": existing_assignments["components"], "updated_at": datetime.now()}}
         )
 
         # Fetch and return the updated document
@@ -372,13 +359,15 @@ async def get_salary_component_declarations(emp_id: str) -> List[dict]:
             {
                 "$project": {
                     "sc_id": "$components.sc_id",
-                    "min_value": "$components.min_value",
                     "max_value": "$components.max_value",
                     "declared_value": "$components.declared_value",
                     "name": "$component_details.name",
                     "type": "$component_details.type",
-                    "formula": "$component_details.formula",
-                    "description": "$component_details.description"
+                    "description": "$component_details.description",
+                    "is_mandatory": "$component_details.is_mandatory",
+                    "declaration_required": "$component_details.declaration_required",
+                    "is_active": "$component_details.is_active",
+                    "is_visible": "$component_details.is_visible"
                 }
             }
         ]

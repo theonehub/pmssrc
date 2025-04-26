@@ -30,14 +30,14 @@ reimbursement_assignments_collection = db["reimbursement_assignments"]
 reimbursement_requests_collection = db["reimbursement_requests_collection"]
 
 # Create indexes to improve query performance and enforce uniqueness.
-user_collection.create_index([("empId", ASCENDING)], unique=True)
-user_collection.create_index([("managerId", ASCENDING)])
+user_collection.create_index([("emp_id", ASCENDING)], unique=True)
+user_collection.create_index([("manager_id", ASCENDING)])
 
 public_holidays_collection.create_index([("date", ASCENDING)], unique=True)
 
 
 attendance_collection.create_index(
-    [("empId", 1), ("date", 1), ("month", 1), ("year", 1)],
+    [("emp_id", 1), ("date", 1), ("month", 1), ("year", 1)],
 )
 
 logger.info("Database connected and indexes ensured.")

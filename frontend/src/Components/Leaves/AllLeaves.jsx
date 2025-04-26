@@ -162,7 +162,7 @@ const AllLeaves = () => {
                         }
                       }}
                     >
-                      <TableCell>{leave.empId}</TableCell>
+                      <TableCell>{leave.emp_id}</TableCell>
                       <TableCell>{leave.employee_name}</TableCell>
                       <TableCell>{leave.employee_email}</TableCell>
                       <TableCell>{leave.leave_name}</TableCell>

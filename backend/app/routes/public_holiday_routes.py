@@ -31,7 +31,7 @@ async def create_public_holiday(holiday: PublicHoliday, current_user: User = Dep
     if current_user.role not in ["admin", "superadmin"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    holiday_id = holiday_service.create_holiday(holiday, current_user.empId)
+    holiday_id = holiday_service.create_holiday(holiday, current_user.emp_id)
     
     return {"message": "Public holiday created successfully", "id": holiday_id}
 
@@ -50,7 +50,7 @@ async def update_public_holiday(holiday_id: str, holiday: PublicHoliday, current
     if current_user.role not in ["admin", "superadmin"]:
         raise HTTPException(status_code=403, detail="Not authorized")
     
-    updated = holiday_service.update_holiday(holiday_id, holiday, current_user.empId)
+    updated = holiday_service.update_holiday(holiday_id, holiday, current_user.emp_id)
     
     if not updated:
         raise HTTPException(status_code=404, detail="Holiday not found")
@@ -78,7 +78,7 @@ async def import_holidays(file: UploadFile = File(...), current_user: User = Dep
         
         inserted_count = holiday_service.import_holidays_from_file(
             holiday_data_list, 
-            current_user.empId
+            current_user.emp_id
         )
         
         return {"message": f"Successfully imported {inserted_count} holidays"}

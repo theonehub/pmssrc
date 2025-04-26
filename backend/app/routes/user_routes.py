@@ -8,7 +8,7 @@ from fastapi.security import OAuth2PasswordBearer
 from auth.jwt_handler import decode_access_token
 from models.activity_tracker import ActivityTracker
 from models.user_model import UserInfo
-from auth.auth import extract_empId, get_current_user
+from auth.auth import extract_emp_id, get_current_user
 from auth.dependencies import role_checker
 from auth.password_handler import hash_password
 from fastapi.responses import JSONResponse
@@ -83,7 +83,7 @@ async def create_user(
 
     activity = ActivityTracker(
         activityId=str(uuid.uuid4()),
-        empId=current_user.empId,
+        emp_id=current_user.emp_id,
         activity="createUser",
         date=datetime.now(),
         metadata=user_data.model_dump()
@@ -116,7 +116,7 @@ async def import_users_from_excel(file: UploadFile = File(...), current_user: Us
         raise HTTPException(status_code=500, detail="Error reading Excel file")
 
     headers = [cell.value for cell in sheet[1]]
-    expected_headers = ["empId", "email","name", "gender", "dob", "doj", "mobile", "managerId", "password", "role"]
+    expected_headers = ["emp_id", "email","name", "gender", "dob", "doj", "mobile", "manager_id", "password", "role"]
     logger.info("Parsed headers from Excel: %s", headers)
 
     if headers != expected_headers:
@@ -131,21 +131,21 @@ async def import_users_from_excel(file: UploadFile = File(...), current_user: Us
         try:
             logger.info("Processing row %d: %s", idx, row)
             user = UserInfo(
-                empId=row[0],
+                emp_id=row[0],
                 email=row[1],
                 name=row[2],
                 gender=row[3],
                 dob=row[4],
                 doj=row[5], 
                 mobile=row[6],
-                managerId=row[7],
+                manager_id=row[7],
                 password=row[8],
                 role=row[9]
             )
             await us.create_user(user)
             created += 1
             activity = ActivityTracker(
-                empId=current_user.empId,
+                emp_id=current_user.emp_id,
                 activity="importUsersSuccess",
                 date=datetime.now(),
                 metadata=user.model_dump()
@@ -157,7 +157,7 @@ async def import_users_from_excel(file: UploadFile = File(...), current_user: Us
             logger.error(error_msg)
             errors.append(error_msg)
             activity = ActivityTracker(
-                empId=current_user.empId,
+                emp_id=current_user.emp_id,
                 activity="importUsersFailed",
                 date=datetime.now(),
                 metadata=user.model_dump()
@@ -177,7 +177,7 @@ async def read_users_me(current_user: UserInfo = Depends(get_current_user)):
     """
     Returns the username of the current logged-in user.
     """
-    logger.info("read_users_me successful for username: %s", current_user.empId)
+    logger.info("read_users_me successful for username: %s", current_user.emp_id)
     return current_user
 
 @router.get("/users")
@@ -193,8 +193,8 @@ async def list_users(
     """
     logger.info("Listing users with skip=%d, limit=%d", skip, limit)
     if role == "manager":
-        logger.info("Listing users for manager: %s", current_user.empId)
-        users = us.get_users_by_managerId(current_user.empId)
+        logger.info("Listing users for manager: %s", current_user.emp_id)
+        users = us.get_users_by_manager_id(current_user.emp_id)
     else:
         logger.info("Listing all users")
         users = us.get_all_users()
@@ -212,8 +212,8 @@ def get_user_stats():
 
 @router.get("/users/my/directs")
 async def get_my_directs(current_user: UserInfo = Depends(get_current_user)):
-    return us.get_user_by_managerId(current_user.empId)
+    return us.get_user_by_manager_id(current_user.emp_id)
 
 @router.get("/users/manager/directs")
-def get_user_by_managerId(managerId: str):
-    return us.get_user_by_managerId(managerId)
+def get_user_by_manager_id(manager_id: str):
+        return us.get_user_by_manager_id(manager_id)

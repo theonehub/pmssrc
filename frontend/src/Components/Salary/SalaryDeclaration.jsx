@@ -51,6 +51,14 @@ function SalaryDeclaration() {
   };
 
   const handleDeclareValue = (component) => {
+    if (!component.declaration_required) {
+      setAlert({
+        open: true,
+        message: 'Component is not editable by employee',
+        severity: 'error'
+      });
+      return;
+    }
     setSelectedComponent(component);
     setDeclaredValue(component.declared_value || '');
     setShowDeclarationModal(true);
@@ -67,10 +75,10 @@ function SalaryDeclaration() {
       if (!selectedComponent) return;
 
       const value = parseFloat(declaredValue);
-      if (isNaN(value) || value < selectedComponent.min_value || value > selectedComponent.max_value) {
+      if (isNaN(value) || value > selectedComponent.max_value) {
         setAlert({
           open: true,
-          message: `Value must be between ${selectedComponent.min_value} and ${selectedComponent.max_value}`,
+          message: `Value must be less than or equal to ${selectedComponent.max_value}`,
           severity: 'error'
         });
         return;
@@ -117,7 +125,6 @@ function SalaryDeclaration() {
               <TableRow>
                 <TableCell>Component Name</TableCell>
                 <TableCell>Type</TableCell>
-                <TableCell>Min Value</TableCell>
                 <TableCell>Max Value</TableCell>
                 <TableCell>Declared Value</TableCell>
                 <TableCell>Actions</TableCell>
@@ -133,17 +140,22 @@ function SalaryDeclaration() {
                   <TableRow key={component.sc_id}>
                     <TableCell>{component.name}</TableCell>
                     <TableCell>{component.type}</TableCell>
-                    <TableCell>{component.min_value}</TableCell>
                     <TableCell>{component.max_value}</TableCell>
                     <TableCell>{component.declared_value || '-'}</TableCell>
                     <TableCell>
+                      {component.declaration_required ? (
                       <Button 
                         variant="contained" 
                         color="primary" 
                         onClick={() => handleDeclareValue(component)}
                       >
-                        {component.declared_value ? 'Update' : 'Declare'}
-                      </Button>
+                          {component.declared_value ? 'Update' : 'Declare'}
+                        </Button>
+                      ) : (
+                        <Typography variant="body2" color="text.secondary">
+                          Not editable
+                        </Typography>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
@@ -176,10 +188,9 @@ function SalaryDeclaration() {
                   value={declaredValue}
                   onChange={(e) => setDeclaredValue(e.target.value)}
                   inputProps={{
-                    min: selectedComponent.min_value,
                     max: selectedComponent.max_value
                   }}
-                  helperText={`Must be between ${selectedComponent.min_value} and ${selectedComponent.max_value}`}
+                  helperText={`Must be less than or equal to ${selectedComponent.max_value}`}
                 />
               </Box>
             )}

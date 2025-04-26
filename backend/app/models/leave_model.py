@@ -12,7 +12,7 @@ class EmployeeLeave(BaseModel):
     """
     Model for employee leave applications
     """
-    empId: Optional[str] = None
+    emp_id: Optional[str] = None
     leave_id: Optional[str] = None
     leave_name: str
     start_date: str
@@ -27,7 +27,7 @@ class EmployeeLeave(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "empId": "EMP001",
+                "emp_id": "EMP001",
                 "leave_name": "Annual Leave",
                 "start_date": "2024-03-01",
                 "end_date": "2024-03-05",

@@ -48,7 +48,7 @@ def apply_leave(leave: EmployeeLeave):
         if not leave.leave_id:
             leave.leave_id = str(uuid4())
         # Validate if user exists
-        user = user_collection.find_one({"empId": leave.empId})
+        user = user_collection.find_one({"emp_id": leave.emp_id})
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
@@ -66,18 +66,18 @@ def apply_leave(leave: EmployeeLeave):
         
         # Create leave application
         leave_result = employee_leave_collection.insert_one(leave.model_dump())
-        logger.info(f"Leave application created successfully for user {leave.empId}")
+        logger.info(f"Leave application created successfully for user {leave.emp_id}")
         return {"msg": "Leave application submitted successfully", "inserted_id": str(leave_result.inserted_id)}
     except Exception as e:
         logger.exception("Exception occurred during leave application")
         raise HTTPException(status_code=500, detail=str(e))
 
-def leave_balance(empId: str):
+def leave_balance(emp_id: str):
     """
     Returns the leave balance for a user.
     """
     try:
-        user = user_collection.find_one({"empId": empId})
+        user = user_collection.find_one({"emp_id": emp_id})
         leave_balance = {}
 
         print(user.get("leave_balance", {}))
@@ -88,41 +88,41 @@ def leave_balance(empId: str):
         return leave_balance
         
     except Exception as e:
-        logger.exception(f"Error fetching leave balance for user {empId}")
+        logger.exception(f"Error fetching leave balance for user {emp_id}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def get_user_leaves(empId: str):
+def get_user_leaves(emp_id: str):
     """
     Returns all leave applications for a user.
     """
     try:
-        leaves = list(employee_leave_collection.find({"empId": empId}))
+        leaves = list(employee_leave_collection.find({"emp_id": emp_id}))
         for leave in leaves:
             leave["id"] = str(leave["_id"])
             del leave["_id"]
         return leaves
     except Exception as e:
-        logger.exception(f"Error fetching leaves for user {empId}")
+        logger.exception(f"Error fetching leaves for user {emp_id}")
         raise HTTPException(status_code=500, detail=str(e))
 
-def get_pending_leaves(managerId: str):
+def get_pending_leaves(manager_id: str):
     """
     Returns all pending leave applications for users under a manager.
     """
     try:
         # Get all users under the manager
-        users = list(user_collection.find({"managerId": managerId}))
-        empIds = [user["empId"] for user in users]
+        users = list(user_collection.find({"manager_id": manager_id}))
+        emp_ids = [user["emp_id"] for user in users]
         
         # Get pending leaves for these users
         leaves = list(employee_leave_collection.find({
-            "empId": {"$in": empIds},
+            "emp_id": {"$in": emp_ids},
             "status": LeaveStatus.PENDING
         }))
         return leaves
     except Exception as e:
-        logger.exception(f"Error fetching pending leaves for manager {managerId}")
+        logger.exception(f"Error fetching pending leaves for manager {manager_id}")
         raise HTTPException(status_code=500, detail=str(e))
 
 def update_leave_status(leave_id: str, status: LeaveStatus, approved_by: str):
@@ -155,11 +155,11 @@ def update_leave_status(leave_id: str, status: LeaveStatus, approved_by: str):
                 )
                 
                 # Update user's leave balance
-                user = user_collection.find_one({"empId": leave["empId"]})
+                user = user_collection.find_one({"emp_id": leave["emp_id"]})
                 if user and "leave_balance" in user and leave["leave_name"] in user["leave_balance"]:
                     user["leave_balance"][leave["leave_name"]] -= working_days
                     user_collection.update_one(
-                        {"empId": leave["empId"]}, 
+                        {"emp_id": leave["emp_id"]}, 
                         {"$set": {"leave_balance": user["leave_balance"]}}
                     )
         
@@ -190,7 +190,7 @@ def update_leave_request(leave_id: str, leave_data: dict):
         new_working_days = get_working_days(leave_data["start_date"], leave_data["end_date"])
         
         # Validate if user has enough leave balance
-        user = user_collection.find_one({"empId": existing_leave["empId"]})
+        user = user_collection.find_one({"emp_id": existing_leave["emp_id"]})
         if user["leave_balance"][leave_data["leave_name"]] < new_working_days:
             raise HTTPException(status_code=400, detail="Insufficient leave balance")
             
@@ -253,16 +253,16 @@ def get_all_employee_leaves(manager_id: str = None):
         query = {}
         if manager_id:
             # Get all users under the manager
-            users = list(user_collection.find({"managerId": manager_id}))
-            empIds = [user["empId"] for user in users]
-            query["empId"] = {"$in": empIds}
+            users = list(user_collection.find({"manager_id": manager_id}))
+            emp_ids = [user["emp_id"] for user in users]
+            query["emp_id"] = {"$in": emp_ids}
             
         leaves = list(employee_leave_collection.find(query))
         for leave in leaves:
             leave["id"] = str(leave["_id"])
             del leave["_id"]
             # Add employee details
-            user = user_collection.find_one({"empId": leave["empId"]})
+            user = user_collection.find_one({"emp_id": leave["emp_id"]})
             if user:
                 leave["employee_name"] = user.get("name", "")
                 leave["employee_email"] = user.get("email", "")
@@ -271,7 +271,7 @@ def get_all_employee_leaves(manager_id: str = None):
         logger.exception(f"Error fetching all leaves for manager {manager_id}")
         raise HTTPException(status_code=500, detail=str(e)) 
     
-def get_leaves_by_month_for_user(empId: str, month: int, year: int):
+def get_leaves_by_month_for_user(emp_id: str, month: int, year: int):
     """
     Returns all leaves for a specific employee in a specific month and year.
     This also includes leaves that span across months.
@@ -293,7 +293,7 @@ def get_leaves_by_month_for_user(empId: str, month: int, year: int):
         # 2. Leave end date is within the month, OR
         # 3. Leave spans over the month (start before, end after)
         leaves = list(employee_leave_collection.find({
-            "empId": empId,
+            "emp_id": emp_id,
             "$or": [
                 # Leave starts in this month
                 {"start_date": {"$gte": month_start_str, "$lte": month_end_str}},
@@ -328,10 +328,10 @@ def get_leaves_by_month_for_user(empId: str, month: int, year: int):
             
         return leaves
     except Exception as e:
-        logger.exception(f"Error fetching leaves for user {empId} in month {month} and year {year}")
+        logger.exception(f"Error fetching leaves for user {emp_id} in month {month} and year {year}")
         raise HTTPException(status_code=500, detail=str(e))
 
-def calculate_lwp_for_month(empId: str, month: int, year: int):
+def calculate_lwp_for_month(emp_id: str, month: int, year: int):
     """
     Calculate Leave Without Pay (LWP) for a specific month.
     LWP is counted for days where employee is:
@@ -353,7 +353,7 @@ def calculate_lwp_for_month(empId: str, month: int, year: int):
 
         # Get attendance records for the month
         attendance_records = list(attendance_collection.find({
-            "empId": empId,
+            "emp_id": emp_id,
             "checkin_time": {
                 "$gte": month_start_str,
                 "$lte": month_end_str
@@ -362,7 +362,7 @@ def calculate_lwp_for_month(empId: str, month: int, year: int):
         
         # Get leaves for the month
         leaves = list(employee_leave_collection.find({
-            "empId": empId,
+            "emp_id": emp_id,
             "$or": [
                 {"start_date": {"$gte": month_start_str, "$lte": month_end_str}},
                 {"end_date": {"$gte": month_start_str, "$lte": month_end_str}},
@@ -377,7 +377,7 @@ def calculate_lwp_for_month(empId: str, month: int, year: int):
         current_date = month_start
 
         print("************************************************")
-        print("empId", empId)
+        print("emp_id", emp_id)
         print("leaves", leaves)
         print("attendance_records", attendance_records)
         print("month_start", month_start)
@@ -425,5 +425,5 @@ def calculate_lwp_for_month(empId: str, month: int, year: int):
 
         return lwp_days
     except Exception as e:
-        logger.exception(f"Error calculating LWP for user {empId}")
+        logger.exception(f"Error calculating LWP for user {emp_id}")
         raise HTTPException(status_code=500, detail=str(e))

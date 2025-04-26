@@ -36,17 +36,17 @@ async def get_attendance(user: User = Depends(get_current_user)):
     else:
         raise HTTPException(status_code=403, detail="Forbidden")
 
-@routes.get("/user/{empId}/{month}/{year}")
-async def get_attendance(empId: str, month: int, year: int, user: User = Depends(get_current_user)):
-    return await attendance_service.get_employee_attendance_by_month(empId, month, year)
+@routes.get("/user/{emp_id}/{month}/{year}")
+async def get_attendance(emp_id: str, month: int, year: int, user: User = Depends(get_current_user)):
+    return await attendance_service.get_employee_attendance_by_month(emp_id, month, year)
 
 @routes.get("/my/month/{month}/{year}")
 async def get_attendance(month: int, year: int, user: User = Depends(get_current_user)):
-    return await attendance_service.get_employee_attendance_by_month(user.empId, month, year) 
+    return await attendance_service.get_employee_attendance_by_month(user.emp_id, month, year) 
 
 @routes.get("/my/year/{year}")
 async def get_attendance(year: int, user: User = Depends(get_current_user)):
-    return await attendance_service.get_employee_attendance_by_year(user.empId, year)
+    return await attendance_service.get_employee_attendance_by_year(user.emp_id, year)
 
 
 @routes.get("/manager/date/{date}/{month}/{year}")

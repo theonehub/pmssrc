@@ -84,7 +84,7 @@ function UsersList() {
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filteredUsers = filteredUsers.filter(user => 
-        user.empId.toLowerCase().includes(searchLower) ||
+        user.emp_id.toLowerCase().includes(searchLower) ||
         user.name.toLowerCase().includes(searchLower) ||
         user.email.toLowerCase().includes(searchLower) ||
         user.gender.toLowerCase().includes(searchLower) ||
@@ -149,14 +149,14 @@ function UsersList() {
     
     // Add user data
     const userData = {
-      empId: e.target.empId.value,
+      emp_id: e.target.emp_id.value,
       name: e.target.name.value,
       email: e.target.email.value,
       gender: e.target.gender.value,
       dob: e.target.dob.value,
       doj: e.target.doj.value,
       mobile: e.target.mobile.value,
-      managerId: e.target.managerId.value,
+      manager_id: e.target.manager_id.value,
       password: e.target.password.value,
       role: e.target.role.value,
       pan_number: e.target.pan_number.value || null,
@@ -364,7 +364,7 @@ function UsersList() {
               ) : users.length > 0 ? (
                 getSortedAndFilteredUsers().map((user) => (
                   <TableRow 
-                    key={user.empId}
+                    key={user.emp_id}
                     sx={{ 
                       '&:hover': { 
                         backgroundColor: 'action.hover',
@@ -372,7 +372,7 @@ function UsersList() {
                       }
                     }}
                   >
-                    <TableCell>{user.empId}</TableCell>
+                    <TableCell>{user.emp_id}</TableCell>
                     <TableCell>{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
@@ -425,7 +425,7 @@ function UsersList() {
                   <TextField
                     fullWidth
                     label="Employee ID"
-                    name="empId"
+                    name="emp_id"
                     required
                   />
                 </Grid>
@@ -508,7 +508,7 @@ function UsersList() {
                   <TextField
                     fullWidth
                     label="Manager ID"
-                    name="managerId"
+                    name="manager_id"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6}>

@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from bson import ObjectId
 from models.public_holiday import PublicHoliday
 from database.database_connector import connect_to_database
 

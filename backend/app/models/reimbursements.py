@@ -1,10 +1,12 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
-
+import uuid
 
 class ReimbursementRequestBase(BaseModel):
-    type_id: str
+    emp_id: str
+    reimbursement_id: str = str(uuid.uuid4())
+    reimbursement_type_id: str
     amount: float
     note: Optional[str] = None
 
@@ -14,8 +16,9 @@ class ReimbursementRequestCreate(ReimbursementRequestBase):
 
 
 class ReimbursementRequestOut(BaseModel):
-    id: str
-    type_name: str
+    emp_id: str
+    reimbursement_id: str
+    reimbursement_type_name: str
     amount: float
     note: Optional[str]
     status: str

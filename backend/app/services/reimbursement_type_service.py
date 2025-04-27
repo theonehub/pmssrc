@@ -1,26 +1,23 @@
 from database.database_connector import reimbursement_types_collection
 from models.reimbursement_type import ReimbursementTypeCreate, ReimbursementTypeUpdate
-from bson import ObjectId
-from datetime import datetime
+import uuid
+from database.reimbursement_types_database import (
+    create_type as db_create_type,
+    get_all_types as db_get_all_types,
+    update_type as db_update_type,
+    delete_type as db_delete_type,
+)
 
-async def create_type(data: ReimbursementTypeCreate):
-    doc = data.dict()
-    doc["created_at"] = datetime.utcnow()
-    result = reimbursement_types_collection.insert_one(doc)
-    return str(result.inserted_id)
 
-async def get_all_types():
-    types = reimbursement_types_collection.find().to_list(1000)
-    for t in types:
-        t["id"] = str(t["_id"])
-        del t["_id"]
-    return types
+async def create_type(data: ReimbursementTypeCreate, hostname: str):    
+    data.reimbursement_type_id = str(uuid.uuid4())
+    return await db_create_type(data, hostname)
 
-async def update_type(type_id: str, data: ReimbursementTypeUpdate):
-    reimbursement_types_collection.update_one(
-        {"_id": ObjectId(type_id)},
-        {"$set": data.dict(exclude_unset=True)},
-    )
+async def get_all_types(hostname: str):
+    return await db_get_all_types(hostname)
 
-async def delete_type(type_id: str):
-    reimbursement_types_collection.delete_one({"_id": ObjectId(type_id)})
+async def update_type(type_id: str, data: ReimbursementTypeUpdate, hostname: str):
+    return await db_update_type(type_id, data, hostname)
+
+async def delete_type(type_id: str, hostname: str):
+    return await db_delete_type(type_id, hostname)

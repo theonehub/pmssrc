@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from services.user_service import create_default_user
 from routes import auth_routes, user_routes, salary_component_routes, \
     attendance_routes, project_attributes_routes, reimbursement_type_routes, \
-    reimbursement_assignment_route, reimbursements, public_holiday_routes, \
+    reimbursement_assignment_route, reimbursement_routes, public_holiday_routes, \
     company_leave_routes, leave_routes, salary_computation_routes
 
 # Configure the root logger.
@@ -49,7 +49,7 @@ app.include_router(attendance_routes.routes, tags=["Attendance"])
 app.include_router(project_attributes_routes.router, tags=["Attributes"])
 app.include_router(reimbursement_type_routes.router, tags=["Reimbursement Types"])
 app.include_router(reimbursement_assignment_route.router, tags=["Reimbursements Assignment"])
-app.include_router(reimbursements.router, tags=["My-Reimbursements"])
+app.include_router(reimbursement_routes.router, tags=["My-Reimbursements"])
 app.include_router(public_holiday_routes.router, tags=["Public Holidays"])
 app.include_router(company_leave_routes.router, tags=["Company Leaves"])
 app.include_router(leave_routes.router, tags=["Leave Management"])

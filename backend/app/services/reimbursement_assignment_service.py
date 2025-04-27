@@ -1,6 +1,6 @@
 from datetime import datetime
 from bson import ObjectId
-from database import reimbursement_assignments_collection, user_collection, reimbursement_types_collection
+from database.database_connector import reimbursement_assignments_collection, user_collection, reimbursement_types_collection
 
 async def assign_reimbursements_to_user(data):
     user_id = data["user_id"]

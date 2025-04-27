@@ -178,7 +178,7 @@ function CompanyLeaves() {
           </DialogContent>
           <DialogActions>
             <Button onClick={() => { setShowModal(false); setFormData({ name: '', count: 0, is_active: true }); setEditingId(null); }}>Cancel</Button>
-            <Button type="submit" variant="contained" color="primary">{editingId ? 'Update' : 'Save'}</Button>
+            <Button onClick={handleSubmit} type="submit" variant="contained" color="primary">{editingId ? 'Update' : 'Save'}</Button>
           </DialogActions>
         </Dialog>
       </Container>

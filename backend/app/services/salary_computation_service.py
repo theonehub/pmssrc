@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 from bson import ObjectId
 from fastapi import HTTPException, status
-from database import salary_component_assignments_collection, user_collection, salary_calculations_collection
+from database.database_connector import salary_component_assignments_collection, user_collection
 import uuid
 from typing import List
 from models.salary_component import SalaryComponentBase

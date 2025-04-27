@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List
 import os
 
-from database import db
+from database.database_connector import reimbursement_assignments_collection, reimbursement_requests_collection
 
 
 async def get_assigned_types(user_id: str):
@@ -21,7 +21,7 @@ async def get_assigned_types(user_id: str):
         {"$unwind": "$type"},
         {"$project": {"_id": 0, "type_id": "$type._id", "name": "$type.name"}}
     ]
-    return db.reimbursement_assignments.aggregate(pipeline).to_list(None)
+    return reimbursement_assignments_collection.aggregate(pipeline).to_list(None)
 
 
 async def save_file(file: UploadFile) -> str:
@@ -44,7 +44,7 @@ async def submit_request(user_id: str, data, file: UploadFile = None):
         "file_url": file_url,
         "submitted_at": datetime.utcnow()
     }
-    db.reimbursement_requests.insert_one(request_doc)
+    reimbursement_requests_collection.insert_one(request_doc)
     return True
 
 
@@ -74,4 +74,4 @@ async def get_my_requests(user_id: str):
         },
         {"$sort": {"submitted_at": -1}}
     ]
-    return db.reimbursement_requests.aggregate(pipeline).to_list(None)
+    return reimbursement_requests_collection.aggregate(pipeline).to_list(None)

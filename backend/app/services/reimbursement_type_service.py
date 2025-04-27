@@ -1,4 +1,4 @@
-from database import reimbursement_types_collection
+from database.database_connector import reimbursement_types_collection
 from models.reimbursement_type import ReimbursementTypeCreate, ReimbursementTypeUpdate
 from bson import ObjectId
 from datetime import datetime

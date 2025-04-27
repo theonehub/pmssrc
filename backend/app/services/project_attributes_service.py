@@ -1,4 +1,4 @@
-from database import project_attribute_collection
+from database.database_connector import project_attribute_collection
 from bson import ObjectId
 from datetime import datetime
 from models.project_attributes import AttributeOut

@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import datetime
 
 class CompanyLeaveBase(BaseModel):
+    company_leave_id: str
     name: str
     count: int
     is_active: bool = True

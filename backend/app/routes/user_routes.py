@@ -8,7 +8,7 @@ from fastapi.security import OAuth2PasswordBearer
 from auth.jwt_handler import decode_access_token
 from models.activity_tracker import ActivityTracker
 from models.user_model import UserInfo
-from auth.auth import extract_emp_id, get_current_user
+from auth.auth import extract_emp_id, extract_hostname, get_current_user
 from auth.dependencies import role_checker
 from auth.password_handler import hash_password
 from fastapi.responses import JSONResponse
@@ -65,7 +65,8 @@ async def create_user(
     pan_file: UploadFile = File(None),
     aadhar_file: UploadFile = File(None),
     photo: UploadFile = File(None),
-    current_user: UserInfo = Depends(get_current_user)
+    current_emp_id: str = Depends(extract_emp_id),
+    hostname: str = Depends(extract_hostname)
 ):
     """
     Endpoint to create a new user with document uploads.
@@ -83,13 +84,13 @@ async def create_user(
 
     activity = ActivityTracker(
         activityId=str(uuid.uuid4()),
-        emp_id=current_user.emp_id,
+        emp_id=current_emp_id,
         activity="createUser",
         date=datetime.now(),
         metadata=user_data.model_dump()
     )
-    track_activity(activity)
-    result = us.create_user(user_data)
+    track_activity(activity, hostname)
+    result = us.create_user(user_data, hostname)
     logger.info(result)
     return result
 
@@ -142,7 +143,7 @@ async def import_users_from_excel(file: UploadFile = File(...), current_user: Us
                 password=row[8],
                 role=row[9]
             )
-            await us.create_user(user)
+            await us.create_user(user, hostname)
             created += 1
             activity = ActivityTracker(
                 emp_id=current_user.emp_id,

@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import axios from '../../utils/axios';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button, Form, Container, Row, Col, Card, Alert } from 'react-bootstrap';
+
+const hostname = window.location.hostname;
+
 
 const Login = () => {
   const [empId, setEmpId] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
-
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -17,6 +20,7 @@ const Login = () => {
       const formData = new URLSearchParams();
       formData.append('username', empId);
       formData.append('password', password);
+      formData.append('hostname', hostname);
       console.log(formData)
       const res = await axios.post('/login', formData, {
         headers: {

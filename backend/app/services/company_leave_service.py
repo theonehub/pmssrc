@@ -1,33 +1,84 @@
-from database import company_leave_collection
+import logging
+from fastapi import HTTPException
 from models.company_leave import CompanyLeaveCreate, CompanyLeaveUpdate
 from bson import ObjectId
 from datetime import datetime
+from database.company_leave_database import create_leave, get_all_leaves, get_leave_by_id, update_leave, delete_leave
 
-async def create_leave(data: CompanyLeaveCreate):
-    doc = data.model_dump()
-    doc["created_at"] = datetime.now()
-    result = company_leave_collection.insert_one(doc)
-    return str(result.inserted_id)
+logger = logging.getLogger(__name__)
 
-async def get_all_leaves():
-    cursor = company_leave_collection.find()
-    leaves = list(cursor)
-    for leave in leaves:
+async def create_leave(leave_data: CompanyLeaveCreate, hostname: str):
+    """
+    Creates a new company leave.
+    """
+    try:
+        doc = leave_data.model_dump()
+        doc["created_at"] = datetime.now()
+        result = await create_leave(doc, hostname)
+        leave_id = str(result.inserted_id)
+        logger.info(f"Created company leave with ID: {leave_id}")
+        return {"message": "Company leave created successfully", "leave_id": leave_id}
+    except Exception as e:
+        logger.error(f"Error creating company leave: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+async def get_all_leaves(hostname: str):
+    """
+    Retrieves all active company leaves.
+    """
+    try:
+        leaves = await get_all_leaves(hostname)
+        for leave in leaves:
+            del leave["_id"]
+        logger.info(f"Retrieved {len(leaves)} company leaves")
+        return leaves
+    except Exception as e:
+        logger.error(f"Error retrieving company leaves: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+async def get_leave_by_id(leave_id: str, hostname: str):
+    """
+    Retrieves a specific company leave by its ID.
+    """
+    try:
+        leave = await get_leave_by_id(leave_id, hostname)
+        if not leave:
+            logger.warning(f"Company leave not found with ID: {leave_id}")
+            return None
         del leave["_id"]
-    return leaves
+        logger.info(f"Retrieved company leave with ID: {leave_id}")
+        return leave
+    except Exception as e:
+        logger.error(f"Error retrieving company leave: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-async def get_leave_by_id(leave_id: str):
-    leave = await company_leave_collection.find_one({"leave_id": leave_id})
-    if leave:
-        del leave["_id"]
-    return leave
+async def update_leave(leave_id: str, leave_data: CompanyLeaveUpdate, hostname: str):
+    """
+    Updates an existing company leave.
+    """
+    try:
+        update_data = {k: v for k, v in leave_data.model_dump(exclude_unset=True).items()}
+        updated = await update_leave(leave_id, update_data, hostname)
+        if updated.matched_count == 0:
+            logger.warning(f"Company leave not found with ID: {leave_id}")
+            return False
+        logger.info(f"Updated company leave with ID: {leave_id}")
+        return True
+    except Exception as e:
+        logger.error(f"Error updating company leave: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-async def update_leave(leave_id: str, data: CompanyLeaveUpdate):
-    update_data = {k: v for k, v in data.model_dump(exclude_unset=True).items()}
-    await company_leave_collection.update_one(
-        {"leave_id": leave_id},
-        {"$set": update_data},
-    )
-
-async def delete_leave(leave_id: str):
-    await company_leave_collection.delete_one({"leave_id": leave_id}) 
+async def delete_leave(leave_id: str, hostname: str):
+    """
+    Soft deletes a company leave.
+    """
+    try:
+        deleted = await delete_leave(leave_id, hostname)
+        if deleted.deleted_count == 0:
+            logger.warning(f"Company leave not found with ID: {leave_id}")
+            return False
+        logger.info(f"Deleted company leave with ID: {leave_id}")
+        return True
+    except Exception as e:
+        logger.error(f"Error deleting company leave: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e)) 

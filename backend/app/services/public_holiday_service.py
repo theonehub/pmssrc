@@ -1,86 +1,70 @@
 import logging
-from datetime import datetime
-from bson import ObjectId
+from fastapi import HTTPException
 from models.public_holiday import PublicHoliday
-from database import public_holidays_collection
-from typing import List
+from database.public_holiday_database import (
+    create_holiday,
+    get_all_holidays,
+    get_holiday_by_month,
+    update_holiday,
+    import_holidays
+)
 
 logger = logging.getLogger(__name__)
 
-def get_all_holidays() -> List[PublicHoliday]:
+async def get_all_holidays(hostname: str):
     """
-    Retrieves all active public holidays from the database.
+    Returns all holidays from holiday_collection for the company.
     """
-    holidays = []
-    cursor = public_holidays_collection.find({"is_active": True})
-    for doc in cursor:
-        doc["id"] = str(doc["_id"])
-        holidays.append(PublicHoliday(**doc))
+    holidays = await get_all_holidays(hostname)
+    logger.info("Fetched all holidays, count: %d", len(holidays))
     return holidays
 
+async def create_holiday(holiday: PublicHoliday, emp_id: str, hostname: str):
+    """
+    Creates a new holiday in the holiday_collection.
+    """
+    logger.info(f"Creating holiday: {holiday}")
+    try:
+        holiday_id = await create_holiday(holiday, emp_id, hostname)
+        logger.info(f"Holiday created successfully, id: {holiday_id}")
+        return holiday_id
+    except Exception as e:
+        logger.error(f"Error creating holiday: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-def get_holiday_by_month(month: int, year: int) -> List[PublicHoliday]:
+async def get_holiday_by_month(month: int, year: int, hostname: str):
     """
-    Retrieves all active public holidays for a specific month and year.
+    Returns holidays for a specific month and year.
     """
-    holidays = []
-    logger.info(f"Getting holidays for month: {month} and year: {year}")
-    cursor = public_holidays_collection.find({"month": month, "year": year})  
-    for doc in cursor:
-        doc["id"] = str(doc["_id"])
-        holidays.append(PublicHoliday(**doc))
+    holidays = await get_holiday_by_month(month, year, hostname)
+    logger.info(f"Fetched holidays for {month}/{year}, count: {len(holidays)}")
     return holidays
 
-def create_holiday(holiday: PublicHoliday, user_emp_id: str):
+async def update_holiday(holiday_id: str, holiday: PublicHoliday, emp_id: str, hostname: str):
     """
-    Creates a new public holiday in the database.
+    Updates an existing holiday in the holiday_collection.
     """
-    logger.info(f"Creating public holiday: {holiday}")
-    
-    holiday_dict = holiday.dict(exclude={"id"})
-    holiday_dict["day"] = holiday.date.day
-    holiday_dict["month"] = holiday.date.month
-    holiday_dict["year"] = holiday.date.year
-    holiday_dict["created_at"] = datetime.now()
-    holiday_dict["created_by"] = user_emp_id
-    
-    result = public_holidays_collection.insert_one(holiday_dict)
-    
-    return str(result.inserted_id)
+    logger.info(f"Updating holiday {holiday_id}: {holiday}")
+    try:
+        updated = await update_holiday(holiday_id, holiday, emp_id, hostname)
+        if not updated:
+            logger.warning(f"Holiday {holiday_id} not found")
+            return False
+        logger.info(f"Holiday {holiday_id} updated successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Error updating holiday: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-def update_holiday(holiday_id: str, holiday: PublicHoliday, user_emp_id: str) -> bool:
+async def import_holidays_from_file(holiday_data_list: list, emp_id: str, hostname: str):
     """
-    Updates an existing public holiday.
-    Returns True if a document was updated, False otherwise.
+    Imports multiple holidays from a list of dictionaries.
     """
-    holiday_dict = holiday.dict(exclude={"id"})
-    holiday_dict["created_by"] = user_emp_id
-    
-    result = public_holidays_collection.update_one(
-        {"_id": ObjectId(holiday_id)},
-        {"$set": holiday_dict}
-    )
-    
-    return result.matched_count > 0
-
-def import_holidays_from_file(holiday_data_list: List[dict], user_emp_id: str) -> int:
-    """
-    Imports multiple holidays from processed data.
-    Returns the number of successfully imported holidays.
-    """
-    inserted_count = 0
-    for holiday_data in holiday_data_list:
-        holiday_dict = {
-            "name": holiday_data['name'],
-            "date": datetime.strptime(holiday_data['date'], '%Y-%m-%d') if isinstance(holiday_data['date'], str) else holiday_data['date'],
-            "description": holiday_data.get('description', ''),
-            "created_by": user_emp_id,
-            "created_at": datetime.now(),
-            "is_active": True,
-            "holiday_id": holiday_data.get('holiday_id', f"HOL-{datetime.now().timestamp()}")
-        }
-        
-        public_holidays_collection.insert_one(holiday_dict)
-        inserted_count += 1
-    
-    return inserted_count 
+    logger.info(f"Importing {len(holiday_data_list)} holidays")
+    try:
+        inserted_count = await import_holidays(holiday_data_list, emp_id, hostname)
+        logger.info(f"Successfully imported {inserted_count} holidays")
+        return inserted_count
+    except Exception as e:
+        logger.error(f"Error importing holidays: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e)) 

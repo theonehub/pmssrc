@@ -2,9 +2,8 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from typing import List
-from models.attendance import Attendance
 from services import attendance_service
-from auth.auth import get_current_user
+from auth.auth import extract_hostname, extract_emp_id, role_checker
 from models.user_model import User
 from pydantic import BaseModel, Field
 import logging
@@ -17,62 +16,72 @@ routes = APIRouter(
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 logger = logging.getLogger(__name__)
 
-@routes.post("/dummy/checkin")
-async def dummy_checkin():
-    return await attendance_service.dummy_checkin()
-
 @routes.post("/checkin")
-async def checkin(user: User = Depends(get_current_user)):
-    return await attendance_service.checkin(user)
+async def checkin(emp_id: str = Depends(extract_emp_id), hostname: str = Depends(extract_hostname)):
+    return await attendance_service.checkin(emp_id, hostname)
 
 @routes.post("/checkout")
-async def checkout(user: User = Depends(get_current_user)):
-    return await attendance_service.checkout(user)
+async def checkout(emp_id: str = Depends(extract_emp_id), hostname: str = Depends(extract_hostname)):
+    return await attendance_service.checkout(emp_id, hostname)
 
 @routes.post("/all")
-async def get_attendance(user: User = Depends(get_current_user)):
-    if user.role == "superadmin":
-        return await attendance_service.get_all_attendance()
-    else:
-        raise HTTPException(status_code=403, detail="Forbidden")
+async def get_attendance(emp_id: str = Depends(extract_emp_id), 
+                         hostname: str = Depends(extract_hostname),
+                         role: str = Depends(role_checker(["superadmin", "admin"]))):
+    return await attendance_service.get_all_attendance(emp_id, hostname)
+
 
 @routes.get("/user/{emp_id}/{month}/{year}")
-async def get_attendance(emp_id: str, month: int, year: int, user: User = Depends(get_current_user)):
-    return await attendance_service.get_employee_attendance_by_month(emp_id, month, year)
+async def get_attendance(emp_id: str, month: int, year: int, hostname: str = Depends(extract_hostname)):
+    return await attendance_service.get_employee_attendance_by_month(emp_id, month, year, hostname)
 
 @routes.get("/my/month/{month}/{year}")
-async def get_attendance(month: int, year: int, user: User = Depends(get_current_user)):
-    return await attendance_service.get_employee_attendance_by_month(user.emp_id, month, year) 
+async def get_attendance(month: int, year: int, emp_id: str = Depends(extract_emp_id), hostname: str = Depends(extract_hostname)):
+    return await attendance_service.get_employee_attendance_by_month(emp_id, month, year, hostname) 
 
 @routes.get("/my/year/{year}")
-async def get_attendance(year: int, user: User = Depends(get_current_user)):
-    return await attendance_service.get_employee_attendance_by_year(user.emp_id, year)
-
+async def get_attendance(year: int, emp_id: str = Depends(extract_emp_id), hostname: str = Depends(extract_hostname)):
+    return await attendance_service.get_employee_attendance_by_year(emp_id, year, hostname)
 
 @routes.get("/manager/date/{date}/{month}/{year}")
-async def get_attendance(date: int, month: int, year: int, user: User = Depends(get_current_user)):
-    return await attendance_service.get_team_attendance_by_date(date, month, year)
+async def get_attendance(date: int, month: int, year: int, 
+                         emp_id: str = Depends(extract_emp_id), 
+                         hostname: str = Depends(extract_hostname),
+                         role: str = Depends(role_checker(["manager"]))):
+    return await attendance_service.get_team_attendance_by_date(emp_id, date, month, year, hostname)
 
 @routes.get("/manager/month/{month}/{year}")
-async def get_attendance(month: int, year: int, user: User = Depends(get_current_user)):
-    return await attendance_service.get_team_attendance_by_month(month, year)    
+async def get_attendance(month: int, year: int, 
+                         emp_id: str = Depends(extract_emp_id), 
+                         hostname: str = Depends(extract_hostname),
+                         role: str = Depends(role_checker(["manager"]))):
+    return await attendance_service.get_team_attendance_by_month(emp_id, month, year, hostname)    
 
 @routes.get("/manager/year/{year}")
-async def get_attendance(year: int, user: User = Depends(get_current_user)):
-    return await attendance_service.get_team_attendance_by_year(year)
+async def get_attendance(year: int, emp_id: str = Depends(extract_emp_id), 
+                         hostname: str = Depends(extract_hostname),
+                         role: str = Depends(role_checker(["manager"]))):
+    return await attendance_service.get_team_attendance_by_year(emp_id, year, hostname)
 
 @routes.get("/admin/date/{date}/{month}/{year}")
-async def get_attendance(date: int, month: int, year: int, user: User = Depends(get_current_user)):
-    return await attendance_service.get_attendance_by_date(date, month, year)
+async def get_attendance(date: int, month: int, year: int, 
+                         hostname: str = Depends(extract_hostname),
+                         role: str = Depends(role_checker(["superadmin", "admin"]))):
+    return await attendance_service.get_attendance_by_date(date, month, year, hostname)
 
 @routes.get("/admin/month/{month}/{year}")
-async def get_attendance(month: int, year: int, user: User = Depends(get_current_user)):
-    return await attendance_service.get_attendance_by_month(month, year)    
+async def get_attendance(month: int, year: int, 
+                         hostname: str = Depends(extract_hostname),
+                         role: str = Depends(role_checker(["superadmin", "admin"]))):
+    return await attendance_service.get_attendance_by_month(month, year, hostname)    
 
 @routes.get("/admin/year/{year}")
-async def get_attendance(year: int, user: User = Depends(get_current_user)):
-    return await attendance_service.get_attendance_by_year(year)
+async def get_attendance(year: int, 
+                         hostname: str = Depends(extract_hostname),
+                         role: str = Depends(role_checker(["superadmin", "admin"]))):
+    return await attendance_service.get_attendance_by_year(year, hostname)
 
 @routes.get("/stats/today")
-async def get_attendance_stats(user: User = Depends(get_current_user)):
-    return await attendance_service.get_todays_attendance_stats()
+async def get_attendance_stats(hostname: str = Depends(extract_hostname),
+                               role: str = Depends(role_checker(["superadmin", "admin"]))):
+    return await attendance_service.get_todays_attendance_stats(hostname)

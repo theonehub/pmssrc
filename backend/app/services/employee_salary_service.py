@@ -3,10 +3,9 @@ from bson import ObjectId
 from fastapi import HTTPException
 from datetime import datetime
 from bson import ObjectId
-from database import (
+from database.database_connector import (
     employee_salary_collection,
     user_collection,
-    salary_components_collection
 )
 from models.employee_salary import (
     EmployeeSalaryCreate,

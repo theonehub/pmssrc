@@ -4,10 +4,19 @@ from config import MONGO_URI
 
 logger = logging.getLogger(__name__)
 
-# Create a MongoDB client using the provided URI and enable TLS.
-client = MongoClient(MONGO_URI, tls=True)
-db = client.pms
+database_clients = {}
 
+def connect_to_database(company_id: str):
+    if company_id not in database_clients:
+        client = MongoClient(MONGO_URI, tls=True)
+        db_name = "pms_"+company_id
+        db = client[db_name]
+        database_clients[company_id] = db
+        logger.info(f"Database_{company_id} connected and indexes ensured.")
+    return database_clients[company_id]
+
+
+db = connect_to_database("anvm")
 # Define collections for login and user info.
 activity_tracker_collection = db["activity_tracker"]
 user_collection = db["users_info"]
@@ -40,4 +49,4 @@ attendance_collection.create_index(
     [("emp_id", 1), ("date", 1), ("month", 1), ("year", 1)],
 )
 
-logger.info("Database connected and indexes ensured.")
+

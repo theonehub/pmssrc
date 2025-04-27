@@ -11,7 +11,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     The token includes data (typically the user's username and role).
     """
     to_encode = data.copy()
-    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    expire = datetime.now() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     logger.info("Access token created for user: %s", data.get("sub"))

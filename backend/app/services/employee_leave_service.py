@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timedelta
 from fastapi import HTTPException
 from models.leave_model import EmployeeLeave, LeaveStatus
-from database import employee_leave_collection, user_collection, public_holidays_collection, attendance_collection
+from database.database_connector import employee_leave_collection, user_collection, public_holidays_collection, attendance_collection
 from uuid import uuid4
 
 logger = logging.getLogger(__name__)

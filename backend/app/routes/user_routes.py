@@ -90,13 +90,16 @@ async def create_user(
         metadata=user_data.model_dump()
     )
     track_activity(activity, hostname)
-    result = us.create_user(user_data, hostname)
+    result = await us.create_user(user_data, hostname)
     logger.info(result)
     return result
 
 
 @router.post("/users/import", status_code=status.HTTP_201_CREATED)
-async def import_users_from_excel(file: UploadFile = File(...), current_user: UserInfo = Depends(get_current_user)):
+async def import_users_from_excel(file: UploadFile = File(...), 
+                                  hostname: str = Depends(extract_hostname),
+                                  current_emp_id: str = Depends(extract_emp_id)
+                                  ):
     """
     Imports users from an Excel (.xlsx) file.
     """
@@ -146,7 +149,7 @@ async def import_users_from_excel(file: UploadFile = File(...), current_user: Us
             await us.create_user(user, hostname)
             created += 1
             activity = ActivityTracker(
-                emp_id=current_user.emp_id,
+                emp_id=current_emp_id,
                 activity="importUsersSuccess",
                 date=datetime.now(),
                 metadata=user.model_dump()
@@ -158,7 +161,7 @@ async def import_users_from_excel(file: UploadFile = File(...), current_user: Us
             logger.error(error_msg)
             errors.append(error_msg)
             activity = ActivityTracker(
-                emp_id=current_user.emp_id,
+                emp_id=current_emp_id,
                 activity="importUsersFailed",
                 date=datetime.now(),
                 metadata=user.model_dump()
@@ -174,19 +177,22 @@ async def import_users_from_excel(file: UploadFile = File(...), current_user: Us
 
 
 @router.get("/users/me")
-async def read_users_me(current_user: UserInfo = Depends(get_current_user)):
+async def read_users_me(hostname: str = Depends(extract_hostname),
+                        current_emp_id: str = Depends(extract_emp_id)):
     """
     Returns the username of the current logged-in user.
     """
-    logger.info("read_users_me successful for username: %s", current_user.emp_id)
-    return current_user
+    logger.info("read_users_me successful for username: %s", current_emp_id)
+    user = await us.get_user_by_emp_id(current_emp_id, hostname)
+    return user
 
 @router.get("/users")
 async def list_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1),
     role: str = Depends(role_checker("admin", "superadmin", "manager")),
-    current_user: UserInfo = Depends(get_current_user)
+    hostname: str = Depends(extract_hostname),
+    current_emp_id: str = Depends(extract_emp_id)
 ):
     """
     Lists all login info entries, paginated.
@@ -194,11 +200,11 @@ async def list_users(
     """
     logger.info("Listing users with skip=%d, limit=%d", skip, limit)
     if role == "manager":
-        logger.info("Listing users for manager: %s", current_user.emp_id)
-        users = us.get_users_by_manager_id(current_user.emp_id)
+        logger.info("Listing users for manager: %s", current_emp_id)
+        users = await us.get_users_by_manager_id(current_emp_id, hostname)
     else:
         logger.info("Listing all users")
-        users = us.get_all_users()
+        users = await us.get_all_users(hostname)
     paginated_users = [serialize_user(u) for u in users[skip:skip + limit]]
 
     logger.info("Returning %d users out of %d", len(paginated_users), len(users))
@@ -208,13 +214,14 @@ async def list_users(
     }
     
 @router.get("/users/stats")
-def get_user_stats():
-    return us.get_users_stats()
+async def get_user_stats(hostname: str = Depends(extract_hostname)):
+    return await us.get_users_stats(hostname)
 
 @router.get("/users/my/directs")
-async def get_my_directs(current_user: UserInfo = Depends(get_current_user)):
-    return us.get_user_by_manager_id(current_user.emp_id)
+async def get_my_directs(hostname: str = Depends(extract_hostname),
+                        current_emp_id: str = Depends(extract_emp_id)):
+    return await us.get_user_by_manager_id(current_emp_id, hostname)
 
 @router.get("/users/manager/directs")
-def get_user_by_manager_id(manager_id: str):
-        return us.get_user_by_manager_id(manager_id)
+async def get_user_by_manager_id(manager_id: str, hostname: str = Depends(extract_hostname)):
+    return await us.get_user_by_manager_id(manager_id, hostname)

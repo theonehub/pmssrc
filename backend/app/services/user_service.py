@@ -29,16 +29,16 @@ async def create_default_user():
                     dob="1990-01-01", 
                     doj="1990-01-01", 
                     mobile="1234567890", 
-                    password="admin123", 
+                    password=hash_password("admin123"), 
                     role="superadmin",
                     department="admin",
                     designation="admin",
                     location="admin",
                     manager_id="admin", 
                     is_active=True) 
-    user_result = await create_user(user, 'global_database')
-    logger.info("User created successfully, inserted_id: %s", str(user_result.inserted_id))
-    return {"msg": "User created successfully", "inserted_id": str(user_result.inserted_id)}
+    msg = await db_create_user(user, 'global_database')
+    logger.info("User created successfully, inserted_id: %s", msg)
+    return msg
 
 
 def validate_user_data(user: UserInfo):
@@ -52,7 +52,7 @@ async def create_user(user: UserInfo, hostname: str):
     """
     user.password = hash_password(user.password)
     try:
-        leaves = await get_all_leaves()
+        leaves = await get_all_leaves(hostname)
         print(leaves)
         for leave in leaves:
             user.leave_balance[leave["name"]] = leave["count"]

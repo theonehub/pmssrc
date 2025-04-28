@@ -40,7 +40,7 @@ async def get_users_stats(hostname: str):
     stats = collection.aggregate([
         {"$group": {"_id": "$role", "count": {"$sum": 1}}}
     ])
-    stats = {"total_users": total_users}
+    logger.info("User stats: %s", stats)
     for item in stats:
         stats[item["_id"]] = item["count"]
     return stats

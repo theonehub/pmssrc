@@ -52,6 +52,17 @@ async def extract_hostname(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     return hostname
 
+async def  extract_role(token: str = Depends(oauth2_scheme)):
+    """
+    Extracts the role from the JWT token.
+    """
+    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    role: str = payload.get("role")
+    if role is None:
+        logger.warning("Token payload does not contain role.")
+        raise credentials_exception
+    return role
+
 async def get_current_user(emp_id: str = Depends(extract_emp_id), hostname: str = Depends(extract_hostname)):
     """
     Dependency to get the current authenticated user from the JWT token.
@@ -59,6 +70,8 @@ async def get_current_user(emp_id: str = Depends(extract_emp_id), hostname: str 
     """
     # Retrieve the user info from the database based on emp_id.
     user = await get_user_by_emp_id(emp_id, hostname)
+    if not user:
+        user = await get_user_by_emp_id(emp_id, "global_database")
     if user is None:
         logger.warning("User not found for emp_id: %s", emp_id)
         raise credentials_exception
@@ -68,8 +81,9 @@ async def get_current_user(emp_id: str = Depends(extract_emp_id), hostname: str 
 
 
 def role_checker(roles: List[str]):
-    async def checker(current_user: User = Depends(get_current_user)):
-        if current_user.role not in roles:
+    async def checker(role: str = Depends(extract_role)):
+        logger.info("Checking role for user: %s", role)
+        if role not in roles:
             raise credentials_exception
-        return current_user.role
+        return role
     return checker

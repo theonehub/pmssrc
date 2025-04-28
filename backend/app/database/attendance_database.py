@@ -137,21 +137,31 @@ async def get_todays_attendance_stats(hostname: str):
     Retrieves today's attendance statistics.
     """
     collection = await get_attendance_collection(hostname)
-    today = datetime.now().date()
-    
-    total_employees = await collection.count_documents({
-        "date": today,
+    # Use day, month, and year fields to avoid encoding datetime.date
+    now = datetime.now()
+    day = now.day
+    month = now.month
+    year = now.year
+
+    total_employees = collection.count_documents({
+        "day": day,
+        "month": month,
+        "year": year,
         "is_active": True
     })
     
-    checked_in = await collection.count_documents({
-        "date": today,
+    checked_in = collection.count_documents({
+        "day": day,
+        "month": month,
+        "year": year,
         "check_in_time": {"$ne": None},
         "is_active": True
     })
     
-    checked_out = await collection.count_documents({
-        "date": today,
+    checked_out = collection.count_documents({
+        "day": day,
+        "month": month,
+        "year": year,
         "check_out_time": {"$ne": None},
         "is_active": True
     })

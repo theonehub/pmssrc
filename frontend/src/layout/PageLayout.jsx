@@ -115,7 +115,7 @@ const PageLayout = ({ title, children }) => {
             }}
           >
             <Sidebar />
-            
+
             {/* Resize Handle */}
             {isSidebarOpen && (
               <Box
@@ -154,7 +154,7 @@ const PageLayout = ({ title, children }) => {
               zIndex: theme.zIndex.drawer
             }}
           >
-            <Sidebar />
+        <Sidebar />
           </Drawer>
         )}
         

@@ -68,3 +68,12 @@ async def get_emp_ids_by_manager_id(manager_id: str, hostname: str):
     collection = get_user_collection(hostname)
     users = collection.find({"manager_id": manager_id}, {"_id": 0, "emp_id": 1})
     return [user["emp_id"] for user in users]
+
+async def update_user_leave_balance(emp_id: str, leave_name: str, leave_count: int, hostname: str):
+    """
+    Updates the leave balance for a user.
+    """
+    collection = get_user_collection(hostname)
+    collection.update_one({"emp_id": emp_id}, {"$inc": {f"leave_balance.{leave_name}": leave_count}})
+    logger.info(f"Updated leave balance for {emp_id} to {leave_name}: {leave_count}")
+    return {"msg": "Leave balance updated successfully"}

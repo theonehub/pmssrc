@@ -9,7 +9,8 @@ from database.user_database import (
     create_user as db_create_user,
     get_user_by_emp_id as db_get_user_by_emp_id,
     get_users_stats as db_get_users_stats,
-    get_users_by_manager_id as db_get_users_by_manager_id
+    get_users_by_manager_id as db_get_users_by_manager_id,
+    update_user_leave_balance as db_update_user_leave_balance
 )
 
 logger = logging.getLogger(__name__)
@@ -93,5 +94,13 @@ async def get_users_by_manager_id(manager_id: str, hostname: str):
     users = list(users)
     logger.info("Fetched users by manager_id: %s, count: %d", manager_id, len(users))
     return users
+
+async def update_user_leave_balance(emp_id: str, leave_name: str, leave_count: int, hostname: str):
+    """
+    Updates the leave balance for a user.
+    """
+    await db_update_user_leave_balance(emp_id, leave_name, leave_count, hostname)
+
+
 
 

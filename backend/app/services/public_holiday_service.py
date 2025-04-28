@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 from fastapi import HTTPException
 from models.public_holiday import PublicHoliday
@@ -6,10 +7,19 @@ from database.public_holiday_database import (
     get_all_holidays,
     get_holiday_by_month,
     update_holiday,
-    import_holidays
+    import_holidays,
+    get_holiday_by_date_str
 )
 
 logger = logging.getLogger(__name__)
+
+async def is_public_holiday(date: datetime, hostname: str):
+    """
+    Checks if a given date is a public holiday.
+    """
+    date_str = date.strftime("%Y-%m-%d")
+    holiday = await get_holiday_by_date_str(date_str, hostname)
+    return holiday is not None
 
 async def get_all_holidays(hostname: str):
     """

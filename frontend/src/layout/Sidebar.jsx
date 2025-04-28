@@ -23,7 +23,8 @@ import {
   PersonAdd as PersonAddIcon,
   Receipt as ReceiptIcon,
   Settings as SettingsIcon,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  Business as BusinessIcon
 } from '@mui/icons-material';
 import { getUserRole } from '../utils/auth';
 
@@ -123,6 +124,12 @@ const Sidebar = () => {
       icon: <CalendarIcon />,
       path: '/leaves',
       roles: ['user', 'manager', 'admin', 'superadmin']
+    },
+    {
+      title: 'Organisations',
+      icon: <BusinessIcon />,
+      path: '/organisations',
+      roles: ['superadmin']
     }
   ];
 

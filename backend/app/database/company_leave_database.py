@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 from models.company_leave import CompanyLeaveCreate, CompanyLeaveUpdate
 from database.database_connector import connect_to_database
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,10 @@ async def create_leave(leave_data: dict, hostname: str):
     collection = await get_company_leave_collection(hostname)
     
     now = datetime.now()
-    leave_id = f"CL-{now.strftime('%Y%m%d%H%M%S')}"
+    if not leave_data.get("leave_id"):
+        leave_id = str(uuid.uuid4())
+    else:
+        leave_id = leave_data["leave_id"]
     
     leave_dict = {
         "leave_id": leave_id,

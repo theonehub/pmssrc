@@ -17,6 +17,7 @@ import AllLeaves from './Components/Leaves/AllLeaves';
 import CompanyLeaves from './Components/CompanyLeaves/CompanyLeaves';
 import SalaryUsersList from './Components/Salary/SalaryUsersList';
 import SalaryDeclaration from './Components/Salary/SalaryDeclaration';
+import OrganisationsList from './Components/Organisation/OrganisationsList';
 //import { isAuthenticated } from './utils/auth';
 
 function App() {
@@ -93,6 +94,11 @@ function App() {
         <Route path="/all-leaves" element={
           <ProtectedRoute allowedRoles={['manager', 'superadmin']}>
             <AllLeaves />
+          </ProtectedRoute>
+        } />
+        <Route path="/organisations" element={
+          <ProtectedRoute allowedRoles={['superadmin']}>
+            <OrganisationsList />
           </ProtectedRoute>
         } />
       </Routes>

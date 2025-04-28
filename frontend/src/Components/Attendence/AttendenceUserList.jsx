@@ -184,7 +184,7 @@ function AttendenceUserList() {
             Users List
           </Typography>
 
-          {/* Search Box */}
+        {/* Search Box */}
           <Box sx={{ mb: 3 }}>
             <TextField
               fullWidth
@@ -202,7 +202,7 @@ function AttendenceUserList() {
             />
           </Box>
 
-          {/* Page Size Selector */}
+        {/* Page Size Selector */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Typography variant="body2" sx={{ mr: 2 }}>
@@ -214,12 +214,12 @@ function AttendenceUserList() {
                   size="small"
                   onChange={(e) => {
                     setPageSize(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                >
+                      setCurrentPage(1);
+                    }}
+                  >
                   {[5, 10, 20, 50, 100].map((size) => (
                     <MenuItem key={size} value={size}>
-                      {size}
+                    {size}
                     </MenuItem>
                   ))}
                 </Select>
@@ -229,18 +229,18 @@ function AttendenceUserList() {
               </Typography>
             </Box>
             <Typography variant="body2">
-              Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalUsers)} of {totalUsers} entries
+            Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, totalUsers)} of {totalUsers} entries
             </Typography>
           </Box>
 
-          {loading ? (
+        {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
               <CircularProgress />
             </Box>
-          ) : error ? (
+        ) : error ? (
             <Alert severity="error">{error}</Alert>
-          ) : (
-            <>
+        ) : (
+          <>
               <TableContainer component={Paper}>
                 <Table>
                   <TableHead>
@@ -260,22 +260,22 @@ function AttendenceUserList() {
                       </TableCell>
                       <TableCell onClick={() => requestSort('name')} sx={{ cursor: 'pointer' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          Name {getSortIcon('name')}
+                      Name {getSortIcon('name')}
                         </Box>
                       </TableCell>
                       <TableCell onClick={() => requestSort('email')} sx={{ cursor: 'pointer' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          Email {getSortIcon('email')}
+                      Email {getSortIcon('email')}
                         </Box>
                       </TableCell>
                       <TableCell onClick={() => requestSort('doj')} sx={{ cursor: 'pointer' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          Date of Joining {getSortIcon('doj')}
+                      Date of Joining {getSortIcon('doj')}
                         </Box>
                       </TableCell>
                       <TableCell onClick={() => requestSort('mobile')} sx={{ cursor: 'pointer' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          Mobile {getSortIcon('mobile')}
+                      Mobile {getSortIcon('mobile')}
                         </Box>
                       </TableCell>
                       <TableCell onClick={() => requestSort('lwp')} sx={{ cursor: 'pointer' }}>
@@ -289,12 +289,12 @@ function AttendenceUserList() {
                         </Box>
                       </TableCell>
                       <TableCell>
-                        Action
+                      Action
                       </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {getSortedAndFilteredUsers().map((user) => (
+                  {getSortedAndFilteredUsers().map((user) => (
                       <TableRow 
                         key={user.emp_id}
                         sx={{ 
@@ -325,16 +325,16 @@ function AttendenceUserList() {
                             size="small"
                             onClick={() => handleViewAttendance(user.emp_id)}
                           >
-                            View Attendance
-                          </Button>
+                          View Attendance
+                        </Button>
                         </TableCell>
                       </TableRow>
-                    ))}
+                  ))}
                   </TableBody>
-                </Table>
+              </Table>
               </TableContainer>
 
-              {/* Pagination */}
+            {/* Pagination */}
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
                 <MuiPagination 
                   count={totalPages}
@@ -345,16 +345,16 @@ function AttendenceUserList() {
                   showLastButton
                 />
               </Box>
-            </>
-          )}
+          </>
+        )}
 
           {/* Attendance Calendar Modal */}
           {selectedEmpId && (
-            <AttendanceCalendar
+        <AttendanceCalendar
               emp_id={selectedEmpId}
-              show={showCalendar}
-              onHide={() => setShowCalendar(false)}
-            />
+          show={showCalendar}
+          onHide={() => setShowCalendar(false)}
+        />
           )}
         </Box>
       </Container>

@@ -303,9 +303,9 @@ function UsersList() {
 
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
           <TextField
-            placeholder="Search users..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search users..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -325,7 +325,7 @@ function UsersList() {
                 setCurrentPage(1);
               }}
             >
-              {[5, 10, 20, 50, 100].map((size) => (
+                {[5, 10, 20, 50, 100].map((size) => (
                 <MenuItem key={size} value={size}>
                   {size}
                 </MenuItem>
@@ -403,7 +403,7 @@ function UsersList() {
                 </TableRow>
               )}
             </TableBody>
-          </Table>
+              </Table>
         </TableContainer>
 
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
@@ -618,8 +618,8 @@ function UsersList() {
           <DialogContent>
             <Box component="form" onSubmit={handleImport} sx={{ mt: 2 }}>
               <input
-                type="file"
-                accept=".xlsx"
+                  type="file"
+                  accept=".xlsx"
                 onChange={(e) => setImportFile(e.target.files[0])}
                 style={{ marginBottom: '16px' }}
               />

@@ -7,7 +7,7 @@ from services.user_service import create_default_user
 from routes import auth_routes, user_routes, salary_component_routes, \
     attendance_routes, project_attributes_routes, reimbursement_type_routes, \
     reimbursement_assignment_route, reimbursement_routes, public_holiday_routes, \
-    company_leave_routes, leave_routes, salary_computation_routes
+    company_leave_routes, leave_routes, salary_computation_routes, organisation_routes
 
 # Configure the root logger.
 logging.basicConfig(
@@ -54,6 +54,7 @@ app.include_router(public_holiday_routes.router, tags=["Public Holidays"])
 app.include_router(company_leave_routes.router, tags=["Company Leaves"])
 app.include_router(leave_routes.router, tags=["Leave Management"])
 app.include_router(salary_computation_routes.router, tags=["Salary Computation"])
+app.include_router(organisation_routes.router, tags=["Organization"])
 
 # Run the server
 if __name__ == "__main__":

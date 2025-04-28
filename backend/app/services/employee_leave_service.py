@@ -2,22 +2,30 @@ import logging
 from datetime import datetime, timedelta
 from fastapi import HTTPException
 from models.leave_model import EmployeeLeave, LeaveStatus
-from database.database_connector import employee_leave_collection, user_collection, public_holidays_collection, attendance_collection
+#from database.database_connector import employee_leave_collection, user_collection, public_holidays_collection, attendance_collection
 from uuid import uuid4
+from services.public_holiday_service import is_public_holiday
+from services.attendance_service import get_employee_attendance_by_month
+from services.user_service import get_user_by_emp_id, update_user_leave_balance, get_users_by_manager_id
+from database.employee_leave_database import(
+     create_employee_leave as create_employee_leave_db,
+     get_employee_leave_by_id as get_employee_leave_by_id_db,
+     get_employee_leaves_by_emp_id as get_employee_leaves_by_emp_id_db,
+     update_employee_leave as update_employee_leave_db,
+     delete_employee_leave as delete_employee_leave_db,
+     get_all_employee_leaves as get_all_employee_leaves_db,
+     get_employee_leaves_by_manager_id as get_employee_leaves_by_manager_id_db,
+     get_employee_leaves_by_month_for_emp_id as get_employee_leaves_by_month_for_emp_id_db
+     )
 
 logger = logging.getLogger(__name__)
 
-def is_weekend(date):
+async def is_weekend(date):
     """Check if a date is a weekend (Saturday or Sunday)"""
     return date.weekday() >= 5  # 5 is Saturday, 6 is Sunday
 
-def is_public_holiday(date):
-    """Check if a date is a public holiday"""
-    date_str = date.strftime("%Y-%m-%d")
-    holiday = public_holidays_collection.find_one({"date": date_str})
-    return holiday is not None
 
-def get_working_days(start_date, end_date):
+async def get_working_days(start_date, end_date, hostname: str):
     """
     Calculate the number of working days between two dates,
     excluding weekends and public holidays.
@@ -40,7 +48,7 @@ def get_working_days(start_date, end_date):
     
     return working_days
 
-def apply_leave(leave: EmployeeLeave):
+async def apply_leave(leave: EmployeeLeave, hostname: str):
     """
     Creates a new leave application in the employee_leave_collection.
     """
@@ -48,7 +56,7 @@ def apply_leave(leave: EmployeeLeave):
         if not leave.leave_id:
             leave.leave_id = str(uuid4())
         # Validate if user exists
-        user = user_collection.find_one({"emp_id": leave.emp_id})
+        user = get_user_by_emp_id(leave.emp_id, hostname)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
@@ -61,23 +69,23 @@ def apply_leave(leave: EmployeeLeave):
         leave.leave_count = working_days
         
         # Validate if user has enough leave balance
-        if user["leave_balance"][leave.leave_name] < working_days:
+        if user.get("leave_balance", {}).get(leave.leave_name, 0) < working_days:
             raise HTTPException(status_code=400, detail="Insufficient leave balance")
         
         # Create leave application
-        leave_result = employee_leave_collection.insert_one(leave.model_dump())
+        leave_result = await create_employee_leave_db(leave, hostname)  
         logger.info(f"Leave application created successfully for user {leave.emp_id}")
         return {"msg": "Leave application submitted successfully", "inserted_id": str(leave_result.inserted_id)}
     except Exception as e:
         logger.exception("Exception occurred during leave application")
         raise HTTPException(status_code=500, detail=str(e))
 
-def leave_balance(emp_id: str):
+async def leave_balance(emp_id: str, hostname: str):
     """
     Returns the leave balance for a user.
     """
     try:
-        user = user_collection.find_one({"emp_id": emp_id})
+        user = await get_user_by_emp_id(emp_id, hostname)
         leave_balance = {}
 
         print(user.get("leave_balance", {}))
@@ -92,40 +100,34 @@ def leave_balance(emp_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def get_user_leaves(emp_id: str):
+async def get_user_leaves(emp_id: str, hostname: str):
     """
     Returns all leave applications for a user.
     """
     try:
-        leaves = list(employee_leave_collection.find({"emp_id": emp_id}))
+        leaves = await get_employee_leaves_by_emp_id_db(emp_id, hostname)
         for leave in leaves:
-            leave["id"] = str(leave["_id"])
             del leave["_id"]
         return leaves
     except Exception as e:
         logger.exception(f"Error fetching leaves for user {emp_id}")
         raise HTTPException(status_code=500, detail=str(e))
 
-def get_pending_leaves(manager_id: str):
+async def get_pending_leaves(manager_id: str, hostname: str):
     """
     Returns all pending leave applications for users under a manager.
     """
     try:
-        # Get all users under the manager
-        users = list(user_collection.find({"manager_id": manager_id}))
-        emp_ids = [user["emp_id"] for user in users]
-        
         # Get pending leaves for these users
-        leaves = list(employee_leave_collection.find({
-            "emp_id": {"$in": emp_ids},
-            "status": LeaveStatus.PENDING
-        }))
+        leaves = await get_employee_leaves_by_manager_id_db(manager_id, hostname)
+        for leave in leaves:
+            del leave["_id"]
         return leaves
     except Exception as e:
         logger.exception(f"Error fetching pending leaves for manager {manager_id}")
         raise HTTPException(status_code=500, detail=str(e))
 
-def update_leave_status(leave_id: str, status: LeaveStatus, approved_by: str):
+async def update_leave_status(leave_id: str, status: LeaveStatus, approved_by: str, hostname: str):
     """
     Updates the status of a leave application.
     """
@@ -136,32 +138,20 @@ def update_leave_status(leave_id: str, status: LeaveStatus, approved_by: str):
             "approved_date": datetime.now().strftime("%Y-%m-%d")
         }
         
-        result = employee_leave_collection.update_one(
-            {"leave_id": leave_id},
-            {"$set": update_data}
-        )
+        result = await update_employee_leave_db(leave_id, update_data, hostname)
 
         # Only deduct leaves from balance if approved
         if status == LeaveStatus.APPROVED:
-            leave = employee_leave_collection.find_one({"leave_id": leave_id})
+            leave = await get_employee_leave_by_id_db(leave_id, hostname)
             if leave:
                 # Recalculate working days to ensure accuracy
                 working_days = get_working_days(leave["start_date"], leave["end_date"])
                 
-                # Update the leave count with the accurate working days
-                employee_leave_collection.update_one(
-                    {"leave_id": leave_id},
-                    {"$set": {"leave_count": working_days}}
-                )
-                
                 # Update user's leave balance
-                user = user_collection.find_one({"emp_id": leave["emp_id"]})
+                user = await get_user_by_emp_id(leave["emp_id"], hostname)
                 if user and "leave_balance" in user and leave["leave_name"] in user["leave_balance"]:
                     user["leave_balance"][leave["leave_name"]] -= working_days
-                    user_collection.update_one(
-                        {"emp_id": leave["emp_id"]}, 
-                        {"$set": {"leave_balance": user["leave_balance"]}}
-                    )
+                    await update_user_leave_balance(leave["emp_id"], leave["leave_name"], working_days, hostname)
         
         if result.modified_count == 0:
             raise HTTPException(status_code=404, detail="Leave application not found")
@@ -171,13 +161,13 @@ def update_leave_status(leave_id: str, status: LeaveStatus, approved_by: str):
         logger.exception(f"Error updating leave status for leave {leave_id}")
         raise HTTPException(status_code=500, detail=str(e))
 
-def update_leave_request(leave_id: str, leave_data: dict):
+async def update_leave_request(leave_id: str, leave_data: dict, hostname: str):
     """
     Updates an existing leave request.
     """
     try:
         # Get the existing leave request
-        existing_leave = employee_leave_collection.find_one({"leave_id": leave_id})
+        existing_leave = await get_employee_leave_by_id_db(leave_id, hostname)
         if not existing_leave:
             raise HTTPException(status_code=404, detail="Leave request not found")
             
@@ -190,7 +180,7 @@ def update_leave_request(leave_id: str, leave_data: dict):
         new_working_days = get_working_days(leave_data["start_date"], leave_data["end_date"])
         
         # Validate if user has enough leave balance
-        user = user_collection.find_one({"emp_id": existing_leave["emp_id"]})
+        user = await get_user_by_emp_id(existing_leave["emp_id"], hostname)
         if user["leave_balance"][leave_data["leave_name"]] < new_working_days:
             raise HTTPException(status_code=400, detail="Insufficient leave balance")
             
@@ -206,10 +196,7 @@ def update_leave_request(leave_id: str, leave_data: dict):
             "approved_date": None
         }
         
-        result = employee_leave_collection.update_one(
-            {"leave_id": leave_id},
-            {"$set": update_data}
-        )
+        result = await update_employee_leave_db(leave_id, update_data, hostname)
         
         if result.modified_count == 0:
             raise HTTPException(status_code=404, detail="Leave request not found")
@@ -219,13 +206,13 @@ def update_leave_request(leave_id: str, leave_data: dict):
         logger.exception(f"Error updating leave request {leave_id}")
         raise HTTPException(status_code=500, detail=str(e))
 
-def delete_leave_request(leave_id: str):
+async def delete_leave_request(leave_id: str, hostname: str):
     """
     Deletes a leave request.
     """
     try:
         # Get the existing leave request
-        existing_leave = employee_leave_collection.find_one({"leave_id": leave_id})
+        existing_leave = await get_employee_leave_by_id_db(leave_id, hostname)
         if not existing_leave:
             raise HTTPException(status_code=404, detail="Leave request not found")
             
@@ -235,7 +222,7 @@ def delete_leave_request(leave_id: str):
             raise HTTPException(status_code=400, detail="Cannot delete leave request that has already started")
             
         # Delete leave request
-        result = employee_leave_collection.delete_one({"leave_id": leave_id})
+        result = await delete_employee_leave_db(leave_id, hostname)
         
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Leave request not found")
@@ -245,7 +232,7 @@ def delete_leave_request(leave_id: str):
         logger.exception(f"Error deleting leave request {leave_id}")
         raise HTTPException(status_code=500, detail=str(e))
 
-def get_all_employee_leaves(manager_id: str = None):
+async def get_all_employee_leaves(hostname: str, manager_id: str = None):
     """
     Returns all leave applications for all employees or employees under a specific manager.
     """
@@ -253,16 +240,16 @@ def get_all_employee_leaves(manager_id: str = None):
         query = {}
         if manager_id:
             # Get all users under the manager
-            users = list(user_collection.find({"manager_id": manager_id}))
+            users = await get_users_by_manager_id(manager_id, hostname)
             emp_ids = [user["emp_id"] for user in users]
             query["emp_id"] = {"$in": emp_ids}
             
-        leaves = list(employee_leave_collection.find(query))
+        leaves = await get_all_employee_leaves_db(hostname)
         for leave in leaves:
             leave["id"] = str(leave["_id"])
             del leave["_id"]
             # Add employee details
-            user = user_collection.find_one({"emp_id": leave["emp_id"]})
+            user = await get_user_by_emp_id(leave["emp_id"], hostname)
             if user:
                 leave["employee_name"] = user.get("name", "")
                 leave["employee_email"] = user.get("email", "")
@@ -271,7 +258,7 @@ def get_all_employee_leaves(manager_id: str = None):
         logger.exception(f"Error fetching all leaves for manager {manager_id}")
         raise HTTPException(status_code=500, detail=str(e)) 
     
-def get_leaves_by_month_for_user(emp_id: str, month: int, year: int):
+async def get_leaves_by_month_for_user(emp_id: str, month: int, year: int, hostname: str):
     """
     Returns all leaves for a specific employee in a specific month and year.
     This also includes leaves that span across months.
@@ -284,31 +271,10 @@ def get_leaves_by_month_for_user(emp_id: str, month: int, year: int):
             month_end = datetime(year + 1, 1, 1) - timedelta(days=1)
         else:
             month_end = datetime(year, month + 1, 1) - timedelta(days=1)
-        
-        month_start_str = month_start.strftime("%Y-%m-%d")
-        month_end_str = month_end.strftime("%Y-%m-%d")
-        
-        # Find leaves where:
-        # 1. Leave start date is within the month, OR
-        # 2. Leave end date is within the month, OR
-        # 3. Leave spans over the month (start before, end after)
-        leaves = list(employee_leave_collection.find({
-            "emp_id": emp_id,
-            "$or": [
-                # Leave starts in this month
-                {"start_date": {"$gte": month_start_str, "$lte": month_end_str}},
-                # Leave ends in this month
-                {"end_date": {"$gte": month_start_str, "$lte": month_end_str}},
-                # Leave spans over this month
-                {"$and": [
-                    {"start_date": {"$lt": month_start_str}},
-                    {"end_date": {"$gt": month_end_str}}
-                ]}
-            ]
-        }))
+
+        leaves = await get_employee_leaves_by_month_for_emp_id_db(emp_id, year, month, month_start, month_end, hostname)
         
         for leave in leaves:
-            leave["id"] = str(leave["_id"])
             del leave["_id"]
             
             # Calculate working days in the specified month for this leave
@@ -331,7 +297,7 @@ def get_leaves_by_month_for_user(emp_id: str, month: int, year: int):
         logger.exception(f"Error fetching leaves for user {emp_id} in month {month} and year {year}")
         raise HTTPException(status_code=500, detail=str(e))
 
-def calculate_lwp_for_month(emp_id: str, month: int, year: int):
+async def calculate_lwp_for_month(emp_id: str, month: int, year: int, hostname: str):
     """
     Calculate Leave Without Pay (LWP) for a specific month.
     LWP is counted for days where employee is:
@@ -351,27 +317,14 @@ def calculate_lwp_for_month(emp_id: str, month: int, year: int):
         month_start_str = month_start.strftime("%Y-%m-%d")
         month_end_str = month_end.strftime("%Y-%m-%d")
 
+        month = month_start.month
+        year = month_start.year
+
         # Get attendance records for the month
-        attendance_records = list(attendance_collection.find({
-            "emp_id": emp_id,
-            "checkin_time": {
-                "$gte": month_start_str,
-                "$lte": month_end_str
-            }
-        }))
+        attendance_records = await get_employee_attendance_by_month(emp_id, month, year,hostname)
         
         # Get leaves for the month
-        leaves = list(employee_leave_collection.find({
-            "emp_id": emp_id,
-            "$or": [
-                {"start_date": {"$gte": month_start_str, "$lte": month_end_str}},
-                {"end_date": {"$gte": month_start_str, "$lte": month_end_str}},
-                {"$and": [
-                    {"start_date": {"$lt": month_start_str}},
-                    {"end_date": {"$gt": month_end_str}}
-                ]}
-            ]
-        }))
+        leaves = await get_employee_leaves_by_month_for_emp_id_db(emp_id, year, month, month_start, month_end, hostname)
 
         lwp_days = 0
         current_date = month_start

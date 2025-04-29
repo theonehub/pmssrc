@@ -35,7 +35,8 @@ import {
   UploadFile as UploadFileIcon,
   Search as SearchIcon,
   ArrowUpward as ArrowUpwardIcon,
-  ArrowDownward as ArrowDownwardIcon
+  ArrowDownward as ArrowDownwardIcon,
+  Download as DownloadIcon
 } from '@mui/icons-material';
 import axios from '../../utils/axios';
 import { useNavigate } from 'react-router-dom';
@@ -241,6 +242,36 @@ function UsersList() {
       });
     } finally {
       setImporting(false);
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const response = await axios.get('/users/template', {
+        responseType: 'blob'
+      });
+      
+      // Create a URL for the blob
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      
+      // Create a temporary link element
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'user_import_template.xlsx');
+      
+      // Append to body, click and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the URL
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      setAlert({
+        open: true,
+        message: 'Failed to download template',
+        severity: 'error'
+      });
     }
   };
 
@@ -617,12 +648,27 @@ function UsersList() {
           <DialogTitle>Import Users</DialogTitle>
           <DialogContent>
             <Box component="form" onSubmit={handleImport} sx={{ mt: 2 }}>
-              <input
-                  type="file"
-                  accept=".xlsx"
-                onChange={(e) => setImportFile(e.target.files[0])}
-                style={{ marginBottom: '16px' }}
-              />
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <input
+                    type="file"
+                    accept=".xlsx"
+                    onChange={(e) => setImportFile(e.target.files[0])}
+                    style={{ flex: 1 }}
+                  />
+                  <Button
+                    variant="outlined"
+                    onClick={handleDownloadTemplate}
+                    startIcon={<DownloadIcon />}
+                  >
+                    Download Template
+                  </Button>
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Download the template file, fill in the user details, and upload it here.
+                  Required fields: emp_id, email, name, gender, dob, doj, mobile, manager_id, password, role
+                </Typography>
+              </Box>
               <DialogActions>
                 <Button onClick={() => setShowImportModal(false)}>Cancel</Button>
                 <Button type="submit" variant="contained" disabled={!importFile || importing}>

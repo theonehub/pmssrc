@@ -12,7 +12,7 @@ from routes import auth_routes, user_routes, salary_component_routes, \
 # Configure the root logger.
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    format="%(asctime)s %(levelname)s [%(name)s:%(lineno)d]: %(message)s",
 )
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Running startup tasks...")
-    await create_default_user()
+    create_default_user()
     yield
     logger.info("Running shutdown tasks...")
 

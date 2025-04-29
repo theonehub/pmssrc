@@ -9,19 +9,19 @@ def get_reimbursement_types_collection(company_id: str):
     db = connect_to_database(company_id)
     return db["reimbursement_types"]
 
-async def create_type(data: ReimbursementTypeCreate, hostname: str):
+def create_type(data: ReimbursementTypeCreate, hostname: str):
     collection = get_reimbursement_types_collection(hostname)
     doc = data.model_dump()
     doc["created_at"] = datetime.now()
     result = collection.insert_one(doc)
     return str(result.inserted_id)
     
-async def get_all_types(hostname: str):
+def get_all_types(hostname: str):
     collection = get_reimbursement_types_collection(hostname)
     types = collection.find()
     return list(types)
 
-async def update_type(type_id: str, data: ReimbursementTypeUpdate, hostname: str):
+def update_type(type_id: str, data: ReimbursementTypeUpdate, hostname: str):
     collection = get_reimbursement_types_collection(hostname)
     collection.update_one(
         {"reimbursement_type_id": type_id},
@@ -29,7 +29,7 @@ async def update_type(type_id: str, data: ReimbursementTypeUpdate, hostname: str
     )
     return True
 
-async def delete_type(type_id: str, hostname: str):
+def delete_type(type_id: str, hostname: str):
     collection = get_reimbursement_types_collection(hostname)
     collection.delete_one({"reimbursement_type_id": type_id})
     return True

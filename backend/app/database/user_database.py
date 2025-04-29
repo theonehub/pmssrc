@@ -12,7 +12,7 @@ def get_user_collection(company_id: str):
     return db["users_info"]
 
 
-async def create_user(user: UserInfo, hostname: str):
+def create_user(user: UserInfo, hostname: str):
     """
     Creates a new user in the database.
     """
@@ -22,7 +22,7 @@ async def create_user(user: UserInfo, hostname: str):
     logger.info(f"User created successfully, inserted_id: {user_result.inserted_id}")
     return {"msg": "User created successfully", "inserted_id": str(user_result.inserted_id)}
 
-async def get_all_users(hostname: str):
+def get_all_users(hostname: str):
     """
     Returns all users from user_collection.
     """
@@ -32,7 +32,7 @@ async def get_all_users(hostname: str):
     logger.info("Fetched all users, count: %d", len(users))
     return users
 
-async def get_users_stats(hostname: str):
+def get_users_stats(hostname: str):
     """
     Returns stats of users from user_collection.
     """
@@ -45,7 +45,7 @@ async def get_users_stats(hostname: str):
         stats[item["_id"]] = item["count"]
     return stats
 
-async def get_user_by_emp_id(emp_id: str, hostname: str):
+def get_user_by_emp_id(emp_id: str, hostname: str):
     """
     Returns user info for a user by emp_id.
     """
@@ -53,7 +53,7 @@ async def get_user_by_emp_id(emp_id: str, hostname: str):
     user = collection.find_one({"emp_id": emp_id})
     return user
 
-async def get_users_by_manager_id(manager_id: str, hostname: str):
+def get_users_by_manager_id(manager_id: str, hostname: str):
     """
     Returns user info for a user by manager_id.
     """
@@ -61,7 +61,7 @@ async def get_users_by_manager_id(manager_id: str, hostname: str):
     users = collection.find({"manager_id": manager_id})
     return users
 
-async def get_emp_ids_by_manager_id(manager_id: str, hostname: str):
+def get_emp_ids_by_manager_id(manager_id: str, hostname: str):
     """
     Returns all employee IDs for a given manager ID.
     """
@@ -69,7 +69,7 @@ async def get_emp_ids_by_manager_id(manager_id: str, hostname: str):
     users = collection.find({"manager_id": manager_id}, {"_id": 0, "emp_id": 1})
     return [user["emp_id"] for user in users]
 
-async def update_user_leave_balance(emp_id: str, leave_name: str, leave_count: int, hostname: str):
+def update_user_leave_balance(emp_id: str, leave_name: str, leave_count: int, hostname: str):
     """
     Updates the leave balance for a user.
     """

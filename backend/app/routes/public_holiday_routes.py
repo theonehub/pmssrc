@@ -15,14 +15,14 @@ router = APIRouter(
 )
 
 @router.get("/", response_model=List[PublicHoliday])
-async def get_public_holidays(hostname: str = Depends(extract_hostname)):
+def get_public_holidays(hostname: str = Depends(extract_hostname)):
     """
     Get all active public holidays for the company.
     """
     return holiday_service.get_all_holidays(hostname)
 
 @router.post("/")
-async def create_public_holiday(
+def create_public_holiday(
     holiday: PublicHoliday, 
     current_emp_id: str = Depends(extract_emp_id),
     hostname: str = Depends(extract_hostname),
@@ -37,7 +37,7 @@ async def create_public_holiday(
     return {"message": "Public holiday created successfully", "id": holiday_id}
 
 @router.get("/month/{month}/{year}")
-async def get_holiday_by_month(
+def get_holiday_by_month(
     month: int, 
     year: int, 
     hostname: str = Depends(extract_hostname)
@@ -45,7 +45,7 @@ async def get_holiday_by_month(
     return holiday_service.get_holiday_by_month(month, year, hostname)    
 
 @router.put("/{holiday_id}")
-async def update_public_holiday(
+def update_public_holiday(
     holiday_id: str, 
     holiday: PublicHoliday, 
     current_emp_id: str = Depends(extract_emp_id),
@@ -64,7 +64,7 @@ async def update_public_holiday(
     return {"message": "Public holiday updated successfully"}
 
 @router.post("/import")
-async def import_holidays(
+def import_holidays(
     file: UploadFile = File(...), 
     current_emp_id: str = Depends(extract_emp_id),
     hostname: str = Depends(extract_hostname),
@@ -78,7 +78,7 @@ async def import_holidays(
         raise HTTPException(status_code=400, detail="Only Excel files are allowed")
     
     try:
-        contents = await file.read()
+        contents = file.read()
         df = pd.read_excel(io.BytesIO(contents))
         
         # Convert DataFrame to list of dictionaries
@@ -93,4 +93,21 @@ async def import_holidays(
         return {"message": f"Successfully imported {inserted_count} holidays"}
     except Exception as e:
         logger.error(f"Error importing holidays: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e)) 
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.delete("/{holiday_id}")
+def delete_public_holiday(
+    holiday_id: str,
+    hostname: str = Depends(extract_hostname),
+    role: str = Depends(role_checker(["admin", "superadmin"]))
+):
+    """
+    Delete a public holiday by setting is_active to False.
+    Only admins and superadmins can delete holidays.
+    """
+    deleted = holiday_service.delete_holiday(holiday_id, hostname)
+    
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Holiday not found")
+    
+    return {"message": "Public holiday deleted successfully"} 

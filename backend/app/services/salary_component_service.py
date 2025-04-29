@@ -25,7 +25,7 @@ from typing import List
 # Configure logger
 logger = logging.getLogger(__name__)
 
-async def create_salary_component(component: SalaryComponentCreate, hostname: str) -> SalaryComponentInDB:
+def create_salary_component(component: SalaryComponentCreate, hostname: str) -> SalaryComponentInDB:
     """
     Create a new salary component in the database.
 
@@ -37,10 +37,10 @@ async def create_salary_component(component: SalaryComponentCreate, hostname: st
         SalaryComponentInDB: The created salary component.
     """
     logger.info("Creating a new salary component: %s", component.name)
-    doc = await create_salary_component_db(component, hostname)
+    doc = create_salary_component_db(component, hostname)
     return serialize_salary_component(doc)
 
-async def get_all_salary_components(hostname: str) -> list[SalaryComponentInDB]:
+def get_all_salary_components(hostname: str) -> list[SalaryComponentInDB]:
     """
     Retrieve all salary components from the database.
 
@@ -51,12 +51,12 @@ async def get_all_salary_components(hostname: str) -> list[SalaryComponentInDB]:
         List of SalaryComponentInDB
     """
     logger.info("Fetching all salary components")
-    docs = await get_all_salary_components_db(hostname)
+    docs = get_all_salary_components_db(hostname)
     results = [serialize_salary_component(doc) for doc in docs]
     logger.info("Fetched %d salary components", len(results))
     return results
 
-async def get_salary_component_by_id(sc_id: str, hostname: str) -> SalaryComponentInDB:
+def get_salary_component_by_id(sc_id: str, hostname: str) -> SalaryComponentInDB:
     """
     Get a salary component by its ID.
 
@@ -68,10 +68,10 @@ async def get_salary_component_by_id(sc_id: str, hostname: str) -> SalaryCompone
         SalaryComponentInDB
     """
     logger.info("Fetching salary component with ID: %s", sc_id)
-    doc = await get_salary_component_by_id_db(sc_id, hostname)
+    doc = get_salary_component_by_id_db(sc_id, hostname)
     return serialize_salary_component(doc)
 
-async def update_salary_component(sc_id: str, update_data: SalaryComponentUpdate, hostname: str) -> SalaryComponentInDB:
+def update_salary_component(sc_id: str, update_data: SalaryComponentUpdate, hostname: str) -> SalaryComponentInDB:
     """
     Update an existing salary component.
 
@@ -89,10 +89,10 @@ async def update_salary_component(sc_id: str, update_data: SalaryComponentUpdate
         logger.warning("No valid fields to update for ID: %s", sc_id)
         raise HTTPException(status_code=400, detail="No fields to update")
 
-    doc = await update_salary_component_db(sc_id, update_fields, hostname)
+    doc = update_salary_component_db(sc_id, update_fields, hostname)
     return serialize_salary_component(doc)
 
-async def delete_salary_component(sc_id: str, hostname: str) -> dict:
+def delete_salary_component(sc_id: str, hostname: str) -> dict:
     """
     Delete a salary component from the database.
 
@@ -104,10 +104,10 @@ async def delete_salary_component(sc_id: str, hostname: str) -> dict:
         Dict with success message.
     """
     logger.info("Deleting salary component with ID: %s", sc_id)
-    await delete_salary_component_db(sc_id, hostname)
+    delete_salary_component_db(sc_id, hostname)
     return {"msg": "Salary component deleted successfully"}
 
-async def create_salary_component_assignments(emp_id: str, components: List[SalaryComponentAssignment], hostname: str) -> dict:
+def create_salary_component_assignments(emp_id: str, components: List[SalaryComponentAssignment], hostname: str) -> dict:
     """
     Create salary component assignments for an employee.
     Stores all components in a single document with the employee ID.
@@ -132,7 +132,7 @@ async def create_salary_component_assignments(emp_id: str, components: List[Sala
             for component in components
         ]
 
-        return await create_salary_component_assignments_db(emp_id, components_array, hostname)
+        return create_salary_component_assignments_db(emp_id, components_array, hostname)
 
     except Exception as e:
         logger.error(f"Error creating salary component assignments: {str(e)}")
@@ -141,7 +141,7 @@ async def create_salary_component_assignments(emp_id: str, components: List[Sala
             detail=f"Error creating salary component assignments: {str(e)}"
         )
 
-async def get_salary_component_assignments(emp_id: str, hostname: str) -> List[SalaryComponentInDB]:
+def get_salary_component_assignments(emp_id: str, hostname: str) -> List[SalaryComponentInDB]:
     """
     Get salary component assignments for an employee.
 
@@ -153,7 +153,7 @@ async def get_salary_component_assignments(emp_id: str, hostname: str) -> List[S
         List[SalaryComponentInDB]: List of assigned salary components with their values
     """
     try:
-        assignments = await get_salary_component_assignments_db(emp_id, hostname)
+        assignments = get_salary_component_assignments_db(emp_id, hostname)
         if not assignments:
             return []
         return [serialize_salary_component(assignment) for assignment in assignments]
@@ -165,7 +165,7 @@ async def get_salary_component_assignments(emp_id: str, hostname: str) -> List[S
             detail=f"Error fetching salary component assignments: {str(e)}"
         )
 
-async def create_salary_component_declarations(emp_id: str, components: List[SalaryComponentDeclaration], hostname: str) -> dict:
+def create_salary_component_declarations(emp_id: str, components: List[SalaryComponentDeclaration], hostname: str) -> dict:
     """
     Create salary component declarations for an employee.
     Updates the declared_value in the existing assignments.
@@ -190,7 +190,7 @@ async def create_salary_component_declarations(emp_id: str, components: List[Sal
             for component in components
         ]
 
-        return await create_salary_component_declarations_db(emp_id, components_array, hostname)
+        return create_salary_component_declarations_db(emp_id, components_array, hostname)
 
     except HTTPException:
         raise
@@ -201,7 +201,7 @@ async def create_salary_component_declarations(emp_id: str, components: List[Sal
             detail=f"Error creating salary component declarations: {str(e)}"
         )
 
-async def get_salary_component_declarations(emp_id: str, hostname: str) -> List[dict]:
+def get_salary_component_declarations(emp_id: str, hostname: str) -> List[dict]:
     """
     Get salary component declarations for an employee.
 
@@ -213,7 +213,7 @@ async def get_salary_component_declarations(emp_id: str, hostname: str) -> List[
         List[dict]: List of assigned salary components with their declared values
     """
     try:
-        declarations = await get_salary_component_declarations_db(emp_id, hostname)
+        declarations = get_salary_component_declarations_db(emp_id, hostname)
         if not declarations:
             return []
         return [serialize_salary_component(declaration) for declaration in declarations]

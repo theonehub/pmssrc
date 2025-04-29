@@ -9,7 +9,7 @@ from auth.auth import role_checker, extract_hostname
 router = APIRouter(prefix="/leaves")
 
 @router.post("/apply", response_model=dict)
-async def create_leave_application(leave: EmployeeLeave, 
+def create_leave_application(leave: EmployeeLeave, 
                                     emp_id: str = Depends(extract_emp_id),
                                     hostname: str = Depends(extract_hostname)):
     """
@@ -21,7 +21,7 @@ async def create_leave_application(leave: EmployeeLeave,
     return apply_leave(leave, hostname)
 
 @router.get("/leave-balance", response_model=dict)
-async def get_leave_balance(emp_id: str = Depends(extract_emp_id), 
+def get_leave_balance(emp_id: str = Depends(extract_emp_id), 
                             hostname: str = Depends(extract_hostname)):
     """
     Get the leave balance for the current user.
@@ -29,7 +29,7 @@ async def get_leave_balance(emp_id: str = Depends(extract_emp_id),
     return leave_balance(emp_id, hostname)
 
 @router.get("/my-leaves", response_model=List[dict])
-async def get_my_leaves(emp_id: str = Depends(extract_emp_id), 
+def get_my_leaves(emp_id: str = Depends(extract_emp_id), 
                         hostname: str = Depends(extract_hostname)):
     """
     Get all leave applications for the current user.
@@ -38,7 +38,7 @@ async def get_my_leaves(emp_id: str = Depends(extract_emp_id),
     return leaves
 
 @router.get("/pending", response_model=List[dict])
-async def get_manager_pending_leaves(emp_id: str = Depends(extract_emp_id),     
+def get_manager_pending_leaves(emp_id: str = Depends(extract_emp_id),     
                                      hostname: str = Depends(extract_hostname),
                                      role: str = Depends(role_checker("manager"))):
     """
@@ -47,7 +47,7 @@ async def get_manager_pending_leaves(emp_id: str = Depends(extract_emp_id),
     return get_pending_leaves(emp_id, hostname)
 
 @router.put("/{leave_id}/status", response_model=dict)
-async def update_leave_application_status(
+def update_leave_application_status(
     leave_id: str,
     status: LeaveStatus,
     emp_id: str = Depends(extract_emp_id),
@@ -60,7 +60,7 @@ async def update_leave_application_status(
     return update_leave_status(leave_id, status, emp_id, hostname)
 
 @router.delete("/{leave_id}", response_model=dict)
-async def delete_leave_application(leave_id: str, 
+def delete_leave_application(leave_id: str, 
                                    emp_id: str = Depends(extract_emp_id),
                                    hostname: str = Depends(extract_hostname)):
     """
@@ -69,7 +69,7 @@ async def delete_leave_application(leave_id: str,
     return delete_leave_request(leave_id, hostname)
 
 @router.get("/all", response_model=List[dict])
-async def get_all_leaves(
+def get_all_leaves(
     emp_id: str = Depends(extract_emp_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["manager", "superadmin"]))
@@ -83,7 +83,7 @@ async def get_all_leaves(
         return get_all_employee_leaves(hostname=hostname)
     
 @router.get("/user/{emp_id}/{month}/{year}", response_model=List[dict])
-async def get_user_leaves_by_month(emp_id: str, month: int, year: int,
+def get_user_leaves_by_month(emp_id: str, month: int, year: int,
                                    hostname: str = Depends(extract_hostname)):
     """
     Get all leaves for a specific employee in a specific month and year.
@@ -91,7 +91,7 @@ async def get_user_leaves_by_month(emp_id: str, month: int, year: int,
     return get_leaves_by_month_for_user(emp_id, month, year, hostname)
 
 @router.get("/lwp/{emp_id}/{month}/{year}")
-async def get_lwp(emp_id: str, month: int, year: int,
+def get_lwp(emp_id: str, month: int, year: int,
                   hostname: str = Depends(extract_hostname)):
     """
     Get Leave Without Pay (LWP) days for a specific month and year.

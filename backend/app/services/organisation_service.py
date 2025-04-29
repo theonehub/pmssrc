@@ -6,24 +6,26 @@ from database.organisation_database import (
     get_all_organisations as db_get_all_organisations,
     create_organisation as db_create_organisation,
     update_organisation as db_update_organisation,
+    get_organisation as db_get_organisation,
+    get_organisations_count as db_get_organisations_count,
 )
 
 logger = logging.getLogger(__name__)
 
-async def get_all_organisations(skip: int, limit: int):
-    organisations = await db_get_all_organisations(skip, limit)
-    total = await db_get_organisations_count()
+def get_all_organisations(skip: int, limit: int):
+    organisations = db_get_all_organisations(skip, limit)
+    total = db_get_organisations_count()
     return organisations, total 
 
-async def get_organisation(organisation_id: str):
-    organisation = await db_get_organisation(organisation_id)
+def get_organisation(organisation_id: str):
+    organisation = db_get_organisation(organisation_id)
     return organisation
 
-async def create_organisation(organisation: OrganisationCreate):
-    organisation = await db_create_organisation(organisation)
+def create_organisation(organisation: OrganisationCreate):
+    organisation = db_create_organisation(organisation)
     return organisation 
 
-async def update_organisation(organisation_id: str, organisation: OrganisationUpdate):
-    organisation = await db_update_organisation(organisation_id, organisation)
+def update_organisation(organisation_id: str, organisation: OrganisationUpdate):
+    organisation = db_update_organisation(organisation_id, organisation)
     return organisation 
 

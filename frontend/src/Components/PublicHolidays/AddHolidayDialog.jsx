@@ -25,7 +25,6 @@ const AddHolidayDialog = ({ open, onClose, onSubmit }) => {
     
     // Create a formatted data object for the backend
     const formattedData = {
-      holiday_id: formData.holiday_id || `HOL-${Date.now()}`,
       name: formData.name,
       date: formData.date instanceof Date ? formData.date.toISOString() : formData.date,
       description: formData.description || '',
@@ -35,7 +34,6 @@ const AddHolidayDialog = ({ open, onClose, onSubmit }) => {
     console.log("Sending formatted data:", formattedData);
     onSubmit(formattedData);
     setFormData({
-      holiday_id: '',
       name: '',
       date: new Date(),
       description: '',
@@ -47,13 +45,6 @@ const AddHolidayDialog = ({ open, onClose, onSubmit }) => {
       <DialogTitle>Add Public Holiday</DialogTitle>
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
-          <TextField
-            label="Holiday ID"
-            value={formData.holiday_id}
-            onChange={(e) => setFormData({ ...formData, holiday_id: e.target.value })}
-            placeholder="Leave blank for auto-generation"
-            fullWidth
-          />
           <TextField
             label="Holiday Name"
             value={formData.name}

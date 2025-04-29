@@ -19,7 +19,7 @@ credentials_exception = HTTPException(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-async def extract_emp_id(token: str = Depends(oauth2_scheme)):
+def extract_emp_id(token: str = Depends(oauth2_scheme)):
     """
     Extracts the emp_id from the JWT token.
     """
@@ -36,7 +36,7 @@ async def extract_emp_id(token: str = Depends(oauth2_scheme)):
     return emp_id
 
 
-async def extract_hostname(token: str = Depends(oauth2_scheme)):
+def extract_hostname(token: str = Depends(oauth2_scheme)):
     """
     Extracts the hostname from the JWT token.
     """
@@ -52,7 +52,7 @@ async def extract_hostname(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     return hostname
 
-async def  extract_role(token: str = Depends(oauth2_scheme)):
+def  extract_role(token: str = Depends(oauth2_scheme)):
     """
     Extracts the role from the JWT token.
     """
@@ -63,15 +63,15 @@ async def  extract_role(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     return role
 
-async def get_current_user(emp_id: str = Depends(extract_emp_id), hostname: str = Depends(extract_hostname)):
+def get_current_user(emp_id: str = Depends(extract_emp_id), hostname: str = Depends(extract_hostname)):
     """
     Dependency to get the current authenticated user from the JWT token.
     Raises HTTP 401 if token is invalid or user is not found.
     """
     # Retrieve the user info from the database based on emp_id.
-    user = await get_user_by_emp_id(emp_id, hostname)
+    user = get_user_by_emp_id(emp_id, hostname)
     if not user:
-        user = await get_user_by_emp_id(emp_id, "global_database")
+        user = get_user_by_emp_id(emp_id, "global_database")
     if user is None:
         logger.warning("User not found for emp_id: %s", emp_id)
         raise credentials_exception
@@ -81,7 +81,7 @@ async def get_current_user(emp_id: str = Depends(extract_emp_id), hostname: str 
 
 
 def role_checker(roles: List[str]):
-    async def checker(role: str = Depends(extract_role)):
+    def checker(role: str = Depends(extract_role)):
         logger.info("Checking role for user: %s", role)
         if role not in roles:
             raise credentials_exception

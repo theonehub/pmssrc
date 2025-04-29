@@ -17,7 +17,7 @@ def get_reimbursement_types_collection(company_id: str):
     db = connect_to_database(company_id)
     return db["reimbursement_types"]
 
-async def create_assignment(data: ReimbursementAssignmentCreate, hostname: str):
+def create_assignment(data: ReimbursementAssignmentCreate, hostname: str):
     collection = get_reimbursement_assignments_collection(hostname)
     emp_id = data["emp_id"]
     existing = collection.find_one({"emp_id": emp_id})
@@ -42,12 +42,12 @@ async def create_assignment(data: ReimbursementAssignmentCreate, hostname: str):
         collection.insert_one(new_data)
     return True
 
-async def get_user_assignments(emp_id: str, hostname: str):
+def get_user_assignments(emp_id: str, hostname: str):
     collection = get_reimbursement_assignments_collection(hostname)
     assignments = collection.find_one({"emp_id": emp_id})
     return assignments
 
-async def get_all_assignments(skip: int = 0, limit: int = 10, search: str = None, hostname: str = None):
+def get_all_assignments(skip: int = 0, limit: int = 10, search: str = None, hostname: str = None):
     reimbursement_assignments_collection = get_reimbursement_assignments_collection(hostname)
     user_collection = get_user_collection(hostname)
     reimbursement_types_collection = get_reimbursement_types_collection(hostname)

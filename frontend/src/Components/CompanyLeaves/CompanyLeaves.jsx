@@ -19,8 +19,11 @@ import {
   Container,
   CircularProgress,
   Box,
+  IconButton,
   Typography
 } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import axios from 'axios';
 import { getToken } from '../../utils/auth';
 import PageLayout from '../../layout/PageLayout';
@@ -35,6 +38,7 @@ function CompanyLeaves() {
   });
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
   const fetchLeaves = async () => {
@@ -43,6 +47,7 @@ function CompanyLeaves() {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       setLeaves(res.data);
+      console.log(res.data);
     } catch (err) {
       console.error('Error fetching company leaves', err);
       setError('Failed to load company leaves.');
@@ -57,6 +62,7 @@ function CompanyLeaves() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       if (editingId) {
         await axios.put(`http://localhost:8000/company-leaves/${editingId}`, formData, {
@@ -74,12 +80,14 @@ function CompanyLeaves() {
     } catch (err) {
       console.error('Error saving company leave', err);
       setError('Failed to save company leave.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleEdit = (leave) => {
     setFormData({ ...leave });
-    setEditingId(leave.id);
+    setEditingId(leave.company_leave_id);
     setShowModal(true);
   };
 
@@ -131,17 +139,37 @@ function CompanyLeaves() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {leaves.map((leave) => (
-                  <TableRow key={leave.id}>
-                    <TableCell>{leave.name}</TableCell>
-                    <TableCell>{leave.count}</TableCell>
-                    <TableCell>{leave.is_active ? 'Yes' : 'No'}</TableCell>
-                    <TableCell>
-                      <Button size="small" variant="contained" color="info" sx={{ mr: 1 }} onClick={() => handleEdit(leave)}>Edit</Button>
-                      <Button size="small" variant="contained" color="error" onClick={() => handleDelete(leave.id)}>Delete</Button>
+                {leaves.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} align="center">
+                      No leave defined.
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  leaves.map((leave) => (
+                    <TableRow key={leave.company_leave_id}>
+                      <TableCell>{leave.name}</TableCell>
+                      <TableCell>{leave.count}</TableCell>
+                      <TableCell>{leave.is_active ? 'Yes' : 'No'}</TableCell>
+                      <TableCell>
+                        <IconButton 
+                          color="primary" 
+                          onClick={() => {
+                            handleEdit(leave)
+                          }}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton 
+                          color="error" 
+                          onClick={() => handleDelete(leave.company_leave_id)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </TableContainer>
@@ -178,7 +206,7 @@ function CompanyLeaves() {
           </DialogContent>
           <DialogActions>
             <Button onClick={() => { setShowModal(false); setFormData({ name: '', count: 0, is_active: true }); setEditingId(null); }}>Cancel</Button>
-            <Button onClick={handleSubmit} type="submit" variant="contained" color="primary">{editingId ? 'Update' : 'Save'}</Button>
+            <Button onClick={handleSubmit} type="submit" variant="contained" color="primary" disabled={isSubmitting}>{editingId ? 'Update' : 'Save'}</Button>
           </DialogActions>
         </Dialog>
       </Container>

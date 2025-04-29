@@ -15,11 +15,11 @@ from database.user_database import (
 
 logger = logging.getLogger(__name__)
 
-async def create_default_user():
+def create_default_user():
     """
     Creates a default user in the user_collection.
     """
-    if await db_get_user_by_emp_id('superadmin', 'global_database'):
+    if db_get_user_by_emp_id('superadmin', 'global_database'):
         logger.info("Default user already exists.")
         return
     
@@ -37,7 +37,7 @@ async def create_default_user():
                     location="admin",
                     manager_id="admin", 
                     is_active=True) 
-    msg = await db_create_user(user, 'global_database')
+    msg = db_create_user(user, 'global_database')
     logger.info("User created successfully, inserted_id: %s", msg)
     return msg
 
@@ -47,59 +47,59 @@ def validate_user_data(user: UserInfo):
         logger.error("Missing required fields in user data.")
         raise HTTPException(status_code=400, detail="Missing required fields in user data.")
 
-async def create_user(user: UserInfo, hostname: str):
+def create_user(user: UserInfo, hostname: str):
     """
     Creates a new user in the user_collection.
     """
     user.password = hash_password(user.password)
     try:
-        leaves = await get_all_leaves(hostname)
+        leaves = get_all_leaves(hostname)
         print(leaves)
         for leave in leaves:
             user.leave_balance[leave["name"]] = leave["count"]
         print(user.leave_balance)
-        msg = await db_create_user(user, hostname)
+        msg = db_create_user(user, hostname)
         logger.info(msg)
         return msg
     except Exception as e:
         logger.exception("Exception occurred during user/login creation.")
         return {"msg": "Internal Server Error", "error": str(e)}
 
-async def get_all_users(hostname: str):
+def get_all_users(hostname: str):
     """
     Returns all users from user_collection.
     """
-    users = await db_get_all_users(hostname)
+    users = db_get_all_users(hostname)
     logger.info("Fetched all users, count: %d", len(users))
     return users
 
-async def get_users_stats(hostname: str):
-    stats = await db_get_users_stats(hostname)
+def get_users_stats(hostname: str):
+    stats = db_get_users_stats(hostname)
     logger.info("User stats: %s", stats)
     return stats
 
-async def get_user_by_emp_id(emp_id: str, hostname: str):
+def get_user_by_emp_id(emp_id: str, hostname: str):
     """
     Returns user info for a user by emp_id.
     """
-    user = await db_get_user_by_emp_id(emp_id, hostname)
+    user = db_get_user_by_emp_id(emp_id, hostname)
 
     return user
 
-async def get_users_by_manager_id(manager_id: str, hostname: str):
+def get_users_by_manager_id(manager_id: str, hostname: str):
     """
     Returns user info for a user by manager_id.
     """
-    users = await db_get_users_by_manager_id(manager_id, hostname)
+    users = db_get_users_by_manager_id(manager_id, hostname)
     users = list(users)
     logger.info("Fetched users by manager_id: %s, count: %d", manager_id, len(users))
     return users
 
-async def update_user_leave_balance(emp_id: str, leave_name: str, leave_count: int, hostname: str):
+def update_user_leave_balance(emp_id: str, leave_name: str, leave_count: int, hostname: str):
     """
     Updates the leave balance for a user.
     """
-    await db_update_user_leave_balance(emp_id, leave_name, leave_count, hostname)
+    db_update_user_leave_balance(emp_id, leave_name, leave_count, hostname)
 
 
 

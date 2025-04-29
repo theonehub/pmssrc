@@ -12,41 +12,6 @@ def connect_to_database(company_id: str):
         db_name = "pms_"+company_id
         db = client[db_name]
         database_clients[company_id] = db
-        logger.info(f"Database_{company_id} connected and indexes ensured.")
+        logger.info(f"{db_name} connected and indexes ensured.")
     return database_clients[company_id]
-
-
-db = connect_to_database("anvm")
-# Define collections for login and user info.
-activity_tracker_collection = db["activity_tracker"]
-user_collection = db["users_info"]
-attendance_collection = db["attendance_collection"]
-public_holidays_collection = db["public_holidays"]
-company_leave_collection = db["company_leave_collection"]
-employee_leave_collection = db["employee_leave_collection"]
-salary_components_collection = db["salary_components"]
-salary_component_assignments_collection = db["salary_component_assignments"]
-
-salary_calculations_collection = db["salary_calculations"]
-
-
-employee_salary_collection = db["employee_salary"]
-salary_declaration_collection = db["salary_declaration"]
-
-project_attribute_collection = db["project_attributes"]
-reimbursement_types_collection = db["reimbursement_types"]
-reimbursement_assignments_collection = db["reimbursement_assignments"]
-reimbursement_requests_collection = db["reimbursement_requests_collection"]
-
-# Create indexes to improve query performance and enforce uniqueness.
-user_collection.create_index([("emp_id", ASCENDING)], unique=True)
-user_collection.create_index([("manager_id", ASCENDING)])
-
-public_holidays_collection.create_index([("date", ASCENDING)], unique=True)
-
-
-attendance_collection.create_index(
-    [("emp_id", 1), ("date", 1), ("month", 1), ("year", 1)],
-)
-
 

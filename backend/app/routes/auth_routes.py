@@ -10,16 +10,16 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.post("/login", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestFormWithHost = Depends()):
+def login(form_data: OAuth2PasswordRequestFormWithHost = Depends()):
     """
     Endpoint for user login.
     Verifies user credentials and returns a JWT token on success.
     """
     logger.info("Login attempt for user: %s", form_data.username + " " + form_data.hostname)
-    user = await get_user_by_emp_id(form_data.username, form_data.hostname)
+    user = get_user_by_emp_id(form_data.username, form_data.hostname)
     logger.info("User: %s", user)
     if not user:
-        user = await get_user_by_emp_id(form_data.username, "global_database")
+        user = get_user_by_emp_id(form_data.username, "global_database")
         logger.info("Global User: %s", user)
     if not user or not verify_password(form_data.password, user["password"]):
         logger.warning("Invalid credentials for user: %s", form_data.username)

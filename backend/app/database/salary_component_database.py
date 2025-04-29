@@ -1,5 +1,4 @@
 from fastapi import HTTPException
-from auth.password_handler import hash_password
 from models.salary_component import SalaryComponentCreate, SalaryComponentInDB, SalaryComponentUpdate, SalaryComponentAssignment, SalaryComponentDeclaration
 import logging
 from database.database_connector import connect_to_database
@@ -42,7 +41,7 @@ def serialize_salary_component(doc) -> SalaryComponentInDB:
         description=doc.get("description"),
     )
 
-async def create_salary_component_db(component: SalaryComponentCreate, hostname: str) -> dict:
+def create_salary_component_db(component: SalaryComponentCreate, hostname: str) -> dict:
     """
     Create a new salary component in the database.
     """
@@ -69,7 +68,7 @@ async def create_salary_component_db(component: SalaryComponentCreate, hostname:
     result = collection.insert_one(doc)
     return doc
 
-async def get_all_salary_components_db(hostname: str) -> List[dict]:
+def get_all_salary_components_db(hostname: str) -> List[dict]:
     """
     Retrieve all salary components from the database.
     """
@@ -77,7 +76,7 @@ async def get_all_salary_components_db(hostname: str) -> List[dict]:
     cursor = collection.find()
     return list(cursor)
 
-async def get_salary_component_by_id_db(sc_id: str, hostname: str) -> dict:
+def get_salary_component_by_id_db(sc_id: str, hostname: str) -> dict:
     """
     Get a salary component by its ID.
     """
@@ -87,7 +86,7 @@ async def get_salary_component_by_id_db(sc_id: str, hostname: str) -> dict:
         raise HTTPException(status_code=404, detail="Component not found")
     return doc
 
-async def update_salary_component_db(sc_id: str, update_data: dict, hostname: str) -> dict:
+def update_salary_component_db(sc_id: str, update_data: dict, hostname: str) -> dict:
     """
     Update an existing salary component.
     """
@@ -97,7 +96,7 @@ async def update_salary_component_db(sc_id: str, update_data: dict, hostname: st
         raise HTTPException(status_code=404, detail="Component not found")
     return collection.find_one({"sc_id": sc_id})
 
-async def delete_salary_component_db(sc_id: str, hostname: str) -> bool:
+def delete_salary_component_db(sc_id: str, hostname: str) -> bool:
     """
     Delete a salary component from the database.
     """
@@ -107,7 +106,7 @@ async def delete_salary_component_db(sc_id: str, hostname: str) -> bool:
         raise HTTPException(status_code=404, detail="Component not found")
     return True
 
-async def create_salary_component_assignments_db(emp_id: str, components: List[dict], hostname: str) -> dict:
+def create_salary_component_assignments_db(emp_id: str, components: List[dict], hostname: str) -> dict:
     """
     Create salary component assignments for an employee.
     """
@@ -135,7 +134,7 @@ async def create_salary_component_assignments_db(emp_id: str, components: List[d
         detail="Failed to retrieve created assignment"
     )
 
-async def get_salary_component_assignments_db(emp_id: str, hostname: str) -> List[dict]:
+def get_salary_component_assignments_db(emp_id: str, hostname: str) -> List[dict]:
     """
     Get salary component assignments for an employee.
     """
@@ -169,7 +168,7 @@ async def get_salary_component_assignments_db(emp_id: str, hostname: str) -> Lis
     
     return list(collection.aggregate(pipeline))
 
-async def create_salary_component_declarations_db(emp_id: str, components: List[dict], hostname: str) -> dict:
+def create_salary_component_declarations_db(emp_id: str, components: List[dict], hostname: str) -> dict:
     """
     Create salary component declarations for an employee.
     """
@@ -208,7 +207,7 @@ async def create_salary_component_declarations_db(emp_id: str, components: List[
         detail="Failed to retrieve updated assignment"
     )
 
-async def get_salary_component_declarations_db(emp_id: str, hostname: str) -> List[dict]:
+def get_salary_component_declarations_db(emp_id: str, hostname: str) -> List[dict]:
     """
     Get salary component declarations for an employee.
     """

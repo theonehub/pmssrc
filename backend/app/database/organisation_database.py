@@ -9,29 +9,29 @@ def get_organisation_collection():
     db = connect_to_database("global_database")
     return db["organisation"]
 
-async def get_all_organisations():
+def get_all_organisations():
     collection = get_organisation_collection()
-    organisations = await collection.find().to_list(length=100)
+    organisations = collection.find().to_list(length=100)
     return organisations
 
-async def get_organisations_count():
+def get_organisations_count():
     collection = get_organisation_collection()
-    count = await collection.count_documents({})
+    count = collection.count_documents({})
     return count
 
-async def get_organisation(organisation_id: str):
+def get_organisation(organisation_id: str):
     collection = get_organisation_collection()
-    organisation = await collection.find_one({"_id": organisation_id})
+    organisation = collection.find_one({"_id": organisation_id})
     return organisation
 
-async def create_organisation(organisation: OrganisationCreate):
+def create_organisation(organisation: OrganisationCreate):
     collection = get_organisation_collection()
-    organisation = await collection.insert_one(organisation.model_dump())
+    organisation = collection.insert_one(organisation.model_dump())
     return organisation 
 
-async def update_organisation(organisation_id: str, organisation: OrganisationUpdate):
+def update_organisation(organisation_id: str, organisation: OrganisationUpdate):
     collection = get_organisation_collection()
-    organisation = await collection.update_one({"_id": organisation_id}, {"$set": organisation.model_dump()})
+    organisation = collection.update_one({"_id": organisation_id}, {"$set": organisation.model_dump()})
     return organisation
 
 

@@ -9,7 +9,8 @@ class CompanyLeaveBase(BaseModel):
     is_active: bool = True
 
 class CompanyLeaveCreate(CompanyLeaveBase):
-    pass
+    company_leave_id: Optional[str] = None
+    
 
 class CompanyLeaveUpdate(BaseModel):
     name: Optional[str]

@@ -2,8 +2,8 @@ from datetime import datetime
 import logging
 import uuid
 import os
-from fastapi import APIRouter, HTTPException, Depends, status, Query, UploadFile, File
-from openpyxl import load_workbook
+from fastapi import APIRouter, HTTPException, Depends, status, Query, UploadFile, File, Form
+from openpyxl import load_workbook, Workbook
 from fastapi.security import OAuth2PasswordBearer
 from auth.jwt_handler import decode_access_token
 from models.activity_tracker import ActivityTracker
@@ -11,11 +11,12 @@ from models.user_model import UserInfo
 from auth.auth import extract_emp_id, extract_hostname, get_current_user
 from auth.dependencies import role_checker
 from auth.password_handler import hash_password
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 import services.user_service as us
 from bson import ObjectId
 from io import BytesIO
 from services.activity_tracker_service import track_activity
+import json
 
 # Create upload directory if it doesn't exist
 UPLOAD_DIR = "uploads"
@@ -60,8 +61,8 @@ router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 @router.post("/users/create", status_code=status.HTTP_201_CREATED)
-async def create_user(
-    user_data: UserInfo = Depends(),
+def create_user(
+    user_data: str = Form(...),
     pan_file: UploadFile = File(None),
     aadhar_file: UploadFile = File(None),
     photo: UploadFile = File(None),
@@ -71,32 +72,41 @@ async def create_user(
     """
     Endpoint to create a new user with document uploads.
     """
-    logger.info("Creating user: %s", user_data.name)
-    us.validate_user_data(user_data)
+    try:
+        # Parse the JSON string into UserInfo model
+        user_data_dict = json.loads(user_data)
+        user_info = UserInfo(**user_data_dict)
+        
+        logger.info("Creating user: %s", user_info.name)
+        us.validate_user_data(user_info)
 
-    # Handle file uploads
-    if pan_file:
-        user_data.pan_file_path = save_uploaded_file(pan_file, os.path.join(UPLOAD_DIR, "pan"))
-    if aadhar_file:
-        user_data.aadhar_file_path = save_uploaded_file(aadhar_file, os.path.join(UPLOAD_DIR, "aadhar"))
-    if photo:
-        user_data.photo_path = save_uploaded_file(photo, os.path.join(UPLOAD_DIR, "photos"))
+        # Handle file uploads
+        if pan_file:
+            user_info.pan_file_path = save_uploaded_file(pan_file, os.path.join(UPLOAD_DIR, "pan"))
+        if aadhar_file:
+            user_info.aadhar_file_path = save_uploaded_file(aadhar_file, os.path.join(UPLOAD_DIR, "aadhar"))
+        if photo:
+            user_info.photo_path = save_uploaded_file(photo, os.path.join(UPLOAD_DIR, "photos"))
 
-    activity = ActivityTracker(
-        activityId=str(uuid.uuid4()),
-        emp_id=current_emp_id,
-        activity="createUser",
-        date=datetime.now(),
-        metadata=user_data.model_dump()
-    )
-    track_activity(activity, hostname)
-    result = await us.create_user(user_data, hostname)
-    logger.info(result)
-    return result
+        activity = ActivityTracker(
+            activity_id=str(uuid.uuid4()),
+            emp_id=current_emp_id,
+            activity="createUser",
+            date=datetime.now(),
+            metadata=user_info.model_dump()
+        )
+        track_activity(activity, hostname)
+        result = us.create_user(user_info, hostname)
+        logger.info(result)
+        return result
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=400, detail="Invalid JSON data")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/users/import", status_code=status.HTTP_201_CREATED)
-async def import_users_from_excel(file: UploadFile = File(...), 
+def import_users_from_excel(file: UploadFile = File(...), 
                                   hostname: str = Depends(extract_hostname),
                                   current_emp_id: str = Depends(extract_emp_id)
                                   ):
@@ -109,7 +119,7 @@ async def import_users_from_excel(file: UploadFile = File(...),
         logger.warning("Invalid file type uploaded: %s", file.filename)
         raise HTTPException(status_code=400, detail="Only .xlsx files are supported")
 
-    contents = await file.read()
+    contents = file.read()
 
     try:
         logger.info("Attempting to load Excel workbook")
@@ -146,7 +156,7 @@ async def import_users_from_excel(file: UploadFile = File(...),
                 password=row[8],
                 role=row[9]
             )
-            await us.create_user(user, hostname)
+            us.create_user(user, hostname)
             created += 1
             activity = ActivityTracker(
                 emp_id=current_emp_id,
@@ -177,17 +187,17 @@ async def import_users_from_excel(file: UploadFile = File(...),
 
 
 @router.get("/users/me")
-async def read_users_me(hostname: str = Depends(extract_hostname),
+def read_users_me(hostname: str = Depends(extract_hostname),
                         current_emp_id: str = Depends(extract_emp_id)):
     """
     Returns the username of the current logged-in user.
     """
     logger.info("read_users_me successful for username: %s", current_emp_id)
-    user = await us.get_user_by_emp_id(current_emp_id, hostname)
+    user = us.get_user_by_emp_id(current_emp_id, hostname)
     return user
 
 @router.get("/users")
-async def list_users(
+def list_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1),
     role: str = Depends(role_checker("admin", "superadmin", "manager")),
@@ -201,10 +211,10 @@ async def list_users(
     logger.info("Listing users with skip=%d, limit=%d", skip, limit)
     if role == "manager":
         logger.info("Listing users for manager: %s", current_emp_id)
-        users = await us.get_users_by_manager_id(current_emp_id, hostname)
+        users = us.get_users_by_manager_id(current_emp_id, hostname)
     else:
         logger.info("Listing all users")
-        users = await us.get_all_users(hostname)
+        users = us.get_all_users(hostname)
     paginated_users = [serialize_user(u) for u in users[skip:skip + limit]]
 
     logger.info("Returning %d users out of %d", len(paginated_users), len(users))
@@ -214,14 +224,59 @@ async def list_users(
     }
     
 @router.get("/users/stats")
-async def get_user_stats(hostname: str = Depends(extract_hostname)):
-    return await us.get_users_stats(hostname)
+def get_user_stats(hostname: str = Depends(extract_hostname)):
+    return us.get_users_stats(hostname)
 
 @router.get("/users/my/directs")
-async def get_my_directs(hostname: str = Depends(extract_hostname),
+def get_my_directs(hostname: str = Depends(extract_hostname),
                         current_emp_id: str = Depends(extract_emp_id)):
-    return await us.get_user_by_manager_id(current_emp_id, hostname)
+    return us.get_user_by_manager_id(current_emp_id, hostname)
 
 @router.get("/users/manager/directs")
-async def get_user_by_manager_id(manager_id: str, hostname: str = Depends(extract_hostname)):
-    return await us.get_user_by_manager_id(manager_id, hostname)
+def get_user_by_manager_id(manager_id: str, hostname: str = Depends(extract_hostname)):
+    return us.get_user_by_manager_id(manager_id, hostname)
+
+@router.get("/users/template")
+def download_template():
+    """
+    Endpoint to download the user import template file.
+    """
+    try:
+        # Create a new workbook
+        wb = Workbook()
+        ws = wb.active
+        
+        # Add headers
+        headers = ["emp_id", "email", "name", "gender", "dob", "doj", "mobile", "manager_id", "password", "role"]
+        ws.append(headers)
+        
+        # Add example row
+        example_row = [
+            "EMP001",
+            "example@company.com",
+            "John Doe",
+            "male",
+            "1990-01-01",
+            "2023-01-01",
+            "1234567890",
+            "MAN001",
+            "password123",
+            "user"
+        ]
+        ws.append(example_row)
+        
+        # Save to BytesIO
+        template_file = BytesIO()
+        wb.save(template_file)
+        template_file.seek(0)
+        
+        return StreamingResponse(
+            template_file,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": "attachment; filename=user_import_template.xlsx"
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error generating template: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to generate template file")

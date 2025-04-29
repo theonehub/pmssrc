@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 class PublicHoliday(BaseModel):
-    holiday_id: str
+    holiday_id: Optional[str] = None
     name: str
     date: datetime
     day: Optional[int] = None

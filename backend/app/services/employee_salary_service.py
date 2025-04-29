@@ -31,7 +31,7 @@ def serialize_employee_salary(doc) -> EmployeeSalaryInDB:
     )
 
 
-async def create_employee_salary(data: EmployeeSalaryCreate) -> EmployeeSalaryInDB:
+def create_employee_salary(data: EmployeeSalaryCreate) -> EmployeeSalaryInDB:
     logger.info(f"Creating salary assignment for employee {data.employee_id}")
     
     doc = data.dict()
@@ -43,14 +43,14 @@ async def create_employee_salary(data: EmployeeSalaryCreate) -> EmployeeSalaryIn
     return serialize_employee_salary({**doc, "_id": result.inserted_id})
 
 
-async def get_employee_salary_by_employee_id(employee_id: str) -> list[EmployeeSalaryInDB]:
+def get_employee_salary_by_employee_id(employee_id: str) -> list[EmployeeSalaryInDB]:
     logger.info(f"Fetching salary assignments for employee {employee_id}")
     
     cursor = employee_salary_collection.find({"employee_id": employee_id})
     return [serialize_employee_salary(doc) for doc in cursor]
 
 
-async def update_employee_salary(salary_id: str, data: EmployeeSalaryUpdate) -> EmployeeSalaryInDB:
+def update_employee_salary(salary_id: str, data: EmployeeSalaryUpdate) -> EmployeeSalaryInDB:
     logger.info(f"Updating salary record {salary_id}")
     
     try:
@@ -73,7 +73,7 @@ async def update_employee_salary(salary_id: str, data: EmployeeSalaryUpdate) -> 
     return serialize_employee_salary(updated_doc)
 
 
-async def delete_employee_salary(salary_id: str):
+def delete_employee_salary(salary_id: str):
     logger.info(f"Deleting salary entry with ID: {salary_id}")
     
     try:
@@ -99,7 +99,7 @@ def serialize_salary(salary):
     return salary
 
 
-async def assign_salary_structure(employee_id: str, components_data: list[EmployeeSalaryCreate]):
+def assign_salary_structure(employee_id: str, components_data: list[EmployeeSalaryCreate]):
     """
     Assign or update a complete salary structure for an employee.
     Replaces all previous components with the new ones.
@@ -152,7 +152,7 @@ async def assign_salary_structure(employee_id: str, components_data: list[Employ
 
 
 
-async def get_salary_structure_with_names(employee_id: str):
+def get_salary_structure_with_names(employee_id: str):
     """
     Fetch salary structure assigned to an employee with component names.
     """

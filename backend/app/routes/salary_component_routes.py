@@ -27,7 +27,7 @@ router = APIRouter(prefix="/salary-components", tags=["Salary Components"])
 logger = logging.getLogger(__name__)
 
 @router.post("/", response_model=SalaryComponentInDB, status_code=status.HTTP_201_CREATED)
-async def create_component(
+def create_component(
     component: SalaryComponentCreate,
     hostname: str = Depends(extract_hostname)
 ):
@@ -35,18 +35,18 @@ async def create_component(
     Create a new salary component.
     """
     logger.info("API Call: Create salary component", component)
-    return await create_salary_component(component, hostname)
+    return create_salary_component(component, hostname)
 
 @router.get("/", response_model=List[SalaryComponentInDB])
-async def get_components(hostname: str = Depends(extract_hostname)):
+def get_components(hostname: str = Depends(extract_hostname)):
     """
     Get all salary components.
     """
     logger.info("API Call: Get all salary components")
-    return await get_all_salary_components(hostname)
+    return get_all_salary_components(hostname)
 
 @router.get("/{sc_id}", response_model=SalaryComponentInDB)
-async def get_component(
+def get_component(
     sc_id: str,
     hostname: str = Depends(extract_hostname)
 ):
@@ -54,10 +54,10 @@ async def get_component(
     Get a specific salary component by ID.
     """
     logger.info("API Call: Get salary component with ID: %s", sc_id)
-    return await get_salary_component_by_id(sc_id, hostname)
+    return get_salary_component_by_id(sc_id, hostname)
 
 @router.put("/{sc_id}", response_model=SalaryComponentInDB)
-async def update_component(
+def update_component(
     sc_id: str,
     component: SalaryComponentUpdate,
     hostname: str = Depends(extract_hostname)
@@ -66,10 +66,10 @@ async def update_component(
     Update a salary component.
     """
     logger.info("API Call: Update salary component with ID: %s", sc_id)
-    return await update_salary_component(sc_id, component, hostname)
+    return update_salary_component(sc_id, component, hostname)
 
 @router.delete("/{sc_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_component(
+def delete_component(
     sc_id: str,
     hostname: str = Depends(extract_hostname)
 ):
@@ -77,11 +77,11 @@ async def delete_component(
     Delete a salary component.
     """
     logger.info("API Call: Delete salary component with ID: %s", sc_id)
-    await delete_salary_component(sc_id, hostname)
+    delete_salary_component(sc_id, hostname)
     return None
 
 @router.post("/assignments/{emp_id}", status_code=status.HTTP_201_CREATED)
-async def create_assignments(
+def create_assignments(
     emp_id: str,
     components: List[SalaryComponentAssignment],
     hostname: str = Depends(extract_hostname)
@@ -90,10 +90,10 @@ async def create_assignments(
     Create salary component assignments for an employee.
     """
     logger.info("API Call: Create salary component assignments for employee with ID: %s", emp_id)
-    return await create_salary_component_assignments(emp_id, components, hostname)
+    return create_salary_component_assignments(emp_id, components, hostname)
 
 @router.get("/assignments/{emp_id}", response_model=List[SalaryComponentInDB])
-async def get_assignments(
+def get_assignments(
     emp_id: str,
     hostname: str = Depends(extract_hostname)
 ):
@@ -101,10 +101,10 @@ async def get_assignments(
     Get salary component assignments for an employee.
     """
     logger.info("API Call: Get salary component assignments for employee with ID: %s", emp_id)
-    return await get_salary_component_assignments(emp_id, hostname)
+    return get_salary_component_assignments(emp_id, hostname)
 
 @router.post("/declarations/{emp_id}", status_code=status.HTTP_201_CREATED)
-async def create_declarations(
+def create_declarations(
     emp_id: str,
     components: List[SalaryComponentDeclaration],
     hostname: str = Depends(extract_hostname)
@@ -113,10 +113,10 @@ async def create_declarations(
     Create salary component declarations for an employee.
     """
     logger.info("API Call: Create salary component declarations for employee with ID: %s", emp_id)
-    return await create_salary_component_declarations(emp_id, components, hostname)
+    return create_salary_component_declarations(emp_id, components, hostname)
 
 @router.get("/declarations/{emp_id}")
-async def get_declarations(
+def get_declarations(
     emp_id: str,
     hostname: str = Depends(extract_hostname)
 ):
@@ -124,5 +124,5 @@ async def get_declarations(
     Get salary component declarations for an employee.
     """
     logger.info("API Call: Get salary component declarations for employee with ID: %s", emp_id)
-    return await get_salary_component_declarations(emp_id, hostname)
+    return get_salary_component_declarations(emp_id, hostname)
 

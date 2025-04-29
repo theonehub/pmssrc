@@ -10,22 +10,22 @@ def get_holiday_collection(company_id: str):
     return db["public_holidays"]
 
 
-async def get_all_holidays(hostname: str):
+def get_all_holidays(hostname: str):
     """
     Retrieves all active public holidays from the database.
     """
-    collection = await get_holiday_collection(hostname)
+    collection = get_holiday_collection(hostname)
     holidays = []
     cursor = collection.find({"is_active": True})
-    async for doc in cursor:
+    for doc in cursor:
         holidays.append(PublicHoliday(**doc))
     return holidays
 
-async def create_holiday(holiday: PublicHoliday, emp_id: str, hostname: str):
+def create_holiday(holiday: PublicHoliday, emp_id: str, hostname: str):
     """
     Creates a new public holiday in the database.
     """
-    collection = await get_holiday_collection(hostname)
+    collection = get_holiday_collection(hostname)
     
     holiday_dict = holiday.dict(exclude={"id"})
     holiday_dict["holiday_id"] = holiday.holiday_id
@@ -35,51 +35,51 @@ async def create_holiday(holiday: PublicHoliday, emp_id: str, hostname: str):
     holiday_dict["created_at"] = datetime.now()
     holiday_dict["created_by"] = emp_id
     
-    result = await collection.insert_one(holiday_dict)
+    result = collection.insert_one(holiday_dict)
     return holiday_dict["holiday_id"]
 
-async def get_holiday_by_month(month: int, year: int, hostname: str):
+def get_holiday_by_month(month: int, year: int, hostname: str):
     """
     Retrieves all active public holidays for a specific month and year.
     """
-    collection = await get_holiday_collection(hostname)
+    collection = get_holiday_collection(hostname)
     holidays = []
     cursor = collection.find({"month": month, "year": year, "is_active": True})
-    async for doc in cursor:
+    for doc in cursor:
         holidays.append(PublicHoliday(**doc))
     return holidays
 
-async def get_holiday_by_date_str(date_str: str, hostname: str):
+def get_holiday_by_date_str(date_str: str, hostname: str):
     """
     Retrieves a public holiday by date.
     """
-    collection = await get_holiday_collection(hostname)
-    holiday = await collection.find_one({"date": date_str})
+    collection = get_holiday_collection(hostname)
+    holiday = collection.find_one({"date": date_str})
     return PublicHoliday(**holiday) if holiday else None
 
-async def update_holiday(holiday_id: str, holiday: PublicHoliday, emp_id: str, hostname: str):
+def update_holiday(holiday_id: str, holiday: PublicHoliday, emp_id: str, hostname: str):
     """
     Updates an existing public holiday.
     Returns True if a document was updated, False otherwise.
     """
-    collection = await get_holiday_collection(hostname)
+    collection = get_holiday_collection(hostname)
     
     holiday_dict = holiday.dict(exclude={"id"})
     holiday_dict["created_by"] = emp_id
     
-    result = await collection.update_one(
+    result = collection.update_one(
         {"holiday_id": holiday_id},
         {"$set": holiday_dict}
     )
     
     return result.matched_count > 0
 
-async def import_holidays(holiday_data_list: list, emp_id: str, hostname: str):
+def import_holidays(holiday_data_list: list, emp_id: str, hostname: str):
     """
     Imports multiple holidays from processed data.
     Returns the number of successfully imported holidays.
     """
-    collection = await get_holiday_collection(hostname)
+    collection = get_holiday_collection(hostname)
     inserted_count = 0
     
     for holiday_data in holiday_data_list:
@@ -93,7 +93,21 @@ async def import_holidays(holiday_data_list: list, emp_id: str, hostname: str):
             "holiday_id": holiday_data.get('holiday_id', f"HOL-{datetime.now().timestamp()}")
         }
         
-        await collection.insert_one(holiday_dict)
+        collection.insert_one(holiday_dict)
         inserted_count += 1
     
-    return inserted_count 
+    return inserted_count
+
+def delete_holiday(holiday_id: str, hostname: str):
+    """
+    Soft deletes a public holiday by setting is_active to False.
+    Returns True if a document was updated, False otherwise.
+    """
+    collection = get_holiday_collection(hostname)
+    
+    result = collection.update_one(
+        {"holiday_id": holiday_id},
+        {"$set": {"is_active": False}}
+    )
+    
+    return result.matched_count > 0 

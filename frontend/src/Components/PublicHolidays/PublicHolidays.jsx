@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Button, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Snackbar, Alert } from '@mui/material';
+import { Box, Button, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Snackbar, Alert, IconButton } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import AddHolidayDialog from './AddHolidayDialog';
 import ImportHolidaysDialog from './ImportHolidaysDialog';
+import EditHolidayDialog from './EditHolidayDialog';
 import PageLayout from '../../layout/PageLayout';
 import axiosInstance from '../../utils/axios';
 
@@ -11,6 +14,8 @@ const PublicHolidays = () => {
   const [holidays, setHolidays] = useState([]);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openImportDialog, setOpenImportDialog] = useState(false);
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [selectedHoliday, setSelectedHoliday] = useState(null);
   const [alert, setAlert] = useState({ open: false, message: '', severity: 'success' });
   const [loading, setLoading] = useState(true);
 
@@ -54,6 +59,47 @@ const PublicHolidays = () => {
         message: `Failed to add holiday: ${error.response?.data?.detail || error.message}`,
         severity: 'error'
       });
+    }
+  };
+
+  const handleEditHoliday = async (holidayId, holidayData) => {
+    try {
+      await axiosInstance.put(`/public-holidays/${holidayId}`, holidayData);
+      fetchHolidays();
+      setOpenEditDialog(false);
+      setAlert({
+        open: true,
+        message: 'Holiday updated successfully!',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error updating holiday:', error);
+      setAlert({
+        open: true,
+        message: `Failed to update holiday: ${error.response?.data?.detail || error.message}`,
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleDeleteHoliday = async (holidayId) => {
+    if (window.confirm('Are you sure you want to delete this holiday?')) {
+      try {
+        await axiosInstance.delete(`/public-holidays/${holidayId}`);
+        fetchHolidays();
+        setAlert({
+          open: true,
+          message: 'Holiday deleted successfully!',
+          severity: 'success'
+        });
+      } catch (error) {
+        console.error('Error deleting holiday:', error);
+        setAlert({
+          open: true,
+          message: `Failed to delete holiday: ${error.response?.data?.detail || error.message}`,
+          severity: 'error'
+        });
+      }
     }
   };
 
@@ -127,21 +173,21 @@ const PublicHolidays = () => {
                 <TableCell>Date</TableCell>
                 <TableCell>Description</TableCell>
                 <TableCell>Created By</TableCell>
+                <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={4} align="center">Loading...</TableCell>
+                  <TableCell colSpan={5} align="center">Loading...</TableCell>
                 </TableRow>
               ) : holidays.length > 0 ? (
                 holidays.map((holiday) => (
                   <TableRow 
-                    key={holiday.id}
+                    key={holiday.holiday_id}
                     sx={{ 
                       '&:hover': { 
                         backgroundColor: 'action.hover',
-                        cursor: 'pointer'
                       }
                     }}
                   >
@@ -149,11 +195,28 @@ const PublicHolidays = () => {
                     <TableCell>{new Date(holiday.date).toLocaleDateString()}</TableCell>
                     <TableCell>{holiday.description}</TableCell>
                     <TableCell>{holiday.created_by}</TableCell>
+                    <TableCell>
+                      <IconButton 
+                        color="primary" 
+                        onClick={() => {
+                          setSelectedHoliday(holiday);
+                          setOpenEditDialog(true);
+                        }}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton 
+                        color="error" 
+                        onClick={() => handleDeleteHoliday(holiday.holiday_id)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} align="center">No holidays found</TableCell>
+                  <TableCell colSpan={5} align="center">No holidays found</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -170,6 +233,13 @@ const PublicHolidays = () => {
           open={openImportDialog}
           onClose={() => setOpenImportDialog(false)}
           onSubmit={handleImportHolidays}
+        />
+
+        <EditHolidayDialog
+          open={openEditDialog}
+          onClose={() => setOpenEditDialog(false)}
+          onSubmit={handleEditHoliday}
+          holiday={selectedHoliday}
         />
 
         <Snackbar 

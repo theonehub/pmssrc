@@ -10,7 +10,7 @@ import LWPManagement from './features/lwp/components/LWPManagement';
 import ProjectAttributes from './features/project-attributes/components/ProjectAttributes';
 import ReimbursementTypes from './Components/Reimbursements/ReimbursementTypes';
 import MyReimbursements from './Components/Reimbursements/MyReimbursements';
-import ReimbursementAssignmentList from './Components/Reimbursements/ReimbursementAssignmentList';
+import ReimbursementApprovals from './Components/Reimbursements/ReimbursementApprovals';
 import PublicHolidays from './Components/PublicHolidays/PublicHolidays';
 import LeaveManagement from './Components/Leaves/LeaveManagement';
 import AllLeaves from './Components/Leaves/AllLeaves';
@@ -71,14 +71,14 @@ function App() {
             <ReimbursementTypes />
           </ProtectedRoute>
         } />
-        <Route path="/reimbursements-assignment" element={
-          <ProtectedRoute allowedRoles={['admin', 'superadmin', 'hr']}>
-            <ReimbursementAssignmentList />
-          </ProtectedRoute>
-        } />
         <Route path="/my-reimbursements" element={
           <ProtectedRoute allowedRoles={['superadmin', 'user']}>
             <MyReimbursements />
+          </ProtectedRoute>
+        } />
+        <Route path="/reimbursement-approvals" element={
+          <ProtectedRoute allowedRoles={['manager', 'admin', 'superadmin']}>
+            <ReimbursementApprovals />
           </ProtectedRoute>
         } />
         <Route path="/public-holidays" element={

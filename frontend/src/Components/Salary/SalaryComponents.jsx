@@ -28,8 +28,11 @@ import {
   InputLabel,
   Snackbar,
   FormControlLabel,
-  Checkbox
+  Checkbox,
+  IconButton,
+  Tooltip
 } from '@mui/material';
+import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 
 function SalaryComponents() {
   const [components, setComponents] = useState([]);
@@ -63,28 +66,37 @@ function SalaryComponents() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(formData);
-    if (!formData.name.trim()) {
-      setToast({ show: true, message: 'Component name is required.', severity: 'error' });
-      return;
-    }
-
     try {
+      const componentData = {
+        sc_id: editingId || formData.sc_id,
+        name: formData.name,
+        type: formData.type,
+        key: formData.name.toLowerCase().replace(/\s+/g, ''),
+        max_value: formData.max_value || 0,
+        declared_value: formData.declared_value || 0,
+        actual_value: formData.actual_value || 0,
+        is_active: formData.is_active,
+        is_visible: formData.is_visible,
+        is_mandatory: formData.is_mandatory,
+        declaration_required: formData.declaration_required,
+        description: formData.description
+      };
+
       if (editingId) {
-        await axios.put(`http://localhost:8000/salary-components/${editingId}`, formData, {
+        await axios.put(`http://localhost:8000/salary-components/${editingId}`, componentData, {
           headers: { Authorization: `Bearer ${getToken()}` },
         });
         setToast({ show: true, message: 'Component updated successfully.', severity: 'success' });
       } else {
-        await axios.post('http://localhost:8000/salary-components', formData, {
+        await axios.post('http://localhost:8000/salary-components', componentData, {
           headers: { Authorization: `Bearer ${getToken()}` },
         });
         setToast({ show: true, message: 'Component added successfully.', severity: 'success' });
       }
       fetchComponents();
       handleCloseForm();
-    } catch (err) {
-      console.error('Error saving component:', err);
+    } catch (error) {
+      console.error('Error saving component:', error);
       setToast({ show: true, message: 'Error saving component.', severity: 'error' });
     }
   };
@@ -199,22 +211,24 @@ function SalaryComponents() {
                     
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Button
-                          variant="contained"
-                          color="primary"
-                          size="small"
-                          onClick={() => handleEdit(component)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="contained"
-                          color="error"
-                          size="small"
-                          onClick={() => handleDelete(component.sc_id)}
-                        >
-                          Delete
-                        </Button>
+                        <Tooltip title="Edit Component">
+                          <IconButton
+                            color="primary"
+                            size="small"
+                            onClick={() => handleEdit(component)}
+                          >
+                            <EditIcon />
+                          </IconButton> 
+                        </Tooltip>
+                        <Tooltip title="Delete Component">
+                          <IconButton
+                            color="error"
+                            size="small"
+                            onClick={() => handleDelete(component.sc_id)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
                       </Box>
                     </TableCell>
                   </TableRow>

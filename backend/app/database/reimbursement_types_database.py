@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from models.reimbursement_type import ReimbursementTypeCreate, ReimbursementTypeUpdate
+from models.reimbursement_type import ReimbursementTypeCreate, ReimbursementTypeUpdate, ReimbursementType
 from database.database_connector import connect_to_database
 
 logger = logging.getLogger(__name__)
@@ -18,8 +18,11 @@ def create_type(data: ReimbursementTypeCreate, hostname: str):
     
 def get_all_types(hostname: str):
     collection = get_reimbursement_types_collection(hostname)
-    types = collection.find()
-    return list(types)
+    types = []
+    cursor = collection.find()
+    for doc in cursor:
+        types.append(ReimbursementType(**doc))
+    return types
 
 def update_type(type_id: str, data: ReimbursementTypeUpdate, hostname: str):
     collection = get_reimbursement_types_collection(hostname)

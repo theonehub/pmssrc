@@ -28,14 +28,19 @@ import {
   Radio,
   RadioGroup,
   Grid,
-  Input
+  Input,
+  
+  Tooltip
 } from '@mui/material';
 import { 
   Add as AddIcon, 
   UploadFile as UploadFileIcon,
   Search as SearchIcon,
   ArrowUpward as ArrowUpwardIcon,
-  ArrowDownward as ArrowDownwardIcon
+  ArrowDownward as ArrowDownwardIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Visibility as VisibilityIcon
 } from '@mui/icons-material';
 import axios from '../../utils/axios';
 import { useNavigate } from 'react-router-dom';
@@ -279,14 +284,14 @@ function SalaryUsersList() {
 
   const assignComponents = async () => {
     try {
-      const componentsData = selectedComponents.map(comp => ({
-        sc_id: comp.componentId,
-        max_value: parseFloat(comp.maxValue)
-      }));
+      const componentsData = selectedComponents
+        .filter(comp => comp.componentId) // Filter out any empty component IDs
+        .map(comp => ({
+          sc_id: comp.componentId,
+          max_value: comp.maxValue ? parseFloat(comp.maxValue) : 0
+        }));
 
-      await axios.post(`/salary-components/assignments/${selectedUser}`, {
-        components: componentsData,
-      });
+      const response = await axios.post(`/salary-components/assignments/${selectedUser}`, componentsData);
       
       setAlert({
         open: true,
@@ -295,12 +300,16 @@ function SalaryUsersList() {
       });
       
       setShowAssignComponentsModal(false);
-      setSelectedComponents([{ componentId: '', minValue: '', maxValue: '' }]);
+      setSelectedComponents([{ componentId: '', maxValue: '' }]);
+      // Refresh the user components list
+      fetchUserComponents(selectedUser);
     } catch (error) { 
-      console.error('Error assigning components:', error);
+      const errorMessage = error.response?.data?.detail || 
+                          (typeof error.response?.data === 'object' ? JSON.stringify(error.response?.data) : 'Failed to assign components');
+      
       setAlert({
         open: true,
-        message: error.response?.data?.detail || 'Failed to assign components',
+        message: errorMessage,
         severity: 'error'
       });
     }
@@ -316,6 +325,16 @@ function SalaryUsersList() {
       setSelectedComponents(prefilledComponents);
     }
   }, [userComponents, showAssignComponentsModal]);
+
+  const handleDeleteComponent = (index) => {
+    const updatedComponents = [...selectedComponents];
+    updatedComponents.splice(index, 1);
+    // If no components left, add an empty one
+    if (updatedComponents.length === 0) {
+      updatedComponents.push({ componentId: '', maxValue: '' });
+    }
+    setSelectedComponents(updatedComponents);
+  };
 
   return (
     <PageLayout title="User's Salary Components Management">
@@ -406,12 +425,24 @@ function SalaryUsersList() {
                     <TableCell>{user.designation}</TableCell>
                     <TableCell>{user.location}</TableCell>
                     <TableCell>
-                      <Button variant="contained" color="primary" onClick={() => handleViewComponents(user.emp_id)}>
-                        View Components
-                      </Button>
-                      <Button variant="contained" color="primary" onClick={() => handleEditComponents(user.emp_id)}>
-                        Edit Components
-                      </Button>
+                      <Tooltip title="View Components">
+                        <IconButton
+                          color="primary"
+                          size="small"
+                          onClick={() => handleViewComponents(user.emp_id)}
+                        >
+                          <VisibilityIcon />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Edit Components">
+                        <IconButton
+                          color="primary"
+                          size="small"
+                          onClick={() => handleEditComponents(user.emp_id)}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      </Tooltip>
                     </TableCell>
                   </TableRow>
                 ))
@@ -548,6 +579,13 @@ function SalaryUsersList() {
                     onChange={(e) => handleComponentChange(index, 'maxValue', e.target.value)}
                     sx={{ flex: 1 }}
                   />
+                  <IconButton
+                    onClick={() => handleDeleteComponent(index)}
+                    color="error"
+                    sx={{ visibility: selectedComponents.length > 1 ? 'visible' : 'hidden' }}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
                 </Box>
               ))}
               <Box sx={{ mt: 2, display: 'flex', gap: 2 }}>
@@ -562,7 +600,7 @@ function SalaryUsersList() {
                 <Button
                   variant="contained"
                   onClick={assignComponents}
-                  disabled={selectedComponents.some(comp => !comp.componentId || !comp.minValue || !comp.maxValue)}
+                  disabled={selectedComponents.some(comp => !comp.componentId || !comp.maxValue)}
                 >
                   {userComponents.length > 0 ? 'Update Components' : 'Assign Components'}
                 </Button>
@@ -603,7 +641,7 @@ function SalaryUsersList() {
             severity={alert.severity}
             sx={{ width: '100%' }}
           >
-            {alert.message}
+            {typeof alert.message === 'string' ? alert.message : JSON.stringify(alert.message)}
           </Alert>
         </Snackbar>
       </Box>

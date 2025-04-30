@@ -3,7 +3,7 @@ from typing import Optional
 from datetime import datetime
 
 class ReimbursementTypeBase(BaseModel):
-    reimbursement_type_id: str
+    reimbursement_type_id: Optional[str] = None
     reimbursement_type_name: str
     description: Optional[str] = None
     is_active: bool = True
@@ -13,7 +13,7 @@ class ReimbursementTypeCreate(ReimbursementTypeBase):
     pass
 
 class ReimbursementTypeUpdate(BaseModel):
-    reimbursement_type_id: str
+    reimbursement_type_id: Optional[str] = None
     reimbursement_type_name: Optional[str]
     description: Optional[str]
     is_active: Optional[bool]
@@ -25,3 +25,11 @@ class ReimbursementTypeInDB(ReimbursementTypeBase):
 
     class Config:
         from_attributes = True
+
+
+class ReimbursementType(BaseModel):
+    reimbursement_type_id: str
+    reimbursement_type_name: str
+    description: Optional[str] = None
+    is_active: bool = True
+    max_limit: int

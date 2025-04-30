@@ -2,10 +2,14 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 import uuid
+from enum import Enum
+
+class ReimbursementStatus(str, Enum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
 
 class ReimbursementRequestBase(BaseModel):
-    emp_id: str
-    reimbursement_id: str = str(uuid.uuid4())
     reimbursement_type_id: str
     amount: float
     note: Optional[str] = None
@@ -15,12 +19,22 @@ class ReimbursementRequestCreate(ReimbursementRequestBase):
     pass
 
 
+class ReimbursementStatusUpdate(BaseModel):
+    status: ReimbursementStatus
+    comments: Optional[str] = None
+
+
 class ReimbursementRequestOut(BaseModel):
-    emp_id: str
-    reimbursement_id: str
-    reimbursement_type_name: str
+    id: str
+    type_name: str
+    reimbursement_type_id: str
     amount: float
     note: Optional[str]
     status: str
     file_url: Optional[str]
-    submitted_at: datetime
+    created_at: datetime
+    comments: Optional[str] = None
+    employee_name: Optional[str] = None
+
+    class Config:
+        from_attributes = True

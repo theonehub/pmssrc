@@ -1,6 +1,33 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Modal, Form, Table, Spinner, Alert, Container } from 'react-bootstrap';
-import { Paper, TableContainer, TableHead, TableBody, TableRow, TableCell, Box } from '@mui/material';
+import {
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormControlLabel,
+  Switch,
+  Table,
+  TableContainer,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  Box,
+  Typography,
+  IconButton,
+  Tooltip,
+  Paper,
+  Container,
+  CircularProgress,
+  Alert
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon
+} from '@mui/icons-material';
 import axios from 'axios';
 import { getToken } from '../../utils/auth';
 import PageLayout from '../../layout/PageLayout';
@@ -9,7 +36,7 @@ function ReimbursementTypes() {
   const [types, setTypes] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
+    reimbursement_type_name: '',
     max_limit: 0,
     description: '',
     is_active: true,
@@ -49,7 +76,7 @@ function ReimbursementTypes() {
         });
       }
       setShowModal(false);
-      setFormData({ name: '', max_limit: 0, description: '', is_active: true });
+      setFormData({ reimbursement_type_name: '', max_limit: 0, description: '', is_active: true });
       setEditingId(null);
       fetchTypes();
     } catch (err) {
@@ -81,12 +108,16 @@ function ReimbursementTypes() {
   return (
     <PageLayout>
       <Container>
-        <div className="mt-4 d-flex justify-content-between align-items-center">
-          <h2>Reimbursement Types</h2>
-          <Button onClick={() => setShowModal(true)}>Add New Type</Button>
-        </div>
+        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h4">Reimbursement Types</Typography>
+          <Tooltip title="Add New Type">
+            <IconButton color="primary" onClick={() => setShowModal(true)}>
+              <AddIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
 
-        {error && <Alert variant="danger">{error}</Alert>}
+        {error && <Alert severity="error">{error}</Alert>}
 
         <TableContainer component={Paper}>
           <Table>
@@ -123,9 +154,9 @@ function ReimbursementTypes() {
                       }
                     }}
                   >
-                    <TableCell>{type.name}</TableCell>
+                    <TableCell>{type.reimbursement_type_name}</TableCell>
                     <TableCell>{type.description}</TableCell>
-                    <TableCell>{type.max_amount}</TableCell>
+                    <TableCell>₹{type.max_limit.toLocaleString('en-IN')}</TableCell>
                     <TableCell>
                       <Box
                         component="span"
@@ -144,22 +175,24 @@ function ReimbursementTypes() {
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Button
-                          variant="contained"
-                          color="primary"
-                          size="small"
-                          onClick={() => handleEdit(type)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="contained"
-                          color="error"
-                          size="small"
-                          onClick={() => handleDelete(type)}
-                        >
-                          Delete
-                        </Button>
+                        <Tooltip title="Edit Type">
+                          <IconButton
+                            color="primary"
+                            size="small"
+                            onClick={() => handleEdit(type)}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete Type">
+                          <IconButton
+                            color="error"
+                            size="small"
+                            onClick={() => handleDelete(type.id)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -173,21 +206,69 @@ function ReimbursementTypes() {
           </Table>
         </TableContainer>
 
-        <Modal show={showModal} onHide={() => { setShowModal(false); setFormData({ name: '', max_limit: 0, description: '', is_active: true }); setEditingId(null); }}>
-          <Form onSubmit={handleSubmit}>
-            <Modal.Header closeButton><Modal.Title>{editingId ? 'Edit' : 'Add'} Reimbursement Type</Modal.Title></Modal.Header>
-            <Modal.Body>
-              <Form.Control required className="mb-3" type="text" placeholder="Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
-              <Form.Control required className="mb-3" type="number" placeholder="Max Limit" value={formData.max_limit} onChange={(e) => setFormData({ ...formData, max_limit: e.target.value })} />
-              <Form.Control className="mb-3" as="textarea" placeholder="Description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
-              <Form.Check type="checkbox" label="Active" checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />
-            </Modal.Body>
-            <Modal.Footer>
-              <Button variant="secondary" onClick={() => { setShowModal(false); setFormData({ name: '', max_limit: 0, description: '', is_active: true }); setEditingId(null); }}>Cancel</Button>
-              <Button type="submit" variant="primary">{editingId ? 'Update' : 'Save'}</Button>
-            </Modal.Footer>
-          </Form>
-        </Modal>
+        <Dialog 
+          open={showModal} 
+          onClose={() => { 
+            setShowModal(false); 
+            setFormData({ reimbursement_type_name: '', max_limit: 0, description: '', is_active: true }); 
+            setEditingId(null); 
+          }}
+        >
+          <DialogTitle>
+            {editingId ? 'Edit' : 'Add'} Reimbursement Type
+          </DialogTitle>
+          <DialogContent>
+            <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+              <TextField
+                fullWidth
+                required
+                label="Name"
+                value={formData.reimbursement_type_name}
+                onChange={(e) => setFormData({ ...formData, reimbursement_type_name: e.target.value })}
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                required
+                type="number"
+                label="Max Limit"
+                value={formData.max_limit}
+                onChange={(e) => setFormData({ ...formData, max_limit: e.target.value })}
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                label="Description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                sx={{ mb: 2 }}
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={formData.is_active}
+                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                  />
+                }
+                label="Active"
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => { 
+              setShowModal(false); 
+              setFormData({ reimbursement_type_name: '', max_limit: 0, description: '', is_active: true }); 
+              setEditingId(null); 
+            }}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="contained" color="primary" onClick={handleSubmit}>
+              {editingId ? 'Update' : 'Save'}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     </PageLayout>
   );

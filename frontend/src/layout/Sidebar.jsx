@@ -102,16 +102,16 @@ const Sidebar = () => {
       roles: ['superadmin']
     },
     {
-      title: 'Reimbursements Assignments',
-      icon: <ReceiptIcon />,
-      path: '/reimbursements-assignment',
-      roles: ['admin', 'superadmin', 'hr']
-    },
-    {
       title: 'My Reimbursements',
       icon: <ReceiptIcon />,
       path: '/my-reimbursements',
       roles: ['user', 'superadmin']
+    },
+    {
+      title: 'Reimbursement Approvals',
+      icon: <ReceiptIcon />,
+      path: '/reimbursement-approvals',
+      roles: ['manager', 'admin', 'superadmin']
     },
     {
       title: 'Project Attributes',

@@ -19,17 +19,32 @@ import {
   Alert,
   Box,
   Typography,
-  CircularProgress
+  CircularProgress,
+  IconButton,
+  Tooltip
 } from '@mui/material';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Upload as UploadIcon
+} from '@mui/icons-material';
 import PageLayout from '../../layout/PageLayout';
 
 function MyReimbursements () {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({ type_id: '', amount: '', note: '', file: null });
+  const [formData, setFormData] = useState({
+    reimbursement_type_id: '',
+    amount: '',
+    note: '',
+    file: null
+  });
   const [types, setTypes] = useState([]);
   const [error, setError] = useState(null);
+  const [editingRequest, setEditingRequest] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -39,8 +54,8 @@ function MyReimbursements () {
     setLoading(true);
     try {
       const [reqRes, typesRes] = await Promise.all([
-        axios.get('/reimbursements/assigned'),
-        axios.get('/reimbursement-types')
+        axios.get('/reimbursements/my-requests'),
+        axios.get('/reimbursement-types/')
       ]);
       setRequests(reqRes.data);
       setTypes(typesRes.data);
@@ -54,20 +69,60 @@ function MyReimbursements () {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const data = new FormData();
-    Object.keys(formData).forEach(key => data.append(key, formData[key]));
+    data.append('reimbursement_type_id', formData.reimbursement_type_id);
+    data.append('amount', formData.amount);
+    data.append('note', formData.note);
+    if (formData.file) {
+      data.append('file', formData.file, formData.file.name);
+    }
+
     try {
       await axios.post('/reimbursements', data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 
+          'Content-Type': 'multipart/form-data'
+        }
       });
       setShowModal(false);
-      fetchData();
+      setFormData({
+        reimbursement_type_id: '',
+        amount: '',
+        note: '',
+        file: null
+      });
+      fetchData(); // Refresh the list
     } catch (err) {
-      setError('Failed to submit request.');
+      console.error('Error submitting request:', err);
+      setError(err.response?.data?.detail || 'Failed to submit request.');
     }
   };
 
   const handleFileChange = (e) => {
-    setFormData({ ...formData, file: e.target.files[0] });
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file size (e.g., max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('File size should not exceed 5MB');
+        return;
+      }
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+      if (!allowedTypes.includes(file.type)) {
+        setError('Only JPEG, PNG and PDF files are allowed');
+        return;
+      }
+      setFormData({ ...formData, file: file });
+    }
+  };
+
+  const handleClose = () => {
+    setShowModal(false);
+    setFormData({
+      reimbursement_type_id: '',
+      amount: '',
+      note: '',
+      file: null
+    });
+    setError(null);
   };
 
   const getStatusColor = (status) => {
@@ -83,15 +138,73 @@ function MyReimbursements () {
     }
   };
 
+  const handleEdit = (request) => {
+    setEditingRequest(request);
+    setFormData({
+      reimbursement_type_id: request.reimbursement_type_id,
+      amount: request.amount,
+      note: request.note,
+      file: null
+    });
+    setShowEditModal(true);
+  };
+
+  const handleDelete = async (requestId) => {
+    if (window.confirm('Are you sure you want to delete this reimbursement request?')) {
+      try {
+        await axios.delete(`/reimbursements/${requestId}`);
+        fetchData();
+      } catch (err) {
+        console.error('Error deleting request:', err);
+        setError(err.response?.data?.detail || 'Failed to delete request.');
+      }
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    const data = new FormData();
+    data.append('reimbursement_type_id', formData.reimbursement_type_id);
+    data.append('amount', formData.amount);
+    data.append('note', formData.note);
+    if (formData.file) {
+      data.append('file', formData.file, formData.file.name);
+    }
+
+    try {
+      await axios.put(`/reimbursements/${editingRequest.id}`, data, {
+        headers: { 
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      setShowEditModal(false);
+      setEditingRequest(null);
+      setFormData({
+        reimbursement_type_id: '',
+        amount: '',
+        note: '',
+        file: null
+      });
+      fetchData();
+    } catch (err) {
+      console.error('Error updating request:', err);
+      setError(err.response?.data?.detail || 'Failed to update request.');
+    }
+  };
+
   return (
     <PageLayout>
       <Box sx={{ mt: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4">My Reimbursements</Typography>
-          <Button variant="contained" color="primary" onClick={() => setShowModal(true)}>+</Button>
+          <Tooltip title="Add Reimbursement">
+            <IconButton color="primary" onClick={() => setShowModal(true)}>
+              <AddIcon />
+            </IconButton>
+          </Tooltip>
         </Box>
 
-        {error && <Alert severity="error">{error}</Alert>}
+        {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
 
         <TableContainer component={Paper}>
           <Table>
@@ -114,7 +227,7 @@ function MyReimbursements () {
               </TableRow>
             </TableHead>
             <TableBody>
-        {loading ? (
+              {loading ? (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
                     <CircularProgress color="primary" />
@@ -132,7 +245,7 @@ function MyReimbursements () {
                     }}
                   >
                     <TableCell>{req.type_name}</TableCell>
-                    <TableCell>{req.amount}</TableCell>
+                    <TableCell>₹{parseFloat(req.amount).toLocaleString('en-IN')}</TableCell>
                     <TableCell>{new Date(req.created_at).toLocaleDateString()}</TableCell>
                     <TableCell>{req.note}</TableCell>
                     <TableCell>
@@ -154,20 +267,24 @@ function MyReimbursements () {
                     <TableCell>
                       {req.status === 'PENDING' && (
                         <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Button
-                            variant="contained"
-                            color="primary"
-                            size="small"
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="contained"
-                            color="error"
-                            size="small"
-                          >
-                            Delete
-                          </Button>
+                          <Tooltip title="Edit">
+                            <IconButton
+                              color="primary"
+                              size="small"
+                              onClick={() => handleEdit(req)}
+                            >
+                              <EditIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete">
+                            <IconButton
+                              color="error"
+                              size="small"
+                              onClick={() => handleDelete(req.id)}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Tooltip>
                         </Box>
                       )}
                     </TableCell>
@@ -182,54 +299,146 @@ function MyReimbursements () {
           </Table>
         </TableContainer>
 
-        <Dialog open={showModal} onClose={() => setShowModal(false)}>
-          <DialogTitle>Submit Reimbursement Request</DialogTitle>
-          <DialogContent>
-            <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-              <Select
-                fullWidth
-                value={formData.type_id}
-                onChange={(e) => setFormData({ ...formData, type_id: e.target.value })}
-                displayEmpty
-                required
-                sx={{ mb: 2 }}
-              >
-                <MenuItem value="" disabled>Select Type</MenuItem>
-                {types.map((type) => <MenuItem key={type.id} value={type.id}>{type.name}</MenuItem>)}
-              </Select>
-              <TextField
-                fullWidth
-                type="number"
-                label="Amount"
-                placeholder="Amount"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                sx={{ mb: 2 }}
-                required
-              />
-              <TextField
-                fullWidth
-                multiline
-                rows={3}
-                label="Note"
-                placeholder="Note"
-                value={formData.note}
-                onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                sx={{ mb: 2 }}
-                required
-              />
-              <TextField
-                fullWidth
-                type="file"
-                onChange={handleFileChange}
-                sx={{ mb: 2 }}
-              />
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button type="submit" variant="contained" color="primary">Submit</Button>
-          </DialogActions>
+        <Dialog open={showModal} onClose={handleClose}>
+          <form onSubmit={handleSubmit}>
+            <DialogTitle>Submit Reimbursement Request</DialogTitle>
+            <DialogContent>
+              <Box sx={{ mt: 2 }}>
+                <Select
+                  fullWidth
+                  value={formData.reimbursement_type_id}
+                  onChange={(e) => setFormData({ ...formData, reimbursement_type_id: e.target.value })}
+                  displayEmpty
+                  required
+                  sx={{ mb: 2 }}
+                >
+                  <MenuItem value="" disabled>Select Type</MenuItem>
+                  {types.map((type) => (
+                    <MenuItem key={type.reimbursement_type_id} value={type.reimbursement_type_id}>
+                      {type.reimbursement_type_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Amount"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  sx={{ mb: 2 }}
+                  required
+                />
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={3}
+                  label="Note"
+                  value={formData.note}
+                  onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                  sx={{ mb: 2 }}
+                  required
+                />
+                <TextField
+                  fullWidth
+                  type="file"
+                  inputProps={{
+                    accept: '.jpg,.jpeg,.png,.pdf'
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <IconButton component="span">
+                        <UploadIcon />
+                      </IconButton>
+                    ),
+                  }}
+                  onChange={handleFileChange}
+                  sx={{ mb: 2 }}
+                />
+                {formData.file && (
+                  <Typography variant="caption" display="block" gutterBottom>
+                    Selected file: {formData.file.name}
+                  </Typography>
+                )}
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleClose}>Cancel</Button>
+              <Button type="submit" variant="contained" color="primary">
+                Submit
+              </Button>
+            </DialogActions>
+          </form>
+        </Dialog>
+
+        <Dialog open={showEditModal} onClose={() => { setShowEditModal(false); setEditingRequest(null); }}>
+          <form onSubmit={handleEditSubmit}>
+            <DialogTitle>Edit Reimbursement Request</DialogTitle>
+            <DialogContent>
+              <Box sx={{ mt: 2 }}>
+                <Select
+                  fullWidth
+                  value={formData.reimbursement_type_id}
+                  onChange={(e) => setFormData({ ...formData, reimbursement_type_id: e.target.value })}
+                  displayEmpty
+                  required
+                  sx={{ mb: 2 }}
+                >
+                  <MenuItem value="" disabled>Select Type</MenuItem>
+                  {types.map((type) => (
+                    <MenuItem key={type.reimbursement_type_id} value={type.reimbursement_type_id}>
+                      {type.reimbursement_type_name}
+                    </MenuItem>
+                  ))}
+                </Select>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Amount"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  sx={{ mb: 2 }}
+                  required
+                />
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={3}
+                  label="Note"
+                  value={formData.note}
+                  onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                  sx={{ mb: 2 }}
+                  required
+                />
+                <TextField
+                  fullWidth
+                  type="file"
+                  inputProps={{
+                    accept: '.jpg,.jpeg,.png,.pdf'
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <IconButton component="span">
+                        <UploadIcon />
+                      </IconButton>
+                    ),
+                  }}
+                  onChange={handleFileChange}
+                  sx={{ mb: 2 }}
+                />
+                {formData.file && (
+                  <Typography variant="caption" display="block" gutterBottom>
+                    Selected file: {formData.file.name}
+                  </Typography>
+                )}
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => { setShowEditModal(false); setEditingRequest(null); }}>Cancel</Button>
+              <Button type="submit" variant="contained" color="primary">
+                Update
+              </Button>
+            </DialogActions>
+          </form>
         </Dialog>
       </Box>
     </PageLayout>

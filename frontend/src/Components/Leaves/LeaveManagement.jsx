@@ -137,10 +137,18 @@ const LeaveManagement = () => {
     }
 
     try {
+      // Format dates to YYYY-MM-DD without timezone issues
+      const formatDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
+
       const leaveData = {
         leave_name: leaveType,
-        start_date: startDate.toISOString().split('T')[0],
-        end_date: endDate.toISOString().split('T')[0],
+        start_date: formatDate(startDate),
+        end_date: formatDate(endDate),
         reason: reason
       };
 

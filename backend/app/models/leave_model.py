@@ -13,6 +13,8 @@ class EmployeeLeave(BaseModel):
     Model for employee leave applications
     """
     emp_id: Optional[str] = None
+    emp_name: Optional[str] = None
+    emp_email: Optional[str] = None
     leave_id: Optional[str] = None
     leave_name: str
     start_date: str
@@ -23,15 +25,3 @@ class EmployeeLeave(BaseModel):
     approved_by: Optional[str] = None
     approved_date: Optional[str] = None
     reason: Optional[str] = None
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "emp_id": "EMP001",
-                "leave_name": "Annual Leave",
-                "start_date": "2024-03-01",
-                "end_date": "2024-03-05",
-                "status": "pending",
-                "reason": "Family vacation"
-            }
-        } 

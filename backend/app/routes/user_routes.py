@@ -82,18 +82,18 @@ def create_user(
 
         # Handle file uploads
         if pan_file:
-            user_info.pan_file_path = save_uploaded_file(pan_file, os.path.join(UPLOAD_DIR, "pan"))
+                user_info.pan_file_path = save_uploaded_file(pan_file, os.path.join(UPLOAD_DIR, "pan"))
         if aadhar_file:
-            user_info.aadhar_file_path = save_uploaded_file(aadhar_file, os.path.join(UPLOAD_DIR, "aadhar"))
+                user_info.aadhar_file_path = save_uploaded_file(aadhar_file, os.path.join(UPLOAD_DIR, "aadhar"))
         if photo:
-            user_info.photo_path = save_uploaded_file(photo, os.path.join(UPLOAD_DIR, "photos"))
+                user_info.photo_path = save_uploaded_file(photo, os.path.join(UPLOAD_DIR, "photos"))
 
         activity = ActivityTracker(
-            activity_id=str(uuid.uuid4()),
+                activity_id=str(uuid.uuid4()),
             emp_id=current_emp_id,
             activity="createUser",
             date=datetime.now(),
-            metadata=user_info.model_dump()
+                metadata=user_info.model_dump()
         )
         track_activity(activity, hostname)
         result = us.create_user(user_info, hostname)

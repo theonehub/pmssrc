@@ -7,8 +7,8 @@ router = APIRouter(prefix="/company-leaves", tags=["Company Leaves"])
 
 @router.post("/")
 def create_leave(data: CompanyLeaveCreate, 
-                 role: str = Depends(role_checker(["superadmin", "admin"])), 
-                 hostname: str = Depends(extract_hostname)):
+                       role: str = Depends(role_checker(["superadmin", "admin"])), 
+                       hostname: str = Depends(extract_hostname)):
     print(data)
     return company_leave_service.create_leave(data, hostname)
 
@@ -18,8 +18,8 @@ def list_leaves(hostname: str = Depends(extract_hostname)):
 
 @router.get("/{leave_id}")
 def get_leave(leave_id: str, 
-              hostname: str = Depends(extract_hostname),
-              role: str = Depends(role_checker(["user", "manager", "admin", "superadmin"]))):
+                    hostname: str = Depends(extract_hostname),
+                    role: str = Depends(role_checker(["user", "manager", "admin", "superadmin"]))):
     leave = company_leave_service.get_leave_by_id(leave_id, hostname)
     if not leave:
         raise HTTPException(status_code=404, detail="Leave not found")
@@ -27,8 +27,8 @@ def get_leave(leave_id: str,
 
 @router.put("/{leave_id}")
 def update_leave(leave_id: str, data: CompanyLeaveUpdate, 
-                 hostname: str = Depends(extract_hostname),
-                 role: str = Depends(role_checker(["superadmin", "admin"]))):
+                       hostname: str = Depends(extract_hostname),
+                       role: str = Depends(role_checker(["superadmin", "admin"]))):
     existing_leave = company_leave_service.get_leave_by_id(leave_id, hostname)
     if not existing_leave:
         raise HTTPException(status_code=404, detail="Leave not found")
@@ -39,8 +39,8 @@ def update_leave(leave_id: str, data: CompanyLeaveUpdate,
 
 @router.delete("/{leave_id}")
 def delete_leave(leave_id: str, 
-                  hostname: str = Depends(extract_hostname),
-                  role: str = Depends(role_checker(["superadmin"]))):
+                      hostname: str = Depends(extract_hostname),
+                      role: str = Depends(role_checker(["superadmin"]))):
     existing_leave = company_leave_service.get_leave_by_id(leave_id, hostname)
     if not existing_leave:
         raise HTTPException(status_code=404, detail="Leave not found")

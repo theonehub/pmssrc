@@ -165,11 +165,6 @@ const dataService = {
     return response.data;
   },
 
-  async getAllAttendance() {
-    const response = await apiClient.post('/attendance/all');
-    return response.data;
-  },
-
   async getEmployeeAttendanceByMonth(empId, month, year) {
     const response = await apiClient.get(
       `/attendance/user/${empId}/${month}/${year}`

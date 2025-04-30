@@ -16,11 +16,15 @@ import {
   DialogActions,
   TextField,
   Grid,
+  IconButton,
 } from '@mui/material';
 import { toast } from 'react-toastify';
 import axios from '../../utils/axios';
 import Sidebar from '../../layout/Sidebar';
 import Topbar from '../../layout/Topbar';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
+import Tooltip from '@mui/material/Tooltip';
 
 const AllLeaves = () => {
   const [leaves, setLeaves] = useState([]);
@@ -163,8 +167,8 @@ const AllLeaves = () => {
                       }}
                     >
                       <TableCell>{leave.emp_id}</TableCell>
-                      <TableCell>{leave.employee_name}</TableCell>
-                      <TableCell>{leave.employee_email}</TableCell>
+                      <TableCell>{leave.emp_name}</TableCell>
+                      <TableCell>{leave.emp_email}</TableCell>
                       <TableCell>{leave.leave_name}</TableCell>
                       <TableCell>{leave.start_date}</TableCell>
                       <TableCell>{leave.end_date}</TableCell>
@@ -188,22 +192,24 @@ const AllLeaves = () => {
                       <TableCell>
                         {leave.status && leave.status.toUpperCase() === 'PENDING' ? (
                           <Box sx={{ display: 'flex', gap: 1 }}>
-                            <Button
-                              variant="contained"
-                              color="success"
-                              size="small"
-                              onClick={() => handleApproveReject(leave, 'approved')}
-                            >
-                              Approve
-                            </Button>
-                            <Button
-                              variant="contained"
-                              color="error"
-                              size="small"
-                              onClick={() => handleApproveReject(leave, 'rejected')}
-                            >
-                              Reject
-                            </Button>
+                            <Tooltip title="Approve Leave">
+                              <IconButton
+                                color="success"
+                                onClick={() => handleApproveReject(leave, 'approved')}
+                                size="small"
+                              >
+                                <CheckCircleIcon />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Reject Leave">
+                              <IconButton
+                                color="error"
+                                onClick={() => handleApproveReject(leave, 'rejected')}
+                                size="small"
+                              >
+                                <CancelIcon />
+                              </IconButton>
+                            </Tooltip>
                           </Box>
                         ) : (
                           <Typography variant="body2" color="text.secondary">

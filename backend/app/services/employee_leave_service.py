@@ -65,7 +65,7 @@ def apply_leave(leave: EmployeeLeave, hostname: str):
             raise HTTPException(status_code=400, detail="Invalid leave type")
         
         # Calculate number of working days (excluding weekends and public holidays)
-        working_days = get_working_days(leave.start_date, leave.end_date)
+        working_days = get_working_days(leave.start_date, leave.end_date, hostname)
         leave.leave_count = working_days
         
         # Validate if user has enough leave balance
@@ -75,7 +75,7 @@ def apply_leave(leave: EmployeeLeave, hostname: str):
         # Create leave application
         leave_result = create_employee_leave_db(leave, hostname)  
         logger.info(f"Leave application created successfully for user {leave.emp_id}")
-        return {"msg": "Leave application submitted successfully", "inserted_id": str(leave_result.inserted_id)}
+        return {"msg": "Leave application submitted successfully", "inserted_id": str(leave.leave_id)}
     except Exception as e:
         logger.exception("Exception occurred during leave application")
         raise HTTPException(status_code=500, detail=str(e))
@@ -106,9 +106,8 @@ def get_user_leaves(emp_id: str, hostname: str):
     """
     try:
         leaves = get_employee_leaves_by_emp_id_db(emp_id, hostname)
-        for leave in leaves:
-            del leave["_id"]
-        return leaves
+        # Convert EmployeeLeave objects to dictionaries
+        return [leave.dict() for leave in leaves]
     except Exception as e:
         logger.exception(f"Error fetching leaves for user {emp_id}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -120,8 +119,6 @@ def get_pending_leaves(manager_id: str, hostname: str):
     try:
         # Get pending leaves for these users
         leaves = get_employee_leaves_by_manager_id_db(manager_id, hostname)
-        for leave in leaves:
-            del leave["_id"]
         return leaves
     except Exception as e:
         logger.exception(f"Error fetching pending leaves for manager {manager_id}")
@@ -145,13 +142,13 @@ def update_leave_status(leave_id: str, status: LeaveStatus, approved_by: str, ho
             leave = get_employee_leave_by_id_db(leave_id, hostname)
             if leave:
                 # Recalculate working days to ensure accuracy
-                working_days = get_working_days(leave["start_date"], leave["end_date"])
+                working_days = get_working_days(leave.start_date, leave.end_date, hostname)
                 
                 # Update user's leave balance
-                user = get_user_by_emp_id(leave["emp_id"], hostname)
-                if user and "leave_balance" in user and leave["leave_name"] in user["leave_balance"]:
-                    user["leave_balance"][leave["leave_name"]] -= working_days
-                    update_user_leave_balance(leave["emp_id"], leave["leave_name"], working_days, hostname)
+                user = get_user_by_emp_id(leave.emp_id, hostname)
+                if user and "leave_balance" in user and leave.leave_name in user["leave_balance"]:
+                    user["leave_balance"][leave.leave_name] -= working_days
+                    update_user_leave_balance(leave.emp_id, leave.leave_name, working_days, hostname)
         
         if result.modified_count == 0:
             raise HTTPException(status_code=404, detail="Leave application not found")
@@ -237,27 +234,39 @@ def get_all_employee_leaves(hostname: str, manager_id: str = None):
     Returns all leave applications for all employees or employees under a specific manager.
     """
     try:
-        query = {}
+        user_list = {}
+        logger.info(f"manager_id: {manager_id}")
         if manager_id:
             # Get all users under the manager
             users = get_users_by_manager_id(manager_id, hostname)
-            emp_ids = [user["emp_id"] for user in users]
-            query["emp_id"] = {"$in": emp_ids}
-            
-        leaves = get_all_employee_leaves_db(hostname)
+            user_list = {user["emp_id"]: user for user in users}
+            emp_ids = list(user_list.keys())
+            logger.info(f"emp_ids: {emp_ids}")
+            # Get leaves only for employees under this manager
+            leaves = get_all_employee_leaves_db(hostname, emp_ids)
+        else:
+            # Get leaves for all employees if no manager_id specified
+            leaves = get_all_employee_leaves_db(hostname)
+
+        # Add employee details to each leave record and convert to dict
+        result = []
         for leave in leaves:
-            leave["id"] = str(leave["_id"])
-            del leave["_id"]
-            # Add employee details
-            user = get_user_by_emp_id(leave["emp_id"], hostname)
+            logger.info(f"leave: {leave}")
+            user = user_list.get(leave.emp_id)
+            logger.info(f"user: {user}")
             if user:
-                leave["employee_name"] = user.get("name", "")
-                leave["employee_email"] = user.get("email", "")
-        return leaves
+                leave.emp_name = user.get("name", "")
+                leave.emp_email = user.get("email", "")
+            
+            # Convert EmployeeLeave object to dictionary
+            leave_dict = leave.dict()
+            result.append(leave_dict)
+            
+        return result
     except Exception as e:
         logger.exception(f"Error fetching all leaves for manager {manager_id}")
-        raise HTTPException(status_code=500, detail=str(e)) 
-    
+        raise HTTPException(status_code=500, detail=str(e))
+
 def get_leaves_by_month_for_user(emp_id: str, month: int, year: int, hostname: str):
     """
     Returns all leaves for a specific employee in a specific month and year.
@@ -272,14 +281,16 @@ def get_leaves_by_month_for_user(emp_id: str, month: int, year: int, hostname: s
         else:
             month_end = datetime(year, month + 1, 1) - timedelta(days=1)
 
+        print("month_start", month_start)
+        print("month_end", month_end)
+
         leaves = get_employee_leaves_by_month_for_emp_id_db(emp_id, year, month, month_start, month_end, hostname)
         
+        result = []
         for leave in leaves:
-            del leave["_id"]
-            
             # Calculate working days in the specified month for this leave
-            start_date = datetime.strptime(leave["start_date"], "%Y-%m-%d")
-            end_date = datetime.strptime(leave["end_date"], "%Y-%m-%d")
+            start_date = datetime.strptime(leave.start_date, "%Y-%m-%d")
+            end_date = datetime.strptime(leave.end_date, "%Y-%m-%d")
             
             # Adjust start and end date to be within the month if needed
             start_in_month = max(start_date, month_start)
@@ -290,9 +301,12 @@ def get_leaves_by_month_for_user(emp_id: str, month: int, year: int, hostname: s
             end_in_month_str = end_in_month.strftime("%Y-%m-%d")
             
             # Calculate working days for this part of the leave in this month
-            leave["days_in_month"] = get_working_days(start_in_month_str, end_in_month_str)
+            leave.leave_count = get_working_days(start_in_month_str, end_in_month_str, hostname)
             
-        return leaves
+            # Convert to dictionary and add to result
+            result.append(leave.dict())
+            
+        return result
     except Exception as e:
         logger.exception(f"Error fetching leaves for user {emp_id} in month {month} and year {year}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -317,14 +331,11 @@ def calculate_lwp_for_month(emp_id: str, month: int, year: int, hostname: str):
         month_start_str = month_start.strftime("%Y-%m-%d")
         month_end_str = month_end.strftime("%Y-%m-%d")
 
-        month = month_start.month
-        year = month_start.year
-
         # Get attendance records for the month
-        attendance_records = get_employee_attendance_by_month(emp_id, month, year,hostname)
+        attendance_records = get_employee_attendance_by_month(emp_id, month, year, hostname)
         
         # Get leaves for the month
-        leaves = get_employee_leaves_by_month_for_emp_id_db(emp_id, year, month, hostname)
+        leaves = get_employee_leaves_by_month_for_emp_id_db(emp_id, year, month, month_start, month_end, hostname)
 
         lwp_days = 0
         current_date = month_start
@@ -337,7 +348,6 @@ def calculate_lwp_for_month(emp_id: str, month: int, year: int, hostname: str):
         print("month_end", month_end)
         print("************************************************")
 
-
         while current_date <= month_end:
             current_date_str = current_date.strftime("%Y-%m-%d")
             
@@ -348,25 +358,25 @@ def calculate_lwp_for_month(emp_id: str, month: int, year: int, hostname: str):
 
             # Check if present on this day
             is_present = any(
-                datetime.strptime(att["checkin_time"], "%Y-%m-%d").date() == current_date.date()
+                att.checkin_time.date() == current_date.date()
                 for att in attendance_records
             )
 
             if not is_present:
                 # Check if on approved leave
                 has_approved_leave = any(
-                    datetime.strptime(leave["start_date"], "%Y-%m-%d").date() <= current_date.date() <= 
-                    datetime.strptime(leave["end_date"], "%Y-%m-%d").date() and
-                    leave["status"] == LeaveStatus.APPROVED
+                    datetime.strptime(leave.start_date, "%Y-%m-%d").date() <= current_date.date() <= 
+                    datetime.strptime(leave.end_date, "%Y-%m-%d").date() and
+                    leave.status == LeaveStatus.APPROVED
                     for leave in leaves
                 )
 
                 if not has_approved_leave:
                     # Check if day has pending or rejected leave
                     has_pending_rejected_leave = any(
-                        datetime.strptime(leave["start_date"], "%Y-%m-%d").date() <= current_date.date() <= 
-                        datetime.strptime(leave["end_date"], "%Y-%m-%d").date() and
-                        leave["status"] in [LeaveStatus.PENDING, LeaveStatus.REJECTED]
+                        datetime.strptime(leave.start_date, "%Y-%m-%d").date() <= current_date.date() <= 
+                        datetime.strptime(leave.end_date, "%Y-%m-%d").date() and
+                        leave.status in [LeaveStatus.PENDING, LeaveStatus.REJECTED]
                         for leave in leaves
                     )
 

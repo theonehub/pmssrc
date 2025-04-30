@@ -34,16 +34,21 @@ def get_all_users(hostname: str):
 
 def get_users_stats(hostname: str):
     """
-    Returns stats of users from user_collection.
+    Returns a dictionary with user count grouped by role.
+    Example: {"Admin": 5, "Employee": 12}
     """
     collection = get_user_collection(hostname)
-    stats = collection.aggregate([
+    
+    pipeline = [
         {"$group": {"_id": "$role", "count": {"$sum": 1}}}
-    ])
+    ]
+    results = list(collection.aggregate(pipeline))
+
+    stats = {item["_id"]: item["count"] for item in results}
     logger.info("User stats: %s", stats)
-    for item in stats:
-        stats[item["_id"]] = item["count"]
+    
     return stats
+
 
 def get_user_by_emp_id(emp_id: str, hostname: str):
     """

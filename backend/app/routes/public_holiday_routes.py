@@ -93,7 +93,7 @@ def import_holidays(
         return {"message": f"Successfully imported {inserted_count} holidays"}
     except Exception as e:
         logger.error(f"Error importing holidays: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) 
 
 @router.delete("/{holiday_id}")
 def delete_public_holiday(

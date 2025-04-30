@@ -650,12 +650,12 @@ function UsersList() {
             <Box component="form" onSubmit={handleImport} sx={{ mt: 2 }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <input
-                    type="file"
-                    accept=".xlsx"
-                    onChange={(e) => setImportFile(e.target.files[0])}
+              <input
+                  type="file"
+                  accept=".xlsx"
+                onChange={(e) => setImportFile(e.target.files[0])}
                     style={{ flex: 1 }}
-                  />
+              />
                   <Button
                     variant="outlined"
                     onClick={handleDownloadTemplate}

@@ -7,8 +7,6 @@ class Attendance(BaseModel):
     attendance_id: str
     checkin_time: Optional[datetime] = None
     checkout_time: Optional[datetime] = None
-    date: int = datetime.today().day
-    month: int = datetime.today().month
-    year: int = datetime.today().year
+    date: datetime
     marked_by: Optional[str] = None
 

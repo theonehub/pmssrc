@@ -1,11 +1,77 @@
 import React, { useState, useEffect } from 'react';
-import { Paper, Container, Table, TableContainer, TableHead, TableBody, TableRow, TableCell, Box, Grid } from '@mui/material';
-import { Modal, Form, Card, Button, Alert } from 'react-bootstrap';
+import { 
+  Box, 
+  Button, 
+  Typography, 
+  Paper, 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableContainer, 
+  TableHead, 
+  TableRow,
+  Grid,
+  Card,
+  CardContent,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Snackbar,
+  Alert,
+  CircularProgress
+} from '@mui/material';
+import { Add as AddIcon } from '@mui/icons-material';
 import axios from '../../utils/axios';
 //import { getCurrentUser } from '../../utils/auth';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import PageLayout from '../../layout/PageLayout';
+import { styled } from '@mui/material/styles';
+
+// Add custom styled components
+const StyledDatePicker = styled(DatePicker)`
+  width: 100%;
+  
+  .react-datepicker-wrapper {
+    width: 100%;
+  }
+
+  .react-datepicker-popper {
+    z-index: 9999;
+  }
+
+  .react-datepicker {
+    font-size: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  .react-datepicker__header {
+    background-color: #1976d2;
+    color: white;
+    border-radius: 8px 8px 0 0;
+  }
+
+  .react-datepicker__current-month {
+    color: white;
+    font-weight: 500;
+  }
+
+  .react-datepicker__day-name {
+    color: white;
+  }
+
+  .react-datepicker__day--selected {
+    background-color: #1976d2;
+  }
+`;
 
 const LeaveManagement = () => {
   const [leaveBalance, setLeaveBalance] = useState({});
@@ -21,6 +87,7 @@ const LeaveManagement = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [leaveToDelete, setLeaveToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [alert, setAlert] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
     fetchLeaveBalance();
@@ -32,7 +99,11 @@ const LeaveManagement = () => {
       const response = await axios.get(`http://localhost:8000/leaves/leave-balance`);
       setLeaveBalance(response.data);
     } catch (error) {
-      setError('Failed to fetch leave balance');
+      setAlert({
+        open: true,
+        message: 'Failed to fetch leave balance',
+        severity: 'error'
+      });
     }
   };
 
@@ -40,9 +111,13 @@ const LeaveManagement = () => {
     try {
       const response = await axios.get(`http://localhost:8000/leaves/my-leaves`);
       setLeaves(response.data);
-      setLoading(false);
     } catch (error) {
-      setError('Failed to fetch leave history');
+      setAlert({
+        open: true,
+        message: 'Failed to fetch leave history',
+        severity: 'error'
+      });
+    } finally {
       setLoading(false);
     }
   };
@@ -53,7 +128,11 @@ const LeaveManagement = () => {
     setSuccess('');
 
     if (!startDate || !endDate || !leaveType) {
-      setError('Please fill in all required fields');
+      setAlert({
+        open: true,
+        message: 'Please fill in all required fields',
+        severity: 'warning'
+      });
       return;
     }
 
@@ -67,10 +146,18 @@ const LeaveManagement = () => {
 
       if (editingLeave) {
         await axios.put(`http://localhost:8000/leaves/${editingLeave._id}`, leaveData);
-        setSuccess('Leave request updated successfully');
+        setAlert({
+          open: true,
+          message: 'Leave request updated successfully',
+          severity: 'success'
+        });
       } else {
         await axios.post(`http://localhost:8000/leaves/apply`, leaveData);
-        setSuccess('Leave application submitted successfully');
+        setAlert({
+          open: true,
+          message: 'Leave application submitted successfully',
+          severity: 'success'
+        });
       }
       
       fetchLeaveBalance();
@@ -78,7 +165,11 @@ const LeaveManagement = () => {
       setShowModal(false);
       resetForm();
     } catch (error) {
-      setError(error.response?.data?.detail || 'Failed to submit leave application');
+      setAlert({
+        open: true,
+        message: error.response?.data?.detail || 'Failed to submit leave application',
+        severity: 'error'
+      });
     }
   };
 
@@ -99,11 +190,19 @@ const LeaveManagement = () => {
   const confirmDelete = async () => {
     try {
       await axios.delete(`http://localhost:8000/leaves/${leaveToDelete.leave_id}`);
-      setSuccess('Leave request deleted successfully');
+      setAlert({
+        open: true,
+        message: 'Leave request deleted successfully',
+        severity: 'success'
+      });
       fetchLeaves();
       setShowDeleteConfirm(false);
     } catch (error) {
-      setError(error.response?.data?.detail || 'Failed to delete leave request');
+      setAlert({
+        open: true,
+        message: error.response?.data?.detail || 'Failed to delete leave request',
+        severity: 'error'
+      });
     }
   };
 
@@ -123,60 +222,62 @@ const LeaveManagement = () => {
 
   const getLeaveTypeColor = (type) => {
     const colors = {
-      'casual_leave': 'primary',
-      'sick_leave': 'warning',
-      'earned_leave': 'success',
-      'maternity_leave': 'info',
-      'paternity_leave': 'secondary'
+      'casual_leave': 'primary.main',
+      'sick_leave': 'warning.main',
+      'earned_leave': 'success.main',
+      'maternity_leave': 'info.main',
+      'paternity_leave': 'secondary.main'
     };
-    return colors[type] || 'dark';
+    return colors[type] || 'grey.500';
+  };
+
+  const handleCloseAlert = () => {
+    setAlert({ ...alert, open: false });
   };
 
   return (
     <PageLayout title="Leave Management">
-      <Container fluid>
+      <Box sx={{ p: 3 }}>
         {/* Header with Apply Button */}
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <h2>Leave Management</h2>
-          <Button 
-            variant="primary" 
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+          <Typography variant="h4">Leave Management</Typography>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
             onClick={() => setShowModal(true)}
-            className="d-flex align-items-center"
           >
-            <i className="bi bi-plus-circle me-2"></i>
             Apply for Leave
           </Button>
-        </div>
+        </Box>
 
-        {/* Leave Balance Tiles */}
-        <Grid container spacing={2} className="mb-4">
+        {/* Leave Balance Cards */}
+        <Grid container spacing={2} sx={{ mb: 4 }}>
           {Object.entries(leaveBalance).map(([type, balance]) => (
-            <Grid item md={4} className="mb-3">
+            <Grid item xs={12} sm={6} md={4} key={type}>
               <Card 
-                bg={getLeaveTypeColor(type)}
-                text="white"
-                className="h-100"
+                sx={{ 
+                  bgcolor: getLeaveTypeColor(type),
+                  color: 'white',
+                  height: '100%'
+                }}
               >
-                <Card.Body className="d-flex flex-column align-items-center">
-                  <Card.Title className="text-capitalize mb-3">
+                <CardContent sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6" sx={{ mb: 1, textTransform: 'capitalize' }}>
                     {type.replace('_', ' ')}
-                  </Card.Title>
-                  <Card.Text className="display-4 mb-0">
+                  </Typography>
+                  <Typography variant="h3" sx={{ mb: 1 }}>
                     {balance}
-                  </Card.Text>
-                  <small>days remaining</small>
-                </Card.Body>
+                  </Typography>
+                  <Typography variant="body2">days remaining</Typography>
+                </CardContent>
               </Card>
             </Grid>
           ))}
         </Grid>
 
-        {/* Leave History */}
+        {/* Leave History Table */}
         <Card>
-          <Card.Header>
-            <h4>Leave History</h4>
-          </Card.Header>
-          <Card.Body>
+          <CardContent>
             <TableContainer component={Paper}>
               <Table>
                 <TableHead>
@@ -200,7 +301,9 @@ const LeaveManagement = () => {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={5} align="center">Loading...</TableCell>
+                      <TableCell colSpan={6} align="center">
+                        <CircularProgress />
+                      </TableCell>
                     </TableRow>
                   ) : leaves.length > 0 ? (
                     leaves.map((leave) => (
@@ -238,115 +341,152 @@ const LeaveManagement = () => {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} align="center">No leaves found</TableCell>
+                      <TableCell colSpan={6} align="center">No leaves found</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
             </TableContainer>
-          </Card.Body>
+          </CardContent>
         </Card>
 
-        {/* Leave Application Modal */}
-        <Modal show={showModal} onHide={() => {
-          setShowModal(false);
-          resetForm();
-        }} size="lg">
-          <Modal.Header closeButton>
-            <Modal.Title>{editingLeave ? 'Update Leave Request' : 'Apply for Leave'}</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            {error && <Alert variant="danger">{error}</Alert>}
-            {success && <Alert variant="success">{success}</Alert>}
-            <Form onSubmit={handleSubmit}>
-              <Grid container spacing={2}>
-                <Grid item md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Leave Type</Form.Label>
-                    <Form.Select
-                      value={leaveType}
-                      onChange={(e) => setLeaveType(e.target.value)}
-                      required
-                    >
-                      <option value="">Select Leave Type</option>
-                      {Object.keys(leaveBalance).map((type) => (
-                        <option key={type} value={type}>
-                          {type.replace('_', ' ')}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-                </Grid>
-                <Grid item md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Reason</Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      rows={2}
-                      value={reason}
-                      onChange={(e) => setReason(e.target.value)}
-                    />
-                  </Form.Group>
-                </Grid>
-              </Grid>
-              <Grid container spacing={2}>
-                <Grid item md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Start Date</Form.Label>
-                    <DatePicker
-                      selected={startDate}
-                      onChange={(date) => setStartDate(date)}
-                      className="form-control"
-                      dateFormat="yyyy-MM-dd"
-                      minDate={new Date()}
-                      required
-                    />
-                  </Form.Group>
-                </Grid>
-                <Grid item md={6}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>End Date</Form.Label>
-                    <DatePicker
-                      selected={endDate}
-                      onChange={(date) => setEndDate(date)}
-                      className="form-control"
-                      dateFormat="yyyy-MM-dd"
-                      minDate={startDate || new Date()}
-                      required
-                    />
-                  </Form.Group>
-                </Grid>
-              </Grid>
-              <div className="d-flex justify-content-end gap-2">
-                <Button variant="secondary" onClick={() => setShowModal(false)}>
-                  Cancel
-                </Button>
-                <Button variant="primary" type="submit">
-                  Submit Leave Application
-                </Button>
-              </div>
-            </Form>
-          </Modal.Body>
-        </Modal>
+        {/* Leave Application Dialog */}
+        <Dialog 
+          open={showModal} 
+          onClose={() => {
+            setShowModal(false);
+            resetForm();
+          }}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            {editingLeave ? 'Update Leave Request' : 'Apply for Leave'}
+          </DialogTitle>
+          <DialogContent>
+            <Box 
+              component="form" 
+              onSubmit={handleSubmit} 
+              sx={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: 2, 
+                mt: 2 
+              }}
+            >
 
-        {/* Delete Confirmation Modal */}
-        <Modal show={showDeleteConfirm} onHide={() => setShowDeleteConfirm(false)}>
-          <Modal.Header closeButton>
-            <Modal.Title>Confirm Delete</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            Are you sure you want to delete this leave request?
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowDeleteConfirm(false)}>
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <DatePicker
+                  label="Start Date"
+                  value={startDate}
+                  onChange={(date) => setStartDate(date)}
+                  slotProps={{ 
+                    textField: { 
+                      fullWidth: true, 
+                      required: true 
+                    } 
+                  }}
+                  minDate={new Date()}
+                />
+              </LocalizationProvider>
+
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <DatePicker
+                  label="End Date"
+                  value={endDate}
+                  onChange={(date) => setEndDate(date)}
+                  slotProps={{ 
+                    textField: { 
+                      fullWidth: true, 
+                      required: true 
+                    } 
+                  }}
+                  minDate={startDate || new Date()}
+                />
+              </LocalizationProvider>
+
+              <FormControl fullWidth>
+                <InputLabel id="leave-type-label">Leave Type</InputLabel>
+                <Select
+                  labelId="leave-type-label"
+                  value={leaveType}
+                  onChange={(e) => setLeaveType(e.target.value)}
+                  label="Leave Type"
+                  required
+                >
+                  <MenuItem value="">Select Leave Type</MenuItem>
+                  {Object.keys(leaveBalance).map((type) => (
+                    <MenuItem key={type} value={type}>
+                      {type.replace('_', ' ')}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <TextField
+                label="Reason"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                fullWidth
+                multiline
+                rows={3}
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button 
+              onClick={() => {
+                setShowModal(false);
+                resetForm();
+              }}
+            >
               Cancel
             </Button>
-            <Button variant="danger" onClick={confirmDelete}>
+            <Button 
+              onClick={handleSubmit} 
+              variant="contained" 
+              disabled={!leaveType || !startDate || !endDate}
+            >
+              {editingLeave ? 'Update' : 'Submit'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          open={showDeleteConfirm}
+          onClose={() => setShowDeleteConfirm(false)}
+        >
+          <DialogTitle>Confirm Delete</DialogTitle>
+          <DialogContent>
+            Are you sure you want to delete this leave request?
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowDeleteConfirm(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmDelete} color="error">
               Delete
             </Button>
-          </Modal.Footer>
-        </Modal>
-      </Container>
+          </DialogActions>
+        </Dialog>
+
+        {/* Alert Snackbar */}
+        <Snackbar 
+          open={alert.open} 
+          autoHideDuration={6000} 
+          onClose={handleCloseAlert}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert 
+            onClose={handleCloseAlert} 
+            severity={alert.severity}
+            sx={{ width: '100%' }}
+          >
+            {alert.message}
+          </Alert>
+        </Snackbar>
+      </Box>
     </PageLayout>
   );
 };

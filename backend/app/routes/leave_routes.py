@@ -77,7 +77,7 @@ def get_all_leaves(
     """
     Get all leaves for employees under the manager or all employees for superadmin.
     """
-    if role == "manager":
+    if role == "manager" or role == "superadmin":
         return get_all_employee_leaves(hostname=hostname, manager_id=emp_id)
     else:  # superadmin
         return get_all_employee_leaves(hostname=hostname)

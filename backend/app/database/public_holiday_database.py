@@ -96,7 +96,7 @@ def import_holidays(holiday_data_list: list, emp_id: str, hostname: str):
         collection.insert_one(holiday_dict)
         inserted_count += 1
     
-    return inserted_count
+    return inserted_count 
 
 def delete_holiday(holiday_id: str, hostname: str):
     """

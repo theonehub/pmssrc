@@ -261,7 +261,7 @@ const LeaveManagement = () => {
         {/* Leave Balance Cards */}
         <Grid container spacing={2} sx={{ mb: 4 }}>
           {Object.entries(leaveBalance).map(([type, balance]) => (
-            <Grid item xs={12} sm={6} md={4} key={type}>
+            <Grid columns={{ xs: 12, sm: 6, md: 4 }} key={type}>
               <Card 
                 sx={{ 
                   bgcolor: getLeaveTypeColor(type),
@@ -382,9 +382,8 @@ const LeaveManagement = () => {
                 mt: 2 
               }}
             >
-
               <LocalizationProvider dateAdapter={AdapterDateFns}>
-                <DatePicker
+                <StyledDatePicker
                   label="Start Date"
                   value={startDate}
                   onChange={(date) => setStartDate(date)}
@@ -399,7 +398,7 @@ const LeaveManagement = () => {
               </LocalizationProvider>
 
               <LocalizationProvider dateAdapter={AdapterDateFns}>
-                <DatePicker
+                <StyledDatePicker
                   label="End Date"
                   value={endDate}
                   onChange={(date) => setEndDate(date)}

@@ -27,10 +27,15 @@ export const EmptyOrganisation = {
   city: '',
   state: '',
   country: '',
-  postal_code: '',
-  contact_number: '',
+  pin_code: '',
+  phone: '',
   email: '',
   website: '',
   description: '',
-  is_active: true
+  is_active: true,
+  hostname: '',
+  employee_strength: '',
+  pan_number: '',
+  gst_number: '',
+  tan_number: ''
 }; 

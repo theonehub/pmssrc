@@ -14,6 +14,7 @@ from auth.password_handler import hash_password
 from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 import services.user_service as us
 from bson import ObjectId
+from services.organisation_service import increment_used_employee_strength, user_creation_allowed
 from io import BytesIO
 from services.activity_tracker_service import track_activity
 import json
@@ -73,6 +74,8 @@ def create_user(
     Endpoint to create a new user with document uploads.
     """
     try:
+        if not us.user_creation_allowed(current_emp_id):
+            raise HTTPException(status_code=403, detail="User limit reached!!! Contact your administrator")
         # Parse the JSON string into UserInfo model
         user_data_dict = json.loads(user_data)
         user_info = UserInfo(**user_data_dict)
@@ -98,6 +101,7 @@ def create_user(
         track_activity(activity, hostname)
         result = us.create_user(user_info, hostname)
         logger.info(result)
+        us.increment_used_employee_strength(current_emp_id)
         return result
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=400, detail="Invalid JSON data")

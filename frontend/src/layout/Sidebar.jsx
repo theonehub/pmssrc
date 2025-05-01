@@ -42,6 +42,12 @@ const Sidebar = () => {
       roles: ['manager', 'admin', 'superadmin', 'user']
     },
     {
+      title: 'Organisations',
+      icon: <BusinessIcon />,
+      path: '/organisations',
+      roles: ['superadmin']
+    },
+    {
       title: 'Team',
       icon: <PeopleIcon />,
       path: '/users',
@@ -124,12 +130,6 @@ const Sidebar = () => {
       icon: <CalendarIcon />,
       path: '/leaves',
       roles: ['user', 'manager', 'admin', 'superadmin']
-    },
-    {
-      title: 'Organisations',
-      icon: <BusinessIcon />,
-      path: '/organisations',
-      roles: ['superadmin']
     }
   ];
 

@@ -452,7 +452,7 @@ function UsersList() {
           <DialogContent>
             <Box component="form" onSubmit={handleCreateUser} sx={{ mt: 2 }}>
               <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
+                <Grid columns={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Employee ID"
@@ -460,7 +460,7 @@ function UsersList() {
                     required
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid columns={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Name"
@@ -468,7 +468,7 @@ function UsersList() {
                     required
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid columns={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Email"
@@ -477,7 +477,7 @@ function UsersList() {
                     required
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid columns={{ xs: 12, sm: 6 }}>
                   <FormControl component="fieldset">
                     <RadioGroup row name="gender">
                       <FormControlLabel value="male" control={<Radio />} label="Male" />
@@ -486,7 +486,7 @@ function UsersList() {
                     </RadioGroup>
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid columns={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Date of Birth"
@@ -496,7 +496,7 @@ function UsersList() {
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid columns={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Date of Joining"
@@ -506,7 +506,7 @@ function UsersList() {
                     InputLabelProps={{ shrink: true }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid columns={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Mobile"
@@ -514,35 +514,35 @@ function UsersList() {
                     required
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid columns={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Department"
                     name="department"
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid columns={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Designation"
                     name="designation"
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid columns={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Location"
                     name="location"
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid columns={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Manager ID"
                     name="manager_id"
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid columns={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Password"
@@ -551,7 +551,7 @@ function UsersList() {
                     required
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid columns={{ xs: 12, sm: 6 }}>
                   <FormControl fullWidth>
                     <InputLabel>Role</InputLabel>
                     <Select name="role" label="Role" required>
@@ -564,7 +564,7 @@ function UsersList() {
                 </Grid>
                 
                 {/* New Fields */}
-                <Grid item xs={12} sm={6}>
+                <Grid columns={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="PAN Number"
@@ -574,7 +574,7 @@ function UsersList() {
                     helperText="10 characters alphanumeric"
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid columns={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="UAN Number"
@@ -583,7 +583,7 @@ function UsersList() {
                     helperText="12 digits"
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid columns={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="Aadhar Number"
@@ -593,7 +593,7 @@ function UsersList() {
                     helperText="12 digits"
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid columns={{ xs: 12, sm: 6 }}>
                   <TextField
                     fullWidth
                     label="ESI Number"
@@ -603,7 +603,7 @@ function UsersList() {
                 </Grid>
                 
                 {/* File Upload Fields */}
-                <Grid item xs={12} sm={6}>
+                <Grid columns={{ xs: 12, sm: 6 }}>
                   <FormControl fullWidth>
                     <InputLabel shrink>PAN Card (PDF/Image)</InputLabel>
                     <Input
@@ -613,7 +613,7 @@ function UsersList() {
                     />
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid columns={{ xs: 12, sm: 6 }}>
                   <FormControl fullWidth>
                     <InputLabel shrink>Aadhar Card (PDF/Image)</InputLabel>
                     <Input
@@ -623,7 +623,7 @@ function UsersList() {
                     />
                   </FormControl>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid columns={{ xs: 12, sm: 6 }}>
                   <FormControl fullWidth>
                     <InputLabel shrink>Photo</InputLabel>
                     <Input

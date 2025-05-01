@@ -29,8 +29,8 @@ function OrganisationForm({ organisation = EmptyOrganisation, onSubmit }) {
       newErrors.email = 'Invalid email format';
     }
 
-    if (formData.contact_number && !/^[0-9+\-\s()]*$/.test(formData.contact_number)) {
-      newErrors.contact_number = 'Invalid phone number format';
+    if (formData.phone && !/^[0-9+\-\s()]*$/.test(formData.phone)) {
+      newErrors.phone = 'Invalid phone number format';
     }
 
     setErrors(newErrors);
@@ -54,22 +54,26 @@ function OrganisationForm({ organisation = EmptyOrganisation, onSubmit }) {
   };
 
   const handleSubmit = (e) => {
+    console.log('Form submit triggered');
     e.preventDefault();
     if (validate()) {
+      console.log('Form validated, calling onSubmit with:', formData);
       onSubmit(formData);
+    } else {
+      console.log('Form validation failed');
     }
   };
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
       <Grid container spacing={2}>
-        <Grid item xs={12}>
+        <Grid columns={{ xs: 12 }}>
           <Typography variant="h6" gutterBottom>
             Basic Information
           </Typography>
         </Grid>
         
-        <Grid item xs={12} sm={6}>
+        <Grid columns={{ xs: 12, sm: 6 }}>
           <TextField
             fullWidth
             label="Name"
@@ -82,7 +86,7 @@ function OrganisationForm({ organisation = EmptyOrganisation, onSubmit }) {
           />
         </Grid>
         
-        <Grid item xs={12} sm={6}>
+        <Grid columns={{ xs: 12, sm: 6 }}>
           <TextField
             fullWidth
             label="Email"
@@ -95,19 +99,19 @@ function OrganisationForm({ organisation = EmptyOrganisation, onSubmit }) {
           />
         </Grid>
         
-        <Grid item xs={12} sm={6}>
+        <Grid columns={{ xs: 12, sm: 6 }}>
           <TextField
             fullWidth
             label="Contact Number"
-            name="contact_number"
-            value={formData.contact_number}
+            name="phone"
+            value={formData.phone}
             onChange={handleChange}
-            error={!!errors.contact_number}
-            helperText={errors.contact_number}
+            error={!!errors.phone}
+            helperText={errors.phone}
           />
         </Grid>
         
-        <Grid item xs={12} sm={6}>
+        <Grid columns={{ xs: 12, sm: 6 }}>
           <TextField
             fullWidth
             label="Website"
@@ -117,13 +121,7 @@ function OrganisationForm({ organisation = EmptyOrganisation, onSubmit }) {
           />
         </Grid>
         
-        <Grid item xs={12}>
-          <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-            Address
-          </Typography>
-        </Grid>
-        
-        <Grid item xs={12}>
+        <Grid columns={{ xs: 12 }}>
           <TextField
             fullWidth
             label="Address"
@@ -138,7 +136,7 @@ function OrganisationForm({ organisation = EmptyOrganisation, onSubmit }) {
           />
         </Grid>
         
-        <Grid item xs={12} sm={6}>
+        <Grid columns={{ xs: 12, sm: 6 }}>
           <TextField
             fullWidth
             label="City"
@@ -151,7 +149,7 @@ function OrganisationForm({ organisation = EmptyOrganisation, onSubmit }) {
           />
         </Grid>
         
-        <Grid item xs={12} sm={6}>
+        <Grid columns={{ xs: 12, sm: 6 }}>
           <TextField
             fullWidth
             label="State/Province"
@@ -161,17 +159,17 @@ function OrganisationForm({ organisation = EmptyOrganisation, onSubmit }) {
           />
         </Grid>
         
-        <Grid item xs={12} sm={6}>
+        <Grid columns={{ xs: 12, sm: 6 }}>
           <TextField
             fullWidth
-            label="Postal Code"
-            name="postal_code"
-            value={formData.postal_code}
+            label="Pin Code"
+            name="pin_code"
+            value={formData.pin_code}
             onChange={handleChange}
           />
         </Grid>
         
-        <Grid item xs={12} sm={6}>
+        <Grid columns={{ xs: 12, sm: 6 }}>
           <TextField
             fullWidth
             label="Country"
@@ -183,8 +181,73 @@ function OrganisationForm({ organisation = EmptyOrganisation, onSubmit }) {
             required
           />
         </Grid>
-        
-        <Grid item xs={12}>
+
+        <Grid columns={{ xs: 12, sm: 6 }}>
+          <TextField
+            fullWidth
+            label="Hostname"
+            name="hostname"
+            value={formData.hostname}
+            onChange={handleChange}
+            error={!!errors.hostname}
+            helperText={errors.hostname}
+            required
+          />
+        </Grid>
+
+        <Grid columns={{ xs: 12, sm: 6 }}>
+          <TextField
+            fullWidth
+            label="Employee Strength"
+            name="employee_strength"
+            value={formData.employee_strength}
+            onChange={handleChange}
+            error={!!errors.employee_strength}
+            helperText={errors.employee_strength}
+            required
+          />
+        </Grid>
+
+        <Grid columns={{ xs: 12, sm: 6 }}>
+          <TextField
+            fullWidth
+            label="Pan Number"
+            name="pan_number"
+            value={formData.pan_number}
+            onChange={handleChange}
+            error={!!errors.pan_number}
+            helperText={errors.pan_number}
+            required
+          />
+        </Grid> 
+
+        <Grid columns={{ xs: 12, sm: 6 }}>
+          <TextField
+            fullWidth
+            label="GST Number"
+            name="gst_number"
+            value={formData.gst_number}
+            onChange={handleChange}
+            error={!!errors.gst_number}
+            helperText={errors.gst_number}
+            required
+          />
+        </Grid>
+
+        <Grid columns={{ xs: 12, sm: 6 }}>
+          <TextField
+            fullWidth
+            label="TAN Number"
+            name="tan_number"
+            value={formData.tan_number}
+            onChange={handleChange}
+            error={!!errors.tan_number}
+            helperText={errors.tan_number}
+            required
+          />
+        </Grid>
+
+        <Grid columns={{ xs: 12 }}>
           <TextField
             fullWidth
             label="Description"
@@ -196,7 +259,7 @@ function OrganisationForm({ organisation = EmptyOrganisation, onSubmit }) {
           />
         </Grid>
         
-        <Grid item xs={12}>
+        <Grid columns={{ xs: 12 }}>
           <FormControlLabel
             control={
               <Checkbox
@@ -209,13 +272,13 @@ function OrganisationForm({ organisation = EmptyOrganisation, onSubmit }) {
           />
         </Grid>
         
-        <Grid item xs={12} sx={{ mt: 2 }}>
+        <Grid columns={{ xs: 12 }} sx={{ mt: 2 }}>
           <Button 
             type="submit" 
             variant="contained" 
             fullWidth
           >
-            {formData.id ? 'Update' : 'Create'} Organisation
+            {formData.organisation_id ? 'Update' : 'Create'} Organisation
           </Button>
         </Grid>
       </Grid>

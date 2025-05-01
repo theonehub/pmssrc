@@ -107,11 +107,24 @@ function OrganisationsList() {
   };
 
   const handleFormSubmit = async (formData) => {
+    console.log('handleFormSubmit called with:', formData);
     try {
-      if (formData.id) {
+      const token = getToken();
+      if (!token) {
+        console.log('No token found');
+        setToast({
+          show: true,
+          message: 'Authentication required. Please login again.',
+          severity: 'error'
+        });
+        return;
+      }
+
+      console.log('Making API request with token:', token);
+      if (formData.organisation_id) {
         // Update existing organisation
-        await axios.put(`http://localhost:8000/organisation/${formData.id}`, formData, {
-          headers: { Authorization: `Bearer ${getToken()}` },
+        await axios.put(`http://localhost:8000/organisation/${formData.organisation_id}`, formData, {
+          headers: { Authorization: `Bearer ${token}` },
         });
         setToast({
           show: true,
@@ -120,9 +133,11 @@ function OrganisationsList() {
         });
       } else {
         // Create new organisation
-        await axios.post('http://localhost:8000/organisation', formData, {
-          headers: { Authorization: `Bearer ${getToken()}` },
+        console.log('Creating new organisation with data:', formData);
+        const response = await axios.post('http://localhost:8000/organisation', formData, {
+          headers: { Authorization: `Bearer ${token}` },
         });
+        console.log('API response:', response);
         setToast({
           show: true,
           message: 'Organisation created successfully',
@@ -134,6 +149,7 @@ function OrganisationsList() {
       fetchOrganisations();
     } catch (error) {
       console.error('Error saving organisation:', error);
+      console.error('Error response:', error.response);
       setToast({
         show: true,
         message: 'Failed to save organisation: ' + (error.response?.data?.detail || error.message),
@@ -194,6 +210,8 @@ function OrganisationsList() {
                 <TableCell>City</TableCell>
                 <TableCell>Country</TableCell>
                 <TableCell>Status</TableCell>
+                <TableCell>Employee Strength</TableCell>
+                <TableCell>Used Employee Strength</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -211,6 +229,8 @@ function OrganisationsList() {
                     <TableCell>{org.city}</TableCell>
                     <TableCell>{org.country}</TableCell>
                     <TableCell>{org.is_active ? 'Active' : 'Inactive'}</TableCell>
+                    <TableCell>{org.employee_strength}</TableCell>
+                    <TableCell>{org.used_employee_strength}</TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
                         <Button
@@ -227,7 +247,7 @@ function OrganisationsList() {
                           variant="contained"
                           color="error"
                           startIcon={<DeleteIcon />}
-                          onClick={() => handleDelete(org.id)}
+                          onClick={() => handleDelete(org.organisation_id)}
                         >
                           Delete
                         </Button>
@@ -287,6 +307,8 @@ function OrganisationsList() {
           onClose={handleFormClose}
           maxWidth="md"
           fullWidth
+          disableEscapeKeyDown={false}
+          onBackdropClick={handleFormClose}
         >
           <DialogTitle>
             {currentOrganisation.id ? 'Edit Organisation' : 'Add Organisation'}

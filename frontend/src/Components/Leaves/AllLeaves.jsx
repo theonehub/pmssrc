@@ -98,7 +98,7 @@ const AllLeaves = () => {
           </Typography>
           
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={6}>
+            <Grid columns={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Search"
@@ -108,7 +108,7 @@ const AllLeaves = () => {
                 placeholder="Search by name, email or leave type"
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid columns={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 select

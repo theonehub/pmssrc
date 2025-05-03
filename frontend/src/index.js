@@ -5,8 +5,9 @@ import CssBaseline from '@mui/material/CssBaseline';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap-icons/font/bootstrap-icons.css';
+// Removing Bootstrap imports
+//import 'bootstrap/dist/css/bootstrap.min.css';
+//import 'bootstrap-icons/font/bootstrap-icons.css';
 //import 'react-toastify/dist/ReactToastify.css';
 //import { ToastContainer } from 'react-toastify';
 import theme from './theme';
@@ -16,7 +17,7 @@ root.render(
   <React.StrictMode>
     <ThemeProvider theme={theme}>
       <CssBaseline />
-    <App />
+      <App />
     </ThemeProvider>
   </React.StrictMode>
 );

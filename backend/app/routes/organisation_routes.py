@@ -1,10 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends, Query, status
 from services.organisation_service import (
     get_all_organisations as get_all_organisations_service, 
-    get_organisation as get_organisation_service, 
+    get_organisation_by_id as get_organisation_by_id_service, 
     create_organisation as create_organisation_service, 
     update_organisation as update_organisation_service,
-    delete_organisation as delete_organisation_service
+    delete_organisation as delete_organisation_service,
+    get_organisation_by_hostname as get_organisation_by_hostname_service
 )
 from models.organisation import Organisation, OrganisationCreate, OrganisationUpdate, OrganisationListResponse
 from auth.auth import extract_emp_id, extract_role, role_checker
@@ -36,7 +37,7 @@ def get_organisation(organisation_id: str,
     current_role: str = Depends(role_checker(["superadmin"]))
                           ):
     try:
-        organisation = get_organisation_service(organisation_id)
+        organisation = get_organisation_by_id_service(organisation_id)
         return organisation
     except Exception as e:
         logger.error(f"Error getting organisation: {str(e)}")

@@ -74,7 +74,7 @@ def create_user(
     Endpoint to create a new user with document uploads.
     """
     try:
-        if not us.user_creation_allowed(current_emp_id):
+        if not user_creation_allowed(hostname):
             raise HTTPException(status_code=403, detail="User limit reached!!! Contact your administrator")
         # Parse the JSON string into UserInfo model
         user_data_dict = json.loads(user_data)
@@ -91,17 +91,17 @@ def create_user(
         if photo:
                 user_info.photo_path = save_uploaded_file(photo, os.path.join(UPLOAD_DIR, "photos"))
 
-        activity = ActivityTracker(
-                activity_id=str(uuid.uuid4()),
-            emp_id=current_emp_id,
-            activity="createUser",
-            date=datetime.now(),
-                metadata=user_info.model_dump()
-        )
-        track_activity(activity, hostname)
+        # activity = ActivityTracker(
+        #     activity_id=str(uuid.uuid4()),
+        #     emp_id=current_emp_id,
+        #     activity="createUser",
+        #     date=datetime.now(),
+        #     metadata=user_info.model_dump()
+        # )
+        # track_activity(activity, hostname)
         result = us.create_user(user_info, hostname)
         logger.info(result)
-        us.increment_used_employee_strength(current_emp_id)
+        increment_used_employee_strength(hostname)
         return result
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=400, detail="Invalid JSON data")

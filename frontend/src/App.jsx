@@ -18,6 +18,13 @@ import CompanyLeaves from './Components/CompanyLeaves/CompanyLeaves';
 import SalaryUsersList from './Components/Salary/SalaryUsersList';
 import SalaryDeclaration from './Components/Salary/SalaryDeclaration';
 import OrganisationsList from './Components/Organisation/OrganisationsList';
+
+// Taxation Pages
+import TaxationDashboard from './pages/taxation/TaxationDashboard';
+import TaxDeclaration from './pages/taxation/TaxDeclaration';
+import EmployeeTaxDetail from './pages/taxation/EmployeeTaxDetail';
+import EmployeeSelection from './pages/taxation/EmployeeSelection';
+
 //import { isAuthenticated } from './utils/auth';
 
 function App() {
@@ -99,6 +106,33 @@ function App() {
         <Route path="/organisations" element={
           <ProtectedRoute allowedRoles={['superadmin']}>
             <OrganisationsList />
+          </ProtectedRoute>
+        } />
+
+        {/* Taxation Routes */}
+        <Route path="/taxation" element={
+          <ProtectedRoute allowedRoles={['user', 'manager', 'admin', 'superadmin']}>
+            <TaxationDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/taxation/declaration" element={
+          <ProtectedRoute allowedRoles={['user', 'manager', 'admin', 'superadmin']}>
+            <TaxDeclaration />
+          </ProtectedRoute>
+        } />
+        <Route path="/taxation/declaration/:empId" element={
+          <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
+            <TaxDeclaration />
+          </ProtectedRoute>
+        } />
+        <Route path="/taxation/employee/:empId" element={
+          <ProtectedRoute allowedRoles={['user', 'manager', 'admin', 'superadmin']}>
+            <EmployeeTaxDetail />
+          </ProtectedRoute>
+        } />
+        <Route path="/taxation/employee-selection" element={
+          <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
+            <EmployeeSelection />
           </ProtectedRoute>
         } />
       </Routes>

@@ -20,6 +20,7 @@ class Organisation(BaseModel):
     tan_number: str
     hostname: str
     employee_strength: int
+    used_employee_strength: int
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     is_active: bool
@@ -65,7 +66,7 @@ class OrganisationUpdate(BaseModel):
     tan_number: str
     hostname: str
     employee_strength: int
-    used_employee_strength: Optional[int] = None
+    used_employee_strength: Optional[int] = 0
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     is_active: bool 

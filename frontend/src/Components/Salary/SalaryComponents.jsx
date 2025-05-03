@@ -33,6 +33,7 @@ import {
   Tooltip
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import Pagination from '@mui/material/Pagination';
 
 function SalaryComponents() {
   const [components, setComponents] = useState([]);
@@ -142,7 +143,7 @@ function SalaryComponents() {
 
   return (
     <PageLayout>
-      <div className="container mt-4">
+      <Container sx={{ mt: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4">Salary Components</Typography>
           <Button variant="contained" startIcon={<FaPlus />} onClick={() => setShowForm(true)}>
@@ -244,21 +245,14 @@ function SalaryComponents() {
 
         {/* Pagination Controls */}
         {totalPages > 1 && (
-          <nav>
-            <ul className="pagination justify-content-center">
-              <li className={`page-item ${currentPage === 1 && 'disabled'}`}>
-                <button className="page-link" onClick={() => setCurrentPage(currentPage - 1)}>Previous</button>
-              </li>
-              {Array.from({ length: totalPages }, (_, i) => (
-                <li key={i} className={`page-item ${currentPage === i + 1 && 'active'}`}>
-                  <button className="page-link" onClick={() => setCurrentPage(i + 1)}>{i + 1}</button>
-                </li>
-              ))}
-              <li className={`page-item ${currentPage === totalPages && 'disabled'}`}>
-                <button className="page-link" onClick={() => setCurrentPage(currentPage + 1)}>Next</button>
-              </li>
-            </ul>
-          </nav>
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+            <Pagination 
+              count={totalPages} 
+              page={currentPage} 
+              onChange={(event, value) => setCurrentPage(value)}
+              color="primary"
+            />
+          </Box>
         )}
 
         {/* Add/Edit Dialog Form */}
@@ -341,7 +335,7 @@ function SalaryComponents() {
             {toast.message}
           </Alert>
         </Snackbar>
-      </div>
+      </Container>
     </PageLayout>
   );
 }

@@ -24,9 +24,14 @@ def get_organisations_count():
     count = collection.count_documents({})
     return count
 
-def get_organisation(organisation_id: str):
+def get_organisation_by_id(organisation_id: str):
     collection = get_organisation_collection()
     organisation = collection.find_one({"organisation_id": organisation_id})
+    return organisation
+
+def get_organisation_by_hostname(hostname: str):
+    collection = get_organisation_collection()
+    organisation = collection.find_one({"hostname": hostname})
     return organisation
 
 def create_organisation(organisation: OrganisationCreate):
@@ -56,10 +61,6 @@ def update_organisation(organisation_id: str, organisation: Union[OrganisationUp
 class OrganisationListResponse(BaseModel):
     organisations: List[Organisation]
     total: int
-
-
-
-
 
 
 

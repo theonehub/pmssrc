@@ -112,6 +112,7 @@ const PageLayout = ({ title, children }) => {
                 easing: theme.transitions.easing.sharp,
                 duration: theme.transitions.duration.standard,
               }) : 'none',
+              backgroundColor: theme.palette.background.paper,
             }}
           >
             <Sidebar />
@@ -149,12 +150,13 @@ const PageLayout = ({ title, children }) => {
               '& .MuiDrawer-paper': { 
                 width: '280px',
                 top: '64px',
-                height: 'calc(100% - 64px)'
+                height: 'calc(100% - 64px)',
+                backgroundColor: theme.palette.background.paper,
               },
               zIndex: theme.zIndex.drawer
             }}
           >
-        <Sidebar />
+            <Sidebar />
           </Drawer>
         )}
         
@@ -192,7 +194,7 @@ const PageLayout = ({ title, children }) => {
             p: 3,
             overflow: 'auto',
             ml: `${mainContentMargin}px`,
-            backgroundColor: theme.palette.background.paper,
+            backgroundColor: theme.palette.background.default,
             transition: theme.transitions.create('margin-left', {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.standard,

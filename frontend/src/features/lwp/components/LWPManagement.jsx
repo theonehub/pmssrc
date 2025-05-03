@@ -121,7 +121,7 @@ const LWPManagement = () => {
   return (
     <PageLayout>
       <Container>
-        <h3 className="mt-4 mb-4">LWP Management</h3>
+        <Typography variant="h4" sx={{ mt: 4, mb: 4 }}>LWP Management</Typography>
         {/* Existing LWP Records */}
         <TableContainer component={Paper}>
           <Table>
@@ -212,13 +212,21 @@ const LWPManagement = () => {
           </Table>
         </TableContainer>
         {updateStatus.message && (
-          <Alert variant={updateStatus.type}>{updateStatus.message}</Alert>
+          <Alert severity={updateStatus.type === 'success' ? 'success' : 'error'} sx={{ mt: 2 }}>
+            {updateStatus.message}
+          </Alert>
         )}
         {/* Bulk Update Button */}
-        <Button className="mt-3" variant="warning" onClick={handleBulkUpdate} disabled={isUpdatingBulk}>
+        <Button 
+          sx={{ mt: 3 }} 
+          variant="contained" 
+          color="warning" 
+          onClick={handleBulkUpdate} 
+          disabled={isUpdatingBulk}
+        >
           {isUpdatingBulk ? (
             <>
-              <CircularProgress color="primary" />
+              <CircularProgress color="inherit" size={20} sx={{ mr: 1 }} />
               Updating...
             </>
           ) : (
@@ -226,12 +234,18 @@ const LWPManagement = () => {
           )}
         </Button>
         {/* Import/Export Section */}
-        <h4 className="mt-5">Import/Export LWP Data</h4>
+        <Typography variant="h5" sx={{ mt: 5, mb: 2 }}>Import/Export LWP Data</Typography>
         {/* Export Button */}
-        <Button className="mb-3" variant="outline-success" onClick={handleExport} disabled={isExporting}>
+        <Button 
+          sx={{ mb: 3 }}
+          variant="outlined" 
+          color="success" 
+          onClick={handleExport} 
+          disabled={isExporting}
+        >
           {isExporting ? (
             <>
-              <CircularProgress color="primary" />
+              <CircularProgress color="inherit" size={20} sx={{ mr: 1 }} />
               Exporting...
             </>
           ) : (
@@ -248,9 +262,11 @@ const LWPManagement = () => {
             fullWidth
           />
         </Box>
-        <Button onClick={handleImport}>Import</Button>
+        <Button variant="contained" onClick={handleImport}>Import</Button>
         {uploadStatus.message && (
-          <Alert variant={uploadStatus.type} className="mt-3">{uploadStatus.message}</Alert>
+          <Alert severity={uploadStatus.type === 'success' ? 'success' : 'error'} sx={{ mt: 3 }}>
+            {uploadStatus.message}
+          </Alert>
         )}
       </Container>
     </PageLayout>

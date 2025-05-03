@@ -8,7 +8,7 @@ from routes import auth_routes, user_routes, project_attributes_routes,\
     salary_component_routes, salary_computation_routes, \
     public_holiday_routes, attendance_routes, company_leave_routes, leave_routes, \
     reimbursement_routes, reimbursement_type_routes,\
-    organisation_routes
+    organisation_routes, taxation_routes
 
 # Configure the root logger.
 logging.basicConfig(
@@ -55,6 +55,7 @@ app.include_router(company_leave_routes.router, tags=["Company Leaves"])
 app.include_router(leave_routes.router, tags=["Leave Management"])
 app.include_router(salary_computation_routes.router, tags=["Salary Computation"])
 app.include_router(organisation_routes.router, tags=["Organization"])
+app.include_router(taxation_routes.router, tags=["Taxation"])
 
 # Run the server
 if __name__ == "__main__":

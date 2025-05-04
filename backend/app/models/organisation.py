@@ -24,6 +24,7 @@ class Organisation(BaseModel):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     is_active: bool
+    is_govt_organisation: bool
 
 class OrganisationCreate(BaseModel):
     organisation_id: Optional[str] = None   
@@ -47,7 +48,7 @@ class OrganisationCreate(BaseModel):
     updated_at: Optional[datetime] = None
     is_active: bool
     description: str
-
+    is_govt_organisation: bool
 
 class OrganisationUpdate(BaseModel):
     organisation_id: Optional[str] = None
@@ -71,7 +72,8 @@ class OrganisationUpdate(BaseModel):
     updated_at: Optional[datetime] = None
     is_active: bool 
     description: str
-
+    is_govt_organisation: bool
+    
 class OrganisationListResponse(BaseModel):
     organisations: List[Organisation]
     total: int

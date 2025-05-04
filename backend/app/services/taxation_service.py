@@ -1,5 +1,6 @@
 from models.taxation import SalaryComponents, IncomeFromOtherSources, CapitalGains, DeductionComponents, Taxation, Perquisites
 from database.taxation_database import get_taxation_by_emp_id, save_taxation
+from services.organisation_service import is_govt_organisation
 import datetime
 import uuid
 
@@ -28,11 +29,21 @@ def compute_regular_tax(income: float, regime: str = 'old') -> float:
             tax += taxable * rate
     return tax
 
-def compute_capital_gains_tax(cap_gains: CapitalGains) -> float:
-    stcg_tax = cap_gains.stcg_111a * 0.15
-    ltcg_taxable = max(0, cap_gains.ltcg_112a - 100000)
-    ltcg_tax = ltcg_taxable * 0.10
-    return stcg_tax + ltcg_tax
+def compute_capital_gains_tax(cap_gains: CapitalGains, regime: str = 'old') -> float:
+    # Short-term capital gains on equity (Section 111A) - 15% flat rate
+    stcg_111a_tax = cap_gains.stcg_111a * 0.15
+    
+    # Long-term capital gains on equity (Section 112A) - 10% flat rate above Rs. 1 lakh
+    ltcg_112a_exemption = min(100000, cap_gains.ltcg_112a)
+    ltcg_112a_taxable = max(0, cap_gains.ltcg_112a - ltcg_112a_exemption)
+    ltcg_112a_tax = ltcg_112a_taxable * 0.10
+    
+    # Other LTCG taxed at 20%
+    ltcg_other_tax = (cap_gains.ltcg_any_other_asset + cap_gains.ltcg_debt_mutual_fund) * 0.20
+    
+    # Other STCG taxed at slab rates - this will be calculated separately with compute_regular_tax
+    
+    return stcg_111a_tax + ltcg_112a_tax + ltcg_other_tax
 
 def apply_87a_rebate(tax: float, income: float, regime: str) -> float:
     if regime == 'old' and income <= 500000:
@@ -84,31 +95,81 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
         cap_gains = taxation.capital_gains
         deductions = taxation.deductions
         regime = taxation.regime
+        age = taxation.emp_age
+        is_govt_employee = getattr(taxation, 'is_govt_employee', False)
         
-        # Calculate the tax
-        salary_income = salary.total()
-        other_income = other_sources.total()
-        capital_gains_income = cap_gains.total()
-        gross_total_income = salary_income + other_income + capital_gains_income
-        deduction_total = 0 if regime == 'new' else deductions.total()
-        net_income = max(0, gross_total_income - deduction_total)
-
-        regular_income = max(0, net_income - cap_gains.total() - other_sources.dividend_income)
-
+        # Calculate the total taxable income
+        salary_income = salary.total(regime)
+        gross_income = salary_income
+        
+        # Calculate other income sources
+        other_income = other_sources.total_taxable_income_per_slab(regime, age)
+        gross_income += other_income
+        
+        # Calculate short-term capital gains taxed at special rates
+        stcg_special_rate = cap_gains.total_stcg_special_rate()
+        
+        # Calculate short-term capital gains taxed at slab rates
+        stcg_slab_rate = cap_gains.total_stcg_slab_rate()
+        gross_income += stcg_slab_rate
+        
+        # Calculate long-term capital gains taxed at special rates
+        ltcg_special_rate = cap_gains.total_ltcg_special_rate()
+        
+        # Calculate the total deductions
+        total_deductions = 0
+        if regime == 'old':
+            # For old regime, calculate all deductions
+            ev_purchase_date = None
+            if hasattr(deductions, 'ev_purchase_date') and deductions.ev_purchase_date:
+                try:
+                    ev_purchase_date = datetime.datetime.strptime(deductions.ev_purchase_date, '%Y-%m-%d').date()
+                except:
+                    ev_purchase_date = None
+            
+            total_deductions = deductions.total_deduction(
+                regime=regime,
+                is_govt_employee=is_govt_employee,
+                gross_income=gross_income,
+                age=age,
+                date_of_purchase=ev_purchase_date or datetime.datetime.now().date()
+            )
+        
+        net_income = max(0, gross_income - total_deductions)
+        
+        # Calculate tax on regular income (excluding capital gains and dividend)
+        regular_income = net_income - stcg_slab_rate
         tax_on_regular = compute_regular_tax(regular_income, regime)
-        tax_on_cg = compute_capital_gains_tax(cap_gains)
-        tax_on_dividends = compute_regular_tax(other_sources.dividend_income, regime)
-
-        base_tax = tax_on_regular + tax_on_cg + tax_on_dividends
+        
+        # Calculate tax on STCG at special rates (15% for section 111A)
+        tax_on_stcg_special = stcg_special_rate * 0.15
+        
+        # Calculate tax on STCG at slab rates
+        tax_on_stcg_slab = compute_regular_tax(stcg_slab_rate, regime)
+        
+        # Calculate tax on LTCG at special rates
+        tax_on_ltcg_112a = 0
+        if ltcg_special_rate > 100000:  # Exemption of first 1 lakh for LTCG under section 112A
+            tax_on_ltcg_112a = (ltcg_special_rate - 100000) * 0.10
+        
+        # Total base tax
+        base_tax = tax_on_regular + tax_on_stcg_special + tax_on_stcg_slab + tax_on_ltcg_112a
+        
+        # Apply rebate under section 87A
         tax_after_rebate = apply_87a_rebate(base_tax, net_income, regime)
-
-        surcharge = compute_surcharge(tax_after_rebate, net_income, tax_on_cg, tax_on_dividends)
+        
+        # Calculate surcharge
+        surcharge = compute_surcharge(tax_after_rebate, net_income, 
+                                    tax_on_stcg_special + tax_on_ltcg_112a, 
+                                    0)  # Assuming no dividend tax for simplicity
+        
+        # Apply marginal relief if applicable
         total_tax = tax_after_rebate + surcharge
-
         if net_income > 5000000:
             total_tax = apply_marginal_relief(total_tax, net_income, 5000000)
         
-        cess = total_tax * 0.04  # 4% Health and Education Cess
+        # Add Health and Education Cess (4%)
+        cess = total_tax * 0.04
         final_tax = total_tax + cess
         
         # Prepare tax breakup
@@ -117,7 +178,16 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
             "tax_after_rebate": round(tax_after_rebate),
             "surcharge": round(surcharge),
             "cess": round(cess),
-            "total_tax": round(final_tax)
+            "total_tax": round(final_tax),
+            "details": {
+                "regular_income": round(regular_income),
+                "stcg_flat_rate": round(tax_on_stcg_special),
+                "stcg_slab_rate": round(tax_on_stcg_slab),
+                "ltcg_112a": round(tax_on_ltcg_112a),
+                "gross_income": round(gross_income),
+                "total_deductions": round(total_deductions),
+                "net_income": round(net_income)
+            }
         }
         
         # Update tax breakup in taxation object
@@ -200,7 +270,8 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
             tax_paid=0,
             tax_due=0,
             tax_refundable=0,
-            tax_pending=0
+            tax_pending=0,
+            is_govt_employee=is_govt_organisation(hostname)
         )
     
     # Save the taxation record first to ensure it exists

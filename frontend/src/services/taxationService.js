@@ -95,6 +95,81 @@ export const saveTaxationData = async (taxationData) => {
         gift_vouchers: 0
       };
     }
+
+    // Initialize other_sources if missing
+    if (!taxationData.other_sources) {
+      taxationData.other_sources = {
+        interest_savings: 0,
+        interest_fd: 0,
+        interest_rd: 0,
+        dividend_income: 0,
+        gifts: 0,
+        other_interest: 0,
+        other_income: 0
+      };
+    }
+
+    // Initialize capital_gains if missing
+    if (!taxationData.capital_gains) {
+      taxationData.capital_gains = {
+        stcg_111a: 0,
+        stcg_any_other_asset: 0,
+        stcg_debt_mutual_fund: 0,
+        ltcg_112a: 0,
+        ltcg_any_other_asset: 0,
+        ltcg_debt_mutual_fund: 0
+      };
+    }
+
+    // Initialize deductions if missing
+    if (!taxationData.deductions) {
+      taxationData.deductions = {
+        section_80c_lic: 0,
+        section_80c_epf: 0,
+        section_80c_ssp: 0,
+        section_80c_nsc: 0,
+        section_80c_ulip: 0,
+        section_80c_tsmf: 0,
+        section_80c_tffte2c: 0,
+        section_80c_paphl: 0,
+        section_80c_sdpphp: 0,
+        section_80c_tsfdsb: 0,
+        section_80c_scss: 0,
+        section_80c_others: 0,
+        section_80ccc_ppic: 0,
+        section_80ccd_1_nps: 0,
+        section_80ccd_1b_additional: 0,
+        section_80ccd_2_enps: 0,
+        section_80d_hisf: 0,
+        section_80d_phcs: 0,
+        section_80d_hi_parent: 0,
+        section_80dd: 0,
+        relation_80dd: '',
+        disability_percentage: '',
+        section_80ddb: 0,
+        relation_80ddb: '',
+        age_80ddb: 0,
+        section_80eeb: 0,
+        ev_purchase_date: null,
+        section_80g: 0,
+        section_80g_100_wo_ql: 0,
+        section_80g_100_head: '',
+        section_80g_50_wo_ql: 0,
+        section_80g_50_head: '',
+        section_80g_100_ql: 0,
+        section_80g_100_ql_head: '',
+        section_80g_50_ql: 0,
+        section_80g_50_ql_head: '',
+        section_80ggc: 0,
+        section_80u: 0,
+        disability_percentage_80u: ''
+      };
+    }
+    
+    // Initialize government employment status if missing
+    if (taxationData.is_govt_employee === undefined) {
+      taxationData.is_govt_employee = false;
+    }
     
     // Initialize payment fields if not present
     if (taxationData.tax_payable === undefined) taxationData.tax_payable = 0;

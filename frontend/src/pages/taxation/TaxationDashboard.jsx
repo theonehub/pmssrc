@@ -464,35 +464,52 @@ const TaxationDashboard = () => {
                   </TableHead>
                   <TableBody>
                     <TableRow>
-                      <TableCell>Interest Income</TableCell>
-                      <TableCell align="right">
-                        {formatCurrency(
-                          (userData.other_sources?.interest_savings || 0) +
-                          (userData.other_sources?.interest_fd || 0) +
-                          (userData.other_sources?.interest_rd || 0)
-                        )}
-                      </TableCell>
+                      <TableCell>Interest from Savings</TableCell>
+                      <TableCell align="right">{formatCurrency(userData.other_sources?.interest_savings || 0)}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>Interest from Fixed Deposits</TableCell>
+                      <TableCell align="right">{formatCurrency(userData.other_sources?.interest_fd || 0)}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>Interest from Recurring Deposits</TableCell>
+                      <TableCell align="right">{formatCurrency(userData.other_sources?.interest_rd || 0)}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Dividend Income</TableCell>
-                      <TableCell align="right">{formatCurrency(userData.other_sources?.dividend_income)}</TableCell>
+                      <TableCell align="right">{formatCurrency(userData.other_sources?.dividend_income || 0)}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Rental Income</TableCell>
-                      <TableCell align="right">{formatCurrency(userData.other_sources?.rental_income)}</TableCell>
+                      <TableCell>Gift Income</TableCell>
+                      <TableCell align="right">{formatCurrency(userData.other_sources?.gifts || 0)}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Capital Gains</TableCell>
+                      <TableCell>Other Interest</TableCell>
+                      <TableCell align="right">{formatCurrency(userData.other_sources?.other_interest || 0)}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>Other Income</TableCell>
+                      <TableCell align="right">{formatCurrency(userData.other_sources?.other_income || 0)}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>Capital Gains (Short Term)</TableCell>
                       <TableCell align="right">
                         {formatCurrency(
                           (userData.capital_gains?.stcg_111a || 0) +
-                          (userData.capital_gains?.ltcg_112a || 0)
+                          (userData.capital_gains?.stcg_any_other_asset || 0) +
+                          (userData.capital_gains?.stcg_debt_mutual_fund || 0)
                         )}
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Other Miscellaneous</TableCell>
-                      <TableCell align="right">{formatCurrency(userData.other_sources?.other_misc)}</TableCell>
+                      <TableCell>Capital Gains (Long Term)</TableCell>
+                      <TableCell align="right">
+                        {formatCurrency(
+                          (userData.capital_gains?.ltcg_112a || 0) +
+                          (userData.capital_gains?.ltcg_any_other_asset || 0) +
+                          (userData.capital_gains?.ltcg_debt_mutual_fund || 0)
+                        )}
+                      </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -511,28 +528,73 @@ const TaxationDashboard = () => {
                       </TableHead>
                       <TableBody>
                         <TableRow>
-                          <TableCell>Section 80C</TableCell>
-                          <TableCell align="right">{formatCurrency(userData.deductions?.section_80c)}</TableCell>
+                          <TableCell>Section 80C (Life Insurance)</TableCell>
+                          <TableCell align="right">{formatCurrency(userData.deductions?.section_80c_lic || 0)}</TableCell>
                         </TableRow>
                         <TableRow>
-                          <TableCell>Section 80D</TableCell>
-                          <TableCell align="right">{formatCurrency(userData.deductions?.section_80d)}</TableCell>
+                          <TableCell>Section 80C (EPF)</TableCell>
+                          <TableCell align="right">{formatCurrency(userData.deductions?.section_80c_epf || 0)}</TableCell>
                         </TableRow>
                         <TableRow>
-                          <TableCell>Section 24B</TableCell>
-                          <TableCell align="right">{formatCurrency(userData.deductions?.section_24b)}</TableCell>
+                          <TableCell>Section 80C (Other Investments)</TableCell>
+                          <TableCell align="right">{formatCurrency(
+                            (userData.deductions?.section_80c_ssp || 0) +
+                            (userData.deductions?.section_80c_nsc || 0) +
+                            (userData.deductions?.section_80c_ulip || 0) +
+                            (userData.deductions?.section_80c_tsmf || 0) +
+                            (userData.deductions?.section_80c_tffte2c || 0) +
+                            (userData.deductions?.section_80c_paphl || 0) +
+                            (userData.deductions?.section_80c_sdpphp || 0) +
+                            (userData.deductions?.section_80c_tsfdsb || 0) +
+                            (userData.deductions?.section_80c_scss || 0) +
+                            (userData.deductions?.section_80c_others || 0)
+                          )}</TableCell>
                         </TableRow>
                         <TableRow>
-                          <TableCell>Section 80E</TableCell>
-                          <TableCell align="right">{formatCurrency(userData.deductions?.section_80e)}</TableCell>
+                          <TableCell>Section 80CCC/CCD (Pension)</TableCell>
+                          <TableCell align="right">{formatCurrency(
+                            (userData.deductions?.section_80ccc_ppic || 0) +
+                            (userData.deductions?.section_80ccd_1_nps || 0) +
+                            (userData.deductions?.section_80ccd_1b_additional || 0) +
+                            (userData.deductions?.section_80ccd_2_enps || 0)
+                          )}</TableCell>
                         </TableRow>
                         <TableRow>
-                          <TableCell>Section 80G</TableCell>
-                          <TableCell align="right">{formatCurrency(userData.deductions?.section_80g)}</TableCell>
+                          <TableCell>Section 80D (Health Insurance)</TableCell>
+                          <TableCell align="right">{formatCurrency(
+                            (userData.deductions?.section_80d_hisf || 0) +
+                            (userData.deductions?.section_80d_phcs || 0) +
+                            (userData.deductions?.section_80d_hi_parent || 0)
+                          )}</TableCell>
                         </TableRow>
                         <TableRow>
-                          <TableCell>Section 80TTA</TableCell>
-                          <TableCell align="right">{formatCurrency(userData.deductions?.section_80tta)}</TableCell>
+                          <TableCell>Section 80DD/DDB (Disability/Disease)</TableCell>
+                          <TableCell align="right">{formatCurrency(
+                            (userData.deductions?.section_80dd || 0) +
+                            (userData.deductions?.section_80ddb || 0)
+                          )}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Section 80EEB (EV Loan)</TableCell>
+                          <TableCell align="right">{formatCurrency(userData.deductions?.section_80eeb || 0)}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Section 80G (Donations)</TableCell>
+                          <TableCell align="right">{formatCurrency(
+                            (userData.deductions?.section_80g || 0) +
+                            (userData.deductions?.section_80g_100_wo_ql || 0) +
+                            (userData.deductions?.section_80g_50_wo_ql || 0) +
+                            (userData.deductions?.section_80g_100_ql || 0) +
+                            (userData.deductions?.section_80g_50_ql || 0)
+                          )}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Section 80GGC (Political Contributions)</TableCell>
+                          <TableCell align="right">{formatCurrency(userData.deductions?.section_80ggc || 0)}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Section 80U (Self Disability)</TableCell>
+                          <TableCell align="right">{formatCurrency(userData.deductions?.section_80u || 0)}</TableCell>
                         </TableRow>
                       </TableBody>
                     </Table>
@@ -555,6 +617,34 @@ const TaxationDashboard = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
+                    {userData.tax_breakup?.details && (
+                      <>
+                        <TableRow>
+                          <TableCell>Regular Income Tax</TableCell>
+                          <TableCell align="right">{formatCurrency(userData.tax_breakup?.details?.regular_income)}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>STCG - Equity (15%)</TableCell>
+                          <TableCell align="right">{formatCurrency(userData.tax_breakup?.details?.stcg_flat_rate)}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>STCG - Other (Slab Rate)</TableCell>
+                          <TableCell align="right">{formatCurrency(userData.tax_breakup?.details?.stcg_slab_rate)}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>LTCG - Equity (10%)</TableCell>
+                          <TableCell align="right">{formatCurrency(userData.tax_breakup?.details?.ltcg_112a)}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>LTCG - Other (20%)</TableCell>
+                          <TableCell align="right">{formatCurrency(userData.tax_breakup?.details?.ltcg_other)}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>Dividend Income</TableCell>
+                          <TableCell align="right">{formatCurrency(userData.tax_breakup?.details?.dividend_income)}</TableCell>
+                        </TableRow>
+                      </>
+                    )}
                     <TableRow>
                       <TableCell>Base Tax</TableCell>
                       <TableCell align="right">{formatCurrency(userData.tax_breakup?.base_tax)}</TableCell>

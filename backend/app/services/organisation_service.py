@@ -109,3 +109,10 @@ def user_creation_allowed(hostname: str):
     if organisation is None:
         raise HTTPException(status_code=404, detail="user_creation_allowed Organisation not found")
     return organisation.used_employee_strength < organisation.employee_strength
+
+def is_govt_organisation(hostname: str):
+    organisation = get_organisation_by_hostname(hostname)
+    if organisation is None:
+        raise HTTPException(status_code=404, detail="is_govt_organisation Organisation not found")
+    return organisation.is_govt_organisation
+

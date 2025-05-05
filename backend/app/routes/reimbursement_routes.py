@@ -10,7 +10,22 @@ from models.reimbursements import ReimbursementRequestCreate, ReimbursementReque
 router = APIRouter(prefix="/reimbursements", tags=["Reimbursements"])
 
 @router.post("/")
-def submit_reimbursement_request(
+async def submit_reimbursement_request(
+    data: ReimbursementRequestCreate = Body(...),
+    emp_id: str = Depends(extract_emp_id),
+    hostname: str = Depends(extract_hostname)
+):
+    try:
+        data.emp_id = emp_id
+        await service.submit_request(emp_id, data, hostname, None)
+        return {
+            "message": "Request submitted successfully"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/with-file")
+async def submit_reimbursement_request_with_file(
     reimbursement_type_id: str = Form(...),
     amount: float = Form(...),
     note: str = Form(""),
@@ -25,9 +40,9 @@ def submit_reimbursement_request(
             note=note,
             emp_id=emp_id
         )
-        service.submit_request(emp_id, data, hostname, file)
+        await service.submit_request(emp_id, data, hostname, file)
         return {
-            "message": "Request submitted successfully"
+            "message": "Request with file submitted successfully"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -45,7 +60,23 @@ def get_my_requests(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/{request_id}")
-def update_reimbursement_request(
+async def update_reimbursement_request(
+    request_id: str,
+    data: ReimbursementRequestCreate = Body(...),
+    emp_id: str = Depends(extract_emp_id),
+    hostname: str = Depends(extract_hostname)
+):
+    try:
+        data.emp_id = emp_id
+        await service.update_request(request_id, data, hostname, None)
+        return {
+            "message": "Request updated successfully"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/{request_id}/with-file")
+async def update_reimbursement_request_with_file(
     request_id: str,
     reimbursement_type_id: str = Form(...),
     amount: float = Form(...),
@@ -61,9 +92,9 @@ def update_reimbursement_request(
             note=note,
             emp_id=emp_id
         )
-        service.update_request(request_id, data, hostname, file)
+        await service.update_request(request_id, data, hostname, file)
         return {
-            "message": "Request updated successfully"
+            "message": "Request with file updated successfully"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from '../../utils/axios';
+import api from '../../utils/apiUtils';
 import {
   Button,
   Dialog,
@@ -54,13 +54,14 @@ function MyReimbursements () {
     setLoading(true);
     try {
       const [reqRes, typesRes] = await Promise.all([
-        axios.get('/reimbursements/my-requests'),
-        axios.get('/reimbursement-types/')
+        api.get('/reimbursements/my-requests'),
+        api.get('/reimbursement-types/')
       ]);
       setRequests(reqRes.data);
       setTypes(typesRes.data);
     } catch (err) {
-      setError('Failed to load data.');
+      console.error('Error fetching requests:', err);
+      setError(err.response?.data?.detail || 'Failed to fetch requests.');
     } finally {
       setLoading(false);
     }
@@ -68,20 +69,28 @@ function MyReimbursements () {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const data = new FormData();
-    data.append('reimbursement_type_id', formData.reimbursement_type_id);
-    data.append('amount', formData.amount);
-    data.append('note', formData.note);
-    if (formData.file) {
-      data.append('file', formData.file, formData.file.name);
-    }
-
+    
     try {
-      await axios.post('/reimbursements', data, {
-        headers: { 
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      if (formData.file) {
+        // Use upload utility for file uploads
+        await api.upload(
+          '/reimbursements/with-file',
+          formData.file,
+          {
+            reimbursement_type_id: formData.reimbursement_type_id,
+            amount: formData.amount,
+            note: formData.note
+          }
+        );
+      } else {
+        // Use JSON approach for regular submissions
+        await api.post('/reimbursements', {
+          reimbursement_type_id: formData.reimbursement_type_id,
+          amount: parseFloat(formData.amount),
+          note: formData.note
+        });
+      }
+      
       setShowModal(false);
       setFormData({
         reimbursement_type_id: '',
@@ -152,7 +161,7 @@ function MyReimbursements () {
   const handleDelete = async (requestId) => {
     if (window.confirm('Are you sure you want to delete this reimbursement request?')) {
       try {
-        await axios.delete(`/reimbursements/${requestId}`);
+        await api.delete(`/reimbursements/${requestId}`);
         fetchData();
       } catch (err) {
         console.error('Error deleting request:', err);
@@ -163,20 +172,29 @@ function MyReimbursements () {
 
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-    const data = new FormData();
-    data.append('reimbursement_type_id', formData.reimbursement_type_id);
-    data.append('amount', formData.amount);
-    data.append('note', formData.note);
-    if (formData.file) {
-      data.append('file', formData.file, formData.file.name);
-    }
-
+    
     try {
-      await axios.put(`/reimbursements/${editingRequest.id}`, data, {
-        headers: { 
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      if (formData.file) {
+        // Use upload utility for file uploads
+        await api.upload(
+          `/reimbursements/${editingRequest.id}/with-file`,
+          formData.file,
+          {
+            reimbursement_type_id: formData.reimbursement_type_id,
+            amount: formData.amount,
+            note: formData.note
+          },
+          'put' // Use PUT method
+        );
+      } else {
+        // Use JSON approach for regular submissions
+        await api.put(`/reimbursements/${editingRequest.id}`, {
+          reimbursement_type_id: formData.reimbursement_type_id,
+          amount: parseFloat(formData.amount),
+          note: formData.note
+        });
+      }
+      
       setShowEditModal(false);
       setEditingRequest(null);
       setFormData({

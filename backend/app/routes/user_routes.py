@@ -2,13 +2,13 @@ from datetime import datetime
 import logging
 import uuid
 import os
-from fastapi import APIRouter, HTTPException, Depends, status, Query, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Depends, status, Query, UploadFile, File, Form, Body
 from openpyxl import load_workbook, Workbook
 from fastapi.security import OAuth2PasswordBearer
 from auth.jwt_handler import decode_access_token
 from models.activity_tracker import ActivityTracker
-from models.user_model import UserInfo
-from auth.auth import extract_emp_id, extract_hostname, get_current_user
+from models.user_model import UserInfo, UserCreate, Token, User
+from auth.auth import extract_emp_id, extract_hostname, get_current_user, extract_role
 from auth.dependencies import role_checker
 from auth.password_handler import hash_password
 from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
@@ -18,6 +18,8 @@ from services.organisation_service import increment_used_employee_strength, user
 from io import BytesIO
 from services.activity_tracker_service import track_activity
 import json
+from utils.file_handler import validate_file, save_file
+from utils.json_encoder import mongodb_jsonable_encoder
 
 # Create upload directory if it doesn't exist
 UPLOAD_DIR = "uploads"
@@ -28,11 +30,24 @@ if not os.path.exists(UPLOAD_DIR):
     os.makedirs(os.path.join(UPLOAD_DIR, "photos"))
 
 def serialize_user(user):
-    user = user.copy()
-    for key in user:
-        if isinstance(user[key], ObjectId):
-            user[key] = str(user[key])
-    return user
+    # Handle MongoDB ObjectId serialization
+    user_copy = user.copy()
+    if '_id' in user_copy:
+        user_copy['_id'] = str(user_copy['_id'])
+    
+    # Convert any other ObjectId fields to strings
+    for key, value in user_copy.items():
+        if isinstance(value, ObjectId):
+            user_copy[key] = str(value)
+    
+    # Handle date serialization
+    if user_copy.get("created_at"):
+        user_copy["created_at"] = user_copy["created_at"].isoformat() if hasattr(user_copy["created_at"], "isoformat") else user_copy["created_at"]
+    
+    if user_copy.get("updated_at"):
+        user_copy["updated_at"] = user_copy["updated_at"].isoformat() if hasattr(user_copy["updated_at"], "isoformat") else user_copy["updated_at"]
+    
+    return user_copy
 
 def save_uploaded_file(file: UploadFile, directory: str) -> str:
     if not file:
@@ -61,8 +76,32 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
-@router.post("/users/create", status_code=status.HTTP_201_CREATED)
-def create_user(
+@router.post("/users", status_code=status.HTTP_201_CREATED)
+async def create_user(
+    data: UserInfo = Body(...),
+    current_emp_id: str = Depends(extract_emp_id),
+    hostname: str = Depends(extract_hostname)
+):
+    """
+    Create a new user without file uploads (JSON only)
+    """
+    try:
+        if not user_creation_allowed(hostname):
+            raise HTTPException(status_code=403, detail="User limit reached!!! Contact your administrator")
+        
+        logger.info("Creating user: %s", data.name)
+        us.validate_user_data(data)
+        
+        result = us.create_user(data, hostname)
+        logger.info(result)
+        increment_used_employee_strength(hostname)
+        return result
+    except Exception as e:
+        logger.error(f"Error creating user: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.post("/users/with-files", status_code=status.HTTP_201_CREATED)
+async def create_user_with_files(
     user_data: str = Form(...),
     pan_file: UploadFile = File(None),
     aadhar_file: UploadFile = File(None),
@@ -71,59 +110,77 @@ def create_user(
     hostname: str = Depends(extract_hostname)
 ):
     """
-    Endpoint to create a new user with document uploads.
+    Create a new user with document uploads
     """
     try:
         if not user_creation_allowed(hostname):
             raise HTTPException(status_code=403, detail="User limit reached!!! Contact your administrator")
-        # Parse the JSON string into UserInfo model
-        user_data_dict = json.loads(user_data)
-        user_info = UserInfo(**user_data_dict)
         
-        logger.info("Creating user: %s", user_info.name)
+        # Parse the JSON string into UserInfo model
+        try:
+            user_data_dict = json.loads(user_data)
+            user_info = UserInfo(**user_data_dict)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid JSON data")
+        
+        logger.info("Creating user with files: %s", user_info.name)
         us.validate_user_data(user_info)
 
-        # Handle file uploads
-        if pan_file:
-                user_info.pan_file_path = save_uploaded_file(pan_file, os.path.join(UPLOAD_DIR, "pan"))
-        if aadhar_file:
-                user_info.aadhar_file_path = save_uploaded_file(aadhar_file, os.path.join(UPLOAD_DIR, "aadhar"))
+        # Validate and save files
         if photo:
-                user_info.photo_path = save_uploaded_file(photo, os.path.join(UPLOAD_DIR, "photos"))
+            is_valid, error = validate_file(photo, allowed_types=["image/jpeg", "image/png"], max_size=2*1024*1024)
+            if not is_valid:
+                raise HTTPException(status_code=400, detail=f"Invalid photo: {error}")
+            user_info.photo_path = await save_file(photo, "photos")
+            
+        if pan_file:
+            is_valid, error = validate_file(pan_file, allowed_types=["image/jpeg", "image/png", "application/pdf"], max_size=5*1024*1024)
+            if not is_valid:
+                raise HTTPException(status_code=400, detail=f"Invalid PAN file: {error}")
+            user_info.pan_file_path = await save_file(pan_file, "pan")
+            
+        if aadhar_file:
+            is_valid, error = validate_file(aadhar_file, allowed_types=["image/jpeg", "image/png", "application/pdf"], max_size=5*1024*1024)
+            if not is_valid:
+                raise HTTPException(status_code=400, detail=f"Invalid Aadhar file: {error}")
+            user_info.aadhar_file_path = await save_file(aadhar_file, "aadhar")
 
-        # activity = ActivityTracker(
-        #     activity_id=str(uuid.uuid4()),
-        #     emp_id=current_emp_id,
-        #     activity="createUser",
-        #     date=datetime.now(),
-        #     metadata=user_info.model_dump()
-        # )
-        # track_activity(activity, hostname)
         result = us.create_user(user_info, hostname)
         logger.info(result)
         increment_used_employee_strength(hostname)
         return result
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=400, detail="Invalid JSON data")
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error(f"Error creating user with files: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
 
-
-@router.post("/users/import", status_code=status.HTTP_201_CREATED)
-def import_users_from_excel(file: UploadFile = File(...), 
-                                  hostname: str = Depends(extract_hostname),
-                                  current_emp_id: str = Depends(extract_emp_id)
-                                  ):
+@router.post("/users/import/with-file", status_code=status.HTTP_201_CREATED)
+async def import_users_with_file(
+    file: UploadFile = File(...), 
+    hostname: str = Depends(extract_hostname),
+    current_emp_id: str = Depends(extract_emp_id)
+):
     """
     Imports users from an Excel (.xlsx) file.
     """
     logger.info("Received file for user import: %s", file.filename)
 
+    # Validate file type
     if not file.filename.endswith('.xlsx'):
         logger.warning("Invalid file type uploaded: %s", file.filename)
         raise HTTPException(status_code=400, detail="Only .xlsx files are supported")
 
-    contents = file.read()
+    # Validate file size and type
+    is_valid, error = validate_file(
+        file, 
+        allowed_types=["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+        max_size=10*1024*1024
+    )
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error)
+
+    contents = await file.read()
 
     try:
         logger.info("Attempting to load Excel workbook")
@@ -178,7 +235,7 @@ def import_users_from_excel(file: UploadFile = File(...),
                 emp_id=current_emp_id,
                 activity="importUsersFailed",
                 date=datetime.now(),
-                metadata=user.model_dump()
+                metadata={}
             )
             track_activity(activity)
 
@@ -189,7 +246,6 @@ def import_users_from_excel(file: UploadFile = File(...),
         "errors": errors
     }
 
-
 @router.get("/users/me")
 def read_users_me(hostname: str = Depends(extract_hostname),
                         current_emp_id: str = Depends(extract_emp_id)):
@@ -198,13 +254,13 @@ def read_users_me(hostname: str = Depends(extract_hostname),
     """
     logger.info("read_users_me successful for username: %s", current_emp_id)
     user = us.get_user_by_emp_id(current_emp_id, hostname)
-    return user
+    return mongodb_jsonable_encoder(user)
 
 @router.get("/users")
 def list_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(10, ge=1),
-    role: str = Depends(role_checker("admin", "superadmin", "manager")),
+    role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
     hostname: str = Depends(extract_hostname),
     current_emp_id: str = Depends(extract_emp_id)
 ):
@@ -219,26 +275,31 @@ def list_users(
     else:
         logger.info("Listing all users")
         users = us.get_all_users(hostname)
-    paginated_users = [serialize_user(u) for u in users[skip:skip + limit]]
+    
+    # Use our custom encoder to safely handle MongoDB ObjectId
+    encoded_users = mongodb_jsonable_encoder(users[skip:skip + limit])
 
-    logger.info("Returning %d users out of %d", len(paginated_users), len(users))
+    logger.info("Returning %d users out of %d", len(encoded_users), len(users))
     return {
         "total": len(users),
-        "users": paginated_users
+        "users": encoded_users
     }
     
 @router.get("/users/stats")
 def get_user_stats(hostname: str = Depends(extract_hostname)):
-    return us.get_users_stats(hostname)
+    stats = us.get_users_stats(hostname)
+    return mongodb_jsonable_encoder(stats)
 
 @router.get("/users/my/directs")
 def get_my_directs(hostname: str = Depends(extract_hostname),
                         current_emp_id: str = Depends(extract_emp_id)):
-    return us.get_user_by_manager_id(current_emp_id, hostname)
+    users = us.get_user_by_manager_id(current_emp_id, hostname)
+    return mongodb_jsonable_encoder(users)
 
 @router.get("/users/manager/directs")
 def get_user_by_manager_id(manager_id: str, hostname: str = Depends(extract_hostname)):
-    return us.get_user_by_manager_id(manager_id, hostname)
+    users = us.get_user_by_manager_id(manager_id, hostname)
+    return mongodb_jsonable_encoder(users)
 
 @router.get("/users/template")
 def download_template():

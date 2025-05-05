@@ -27,7 +27,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
-import axios from '../../utils/axios';
+import api from '../../utils/apiUtils';
 //import { getCurrentUser } from '../../utils/auth';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -96,7 +96,7 @@ const LeaveManagement = () => {
 
   const fetchLeaveBalance = async () => {
     try {
-      const response = await axios.get(`http://localhost:8000/leaves/leave-balance`);
+      const response = await api.get('/leaves/leave-balance');
       setLeaveBalance(response.data);
     } catch (error) {
       setAlert({
@@ -109,7 +109,7 @@ const LeaveManagement = () => {
 
   const fetchLeaves = async () => {
     try {
-      const response = await axios.get(`http://localhost:8000/leaves/my-leaves`);
+      const response = await api.get('/leaves/my-leaves');
       setLeaves(response.data);
     } catch (error) {
       setAlert({
@@ -153,14 +153,14 @@ const LeaveManagement = () => {
       };
 
       if (editingLeave) {
-        await axios.put(`http://localhost:8000/leaves/${editingLeave._id}`, leaveData);
+        await api.put(`/leaves/${editingLeave._id}`, leaveData);
         setAlert({
           open: true,
           message: 'Leave request updated successfully',
           severity: 'success'
         });
       } else {
-        await axios.post(`http://localhost:8000/leaves/apply`, leaveData);
+        await api.post('/leaves/apply', leaveData);
         setAlert({
           open: true,
           message: 'Leave application submitted successfully',
@@ -197,18 +197,19 @@ const LeaveManagement = () => {
 
   const confirmDelete = async () => {
     try {
-      await axios.delete(`http://localhost:8000/leaves/${leaveToDelete.leave_id}`);
+      await api.delete(`/leaves/${leaveToDelete.leave_id}`);
       setAlert({
         open: true,
-        message: 'Leave request deleted successfully',
+        message: 'Leave application deleted successfully',
         severity: 'success'
       });
+      fetchLeaveBalance();
       fetchLeaves();
       setShowDeleteConfirm(false);
     } catch (error) {
       setAlert({
         open: true,
-        message: error.response?.data?.detail || 'Failed to delete leave request',
+        message: 'Failed to delete leave application',
         severity: 'error'
       });
     }

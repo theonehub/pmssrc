@@ -397,6 +397,19 @@ class Perquisites:
                        self.club_expenses_amount_paid_by_employee - 
                        self.club_expenses_amount_paid_for_offical_purpose)
 
+    def total_lunch_value(self, regime: str = 'new') -> float:
+        """Taxable value of lunch/refreshment perquisite."""
+        if regime == 'new':
+            return 0
+        else:
+            # Apply the exemption of Rs. 50 per meal
+            exemption_per_meal = 50
+            # Assume daily lunch for 22 working days per month
+            annual_exemption = exemption_per_meal * 22 * 12
+            return max(0, self.lunch_amount_paid_by_employer - 
+                       self.lunch_amount_paid_by_employee - 
+                       annual_exemption)
+
     def total(self, regime: str = 'new') -> float:
         """
         Calculate total taxable value of all perquisites for the given regime.
@@ -733,7 +746,7 @@ class Taxation:
     tax_due: float
     tax_refundable: float
     tax_pending: float
-    is_govt_employee: bool
+    is_govt_employee: bool = False
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Taxation':
@@ -880,7 +893,8 @@ class Taxation:
             tax_paid=data.get('tax_paid', 0),
             tax_due=data.get('tax_due', 0),
             tax_refundable=data.get('tax_refundable', 0),
-            tax_pending=data.get('tax_pending', 0)
+            tax_pending=data.get('tax_pending', 0),
+            is_govt_employee=data.get('is_govt_employee', False)
         )
     
     def to_dict(self) -> Dict[str, Any]:
@@ -1010,7 +1024,8 @@ class Taxation:
             'tax_paid': self.tax_paid,
             'tax_due': self.tax_due,
             'tax_refundable': self.tax_refundable,
-            'tax_pending': self.tax_pending
+            'tax_pending': self.tax_pending,
+            'is_govt_employee': self.is_govt_employee
         }
         
     def get_taxable_income(self) -> float:

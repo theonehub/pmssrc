@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Body, Depends
 from models.employee_salary import (
     EmployeeSalaryCreate,
     EmployeeSalaryUpdate,
@@ -9,20 +9,24 @@ from models.employee_salary import (
 from services import employee_salary_service
 from typing import List
 from pydantic import BaseModel
+from auth.auth import extract_emp_id, extract_hostname
 
 router = APIRouter(
     prefix="/employee-salary",
     tags=["Employee Salary"]
 )
 
-# 👇 New request schema for bulk assignment
+# Request schema for bulk assignment
 class EmployeeSalaryBulkAssignRequest(BaseModel):
     components: List[EmployeeSalaryCreate]
 
 @router.post("/", response_model=EmployeeSalaryInDB, status_code=status.HTTP_201_CREATED)
-def create_employee_salary(data: EmployeeSalaryCreate):
+def create_employee_salary(
+    data: EmployeeSalaryCreate = Body(...),
+    hostname: str = Depends(extract_hostname)
+):
     """
-    Create a single salary component entry for an employee.
+    Create a single salary component entry for an employee using JSON.
     """
     try:
         return employee_salary_service.create_employee_salary(data)
@@ -33,7 +37,10 @@ def create_employee_salary(data: EmployeeSalaryCreate):
 
 
 @router.get("/{employee_id}", response_model=List[EmployeeSalaryInDB])
-def get_employee_salary_by_employee_id(employee_id: str):
+def get_employee_salary_by_employee_id(
+    employee_id: str,
+    hostname: str = Depends(extract_hostname)
+):
     """
     Get all salary components assigned to a specific employee.
     """
@@ -44,9 +51,13 @@ def get_employee_salary_by_employee_id(employee_id: str):
 
 
 @router.put("/{salary_id}", response_model=EmployeeSalaryInDB)
-def update_employee_salary(salary_id: str, data: EmployeeSalaryUpdate):
+def update_employee_salary(
+    salary_id: str, 
+    data: EmployeeSalaryUpdate = Body(...),
+    hostname: str = Depends(extract_hostname)
+):
     """
-    Update an employee's salary component details.
+    Update an employee's salary component details using JSON.
     """
     try:
         return employee_salary_service.update_employee_salary(salary_id, data)
@@ -57,7 +68,10 @@ def update_employee_salary(salary_id: str, data: EmployeeSalaryUpdate):
 
 
 @router.delete("/{salary_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_employee_salary(salary_id: str):
+def delete_employee_salary(
+    salary_id: str,
+    hostname: str = Depends(extract_hostname)
+):
     """
     Delete an employee's salary component entry.
     """
@@ -70,7 +84,10 @@ def delete_employee_salary(salary_id: str):
 
 
 @router.get("/status/{employee_id}", response_model=dict)
-def check_salary_assignment_status(employee_id: str):
+def check_salary_assignment_status(
+    employee_id: str,
+    hostname: str = Depends(extract_hostname)
+):
     """
     Check if salary components are already assigned to the employee.
     """
@@ -85,14 +102,15 @@ def check_salary_assignment_status(employee_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# ✅ NEW ENDPOINT: Bulk salary structure assignment
 @router.post("/{employee_id}/salary-structure", status_code=status.HTTP_200_OK)
-def assign_salary_structure(employee_id: str, request: BulkEmployeeSalaryAssignRequest):
+def assign_salary_structure(
+    employee_id: str, 
+    request: BulkEmployeeSalaryAssignRequest = Body(...),
+    hostname: str = Depends(extract_hostname)
+):
     """
-    Bulk assign salary components to an employee (insert or update).
+    Bulk assign salary components to an employee (insert or update) using JSON.
     """
-    print("Received employee_id:", employee_id)
-    print("Received components:", request.components)
     try:
         employee_salary_service.assign_salary_structure(employee_id, request.components)
         return {"message": "Salary structure updated successfully."}
@@ -103,7 +121,10 @@ def assign_salary_structure(employee_id: str, request: BulkEmployeeSalaryAssignR
 
 
 @router.get("/{employee_id}/salary-structure", response_model=List[EmployeeSalaryInDB])
-def get_salary_structure(employee_id: str):
+def get_salary_structure(
+    employee_id: str,
+    hostname: str = Depends(extract_hostname)
+):
     """
     Get full salary structure assigned to an employee.
     """
@@ -114,7 +135,10 @@ def get_salary_structure(employee_id: str):
 
 
 @router.get("/{employee_id}/salary-structure/view", response_model=List[EmployeeSalaryWithComponentName])
-def get_salary_structure_for_view(employee_id: str):
+def get_salary_structure_for_view(
+    employee_id: str,
+    hostname: str = Depends(extract_hostname)
+):
     """
     View-only endpoint for salary structure (with component names).
     """

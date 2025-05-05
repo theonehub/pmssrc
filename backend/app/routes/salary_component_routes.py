@@ -1,6 +1,8 @@
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Body, UploadFile, File, Form
 from auth.auth import extract_emp_id, extract_hostname
 from typing import List
+import io
+import pandas as pd
 from models.salary_component import (
     SalaryComponentCreate,
     SalaryComponentUpdate,
@@ -17,9 +19,11 @@ from services.salary_component_service import (
     create_salary_component_assignments,
     get_salary_component_assignments,
     create_salary_component_declarations,
-    get_salary_component_declarations
+    get_salary_component_declarations,
+    import_salary_component_assignments_from_file
 )
 import logging
+from utils.file_handler import validate_file
 
 router = APIRouter(prefix="/salary-components", tags=["Salary Components"])
 
@@ -28,11 +32,11 @@ logger = logging.getLogger(__name__)
 
 @router.post("/", response_model=SalaryComponentInDB, status_code=status.HTTP_201_CREATED)
 def create_component(
-    component: SalaryComponentCreate,
+    component: SalaryComponentCreate = Body(...),
     hostname: str = Depends(extract_hostname)
 ):
     """
-    Create a new salary component.
+    Create a new salary component using JSON.
     """
     logger.info("API Call: Create salary component", component)
     return create_salary_component(component, hostname)
@@ -59,11 +63,11 @@ def get_component(
 @router.put("/{sc_id}", response_model=SalaryComponentInDB)
 def update_component(
     sc_id: str,
-    component: SalaryComponentUpdate,
+    component: SalaryComponentUpdate = Body(...),
     hostname: str = Depends(extract_hostname)
 ):
     """
-    Update a salary component.
+    Update a salary component using JSON.
     """
     logger.info("API Call: Update salary component with ID: %s", sc_id)
     return update_salary_component(sc_id, component, hostname)
@@ -83,14 +87,51 @@ def delete_component(
 @router.post("/assignments/{emp_id}", status_code=status.HTTP_201_CREATED)
 def create_assignments(
     emp_id: str,
-    components: List[SalaryComponentAssignment],
+    components: List[SalaryComponentAssignment] = Body(...),
     hostname: str = Depends(extract_hostname)
 ):
     """
-    Create salary component assignments for an employee.
+    Create salary component assignments for an employee using JSON.
     """
     logger.info("API Call: Create salary component assignments for employee with ID: %s", emp_id)
     return create_salary_component_assignments(emp_id, components, hostname)
+
+@router.post("/assignments/import/with-file", status_code=status.HTTP_201_CREATED)
+async def import_assignments_with_file(
+    file: UploadFile = File(...),
+    hostname: str = Depends(extract_hostname),
+    current_emp_id: str = Depends(extract_emp_id)
+):
+    """
+    Import salary component assignments from an Excel file.
+    """
+    # Validate file type and size
+    is_valid, error = validate_file(
+        file, 
+        allowed_types=["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+        max_size=5*1024*1024
+    )
+    
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error)
+    
+    try:
+        # Read file content
+        contents = await file.read()
+        
+        # Parse Excel file
+        df = pd.read_excel(io.BytesIO(contents))
+        
+        # Convert DataFrame to list of dictionaries
+        assignments_data = df.to_dict('records')
+        
+        # Import assignments
+        result = import_salary_component_assignments_from_file(assignments_data, hostname)
+        
+        return {"message": f"Successfully imported {result['imported']} assignments", "details": result}
+    except Exception as e:
+        logger.error(f"Error importing salary component assignments: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/assignments/{emp_id}", response_model=List[SalaryComponentInDB])
 def get_assignments(
@@ -106,11 +147,11 @@ def get_assignments(
 @router.post("/declarations/{emp_id}", status_code=status.HTTP_201_CREATED)
 def create_declarations(
     emp_id: str,
-    components: List[SalaryComponentDeclaration],
+    components: List[SalaryComponentDeclaration] = Body(...),
     hostname: str = Depends(extract_hostname)
 ):
     """
-    Create salary component declarations for an employee.
+    Create salary component declarations for an employee using JSON.
     """
     logger.info("API Call: Create salary component declarations for employee with ID: %s", emp_id)
     return create_salary_component_declarations(emp_id, components, hostname)

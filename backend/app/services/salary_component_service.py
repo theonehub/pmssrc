@@ -225,4 +225,101 @@ def get_salary_component_declarations(emp_id: str, hostname: str) -> List[dict]:
             detail=f"Error fetching salary component declarations: {str(e)}"
         )
 
+def import_salary_component_assignments_from_file(assignments_data: list, hostname: str) -> dict:
+    """
+    Import salary component assignments from a file.
+    
+    Args:
+        assignments_data (list): List of dictionaries containing assignment data
+            Expected format:
+            [
+                {
+                    "emp_id": "employee_id",
+                    "sc_id": "salary_component_id",
+                    "max_value": 5000.0
+                },
+                ...
+            ]
+        hostname (str): The hostname to identify the database.
+        
+    Returns:
+        dict: Summary of import results
+    """
+    logger.info(f"Importing salary component assignments from file")
+    
+    try:
+        # Track import statistics
+        stats = {
+            "total": len(assignments_data),
+            "imported": 0,
+            "failed": 0,
+            "errors": []
+        }
+        
+        # Group assignments by employee
+        employee_assignments = {}
+        for row in assignments_data:
+            # Validate required fields
+            if not all(key in row for key in ["emp_id", "sc_id", "max_value"]):
+                error_msg = f"Missing required fields in row: {row}"
+                stats["errors"].append(error_msg)
+                stats["failed"] += 1
+                logger.error(error_msg)
+                continue
+                
+            emp_id = str(row["emp_id"])
+            sc_id = str(row["sc_id"])
+            
+            # Validate salary component exists
+            try:
+                get_salary_component_by_id_db(sc_id, hostname)
+            except HTTPException as e:
+                error_msg = f"Invalid salary component ID {sc_id} for employee {emp_id}: {str(e)}"
+                stats["errors"].append(error_msg)
+                stats["failed"] += 1
+                logger.error(error_msg)
+                continue
+            
+            # Convert max_value to float
+            try:
+                max_value = float(row["max_value"])
+                if max_value < 0:
+                    raise ValueError("Max value must be non-negative")
+            except (ValueError, TypeError) as e:
+                error_msg = f"Invalid max_value for employee {emp_id}, component {sc_id}: {str(e)}"
+                stats["errors"].append(error_msg)
+                stats["failed"] += 1
+                logger.error(error_msg)
+                continue
+            
+            # Group by employee
+            if emp_id not in employee_assignments:
+                employee_assignments[emp_id] = []
+                
+            employee_assignments[emp_id].append({
+                "sc_id": sc_id,
+                "max_value": max_value
+            })
+        
+        # Process each employee's assignments
+        for emp_id, components in employee_assignments.items():
+            try:
+                create_salary_component_assignments_db(emp_id, components, hostname)
+                stats["imported"] += len(components)
+            except Exception as e:
+                error_msg = f"Failed to create assignments for employee {emp_id}: {str(e)}"
+                stats["errors"].append(error_msg)
+                stats["failed"] += len(components)
+                logger.error(error_msg)
+        
+        logger.info(f"Import complete: {stats['imported']} imported, {stats['failed']} failed")
+        return stats
+        
+    except Exception as e:
+        logger.error(f"Error importing salary component assignments: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error importing salary component assignments: {str(e)}"
+        )
+
 

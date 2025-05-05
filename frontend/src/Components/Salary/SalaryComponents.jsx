@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { getToken } from '../../utils/auth';
 import { FaEdit, FaTrash, FaPlus } from 'react-icons/fa';
 import PageLayout from '../../layout/PageLayout';
+import api from '../../utils/apiUtils';
 import { 
   Paper, 
   Button, 
@@ -51,9 +50,7 @@ function SalaryComponents() {
   const fetchComponents = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:8000/salary-components', {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await api.get('/salary-components');
       setComponents(res.data);
     } catch (error) {
       console.error('Error fetching components:', error);
@@ -84,14 +81,10 @@ function SalaryComponents() {
       };
 
       if (editingId) {
-        await axios.put(`http://localhost:8000/salary-components/${editingId}`, componentData, {
-          headers: { Authorization: `Bearer ${getToken()}` },
-        });
+        await api.put(`/salary-components/${editingId}`, componentData);
         setToast({ show: true, message: 'Component updated successfully.', severity: 'success' });
       } else {
-        await axios.post('http://localhost:8000/salary-components', componentData, {
-          headers: { Authorization: `Bearer ${getToken()}` },
-        });
+        await api.post('/salary-components', componentData);
         setToast({ show: true, message: 'Component added successfully.', severity: 'success' });
       }
       fetchComponents();
@@ -106,9 +99,7 @@ function SalaryComponents() {
     if (!window.confirm('Are you sure you want to delete this component?')) return;
 
     try {
-      await axios.delete(`http://localhost:8000/salary-components/${id}`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      await api.delete(`/salary-components/${id}`);
       setToast({ show: true, message: 'Component deleted.', severity: 'info' });
       fetchComponents();
     } catch (err) {

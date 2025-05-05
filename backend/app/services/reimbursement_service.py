@@ -1,4 +1,4 @@
-from fastapi import UploadFile
+from fastapi import UploadFile, HTTPException
 from bson import ObjectId
 from datetime import datetime
 from typing import List
@@ -14,26 +14,33 @@ from database.reimbursement_database import (
     update_reimbursement_status,
     get_approved_reimbursements
 )
+from utils.file_handler import validate_file, save_file
 
 logger = logging.getLogger(__name__)
 
-def save_file(file: UploadFile) -> str:
-    try:
-        filename = f"uploads/reimbursements/{datetime.now().timestamp()}_{file.filename}"
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
+async def process_file(file: UploadFile) -> str:
+    """Process an uploaded file for reimbursements"""
+    if not file:
+        return None
         
-        content = file.read()
-        with open(filename, "wb") as f:
-            f.write(content)
-        return f"/{filename}"
-    except Exception as e:
-        logger.error(f"Error saving file: {str(e)}")
-        raise
+    # Validate file
+    is_valid, error_message = validate_file(
+        file, 
+        allowed_types=["image/jpeg", "image/png", "application/pdf"],
+        max_size=5 * 1024 * 1024  # 5MB
+    )
+    
+    if not is_valid:
+        logger.error(f"Invalid file upload: {error_message}")
+        raise HTTPException(status_code=400, detail=error_message)
+    
+    # Save file
+    file_path = await save_file(file, "reimbursements")
+    return file_path
 
-
-def submit_request(emp_id: str, data, hostname: str, file: UploadFile = None):
+async def submit_request(emp_id: str, data, hostname: str, file: UploadFile = None):
     try:
-        file_url = save_file(file) if file else None
+        file_url = await process_file(file) if file else None
         request_doc = {
             "emp_id": emp_id,
             "reimbursement_type_id": data.reimbursement_type_id,
@@ -59,7 +66,7 @@ def get_my_requests(emp_id: str, hostname: str):
         logger.error(f"Error getting reimbursement requests: {str(e)}")
         raise
 
-def update_request(request_id: str, data, hostname: str, file: UploadFile = None):
+async def update_request(request_id: str, data, hostname: str, file: UploadFile = None):
     try:
         update_data = {
             "reimbursement_type_id": data.reimbursement_type_id,
@@ -69,7 +76,7 @@ def update_request(request_id: str, data, hostname: str, file: UploadFile = None
         }
         
         if file:
-            file_url = save_file(file)
+            file_url = await process_file(file)
             update_data["file_url"] = file_url
             
         result = update_reimbursement(request_id, update_data, hostname)

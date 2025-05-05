@@ -42,7 +42,7 @@ import {
   Delete as DeleteIcon,
   Visibility as VisibilityIcon
 } from '@mui/icons-material';
-import axios from '../../utils/axios';
+import api from '../../utils/apiUtils';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../layout/PageLayout';
 import { toast } from 'react-toastify';
@@ -135,7 +135,12 @@ function SalaryUsersList() {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get(`/users?skip=${(currentPage - 1) * pageSize}&limit=${pageSize}`);
+      const response = await api.get('/users', {
+        params: {
+          skip: (currentPage - 1) * pageSize,
+          limit: pageSize
+        }
+      });
       setUsers(response.data.users);
       setTotalUsers(response.data.total);
     } catch (err) {
@@ -162,18 +167,12 @@ function SalaryUsersList() {
     }
 
     setImporting(true);
-    const formData = new FormData();
-    formData.append('file', importFile);
-
+    
     try {
-      await axios.post('/salary-components/assignments/import', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      await api.upload('/salary-components/assignments/import/with-file', importFile);
       setAlert({
         open: true,
-        message: 'Users imported successfully',
+        message: 'Salary components imported successfully',
         severity: 'success'
       });
       setShowImportModal(false);
@@ -182,7 +181,7 @@ function SalaryUsersList() {
     } catch (error) {
       setAlert({
         open: true,
-        message: error.response?.data?.detail || 'Failed to import users',
+        message: error.response?.data?.detail || 'Failed to import salary components',
         severity: 'error'
       });
     } finally {
@@ -248,7 +247,7 @@ function SalaryUsersList() {
 
   const fetchComponents = async () => {
     try {
-      const response = await axios.get('/salary-components');
+      const response = await api.get('/salary-components');
       setComponents(response.data);
     } catch (error) {
       console.error('Error fetching components:', error); 
@@ -258,7 +257,7 @@ function SalaryUsersList() {
 
   const fetchUserComponents = async (empId) => {
     try {
-      const response = await axios.get(`/salary-components/assignments/${empId}`);
+      const response = await api.get(`/salary-components/assignments/${empId}`);
       setUserComponents(response.data);
       console.log(response.data);
     } catch (error) {
@@ -291,7 +290,7 @@ function SalaryUsersList() {
           max_value: comp.maxValue ? parseFloat(comp.maxValue) : 0
         }));
 
-      const response = await axios.post(`/salary-components/assignments/${selectedUser}`, componentsData);
+      const response = await api.post(`/salary-components/assignments/${selectedUser}`, componentsData);
       
       setAlert({
         open: true,

@@ -16,7 +16,7 @@ class ReimbursementRequestBase(BaseModel):
 
 
 class ReimbursementRequestCreate(ReimbursementRequestBase):
-    pass
+    emp_id: Optional[str] = None
 
 
 class ReimbursementStatusUpdate(BaseModel):

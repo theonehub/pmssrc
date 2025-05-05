@@ -38,7 +38,7 @@ import {
   ArrowDownward as ArrowDownwardIcon,
   Download as DownloadIcon
 } from '@mui/icons-material';
-import axios from '../../utils/axios';
+import api from '../../utils/apiUtils';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../layout/PageLayout';
 import { toast } from 'react-toastify';
@@ -128,15 +128,21 @@ function UsersList() {
   };
 
   const fetchUsers = async () => {
+    setLoading(true);
     try {
-      const response = await axios.get(`/users?skip=${(currentPage - 1) * pageSize}&limit=${pageSize}`);
+      const response = await api.get('/users', {
+        skip: (currentPage - 1) * pageSize,
+        limit: pageSize
+      });
+      
       setUsers(response.data.users);
       setTotalUsers(response.data.total);
-    } catch (err) {
-      setError(err.message || 'An error occurred while fetching users.');
+      setFilteredUsers(response.data.users);
+    } catch (error) {
+      console.error('Error fetching users:', error);
       setAlert({
         open: true,
-        message: err.message || 'Failed to fetch users',
+        message: error.response?.data?.detail || 'Failed to fetch users',
         severity: 'error'
       });
     } finally {
@@ -146,7 +152,6 @@ function UsersList() {
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
-    const formData = new FormData();
     
     // Add user data
     const userData = {
@@ -169,26 +174,29 @@ function UsersList() {
       esi_number: e.target.esi_number.value || null,
     };
 
-    // Append user data as JSON
-    formData.append('user_data', JSON.stringify(userData));
-
-    // Append files if they exist
-    if (e.target.pan_file.files[0]) {
-      formData.append('pan_file', e.target.pan_file.files[0]);
-    }
-    if (e.target.aadhar_file.files[0]) {
-      formData.append('aadhar_file', e.target.aadhar_file.files[0]);
-    }
-    if (e.target.photo.files[0]) {
-      formData.append('photo', e.target.photo.files[0]);
-    }
-
+    const panFile = e.target.pan_file.files[0];
+    const aadharFile = e.target.aadhar_file.files[0];
+    const photo = e.target.photo.files[0];
+    
     try {
-      await axios.post('/users/create', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      // Check if there are any files to upload
+      if (panFile || aadharFile || photo) {
+        // Use the multiple file upload approach
+        const files = {};
+        if (panFile) files.pan_file = panFile;
+        if (aadharFile) files.aadhar_file = aadharFile;
+        if (photo) files.photo = photo;
+        
+        await api.uploadMultiple(
+          '/users/with-files',
+          files,
+          { user_data: JSON.stringify(userData) }
+        );
+      } else {
+        // Use JSON approach (no files)
+        await api.post('/users', userData);
+      }
+      
       setAlert({
         open: true,
         message: 'User created successfully',
@@ -217,15 +225,10 @@ function UsersList() {
     }
 
     setImporting(true);
-    const formData = new FormData();
-    formData.append('file', importFile);
-
+    
     try {
-      await axios.post('/users/import', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      await api.upload('/users/import/with-file', importFile);
+      
       setAlert({
         open: true,
         message: 'Users imported successfully',
@@ -247,9 +250,7 @@ function UsersList() {
 
   const handleDownloadTemplate = async () => {
     try {
-      const response = await axios.get('/users/template', {
-        responseType: 'blob'
-      });
+      const response = await api.get('/users/template', {}, { responseType: 'blob' });
       
       // Create a URL for the blob
       const url = window.URL.createObjectURL(new Blob([response.data]));

@@ -2,6 +2,9 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from fastapi.responses import JSONResponse
+from bson import ObjectId
+import json
 
 from services.user_service import create_default_user
 from routes import auth_routes, user_routes, project_attributes_routes,\
@@ -9,6 +12,7 @@ from routes import auth_routes, user_routes, project_attributes_routes,\
     public_holiday_routes, attendance_routes, company_leave_routes, leave_routes, \
     reimbursement_routes, reimbursement_type_routes,\
     organisation_routes, taxation_routes
+from utils.json_encoder import mongodb_jsonable_encoder, MongoJSONResponse
 
 # Configure the root logger.
 logging.basicConfig(
@@ -31,6 +35,7 @@ app = FastAPI(
     description="API for managing users and payroll",
     version="1.0.0",
     lifespan=lifespan,
+    default_response_class=MongoJSONResponse
 )
 
 # Add CORS middleware

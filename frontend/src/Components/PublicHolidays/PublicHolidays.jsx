@@ -8,7 +8,7 @@ import AddHolidayDialog from './AddHolidayDialog';
 import ImportHolidaysDialog from './ImportHolidaysDialog';
 import EditHolidayDialog from './EditHolidayDialog';
 import PageLayout from '../../layout/PageLayout';
-import axiosInstance from '../../utils/axios';
+import api from '../../utils/apiUtils';
 
 const PublicHolidays = () => {
   const [holidays, setHolidays] = useState([]);
@@ -26,7 +26,7 @@ const PublicHolidays = () => {
   const fetchHolidays = async () => {
     console.log("Fetching holidays");
     try {
-      const response = await axiosInstance.get('/public-holidays');
+      const response = await api.get('/public-holidays');
       setHolidays(response.data);
     } catch (error) {
       console.error('Error fetching holidays:', error);
@@ -43,7 +43,7 @@ const PublicHolidays = () => {
   const handleAddHoliday = async (holidayData) => {
     try {
       console.log("Adding holiday:", holidayData);
-      await axiosInstance.post('/public-holidays/', holidayData);
+      await api.post('/public-holidays/', holidayData);
       fetchHolidays();
       setOpenAddDialog(false);
       setAlert({
@@ -64,7 +64,7 @@ const PublicHolidays = () => {
 
   const handleEditHoliday = async (holidayId, holidayData) => {
     try {
-      await axiosInstance.put(`/public-holidays/${holidayId}`, holidayData);
+      await api.put(`/public-holidays/${holidayId}`, holidayData);
       fetchHolidays();
       setOpenEditDialog(false);
       setAlert({
@@ -85,7 +85,7 @@ const PublicHolidays = () => {
   const handleDeleteHoliday = async (holidayId) => {
     if (window.confirm('Are you sure you want to delete this holiday?')) {
       try {
-        await axiosInstance.delete(`/public-holidays/${holidayId}`);
+        await api.delete(`/public-holidays/${holidayId}`);
         fetchHolidays();
         setAlert({
           open: true,
@@ -105,13 +105,7 @@ const PublicHolidays = () => {
 
   const handleImportHolidays = async (file) => {
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      await axiosInstance.post('/public-holidays/import', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      await api.upload('/public-holidays/import/with-file', file);
       fetchHolidays();
       setOpenImportDialog(false);
       setAlert({

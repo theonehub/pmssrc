@@ -24,8 +24,7 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import axios from 'axios';
-import { getToken } from '../../utils/auth';
+import api from '../../utils/apiUtils';
 import PageLayout from '../../layout/PageLayout';
 
 function CompanyLeaves() {
@@ -43,11 +42,8 @@ function CompanyLeaves() {
 
   const fetchLeaves = async () => {
     try {
-      const res = await axios.get('http://localhost:8000/company-leaves', {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await api.get('/company-leaves');
       setLeaves(res.data);
-      console.log(res.data);
     } catch (err) {
       console.error('Error fetching company leaves', err);
       setError('Failed to load company leaves.');
@@ -65,13 +61,9 @@ function CompanyLeaves() {
     setIsSubmitting(true);
     try {
       if (editingId) {
-        await axios.put(`http://localhost:8000/company-leaves/${editingId}`, formData, {
-          headers: { Authorization: `Bearer ${getToken()}` },
-        });
+        await api.put(`/company-leaves/${editingId}`, formData);
       } else {
-        await axios.post('http://localhost:8000/company-leaves', formData, {
-          headers: { Authorization: `Bearer ${getToken()}` },
-        });
+        await api.post('/company-leaves', formData);
       }
       setShowModal(false);
       setFormData({ name: '', count: 0, is_active: true });
@@ -94,9 +86,7 @@ function CompanyLeaves() {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this company leave?')) {
       try {
-        await axios.delete(`http://localhost:8000/company-leaves/${id}`, {
-          headers: { Authorization: `Bearer ${getToken()}` },
-        });
+        await api.delete(`/company-leaves/${id}`);
         fetchLeaves();
       } catch (err) {
         console.error('Error deleting company leave', err);

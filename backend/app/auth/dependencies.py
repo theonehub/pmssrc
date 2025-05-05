@@ -30,7 +30,7 @@ def get_current_user_role(token: str = Depends(oauth2_scheme)):
             detail="Could not validate token",
         )
 
-def role_checker(*allowed_roles):
+def role_checker(allowed_roles):
     """
     Dependency that ensures the current user's role is among the allowed_roles.
     If not, raises HTTP 403 Forbidden.

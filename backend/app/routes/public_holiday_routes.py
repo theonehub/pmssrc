@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, logger
+from fastapi import APIRouter, HTTPException, UploadFile, File, Depends, status, Query, Form, Body
 from typing import List
 from models.public_holiday import PublicHoliday
 from models.user_model import UserInfo
@@ -7,6 +7,8 @@ import io
 import logging
 import services.public_holiday_service as holiday_service
 import pandas as pd
+import json
+from utils.file_handler import validate_file
 
 logger = logging.getLogger(__name__)
 router = APIRouter(
@@ -23,13 +25,13 @@ def get_public_holidays(hostname: str = Depends(extract_hostname)):
 
 @router.post("/")
 def create_public_holiday(
-    holiday: PublicHoliday, 
+    holiday: PublicHoliday = Body(...), 
     current_emp_id: str = Depends(extract_emp_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["admin", "superadmin"]))
 ):
     """
-    Create a new public holiday.
+    Create a new public holiday using JSON.
     Only admins and superadmins can create holidays.
     """
     logger.info(f"Creating public holiday: {holiday}")
@@ -47,13 +49,13 @@ def get_holiday_by_month(
 @router.put("/{holiday_id}")
 def update_public_holiday(
     holiday_id: str, 
-    holiday: PublicHoliday, 
+    holiday: PublicHoliday = Body(...), 
     current_emp_id: str = Depends(extract_emp_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["admin", "superadmin"]))
 ):
     """
-    Update an existing public holiday.
+    Update an existing public holiday using JSON.
     Only admins and superadmins can update holidays.
     """
     updated = holiday_service.update_holiday(holiday_id, holiday, current_emp_id, hostname)
@@ -63,8 +65,8 @@ def update_public_holiday(
     
     return {"message": "Public holiday updated successfully"}
 
-@router.post("/import")
-def import_holidays(
+@router.post("/import/with-file")
+async def import_holidays_with_file(
     file: UploadFile = File(...), 
     current_emp_id: str = Depends(extract_emp_id),
     hostname: str = Depends(extract_hostname),
@@ -74,11 +76,18 @@ def import_holidays(
     Import multiple holidays from an Excel file.
     Only admins and superadmins can import holidays.
     """
-    if not file.filename.endswith('.xlsx'):
-        raise HTTPException(status_code=400, detail="Only Excel files are allowed")
+    # Validate file type and size
+    is_valid, error = validate_file(
+        file, 
+        allowed_types=["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"],
+        max_size=5*1024*1024
+    )
+    
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error)
     
     try:
-        contents = file.read()
+        contents = await file.read()
         df = pd.read_excel(io.BytesIO(contents))
         
         # Convert DataFrame to list of dictionaries
@@ -93,7 +102,7 @@ def import_holidays(
         return {"message": f"Successfully imported {inserted_count} holidays"}
     except Exception as e:
         logger.error(f"Error importing holidays: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e)) 
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/{holiday_id}")
 def delete_public_holiday(

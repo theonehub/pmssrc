@@ -441,10 +441,6 @@ const TaxationDashboard = () => {
                         <TableCell>Perquisites</TableCell>
                         <TableCell align="right">
                           {formatCurrency(
-                            (userData.salary?.perquisites?.company_car || 0) +
-                            (userData.salary?.perquisites?.rent_free_accommodation || 0) +
-                            (userData.salary?.perquisites?.concessional_loan || 0) +
-                            (userData.salary?.perquisites?.gift_vouchers || 0)
                           )}
                         </TableCell>
                       </TableRow>
@@ -581,7 +577,6 @@ const TaxationDashboard = () => {
                         <TableRow>
                           <TableCell>Section 80G (Donations)</TableCell>
                           <TableCell align="right">{formatCurrency(
-                            (userData.deductions?.section_80g || 0) +
                             (userData.deductions?.section_80g_100_wo_ql || 0) +
                             (userData.deductions?.section_80g_50_wo_ql || 0) +
                             (userData.deductions?.section_80g_100_ql || 0) +

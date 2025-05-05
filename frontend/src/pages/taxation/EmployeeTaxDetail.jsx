@@ -359,10 +359,6 @@ const EmployeeTaxDetail = () => {
                           <TableCell>Perquisites</TableCell>
                           <TableCell align="right">
                             {formatCurrency(
-                              (taxationData.salary?.perquisites?.company_car || 0) +
-                              (taxationData.salary?.perquisites?.rent_free_accommodation || 0) +
-                              (taxationData.salary?.perquisites?.concessional_loan || 0) +
-                              (taxationData.salary?.perquisites?.gift_vouchers || 0)
                             )}
                           </TableCell>
                         </TableRow>
@@ -428,30 +424,45 @@ const EmployeeTaxDetail = () => {
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          <TableRow>
-                            <TableCell>Section 80C</TableCell>
-                            <TableCell align="right">{formatCurrency(taxationData.deductions?.section_80c)}</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>Section 80D</TableCell>
-                            <TableCell align="right">{formatCurrency(taxationData.deductions?.section_80d)}</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>Section 24B</TableCell>
-                            <TableCell align="right">{formatCurrency(taxationData.deductions?.section_24b)}</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>Section 80E</TableCell>
-                            <TableCell align="right">{formatCurrency(taxationData.deductions?.section_80e)}</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>Section 80G</TableCell>
-                            <TableCell align="right">{formatCurrency(taxationData.deductions?.section_80g)}</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>Section 80TTA</TableCell>
-                            <TableCell align="right">{formatCurrency(taxationData.deductions?.section_80tta)}</TableCell>
-                          </TableRow>
+                          {/* Section 80C group */}
+                          <TableRow><TableCell colSpan={2}><b>Section 80C (Total up to 1,50,000)</b></TableCell></TableRow>
+                          <TableRow><TableCell>LIC Premium</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80c_lic)}</TableCell></TableRow>
+                          <TableRow><TableCell>EPF</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80c_epf)}</TableCell></TableRow>
+                          <TableRow><TableCell>Sukanya Samridhi</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80c_ssp)}</TableCell></TableRow>
+                          <TableRow><TableCell>NSC</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80c_nsc)}</TableCell></TableRow>
+                          <TableRow><TableCell>ULIP</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80c_ulip)}</TableCell></TableRow>
+                          <TableRow><TableCell>Tax Saving MF</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80c_tsmf)}</TableCell></TableRow>
+                          <TableRow><TableCell>Tuition Fees</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80c_tffte2c)}</TableCell></TableRow>
+                          <TableRow><TableCell>Principal on Home Loan</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80c_paphl)}</TableCell></TableRow>
+                          <TableRow><TableCell>Stamp Duty</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80c_sdpphp)}</TableCell></TableRow>
+                          <TableRow><TableCell>Tax Saving FD</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80c_tsfdsb)}</TableCell></TableRow>
+                          <TableRow><TableCell>SCSS</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80c_scss)}</TableCell></TableRow>
+                          <TableRow><TableCell>Others (80C)</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80c_others)}</TableCell></TableRow>
+                          <TableRow><TableCell>80CCC Pension</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80ccc_ppic)}</TableCell></TableRow>
+                          <TableRow><TableCell>80CCD(1) NPS</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80ccd_1_nps)}</TableCell></TableRow>
+                          <TableRow><TableCell>80CCD(1B) NPS Additional</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80ccd_1b_additional)}</TableCell></TableRow>
+                          <TableRow><TableCell>80CCD(2) Employer NPS</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80ccd_2_enps)}</TableCell></TableRow>
+                          {/* Section 80D */}
+                          <TableRow><TableCell colSpan={2}><b>Section 80D</b></TableCell></TableRow>
+                          <TableRow><TableCell>Health Insurance (Self/Family)</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80d_hisf)}</TableCell></TableRow>
+                          <TableRow><TableCell>Preventive Health Checkup</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80d_phcs)}</TableCell></TableRow>
+                          <TableRow><TableCell>Health Insurance (Parents)</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80d_hi_parent)}</TableCell></TableRow>
+                          {/* Section 80DD/80DDB/80E/80EEB/80G/80GGC/80U */}
+                          <TableRow><TableCell colSpan={2}><b>Other Deductions</b></TableCell></TableRow>
+                          <TableRow><TableCell>80DD (Disability Dependent)</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80dd)}</TableCell></TableRow>
+                          <TableRow><TableCell>80DDB (Specified Diseases)</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80ddb)}</TableCell></TableRow>
+                          <TableRow><TableCell>80E (Education Loan Interest)</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80e)}</TableCell></TableRow>
+                          <TableRow><TableCell>80EEB (EV Loan Interest)</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80eeb)}</TableCell></TableRow>
+                          {/* Section 80G Donations */}
+                          <TableRow><TableCell colSpan={2}><b>Section 80G (Donations)</b></TableCell></TableRow>
+                          <TableRow><TableCell>100% WO QL</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80g_100_wo_ql)}</TableCell></TableRow>
+                          <TableRow><TableCell>50% WO QL</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80g_50_wo_ql)}</TableCell></TableRow>
+                          <TableRow><TableCell>100% QL</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80g_100_ql)}</TableCell></TableRow>
+                          <TableRow><TableCell>50% QL</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80g_50_ql)}</TableCell></TableRow>
+                          <TableRow><TableCell>80GGC (Political Party)</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80ggc)}</TableCell></TableRow>
+                          {/* Section 80U */}
+                          <TableRow><TableCell colSpan={2}><b>Section 80U (Disability)</b></TableCell></TableRow>
+                          <TableRow><TableCell>80U</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80u)}</TableCell></TableRow>
                         </TableBody>
                       </Table>
                     </TableContainer>

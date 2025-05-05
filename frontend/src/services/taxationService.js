@@ -80,19 +80,11 @@ export const saveTaxationData = async (taxationData) => {
         special_allowance: 0,
         bonus: 0,
         perquisites: {
-          company_car: 0,
-          rent_free_accommodation: 0,
-          concessional_loan: 0,
-          gift_vouchers: 0
         }
       };
     } else if (!taxationData.salary.perquisites) {
       // Initialize perquisites if missing
       taxationData.salary.perquisites = {
-        company_car: 0,
-        rent_free_accommodation: 0,
-        concessional_loan: 0,
-        gift_vouchers: 0
       };
     }
 
@@ -151,7 +143,6 @@ export const saveTaxationData = async (taxationData) => {
         age_80ddb: 0,
         section_80eeb: 0,
         ev_purchase_date: null,
-        section_80g: 0,
         section_80g_100_wo_ql: 0,
         section_80g_100_head: '',
         section_80g_50_wo_ql: 0,

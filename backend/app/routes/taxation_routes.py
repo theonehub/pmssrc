@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from typing import List, Dict, Any, Optional
 from models.taxation import SalaryComponents, IncomeFromOtherSources, CapitalGains, DeductionComponents, Taxation, Perquisites
-from services.taxation_service import calculate_total_tax, calculate_and_save_tax
+from services.taxation_service import calculate_total_tax, calculate_and_save_tax, get_or_create_taxation_by_emp_id
 from database.taxation_database import get_taxation_by_emp_id, update_tax_payment, get_all_taxation, update_filing_status
 from auth.auth import extract_hostname, role_checker, extract_emp_id
 from pydantic import BaseModel
@@ -135,9 +135,10 @@ def get_taxation_endpoint(
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["admin", "superadmin", "user"]))
 ):
-    """Get taxation data for an employee"""
+    """Get taxation data for an employee, creating defaults if not found"""
     try:
-        taxation = get_taxation_by_emp_id(emp_id, hostname)
+        # Use the service layer function that handles creation of default data if not found
+        taxation = get_or_create_taxation_by_emp_id(emp_id, hostname)
         return taxation
     except HTTPException as e:
         raise e
@@ -196,9 +197,10 @@ def get_my_taxation_endpoint(
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["admin", "superadmin", "user"]))
 ):
-    """Get taxation data for the currently logged-in user"""
+    """Get taxation data for the currently logged-in user, creating defaults if not found"""
     try:
-        taxation = get_taxation_by_emp_id(emp_id, hostname)
+        # Use the service layer function that handles creation of default data if not found
+        taxation = get_or_create_taxation_by_emp_id(emp_id, hostname)
         return taxation
     except HTTPException as e:
         raise e

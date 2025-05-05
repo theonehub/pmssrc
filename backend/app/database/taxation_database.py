@@ -17,7 +17,7 @@ def get_taxation_by_emp_id(emp_id: str, hostname: str) -> Dict[str, Any]:
     collection = get_taxation_collection(hostname)
     taxation = collection.find_one({"emp_id": emp_id})
     if not taxation:
-        raise HTTPException(status_code=404, detail="Taxation not found")
+        raise HTTPException(status_code=404, detail=f"Taxation not found for employee {emp_id}")
     
     # Convert ObjectId to string before returning
     return _convert_objectid(taxation)

@@ -52,12 +52,12 @@ const Sidebar = () => {
 
   // Toggle category expansion
   const toggleExpand = (category) => {
-    console.log('Before toggle -', category, ':', expanded);
-    setExpanded({
-      ...expanded,
-      [category]: !expanded[category]
+    console.log('Sidebar: Before toggle -', category, ':', expanded);
+    setExpanded((prev) => {
+      const newExpanded = { ...prev, [category]: !prev[category] };
+      console.log('Sidebar: After toggle -', category, ':', newExpanded);
+      return newExpanded;
     });
-    console.log('After toggle -', category, ':', {...expanded, [category]: !expanded[category]});
   };
 
   // Menu structure with categories
@@ -248,7 +248,8 @@ const Sidebar = () => {
         flexDirection: 'column',
         position: 'relative',
         minHeight: '100vh',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        zIndex: 1300 // Ensure sidebar is above overlays
       }}
     >
       <Box sx={{ p: 2, textAlign: 'center' }}>

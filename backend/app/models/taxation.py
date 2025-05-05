@@ -150,11 +150,7 @@ class Perquisites:
     Represents all perquisites as per Indian Income Tax Act.
     Each perquisite has its own exemption/taxability logic.
     """
-    # Legacy perquisites
-    company_car: float = 0
-    rent_free_accommodation: float = 0
-    concessional_loan: float = 0
-    gift_vouchers: float = 0
+
     # Accommodation perquisites
     accommodation_provided: str = 'Employer-Owned'  # Employer-Owned, Govt, Employer-Leased, Hotel provided for 15 days or above
     accommodation_govt_lic_fees: float = 0
@@ -164,6 +160,7 @@ class Perquisites:
     furniture_actual_cost: float = 0
     furniture_cost_to_employer: float = 0
     furniture_cost_paid_by_employee: float = 0
+
     # Car perquisites
     is_car_rating_higher: bool = False  # True if engine capacity > 1.6L
     is_car_employer_owned: bool = False
@@ -174,6 +171,7 @@ class Perquisites:
     month_counts: int = 0
     other_vehicle_cost: float = 0
     other_vehicle_months: int = 0
+
     # Medical Reimbursement
     is_treated_in_India: bool = False
     medical_reimbursement_by_employer: float = 0
@@ -612,12 +610,13 @@ class DeductionComponents:
 
     #section 80EEB interest on loan for EV vehicle purchased between 01.04.2019 & 31.03.2023
     section_80eeb: float = 0    #Max 150K
+    ev_purchase_date: date = date.today()
 
-    def total_deductions_80eeb(self, regime: str = 'new', date_of_purchase: date = date.today()):
+    def total_deductions_80eeb(self, regime: str = 'new', ev_purchase_date: date = date.today()):
         if regime == 'new':
             return 0
         else:
-            if date_of_purchase >= date(2019, 4, 1) and date_of_purchase <= date(2023, 3, 31):
+            if ev_purchase_date >= date(2019, 4, 1) and ev_purchase_date <= date(2023, 3, 31):
                 return min(self.section_80eeb, 150000)
             else:
                 return 0
@@ -695,14 +694,14 @@ class DeductionComponents:
     def total_deduction(self, regime: str = 'new', 
                         is_govt_employee: bool = False,         
                         gross_income: float = 0, age: int = 0,             
-                        date_of_purchase: date = date.today()):
+                        ev_purchase_date: date = date.today()):
         return (self.total_deductions_80c_80ccd_80ccd_1_1b(regime) +
                 self.total_deductions_80ccd_2(regime, gross_income, is_govt_employee) +
                 self.total_deductions_80d_self_family(regime, age) +
                 self.total_deductions_80d_parent(regime, age) +
                 self.total_deductions_80dd(regime) +
                 self.total_deductions_80ddb(regime, age) +
-                self.total_deductions_80eeb(regime, date_of_purchase) +
+                self.total_deductions_80eeb(regime, ev_purchase_date) +
                 self.total_deductions_80g_100_wo_ql(regime) +
                 self.total_deductions_80g_50_wo_ql(regime) +
                 self.total_deductions_80g_100_ql(regime, gross_income) +
@@ -710,9 +709,9 @@ class DeductionComponents:
                 self.total_deductions_80ggc(regime) +
                 self.total_deductions_80u(regime))
 
-    def total(self, regime: str = 'new', is_govt_employee: bool = False, gross_income: float = 0, age: int = 0, date_of_purchase: date = date.today()) -> float:
+    def total(self, regime: str = 'new', is_govt_employee: bool = False, gross_income: float = 0, age: int = 0, ev_purchase_date: date = date.today()) -> float:
         """Alias for total_deduction to maintain compatibility."""
-        return self.total_deduction(regime, is_govt_employee, gross_income, age, date_of_purchase)
+        return self.total_deduction(regime, is_govt_employee, gross_income, age, ev_purchase_date)
 
 
 
@@ -749,11 +748,6 @@ class Taxation:
         if 'perquisites' in salary_data and salary_data['perquisites']:
             perquisites_data = salary_data['perquisites']
             perquisites = Perquisites(
-                # Legacy perquisites
-                company_car=perquisites_data.get('company_car', 0),
-                rent_free_accommodation=perquisites_data.get('rent_free_accommodation', 0),
-                concessional_loan=perquisites_data.get('concessional_loan', 0),
-                gift_vouchers=perquisites_data.get('gift_vouchers', 0),
                 
                 # Accommodation perquisites
                 accommodation_provided=perquisites_data.get('accommodation_provided', 'Employer-Owned'),
@@ -856,7 +850,6 @@ class Taxation:
             section_80dd=deductions_data.get('section_80dd', 0),
             section_80ddb=deductions_data.get('section_80ddb', 0),
             section_80eeb=deductions_data.get('section_80eeb', 0),
-            section_80g=deductions_data.get('section_80g', 0),
             section_80g_100_wo_ql=deductions_data.get('section_80g_100_wo_ql', 0),
             section_80g_100_head=deductions_data.get('section_80g_100_head', ''),
             section_80g_50_wo_ql=deductions_data.get('section_80g_50_wo_ql', 0),
@@ -901,11 +894,6 @@ class Taxation:
             else:
                 # It's a Perquisites object
                 perquisites_dict = {
-                    # Legacy perquisites
-                    'company_car': self.salary.perquisites.company_car,
-                    'rent_free_accommodation': self.salary.perquisites.rent_free_accommodation,
-                    'concessional_loan': self.salary.perquisites.concessional_loan,
-                    'gift_vouchers': self.salary.perquisites.gift_vouchers,
                     
                     # Accommodation perquisites
                     'accommodation_provided': self.salary.perquisites.accommodation_provided,
@@ -999,7 +987,6 @@ class Taxation:
                 'section_80d_hi_parent': self.deductions.section_80d_hi_parent,
                 'section_80dd': self.deductions.section_80dd,
                 'section_80ddb': self.deductions.section_80ddb,
-                'section_80g': self.deductions.section_80g,
                 'section_80g_100_wo_ql': self.deductions.section_80g_100_wo_ql,
                 'section_80g_100_head': self.deductions.section_80g_100_head,
                 'section_80g_50_wo_ql': self.deductions.section_80g_50_wo_ql,

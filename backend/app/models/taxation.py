@@ -567,37 +567,38 @@ class SalaryComponents:
     Represents all salary components as per Indian Income Tax Act.
     Includes all allowances and perquisites.
     """
-    basic: float = 0
-    dearness_allowance: float = 0
-    hra_city: str = 'Others'
-    hra_percentage: float = 0
-    hra: float = 0
-    special_allowance: float = 0
-    bonus: float = 0
-    commission: float = 0
-    city_compensatory_allowance: float = 0
-    rural_allowance: float = 0
-    proctorship_allowance: float = 0
-    wardenship_allowance: float = 0
-    project_allowance: float = 0
-    deputation_allowance: float = 0
-    overtime_allowance: float = 0
-    interim_relief: float = 0
-    tiffin_allowance: float = 0
-    fixed_medical_allowance: float = 0
-    servant_allowance: float = 0
-    any_other_allowance: float = 0
-    any_other_allowance_exempted: float = 0         #need to be deducted from total
-    allowances_to_government_employees_outside_india: float = 0         #exempted
-    allowance_to_high_court_supreme_court_judges: float = 0             #exempted
-    compensatory_allowance_received_by_a_judge: float = 0              #exempted
-    special_allowances_exempt_under_section_10_14: float = 0           #exempted
-    allowance_granted_to_meet_cost_of_travel_on_tour: float = 0          #exempted
-    allowance_granted_to_meet_cost_of_daily_charges_incurred_on_tour: float = 0  #exempted
-    allowance_granted_to_meet_expenditure_incurred_on_conveyance_in_performace_of_duties: float = 0  #exempted
-    allowance_granted_to_meet_expenditure_incurred_on_helper_in_performace_of_duties: float = 0  #exempted      
-    allowance_granted_for_encouraging_the_academic_research_training_pursuits_in_educational_research_institutions: float = 0 #exempted 
-    allowance_granted_for_expenditure_incurred_on_purchase_or_maintenance_of_uniform_for_wear_during_performace_of_duties: float = 0 #exempted
+    basic: float = 0                                    #Basic Pay(Slab)
+    dearness_allowance: float = 0                       #Dearness Allowance(Slab)
+    hra_city: str = 'Others'                            #HRA_City_selected(Metadata)
+    hra_percentage: float = 0                           #HRA_Percentage(Metadata)
+    hra: float = 0                                      #HRA(Slab)
+    special_allowance: float = 0                        #Special Allowance(Slab)
+    bonus: float = 0                                    #Bonus(Slab)
+    commission: float = 0                               #Commission(Slab)
+    city_compensatory_allowance: float = 0              #City Compensatory Allowance(Slab)
+    rural_allowance: float = 0                          #Rural Allowance(Slab)
+    proctorship_allowance: float = 0                    #Proctorship Allowance(Slab)
+    wardenship_allowance: float = 0                     #Wardenship Allowance(Slab)
+    project_allowance: float = 0                        #Project Allowance(Slab)
+    deputation_allowance: float = 0                     #Deputation Allowance(Slab)
+    overtime_allowance: float = 0                       #Overtime Allowance(Slab)
+    interim_relief: float = 0                           #Interim Relief(Slab)
+    tiffin_allowance: float = 0                         #Tiffin Allowance(Slab)
+    fixed_medical_allowance: float = 0                  #Fixed Medical Allowance(Slab)
+    servant_allowance: float = 0                        #Servant Allowance(Slab)
+    any_other_allowance: float = 0                      #Any Other Allowance(Slab)
+    any_other_allowance_exemption: float = 0            #Any Other Allowance Exemption(Slab-Deduction)
+    govt_employees_outside_india_allowance: float = 0   #Allowances to Government employees outside India(Exempted)
+    supreme_high_court_judges_allowance: float = 0      #Allowance to High Court & Supreme Court Judges(Exempted)
+    judge_compensatory_allowance: float = 0             #Compensatory Allowance received by a Judge(Exempted)
+    section_10_14_special_allowances: float = 0         #Special Allowances exempt under Section 10(14)(Exempted)
+    travel_on_tour_allowance: float = 0                 #Allowance granted to meet cost of travel on tour(Exempted)
+    tour_daily_charge_allowance: float = 0              #Allowance granted to meet cost of daily charges incurred on tour(Exempted)
+    conveyance_in_performace_of_duties: float = 0       #Allowance granted to meet expenditure incurred on conveyance in performace of duties(Exempted)
+    helper_in_performace_of_duties: float = 0           #Allowance granted to meet expenditure incurred on helper in performace of duties(Exempted)      
+    academic_research: float = 0                        #Allowance granted for encouraging the academic, research & training pursuits in educational & research institutions(Exempted)
+    uniform_allowance: float = 0                        #Allowance granted for expenditure incurred on purchase or maintenance of uniform for wear during performace of duties(Exempted)
+
     perquisites: Optional[Perquisites] = None
 
     def total(self, regime: str = 'new') -> float:
@@ -643,16 +644,16 @@ class SalaryComponents:
             "tiffin_allowance": self.tiffin_allowance,
             "fixed_medical_allowance": self.fixed_medical_allowance,
             "servant_allowance": self.servant_allowance,
-            "allowances_to_government_employees_outside_india": self.allowances_to_government_employees_outside_india,
-            "allowance_to_high_court_supreme_court_judges": self.allowance_to_high_court_supreme_court_judges,
-            "compensatory_allowance_received_by_a_judge": self.compensatory_allowance_received_by_a_judge,
-            "special_allowances_exempt_under_section_10_14": self.special_allowances_exempt_under_section_10_14,
-            "allowance_granted_to_meet_cost_of_travel_on_tour": self.allowance_granted_to_meet_cost_of_travel_on_tour,
-            "allowance_granted_to_meet_cost_of_daily_charges_incurred_on_tour": self.allowance_granted_to_meet_cost_of_daily_charges_incurred_on_tour,
-            "allowance_granted_to_meet_expenditure_incurred_on_conveyance_in_performace_of_duties": self.allowance_granted_to_meet_expenditure_incurred_on_conveyance_in_performace_of_duties,
-            "allowance_granted_to_meet_expenditure_incurred_on_helper_in_performace_of_duties": self.allowance_granted_to_meet_expenditure_incurred_on_helper_in_performace_of_duties,
-            "allowance_granted_for_encouraging_the_academic_research_training_pursuits_in_educational_research_institutions": self.allowance_granted_for_encouraging_the_academic_research_training_pursuits_in_educational_research_institutions,
-            "allowance_granted_for_expenditure_incurred_on_purchase_or_maintenance_of_uniform_for_wear_during_performace_of_duties": self.allowance_granted_for_expenditure_incurred_on_purchase_or_maintenance_of_uniform_for_wear_during_performace_of_duties,
+            "govt_employees_outside_india_allowance": self.govt_employees_outside_india_allowance,
+            "supreme_high_court_judges_allowance": self.supreme_high_court_judges_allowance,
+            "judge_compensatory_allowance": self.judge_compensatory_allowance,
+            "section_10_14_special_allowances": self.section_10_14_special_allowances,
+            "travel_on_tour_allowance": self.travel_on_tour_allowance,
+            "tour_daily_charge_allowance": self.tour_daily_charge_allowance,
+            "conveyance_in_performace_of_duties": self.conveyance_in_performace_of_duties,
+            "helper_in_performace_of_duties": self.helper_in_performace_of_duties,
+            "academic_research": self.academic_research,
+            "uniform_allowance": self.uniform_allowance,
             "perquisites": self.perquisites.to_dict() if self.perquisites else None
         }
 
@@ -1083,16 +1084,16 @@ class Taxation:
             tiffin_allowance=salary_data.get('tiffin_allowance', 0),
             fixed_medical_allowance=salary_data.get('fixed_medical_allowance', 0),
             servant_allowance=salary_data.get('servant_allowance', 0),
-            allowances_to_government_employees_outside_india=salary_data.get('allowances_to_government_employees_outside_india', 0),
-            allowance_to_high_court_supreme_court_judges=salary_data.get('allowance_to_high_court_supreme_court_judges', 0),
-            compensatory_allowance_received_by_a_judge=salary_data.get('compensatory_allowance_received_by_a_judge', 0),
-            special_allowances_exempt_under_section_10_14=salary_data.get('special_allowances_exempt_under_section_10_14', 0),
-            allowance_granted_to_meet_cost_of_travel_on_tour=salary_data.get('allowance_granted_to_meet_cost_of_travel_on_tour', 0),
-            allowance_granted_to_meet_cost_of_daily_charges_incurred_on_tour=salary_data.get('allowance_granted_to_meet_cost_of_daily_charges_incurred_on_tour', 0),
-            allowance_granted_to_meet_expenditure_incurred_on_conveyance_in_performace_of_duties=salary_data.get('allowance_granted_to_meet_expenditure_incurred_on_conveyance_in_performace_of_duties', 0),
-            allowance_granted_to_meet_expenditure_incurred_on_helper_in_performace_of_duties=salary_data.get('allowance_granted_to_meet_expenditure_incurred_on_helper_in_performace_of_duties', 0),
-            allowance_granted_for_encouraging_the_academic_research_training_pursuits_in_educational_research_institutions=salary_data.get('allowance_granted_for_encouraging_the_academic_research_training_pursuits_in_educational_research_institutions', 0),
-            allowance_granted_for_expenditure_incurred_on_purchase_or_maintenance_of_uniform_for_wear_during_performace_of_duties=salary_data.get('allowance_granted_for_expenditure_incurred_on_purchase_or_maintenance_of_uniform_for_wear_during_performace_of_duties', 0),
+            govt_employees_outside_india_allowance=salary_data.get('govt_employees_outside_india_allowance', 0),
+            supreme_high_court_judges_allowance=salary_data.get('supreme_high_court_judges_allowance', 0),
+            judge_compensatory_allowance=salary_data.get('judge_compensatory_allowance', 0),
+            section_10_14_special_allowances=salary_data.get('section_10_14_special_allowances', 0),
+            travel_on_tour_allowance=salary_data.get('travel_on_tour_allowance', 0),
+            tour_daily_charge_allowance=salary_data.get('tour_daily_charge_allowance', 0),
+            conveyance_in_performace_of_duties=salary_data.get('conveyance_in_performace_of_duties', 0),
+            helper_in_performace_of_duties=salary_data.get('helper_in_performace_of_duties', 0),    
+            academic_research=salary_data.get('academic_research', 0),
+            uniform_allowance=salary_data.get('uniform_allowance', 0),
             perquisites=perquisites
         )
         

@@ -5,6 +5,7 @@ import {
   Paper,
   Button,
   Grid,
+  Tooltip,
   TextField,
   FormControl,
   FormControlLabel,
@@ -759,16 +760,62 @@ const TaxDeclaration = () => {
                         </Box>
                         
                         <Grid item xs={12} md={6}>
-                          <TextField fullWidth label="Govt Employees Allowance (Outside India)" type="text" value={formatIndianNumber(taxationData.salary.allowances_to_government_employees_outside_india)} onChange={(e) => handleInputChange('salary', 'allowances_to_government_employees_outside_india', e.target.value)} InputProps={{ startAdornment: '₹' }} onFocus={(e) => handleFocus('salary', 'allowances_to_government_employees_outside_india', e.target.value)} />
+                          <Tooltip title="This allowance is applicable to government employees working outside India.">
+                            <TextField 
+                              fullWidth 
+                              label="Govt Employees Allowance (Outside India)" 
+                              type="text" 
+                              value={formatIndianNumber(taxationData.salary.govt_employees_outside_india_allowance)} 
+                              onChange={(e) => handleInputChange('salary', 'govt_employees_outside_india_allowance', e.target.value)} 
+                              InputProps={{ startAdornment: '₹' }} 
+                              onFocus={(e) => handleFocus('salary', 'govt_employees_outside_india_allowance', e.target.value)} 
+                            />
+                          </Tooltip>
                         </Grid>
                         <Grid item xs={12} md={6}>
-                          <TextField fullWidth label="High Court/Supreme Court Judges Allowance" type="text" value={formatIndianNumber(taxationData.salary.allowance_to_high_court_supreme_court_judges)} onChange={(e) => handleInputChange('salary', 'allowance_to_high_court_supreme_court_judges', e.target.value)} InputProps={{ startAdornment: '₹' }} onFocus={(e) => handleFocus('salary', 'allowance_to_high_court_supreme_court_judges', e.target.value)} />
+                          <Tooltip title="This allowance is applicable to high court and supreme court judges.">
+                            <TextField 
+                              fullWidth 
+                              label="High Court/Supreme Court Judges Allowance" 
+                              type="text" 
+                              value={formatIndianNumber(taxationData.salary.supreme_high_court_judges_allowance)} 
+                              onChange={(e) => handleInputChange('salary', 'supreme_high_court_judges_allowance', e.target.value)} 
+                              InputProps={{ startAdornment: '₹' }} 
+                              onFocus={(e) => handleFocus('salary', 'supreme_high_court_judges_allowance', e.target.value)} 
+                            />
+                          </Tooltip>
                         </Grid>
                         <Grid item xs={12} md={6}>
-                          <TextField fullWidth label="Compensatory Allowance (Judge)" type="text" value={formatIndianNumber(taxationData.salary.compensatory_allowance_received_by_a_judge)} onChange={(e) => handleInputChange('salary', 'compensatory_allowance_received_by_a_judge', e.target.value)} InputProps={{ startAdornment: '₹' }} onFocus={(e) => handleFocus('salary', 'compensatory_allowance_received_by_a_judge', e.target.value)} />
+                          <Tooltip title="Compensatory Allowance received by a Judge.">
+                            <TextField 
+                              fullWidth 
+                              label="Compensatory Allowance (Judge)" 
+                              type="text" 
+                              value={formatIndianNumber(taxationData.salary.judge_compensatory_allowance)} 
+                              onChange={(e) => handleInputChange('salary', 'judge_compensatory_allowance', e.target.value)} 
+                              InputProps={{ startAdornment: '₹' }} 
+                              onFocus={(e) => handleFocus('salary', 'judge_compensatory_allowance', e.target.value)} 
+                            />
+                          </Tooltip>
                         </Grid>
                         <Grid item xs={12} md={6}>
-                          <TextField fullWidth label="Special Allowances (Sec 10/14)" type="text" value={formatIndianNumber(taxationData.salary.special_allowances_exempt_under_section_10_14)} onChange={(e) => handleInputChange('salary', 'special_allowances_exempt_under_section_10_14', e.target.value)} InputProps={{ startAdornment: '₹' }} onFocus={(e) => handleFocus('salary', 'special_allowances_exempt_under_section_10_14', e.target.value)} />
+                          <Tooltip title="This allowance is exempted under Section 10(14) of the Income Tax Act, 1961.">
+                            <TextField 
+                              fullWidth 
+                              label="Special Allowances (Sec 10/14)" 
+                              type="text" 
+                              value={formatIndianNumber(taxationData.salary.section_10_14_special_allowances)} 
+                              onChange={(e) => handleInputChange('salary', 'section_10_14_special_allowances', e.target.value)} 
+                              InputProps={{ startAdornment: '₹' }} 
+                              onFocus={(e) => handleFocus('salary', 'section_10_14_special_allowances', e.target.value)} 
+                            />
+                          </Tooltip>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField fullWidth label="Any Other Allowance" type="text" value={formatIndianNumber(taxationData.salary.any_other_allowance)} onChange={(e) => handleInputChange('salary', 'any_other_allowance', e.target.value)} InputProps={{ startAdornment: '₹' }} onFocus={(e) => handleFocus('salary', 'any_other_allowance', e.target.value)} />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField fullWidth label="Any Other Allowance Exemption" type="text" value={formatIndianNumber(taxationData.salary.any_other_allowance_exemption)} onChange={(e) => handleInputChange('salary', 'any_other_allowance_exemption', e.target.value)} InputProps={{ startAdornment: '₹' }} onFocus={(e) => handleFocus('salary', 'any_other_allowance_exemption', e.target.value)} />
                         </Grid>
                         
                         <Divider sx={{ my: 4, width: '100%' }} />
@@ -778,7 +825,7 @@ const TaxDeclaration = () => {
                           sx={{ 
                             width: '100%', 
                             p: 2, 
-                            mb: 3, 
+                            mb: 3,
                             borderRadius: 1,
                             display: 'flex',
                             justifyContent: 'left'
@@ -788,22 +835,82 @@ const TaxDeclaration = () => {
                         </Box>
                         
                         <Grid item xs={12} md={6}>
-                          <TextField fullWidth label="Travel Allowance (Tour)" type="text" value={formatIndianNumber(taxationData.salary.allowance_granted_to_meet_cost_of_travel_on_tour)} onChange={(e) => handleInputChange('salary', 'allowance_granted_to_meet_cost_of_travel_on_tour', e.target.value)} InputProps={{ startAdornment: '₹' }} onFocus={(e) => handleFocus('salary', 'allowance_granted_to_meet_cost_of_travel_on_tour', e.target.value)} />
+                          <Tooltip title="Allowance granted to meet cost of travel on tour.">
+                            <TextField 
+                              fullWidth 
+                              label="Travel Allowance (Tour)" 
+                              type="text" 
+                              value={formatIndianNumber(taxationData.salary.travel_on_tour_allowance)} 
+                              onChange={(e) => handleInputChange('salary', 'travel_on_tour_allowance', e.target.value)} 
+                              InputProps={{ startAdornment: '₹' }} 
+                              onFocus={(e) => handleFocus('salary', 'travel_on_tour_allowance', e.target.value)} 
+                            />
+                          </Tooltip>
                         </Grid>
                         <Grid item xs={12} md={6}>
-                          <TextField fullWidth label="Daily Charges Allowance (Tour)" type="text" value={formatIndianNumber(taxationData.salary.allowance_granted_to_meet_cost_of_daily_charges_incurred_on_tour)} onChange={(e) => handleInputChange('salary', 'allowance_granted_to_meet_cost_of_daily_charges_incurred_on_tour', e.target.value)} InputProps={{ startAdornment: '₹' }} onFocus={(e) => handleFocus('salary', 'allowance_granted_to_meet_cost_of_daily_charges_incurred_on_tour', e.target.value)} />
+                          <Tooltip title="Allowance granted to meet cost of daily charges incurred on tour.">
+                            <TextField 
+                              fullWidth 
+                              label="Tour Daily Charge Allowance" 
+                              type="text" 
+                              value={formatIndianNumber(taxationData.salary.tour_daily_charge_allowance)} 
+                              onChange={(e) => handleInputChange('salary', 'tour_daily_charge_allowance', e.target.value)} 
+                              InputProps={{ startAdornment: '₹' }} 
+                              onFocus={(e) => handleFocus('salary', 'tour_daily_charge_allowance', e.target.value)} 
+                            />
+                          </Tooltip>
                         </Grid>
                         <Grid item xs={12} md={6}>
-                          <TextField fullWidth label="Conveyance Allowance (Duties)" type="text" value={formatIndianNumber(taxationData.salary.allowance_granted_to_meet_expenditure_incurred_on_conveyance_in_performace_of_duties)} onChange={(e) => handleInputChange('salary', 'allowance_granted_to_meet_expenditure_incurred_on_conveyance_in_performace_of_duties', e.target.value)} InputProps={{ startAdornment: '₹' }} onFocus={(e) => handleFocus('salary', 'allowance_granted_to_meet_expenditure_incurred_on_conveyance_in_performace_of_duties', e.target.value)} />
+                          <Tooltip title="Allowance granted to meet expenditure incurred on conveyance in performace of duties.">
+                            <TextField 
+                              fullWidth 
+                              label="Conveyance Allowance (Duties)" 
+                              type="text" 
+                              value={formatIndianNumber(taxationData.salary.conveyance_in_performace_of_duties)} 
+                              onChange={(e) => handleInputChange('salary', 'conveyance_in_performace_of_duties', e.target.value)} 
+                              InputProps={{ startAdornment: '₹' }} 
+                              onFocus={(e) => handleFocus('salary', 'conveyance_in_performace_of_duties', e.target.value)} 
+                            />
+                          </Tooltip>
                         </Grid>
                         <Grid item xs={12} md={6}>
-                          <TextField fullWidth label="Helper Allowance (Duties)" type="text" value={formatIndianNumber(taxationData.salary.allowance_granted_to_meet_expenditure_incurred_on_helper_in_performace_of_duties)} onChange={(e) => handleInputChange('salary', 'allowance_granted_to_meet_expenditure_incurred_on_helper_in_performace_of_duties', e.target.value)} InputProps={{ startAdornment: '₹' }} onFocus={(e) => handleFocus('salary', 'allowance_granted_to_meet_expenditure_incurred_on_helper_in_performace_of_duties', e.target.value)} />
+                          <Tooltip title="Allowance granted to meet expenditure incurred on helper in performace of duties.">
+                            <TextField 
+                              fullWidth 
+                              label="Helper Allowance (Duties)" 
+                              type="text" 
+                              value={formatIndianNumber(taxationData.salary.helper_in_performace_of_duties)} 
+                              onChange={(e) => handleInputChange('salary', 'helper_in_performace_of_duties', e.target.value)} 
+                              InputProps={{ startAdornment: '₹' }} 
+                              onFocus={(e) => handleFocus('salary', 'helper_in_performace_of_duties', e.target.value)} 
+                            />
+                          </Tooltip>
                         </Grid>
                         <Grid item xs={12} md={6}>
-                          <TextField fullWidth label="Academic/Research Allowance" type="text" value={formatIndianNumber(taxationData.salary.allowance_granted_for_encouraging_the_academic_research_training_pursuits_in_educational_research_institutions)} onChange={(e) => handleInputChange('salary', 'allowance_granted_for_encouraging_the_academic_research_training_pursuits_in_educational_research_institutions', e.target.value)} InputProps={{ startAdornment: '₹' }} onFocus={(e) => handleFocus('salary', 'allowance_granted_for_encouraging_the_academic_research_training_pursuits_in_educational_research_institutions', e.target.value)} />
+                          <Tooltip title="Allowance granted for encouraging the academic, research & training pursuits in educational & research institutions.">
+                            <TextField 
+                              fullWidth 
+                              label="Academic/Research Allowance" 
+                              type="text" 
+                              value={formatIndianNumber(taxationData.salary.academic_research)} 
+                              onChange={(e) => handleInputChange('salary', 'academic_research', e.target.value)} 
+                              InputProps={{ startAdornment: '₹' }} 
+                              onFocus={(e) => handleFocus('salary', 'academic_research', e.target.value)} 
+                            />
+                          </Tooltip>
                         </Grid>
                         <Grid item xs={12} md={6}>
-                          <TextField fullWidth label="Uniform Allowance (Duties)" type="text" value={formatIndianNumber(taxationData.salary.allowance_granted_for_expenditure_incurred_on_purchase_or_maintenance_of_uniform_for_wear_during_performace_of_duties)} onChange={(e) => handleInputChange('salary', 'allowance_granted_for_expenditure_incurred_on_purchase_or_maintenance_of_uniform_for_wear_during_performace_of_duties', e.target.value)} InputProps={{ startAdornment: '₹' }} onFocus={(e) => handleFocus('salary', 'allowance_granted_for_expenditure_incurred_on_purchase_or_maintenance_of_uniform_for_wear_during_performace_of_duties', e.target.value)} />
+                          <Tooltip title="Allowance granted for expenditure incurred on purchase or maintenance of uniform for wear during performace of duties.">
+                            <TextField 
+                              fullWidth 
+                              label="Uniform Allowance (Duties)" 
+                              type="text" 
+                              value={formatIndianNumber(taxationData.salary.uniform_allowance)} 
+                              onChange={(e) => handleInputChange('salary', 'uniform_allowance', e.target.value)} 
+                              InputProps={{ startAdornment: '₹' }} 
+                              onFocus={(e) => handleFocus('salary', 'uniform_allowance', e.target.value)} 
+                            />
+                          </Tooltip>
                         </Grid>
                       </Grid>
                     </AccordionDetails>

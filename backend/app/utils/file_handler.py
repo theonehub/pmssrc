@@ -41,9 +41,8 @@ def validate_file(file: UploadFile, allowed_types: list = None, max_size: int = 
         return False, f"File type not allowed. Allowed types: {', '.join(allowed_types)}"
     
     # Check file size
-    file.seek(0, os.SEEK_END)
-    file_size = file.tell()
-    file.seek(0)  # Reset file pointer
+    file_contents = file.file.read()
+    file_size = len(file_contents)
     
     if file_size > max_size:
         return False, f"File size exceeds maximum allowed ({max_size / (1024 * 1024):.1f}MB)"

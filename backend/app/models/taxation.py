@@ -223,24 +223,18 @@ class Perquisites:
     travelling_allowance_for_treatment: float = 0
     rbi_limit_for_illness: float = 0
 
-    # Leave Travel Allowance
-    lta_amount_claimed: float = 0
-    lta_claimed_count: int = 0
-    travel_through: str = 'Air' #Railway, Air, Public Transport 
-    public_transport_travel_amount_for_same_distance: float = 0
-    lta_claim_start_date: str = ''
-    lta_claim_end_date: str = ''
+
 
     # Free Education
-    is_institute_maintained_by_employer_1st_child: bool = False
+    employer_maintained_1st_child: bool = False
     monthly_count_1st_child:int = 0
     employer_monthly_expenses_1st_child: float = 0
 
-    is_institute_maintained_by_employer_2nd_child: bool = False
+    employer_maintained_2nd_child: bool = False
     monthly_count_2nd_child:int = 0
     employer_monthly_expenses_2nd_child: float = 0
 
-
+#Done till here.
 
     # Gas, Electricity, Water
     is_gas_manufactured_by_employer: bool = False
@@ -258,6 +252,14 @@ class Perquisites:
     domestic_help_amount_paid_by_employer: float = 0
     domestic_help_amount_paid_by_employee: float = 0
     
+    # Leave Travel Allowance
+    lta_amount_claimed: float = 0
+    lta_claimed_count: int = 0
+    travel_through: str = 'Air' #Railway, Air, Public Transport 
+    public_transport_travel_amount_for_same_distance: float = 0
+    lta_claim_start_date: str = ''
+    lta_claim_end_date: str = ''
+
     # Interest-free/concessional loan
     loan_type: str = ''
     loan_amount: float = 0

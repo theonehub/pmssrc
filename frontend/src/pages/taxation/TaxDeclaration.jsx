@@ -590,7 +590,7 @@ const TaxDeclaration = () => {
             {activeStep === 0 && (
               <Grid container spacing={3}>
                 <Grid item xs={12}>
-                  <Accordion defaultExpanded>
+                  <Accordion>
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                       <Typography variant="h6" gutterBottom>Salary Components</Typography>
                     </AccordionSummary>
@@ -600,9 +600,6 @@ const TaxDeclaration = () => {
                         <Box 
                           sx={{ 
                             width: '100%', 
-                            p: 2, 
-                            mb: 3, 
-                            borderRadius: 1,
                             display: 'flex',
                             justifyContent: 'left'
                           }}
@@ -696,9 +693,6 @@ const TaxDeclaration = () => {
                         <Box 
                           sx={{ 
                             width: '100%', 
-                            p: 2, 
-                            mb: 3, 
-                            borderRadius: 1,
                             display: 'flex',
                             justifyContent: 'left'
                           }}
@@ -749,9 +743,6 @@ const TaxDeclaration = () => {
                         <Box 
                           sx={{ 
                             width: '100%', 
-                            p: 2, 
-                            mb: 3, 
-                            borderRadius: 1,
                             display: 'flex',
                             justifyContent: 'left'
                           }}
@@ -824,9 +815,6 @@ const TaxDeclaration = () => {
                         <Box 
                           sx={{ 
                             width: '100%', 
-                            p: 2, 
-                            mb: 3,
-                            borderRadius: 1,
                             display: 'flex',
                             justifyContent: 'left'
                           }}
@@ -928,9 +916,6 @@ const TaxDeclaration = () => {
                         <Box 
                           sx={{ 
                             width: '100%', 
-                            p: 2, 
-                            mb: 3, 
-                            borderRadius: 1,
                             display: 'flex',
                             justifyContent: 'left'
                           }}
@@ -953,17 +938,7 @@ const TaxDeclaration = () => {
                             </Select>
                           </FormControl>
                         </Grid>
-                        <Grid item xs={12} md={6}>
-                          <TextField
-                            fullWidth
-                            label="Govt License Fees (if applicable)"
-                            type="text"
-                            value={formatIndianNumber(taxationData.salary.perquisites?.accommodation_govt_lic_fees || 0)}
-                            onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'accommodation_govt_lic_fees', e.target.value)}
-                            InputProps={{ startAdornment: '₹' }}
-                            onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'accommodation_govt_lic_fees', e.target.value)}
-                          />
-                        </Grid>
+                        
                         <Grid item xs={12} md={6}>
                           <FormControl fullWidth>
                             <InputLabel>City Population</InputLabel>
@@ -982,6 +957,17 @@ const TaxDeclaration = () => {
                         <Grid item xs={12} md={6}>
                           <TextField
                             fullWidth
+                            label="Govt License Fees (if applicable)"
+                            type="text"
+                            value={formatIndianNumber(taxationData.salary.perquisites?.accommodation_govt_lic_fees || 0)}
+                            onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'accommodation_govt_lic_fees', e.target.value)}
+                            InputProps={{ startAdornment: '₹' }}
+                            onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'accommodation_govt_lic_fees', e.target.value)}
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
                             label="Accommodation Rent"
                             type="text"
                             value={formatIndianNumber(taxationData.salary.perquisites?.accommodation_rent || 0)}
@@ -990,6 +976,15 @@ const TaxDeclaration = () => {
                             onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'accommodation_rent', e.target.value)}
                           />
                         </Grid>
+                        <Box 
+                          sx={{ 
+                            width: '100%', 
+                            display: 'flex',
+                            justifyContent: 'left'
+                          }}
+                        >
+                          <Typography variant="h6" color="primary">Furniture</Typography>
+                        </Box>
                         <Grid item xs={12} md={6}>
                           <FormControlLabel
                             control={
@@ -1001,16 +996,37 @@ const TaxDeclaration = () => {
                             label="Furniture Provided by Employer"
                           />
                         </Grid>
-                        <Grid item xs={12} md={6}>
+                        {/* <Grid item xs={12} md={6}>
                           <TextField
                             fullWidth
-                            label="Furniture Actual Cost"
+                            label="Actual Cost"
                             type="text"
                             value={formatIndianNumber(taxationData.salary.perquisites?.furniture_actual_cost || 0)}
                             onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'furniture_actual_cost', e.target.value)}
                             InputProps={{ startAdornment: '₹' }}
                             onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'furniture_actual_cost', e.target.value)}
-                            disabled={!taxationData.salary.perquisites?.is_furniture_owned}
+                          />
+                        </Grid> */}  {/* Discuss: Its not used in calculation */}
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            label="Cost to Employer"
+                            type="text"
+                            value={formatIndianNumber(taxationData.salary.perquisites?.furniture_cost_to_employer || 0)}
+                            onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'furniture_cost_to_employer', e.target.value)}
+                            InputProps={{ startAdornment: '₹' }}
+                            onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'furniture_cost_to_employer', e.target.value)}
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            label="Cost Paid by Employee"
+                            type="text"
+                            value={formatIndianNumber(taxationData.salary.perquisites?.furniture_cost_paid_by_employee || 0)}
+                            onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'furniture_cost_paid_by_employee', e.target.value)}
+                            InputProps={{ startAdornment: '₹' }}
+                            onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'furniture_cost_paid_by_employee', e.target.value)}
                           />
                         </Grid>
                         
@@ -1020,16 +1036,26 @@ const TaxDeclaration = () => {
                         <Box 
                           sx={{ 
                             width: '100%', 
-                            p: 2, 
-                            mb: 3, 
-                            borderRadius: 1,
                             display: 'flex',
                             justifyContent: 'left'
                           }}
                         >
                           <Typography variant="h6" color="primary">Car & Transportation</Typography>
                         </Box>
-                        
+                        <Grid item xs={12} md={6}>
+                          <FormControl fullWidth>
+                            <InputLabel>Car Usage</InputLabel>
+                            <Select
+                              value={taxationData.salary.perquisites?.car_use || 'Personal'}
+                              label="Car Usage"
+                              onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'car_use', e.target.value)}
+                            >
+                              <MenuItem value="Personal">Personal</MenuItem>
+                              <MenuItem value="Business">Business</MenuItem>
+                              <MenuItem value="Mixed">Mixed</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Grid>
                         <Grid item xs={12} md={6}>
                           <FormControlLabel
                             control={
@@ -1038,7 +1064,7 @@ const TaxDeclaration = () => {
                                 onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'is_car_rating_higher', e.target.checked)}
                               />
                             }
-                            label="Car Engine Capacity > 1.6L"
+                            label="Engine Capacity > 1.6L"
                           />
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -1049,7 +1075,7 @@ const TaxDeclaration = () => {
                                 onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'is_car_employer_owned', e.target.checked)}
                               />
                             }
-                            label="Car is Employer Owned"
+                            label="Employer Owned"
                           />
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -1071,44 +1097,71 @@ const TaxDeclaration = () => {
                                 onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'is_driver_provided', e.target.checked)}
                               />
                             }
-                            label="Driver Provided by Employer"
+                            label="Employer Provided Driver"
                           />
                         </Grid>
                         <Grid item xs={12} md={6}>
-                          <FormControl fullWidth>
-                            <InputLabel>Car Usage Type</InputLabel>
-                            <Select
-                              value={taxationData.salary.perquisites?.car_use || 'Personal'}
-                              label="Car Usage Type"
-                              onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'car_use', e.target.value)}
-                            >
-                              <MenuItem value="Personal">Personal Use</MenuItem>
-                              <MenuItem value="Business">Business Use Only</MenuItem>
-                              <MenuItem value="Mixed">Mixed Use</MenuItem>
-                            </Select>
-                          </FormControl>
+                          {/*NextLine */}
                         </Grid>
                         <Grid item xs={12} md={6}>
-                          <TextField
-                            fullWidth
-                            label="Car Cost to Employer"
-                            type="text"
-                            value={formatIndianNumber(taxationData.salary.perquisites?.car_cost_to_employer || 0)}
-                            onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'car_cost_to_employer', e.target.value)}
-                            InputProps={{ startAdornment: '₹' }}
-                            onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'car_cost_to_employer', e.target.value)}
-                          />
+                          <Tooltip title="Monthly expenses incurred by employer for the car.">
+                            <TextField
+                              fullWidth
+                              label="Monthly Expenses Incurred by Employer"
+                              type="text"
+                              value={formatIndianNumber(taxationData.salary.perquisites?.car_cost_to_employer || 0)}
+                              onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'car_cost_to_employer', e.target.value)}
+                              InputProps={{ startAdornment: '₹' }}
+                              onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'car_cost_to_employer', e.target.value)}
+                            />
+                          </Tooltip>
                         </Grid>
-                        
+                        <Grid item xs={12} md={6}>
+                          <Tooltip title="Months Car is Used.">
+                            <TextField
+                              fullWidth
+                              label="Months Car is Used"
+                              type="text"
+                              value={formatIndianNumber(taxationData.salary.perquisites?.month_counts || 0)}
+                              onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'month_counts', e.target.value)}
+                              InputProps={{ startAdornment: '₹' }}
+                              onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'month_counts', e.target.value)}
+                            />
+                          </Tooltip>
+                        </Grid>
+                        <Divider sx={{ my: 4, width: '100%' }} />
+                        <Grid item xs={12} md={6}>
+                          <Tooltip title="Monthly expenses incurred by employer for the Other Vehicle.">
+                            <TextField
+                              fullWidth
+                              label="Other Vehicle Monthly Expenses Incurred by Employer"
+                              type="text"
+                              value={formatIndianNumber(taxationData.salary.perquisites?.other_vehicle_cost_to_employer || 0)}
+                              onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'other_vehicle_cost_to_employer', e.target.value)}
+                              InputProps={{ startAdornment: '₹' }}
+                              onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'other_vehicle_cost_to_employer', e.target.value)}
+                            />
+                          </Tooltip>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <Tooltip title="Months Other Vehicle is Used.">
+                            <TextField
+                              fullWidth
+                              label="Months Other Vehicle is Used"
+                              type="text"
+                              value={formatIndianNumber(taxationData.salary.perquisites?.other_vehicle_month_counts || 0)}
+                              onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'other_vehicle_month_counts', e.target.value)}
+                              InputProps={{ startAdornment: '₹' }}
+                              onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'other_vehicle_month_counts', e.target.value)}
+                            />
+                          </Tooltip>
+                        </Grid>
                         <Divider sx={{ my: 4, width: '100%' }} />
                         
                         {/* Medical & Education Perquisites */}
                         <Box 
                           sx={{ 
                             width: '100%', 
-                            p: 2, 
-                            mb: 3, 
-                            borderRadius: 1,
                             display: 'flex',
                             justifyContent: 'left'
                           }}
@@ -1136,29 +1189,118 @@ const TaxDeclaration = () => {
                             onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'medical_reimbursement_by_employer', e.target.value)}
                             InputProps={{ startAdornment: '₹' }}
                             onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'medical_reimbursement_by_employer', e.target.value)}
+                            helperText="Max Limit ₹15,000 annually"
                           />
                         </Grid>
                         <Grid item xs={12} md={6}>
                           <TextField
                             fullWidth
-                            label="LTA Amount Claimed"
+                            label="Abroad Travel Allowance"
                             type="text"
-                            value={formatIndianNumber(taxationData.salary.perquisites?.lta_amount_claimed || 0)}
-                            onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'lta_amount_claimed', e.target.value)}
+                            value={formatIndianNumber(taxationData.salary.perquisites?.travelling_allowance_for_treatment || 0)}
+                            onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'travelling_allowance_for_treatment', e.target.value)}
                             InputProps={{ startAdornment: '₹' }}
-                            onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'lta_amount_claimed', e.target.value)}
-                            helperText="Leave Travel Allowance claimed"
+                            onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'travelling_allowance_for_treatment', e.target.value)}
+                            disabled={!taxationData.salary.perquisites?.is_treated_in_India}
                           />
                         </Grid>
                         <Grid item xs={12} md={6}>
                           <TextField
                             fullWidth
-                            label="Free Education Actual Expenses"
+                            label="RBI Limit for Illness"
                             type="text"
-                            value={formatIndianNumber(taxationData.salary.perquisites?.free_education_actual_expenses || 0)}
-                            onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'free_education_actual_expenses', e.target.value)}
+                            value={formatIndianNumber(taxationData.salary.perquisites?.rbi_limit_for_illness || 0)}
+                            onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'rbi_limit_for_illness', e.target.value)}
                             InputProps={{ startAdornment: '₹' }}
-                            onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'free_education_actual_expenses', e.target.value)}
+                            onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'rbi_limit_for_illness', e.target.value)}
+                            disabled={!taxationData.salary.perquisites?.is_treated_in_India}
+                          />
+                        </Grid>
+                        
+                        <Divider sx={{ my: 4, width: '100%' }} />
+
+                        {/* Free Education Perquisites */}
+                        <Box 
+                          sx={{ 
+                            width: '100%', 
+                            display: 'flex',
+                            justifyContent: 'left'
+                          }}
+                        >
+                          <Typography variant="h6" color="primary">Free Education</Typography>
+                        </Box>
+                        <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                          <Typography variant="h6" color="primary">2nd Child</Typography>
+                        </Box>
+                        
+                        <Grid item xs={12} md={6}>
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={taxationData.salary.perquisites?.employer_maintained_1st_child || false}
+                                onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'employer_maintained_1st_child', e.target.checked)}
+                              />
+                            }
+                            label="Institute is Employer's Maintained"
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            label="Employer's Monthly Cost"
+                            type="text"
+                            value={formatIndianNumber(taxationData.salary.perquisites?.employer_monthly_expenses_1st_child || 0)}
+                            onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'employer_monthly_expenses_1st_child', e.target.value)}
+                            InputProps={{ startAdornment: '₹' }}
+                            onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'employer_monthly_expenses_1st_child', e.target.value)}
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            label="Education Months"
+                            type="text"
+                            value={formatIndianNumber(taxationData.salary.perquisites?.monthly_count_1st_child || 0)}
+                            onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'monthly_count_1st_child', e.target.value)}
+                            InputProps={{ startAdornment: '₹' }}
+                            onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'monthly_count_1st_child', e.target.value)}
+                          />
+                        </Grid>
+                        <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                          <Typography variant="h6" color="primary">2nd Child</Typography>
+                        </Box>
+                        
+                        <Grid item xs={12} md={6}>
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={taxationData.salary.perquisites?.employer_maintained_2nd_child || false}
+                                onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'employer_maintained_2nd_child', e.target.checked)}
+                              />
+                            }
+                            label="Institute is Employer's Maintained"
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            label="Employer's Monthly Cost"
+                            type="text"
+                            value={formatIndianNumber(taxationData.salary.perquisites?.employer_monthly_expenses_2nd_child || 0)}
+                            onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'employer_monthly_expenses_2nd_child', e.target.value)}
+                            InputProps={{ startAdornment: '₹' }}
+                            onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'employer_monthly_expenses_2nd_child', e.target.value)}
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            fullWidth
+                            label="Education Months"
+                            type="text"
+                            value={formatIndianNumber(taxationData.salary.perquisites?.monthly_count_2nd_child || 0)}
+                            onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'monthly_count_2nd_child', e.target.value)}
+                            InputProps={{ startAdornment: '₹' }}
+                            onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'monthly_count_2nd_child', e.target.value)}
                           />
                         </Grid>
                         

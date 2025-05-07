@@ -27,4 +27,5 @@ package-lock.json
 .idx
 .vscode
 env
+backend/uploads/
 backend/app/uploads/

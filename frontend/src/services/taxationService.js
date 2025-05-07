@@ -76,16 +76,227 @@ export const saveTaxationData = async (taxationData) => {
       taxationData.salary = {
         basic: 0,
         dearness_allowance: 0,
+        hra_city: 'Others',
+        hra_percentage: 0.4,
         hra: 0,
         special_allowance: 0,
         bonus: 0,
         perquisites: {
+          // Accommodation perquisites
+          accommodation_provided: 'Employer-Owned', 
+          accommodation_govt_lic_fees: 0,
+          accommodation_city_population: 'Exceeding 40 lakhs in 2011 Census',
+          accommodation_rent: 0,
+          is_furniture_owned: false,
+          furniture_actual_cost: 0,
+          furniture_cost_to_employer: 0,
+          furniture_cost_paid_by_employee: 0,
+          
+          // Car perquisites
+          is_car_rating_higher: false,
+          is_car_employer_owned: false,
+          is_expenses_reimbursed: false, 
+          is_driver_provided: false,
+          car_use: 'Personal',
+          car_cost_to_employer: 0,
+          month_counts: 0,
+          other_vehicle_cost: 0,
+          other_vehicle_months: 0,
+          
+          // Medical Reimbursement
+          is_treated_in_India: false,
+          medical_reimbursement_by_employer: 0,
+          
+          // Leave Travel Allowance
+          lta_amount_claimed: 0,
+          lta_claimed_count: 0,
+          travel_through: 'Air',
+          public_transport_travel_amount_for_same_distance: 0,
+          lta_claim_start_date: '',
+          lta_claim_end_date: '',
+          
+          // Free Education
+          free_education_actual_expenses: 0,
+          free_education_is_institute_by_employer: false,
+          free_education_similar_institute_cost: 0,
+          
+          // Gas, Electricity, Water
+          gas_amount_paid_by_employer: 0,
+          electricity_amount_paid_by_employer: 0,
+          water_amount_paid_by_employer: 0,
+          gas_amount_paid_by_employee: 0,
+          electricity_amount_paid_by_employee: 0,
+          water_amount_paid_by_employee: 0,
+          
+          // Domestic help
+          domestic_help_amount_paid_by_employer: 0,
+          domestic_help_amount_paid_by_employee: 0,
+          
+          // Interest-free/concessional loan
+          loan_type: '',
+          loan_amount: 0,
+          loan_interest_rate_company: 0,
+          loan_interest_rate_sbi: 0,
+          monthly_interest_amount_sbi: 0,
+          monthly_interest_amount_company: 0,
+          
+          // Lunch/Refreshment
+          lunch_amount_paid_by_employer: 0,
+          lunch_amount_paid_by_employee: 0,
+          
+          // ESOP & Stock Options fields
+          number_of_esop_shares_awarded: 0,
+          esop_exercise_price_per_share: 0,
+          esop_allotment_price_per_share: 0,
+          grant_date: null,
+          vesting_date: null,
+          exercise_date: null,
+          vesting_period: 0,
+          exercise_period: 0,
+          exercise_price_per_share: 0,
+          
+          // Movable Asset
+          movable_asset_type: 'Electronics',
+          movable_asset_value_to_employer: 0,
+          movable_asset_value_to_employee: 0,
+          number_of_completed_years_of_use: 0,
+          
+          // Monetary Benefits
+          monetary_amount_paid_by_employer: 0,
+          expenditure_for_offical_purpose: 0,
+          monetary_benefits_amount_paid_by_employee: 0,
+          gift_vouchers_amount_paid_by_employer: 0,
+          
+          // Club Expenses
+          club_expenses_amount_paid_by_employer: 0,
+          club_expenses_amount_paid_by_employee: 0,
+          club_expenses_amount_paid_for_offical_purpose: 0
         }
       };
     } else if (!taxationData.salary.perquisites) {
       // Initialize perquisites if missing
       taxationData.salary.perquisites = {
+        // Accommodation perquisites
+        accommodation_provided: 'Employer-Owned', 
+        accommodation_govt_lic_fees: 0,
+        accommodation_city_population: 'Exceeding 40 lakhs in 2011 Census',
+        accommodation_rent: 0,
+        is_furniture_owned: false,
+        furniture_actual_cost: 0,
+        furniture_cost_to_employer: 0,
+        furniture_cost_paid_by_employee: 0,
+        
+        // Car perquisites
+        is_car_rating_higher: false,
+        is_car_employer_owned: false,
+        is_expenses_reimbursed: false, 
+        is_driver_provided: false,
+        car_use: 'Personal',
+        car_cost_to_employer: 0,
+        month_counts: 0,
+        other_vehicle_cost: 0,
+        other_vehicle_months: 0,
+        
+        // Medical Reimbursement
+        is_treated_in_India: false,
+        medical_reimbursement_by_employer: 0,
+        
+        // Leave Travel Allowance
+        lta_amount_claimed: 0,
+        lta_claimed_count: 0,
+        travel_through: 'Air',
+        public_transport_travel_amount_for_same_distance: 0,
+        lta_claim_start_date: '',
+        lta_claim_end_date: '',
+        
+        // Free Education
+        free_education_actual_expenses: 0,
+        free_education_is_institute_by_employer: false,
+        free_education_similar_institute_cost: 0,
+        
+        // Gas, Electricity, Water
+        gas_amount_paid_by_employer: 0,
+        electricity_amount_paid_by_employer: 0,
+        water_amount_paid_by_employer: 0,
+        gas_amount_paid_by_employee: 0,
+        electricity_amount_paid_by_employee: 0,
+        water_amount_paid_by_employee: 0,
+        
+        // Domestic help
+        domestic_help_amount_paid_by_employer: 0,
+        domestic_help_amount_paid_by_employee: 0,
+        
+        // Interest-free/concessional loan
+        loan_type: '',
+        loan_amount: 0,
+        loan_interest_rate_company: 0,
+        loan_interest_rate_sbi: 0,
+        monthly_interest_amount_sbi: 0,
+        monthly_interest_amount_company: 0,
+        
+        // Lunch/Refreshment
+        lunch_amount_paid_by_employer: 0,
+        lunch_amount_paid_by_employee: 0,
+        
+        // ESOP & Stock Options fields
+        number_of_esop_shares_awarded: 0,
+        esop_exercise_price_per_share: 0,
+        esop_allotment_price_per_share: 0,
+        grant_date: null,
+        vesting_date: null,
+        exercise_date: null,
+        vesting_period: 0,
+        exercise_period: 0,
+        exercise_price_per_share: 0,
+        
+        // Movable Asset
+        movable_asset_type: 'Electronics',
+        movable_asset_value_to_employer: 0,
+        movable_asset_value_to_employee: 0,
+        number_of_completed_years_of_use: 0,
+        
+        // Monetary Benefits
+        monetary_amount_paid_by_employer: 0,
+        expenditure_for_offical_purpose: 0,
+        monetary_benefits_amount_paid_by_employee: 0,
+        gift_vouchers_amount_paid_by_employer: 0,
+        
+        // Club Expenses
+        club_expenses_amount_paid_by_employer: 0,
+        club_expenses_amount_paid_by_employee: 0,
+        club_expenses_amount_paid_for_offical_purpose: 0
       };
+    } else {
+      // Make sure all new perquisite fields exist
+      const newPerquisiteFields = [
+        // ESOP & Stock Options fields
+        'grant_date', 'vesting_date', 'exercise_date', 'vesting_period',
+        'exercise_period', 'exercise_price_per_share',
+        
+        // Movable Asset
+        'movable_asset_type', 'movable_asset_value_to_employer',
+        'movable_asset_value_to_employee', 'number_of_completed_years_of_use',
+        
+        // Monetary Benefits
+        'monetary_amount_paid_by_employer', 'expenditure_for_offical_purpose',
+        'monetary_benefits_amount_paid_by_employee', 'gift_vouchers_amount_paid_by_employer',
+        
+        // Club Expenses
+        'club_expenses_amount_paid_by_employer', 'club_expenses_amount_paid_by_employee',
+        'club_expenses_amount_paid_for_offical_purpose'
+      ];
+      
+      newPerquisiteFields.forEach(field => {
+        if (taxationData.salary.perquisites[field] === undefined) {
+          if (field === 'grant_date' || field === 'vesting_date' || field === 'exercise_date') {
+            taxationData.salary.perquisites[field] = null;
+          } else if (field === 'movable_asset_type') {
+            taxationData.salary.perquisites[field] = 'Electronics';
+          } else {
+            taxationData.salary.perquisites[field] = 0;
+          }
+        }
+      });
     }
 
     // Initialize other_sources if missing

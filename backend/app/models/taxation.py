@@ -1,6 +1,10 @@
 from dataclasses import dataclass
 from datetime import date
+import json
 from typing import Optional, Dict, Any, List
+import logging
+import datetime
+logger = logging.getLogger(__name__)
 
 section_80g_100_wo_ql_heads = [
     "National Defence Fund set up by Central Government",
@@ -53,7 +57,7 @@ class IncomeFromOtherSources:
             if age >= 60:
                 deduction = 50000
 
-        return sum([
+        return max(0, sum([
             self.interest_savings,
             self.interest_fd,
             self.interest_rd,
@@ -61,7 +65,7 @@ class IncomeFromOtherSources:
             self.gifts,
             self.other_interest,
             self.other_income
-        ]) - deduction
+        ]) - deduction)
 
     def total(self) -> float:
         """Calculate total income from other sources"""
@@ -74,6 +78,20 @@ class IncomeFromOtherSources:
             self.other_interest,
             self.other_income
         ])
+        
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the object to a dictionary for JSON serialization."""
+        return {
+            "regime": self.regime,
+            "age": self.age,
+            "interest_savings": self.interest_savings,
+            "interest_fd": self.interest_fd,
+            "interest_rd": self.interest_rd,
+            "dividend_income": self.dividend_income,
+            "gifts": self.gifts,
+            "other_interest": self.other_interest,
+            "other_income": self.other_income
+        }
 
 @dataclass
 class IncomeFromHouseProperty:
@@ -97,7 +115,16 @@ class IncomeFromHouseProperty:
 
         return self.rent_income - self.property_tax - self.standard_deduction - interest
         
-    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the object to a dictionary for JSON serialization."""
+        return {
+            "occupancy_status": self.occupancy_status,
+            "rent_income": self.rent_income,
+            "property_tax": self.property_tax,
+            "standard_deduction": self.standard_deduction,
+            "interest_on_home_loan": self.interest_on_home_loan
+        }
+
 @dataclass
 class CapitalGains:
     stcg_111a: float = 0    # Short Term Capital Gain from listed equity shares 
@@ -135,6 +162,17 @@ class CapitalGains:
             self.total_stcg_slab_rate() +
             self.total_ltcg_special_rate()
         )
+        
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the object to a dictionary for JSON serialization."""
+        return {
+            "stcg_111a": self.stcg_111a,
+            "stcg_any_other_asset": self.stcg_any_other_asset,
+            "stcg_debt_mutual_fund": self.stcg_debt_mutual_fund,
+            "ltcg_112a": self.ltcg_112a,
+            "ltcg_any_other_asset": self.ltcg_any_other_asset,
+            "ltcg_debt_mutual_fund": self.ltcg_debt_mutual_fund
+        }
 
 @dataclass
 class BusinessProfessionalIncome:
@@ -143,6 +181,13 @@ class BusinessProfessionalIncome:
     
     def total_taxable_income_per_slab(self):
         return self.business_income + self.professional_income
+        
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the object to a dictionary for JSON serialization."""
+        return {
+            "business_income": self.business_income,
+            "professional_income": self.professional_income
+        }
 
 @dataclass
 class Perquisites:
@@ -167,7 +212,7 @@ class Perquisites:
     is_expenses_reimbursed: bool = False
     is_driver_provided: bool = False
     car_use: str = 'Personal'  # Personal, Business, Mixed
-    car_cost_to_employer: float = 0
+    car_cost_to_employer: float = 0     # expense incurred by employer
     month_counts: int = 0
     other_vehicle_cost: float = 0
     other_vehicle_months: int = 0
@@ -175,27 +220,44 @@ class Perquisites:
     # Medical Reimbursement
     is_treated_in_India: bool = False
     medical_reimbursement_by_employer: float = 0
+    travelling_allowance_for_treatment: float = 0
+    rbi_limit_for_illness: float = 0
+
     # Leave Travel Allowance
     lta_amount_claimed: float = 0
     lta_claimed_count: int = 0
-    travel_through: str = 'Air'
+    travel_through: str = 'Air' #Railway, Air, Public Transport 
     public_transport_travel_amount_for_same_distance: float = 0
     lta_claim_start_date: str = ''
     lta_claim_end_date: str = ''
+
     # Free Education
-    free_education_actual_expenses: float = 0
-    free_education_is_institute_by_employer: bool = False
-    free_education_similar_institute_cost: float = 0
+    is_institute_maintained_by_employer_1st_child: bool = False
+    monthly_count_1st_child:int = 0
+    employer_monthly_expenses_1st_child: float = 0
+
+    is_institute_maintained_by_employer_2nd_child: bool = False
+    monthly_count_2nd_child:int = 0
+    employer_monthly_expenses_2nd_child: float = 0
+
+
+
     # Gas, Electricity, Water
-    gas_amount_paid_by_employer: float = 0
+    is_gas_manufactured_by_employer: bool = False
+    gas_amount_paid_by_employer: float = 0   #on basis of manufactured flag change text of amount paid by employer
+    is_electricity_manufactured_by_employer: bool = False
     electricity_amount_paid_by_employer: float = 0
+    is_water_manufactured_by_employer: bool = False
     water_amount_paid_by_employer: float = 0
+
     gas_amount_paid_by_employee: float = 0
     electricity_amount_paid_by_employee: float = 0
     water_amount_paid_by_employee: float = 0
+
     # Domestic help
     domestic_help_amount_paid_by_employer: float = 0
     domestic_help_amount_paid_by_employee: float = 0
+    
     # Interest-free/concessional loan
     loan_type: str = ''
     loan_amount: float = 0
@@ -237,14 +299,14 @@ class Perquisites:
         if regime == 'new':
             return 0
         
+        if self.is_furniture_owned:
+            furniture_value = (self.furniture_cost_to_employer * 0.1) - self.furniture_cost_paid_by_employee
+        else:
+            furniture_value = self.furniture_cost_to_employer - self.furniture_cost_paid_by_employee
+
         if self.accommodation_provided == 'Govt':
-                return self.accommodation_govt_lic_fees - self.accommodation_rent
+            return self.accommodation_govt_lic_fees - self.accommodation_rent + furniture_value
         elif self.accommodation_provided == 'Employer-Owned':
-            if self.is_furniture_owned:
-                furniture_value = self.furniture_cost_to_employer * 0.1
-            else:
-                furniture_value = self.furniture_cost_to_employer - \
-                                    self.furniture_cost_paid_by_employee
 
             if self.accommodation_city_population == 'Exceeding 40 lakhs in 2011 Census':
                 return (gross_salary * 0.1) + furniture_value
@@ -253,11 +315,9 @@ class Perquisites:
             elif self.accommodation_city_population == 'Below 15 lakhs in 2011 Census':
                 return gross_salary * 0.05
         elif self.accommodation_provided == 'Employer-Leased':
-            furniture_value = min(self.furniture_actual_cost * 0.10, 
-                                  self.furniture_cost_to_employer)
             return ((min(self.accommodation_rent, (gross_salary * 0.10))) + furniture_value)
         elif self.accommodation_provided == 'Hotel provided for 15 days or above':
-            return min(self.accommodation_rent, (gross_salary * 0.24))
+            return min(self.accommodation_rent, (gross_salary * 0.24)) - self.furniture_cost_paid_by_employee
         else:
             return 0
 
@@ -266,35 +326,36 @@ class Perquisites:
         if regime == 'new':
             return 0
         
-        if self.is_car_employer_owned:
-            if self.car_use == 'Personal':
-                return (self.car_cost_to_employer * self.month_counts) + \
-                        (self.other_vehicle_cost - 900) * self.other_vehicle_months
-            elif self.car_use == 'Business':
-                return ((self.other_vehicle_cost - 900) * self.other_vehicle_months)
-        
-        if self.is_expenses_reimbursed:
-            value = 1800 if self.is_car_rating_higher else 2400
-            if self.is_driver_provided:
-                value += 900
-            return (value * self.month_counts) + ((self.other_vehicle_cost - 900) 
-                                                  * self.other_vehicle_months)
-        else:
-            value = 600 if self.is_car_rating_higher else 900
-            if self.is_driver_provided:
-                value += 900
-            return ((value * self.month_counts) + ((self.other_vehicle_cost - 900) 
-                                                  * self.other_vehicle_months))
+        #if self.is_car_employer_owned_hired car its owned or not but computation is same - Discussed with Viral ji
+        if self.car_use == 'Personal':
+            return (self.car_cost_to_employer * self.month_counts) + \
+                    (self.other_vehicle_cost - 900) * self.other_vehicle_months
+        elif self.car_use == 'Mixed':
+            if self.is_expenses_reimbursed:
+                value = 1800 if self.is_car_rating_higher else 2400
+                if self.is_driver_provided:
+                    value += 900
+                return (value * self.month_counts) + ((self.other_vehicle_cost - 900) 
+                                                    * self.other_vehicle_months)
+            else:
+                value = 600 if self.is_car_rating_higher else 900
+                if self.is_driver_provided:
+                    value += 900
+                return ((value * self.month_counts) + ((self.other_vehicle_cost - 900) 
+                                                    * self.other_vehicle_months))
     
-    def total_medical_reimbursement(self, regime: str = 'new') -> float:
+    def total_medical_reimbursement(self, gross_salary: float, regime: str = 'new') -> float:
         """Taxable value of medical reimbursement (exempt up to 15,000 if treated in India)."""
         if regime == 'new':
             return 0
+        
+        elif self.is_treated_in_India:
+            return max(0, self.medical_reimbursement_by_employer - 15000)
         else:
-            if self.is_treated_in_India:
-                return min(self.medical_reimbursement_by_employer, 15000)
-            else:
-                return self.medical_reimbursement_by_employer
+            travel_value = 0
+            if gross_salary < 200000:   #2L
+                travel_value = self.travelling_allowance_for_treatment ###TODO need to check in further discussions
+            return travel_value + min(0, self.medical_reimbursement_by_employer - self.rbi_limit_for_illness)
 
     def total_lta_value(self, regime: str = 'new') -> float:
         """Taxable value of Leave Travel Allowance (LTA)."""
@@ -313,16 +374,12 @@ class Perquisites:
             return 0
         else:
             monthly_exemption = 1000  # Rs. 1,000 per month
-            annual_exemption = monthly_exemption * 12  # Rs. 12,000 per year
-            
-            if self.free_education_is_institute_by_employer:
-                # If education is provided in employer's institute
-                taxable_value = max(0, self.free_education_similar_institute_cost - annual_exemption)
-            else:
-                # If employer pays for education elsewhere
-                taxable_value = max(0, self.free_education_actual_expenses - annual_exemption)
-            
-            return taxable_value
+            value = 0
+            if (self.monthly_count_1st_child > 0):
+                value = max(0, self.employer_monthly_expenses_1st_child - monthly_exemption) * self.monthly_count_1st_child
+            if (self.monthly_count_2nd_child > 0):
+                value += max(0, self.employer_monthly_expenses_2nd_child - monthly_exemption) * self.monthly_count_2nd_child
+            return value
 
     def total_gas_electricity_water_value(self, regime: str = 'new') -> float:
         """Taxable value of gas, electricity, and water perquisite."""
@@ -434,6 +491,75 @@ class Perquisites:
         total_value += self.total_gift_vouchers_value(regime)
         total_value += self.total_club_expenses_value(regime)
         return total_value
+    
+    def to_dict(self) -> Dict[str, Any]:
+        logger.info(f"Post4")
+        return { 
+            "accommodation_provided": self.accommodation_provided,
+            "accommodation_govt_lic_fees": self.accommodation_govt_lic_fees,
+            "accommodation_city_population": self.accommodation_city_population,
+            "accommodation_rent": self.accommodation_rent,
+            "is_furniture_owned": self.is_furniture_owned,
+            "furniture_actual_cost": self.furniture_actual_cost,
+            "furniture_cost_to_employer": self.furniture_cost_to_employer,
+            "furniture_cost_paid_by_employee": self.furniture_cost_paid_by_employee,
+            "is_car_rating_higher": self.is_car_rating_higher,
+            "is_car_employer_owned": self.is_car_employer_owned,
+            "is_expenses_reimbursed": self.is_expenses_reimbursed,
+            "is_driver_provided": self.is_driver_provided,
+            "car_use": self.car_use,
+            "car_cost_to_employer": self.car_cost_to_employer,
+            "month_counts": self.month_counts,
+            "other_vehicle_cost": self.other_vehicle_cost,
+            "other_vehicle_months": self.other_vehicle_months,
+            "is_treated_in_India": self.is_treated_in_India,
+            "medical_reimbursement_by_employer": self.medical_reimbursement_by_employer,
+            "lta_amount_claimed": self.lta_amount_claimed,
+            "lta_claimed_count": self.lta_claimed_count,
+            "travel_through": self.travel_through,
+            "public_transport_travel_amount_for_same_distance": self.public_transport_travel_amount_for_same_distance,
+            "lta_claim_start_date": self.lta_claim_start_date,
+            "lta_claim_end_date": self.lta_claim_end_date,
+            "free_education_is_institute_by_employer": self.free_education_is_institute_by_employer,
+            "free_education_similar_institute_cost": self.free_education_similar_institute_cost,
+            "free_education_actual_expenses": self.free_education_actual_expenses,
+            "gas_amount_paid_by_employer": self.gas_amount_paid_by_employer,
+            "electricity_amount_paid_by_employer": self.electricity_amount_paid_by_employer,
+            "water_amount_paid_by_employer": self.water_amount_paid_by_employer,
+            "gas_amount_paid_by_employee": self.gas_amount_paid_by_employee,
+            "electricity_amount_paid_by_employee": self.electricity_amount_paid_by_employee,
+            "water_amount_paid_by_employee": self.water_amount_paid_by_employee,
+            "domestic_help_amount_paid_by_employer": self.domestic_help_amount_paid_by_employer,
+            "domestic_help_amount_paid_by_employee": self.domestic_help_amount_paid_by_employee,
+            "loan_type": self.loan_type,
+            "loan_amount": self.loan_amount,
+            "loan_interest_rate_company": self.loan_interest_rate_company,
+            "loan_interest_rate_sbi": self.loan_interest_rate_sbi,
+            "monthly_interest_amount_company": self.monthly_interest_amount_company,
+            "monthly_interest_amount_sbi": self.monthly_interest_amount_sbi,
+            "lunch_amount_paid_by_employer": self.lunch_amount_paid_by_employer,
+            "lunch_amount_paid_by_employee": self.lunch_amount_paid_by_employee,
+            "number_of_esop_shares_awarded": self.number_of_esop_shares_awarded,
+            "esop_exercise_price_per_share": self.esop_exercise_price_per_share,
+            "esop_allotment_price_per_share": self.esop_allotment_price_per_share,
+            "grant_date": self.grant_date.isoformat() if self.grant_date else None,
+            "vesting_date": self.vesting_date.isoformat() if self.vesting_date else None,
+            "exercise_date": self.exercise_date.isoformat() if self.exercise_date else None,
+            "vesting_period": self.vesting_period,
+            "exercise_period": self.exercise_period,
+            "exercise_price_per_share": self.exercise_price_per_share,
+            "movable_asset_type": self.movable_asset_type,
+            "movable_asset_value_to_employer": self.movable_asset_value_to_employer,
+            "movable_asset_value_to_employee": self.movable_asset_value_to_employee,
+            "number_of_completed_years_of_use": self.number_of_completed_years_of_use,
+            "monetary_amount_paid_by_employer": self.monetary_amount_paid_by_employer,
+            "expenditure_for_offical_purpose": self.expenditure_for_offical_purpose,
+            "monetary_benefits_amount_paid_by_employee": self.monetary_benefits_amount_paid_by_employee,
+            "gift_vouchers_amount_paid_by_employer": self.gift_vouchers_amount_paid_by_employer,
+            "club_expenses_amount_paid_by_employer": self.club_expenses_amount_paid_by_employer,
+            "club_expenses_amount_paid_by_employee": self.club_expenses_amount_paid_by_employee,
+            "club_expenses_amount_paid_for_offical_purpose": self.club_expenses_amount_paid_for_offical_purpose
+        }
 
 @dataclass
 class SalaryComponents:
@@ -443,6 +569,8 @@ class SalaryComponents:
     """
     basic: float = 0
     dearness_allowance: float = 0
+    hra_city: str = 'Others'
+    hra_percentage: float = 0
     hra: float = 0
     special_allowance: float = 0
     bonus: float = 0
@@ -458,39 +586,75 @@ class SalaryComponents:
     tiffin_allowance: float = 0
     fixed_medical_allowance: float = 0
     servant_allowance: float = 0
-    allowances_to_government_employees_outside_india: float = 0
-    allowance_to_high_court_supreme_court_judges: float = 0
-    compensatory_allowance_received_by_a_judge: float = 0
-    special_allowances_exempt_under_section_10_14: float = 0
-    allowance_granted_to_meet_cost_of_travel_on_tour: float = 0
-    allowance_granted_to_meet_cost_of_daily_charges_incurred_on_tour: float = 0
-    allowance_granted_to_meet_expenditure_incurred_on_conveyance_in_performace_of_duties: float = 0
-    allowance_granted_to_meet_expenditure_incurred_on_helper_in_performace_of_duties: float = 0
-    allowance_granted_for_encouraging_the_academic_research_training_pursuits_in_educational_research_institutions: float = 0
-    allowance_granted_for_expenditure_incurred_on_purchase_or_maintenance_of_uniform_for_wear_during_performace_of_duties: float = 0
+    any_other_allowance: float = 0
+    any_other_allowance_exempted: float = 0         #need to be deducted from total
+    allowances_to_government_employees_outside_india: float = 0         #exempted
+    allowance_to_high_court_supreme_court_judges: float = 0             #exempted
+    compensatory_allowance_received_by_a_judge: float = 0              #exempted
+    special_allowances_exempt_under_section_10_14: float = 0           #exempted
+    allowance_granted_to_meet_cost_of_travel_on_tour: float = 0          #exempted
+    allowance_granted_to_meet_cost_of_daily_charges_incurred_on_tour: float = 0  #exempted
+    allowance_granted_to_meet_expenditure_incurred_on_conveyance_in_performace_of_duties: float = 0  #exempted
+    allowance_granted_to_meet_expenditure_incurred_on_helper_in_performace_of_duties: float = 0  #exempted      
+    allowance_granted_for_encouraging_the_academic_research_training_pursuits_in_educational_research_institutions: float = 0 #exempted 
+    allowance_granted_for_expenditure_incurred_on_purchase_or_maintenance_of_uniform_for_wear_during_performace_of_duties: float = 0 #exempted
     perquisites: Optional[Perquisites] = None
 
     def total(self, regime: str = 'new') -> float:
         """
         Calculate total taxable salary including all components and perquisites.
         """
+        if regime == 'old':
+            hra = (self.basic + self.dearness_allowance) * self.hra_percentage
+        else:
+            hra = 0
+
+        logger.info(f"Salary Components - {json.dumps(self.to_dict(), indent=2)}")
+
         base_total = (
-            self.basic + self.dearness_allowance + self.hra + self.special_allowance +
+            self.basic + self.dearness_allowance + max(0, self.hra - hra) + self.special_allowance +
             self.bonus + self.commission + self.city_compensatory_allowance + self.rural_allowance +
             self.proctorship_allowance + self.wardenship_allowance + self.project_allowance +
             self.deputation_allowance + self.overtime_allowance + self.interim_relief +
-            self.tiffin_allowance + self.fixed_medical_allowance + self.servant_allowance +
-            self.allowances_to_government_employees_outside_india + self.allowance_to_high_court_supreme_court_judges +
-            self.compensatory_allowance_received_by_a_judge + self.special_allowances_exempt_under_section_10_14 +
-            self.allowance_granted_to_meet_cost_of_travel_on_tour + self.allowance_granted_to_meet_cost_of_daily_charges_incurred_on_tour +
-            self.allowance_granted_to_meet_expenditure_incurred_on_conveyance_in_performace_of_duties +
-            self.allowance_granted_to_meet_expenditure_incurred_on_helper_in_performace_of_duties +
-            self.allowance_granted_for_encouraging_the_academic_research_training_pursuits_in_educational_research_institutions +
-            self.allowance_granted_for_expenditure_incurred_on_purchase_or_maintenance_of_uniform_for_wear_during_performace_of_duties
+            self.tiffin_allowance + self.fixed_medical_allowance + self.servant_allowance
         )
         if self.perquisites:
             base_total += self.perquisites.total(regime)
         return base_total
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "basic": self.basic,
+            "dearness_allowance": self.dearness_allowance,
+            "hra_city": self.hra_city,
+            "hra_percentage": self.hra_percentage,
+            "hra": self.hra,
+            "special_allowance": self.special_allowance,
+            "bonus": self.bonus,
+            "commission": self.commission,
+            "city_compensatory_allowance": self.city_compensatory_allowance,
+            "rural_allowance": self.rural_allowance,
+            "proctorship_allowance": self.proctorship_allowance,
+            "wardenship_allowance": self.wardenship_allowance,
+            "project_allowance": self.project_allowance,
+            "deputation_allowance": self.deputation_allowance,
+            "overtime_allowance": self.overtime_allowance,
+            "interim_relief": self.interim_relief,
+            "tiffin_allowance": self.tiffin_allowance,
+            "fixed_medical_allowance": self.fixed_medical_allowance,
+            "servant_allowance": self.servant_allowance,
+            "allowances_to_government_employees_outside_india": self.allowances_to_government_employees_outside_india,
+            "allowance_to_high_court_supreme_court_judges": self.allowance_to_high_court_supreme_court_judges,
+            "compensatory_allowance_received_by_a_judge": self.compensatory_allowance_received_by_a_judge,
+            "special_allowances_exempt_under_section_10_14": self.special_allowances_exempt_under_section_10_14,
+            "allowance_granted_to_meet_cost_of_travel_on_tour": self.allowance_granted_to_meet_cost_of_travel_on_tour,
+            "allowance_granted_to_meet_cost_of_daily_charges_incurred_on_tour": self.allowance_granted_to_meet_cost_of_daily_charges_incurred_on_tour,
+            "allowance_granted_to_meet_expenditure_incurred_on_conveyance_in_performace_of_duties": self.allowance_granted_to_meet_expenditure_incurred_on_conveyance_in_performace_of_duties,
+            "allowance_granted_to_meet_expenditure_incurred_on_helper_in_performace_of_duties": self.allowance_granted_to_meet_expenditure_incurred_on_helper_in_performace_of_duties,
+            "allowance_granted_for_encouraging_the_academic_research_training_pursuits_in_educational_research_institutions": self.allowance_granted_for_encouraging_the_academic_research_training_pursuits_in_educational_research_institutions,
+            "allowance_granted_for_expenditure_incurred_on_purchase_or_maintenance_of_uniform_for_wear_during_performace_of_duties": self.allowance_granted_for_expenditure_incurred_on_purchase_or_maintenance_of_uniform_for_wear_during_performace_of_duties,
+            "perquisites": self.perquisites.to_dict() if self.perquisites else None
+        }
 
 @dataclass
 class DeductionComponents:
@@ -726,7 +890,50 @@ class DeductionComponents:
         """Alias for total_deduction to maintain compatibility."""
         return self.total_deduction(regime, is_govt_employee, gross_income, age, ev_purchase_date)
 
-
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the object to a dictionary for JSON serialization."""
+        return {
+            "regime": self.regime,
+            "age": self.age,
+            "section_80c_lic": self.section_80c_lic,
+            "section_80c_epf": self.section_80c_epf,
+            "section_80c_ssp": self.section_80c_ssp,
+            "section_80c_nsc": self.section_80c_nsc,
+            "section_80c_ulip": self.section_80c_ulip,
+            "section_80c_tsmf": self.section_80c_tsmf,
+            "section_80c_tffte2c": self.section_80c_tffte2c,
+            "section_80c_paphl": self.section_80c_paphl,
+            "section_80c_sdpphp": self.section_80c_sdpphp,
+            "section_80c_tsfdsb": self.section_80c_tsfdsb,
+            "section_80c_scss": self.section_80c_scss,
+            "section_80c_others": self.section_80c_others,
+            "section_80ccc_ppic": self.section_80ccc_ppic,
+            "section_80ccd_1_nps": self.section_80ccd_1_nps,
+            "section_80ccd_1b_additional": self.section_80ccd_1b_additional,
+            "section_80ccd_2_enps": self.section_80ccd_2_enps,
+            "section_80d_hisf": self.section_80d_hisf,
+            "section_80d_phcs": self.section_80d_phcs,
+            "section_80d_hi_parent": self.section_80d_hi_parent,
+            "relation_80dd": self.relation_80dd,
+            "disability_percentage": self.disability_percentage,
+            "section_80dd": self.section_80dd,
+            "relation_80ddb": self.relation_80ddb,
+            "age_80ddb": self.age_80ddb,
+            "section_80ddb": self.section_80ddb,
+            "section_80eeb": self.section_80eeb,
+            "ev_purchase_date": self.ev_purchase_date.isoformat() if hasattr(self, 'ev_purchase_date') and self.ev_purchase_date else None,
+            "section_80g_100_wo_ql": self.section_80g_100_wo_ql,
+            "section_80g_100_head": self.section_80g_100_head,
+            "section_80g_50_wo_ql": self.section_80g_50_wo_ql,
+            "section_80g_50_head": self.section_80g_50_head,
+            "section_80g_100_ql": self.section_80g_100_ql,
+            "section_80g_100_ql_head": self.section_80g_100_ql_head,
+            "section_80g_50_ql": self.section_80g_50_ql,
+            "section_80g_50_ql_head": self.section_80g_50_ql_head,
+            "section_80ggc": self.section_80ggc,
+            "section_80u": self.section_80u,
+            "disability_percentage_80u": self.disability_percentage_80u
+        }
 
 @dataclass
 class Taxation:
@@ -758,10 +965,10 @@ class Taxation:
         deductions_data = data.get('deductions', {})
         
         # Handle perquisites in salary data
+        perquisites = None
         if 'perquisites' in salary_data and salary_data['perquisites']:
             perquisites_data = salary_data['perquisites']
             perquisites = Perquisites(
-                
                 # Accommodation perquisites
                 accommodation_provided=perquisites_data.get('accommodation_provided', 'Employer-Owned'),
                 accommodation_govt_lic_fees=perquisites_data.get('accommodation_govt_lic_fees', 0),
@@ -798,18 +1005,94 @@ class Taxation:
                 # Free Education
                 free_education_actual_expenses=perquisites_data.get('free_education_actual_expenses', 0),
                 free_education_is_institute_by_employer=perquisites_data.get('free_education_is_institute_by_employer', False),
-                free_education_similar_institute_cost=perquisites_data.get('free_education_similar_institute_cost', 0)
+                free_education_similar_institute_cost=perquisites_data.get('free_education_similar_institute_cost', 0),
+
+                # Gas, Electricity, Water
+                gas_amount_paid_by_employer=perquisites_data.get('gas_amount_paid_by_employer', 0),
+                electricity_amount_paid_by_employer=perquisites_data.get('electricity_amount_paid_by_employer', 0),
+                water_amount_paid_by_employer=perquisites_data.get('water_amount_paid_by_employer', 0),
+                gas_amount_paid_by_employee=perquisites_data.get('gas_amount_paid_by_employee', 0),
+                electricity_amount_paid_by_employee=perquisites_data.get('electricity_amount_paid_by_employee', 0),
+                water_amount_paid_by_employee=perquisites_data.get('water_amount_paid_by_employee', 0),
+
+                # Domestic help
+                domestic_help_amount_paid_by_employer=perquisites_data.get('domestic_help_amount_paid_by_employer', 0),
+                domestic_help_amount_paid_by_employee=perquisites_data.get('domestic_help_amount_paid_by_employee', 0),
+
+                # Interest-free/concessional loan
+                loan_type=perquisites_data.get('loan_type', ''),
+                loan_amount=perquisites_data.get('loan_amount', 0),
+                loan_interest_rate_company=perquisites_data.get('loan_interest_rate_company', 0),
+                loan_interest_rate_sbi=perquisites_data.get('loan_interest_rate_sbi', 0),
+                monthly_interest_amount_sbi=perquisites_data.get('monthly_interest_amount_sbi', 0),
+                monthly_interest_amount_company=perquisites_data.get('monthly_interest_amount_company', 0),
+
+                # Lunch/Refreshment
+                lunch_amount_paid_by_employer=perquisites_data.get('lunch_amount_paid_by_employer', 0),
+                lunch_amount_paid_by_employee=perquisites_data.get('lunch_amount_paid_by_employee', 0),
+
+                # ESOP
+                number_of_esop_shares_awarded=perquisites_data.get('number_of_esop_shares_awarded', 0),
+                esop_exercise_price_per_share=perquisites_data.get('esop_exercise_price_per_share', 0),
+                esop_allotment_price_per_share=perquisites_data.get('esop_allotment_price_per_share', 0),
+                grant_date=cls._parse_date(perquisites_data.get('grant_date')),
+                vesting_date=cls._parse_date(perquisites_data.get('vesting_date')),
+                exercise_date=cls._parse_date(perquisites_data.get('exercise_date')),
+                vesting_period=perquisites_data.get('vesting_period', 0),
+                exercise_period=perquisites_data.get('exercise_period', 0),
+                exercise_price_per_share=perquisites_data.get('exercise_price_per_share', 0),
+
+                # Transfer of movable assets
+                movable_asset_type=perquisites_data.get('movable_asset_type', 'Electronics'),
+                movable_asset_value_to_employer=perquisites_data.get('movable_asset_value_to_employer', 0),
+                movable_asset_value_to_employee=perquisites_data.get('movable_asset_value_to_employee', 0),
+                number_of_completed_years_of_use=perquisites_data.get('number_of_completed_years_of_use', 0),
+
+                # Monetary benefits
+                monetary_amount_paid_by_employer=perquisites_data.get('monetary_amount_paid_by_employer', 0),
+                expenditure_for_offical_purpose=perquisites_data.get('expenditure_for_offical_purpose', 0),
+                monetary_benefits_amount_paid_by_employee=perquisites_data.get('monetary_benefits_amount_paid_by_employee', 0),
+
+                # Gift Vouchers
+                gift_vouchers_amount_paid_by_employer=perquisites_data.get('gift_vouchers_amount_paid_by_employer', 0),
+
+                # Club Expenses
+                club_expenses_amount_paid_by_employer=perquisites_data.get('club_expenses_amount_paid_by_employer', 0),
+                club_expenses_amount_paid_by_employee=perquisites_data.get('club_expenses_amount_paid_by_employee', 0),
+                club_expenses_amount_paid_for_offical_purpose=perquisites_data.get('club_expenses_amount_paid_for_offical_purpose', 0)
             )
-        else:
-            perquisites = Perquisites()
         
         # Create component objects
         salary = SalaryComponents(
             basic=salary_data.get('basic', 0),
             dearness_allowance=salary_data.get('dearness_allowance', 0),
             hra=salary_data.get('hra', 0),
+            hra_city=salary_data.get('hra_city', 'Others'),
+            hra_percentage=salary_data.get('hra_percentage', 0),
             special_allowance=salary_data.get('special_allowance', 0),
             bonus=salary_data.get('bonus', 0),
+            commission=salary_data.get('commission', 0),
+            city_compensatory_allowance=salary_data.get('city_compensatory_allowance', 0),
+            rural_allowance=salary_data.get('rural_allowance', 0),
+            proctorship_allowance=salary_data.get('proctorship_allowance', 0),
+            wardenship_allowance=salary_data.get('wardenship_allowance', 0),
+            project_allowance=salary_data.get('project_allowance', 0),
+            deputation_allowance=salary_data.get('deputation_allowance', 0),
+            overtime_allowance=salary_data.get('overtime_allowance', 0),
+            interim_relief=salary_data.get('interim_relief', 0),
+            tiffin_allowance=salary_data.get('tiffin_allowance', 0),
+            fixed_medical_allowance=salary_data.get('fixed_medical_allowance', 0),
+            servant_allowance=salary_data.get('servant_allowance', 0),
+            allowances_to_government_employees_outside_india=salary_data.get('allowances_to_government_employees_outside_india', 0),
+            allowance_to_high_court_supreme_court_judges=salary_data.get('allowance_to_high_court_supreme_court_judges', 0),
+            compensatory_allowance_received_by_a_judge=salary_data.get('compensatory_allowance_received_by_a_judge', 0),
+            special_allowances_exempt_under_section_10_14=salary_data.get('special_allowances_exempt_under_section_10_14', 0),
+            allowance_granted_to_meet_cost_of_travel_on_tour=salary_data.get('allowance_granted_to_meet_cost_of_travel_on_tour', 0),
+            allowance_granted_to_meet_cost_of_daily_charges_incurred_on_tour=salary_data.get('allowance_granted_to_meet_cost_of_daily_charges_incurred_on_tour', 0),
+            allowance_granted_to_meet_expenditure_incurred_on_conveyance_in_performace_of_duties=salary_data.get('allowance_granted_to_meet_expenditure_incurred_on_conveyance_in_performace_of_duties', 0),
+            allowance_granted_to_meet_expenditure_incurred_on_helper_in_performace_of_duties=salary_data.get('allowance_granted_to_meet_expenditure_incurred_on_helper_in_performace_of_duties', 0),
+            allowance_granted_for_encouraging_the_academic_research_training_pursuits_in_educational_research_institutions=salary_data.get('allowance_granted_for_encouraging_the_academic_research_training_pursuits_in_educational_research_institutions', 0),
+            allowance_granted_for_expenditure_incurred_on_purchase_or_maintenance_of_uniform_for_wear_during_performace_of_duties=salary_data.get('allowance_granted_for_expenditure_incurred_on_purchase_or_maintenance_of_uniform_for_wear_during_performace_of_duties', 0),
             perquisites=perquisites
         )
         
@@ -838,6 +1121,15 @@ class Taxation:
             ltcg_debt_mutual_fund=capital_gains_data.get('ltcg_debt_mutual_fund', 0)
         )
         
+        # Parse date string for EV purchase date
+        ev_purchase_date = None
+        ev_purchase_date_str = deductions_data.get('ev_purchase_date')
+        if ev_purchase_date_str:
+            try:
+                ev_purchase_date = datetime.datetime.strptime(ev_purchase_date_str, '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                ev_purchase_date = None
+        
         deductions = DeductionComponents(
             regime=regime,
             age=emp_age,
@@ -860,9 +1152,14 @@ class Taxation:
             section_80d_hisf=deductions_data.get('section_80d_hisf', 0),
             section_80d_phcs=deductions_data.get('section_80d_phcs', 0),
             section_80d_hi_parent=deductions_data.get('section_80d_hi_parent', 0),
+            relation_80dd=deductions_data.get('relation_80dd', ''),
+            disability_percentage=deductions_data.get('disability_percentage', ''),
             section_80dd=deductions_data.get('section_80dd', 0),
+            relation_80ddb=deductions_data.get('relation_80ddb', ''),
+            age_80ddb=deductions_data.get('age_80ddb', 0),
             section_80ddb=deductions_data.get('section_80ddb', 0),
             section_80eeb=deductions_data.get('section_80eeb', 0),
+            ev_purchase_date=ev_purchase_date or date.today(),
             section_80g_100_wo_ql=deductions_data.get('section_80g_100_wo_ql', 0),
             section_80g_100_head=deductions_data.get('section_80g_100_head', ''),
             section_80g_50_wo_ql=deductions_data.get('section_80g_50_wo_ql', 0),
@@ -897,124 +1194,25 @@ class Taxation:
             is_govt_employee=data.get('is_govt_employee', False)
         )
     
+    @staticmethod
+    def _parse_date(date_str):
+        """Helper method to parse date strings safely"""
+        if not date_str:
+            return None
+        try:
+            return datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            # Try ISO format
+            try:
+                return datetime.datetime.fromisoformat(date_str).date()
+            except (ValueError, TypeError):
+                return None
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert a Taxation object to a dictionary"""
-        # Convert perquisites to dict if present
-        perquisites_dict = None
-        if self.salary.perquisites:
-            # Check if perquisites is already a dictionary
-            if isinstance(self.salary.perquisites, dict):
-                perquisites_dict = self.salary.perquisites
-            else:
-                # It's a Perquisites object
-                perquisites_dict = {
-                    
-                    # Accommodation perquisites
-                    'accommodation_provided': self.salary.perquisites.accommodation_provided,
-                    'accommodation_govt_lic_fees': self.salary.perquisites.accommodation_govt_lic_fees,
-                    'accommodation_city_population': self.salary.perquisites.accommodation_city_population,
-                    'accommodation_rent': self.salary.perquisites.accommodation_rent,
-                    'is_furniture_owned': self.salary.perquisites.is_furniture_owned,
-                    'furniture_actual_cost': self.salary.perquisites.furniture_actual_cost,
-                    'furniture_cost_to_employer': self.salary.perquisites.furniture_cost_to_employer,
-                    'furniture_cost_paid_by_employee': self.salary.perquisites.furniture_cost_paid_by_employee,
-                    
-                    # Car perquisites
-                    'is_car_rating_higher': self.salary.perquisites.is_car_rating_higher,
-                    'is_car_employer_owned': self.salary.perquisites.is_car_employer_owned,
-                    'is_expenses_reimbursed': self.salary.perquisites.is_expenses_reimbursed,
-                    'is_driver_provided': self.salary.perquisites.is_driver_provided,
-                    'car_use': self.salary.perquisites.car_use,
-                    'car_cost_to_employer': self.salary.perquisites.car_cost_to_employer,
-                    'month_counts': self.salary.perquisites.month_counts,
-                    'other_vehicle_cost': self.salary.perquisites.other_vehicle_cost,
-                    'other_vehicle_months': self.salary.perquisites.other_vehicle_months,
-                    
-                    # Medical Reimbursement
-                    'is_treated_in_India': self.salary.perquisites.is_treated_in_India,
-                    'medical_reimbursement_by_employer': self.salary.perquisites.medical_reimbursement_by_employer,
-                    
-                    # Leave Travel Allowance
-                    'lta_amount_claimed': self.salary.perquisites.lta_amount_claimed,
-                    'lta_claimed_count': self.salary.perquisites.lta_claimed_count,
-                    'travel_through': self.salary.perquisites.travel_through,
-                    'public_transport_travel_amount_for_same_distance': self.salary.perquisites.public_transport_travel_amount_for_same_distance,
-                    'lta_claim_start_date': self.salary.perquisites.lta_claim_start_date,
-                    'lta_claim_end_date': self.salary.perquisites.lta_claim_end_date,
-                    
-                    # Free Education
-                    'free_education_actual_expenses': self.salary.perquisites.free_education_actual_expenses,
-                    'free_education_is_institute_by_employer': self.salary.perquisites.free_education_is_institute_by_employer,
-                    'free_education_similar_institute_cost': self.salary.perquisites.free_education_similar_institute_cost
-                }
-        
-        # Create the dictionary
-        return {
+        result = {
             'emp_id': self.emp_id,
             'emp_age': self.emp_age,
-            'salary': {
-                'basic': self.salary.basic,
-                'dearness_allowance': self.salary.dearness_allowance,
-                'hra': self.salary.hra,
-                'special_allowance': self.salary.special_allowance,
-                'bonus': self.salary.bonus,
-                'perquisites': perquisites_dict
-            },
-            'other_sources': {
-                'interest_savings': self.other_sources.interest_savings,
-                'interest_fd': self.other_sources.interest_fd,
-                'interest_rd': self.other_sources.interest_rd,
-                'dividend_income': self.other_sources.dividend_income,
-                'gifts': self.other_sources.gifts,
-                'other_interest': self.other_sources.other_interest,
-                'other_income': self.other_sources.other_income,
-                'regime': self.other_sources.regime,
-                'age': self.other_sources.age
-            },
-            'capital_gains': {
-                'stcg_111a': self.capital_gains.stcg_111a,
-                'stcg_any_other_asset': self.capital_gains.stcg_any_other_asset,
-                'stcg_debt_mutual_fund': self.capital_gains.stcg_debt_mutual_fund,
-                'ltcg_112a': self.capital_gains.ltcg_112a,
-                'ltcg_any_other_asset': self.capital_gains.ltcg_any_other_asset,
-                'ltcg_debt_mutual_fund': self.capital_gains.ltcg_debt_mutual_fund
-            },
-            'deductions': {
-                'section_80c_lic': self.deductions.section_80c_lic,
-                'section_80c_epf': self.deductions.section_80c_epf,
-                'section_80c_ssp': self.deductions.section_80c_ssp,
-                'section_80c_nsc': self.deductions.section_80c_nsc,
-                'section_80c_ulip': self.deductions.section_80c_ulip,
-                'section_80c_tsmf': self.deductions.section_80c_tsmf,
-                'section_80c_tffte2c': self.deductions.section_80c_tffte2c,
-                'section_80c_paphl': self.deductions.section_80c_paphl,
-                'section_80c_sdpphp': self.deductions.section_80c_sdpphp,
-                'section_80c_tsfdsb': self.deductions.section_80c_tsfdsb,
-                'section_80c_scss': self.deductions.section_80c_scss,
-                'section_80c_others': self.deductions.section_80c_others,
-                'section_80ccc_ppic': self.deductions.section_80ccc_ppic,
-                'section_80ccd_1_nps': self.deductions.section_80ccd_1_nps,
-                'section_80ccd_1b_additional': self.deductions.section_80ccd_1b_additional,
-                'section_80ccd_2_enps': self.deductions.section_80ccd_2_enps,
-                'section_80d_hisf': self.deductions.section_80d_hisf,
-                'section_80d_phcs': self.deductions.section_80d_phcs,
-                'section_80d_hi_parent': self.deductions.section_80d_hi_parent,
-                'section_80dd': self.deductions.section_80dd,
-                'section_80ddb': self.deductions.section_80ddb,
-                'section_80g_100_wo_ql': self.deductions.section_80g_100_wo_ql,
-                'section_80g_100_head': self.deductions.section_80g_100_head,
-                'section_80g_50_wo_ql': self.deductions.section_80g_50_wo_ql,
-                'section_80g_50_head': self.deductions.section_80g_50_head,
-                'section_80g_100_ql': self.deductions.section_80g_100_ql,
-                'section_80g_100_ql_head': self.deductions.section_80g_100_ql_head,
-                'section_80g_50_ql': self.deductions.section_80g_50_ql,
-                'section_80g_50_ql_head': self.deductions.section_80g_50_ql_head,
-                'section_80ggc': self.deductions.section_80ggc,
-                'section_80u': self.deductions.section_80u,
-                'disability_percentage_80u': self.deductions.disability_percentage_80u,
-                'regime': self.deductions.regime,
-                'age': self.deductions.age
-            },
             'regime': self.regime,
             'total_tax': self.total_tax,
             'tax_breakup': self.tax_breakup,
@@ -1027,6 +1225,70 @@ class Taxation:
             'tax_pending': self.tax_pending,
             'is_govt_employee': self.is_govt_employee
         }
+        
+        # Handle salary components
+        if isinstance(self.salary, dict):
+            result['salary'] = self.salary
+        else:
+            salary_dict = {}
+            for attr in dir(self.salary):
+                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total':
+                    value = getattr(self.salary, attr)
+                    # Handle perquisites specially
+                    if attr == 'perquisites' and value is not None:
+                        if isinstance(value, dict):
+                            salary_dict['perquisites'] = value
+                        else:
+                            perq_dict = {}
+                            for p_attr in dir(value):
+                                if not p_attr.startswith('_') and p_attr != 'to_dict' and p_attr != 'total':
+                                    p_value = getattr(value, p_attr)
+                                    # Handle date objects
+                                    if isinstance(p_value, date):
+                                        perq_dict[p_attr] = p_value.isoformat()
+                                    else:
+                                        perq_dict[p_attr] = p_value
+                            salary_dict['perquisites'] = perq_dict
+                    else:
+                        salary_dict[attr] = value
+            result['salary'] = salary_dict
+        
+        # Handle other_sources components
+        if isinstance(self.other_sources, dict):
+            result['other_sources'] = self.other_sources
+        else:
+            other_sources_dict = {}
+            for attr in dir(self.other_sources):
+                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total' and attr != 'total_taxable_income_per_slab' and attr != 'get_section_80tt':
+                    other_sources_dict[attr] = getattr(self.other_sources, attr)
+            result['other_sources'] = other_sources_dict
+        
+        # Handle capital_gains components
+        if isinstance(self.capital_gains, dict):
+            result['capital_gains'] = self.capital_gains
+        else:
+            capital_gains_dict = {}
+            for attr in dir(self.capital_gains):
+                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total' and attr != 'total_stcg_special_rate' and attr != 'total_stcg_slab_rate' and attr != 'total_ltcg_special_rate':
+                    capital_gains_dict[attr] = getattr(self.capital_gains, attr)
+            result['capital_gains'] = capital_gains_dict
+        
+        # Handle deductions components
+        if isinstance(self.deductions, dict):
+            result['deductions'] = self.deductions
+        else:
+            deductions_dict = {}
+            for attr in dir(self.deductions):
+                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total' and attr != 'total_deduction' and not attr.startswith('total_deductions_'):
+                    value = getattr(self.deductions, attr)
+                    # Handle date objects
+                    if isinstance(value, date):
+                        deductions_dict[attr] = value.isoformat()
+                    else:
+                        deductions_dict[attr] = value
+            result['deductions'] = deductions_dict
+        
+        return result
         
     def get_taxable_income(self) -> float:
         """Calculate the total taxable income"""

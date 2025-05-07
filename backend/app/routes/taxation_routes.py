@@ -5,6 +5,9 @@ from services.taxation_service import calculate_total_tax, calculate_and_save_ta
 from database.taxation_database import get_taxation_by_emp_id, update_tax_payment, get_all_taxation, update_filing_status
 from auth.auth import extract_hostname, role_checker, extract_emp_id
 from pydantic import BaseModel
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -110,7 +113,7 @@ def save_taxation_data(
         other_sources = IncomeFromOtherSources(**request.other_sources) if request.other_sources else None
         capital_gains = CapitalGains(**request.capital_gains) if request.capital_gains else None
         deductions = DeductionComponents(**request.deductions) if request.deductions else None
-        
+
         # Calculate and save tax
         taxation = calculate_and_save_tax(
             emp_id=request.emp_id,

@@ -3,10 +3,32 @@ from models.taxation import Taxation, SalaryComponents, IncomeFromOtherSources, 
 import logging
 from database.database_connector import connect_to_database
 from database.user_database import get_all_users
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 import datetime
 
 logger = logging.getLogger(__name__)
+
+
+def _ensure_serializable(obj: Any) -> Any:
+    """
+    Recursively process an object or dictionary to ensure all values are serializable for MongoDB.
+    Handles nested dictionaries, date objects, and converts non-serializable types to strings.
+    """
+    if isinstance(obj, dict):
+        result = {}
+        for key, value in obj.items():
+            result[key] = _ensure_serializable(value)
+        return result
+    elif isinstance(obj, list):
+        return [_ensure_serializable(item) for item in obj]
+    elif isinstance(obj, (datetime.date, datetime.datetime)):
+        return obj.isoformat()
+    elif hasattr(obj, "to_dict") and callable(getattr(obj, "to_dict")):
+        return _ensure_serializable(obj.to_dict())
+    elif isinstance(obj, (str, int, float, bool, type(None))):
+        return obj
+    else:
+        return str(obj)
 
 
 def get_taxation_collection(company_id: str):
@@ -22,20 +44,31 @@ def get_taxation_by_emp_id(emp_id: str, hostname: str) -> Dict[str, Any]:
     # Convert ObjectId to string before returning
     return _convert_objectid(taxation)
 
-def save_taxation(taxation: Taxation, hostname: str) -> Dict[str, Any]:
+def save_taxation(taxation: Union[Taxation, Dict[str, Any]], hostname: str) -> Dict[str, Any]:
     """Save taxation data to the database"""
     collection = get_taxation_collection(hostname)
     
-    # Convert to dictionary for MongoDB storage
-    taxation_dict = taxation.to_dict()
+    # Convert to dictionary for MongoDB storage if it's not already a dictionary
+    if isinstance(taxation, dict):
+        taxation_dict = taxation
+    else:
+        taxation_dict = taxation.to_dict()
+    
+    # Ensure all data is serializable for MongoDB
+    taxation_dict = _ensure_serializable(taxation_dict)
+    
+    # Add update timestamp
     taxation_dict["updated_at"] = datetime.datetime.utcnow()
     
+    # Get emp_id safely from either dict or object
+    emp_id = taxation_dict.get("emp_id") if isinstance(taxation, dict) else taxation.emp_id
+    
     # Check if record exists
-    existing = collection.find_one({"emp_id": taxation.emp_id})
+    existing = collection.find_one({"emp_id": emp_id})
     if existing:
         # Update existing record
         collection.update_one(
-            {"emp_id": taxation.emp_id},
+            {"emp_id": emp_id},
             {"$set": taxation_dict}
         )
     else:
@@ -43,7 +76,7 @@ def save_taxation(taxation: Taxation, hostname: str) -> Dict[str, Any]:
         taxation_dict["created_at"] = datetime.datetime.utcnow()
         collection.insert_one(taxation_dict)
     
-    return get_taxation_by_emp_id(taxation.emp_id, hostname)
+    return get_taxation_by_emp_id(emp_id, hostname)
 
 def update_tax_payment(emp_id: str, hostname: str, amount_paid: float) -> Dict[str, Any]:
     """Update tax payment for an employee"""
@@ -56,8 +89,14 @@ def update_tax_payment(emp_id: str, hostname: str, amount_paid: float) -> Dict[s
     taxation.tax_refundable = max(0, taxation.tax_paid - taxation.tax_payable)
     taxation.tax_pending = taxation.tax_due
     
+    # Convert to dictionary first
+    taxation_dict = taxation.to_dict()
+    
+    # Ensure all data is serializable
+    taxation_dict = _ensure_serializable(taxation_dict)
+    
     # Save updates to database
-    return save_taxation(taxation, hostname)
+    return save_taxation(taxation_dict, hostname)
 
 def _convert_objectid(data):
     """Convert MongoDB ObjectId to string in dictionaries"""
@@ -156,16 +195,39 @@ def update_filing_status(emp_id: str, hostname: str, status: str) -> Dict[str, A
     # Update filing status
     taxation.filing_status = status
     
-    # Save updates to database and return with ObjectId converted to string
-    return save_taxation(taxation, hostname)
+    # Convert to dictionary and ensure serializable
+    taxation_dict = _ensure_serializable(taxation.to_dict())
+    
+    # Save updates to database
+    return save_taxation(taxation_dict, hostname)
 
 def _object_to_dict(obj) -> Dict:
     """Convert an object to dictionary for MongoDB storage"""
-    if hasattr(obj, "__dict__"):
+    if hasattr(obj, "to_dict") and callable(getattr(obj, "to_dict")):
+        # If object has a to_dict method, use it
+        return obj.to_dict()
+    elif hasattr(obj, "__dict__"):
+        # Process object attributes
         result = {}
         for key, value in obj.__dict__.items():
             if key.startswith("_"):
                 continue
-            result[key] = _object_to_dict(value) if hasattr(value, "__dict__") else value
+            # Handle different data types appropriately
+            if isinstance(value, (datetime.date, datetime.datetime)):
+                result[key] = value.isoformat()
+            elif hasattr(value, "__dict__") or hasattr(value, "to_dict"):
+                result[key] = _object_to_dict(value)
+            elif isinstance(value, (list, tuple)):
+                result[key] = [_object_to_dict(item) if hasattr(item, "__dict__") else item for item in value]
+            elif isinstance(value, dict):
+                result[key] = {k: _object_to_dict(v) if hasattr(v, "__dict__") else v for k, v in value.items()}
+            else:
+                result[key] = value
         return result
-    return obj
+    elif isinstance(obj, (datetime.date, datetime.datetime)):
+        return obj.isoformat()
+    else:
+        # For other types, return as is if serializable, otherwise convert to string
+        if isinstance(obj, (str, int, float, bool, type(None))):
+            return obj
+        return str(obj)

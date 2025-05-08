@@ -92,13 +92,13 @@ export const saveTaxationData = async (taxationData) => {
         interim_relief: 0,
         tiffin_allowance: 0,
         fixed_medical_allowance: 0,
-        servant_allowance: 0,
-        any_other_allowance: 0,
-        any_other_allowance_exemption: 0,         
+        servant_allowance: 0,      
         govt_employees_outside_india_allowance: 0,         
         supreme_high_court_judges_allowance: 0,            
         judge_compensatory_allowance: 0,             
-        section_10_14_special_allowances: 0,          
+        section_10_14_special_allowances: 0,   
+        any_other_allowance: 0,
+        any_other_allowance_exemption: 0,          
         travel_on_tour_allowance: 0,         
         tour_daily_charge_allowance: 0, 
         conveyance_in_performace_of_duties: 0, 
@@ -124,12 +124,14 @@ export const saveTaxationData = async (taxationData) => {
           car_use: 'Personal',
           car_cost_to_employer: 0,
           month_counts: 0,
-          other_vehicle_cost: 0,
-          other_vehicle_months: 0,
+          other_vehicle_cost_to_employer: 0,
+          other_vehicle_month_counts: 0,
           
           // Medical Reimbursement
           is_treated_in_India: false,
           medical_reimbursement_by_employer: 0,
+          travelling_allowance_for_treatment: 0,
+          rbi_limit_for_illness: 0,
           
           // Leave Travel Allowance
           lta_amount_claimed: 0,
@@ -140,16 +142,22 @@ export const saveTaxationData = async (taxationData) => {
           lta_claim_end_date: '',
           
           // Free Education
-          free_education_actual_expenses: 0,
-          free_education_is_institute_by_employer: false,
-          free_education_similar_institute_cost: 0,
+          employer_maintained_1st_child: false,
+          monthly_count_1st_child: 0,
+          employer_monthly_expenses_1st_child: 0,
+          employer_maintained_2nd_child: false,
+          monthly_count_2nd_child: 0,
+          employer_monthly_expenses_2nd_child: 0,
           
           // Gas, Electricity, Water
+          is_gas_manufactured_by_employer: false,
           gas_amount_paid_by_employer: 0,
-          electricity_amount_paid_by_employer: 0,
-          water_amount_paid_by_employer: 0,
           gas_amount_paid_by_employee: 0,
+          is_electricity_manufactured_by_employer: false,
+          electricity_amount_paid_by_employer: 0,
           electricity_amount_paid_by_employee: 0,
+          is_water_manufactured_by_employer: false,
+          water_amount_paid_by_employer: 0,
           water_amount_paid_by_employee: 0,
           
           // Domestic help
@@ -157,12 +165,13 @@ export const saveTaxationData = async (taxationData) => {
           domestic_help_amount_paid_by_employee: 0,
           
           // Interest-free/concessional loan
-          loan_type: '',
+          loan_type: 'Personal',
           loan_amount: 0,
           loan_interest_rate_company: 0,
           loan_interest_rate_sbi: 0,
-          monthly_interest_amount_sbi: 0,
-          monthly_interest_amount_company: 0,
+          loan_month_count: 0,
+          loan_start_date: '',
+          loan_end_date: '',
           
           // Lunch/Refreshment
           lunch_amount_paid_by_employer: 0,
@@ -218,12 +227,14 @@ export const saveTaxationData = async (taxationData) => {
         car_use: 'Personal',
         car_cost_to_employer: 0,
         month_counts: 0,
-        other_vehicle_cost: 0,
-        other_vehicle_months: 0,
+        other_vehicle_cost_to_employer: 0,
+        other_vehicle_month_counts: 0,
         
         // Medical Reimbursement
         is_treated_in_India: false,
         medical_reimbursement_by_employer: 0,
+        travelling_allowance_for_treatment: 0,
+        rbi_limit_for_illness: 0,
         
         // Leave Travel Allowance
         lta_amount_claimed: 0,
@@ -234,16 +245,22 @@ export const saveTaxationData = async (taxationData) => {
         lta_claim_end_date: '',
         
         // Free Education
-        free_education_actual_expenses: 0,
-        free_education_is_institute_by_employer: false,
-        free_education_similar_institute_cost: 0,
+        employer_maintained_1st_child: false,
+        monthly_count_1st_child: 0,
+        employer_monthly_expenses_1st_child: 0,
+        employer_maintained_2nd_child: false,
+        monthly_count_2nd_child: 0,
+        employer_monthly_expenses_2nd_child: 0,
         
         // Gas, Electricity, Water
+        is_gas_manufactured_by_employer: false,
         gas_amount_paid_by_employer: 0,
-        electricity_amount_paid_by_employer: 0,
-        water_amount_paid_by_employer: 0,
         gas_amount_paid_by_employee: 0,
+        is_electricity_manufactured_by_employer: false,
+        electricity_amount_paid_by_employer: 0,
         electricity_amount_paid_by_employee: 0,
+        is_water_manufactured_by_employer: false,
+        water_amount_paid_by_employer: 0,
         water_amount_paid_by_employee: 0,
         
         // Domestic help
@@ -251,12 +268,13 @@ export const saveTaxationData = async (taxationData) => {
         domestic_help_amount_paid_by_employee: 0,
         
         // Interest-free/concessional loan
-        loan_type: '',
+        loan_type: 'Personal',
         loan_amount: 0,
         loan_interest_rate_company: 0,
         loan_interest_rate_sbi: 0,
-        monthly_interest_amount_sbi: 0,
-        monthly_interest_amount_company: 0,
+        loan_month_count: 0,
+        loan_start_date: '',
+        loan_end_date: '',
         
         // Lunch/Refreshment
         lunch_amount_paid_by_employer: 0,
@@ -293,6 +311,19 @@ export const saveTaxationData = async (taxationData) => {
     } else {
       // Make sure all new perquisite fields exist
       const newPerquisiteFields = [
+        // Medical Reimbursement
+        'travelling_allowance_for_treatment', 'rbi_limit_for_illness',
+        
+        // Free Education
+        'employer_maintained_1st_child', 'monthly_count_1st_child', 'employer_monthly_expenses_1st_child',
+        'employer_maintained_2nd_child', 'monthly_count_2nd_child', 'employer_monthly_expenses_2nd_child',
+        
+        // Gas, Electricity, Water
+        'is_gas_manufactured_by_employer', 'is_electricity_manufactured_by_employer', 'is_water_manufactured_by_employer',
+        
+        // Loan
+        'loan_month_count', 'loan_start_date', 'loan_end_date',
+        
         // ESOP & Stock Options fields
         'grant_date', 'vesting_date', 'exercise_date', 'vesting_period',
         'exercise_period', 'exercise_price_per_share',
@@ -314,8 +345,14 @@ export const saveTaxationData = async (taxationData) => {
         if (taxationData.salary.perquisites[field] === undefined) {
           if (field === 'grant_date' || field === 'vesting_date' || field === 'exercise_date') {
             taxationData.salary.perquisites[field] = null;
+          } else if (field === 'loan_start_date' || field === 'loan_end_date') {
+            taxationData.salary.perquisites[field] = '';
           } else if (field === 'movable_asset_type') {
             taxationData.salary.perquisites[field] = 'Electronics';
+          } else if (field === 'employer_maintained_1st_child' || field === 'employer_maintained_2nd_child' || 
+                    field === 'is_gas_manufactured_by_employer' || field === 'is_electricity_manufactured_by_employer' || 
+                    field === 'is_water_manufactured_by_employer') {
+            taxationData.salary.perquisites[field] = false;
           } else {
             taxationData.salary.perquisites[field] = 0;
           }

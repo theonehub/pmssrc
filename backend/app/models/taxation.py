@@ -214,16 +214,14 @@ class Perquisites:
     car_use: str = 'Personal'  # Personal, Business, Mixed
     car_cost_to_employer: float = 0     # expense incurred by employer
     month_counts: int = 0
-    other_vehicle_cost: float = 0
-    other_vehicle_months: int = 0
+    other_vehicle_cost_to_employer: float = 0
+    other_vehicle_month_counts: int = 0
 
     # Medical Reimbursement
     is_treated_in_India: bool = False
     medical_reimbursement_by_employer: float = 0
     travelling_allowance_for_treatment: float = 0
     rbi_limit_for_illness: float = 0
-
-
 
     # Free Education
     employer_maintained_1st_child: bool = False
@@ -234,42 +232,34 @@ class Perquisites:
     monthly_count_2nd_child:int = 0
     employer_monthly_expenses_2nd_child: float = 0
 
-#Done till here.
-
     # Gas, Electricity, Water
     is_gas_manufactured_by_employer: bool = False
-    gas_amount_paid_by_employer: float = 0   #on basis of manufactured flag change text of amount paid by employer
+    gas_amount_paid_by_employer: float = 0
+    gas_amount_paid_by_employee: float = 0
+
     is_electricity_manufactured_by_employer: bool = False
     electricity_amount_paid_by_employer: float = 0
+    electricity_amount_paid_by_employee: float = 0
+
     is_water_manufactured_by_employer: bool = False
     water_amount_paid_by_employer: float = 0
-
-    gas_amount_paid_by_employee: float = 0
-    electricity_amount_paid_by_employee: float = 0
     water_amount_paid_by_employee: float = 0
 
-    # Domestic help
-    domestic_help_amount_paid_by_employer: float = 0
-    domestic_help_amount_paid_by_employee: float = 0
-    
+    # Interest-free/concessional loan
+    loan_type: str = 'Personal'
+    loan_amount: float = 0
+    loan_interest_rate_company: float = 0
+    loan_interest_rate_sbi: float = 0
+    loan_month_count: int = 0
+    loan_start_date: str = ''
+    loan_end_date: str = ''
+
     # Leave Travel Allowance
     lta_amount_claimed: float = 0
     lta_claimed_count: int = 0
     travel_through: str = 'Air' #Railway, Air, Public Transport 
     public_transport_travel_amount_for_same_distance: float = 0
-    lta_claim_start_date: str = ''
-    lta_claim_end_date: str = ''
 
-    # Interest-free/concessional loan
-    loan_type: str = ''
-    loan_amount: float = 0
-    loan_interest_rate_company: float = 0
-    loan_interest_rate_sbi: float = 0
-    monthly_interest_amount_sbi: float = 0
-    monthly_interest_amount_company: float = 0
-    # Lunch/Refreshment
-    lunch_amount_paid_by_employer: float = 0
-    lunch_amount_paid_by_employee: float = 0
     # ESOP
     number_of_esop_shares_awarded: float = 0
     esop_exercise_price_per_share: float = 0
@@ -280,21 +270,33 @@ class Perquisites:
     vesting_period: int = 0
     exercise_period: int = 0
     exercise_price_per_share: float = 0
-    # Transfer of movable assets
-    movable_asset_type: str = 'Electronics'
+
+    # Movable assets - using single field structure for both types of movable assets
+    movable_asset_type: str = 'Electronics'  # 'Electronics', 'Motor Vehicle', 'Other'
     movable_asset_value_to_employer: float = 0
     movable_asset_value_to_employee: float = 0
     number_of_completed_years_of_use: int = 0
+
+    # Lunch/Refreshment
+    lunch_amount_paid_by_employer: float = 0
+    lunch_amount_paid_by_employee: float = 0
+
     # Monetary benefits
     monetary_amount_paid_by_employer: float = 0
     expenditure_for_offical_purpose: float = 0
     monetary_benefits_amount_paid_by_employee: float = 0
+
     # Gift Vouchers (new field for partial exemption)
     gift_vouchers_amount_paid_by_employer: float = 0
+
     # Club Expenses
     club_expenses_amount_paid_by_employer: float = 0
     club_expenses_amount_paid_by_employee: float = 0
     club_expenses_amount_paid_for_offical_purpose: float = 0
+
+    # Domestic help
+    domestic_help_amount_paid_by_employer: float = 0
+    domestic_help_amount_paid_by_employee: float = 0
 
     def total_accommodation_value(self, gross_salary: float, regime: str = 'new') -> float:
         """Calculate taxable value of accommodation perquisite."""
@@ -331,20 +333,20 @@ class Perquisites:
         #if self.is_car_employer_owned_hired car its owned or not but computation is same - Discussed with Viral ji
         if self.car_use == 'Personal':
             return (self.car_cost_to_employer * self.month_counts) + \
-                    (self.other_vehicle_cost - 900) * self.other_vehicle_months
+                    (self.other_vehicle_cost_to_employer - 900) * self.other_vehicle_month_counts
         elif self.car_use == 'Mixed':
             if self.is_expenses_reimbursed:
                 value = 1800 if self.is_car_rating_higher else 2400
                 if self.is_driver_provided:
                     value += 900
-                return (value * self.month_counts) + ((self.other_vehicle_cost - 900) 
-                                                    * self.other_vehicle_months)
+                return (value * self.month_counts) + ((self.other_vehicle_cost_to_employer - 900) 
+                                                    * self.other_vehicle_month_counts)
             else:
                 value = 600 if self.is_car_rating_higher else 900
                 if self.is_driver_provided:
                     value += 900
-                return ((value * self.month_counts) + ((self.other_vehicle_cost - 900) 
-                                                    * self.other_vehicle_months))
+                return ((value * self.month_counts) + ((self.other_vehicle_cost_to_employer - 900) 
+                                                    * self.other_vehicle_month_counts))
     
     def total_medical_reimbursement(self, gross_salary: float, regime: str = 'new') -> float:
         """Taxable value of medical reimbursement (exempt up to 15,000 if treated in India)."""
@@ -392,7 +394,6 @@ class Perquisites:
             paid_by_employee_sum = self.gas_amount_paid_by_employee + self.electricity_amount_paid_by_employee + self.water_amount_paid_by_employee
             return max(0, paid_by_employer_sum - paid_by_employee_sum)
         
-
     def total_domestic_help_value(self, regime: str = 'new') -> float:
         """Taxable value of domestic help perquisite."""
         if regime == 'new':
@@ -405,7 +406,11 @@ class Perquisites:
         if regime == 'new':
             return 0
         else:
-            return max(0, self.monthly_interest_amount_sbi - self.monthly_interest_amount_company) * 12
+            interest_rate_diff = self.loan_interest_rate_sbi - self.loan_interest_rate_company
+            if interest_rate_diff > 0:
+                return max(0, interest_rate_diff)/12 * self.loan_month_count
+            else:
+                return 0
     
     def allocation_gain(self, regime: str = 'new') -> float:
         """Taxable value of ESOP allocation gain."""
@@ -414,7 +419,18 @@ class Perquisites:
         else:
             return max(0, (self.esop_allotment_price_per_share - self.esop_exercise_price_per_share) * self.number_of_esop_shares_awarded)
     
-    def total_movable_asset_value(self, regime: str = 'new') -> float:
+    def total_mau_value(self, regime: str = 'new') -> float:
+        """Calculate total value of movable assets."""
+        if regime == 'new':
+            return 0
+        if self.movable_asset_type == 'Electronics':
+            return (self.movable_asset_value_to_employer * 0.5) * (self.number_of_completed_years_of_use)
+        elif self.movable_asset_type == 'Motor Vehicle':
+            return (self.movable_asset_value_to_employer * 0.2) * (self.number_of_completed_years_of_use)
+        else:
+            return self.movable_asset_value_to_employer 
+
+    def total_mat_value(self, regime: str = 'new') -> float:
         """Taxable value of transfer of movable assets perquisite."""
         if regime == 'new':
             return 0
@@ -488,14 +504,14 @@ class Perquisites:
         total_value += self.total_interest_amount(regime)
         total_value += self.total_lunch_value(regime)
         total_value += self.allocation_gain(regime)
-        total_value += self.total_movable_asset_value(regime)
+        total_value += self.total_mau_value(regime)
+        total_value += self.total_mat_value(regime)
         total_value += self.total_monetary_benefits_value(regime)
         total_value += self.total_gift_vouchers_value(regime)
         total_value += self.total_club_expenses_value(regime)
         return total_value
     
     def to_dict(self) -> Dict[str, Any]:
-        logger.info(f"Post4")
         return { 
             "accommodation_provided": self.accommodation_provided,
             "accommodation_govt_lic_fees": self.accommodation_govt_lic_fees,
@@ -512,35 +528,56 @@ class Perquisites:
             "car_use": self.car_use,
             "car_cost_to_employer": self.car_cost_to_employer,
             "month_counts": self.month_counts,
-            "other_vehicle_cost": self.other_vehicle_cost,
-            "other_vehicle_months": self.other_vehicle_months,
+            "other_vehicle_cost_to_employer": self.other_vehicle_cost_to_employer,
+            "other_vehicle_month_counts": self.other_vehicle_month_counts,
             "is_treated_in_India": self.is_treated_in_India,
             "medical_reimbursement_by_employer": self.medical_reimbursement_by_employer,
+            "travelling_allowance_for_treatment": self.travelling_allowance_for_treatment,
+            "rbi_limit_for_illness": self.rbi_limit_for_illness,
             "lta_amount_claimed": self.lta_amount_claimed,
             "lta_claimed_count": self.lta_claimed_count,
             "travel_through": self.travel_through,
             "public_transport_travel_amount_for_same_distance": self.public_transport_travel_amount_for_same_distance,
-            "lta_claim_start_date": self.lta_claim_start_date,
-            "lta_claim_end_date": self.lta_claim_end_date,
-            "free_education_is_institute_by_employer": self.free_education_is_institute_by_employer,
-            "free_education_similar_institute_cost": self.free_education_similar_institute_cost,
-            "free_education_actual_expenses": self.free_education_actual_expenses,
+            
+            # Education fields
+            "employer_maintained_1st_child": self.employer_maintained_1st_child,
+            "monthly_count_1st_child": self.monthly_count_1st_child,
+            "employer_monthly_expenses_1st_child": self.employer_monthly_expenses_1st_child,
+            "employer_maintained_2nd_child": self.employer_maintained_2nd_child,
+            "monthly_count_2nd_child": self.monthly_count_2nd_child,
+            "employer_monthly_expenses_2nd_child": self.employer_monthly_expenses_2nd_child,
+            
+            # Gas, Electricity, Water
+            "is_gas_manufactured_by_employer": self.is_gas_manufactured_by_employer,
             "gas_amount_paid_by_employer": self.gas_amount_paid_by_employer,
-            "electricity_amount_paid_by_employer": self.electricity_amount_paid_by_employer,
-            "water_amount_paid_by_employer": self.water_amount_paid_by_employer,
             "gas_amount_paid_by_employee": self.gas_amount_paid_by_employee,
+
+            "is_electricity_manufactured_by_employer": self.is_electricity_manufactured_by_employer,
+            "electricity_amount_paid_by_employer": self.electricity_amount_paid_by_employer,
             "electricity_amount_paid_by_employee": self.electricity_amount_paid_by_employee,
+
+            "is_water_manufactured_by_employer": self.is_water_manufactured_by_employer,
+            "water_amount_paid_by_employer": self.water_amount_paid_by_employer,
             "water_amount_paid_by_employee": self.water_amount_paid_by_employee,
+            
+            # Domestic help
             "domestic_help_amount_paid_by_employer": self.domestic_help_amount_paid_by_employer,
             "domestic_help_amount_paid_by_employee": self.domestic_help_amount_paid_by_employee,
+            
+            # Loan details
             "loan_type": self.loan_type,
             "loan_amount": self.loan_amount,
             "loan_interest_rate_company": self.loan_interest_rate_company,
             "loan_interest_rate_sbi": self.loan_interest_rate_sbi,
-            "monthly_interest_amount_company": self.monthly_interest_amount_company,
-            "monthly_interest_amount_sbi": self.monthly_interest_amount_sbi,
+            "loan_month_count": self.loan_month_count,
+            "loan_start_date": self.loan_start_date,
+            "loan_end_date": self.loan_end_date,
+            
+            # Lunch
             "lunch_amount_paid_by_employer": self.lunch_amount_paid_by_employer,
             "lunch_amount_paid_by_employee": self.lunch_amount_paid_by_employee,
+            
+            # ESOP
             "number_of_esop_shares_awarded": self.number_of_esop_shares_awarded,
             "esop_exercise_price_per_share": self.esop_exercise_price_per_share,
             "esop_allotment_price_per_share": self.esop_allotment_price_per_share,
@@ -550,13 +587,19 @@ class Perquisites:
             "vesting_period": self.vesting_period,
             "exercise_period": self.exercise_period,
             "exercise_price_per_share": self.exercise_price_per_share,
+            
+            # Movable assets
             "movable_asset_type": self.movable_asset_type,
             "movable_asset_value_to_employer": self.movable_asset_value_to_employer,
             "movable_asset_value_to_employee": self.movable_asset_value_to_employee,
             "number_of_completed_years_of_use": self.number_of_completed_years_of_use,
+            
+            # Monetary benefits
             "monetary_amount_paid_by_employer": self.monetary_amount_paid_by_employer,
             "expenditure_for_offical_purpose": self.expenditure_for_offical_purpose,
             "monetary_benefits_amount_paid_by_employee": self.monetary_benefits_amount_paid_by_employee,
+            
+            # Gift vouchers and club expenses
             "gift_vouchers_amount_paid_by_employer": self.gift_vouchers_amount_paid_by_employer,
             "club_expenses_amount_paid_by_employer": self.club_expenses_amount_paid_by_employer,
             "club_expenses_amount_paid_by_employee": self.club_expenses_amount_paid_by_employee,
@@ -642,6 +685,8 @@ class SalaryComponents:
             "project_allowance": self.project_allowance,
             "deputation_allowance": self.deputation_allowance,
             "overtime_allowance": self.overtime_allowance,
+            "any_other_allowance": self.any_other_allowance,
+            "any_other_allowance_exemption": self.any_other_allowance_exemption,
             "interim_relief": self.interim_relief,
             "tiffin_allowance": self.tiffin_allowance,
             "fixed_medical_allowance": self.fixed_medical_allowance,
@@ -990,25 +1035,29 @@ class Taxation:
                 car_use=perquisites_data.get('car_use', 'Personal'),
                 car_cost_to_employer=perquisites_data.get('car_cost_to_employer', 0),
                 month_counts=perquisites_data.get('month_counts', 0),
-                other_vehicle_cost=perquisites_data.get('other_vehicle_cost', 0),
-                other_vehicle_months=perquisites_data.get('other_vehicle_months', 0),
+                other_vehicle_cost_to_employer=perquisites_data.get('other_vehicle_cost_to_employer', 0),
+                other_vehicle_month_counts=perquisites_data.get('other_vehicle_month_counts', 0),
                 
                 # Medical Reimbursement
                 is_treated_in_India=perquisites_data.get('is_treated_in_India', False),
                 medical_reimbursement_by_employer=perquisites_data.get('medical_reimbursement_by_employer', 0),
+                travelling_allowance_for_treatment=perquisites_data.get('travelling_allowance_for_treatment', 0),
+                rbi_limit_for_illness=perquisites_data.get('rbi_limit_for_illness', 0),
+                
                 
                 # Leave Travel Allowance
                 lta_amount_claimed=perquisites_data.get('lta_amount_claimed', 0),
                 lta_claimed_count=perquisites_data.get('lta_claimed_count', 0),
                 travel_through=perquisites_data.get('travel_through', 'Air'),
                 public_transport_travel_amount_for_same_distance=perquisites_data.get('public_transport_travel_amount_for_same_distance', 0),
-                lta_claim_start_date=perquisites_data.get('lta_claim_start_date', ''),
-                lta_claim_end_date=perquisites_data.get('lta_claim_end_date', ''),
                 
                 # Free Education
-                free_education_actual_expenses=perquisites_data.get('free_education_actual_expenses', 0),
-                free_education_is_institute_by_employer=perquisites_data.get('free_education_is_institute_by_employer', False),
-                free_education_similar_institute_cost=perquisites_data.get('free_education_similar_institute_cost', 0),
+                employer_maintained_1st_child=perquisites_data.get('employer_maintained_1st_child', False),
+                monthly_count_1st_child=perquisites_data.get('monthly_count_1st_child', 0),
+                employer_monthly_expenses_1st_child=perquisites_data.get('employer_monthly_expenses_1st_child', 0),
+                employer_maintained_2nd_child=perquisites_data.get('employer_maintained_2nd_child', False),
+                monthly_count_2nd_child=perquisites_data.get('monthly_count_2nd_child', 0),
+                employer_monthly_expenses_2nd_child=perquisites_data.get('employer_monthly_expenses_2nd_child', 0),
 
                 # Gas, Electricity, Water
                 gas_amount_paid_by_employer=perquisites_data.get('gas_amount_paid_by_employer', 0),
@@ -1017,18 +1066,22 @@ class Taxation:
                 gas_amount_paid_by_employee=perquisites_data.get('gas_amount_paid_by_employee', 0),
                 electricity_amount_paid_by_employee=perquisites_data.get('electricity_amount_paid_by_employee', 0),
                 water_amount_paid_by_employee=perquisites_data.get('water_amount_paid_by_employee', 0),
+                is_gas_manufactured_by_employer=perquisites_data.get('is_gas_manufactured_by_employer', False),
+                is_electricity_manufactured_by_employer=perquisites_data.get('is_electricity_manufactured_by_employer', False),
+                is_water_manufactured_by_employer=perquisites_data.get('is_water_manufactured_by_employer', False),
 
                 # Domestic help
                 domestic_help_amount_paid_by_employer=perquisites_data.get('domestic_help_amount_paid_by_employer', 0),
                 domestic_help_amount_paid_by_employee=perquisites_data.get('domestic_help_amount_paid_by_employee', 0),
 
                 # Interest-free/concessional loan
-                loan_type=perquisites_data.get('loan_type', ''),
+                loan_type=perquisites_data.get('loan_type', 'Personal'),
                 loan_amount=perquisites_data.get('loan_amount', 0),
                 loan_interest_rate_company=perquisites_data.get('loan_interest_rate_company', 0),
                 loan_interest_rate_sbi=perquisites_data.get('loan_interest_rate_sbi', 0),
-                monthly_interest_amount_sbi=perquisites_data.get('monthly_interest_amount_sbi', 0),
-                monthly_interest_amount_company=perquisites_data.get('monthly_interest_amount_company', 0),
+                loan_month_count=perquisites_data.get('loan_month_count', 0),
+                loan_start_date=perquisites_data.get('loan_start_date', ''),
+                loan_end_date=perquisites_data.get('loan_end_date', ''),
 
                 # Lunch/Refreshment
                 lunch_amount_paid_by_employer=perquisites_data.get('lunch_amount_paid_by_employer', 0),
@@ -1045,7 +1098,7 @@ class Taxation:
                 exercise_period=perquisites_data.get('exercise_period', 0),
                 exercise_price_per_share=perquisites_data.get('exercise_price_per_share', 0),
 
-                # Transfer of movable assets
+                # Movable assets
                 movable_asset_type=perquisites_data.get('movable_asset_type', 'Electronics'),
                 movable_asset_value_to_employer=perquisites_data.get('movable_asset_value_to_employer', 0),
                 movable_asset_value_to_employee=perquisites_data.get('movable_asset_value_to_employee', 0),
@@ -1082,6 +1135,8 @@ class Taxation:
             project_allowance=salary_data.get('project_allowance', 0),
             deputation_allowance=salary_data.get('deputation_allowance', 0),
             overtime_allowance=salary_data.get('overtime_allowance', 0),
+            any_other_allowance=salary_data.get('any_other_allowance', 0),
+            any_other_allowance_exemption=salary_data.get('any_other_allowance_exemption', 0),
             interim_relief=salary_data.get('interim_relief', 0),
             tiffin_allowance=salary_data.get('tiffin_allowance', 0),
             fixed_medical_allowance=salary_data.get('fixed_medical_allowance', 0),

@@ -1,4 +1,4 @@
-from models.taxation import SalaryComponents, IncomeFromOtherSources, CapitalGains, DeductionComponents, Taxation, Perquisites
+from models.taxation import SalaryComponents, IncomeFromOtherSources, IncomeFromHouseProperty, CapitalGains, DeductionComponents, Taxation, Perquisites
 from database.taxation_database import get_taxation_by_emp_id, get_taxation_collection, save_taxation, _ensure_serializable
 from services.organisation_service import is_govt_organisation
 from database.user_database import get_user_by_emp_id
@@ -584,6 +584,14 @@ def create_default_taxation(emp_id: str, hostname: str) -> dict:
             gifts=0,
             other_interest=0,
             other_income=0
+        )
+
+        default_house_property = IncomeFromHouseProperty(
+            property_address='',
+            occupancy_status='Self-Occupied',
+            rent_income=0,
+            property_tax=0,
+            interest_on_home_loan=0
         )
         
         default_capital_gains = CapitalGains(

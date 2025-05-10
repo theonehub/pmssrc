@@ -1,0 +1,330 @@
+"""
+Deduction components model for taxation calculations.
+
+Represents all deduction components as per Indian Income Tax Act.
+"""
+
+from dataclasses import dataclass
+from datetime import date
+from typing import Dict, Any, Optional
+
+from models.taxation.constants import (
+    section_80g_100_wo_ql_heads,
+    section_80g_50_wo_ql_heads,
+    section_80g_100_ql_heads,
+    section_80g_50_ql_heads
+)
+
+
+@dataclass
+class DeductionComponents:
+    """
+    Represents all deduction components as per Indian Income Tax Act.
+    Includes deductions under various sections like 80C, 80D, etc.
+    """
+    regime: str = 'new'
+    age: int = 0
+    
+    # section 80C
+    section_80c_lic: float = 0           # Life Insurance Premium
+    section_80c_epf: float = 0           # Employee Provident Fund
+    section_80c_ssp: float = 0           # Sukanya Samridhi Account
+    section_80c_nsc: float = 0           # National Savings Certificate
+    section_80c_ulip: float = 0          # Unit Linked Insurance Plan
+    section_80c_tsmf: float = 0          # Tax Saving Mutual Fund
+    section_80c_tffte2c: float = 0       # Tuition Fees for full time education of upto 2 kids
+    section_80c_paphl: float = 0         # Principal amount paid for housing loan installments
+    section_80c_sdpphp: float = 0        # Stamp duty paid for purchase of residental property
+    section_80c_tsfdsb: float = 0        # Tax saving fixed deposit in a scheduled bank
+    section_80c_scss: float = 0          # Senior citizen savings scheme
+    section_80c_others: float = 0        # Others  Max all above 1,50,000
+
+    # section 80CCC
+    section_80ccc_ppic: float = 0        # Pension Payment under section  Max 1,50,000
+
+    # section 80CCD
+    section_80ccd_1_nps: float = 0       # self-employed or employee contribution to NPS
+    section_80ccd_1b_additional: float = 0  # additional contribution to NPS by self-employed 
+                                           # or employee Max 50,000
+
+    # Max deduction 1,50,000 for all the above elements
+
+    def total_deductions_80c_80ccd_80ccd_1_1b(self, regime: str = 'new') -> float:
+        """
+        Calculate total deductions under 80C, 80CCC, 80CCD(1), 80CCD(1B)
+        Max limit of 1,50,000 applies to 80C, 80CCC, 80CCD(1) combined
+        Additional 50,000 for 80CCD(1B)
+        """
+        if regime == 'new':
+            return 0
+        else:
+            # Calculate Section 80C total (capped at 150,000)
+            section_80c_total = (min(sum([
+                self.section_80c_lic,
+                self.section_80c_epf,
+                self.section_80c_ssp,
+                self.section_80c_nsc,
+                self.section_80c_ulip,
+                self.section_80c_tsmf,
+                self.section_80c_tffte2c,
+                self.section_80c_paphl,
+                self.section_80c_sdpphp,
+                self.section_80c_tsfdsb,
+                self.section_80c_scss,
+                self.section_80c_others,
+                self.section_80ccc_ppic,
+                self.section_80ccd_1_nps]), 150000) +
+                min(self.section_80ccd_1b_additional, 50000))
+            return section_80c_total
+            
+    section_80ccd_2_enps: float = 0  # contribution to NPS by employer 
+                                     # 14% of salary(govt employees) 
+                                     # 10% of salary(private employees)
+
+    def total_deductions_80ccd_2(self, regime: str = 'new', gross_income: float = 0, is_govt_employee: bool = False) -> float:
+        """
+        Calculate total deductions under 80CCD(2) - Employer's contribution to NPS
+        Limit is 14% of salary for government employees, 10% for private
+        """
+        if regime == 'new':
+            return 0
+        else:
+            if is_govt_employee:
+                max_cap = gross_income * 0.14
+            else:
+                max_cap = gross_income * 0.10
+            return min(self.section_80ccd_2_enps, max_cap)
+            
+    # section 80D Health Insurance Premium
+    section_80d_hisf: float = 0     # Health Insurance Premium for self and family
+                                    # Max 25,000 if age is above 60 otherwise 50,000
+    section_80d_phcs: float = 0     # Preventive health checkups max 5000 per year
+                                    # its included in 25k or 50k limit
+
+    def total_deductions_80d_self_family(self, regime: str = 'new', age: int = 0) -> float:
+        """Calculate total deductions for health insurance for self and family."""
+        if regime == 'new':
+            return 0
+        else:
+            if age >= 60:
+                return min(self.section_80d_hisf + min(self.section_80d_phcs, 5000), 50000)
+            else:
+                return min(self.section_80d_hisf + min(self.section_80d_phcs, 5000), 25000)
+
+    # section 80D Health Insurance Premium for parents
+    section_80d_hi_parent: float = 0  # Health Insurance Premium for parents
+                                    # Max 25,000 if age is above 60 otherwise 50,000
+    
+    def total_deductions_80d_parent(self, regime: str = 'new', age: int = 0) -> float:
+        """Calculate total deductions for health insurance for parents."""
+        if regime == 'new':
+            return 0
+        else:
+            if age >= 60:
+                return min(self.section_80d_hi_parent, 50000)
+            else:
+                return min(self.section_80d_hi_parent, 25000)
+
+    # section 80DD Disability Deduction 
+    relation_80dd: str = '' # Spouse, Child, Parents, Sibling
+    disability_percentage: str = '' # Between 40%-80% - 75k, More than 80% - 125k
+    section_80dd: float = 0
+
+    def total_deductions_80dd(self, regime: str = 'new') -> float:
+        """Calculate deductions for disability of dependent under section 80DD."""
+        if regime == 'new':
+            return 0
+        else:
+            if self.relation_80dd in ['Spouse', 'Child', 'Parents', 'Sibling']:
+                if self.disability_percentage == 'Between 40%-80%':
+                    return min(self.section_80dd, 75000)
+                else:
+                    return min(self.section_80dd, 125000)
+            else:
+                return 0
+
+    # section 80DDB Specific Diseases
+    relation_80ddb: str = '' # Spouse, Child, Parents, Sibling
+    age_80ddb: int = 0
+    section_80ddb: float = 0 # if age < 60 - 40k else 100K
+
+    def total_deductions_80ddb(self, regime: str = 'new', age: int = 0) -> float:
+        """Calculate deductions for medical treatment of specified diseases under 80DDB."""
+        if regime == 'new':
+            return 0
+        else:
+            if self.relation_80ddb in ['Spouse', 'Child', 'Parents', 'Sibling']:
+                if age < 60:
+                    return min(self.section_80ddb, 40000)
+                else:
+                    return min(self.section_80ddb, 100000)
+            else:
+                return 0
+
+    # section 80EEB interest on loan for EV vehicle purchased between 01.04.2019 & 31.03.2023
+    section_80eeb: float = 0    # Max 150K
+    ev_purchase_date: date = date.today()
+
+    def total_deductions_80eeb(self, regime: str = 'new', ev_purchase_date: date = date.today()) -> float:
+        """Calculate deductions for electric vehicle loan interest under 80EEB."""
+        if regime == 'new':
+            return 0
+        else:
+            if ev_purchase_date >= date(2019, 4, 1) and ev_purchase_date <= date(2023, 3, 31):
+                return min(self.section_80eeb, 150000)
+            else:
+                return 0
+
+    # section 80G Donations to charitable institutions
+    section_80g_100_wo_ql: float = 0    # Donations entitled to 100% deduction without qualifying limit 
+    section_80g_100_head: str = ''
+
+    def total_deductions_80g_100_wo_ql(self, regime: str = 'new') -> float:
+        """Calculate 100% deduction for donations without qualifying limit under 80G."""
+        if regime == 'new':
+            return 0
+        elif self.section_80g_100_head in section_80g_100_wo_ql_heads:
+            return self.section_80g_100_wo_ql
+        else:
+            return 0
+
+    section_80g_50_wo_ql: float = 0    # Donations entitled to 50% deduction without qualifying limit 
+    section_80g_50_head: str = ''
+
+    def total_deductions_80g_50_wo_ql(self, regime: str = 'new') -> float:
+        """Calculate 50% deduction for donations without qualifying limit under 80G."""
+        if regime == 'new':
+            return 0
+        elif self.section_80g_50_head in section_80g_50_wo_ql_heads:
+            return (self.section_80g_50_wo_ql * 0.5)
+        else:
+            return 0
+
+    section_80g_100_ql: float = 0   # Donations entitled to 100% deduction with 
+                                    # qualifying limit of 10% of adjusted gross total income  
+    section_80g_100_ql_head: str = ''
+
+    def total_deductions_80g_100_ql(self, regime: str = 'new', gross_total_income: float = 0) -> float:
+        """Calculate 100% deduction for donations with qualifying limit under 80G."""
+        if regime == 'new':
+            return 0
+        elif self.section_80g_100_ql_head in section_80g_100_ql_heads:
+            return min(self.section_80g_100_ql, (gross_total_income * 0.1))
+        else:
+            return 0
+
+    section_80g_50_ql: float = 0    # Donations entitled to 50% deduction with qualifying limit of 10% of adjusted gross total income  
+    section_80g_50_ql_head: str = ''
+
+    def total_deductions_80g_50_ql(self, regime: str = 'new', gross_total_income: float = 0) -> float:
+        """Calculate 50% deduction for donations with qualifying limit under 80G."""
+        if regime == 'new':
+            return 0
+        elif self.section_80g_50_ql_head in section_80g_50_ql_heads:
+            return min(self.section_80g_50_ql, (gross_total_income * 0.1))
+        else:
+            return 0
+
+    # section 80GGC Political party contributions
+    section_80ggc: float = 0        # Deduction on Political parties contribution (No Deductions for payments made in Cash)
+
+    def total_deductions_80ggc(self, regime: str = 'new') -> float:
+        """Calculate deduction for political party contributions under 80GGC."""
+        if regime == 'new':
+            return 0
+        else:
+            return self.section_80ggc
+
+    # section 80U Self disability
+    section_80u: float = 0
+    disability_percentage_80u: str = '' # Between 40%-80% - 75k, More than 80% - 125k
+
+    def total_deductions_80u(self, regime: str = 'new') -> float:
+        """Calculate deduction for self disability under section 80U."""
+        if regime == 'new':
+            return 0
+        else:
+            if self.disability_percentage_80u == 'Between 40%-80%':
+                return min(self.section_80u, 75000)
+            else:
+                return min(self.section_80u, 125000)
+
+    def total_deduction(self, regime: str = 'new', 
+                        is_govt_employee: bool = False,         
+                        gross_income: float = 0, age: int = 0,             
+                        ev_purchase_date: date = date.today()) -> float:
+        """
+        Calculate total deductions from all sections.
+        
+        Parameters:
+        - regime: Tax regime ('new' or 'old')
+        - is_govt_employee: Whether the taxpayer is a government employee
+        - gross_income: Gross total income for percentage-based caps
+        - age: Age of the taxpayer for age-based deductions
+        - ev_purchase_date: Purchase date of electric vehicle for 80EEB deduction
+        
+        Returns:
+        - Total deduction amount
+        """
+        return (self.total_deductions_80c_80ccd_80ccd_1_1b(regime) +
+                self.total_deductions_80ccd_2(regime, gross_income, is_govt_employee) +
+                self.total_deductions_80d_self_family(regime, age) +
+                self.total_deductions_80d_parent(regime, age) +
+                self.total_deductions_80dd(regime) +
+                self.total_deductions_80ddb(regime, age) +
+                self.total_deductions_80eeb(regime, ev_purchase_date) +
+                self.total_deductions_80g_100_wo_ql(regime) +
+                self.total_deductions_80g_50_wo_ql(regime) +
+                self.total_deductions_80g_100_ql(regime, gross_income) +
+                self.total_deductions_80g_50_ql(regime, gross_income) +
+                self.total_deductions_80ggc(regime) +
+                self.total_deductions_80u(regime))
+
+    def total(self, regime: str = 'new', is_govt_employee: bool = False, gross_income: float = 0, age: int = 0, ev_purchase_date: date = date.today()) -> float:
+        """Alias for total_deduction to maintain compatibility."""
+        return self.total_deduction(regime, is_govt_employee, gross_income, age, ev_purchase_date)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the object to a dictionary for JSON serialization."""
+        return {
+            "regime": self.regime,
+            "age": self.age,
+            "section_80c_lic": self.section_80c_lic,
+            "section_80c_epf": self.section_80c_epf,
+            "section_80c_ssp": self.section_80c_ssp,
+            "section_80c_nsc": self.section_80c_nsc,
+            "section_80c_ulip": self.section_80c_ulip,
+            "section_80c_tsmf": self.section_80c_tsmf,
+            "section_80c_tffte2c": self.section_80c_tffte2c,
+            "section_80c_paphl": self.section_80c_paphl,
+            "section_80c_sdpphp": self.section_80c_sdpphp,
+            "section_80c_tsfdsb": self.section_80c_tsfdsb,
+            "section_80c_scss": self.section_80c_scss,
+            "section_80c_others": self.section_80c_others,
+            "section_80ccc_ppic": self.section_80ccc_ppic,
+            "section_80ccd_1_nps": self.section_80ccd_1_nps,
+            "section_80ccd_1b_additional": self.section_80ccd_1b_additional,
+            "section_80ccd_2_enps": self.section_80ccd_2_enps,
+            "section_80d_hisf": self.section_80d_hisf,
+            "section_80d_phcs": self.section_80d_phcs,
+            "section_80d_hi_parent": self.section_80d_hi_parent,
+            "relation_80dd": self.relation_80dd,
+            "disability_percentage": self.disability_percentage,
+            "section_80dd": self.section_80dd,
+            "relation_80ddb": self.relation_80ddb,
+            "age_80ddb": self.age_80ddb,
+            "section_80ddb": self.section_80ddb,
+            "section_80eeb": self.section_80eeb,
+            "ev_purchase_date": self.ev_purchase_date.isoformat() if hasattr(self, 'ev_purchase_date') and self.ev_purchase_date else None,
+            "section_80g_100_wo_ql": self.section_80g_100_wo_ql,
+            "section_80g_100_head": self.section_80g_100_head,
+            "section_80g_50_wo_ql": self.section_80g_50_wo_ql,
+            "section_80g_50_head": self.section_80g_50_head,
+            "section_80g_100_ql": self.section_80g_100_ql,
+            "section_80g_100_ql_head": self.section_80g_100_ql_head,
+            "section_80g_50_ql": self.section_80g_50_ql,
+            "section_80g_50_ql_head": self.section_80g_50_ql_head,
+            "section_80ggc": self.section_80ggc,
+            "section_80u": self.section_80u,
+            "disability_percentage_80u": self.disability_percentage_80u
+        } 

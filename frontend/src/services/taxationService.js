@@ -189,10 +189,14 @@ export const saveTaxationData = async (taxationData) => {
           exercise_price_per_share: 0,
           
           // Movable Asset
-          movable_asset_type: 'Electronics',
-          movable_asset_value_to_employer: 0,
-          movable_asset_value_to_employee: 0,
-          number_of_completed_years_of_use: 0,
+          mau_ownership: 'Employer-Owned',
+          mau_value_to_employer: 0,
+          mau_value_to_employee: 0,
+
+          mat_type: 'Electronics',
+          mat_value_to_employer: 0,
+          mat_value_to_employee: 0,
+          mat_number_of_completed_years_of_use: 0,
           
           // Monetary Benefits
           monetary_amount_paid_by_employer: 0,
@@ -292,10 +296,14 @@ export const saveTaxationData = async (taxationData) => {
         exercise_price_per_share: 0,
         
         // Movable Asset
-        movable_asset_type: 'Electronics',
-        movable_asset_value_to_employer: 0,
-        movable_asset_value_to_employee: 0,
-        number_of_completed_years_of_use: 0,
+        mau_ownership: 'Employer-Owned',
+        mau_value_to_employer: 0,
+        mau_value_to_employee: 0,
+
+        mat_value_to_employer: 0,
+        mat_value_to_employee: 0,
+        mat_type: 'Electronics',
+        mat_number_of_completed_years_of_use: 0,
         
         // Monetary Benefits
         monetary_amount_paid_by_employer: 0,
@@ -329,8 +337,9 @@ export const saveTaxationData = async (taxationData) => {
         'exercise_period', 'exercise_price_per_share',
         
         // Movable Asset
-        'movable_asset_type', 'movable_asset_value_to_employer',
-        'movable_asset_value_to_employee', 'number_of_completed_years_of_use',
+        'mau_ownership', 'mau_value_to_employer', 'mau_value_to_employee',
+        'mat_type', 'mat_value_to_employer', 'mat_value_to_employee',
+        'mat_number_of_completed_years_of_use',
         
         // Monetary Benefits
         'monetary_amount_paid_by_employer', 'expenditure_for_offical_purpose',
@@ -347,8 +356,10 @@ export const saveTaxationData = async (taxationData) => {
             taxationData.salary.perquisites[field] = null;
           } else if (field === 'loan_start_date' || field === 'loan_end_date') {
             taxationData.salary.perquisites[field] = '';
-          } else if (field === 'movable_asset_type') {
+          } else if (field === 'mat_type') {
             taxationData.salary.perquisites[field] = 'Electronics';
+          } else if (field === 'mau_ownership') {
+            taxationData.salary.perquisites[field] = 'Employer-Owned';
           } else if (field === 'employer_maintained_1st_child' || field === 'employer_maintained_2nd_child' || 
                     field === 'is_gas_manufactured_by_employer' || field === 'is_electricity_manufactured_by_employer' || 
                     field === 'is_water_manufactured_by_employer') {
@@ -383,6 +394,16 @@ export const saveTaxationData = async (taxationData) => {
         ltcg_any_other_asset: 0,
         ltcg_debt_mutual_fund: 0
       };
+    }
+
+    if (!taxationData.house_property) {
+      taxationData.house_property = {
+        property_address: '',
+        occupancy_status: 'Self-Occupied',
+        rent_income: 0,
+        property_tax: 0,
+        interest_on_home_loan: 0
+      }
     }
 
     // Initialize deductions if missing

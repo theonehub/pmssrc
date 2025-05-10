@@ -94,6 +94,9 @@ const SummarySection = ({
                 <Grid item xs={8}><Typography>Gifts:</Typography></Grid>
                 <Grid item xs={4}><Typography align="right">{formatCurrency(taxationData.other_sources.gifts)}</Typography></Grid>
                 
+                <Grid item xs={8}><Typography>Business & Professional Income:</Typography></Grid>
+                <Grid item xs={4}><Typography align="right">{formatCurrency(taxationData.other_sources.business_professional_income)}</Typography></Grid>
+                
                 <Grid item xs={8}><Typography>Other Income:</Typography></Grid>
                 <Grid item xs={4}><Typography align="right">{formatCurrency(taxationData.other_sources.other_income)}</Typography></Grid>
                 

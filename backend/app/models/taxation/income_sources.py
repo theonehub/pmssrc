@@ -26,10 +26,12 @@ class IncomeFromOtherSources:
     dividend_income: float = 0
     gifts: float = 0
     other_interest: float = 0
+    business_professional_income: float = 0
     other_income: float = 0
 
 
-    def get_section_80tt(self, age: int, regime: str = 'new'):
+    @classmethod
+    def get_section_80tt(cls, age: int, regime: str = 'new'):
         """Determine the applicable section for interest income based on age and regime."""
         if regime == 'old':
             if age >= 60:
@@ -56,6 +58,7 @@ class IncomeFromOtherSources:
             self.dividend_income,
             self.gifts,
             self.other_interest,
+            self.business_professional_income,
             self.other_income
         ]) - deduction)
 
@@ -68,21 +71,24 @@ class IncomeFromOtherSources:
             self.dividend_income,
             self.gifts,
             self.other_interest,
+            self.business_professional_income,
             self.other_income
         ])
-        
-    def to_dict(self) -> Dict[str, Any]:
+    
+    @classmethod
+    def to_dict(cls) -> Dict[str, Any]:
         """Convert the object to a dictionary for JSON serialization."""
         return {
-            "regime": self.regime,
-            "age": self.age,
-            "interest_savings": self.interest_savings,
-            "interest_fd": self.interest_fd,
-            "interest_rd": self.interest_rd,
-            "dividend_income": self.dividend_income,
-            "gifts": self.gifts,
-            "other_interest": self.other_interest,
-            "other_income": self.other_income
+            "regime": cls.regime,
+            "age": cls.age,
+            "interest_savings": cls.interest_savings,
+            "interest_fd": cls.interest_fd,
+            "interest_rd": cls.interest_rd,
+            "dividend_income": cls.dividend_income,
+            "gifts": cls.gifts,
+            "other_interest": cls.other_interest,
+            "business_professional_income": cls.business_professional_income,
+            "other_income": cls.other_income
         }
 
 
@@ -93,7 +99,7 @@ class IncomeFromHouseProperty:
     Includes rental income, property tax, interest on home loan, etc.
     """
     property_address: str = ''
-    occupancy_status: str = ''  # LetOut, SelfOccupied, PerConstruction
+    occupancy_status: str = ''  # Let-Out, Self-Occupied, Per-Construction
     rent_income: float = 0
     property_tax: float = 0
     interest_on_home_loan: float = 0
@@ -102,25 +108,26 @@ class IncomeFromHouseProperty:
         """Calculate taxable income from house property."""
         standard_deduction = self.rent_income * 0.3
         if regime == 'New':
-            if self.occupancy_status == 'LetOut':
+            if self.occupancy_status == 'Let-Out':
                 interest = self.interest_on_home_loan
             else:
                 interest = 0
-        elif self.occupancy_status == 'PerConstruction':
+        elif self.occupancy_status == 'Per-Construction':
             interest = self.interest_on_home_loan * 0.2
         else:
             interest = self.interest_on_home_loan
 
         return self.rent_income - self.property_tax - standard_deduction - interest
-        
-    def to_dict(self) -> Dict[str, Any]:
+
+    @classmethod    
+    def to_dict(cls) -> Dict[str, Any]:
         """Convert the object to a dictionary for JSON serialization."""
         return {
-            "property_address": self.property_address,
-            "occupancy_status": self.occupancy_status,
-            "rent_income": self.rent_income,
-            "property_tax": self.property_tax,
-            "interest_on_home_loan": self.interest_on_home_loan
+            "property_address": cls.property_address,
+            "occupancy_status": cls.occupancy_status,
+            "rent_income": cls.rent_income,
+            "property_tax": cls.property_tax,
+            "interest_on_home_loan": cls.interest_on_home_loan
         }
 
 
@@ -145,7 +152,7 @@ class CapitalGains:
                                         # (taxed at 12.5%)
     ltcg_debt_mutual_fund: float = 0    # Long Term Capital Gain from debt mutual funds 
                                         # (taxed at 12.5%)
-        
+
     def total_stcg_special_rate(self):
         """Total short-term capital gains charged at special rates."""
         return self.stcg_111a
@@ -158,41 +165,14 @@ class CapitalGains:
         """Total long-term capital gains charged at special rates."""
         return self.ltcg_112a + self.ltcg_any_other_asset + self.ltcg_debt_mutual_fund
     
-    def total(self) -> float:
-        """Calculate total capital gains."""
-        return (
-            self.total_stcg_special_rate() +
-            self.total_stcg_slab_rate() +
-            self.total_ltcg_special_rate()
-        )
-        
-    def to_dict(self) -> Dict[str, Any]:
+    @classmethod
+    def to_dict(cls) -> Dict[str, Any]:
         """Convert the object to a dictionary for JSON serialization."""
         return {
-            "stcg_111a": self.stcg_111a,
-            "stcg_any_other_asset": self.stcg_any_other_asset,
-            "stcg_debt_mutual_fund": self.stcg_debt_mutual_fund,
-            "ltcg_112a": self.ltcg_112a,
-            "ltcg_any_other_asset": self.ltcg_any_other_asset,
-            "ltcg_debt_mutual_fund": self.ltcg_debt_mutual_fund
+            "stcg_111a": cls.stcg_111a,
+            "stcg_any_other_asset": cls.stcg_any_other_asset,
+            "stcg_debt_mutual_fund": cls.stcg_debt_mutual_fund,
+            "ltcg_112a": cls.ltcg_112a,
+            "ltcg_any_other_asset": cls.ltcg_any_other_asset,
+            "ltcg_debt_mutual_fund": cls.ltcg_debt_mutual_fund
         }
-
-
-@dataclass
-class BusinessProfessionalIncome:
-    """
-    Represents business and professional income as per Indian Income Tax Act.
-    """
-    business_income: float = 0
-    professional_income: float = 0
-    
-    def total_taxable_income_per_slab(self):
-        """Calculate total taxable business and professional income."""
-        return self.business_income + self.professional_income
-        
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert the object to a dictionary for JSON serialization."""
-        return {
-            "business_income": self.business_income,
-            "professional_income": self.professional_income
-        } 

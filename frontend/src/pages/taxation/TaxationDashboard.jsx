@@ -20,11 +20,10 @@ import {
   Select,
   MenuItem,
   FormControl,
-  InputLabel,
-  Divider
+  InputLabel
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { getAllTaxation, getTaxationByEmpId, getMyTaxation } from '../../services/taxationService';
+import { getAllTaxation, getMyTaxation } from '../../services/taxationService';
 import { getUserRole, getUserId } from '../../utils/auth';
 import PageLayout from '../../layout/PageLayout';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
@@ -482,6 +481,10 @@ const TaxationDashboard = () => {
                     <TableRow>
                       <TableCell>Other Interest</TableCell>
                       <TableCell align="right">{formatCurrency(userData.other_sources?.other_interest || 0)}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>Bussiness & Professional Income</TableCell>
+                      <TableCell align="right">{formatCurrency(userData.other_sources?.business_professional_income || 0)}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Other Income</TableCell>

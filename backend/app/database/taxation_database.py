@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from models.taxation import Taxation, SalaryComponents, IncomeFromOtherSources, CapitalGains, DeductionComponents, Perquisites
+from models.taxation import Taxation
 import logging
 from database.database_connector import connect_to_database
 from database.user_database import get_all_users

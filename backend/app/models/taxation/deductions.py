@@ -48,7 +48,6 @@ class DeductionComponents:
                                            # or employee Max 50,000
 
     # Max deduction 1,50,000 for all the above elements
-
     def total_deductions_80c_80ccd_80ccd_1_1b(self, regime: str = 'new') -> float:
         """
         Calculate total deductions under 80C, 80CCC, 80CCD(1), 80CCD(1B)
@@ -284,47 +283,48 @@ class DeductionComponents:
         """Alias for total_deduction to maintain compatibility."""
         return self.total_deduction(regime, is_govt_employee, gross_income, age, ev_purchase_date)
 
-    def to_dict(self) -> Dict[str, Any]:
+    @classmethod
+    def to_dict(cls) -> Dict[str, Any]:
         """Convert the object to a dictionary for JSON serialization."""
         return {
-            "regime": self.regime,
-            "age": self.age,
-            "section_80c_lic": self.section_80c_lic,
-            "section_80c_epf": self.section_80c_epf,
-            "section_80c_ssp": self.section_80c_ssp,
-            "section_80c_nsc": self.section_80c_nsc,
-            "section_80c_ulip": self.section_80c_ulip,
-            "section_80c_tsmf": self.section_80c_tsmf,
-            "section_80c_tffte2c": self.section_80c_tffte2c,
-            "section_80c_paphl": self.section_80c_paphl,
-            "section_80c_sdpphp": self.section_80c_sdpphp,
-            "section_80c_tsfdsb": self.section_80c_tsfdsb,
-            "section_80c_scss": self.section_80c_scss,
-            "section_80c_others": self.section_80c_others,
-            "section_80ccc_ppic": self.section_80ccc_ppic,
-            "section_80ccd_1_nps": self.section_80ccd_1_nps,
-            "section_80ccd_1b_additional": self.section_80ccd_1b_additional,
-            "section_80ccd_2_enps": self.section_80ccd_2_enps,
-            "section_80d_hisf": self.section_80d_hisf,
-            "section_80d_phcs": self.section_80d_phcs,
-            "section_80d_hi_parent": self.section_80d_hi_parent,
-            "relation_80dd": self.relation_80dd,
-            "disability_percentage": self.disability_percentage,
-            "section_80dd": self.section_80dd,
-            "relation_80ddb": self.relation_80ddb,
-            "age_80ddb": self.age_80ddb,
-            "section_80ddb": self.section_80ddb,
-            "section_80eeb": self.section_80eeb,
-            "ev_purchase_date": self.ev_purchase_date.isoformat() if hasattr(self, 'ev_purchase_date') and self.ev_purchase_date else None,
-            "section_80g_100_wo_ql": self.section_80g_100_wo_ql,
-            "section_80g_100_head": self.section_80g_100_head,
-            "section_80g_50_wo_ql": self.section_80g_50_wo_ql,
-            "section_80g_50_head": self.section_80g_50_head,
-            "section_80g_100_ql": self.section_80g_100_ql,
-            "section_80g_100_ql_head": self.section_80g_100_ql_head,
-            "section_80g_50_ql": self.section_80g_50_ql,
-            "section_80g_50_ql_head": self.section_80g_50_ql_head,
-            "section_80ggc": self.section_80ggc,
-            "section_80u": self.section_80u,
-            "disability_percentage_80u": self.disability_percentage_80u
+            "regime": cls.regime,
+            "age": cls.age,
+            "section_80c_lic": cls.section_80c_lic,
+            "section_80c_epf": cls.section_80c_epf,
+            "section_80c_ssp": cls.section_80c_ssp,
+            "section_80c_nsc": cls.section_80c_nsc, 
+            "section_80c_ulip": cls.section_80c_ulip,
+            "section_80c_tsmf": cls.section_80c_tsmf,
+            "section_80c_tffte2c": cls.section_80c_tffte2c,
+            "section_80c_paphl": cls.section_80c_paphl,
+            "section_80c_sdpphp": cls.section_80c_sdpphp,
+            "section_80c_tsfdsb": cls.section_80c_tsfdsb,
+            "section_80c_scss": cls.section_80c_scss,
+            "section_80c_others": cls.section_80c_others,
+            "section_80ccc_ppic": cls.section_80ccc_ppic,
+            "section_80ccd_1_nps": cls.section_80ccd_1_nps,
+            "section_80ccd_1b_additional": cls.section_80ccd_1b_additional,
+            "section_80ccd_2_enps": cls.section_80ccd_2_enps,
+            "section_80d_hisf": cls.section_80d_hisf,  
+            "section_80d_phcs": cls.section_80d_phcs,
+            "section_80d_hi_parent": cls.section_80d_hi_parent,
+            "relation_80dd": cls.relation_80dd,
+            "disability_percentage": cls.disability_percentage,
+            "section_80dd": cls.section_80dd,
+            "relation_80ddb": cls.relation_80ddb,
+            "age_80ddb": cls.age_80ddb,
+            "section_80ddb": cls.section_80ddb,
+            "section_80eeb": cls.section_80eeb,
+            "ev_purchase_date": cls.ev_purchase_date.isoformat() if hasattr(cls, 'ev_purchase_date') and cls.ev_purchase_date else None,
+            "section_80g_100_wo_ql": cls.section_80g_100_wo_ql,
+            "section_80g_100_head": cls.section_80g_100_head,
+            "section_80g_50_wo_ql": cls.section_80g_50_wo_ql,
+            "section_80g_50_head": cls.section_80g_50_head,
+            "section_80g_100_ql": cls.section_80g_100_ql,
+            "section_80g_100_ql_head": cls.section_80g_100_ql_head,
+            "section_80g_50_ql": cls.section_80g_50_ql,
+            "section_80g_50_ql_head": cls.section_80g_50_ql_head,
+            "section_80ggc": cls.section_80ggc,
+            "section_80u": cls.section_80u,
+            "disability_percentage_80u": cls.disability_percentage_80u
         } 

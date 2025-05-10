@@ -93,6 +93,13 @@ const TaxDeclaration = () => {
       helper_in_performace_of_duties: 0,
       academic_research: 0,
       uniform_allowance: 0,
+      hills_high_altd_allowance: 0,
+      border_remote_allowance: 0,
+      transport_employee_allowance: 0,
+      children_education_allowance: 0,
+      hostel_allowance: 0,
+      transport_allowance: 0,
+      underground_mines_allowance: 0,
       perquisites: {
         
         // Accommodation perquisites
@@ -172,6 +179,7 @@ const TaxDeclaration = () => {
       dividend_income: 0,
       gifts: 0,
       other_interest: 0,
+      business_professional_income: 0,
       other_income: 0
     },
     capital_gains: {
@@ -2130,6 +2138,17 @@ const TaxDeclaration = () => {
                               onChange={(e) => handleInputChange('other_sources', 'other_interest', e.target.value)}
                               InputProps={{ startAdornment: '₹' }}
                               onFocus={(e) => handleFocus('other_sources', 'other_interest', e.target.value)}
+                            />
+                          </Grid>
+                          <Grid item xs={12} md={6}>
+                            <TextField
+                              fullWidth
+                              label="Business/Professional Income"
+                              type="text"
+                              value={formatIndianNumber(taxationData.other_sources.business_professional_income)}
+                              onChange={(e) => handleInputChange('other_sources', 'business_professional_income', e.target.value)}
+                              InputProps={{ startAdornment: '₹' }}
+                              onFocus={(e) => handleFocus('other_sources', 'business_professional_income', e.target.value)}
                             />
                           </Grid>
                           

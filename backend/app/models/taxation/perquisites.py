@@ -259,7 +259,6 @@ class Perquisites:
         
         return max(0, employer_cost - self.mau_value_to_employee)
         
-
     def total_mat_value(self, regime: str = 'new') -> float:
         """Taxable value of transfer of movable assets perquisite."""
         if regime == 'new':

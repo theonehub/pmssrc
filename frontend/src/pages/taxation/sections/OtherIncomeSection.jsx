@@ -5,7 +5,6 @@ import {
   Grid,
   TextField,
   Paper,
-  Divider,
   FormControl,
   InputLabel,
   Select,
@@ -36,6 +35,7 @@ const OtherIncomeSection = ({
       interest_fd: '',
       interest_rd: '',
       other_interest: '',
+      business_professional_income: '',
       dividend_income: '',
       gifts: '',
       other_income: ''
@@ -56,10 +56,10 @@ const OtherIncomeSection = ({
   if (!taxationData.house_property) {
     taxationData.house_property = {
       property_address: '',
-      occupancy_status: 'Self-occupied',
+      occupancy_status: 'Self-Occupied',
       rent_income: '',
       property_tax: '',
-      interest_home_loan: ''
+      interest_on_home_loan: ''
     };
   }
   
@@ -127,7 +127,18 @@ const OtherIncomeSection = ({
               onFocus={(e) => handleFocus('other_sources', 'other_interest', e.target.value)}
             />
           </Grid>
-          
+          {/* Other Interest */}
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Business Professional Interest"
+              type="text"
+              value={formatIndianNumber(taxationData.other_sources.business_professional_income)}
+              onChange={(e) => handleInputChange('other_sources', 'business_professional_income', e.target.value)}
+              InputProps={{ startAdornment: '₹' }}
+              onFocus={(e) => handleFocus('other_sources', 'business_professional_income', e.target.value)}
+            />
+          </Grid>
           {/* Dividend Income */}
           <Grid item xs={12} md={6}>
             <TextField
@@ -288,9 +299,10 @@ const OtherIncomeSection = ({
             <InputLabel>Occupancy Status</InputLabel>
             <Tooltip title="Occupancy Status">
               <Select
-                value={taxationData.house_property.occupancy_status || 'Self-occupied'}
+                value={taxationData.house_property.occupancy_status || 'Self-Occupied'}
                 label="Occupancy Status"
                 onChange={(e) => handleInputChange('house_property', 'occupancy_status', e.target.value)}
+                onFocus={(e) => handleFocus('house_property', 'occupancy_status', e.target.value)}
               >
               {occupancyStatuses.map((status) => (
                 <MenuItem key={status} value={status}>
@@ -331,10 +343,10 @@ const OtherIncomeSection = ({
               fullWidth
               label="Interest on Home Loan"
               type="text"
-              value={formatIndianNumber(taxationData.house_property.interest_home_loan)}
-              onChange={(e) => handleInputChange('house_property', 'interest_home_loan', e.target.value)}
+              value={formatIndianNumber(taxationData.house_property.interest_on_home_loan)}
+              onChange={(e) => handleInputChange('house_property', 'interest_on_home_loan', e.target.value)}
               InputProps={{ startAdornment: '₹' }}
-              onFocus={(e) => handleFocus('house_property', 'interest_home_loan', e.target.value)}
+              onFocus={(e) => handleFocus('house_property', 'interest_on_home_loan', e.target.value)}
             />
           </Grid>
           <Grid item xs={12} md={4}>
@@ -344,9 +356,10 @@ const OtherIncomeSection = ({
               type="text"
               multiline
               rows={4}
-              value={formatIndianNumber(taxationData.house_property.property_address)}
+              value={taxationData.house_property.property_address || ''}
               onChange={(e) => handleInputChange('house_property', 'property_address', e.target.value)}
               onFocus={(e) => handleFocus('house_property', 'property_address', e.target.value)}
+              placeholder="Enter complete property address"
             />
           </Grid>
         </Grid>

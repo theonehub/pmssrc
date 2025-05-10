@@ -380,6 +380,7 @@ export const saveTaxationData = async (taxationData) => {
         dividend_income: 0,
         gifts: 0,
         other_interest: 0,
+        business_professional_income: 0,
         other_income: 0
       };
     }

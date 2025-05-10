@@ -13,8 +13,7 @@ from typing import Dict, Any, Optional, List
 from models.taxation.income_sources import (
     IncomeFromOtherSources,
     IncomeFromHouseProperty,
-    CapitalGains,
-    BusinessProfessionalIncome
+    CapitalGains
 )
 from models.taxation.perquisites import Perquisites
 from models.taxation.salary import SalaryComponents  
@@ -35,6 +34,7 @@ class Taxation:
     emp_age: int
     salary: SalaryComponents
     other_sources: IncomeFromOtherSources
+    house_property: IncomeFromHouseProperty
     capital_gains: CapitalGains
     deductions: DeductionComponents
     regime: str
@@ -63,6 +63,7 @@ class Taxation:
         # Extract nested objects
         salary_data = data.get('salary', {})
         other_sources_data = data.get('other_sources', {})
+        house_property_data = data.get('house_property', {})
         capital_gains_data = data.get('capital_gains', {})
         deductions_data = data.get('deductions', {})
         
@@ -212,6 +213,14 @@ class Taxation:
             helper_in_performace_of_duties=salary_data.get('helper_in_performace_of_duties', 0),    
             academic_research=salary_data.get('academic_research', 0),
             uniform_allowance=salary_data.get('uniform_allowance', 0),
+            hills_high_altd_allowance=salary_data.get('hills_high_altd_allowance', 0),
+            border_remote_allowance= salary_data.get('border_remote_allowance', 0),
+            transport_employee_allowance= salary_data.get('transport_employee_allowance', 0),
+            children_education_allowance= salary_data.get('children_education_allowance', 0),
+            hostel_allowance= salary_data.get('hostel_allowance', 0),
+            underground_mines_allowance= salary_data.get('underground_mines_allowance', 0),
+            transport_allowance= salary_data.get('transport_allowance', 0),
+           
             perquisites=perquisites
         )
         
@@ -224,15 +233,16 @@ class Taxation:
             dividend_income=other_sources_data.get('dividend_income', 0),
             gifts=other_sources_data.get('gifts', 0),
             other_interest=other_sources_data.get('other_interest', 0),
+            business_professional_income=other_sources_data.get('business_professional_income', 0),
             other_income=other_sources_data.get('other_income', 0)
         )
 
         house_property = IncomeFromHouseProperty(
-            property_address=other_sources_data.get('property_address', ''),
-            occupancy_status=other_sources_data.get('occupancy_status', ''),
-            rent_income=other_sources_data.get('rent_income', 0),
-            property_tax=other_sources_data.get('property_tax', 0),
-            interest_on_home_loan=other_sources_data.get('interest_on_home_loan', 0)
+            property_address=house_property_data.get('property_address', ''),
+            occupancy_status=house_property_data.get('occupancy_status', ''),
+            rent_income=house_property_data.get('rent_income', 0),
+            property_tax=house_property_data.get('property_tax', 0),
+            interest_on_home_loan=house_property_data.get('interest_on_home_loan', 0)
         )
 
         capital_gains = CapitalGains(
@@ -303,6 +313,7 @@ class Taxation:
             regime=regime,
             salary=salary,
             other_sources=other_sources,
+            house_property=house_property,
             capital_gains=capital_gains,
             deductions=deductions,
             tax_year=data.get('tax_year', ''),
@@ -396,6 +407,20 @@ class Taxation:
                     capital_gains_dict[attr] = getattr(self.capital_gains, attr)
             result['capital_gains'] = capital_gains_dict
         
+        # Handle house_property components
+        if isinstance(self.house_property, dict):
+            result['house_property'] = self.house_property
+        else:
+            house_property_dict = {}
+            for attr in dir(self.house_property):
+                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total_taxable_income_per_slab':
+                    value = getattr(self.house_property, attr)
+                    if isinstance(value, datetime.date):
+                        house_property_dict[attr] = value.isoformat()
+                    else:
+                        house_property_dict[attr] = value
+            result['house_property'] = house_property_dict
+            
         # Handle deductions components
         if isinstance(self.deductions, dict):
             result['deductions'] = self.deductions
@@ -412,6 +437,7 @@ class Taxation:
             result['deductions'] = deductions_dict
         
         return result
+        
         
     def get_taxable_income(self) -> float:
         """Calculate the total taxable income"""

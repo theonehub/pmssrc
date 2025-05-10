@@ -51,64 +51,64 @@ class SalaryComponents:
     helper_in_performace_of_duties: float = 0           # Allowance granted to meet expenditure incurred on helper in performace of duties(Exempted)      
     academic_research: float = 0                        # Allowance granted for encouraging the academic, research & training pursuits in educational & research institutions(Exempted)
     uniform_allowance: float = 0                        # Allowance granted for expenditure incurred on purchase or maintenance of uniform for wear during performace of duties(Exempted)
+    hills_high_altd_allowance: float = 0                # Compensatory Allowances for Hilly Area or High Altitute Allowance - Rs. 300 pm to Rs. 7,000 pm
+    border_remote_allowance: float = 0                  # Border & Remote Area Allowance - Rs. 200 pm to Rs. 3,000 pm
+    transport_employee_allowance: float = 0             # Allowances allowed to Transport Employees - Rs. 10,000 or 70% of Such Allowance, Whichever is less
+    children_education_allowance: float = 0             # Children Education Allowance - Rs. 100 pm per child upto maximum 2 children
+    hostel_allowance: float = 0                         # Hostel Expenditure Allowance - Rs. 300 pm per child upto maximum 2 children
+    transport_allowance: float = 0                      # Transport Allowance -Rs. 3,200 per month for blind or deaf and dumb
+    underground_mines_allowance: float = 0              # Underground allowance to employee working in underground mines - Rs. 800 pm
 
     perquisites: Optional[Perquisites] = None
 
-    def total(self, regime: str = 'new') -> float:
-        """
-        Calculate total taxable salary including all components and perquisites.
-        """
-        if regime == 'old':
-            hra = (self.basic + self.dearness_allowance) * self.hra_percentage
-        else:
-            hra = 0
-
-        logger.info(f"Salary Components - {json.dumps(self.to_dict(), indent=2)}")
-
-        base_total = (
-            self.basic + self.dearness_allowance + max(0, self.hra - hra) + self.special_allowance +
-            self.bonus + self.commission + self.city_compensatory_allowance + self.rural_allowance +
-            self.proctorship_allowance + self.wardenship_allowance + self.project_allowance +
-            self.deputation_allowance + self.overtime_allowance + self.interim_relief +
-            self.tiffin_allowance + self.fixed_medical_allowance + self.servant_allowance
+    def total(self) -> float:
+        """Calculate total salary components."""
+        return (
+            self.basic +
+            self.dearness_allowance 
         )
-        if self.perquisites:
-            base_total += self.perquisites.total(regime)
-        return base_total
     
-    def to_dict(self) -> Dict[str, Any]:
+    @classmethod
+    def to_dict(cls) -> Dict[str, Any]:
         """Convert the object to a dictionary for JSON serialization."""
         return {
-            "basic": self.basic,
-            "dearness_allowance": self.dearness_allowance,
-            "hra_city": self.hra_city,
-            "hra_percentage": self.hra_percentage,
-            "hra": self.hra,
-            "special_allowance": self.special_allowance,
-            "bonus": self.bonus,
-            "commission": self.commission,
-            "city_compensatory_allowance": self.city_compensatory_allowance,
-            "rural_allowance": self.rural_allowance,
-            "proctorship_allowance": self.proctorship_allowance,
-            "wardenship_allowance": self.wardenship_allowance,
-            "project_allowance": self.project_allowance,
-            "deputation_allowance": self.deputation_allowance,
-            "overtime_allowance": self.overtime_allowance,
-            "any_other_allowance": self.any_other_allowance,
-            "any_other_allowance_exemption": self.any_other_allowance_exemption,
-            "interim_relief": self.interim_relief,
-            "tiffin_allowance": self.tiffin_allowance,
-            "fixed_medical_allowance": self.fixed_medical_allowance,
-            "servant_allowance": self.servant_allowance,
-            "govt_employees_outside_india_allowance": self.govt_employees_outside_india_allowance,
-            "supreme_high_court_judges_allowance": self.supreme_high_court_judges_allowance,
-            "judge_compensatory_allowance": self.judge_compensatory_allowance,
-            "section_10_14_special_allowances": self.section_10_14_special_allowances,
-            "travel_on_tour_allowance": self.travel_on_tour_allowance,
-            "tour_daily_charge_allowance": self.tour_daily_charge_allowance,
-            "conveyance_in_performace_of_duties": self.conveyance_in_performace_of_duties,
-            "helper_in_performace_of_duties": self.helper_in_performace_of_duties,
-            "academic_research": self.academic_research,
-            "uniform_allowance": self.uniform_allowance,
-            "perquisites": self.perquisites.to_dict() if self.perquisites else None
+            "basic": cls.basic,
+            "dearness_allowance": cls.dearness_allowance,
+            "hra_city": cls.hra_city,
+            "hra_percentage": cls.hra_percentage,
+            "hra": cls.hra,
+            "special_allowance": cls.special_allowance,
+            "bonus": cls.bonus,
+            "commission": cls.commission,
+            "city_compensatory_allowance": cls.city_compensatory_allowance,
+            "rural_allowance": cls.rural_allowance,
+            "proctorship_allowance": cls.proctorship_allowance,
+            "wardenship_allowance": cls.wardenship_allowance,
+            "project_allowance": cls.project_allowance,
+            "deputation_allowance": cls.deputation_allowance,
+            "overtime_allowance": cls.overtime_allowance,
+            "any_other_allowance": cls.any_other_allowance,
+            "any_other_allowance_exemption": cls.any_other_allowance_exemption,
+            "interim_relief": cls.interim_relief,
+            "tiffin_allowance": cls.tiffin_allowance,
+            "fixed_medical_allowance": cls.fixed_medical_allowance,
+            "servant_allowance": cls.servant_allowance,
+            "govt_employees_outside_india_allowance": cls.govt_employees_outside_india_allowance,
+            "supreme_high_court_judges_allowance": cls.supreme_high_court_judges_allowance,
+            "judge_compensatory_allowance": cls.judge_compensatory_allowance,
+            "section_10_14_special_allowances": cls.section_10_14_special_allowances,
+            "travel_on_tour_allowance": cls.travel_on_tour_allowance,
+            "tour_daily_charge_allowance": cls.tour_daily_charge_allowance,
+            "conveyance_in_performace_of_duties": cls.conveyance_in_performace_of_duties,
+            "helper_in_performace_of_duties": cls.helper_in_performace_of_duties,
+            "academic_research": cls.academic_research,
+            "uniform_allowance": cls.uniform_allowance,
+            "hills_high_altd_allowance": cls.hills_high_altd_allowance,
+            "border_remote_allowance": cls.border_remote_allowance,
+            "transport_employee_allowance": cls.transport_employee_allowance,
+            "children_education_allowance": cls.children_education_allowance,
+            "hostel_allowance": cls.hostel_allowance,
+            "transport_allowance": cls.transport_allowance,
+            "underground_mines_allowance": cls.underground_mines_allowance,
+            "perquisites": cls.perquisites.to_dict() if cls.perquisites else None
         } 

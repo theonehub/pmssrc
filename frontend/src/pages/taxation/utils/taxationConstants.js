@@ -74,7 +74,7 @@ export const relationOptions = [
 ]; 
 
 export const occupancyStatuses = [
-  'Self-occupied',
-  'Let-out',
-  'Pre-Construction'
+  'Self-Occupied',
+  'Let-Out',
+  'Per-Construction'
 ];

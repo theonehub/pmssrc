@@ -8,8 +8,7 @@ import warnings
 from models.taxation.income_sources import (
     IncomeFromOtherSources,
     IncomeFromHouseProperty,
-    CapitalGains,
-    BusinessProfessionalIncome
+    CapitalGains
 )
 from models.taxation.perquisites import Perquisites
 from models.taxation.salary import SalaryComponents
@@ -34,7 +33,6 @@ __all__ = [
     'IncomeFromOtherSources',
     'IncomeFromHouseProperty',
     'CapitalGains',
-    'BusinessProfessionalIncome',
     'Perquisites',
     'SalaryComponents',
     'DeductionComponents',

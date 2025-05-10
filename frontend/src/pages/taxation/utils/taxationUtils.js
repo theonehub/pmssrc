@@ -105,6 +105,13 @@ export const getDefaultTaxationState = (empId) => ({
     helper_in_performace_of_duties: 0,
     academic_research: 0,
     uniform_allowance: 0,
+    hills_high_altd_allowance: 0,
+    border_remote_allowance: 0,
+    transport_employee_allowance: 0,
+    children_education_allowance: 0,
+    hostel_allowance: 0,
+    transport_allowance: 0,
+    underground_mines_allowance: 0,
     perquisites: {
       // Accommodation perquisites
       accommodation_provided: 'Employer-Owned', 
@@ -206,6 +213,7 @@ export const getDefaultTaxationState = (empId) => ({
     dividend_income: 0,
     gifts: 0,
     other_interest: 0,
+    business_professional_income: 0,
     other_income: 0
   },
   house_property: {

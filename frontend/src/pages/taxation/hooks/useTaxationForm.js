@@ -53,8 +53,16 @@ const useTaxationForm = (empId) => {
   const handleInputChange = (section, field, value) => {
     // If value is string with numbers, parse it
     let parsedValue;
+    const stringFields = [
+      'occupancy_status', 'property_address', 'relation_80dd', 'section_80g_100_head',
+      'relation_80ddb', 'disability_percentage', 'disability_percentage_80u', 'ev_purchase_date',
+      'section_80g_100_ql_head', 'section_80g_50_head', 'section_80g_50_ql_head',
+    ];
     
-    if (typeof value === 'boolean') {
+    if (stringFields.includes(field)) {
+      // Keep as string for string fields
+      parsedValue = value;
+    } else if (typeof value === 'boolean') {
       parsedValue = value;
     } else {
       parsedValue = typeof value === 'string' ? parseIndianNumber(value) : value;

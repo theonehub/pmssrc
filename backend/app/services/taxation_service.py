@@ -179,14 +179,20 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
         logger.info(f"calculate_total_tax() - Calculating salary income with components - Basic: {salary.basic}, DA: {salary.dearness_allowance}, "
                     f"HRA: {salary.hra}, HRA City: {salary.hra_city}, HRA Percentage: {salary.hra_percentage}, Special: {salary.special_allowance}, Bonus: {salary.bonus}")
         
-        salary_income = salary.total(regime)
+        salary_income = salary.total()
         gross_income = salary_income
         logger.info(f"calculate_total_tax() - Total salary income: {salary_income}")
         
         # Calculate other income sources
-        logger.info(f"calculate_total_tax() - Calculating other sources income - Savings Interest: {other_sources.interest_savings}, "
-                    f"FD Interest: {other_sources.interest_fd}, RD Interest: {other_sources.interest_rd}, Dividend: {other_sources.dividend_income}, "
-                    f"Gifts: {other_sources.gifts}, Other Interest: {other_sources.other_interest}, Other Income: {other_sources.other_income}")
+        logger.info(f"calculate_total_tax() - Calculating other sources income"
+                    f"Savings Interest: {other_sources.interest_savings}, "
+                    f"FD Interest: {other_sources.interest_fd},"
+                    f"RD Interest: {other_sources.interest_rd},"
+                    f"Dividend: {other_sources.dividend_income},"
+                    f"Gifts: {other_sources.gifts},"
+                    f"Other Interest: {other_sources.other_interest},"
+                    f"Business&Professional Income: {other_sources.business_professional_income}"
+                    f"Other Income: {other_sources.other_income}")
         
         other_income = other_sources.total_taxable_income_per_slab(regime, age)
         gross_income += other_income
@@ -356,7 +362,8 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
 
 def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, regime: str = None,
                          salary: SalaryComponents = None, other_sources: IncomeFromOtherSources = None,
-                         capital_gains: CapitalGains = None, deductions: DeductionComponents = None) -> Taxation:
+                         capital_gains: CapitalGains = None, deductions: DeductionComponents = None,
+                         house_property: IncomeFromHouseProperty = None) -> Taxation:
     """
     Calculate the tax and save to the database
     """
@@ -402,6 +409,9 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
         if other_sources:
             logger.info(f"CALCULATE_AND_SAVE_TAX - Updating other sources information")
             taxation.other_sources = other_sources
+        if house_property:
+            logger.info(f"CALCULATE_AND_SAVE_TAX - Updating house property information")
+            taxation.house_property = house_property
         if capital_gains:
             logger.info(f"CALCULATE_AND_SAVE_TAX - Updating capital gains information")
             taxation.capital_gains = capital_gains
@@ -435,6 +445,7 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
             regime=regime or 'old',
             salary=salary or SalaryComponents(),
             other_sources=other_sources or IncomeFromOtherSources(),
+            house_property=house_property or IncomeFromHouseProperty(),
             capital_gains=capital_gains or CapitalGains(),
             deductions=deductions or DeductionComponents(),
             tax_year=tax_year,
@@ -571,7 +582,14 @@ def create_default_taxation(emp_id: str, hostname: str) -> dict:
             hra_percentage=0.4,
             special_allowance=0,
             bonus=0,
-            perquisites=default_perquisites
+            perquisites=default_perquisites,
+            hills_high_altd_allowance=0,
+            border_remote_allowance=0,
+            transport_employee_allowance=0,
+            children_education_allowance=0,
+            hostel_allowance=0,
+            transport_allowance=0,
+            underground_mines_allowance=0
         )
         
         default_other_sources = IncomeFromOtherSources(
@@ -583,6 +601,7 @@ def create_default_taxation(emp_id: str, hostname: str) -> dict:
             dividend_income=0,
             gifts=0,
             other_interest=0,
+            business_professional_income=0,
             other_income=0
         )
 
@@ -650,6 +669,7 @@ def create_default_taxation(emp_id: str, hostname: str) -> dict:
             emp_age=emp_age,
             salary=default_salary,
             other_sources=default_other_sources,
+            house_property=default_house_property,
             capital_gains=default_capital_gains,
             deductions=default_deductions,
             regime='old',

@@ -63,12 +63,139 @@ class SalaryComponents:
 
     perquisites: Optional[Perquisites] = None
 
-    def total(self) -> float:
-        """Calculate total salary components."""
-        return (
-            self.basic +
-            self.dearness_allowance 
+    def calculate_hra_exemption(self, regime: str = 'old') -> float:
+        """Calculate HRA exemption as per Income Tax rules."""
+        if regime == 'new':
+            return 0
+            
+        # Basic components for HRA calculation
+        basic_plus_da = self.basic + self.dearness_allowance
+        logger.info(f"Basic + DA: {basic_plus_da}")
+        
+        # HRA exemption calculation is the minimum of:
+        # 1. Actual HRA received
+        # 2. 50% of salary (for metro cities) or 40% (for non-metro)
+        # 3. Rent paid minus 10% of salary
+        
+        rent_paid = self.hra
+        logger.info(f"Rent paid: {rent_paid}")
+        # Determine percentage based on city
+        if self.hra_city in ['Delhi', 'Mumbai', 'Kolkata', 'Chennai']:
+            percent_of_salary = 0.5 * basic_plus_da
+        else:
+            percent_of_salary = 0.4 * basic_plus_da
+
+        logger.info(f"Percent of salary: {percent_of_salary}")  
+        
+        rent_minus_salary = max(0, rent_paid - (0.1 * basic_plus_da))
+        logger.info(f"Rent minus salary: {rent_minus_salary}")
+        
+        # Calculate exemption
+        hra_exemption = min(rent_paid, percent_of_salary, rent_minus_salary)
+        logger.info(f"[Computed]HRA exemption calculated: {hra_exemption}")
+        
+        return hra_exemption
+
+    def calculate_exemptions(self, regime: str = 'old') -> float:
+        """Calculate all exemptions applicable to salary components."""
+        if regime == 'new':
+            return 0
+            
+        # HRA exemption
+        hra_exemption = self.calculate_hra_exemption(regime)
+        
+        
+        # Section 10 and other exemptions
+        section10_exemptions = (
+            self.govt_employees_outside_india_allowance +
+            self.supreme_high_court_judges_allowance +
+            self.judge_compensatory_allowance +
+            self.section_10_14_special_allowances +
+            self.travel_on_tour_allowance +
+            self.tour_daily_charge_allowance +
+            self.conveyance_in_performace_of_duties +
+            self.helper_in_performace_of_duties +
+            self.academic_research +
+            self.uniform_allowance
         )
+        logger.info(f"govt_employees_outside_india_allowance: {self.govt_employees_outside_india_allowance}")
+        logger.info(f"supreme_high_court_judges_allowance: {self.supreme_high_court_judges_allowance}")
+        logger.info(f"judge_compensatory_allowance: {self.judge_compensatory_allowance}")
+        logger.info(f"section_10_14_special_allowances: {self.section_10_14_special_allowances}")
+        logger.info(f"travel_on_tour_allowance: {self.travel_on_tour_allowance}")
+        logger.info(f"tour_daily_charge_allowance: {self.tour_daily_charge_allowance}")
+        logger.info(f"conveyance_in_performace_of_duties: {self.conveyance_in_performace_of_duties}")
+        logger.info(f"helper_in_performace_of_duties: {self.helper_in_performace_of_duties}")
+        logger.info(f"[Computed] Section 10 and other exemptions: {section10_exemptions}")
+        
+        # Other allowance exemptions
+        other_allowances_exemption = (
+            min(self.hills_high_altd_allowance, 7000) +
+            min(self.border_remote_allowance, 3000) +
+            min(self.transport_employee_allowance, min(10000, 0.7 * self.transport_employee_allowance)) +
+            min(self.children_education_allowance, 2400) +  # 100*2*12
+            min(self.hostel_allowance, 7200) +  # 300*2*12
+            min(self.transport_allowance, 38400) +  # 3200*12
+            min(self.underground_mines_allowance, 9600)  # 800*12
+        )
+        logger.info(f"hills_high_altd_allowance: {self.hills_high_altd_allowance}, min with 7000: {min(self.hills_high_altd_allowance, 7000)}")
+        logger.info(f"border_remote_allowance: {self.border_remote_allowance}, min with 3000: {min(self.border_remote_allowance, 3000)}")
+        logger.info(f"transport_employee_allowance: {self.transport_employee_allowance}, min with 10000: {min(self.transport_employee_allowance, min(10000, 0.7 * self.transport_employee_allowance))}")
+        logger.info(f"children_education_allowance: {self.children_education_allowance}, min with 2400: {min(self.children_education_allowance, 2400)}")
+        logger.info(f"hostel_allowance: {self.hostel_allowance}, min with 7200: {min(self.hostel_allowance, 7200)}")
+        logger.info(f"transport_allowance: {self.transport_allowance}, min with 38400: {min(self.transport_allowance, 38400)}")
+        logger.info(f"underground_mines_allowance: {self.underground_mines_allowance}, min with 9600: {min(self.underground_mines_allowance, 9600)}")
+        logger.info(f"Other allowance exemptions: {other_allowances_exemption}")
+
+        logger.info(f"Total salary exemptions - HRA: {hra_exemption}, Section 10: {section10_exemptions}, Other: {other_allowances_exemption}")
+        
+        return hra_exemption + section10_exemptions + other_allowances_exemption + self.any_other_allowance_exemption
+
+    def total(self, regime: str = 'old') -> float:
+        """Calculate total taxable salary components."""
+        # Sum all salary components
+        gross_salary = (
+            self.basic +
+            self.dearness_allowance +
+            self.hra +
+            self.special_allowance +
+            self.bonus +
+            self.commission +
+            self.city_compensatory_allowance +
+            self.rural_allowance +
+            self.proctorship_allowance +
+            self.wardenship_allowance +
+            self.project_allowance +
+            self.deputation_allowance +
+            self.overtime_allowance +
+            self.interim_relief +
+            self.tiffin_allowance +
+            self.fixed_medical_allowance +
+            self.servant_allowance +
+            self.any_other_allowance +
+            self.hills_high_altd_allowance +
+            self.border_remote_allowance +
+            self.transport_employee_allowance +
+            self.children_education_allowance +
+            self.hostel_allowance +
+            self.transport_allowance +
+            self.underground_mines_allowance
+        )
+        
+        # Calculate exemptions
+        exemptions = self.calculate_exemptions(regime)
+        
+        # Add perquisites value if exists
+        perquisites_value = 0
+        if self.perquisites:
+            perquisites_value = self.perquisites.total(gross_salary=gross_salary, regime=regime)
+            logger.info(f"Perquisites total: {perquisites_value}")
+        
+        # Calculate taxable salary
+        taxable_salary = gross_salary - exemptions + perquisites_value
+        logger.info(f"Salary calculation - Gross: {gross_salary}, Exemptions: {exemptions}, Perquisites: {perquisites_value}, Taxable: {taxable_salary}")
+        
+        return taxable_salary
     
     @classmethod
     def to_dict(cls) -> Dict[str, Any]:

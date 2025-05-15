@@ -268,8 +268,13 @@ class Taxation:
         ev_purchase_date_str = deductions_data.get('ev_purchase_date')
         if ev_purchase_date_str:
             try:
-                ev_purchase_date = datetime.datetime.strptime(ev_purchase_date_str, '%Y-%m-%d').date()
-            except (ValueError, TypeError):
+                # Handle both string and datetime.date inputs
+                if isinstance(ev_purchase_date_str, datetime.date):
+                    ev_purchase_date = ev_purchase_date_str
+                else:
+                    ev_purchase_date = datetime.datetime.strptime(ev_purchase_date_str, '%Y-%m-%d').date()
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Failed to parse EV purchase date: {e}")
                 ev_purchase_date = None
         
         deductions = DeductionComponents(
@@ -378,7 +383,9 @@ class Taxation:
         else:
             salary_dict = {}
             for attr in dir(self.salary):
-                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total':
+                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total' \
+                    and attr != 'calculate_exemptions' and attr != 'calculate_taxable_salary' \
+                        and attr != 'calculate_annual_value' and attr != 'calculate_hra_exemption':
                     value = getattr(self.salary, attr)
                     # Handle perquisites specially
                     if attr == 'perquisites' and value is not None:
@@ -405,7 +412,10 @@ class Taxation:
         else:
             other_sources_dict = {}
             for attr in dir(self.other_sources):
-                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total' and attr != 'total_taxable_income_per_slab' and attr != 'get_section_80tt':
+                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total' \
+                    and attr != 'total_taxable_income_per_slab' and attr != 'get_section_80tt' \
+                        and attr != 'calculate_exemptions' and attr != 'calculate_taxable_salary' \
+                            and attr != 'calculate_annual_value' and attr != 'calculate_hra_exemption':
                     other_sources_dict[attr] = getattr(self.other_sources, attr)
             result['other_sources'] = other_sources_dict
         
@@ -415,7 +425,11 @@ class Taxation:
         else:
             capital_gains_dict = {}
             for attr in dir(self.capital_gains):
-                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total' and attr != 'total_stcg_special_rate' and attr != 'total_stcg_slab_rate' and attr != 'total_ltcg_special_rate':
+                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total' \
+                    and attr != 'total_stcg_special_rate' and attr != 'total_stcg_slab_rate' \
+                        and attr != 'total_ltcg_special_rate' and attr != 'calculate_ltcg_tax' \
+                            and attr != 'calculate_stcg_tax' and attr != 'total_ltcg_slab_rate' \
+                                and attr != 'calculate_ltcg_tax_per_slab' and attr != 'calculate_stcg_tax_per_slab':
                     capital_gains_dict[attr] = getattr(self.capital_gains, attr)
             result['capital_gains'] = capital_gains_dict
 
@@ -435,7 +449,7 @@ class Taxation:
         else:
             house_property_dict = {}
             for attr in dir(self.house_property):
-                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total_taxable_income_per_slab':
+                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total_taxable_income_per_slab' and attr != 'calculate_exemptions' and attr != 'calculate_taxable_salary' and attr != 'calculate_annual_value':
                     value = getattr(self.house_property, attr)
                     if isinstance(value, datetime.date):
                         house_property_dict[attr] = value.isoformat()
@@ -463,21 +477,76 @@ class Taxation:
         
     def get_taxable_income(self) -> float:
         """Calculate the total taxable income"""
-        gross_income = self.salary.total() + self.other_sources.total() \
-            + self.capital_gains.total_stcg_slab_rate() + self.capital_gains.total_ltcg_slab_rate() \
-            + self.leave_encashment.total_taxable_income_per_slab()
-        deductions_total = 0 if self.regime == 'new' else self.deductions.total()
-        return max(0, gross_income - deductions_total)
+        # Calculate salary income
+        salary_total = self.salary.total()
+        logger.info(f"Salary income total: {salary_total}")
+        
+        # Calculate income from other sources
+        other_sources_total = self.other_sources.total()
+        logger.info(f"Other sources income total: {other_sources_total}")
+        
+        # Calculate house property income
+        house_property_total = self.house_property.total_taxable_income_per_slab()
+        logger.info(f"House property income total: {house_property_total}")
+        
+        # Calculate capital gains
+        stcg_slab_rate = self.capital_gains.total_stcg_slab_rate()
+        stcg_special_rate = self.capital_gains.total_stcg_special_rate()
+        ltcg_special_rate = self.capital_gains.total_ltcg_special_rate()
+        logger.info(f"Capital gains - STCG (slab rate): {stcg_slab_rate}, STCG (special rate): {stcg_special_rate}, LTCG (special rate): {ltcg_special_rate}")
+        
+        # Calculate leave encashment
+        leave_encashment_total = self.leave_encashment.total_taxable_income_per_slab()
+        logger.info(f"Leave encashment income total: {leave_encashment_total}")
+        
+        # Calculate gross income
+        gross_income = salary_total + other_sources_total + house_property_total + \
+            stcg_slab_rate + leave_encashment_total
+        logger.info(f"Gross income (excluding special rates): {gross_income}")
+        
+        # Calculate deductions (only for old regime)
+        deductions_total = 0
+        if self.regime == 'old':
+            deductions_total = self.deductions.total()
+            logger.info(f"Total deductions (old regime): {deductions_total}")
+        else:
+            logger.info("New regime selected: no deductions applicable")
+            
+        # Calculate final taxable income
+        taxable_income = max(0, gross_income - deductions_total)
+        logger.info(f"Final taxable income: {taxable_income}")
+        
+        return taxable_income
     
     def get_tax_summary(self) -> Dict[str, Any]:
         """Get a summary of the taxation"""
+        # Calculate all income components
+        salary_total = self.salary.total()
+        other_sources_total = self.other_sources.total()
+        house_property_total = self.house_property.total_taxable_income_per_slab()
+        capital_gains_total = self.capital_gains.total_stcg_slab_rate() + self.capital_gains.total_stcg_special_rate() + self.capital_gains.total_ltcg_special_rate()
+        leave_encashment_total = self.leave_encashment.total_taxable_income_per_slab()
+        
+        # Calculate gross income
+        gross_income = salary_total + other_sources_total + house_property_total + capital_gains_total + leave_encashment_total
+        
+        # Calculate deductions (only for old regime)
+        deductions_total = self.deductions.total() if self.regime == 'old' else 0
+        
         return {
             'emp_id': self.emp_id,
             'emp_age': self.emp_age,
             'tax_year': self.tax_year,
             'regime': self.regime,
-            'gross_income': self.salary.total() + self.other_sources.total() + self.capital_gains.total_stcg_slab_rate()  + self.leave_encashment.total_taxable_income_per_slab(),
-            'deductions': self.deductions.total() if self.regime == 'old' else 0,
+            'gross_income': gross_income,
+            'income_breakdown': {
+                'salary': salary_total,
+                'other_sources': other_sources_total,
+                'house_property': house_property_total,
+                'capital_gains': capital_gains_total,
+                'leave_encashment': leave_encashment_total
+            },
+            'deductions': deductions_total,
             'taxable_income': self.get_taxable_income(),
             'total_tax': self.total_tax,
             'tax_paid': self.tax_paid,

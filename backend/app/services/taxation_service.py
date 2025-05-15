@@ -13,7 +13,7 @@ import json
 logger = logging.getLogger(__name__)
 
 def compute_regular_tax(income: float, regime: str = 'old') -> float:
-    logger.info(f"COMPUTE_REGULAR_TAX - Starting regular tax computation with income: {income} and regime: {regime}")
+    logger.info(f"compute_regular_tax - Starting regular tax computation with income: {income} and regime: {regime}")
     
     if regime == 'new':
         slabs = [
@@ -24,7 +24,7 @@ def compute_regular_tax(income: float, regime: str = 'old') -> float:
             (1200001, 1500000, 0.20),
             (1500001, float('inf'), 0.30)
         ]
-        logger.info(f"COMPUTE_REGULAR_TAX - Using new regime tax slabs: {slabs}")
+        logger.info(f"compute_regular_tax - Using new regime tax slabs: {slabs}")
     else:
         slabs = [
             (0, 250000, 0.0),
@@ -32,7 +32,7 @@ def compute_regular_tax(income: float, regime: str = 'old') -> float:
             (500001, 1000000, 0.20),
             (1000001, float('inf'), 0.30)
         ]
-        logger.info(f"COMPUTE_REGULAR_TAX - Using old regime tax slabs: {slabs}")
+        logger.info(f"compute_regular_tax - Using old regime tax slabs: {slabs}")
 
     tax = 0
     slab_breakdown = []
@@ -48,65 +48,65 @@ def compute_regular_tax(income: float, regime: str = 'old') -> float:
                 "taxable_amount": round(taxable, 2),
                 "tax_on_slab": round(slab_tax, 2)
             })
-            logger.info(f"COMPUTE_REGULAR_TAX - Slab {lower}-{upper} at rate {rate*100}%: Taxable amount {taxable}, Tax on slab: {slab_tax}")
+            logger.info(f"compute_regular_tax - Slab {lower}-{upper} at rate {rate*100}%: Taxable amount {taxable}, Tax on slab: {slab_tax}")
     
-    logger.info(f"COMPUTE_REGULAR_TAX - Total regular tax calculated: {tax}")
-    logger.info(f"COMPUTE_REGULAR_TAX - Full breakdown by slabs: {json.dumps(slab_breakdown, indent=2)}")
+    logger.info(f"compute_regular_tax - Total regular tax calculated: {tax}")
+    logger.info(f"compute_regular_tax - Full breakdown by slabs: {json.dumps(slab_breakdown, indent=2)}")
     
     return tax
 
 def compute_capital_gains_tax(cap_gains: CapitalGains, regime: str = 'old') -> float:
-    logger.info(f"COMPUTE_CAPITAL_GAINS_TAX - Starting capital gains tax computation with regime: {regime}")
-    logger.info(f"COMPUTE_CAPITAL_GAINS_TAX - Capital gains input: STCG 111A: {cap_gains.stcg_111a}, "
+    logger.info(f"compute_capital_gains_tax - Starting capital gains tax computation with regime: {regime}")
+    logger.info(f"compute_capital_gains_tax - Capital gains input: STCG 111A: {cap_gains.stcg_111a}, "
                 f"STCG Other: {cap_gains.stcg_any_other_asset}, STCG Debt MF: {cap_gains.stcg_debt_mutual_fund}, "
                 f"LTCG 112A: {cap_gains.ltcg_112a}, LTCG Other: {cap_gains.ltcg_any_other_asset}, "
                 f"LTCG Debt MF: {cap_gains.ltcg_debt_mutual_fund}")
     
     # Short-term capital gains on equity (Section 111A) - 15% flat rate
     stcg_111a_tax = cap_gains.stcg_111a * 0.15
-    logger.info(f"COMPUTE_CAPITAL_GAINS_TAX - STCG 111A Tax (15% flat rate): {stcg_111a_tax}")
+    logger.info(f"compute_capital_gains_tax - STCG 111A Tax (15% flat rate): {stcg_111a_tax}")
     
     # Long-term capital gains on equity (Section 112A) - 10% flat rate above Rs. 1 lakh
     ltcg_112a_exemption = min(100000, cap_gains.ltcg_112a)
     ltcg_112a_taxable = max(0, cap_gains.ltcg_112a - ltcg_112a_exemption)
     ltcg_112a_tax = ltcg_112a_taxable * 0.10
-    logger.info(f"COMPUTE_CAPITAL_GAINS_TAX - LTCG 112A: Total: {cap_gains.ltcg_112a}, Exemption: {ltcg_112a_exemption}, "
+    logger.info(f"compute_capital_gains_tax - LTCG 112A: Total: {cap_gains.ltcg_112a}, Exemption: {ltcg_112a_exemption}, "
                 f"Taxable: {ltcg_112a_taxable}, Tax (10%): {ltcg_112a_tax}")
     
     # Other LTCG taxed at 20%
     ltcg_other = cap_gains.ltcg_any_other_asset + cap_gains.ltcg_debt_mutual_fund
     ltcg_other_tax = ltcg_other * 0.20
-    logger.info(f"COMPUTE_CAPITAL_GAINS_TAX - Other LTCG: Total: {ltcg_other}, Tax (20%): {ltcg_other_tax}")
+    logger.info(f"compute_capital_gains_tax - Other LTCG: Total: {ltcg_other}, Tax (20%): {ltcg_other_tax}")
     
     # Other STCG taxed at slab rates - this will be calculated separately with compute_regular_tax
-    logger.info(f"COMPUTE_CAPITAL_GAINS_TAX - STCG to be taxed at slab rates: {cap_gains.stcg_any_other_asset + cap_gains.stcg_debt_mutual_fund}")
+    logger.info(f"compute_capital_gains_tax - STCG to be taxed at slab rates: {cap_gains.stcg_any_other_asset + cap_gains.stcg_debt_mutual_fund}")
     
     total_cg_tax = stcg_111a_tax + ltcg_112a_tax + ltcg_other_tax
-    logger.info(f"COMPUTE_CAPITAL_GAINS_TAX - Total capital gains tax (excluding slab rate items): {total_cg_tax}")
+    logger.info(f"compute_capital_gains_tax - Total capital gains tax (excluding slab rate items): {total_cg_tax}")
     
     return total_cg_tax
 
 def apply_87a_rebate(tax: float, income: float, regime: str) -> float:
-    logger.info(f"APPLY_87A_REBATE - Applying section 87A rebate with tax: {tax}, income: {income}, regime: {regime}")
+    logger.info(f"apply_87a_rebate - Applying section 87A rebate with tax: {tax}, income: {income}, regime: {regime}")
     
     original_tax = tax
     if regime == 'old' and income <= 500000:
         rebate_amount = min(12500, tax)
         tax = max(0, tax - rebate_amount)
-        logger.info(f"APPLY_87A_REBATE - Old Regime: Income <= 500000, Rebate: {rebate_amount}")
+        logger.info(f"apply_87a_rebate - Old Regime: Income <= 500000, Rebate: {rebate_amount}")
     elif regime == 'new' and income <= 700000:
         rebate_amount = min(25000, tax)
         tax = max(0, tax - rebate_amount)
-        logger.info(f"APPLY_87A_REBATE - New Regime: Income <= 700000, Rebate: {rebate_amount}")
+        logger.info(f"apply_87a_rebate - New Regime: Income <= 700000, Rebate: {rebate_amount}")
     else:
-        logger.info(f"APPLY_87A_REBATE - No rebate applicable: Income or regime not eligible")
+        logger.info(f"apply_87a_rebate - No rebate applicable: Income or regime not eligible")
         rebate_amount = 0
     
-    logger.info(f"APPLY_87A_REBATE - Tax before rebate: {original_tax}, Rebate applied: {rebate_amount}, Tax after rebate: {tax}")
+    logger.info(f"apply_87a_rebate - Tax before rebate: {original_tax}, Rebate applied: {rebate_amount}, Tax after rebate: {tax}")
     return tax
 
 def compute_surcharge(base_tax: float, net_income: float) -> dict: #return total_tax,total_surcharge
-    logger.info(f"COMPUTE_SURCHARGE - Computing surcharge with base tax: {base_tax}, net income: {net_income}")
+    logger.info(f"compute_surcharge - Computing surcharge with base tax: {base_tax}, net income: {net_income}")
     
     surcharge_rate = 0
     threshold = 0
@@ -114,36 +114,36 @@ def compute_surcharge(base_tax: float, net_income: float) -> dict: #return total
     if net_income > 50000000:  #5cr
         surcharge_rate = 0.37
         threshold = 50000000  #5cr
-        logger.info(f"COMPUTE_SURCHARGE - Income > 5cr, rate: 37%")
+        logger.info(f"compute_surcharge - Income > 5cr, rate: 37%")
     elif net_income > 20000000:
         surcharge_rate = 0.25
         threshold = 20000000
-        logger.info(f"COMPUTE_SURCHARGE - Income > 2cr, rate: 25%")
+        logger.info(f"compute_surcharge - Income > 2cr, rate: 25%")
     elif net_income > 10000000:  #1cr
         surcharge_rate = 0.15
         threshold = 10000000
-        logger.info(f"COMPUTE_SURCHARGE - Income > 1cr, rate: 15%")
+        logger.info(f"compute_surcharge - Income > 1cr, rate: 15%")
     elif net_income > 5000000:  #50L
         surcharge_rate = 0.10
         threshold = 5000000  #50L
-        logger.info(f"COMPUTE_SURCHARGE - Income > 50L, rate: 10%")
+        logger.info(f"compute_surcharge - Income > 50L, rate: 10%")
     else:
-        logger.info(f"COMPUTE_SURCHARGE - Income <= 50L, no surcharge applicable")
+        logger.info(f"compute_surcharge - Income <= 50L, no surcharge applicable")
 
     # Regular surcharge calculation
     reg_surcharge = base_tax * surcharge_rate
-    logger.info(f"COMPUTE_SURCHARGE - Regular income tax: {base_tax}, Surcharge on regular income: {reg_surcharge}")
+    logger.info(f"compute_surcharge - Regular income tax: {base_tax}, Surcharge on regular income: {reg_surcharge}")
     income_above_threshold = max(0, net_income - threshold)
-    logger.info(f"COMPUTE_SURCHARGE - Income above threshold: {income_above_threshold}")    
+    logger.info(f"compute_surcharge - Income above threshold: {income_above_threshold}")    
 
     # Apply marginal relief if applicable
     relief_amount = max(0, reg_surcharge - income_above_threshold)
-    logger.info(f"COMPUTE_SURCHARGE - Relief amount: {relief_amount}")
+    logger.info(f"compute_surcharge - Relief amount: {relief_amount}")
     
     surcharge = reg_surcharge - relief_amount
-    logger.info(f"COMPUTE_SURCHARGE - Surcharge: {surcharge}")
+    logger.info(f"compute_surcharge - Surcharge: {surcharge}")
     total_tax = base_tax + surcharge
-    logger.info(f"COMPUTE_SURCHARGE - Total tax: {total_tax}")
+    logger.info(f"compute_surcharge - Total tax: {total_tax}")
     return {"total_tax":total_tax, "surcharge":surcharge}
 
 
@@ -184,15 +184,15 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
         logger.info(f"calculate_total_tax() - Total salary income: {salary_income}")
         
         # Calculate other income sources
-        logger.info(f"calculate_total_tax() - Calculating other sources income"
-                    f"Savings Interest: {other_sources.interest_savings}, "
-                    f"FD Interest: {other_sources.interest_fd},"
-                    f"RD Interest: {other_sources.interest_rd},"
-                    f"Dividend: {other_sources.dividend_income},"
-                    f"Gifts: {other_sources.gifts},"
-                    f"Other Interest: {other_sources.other_interest},"
-                    f"Business&Professional Income: {other_sources.business_professional_income}"
-                    f"Other Income: {other_sources.other_income}")
+        logger.info(f"calculate_total_tax() - Calculating other sources income")
+        logger.info(f"Savings Interest: {other_sources.interest_savings}")
+        logger.info(f"FD Interest: {other_sources.interest_fd}")
+        logger.info(f"RD Interest: {other_sources.interest_rd}")
+        logger.info(f"Dividend: {other_sources.dividend_income}")
+        logger.info(f"Gifts: {other_sources.gifts}")
+        logger.info(f"Other Interest: {other_sources.other_interest}")
+        logger.info(f"Business&Professional Income: {other_sources.business_professional_income}")
+        logger.info(f"Other Income: {other_sources.other_income}")
         
         other_income = other_sources.total_taxable_income_per_slab(regime, age)
         gross_income += other_income
@@ -216,18 +216,27 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
         # Calculate the total deductions
         total_deductions = 0
         if regime == 'old':
-            # For old regime, calculate all deductions
             logger.info(f"calculate_total_tax() - Calculating deductions for old regime")
             
-            # Handle EV purchase date if available
+            # Parse EV purchase date for section 80EEB calculations
             ev_purchase_date = None
             if hasattr(deductions, 'ev_purchase_date') and deductions.ev_purchase_date:
                 try:
-                    ev_purchase_date = datetime.datetime.strptime(deductions.ev_purchase_date, '%Y-%m-%d').date()
+                    # Handle both string and datetime.date inputs
+                    if isinstance(deductions.ev_purchase_date, datetime.date):
+                        ev_purchase_date = deductions.ev_purchase_date
+                    else:
+                        ev_purchase_date = datetime.datetime.strptime(deductions.ev_purchase_date, '%Y-%m-%d').date()
                     logger.info(f"calculate_total_tax() - EV purchase date: {ev_purchase_date}")
-                except Exception as e:
+                except (ValueError, TypeError) as e:
                     logger.warning(f"calculate_total_tax() - Error parsing EV purchase date: {str(e)}")
-                    ev_purchase_date = None
+                    try:
+                        # Try ISO format
+                        ev_purchase_date = datetime.datetime.fromisoformat(str(deductions.ev_purchase_date)).date()
+                        logger.info(f"calculate_total_tax() - EV purchase date parsed with ISO format: {ev_purchase_date}")
+                    except (ValueError, TypeError) as e:
+                        logger.warning(f"calculate_total_tax() - Failed to parse EV purchase date with ISO format: {str(e)}")
+                        ev_purchase_date = None
             
             # Log Section 80C deductions details
             section_80c_total = sum([
@@ -238,16 +247,28 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
                 deductions.section_80c_sdpphp, deductions.section_80c_tsfdsb,
                 deductions.section_80c_scss, deductions.section_80c_others
             ])
-            logger.info(f"calculate_total_tax() - Section 80C components - LIC: {deductions.section_80c_lic}, EPF: {deductions.section_80c_epf}, "
-                        f"SSP: {deductions.section_80c_ssp}, NSC: {deductions.section_80c_nsc}, ULIP: {deductions.section_80c_ulip}, "
-                        f"TSMF: {deductions.section_80c_tsmf}, Tuition: {deductions.section_80c_tffte2c}, Loan Principal: {deductions.section_80c_paphl}, "
-                        f"Stamp Duty: {deductions.section_80c_sdpphp}, FD: {deductions.section_80c_tsfdsb}, SCSS: {deductions.section_80c_scss}, "
-                        f"Others: {deductions.section_80c_others}, Total: {section_80c_total}")
-            
+            logger.info(f"calculate_total_tax() - Section 80C components:")
+            logger.info(f"LIC: {deductions.section_80c_lic}")
+            logger.info(f"EPF: {deductions.section_80c_epf}")
+            logger.info(f"SSP: {deductions.section_80c_ssp}")
+            logger.info(f"NSC: {deductions.section_80c_nsc}")
+            logger.info(f"ULIP: {deductions.section_80c_ulip}")
+            logger.info(f"TSMF: {deductions.section_80c_tsmf}")
+            logger.info(f"TFFTE2C: {deductions.section_80c_tffte2c}")
+            logger.info(f"Loan Principal: {deductions.section_80c_paphl}")
+            logger.info(f"Stamp Duty: {deductions.section_80c_sdpphp}")
+            logger.info(f"FD: {deductions.section_80c_tsfdsb}")
+            logger.info(f"SCSS: {deductions.section_80c_scss}")
+            logger.info(f"Others: {deductions.section_80c_others}")
+
             # Log Section 80D deductions details
             section_80d_total = deductions.section_80d_hisf + deductions.section_80d_phcs + deductions.section_80d_hi_parent
-            logger.info(f"calculate_total_tax() - Section 80D components - Self/Family: {deductions.section_80d_hisf}, "
-                        f"Preventive: {deductions.section_80d_phcs}, Parents: {deductions.section_80d_hi_parent}, Total: {section_80d_total}")
+
+            logger.info(f"calculate_total_tax() - Section 80D components:")
+            logger.info(f"Self/Family: {deductions.section_80d_hisf}")
+            logger.info(f"Preventive: {deductions.section_80d_phcs}")
+            logger.info(f"Parents: {deductions.section_80d_hi_parent}")
+            logger.info(f"Total: {section_80d_total}")
             
             # Calculate all deductions
             total_deductions = deductions.total_deduction(
@@ -368,8 +389,8 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
     """
     Calculate the tax and save to the database
     """
-    logger.info(f"CALCULATE_AND_SAVE_TAX - Starting tax calculation and saving for employee ID: {emp_id}")
-    logger.info(f"CALCULATE_AND_SAVE_TAX - Parameters - tax_year: {tax_year}, regime: {regime}, "
+    logger.info(f"calculate_and_save_tax - Starting tax calculation and saving for employee ID: {emp_id}")
+    logger.info(f"calculate_and_save_tax - Parameters - tax_year: {tax_year}, regime: {regime}, "
                 f"salary provided: {salary is not None}, other_sources provided: {other_sources is not None}, "
                 f"capital_gains provided: {capital_gains is not None}, deductions provided: {deductions is not None}, "
                 f"leave_encashment provided: {leave_encashment is not None}")
@@ -388,62 +409,62 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
         else:  # April to December
             tax_year = f"{current_year}-{current_year+1}"
         
-        logger.info(f"CALCULATE_AND_SAVE_TAX - Auto-determined tax year: {tax_year}")
+        logger.info(f"calculate_and_save_tax - Auto-determined tax year: {tax_year}")
     
     # Try to fetch existing taxation data
     try:
-        logger.info(f"CALCULATE_AND_SAVE_TAX - Trying to fetch existing taxation data for employee: {emp_id}")
+        logger.info(f"calculate_and_save_tax - Trying to fetch existing taxation data for employee: {emp_id}")
         taxation_data = get_taxation_by_emp_id(emp_id, hostname)
         # Convert to Taxation object
         taxation = Taxation.from_dict(taxation_data)
-        logger.info(f"CALCULATE_AND_SAVE_TAX - Found existing taxation data for employee: {emp_id}, age: {taxation.emp_age}, tax year: {taxation.tax_year}, regime: {taxation.regime}")
+        logger.info(f"calculate_and_save_tax - Found existing taxation data for employee: {emp_id}, age: {taxation.emp_age}, tax year: {taxation.tax_year}, regime: {taxation.regime}")
         
         # Update with provided values
         if regime:
-            logger.info(f"CALCULATE_AND_SAVE_TAX - Updating regime from {taxation.regime} to {regime}")
+            logger.info(f"calculate_and_save_tax - Updating regime from {taxation.regime} to {regime}")
             taxation.regime = regime
         if tax_year:
-            logger.info(f"CALCULATE_AND_SAVE_TAX - Updating tax year from {taxation.tax_year} to {tax_year}")
+            logger.info(f"calculate_and_save_tax - Updating tax year from {taxation.tax_year} to {tax_year}")
             taxation.tax_year = tax_year
         if salary:
-            logger.info(f"CALCULATE_AND_SAVE_TAX - Updating salary information")
+            logger.info(f"calculate_and_save_tax - Updating salary information")
             taxation.salary = salary
         if other_sources:
-            logger.info(f"CALCULATE_AND_SAVE_TAX - Updating other sources information")
+            logger.info(f"calculate_and_save_tax - Updating other sources information")
             taxation.other_sources = other_sources
         if house_property:
-            logger.info(f"CALCULATE_AND_SAVE_TAX - Updating house property information")
+            logger.info(f"calculate_and_save_tax - Updating house property information")
             taxation.house_property = house_property
         if capital_gains:
-            logger.info(f"CALCULATE_AND_SAVE_TAX - Updating capital gains information")
+            logger.info(f"calculate_and_save_tax - Updating capital gains information")
             taxation.capital_gains = capital_gains
         if deductions:
-            logger.info(f"CALCULATE_AND_SAVE_TAX - Updating deductions information")
+            logger.info(f"calculate_and_save_tax - Updating deductions information")
             taxation.deductions = deductions
         if leave_encashment:
-            logger.info(f"CALCULATE_AND_SAVE_TAX - Updating leave encashment information")
+            logger.info(f"calculate_and_save_tax - Updating leave encashment information")
             taxation.leave_encashment = leave_encashment
     except Exception as e:
-        logger.info(f"CALCULATE_AND_SAVE_TAX - No existing taxation data found for {emp_id}, creating new taxation object. Error: {str(e)}")
+        logger.info(f"calculate_and_save_tax - No existing taxation data found for {emp_id}, creating new taxation object. Error: {str(e)}")
         
         # Get user age
         emp_age = 0
         try:
-            logger.info(f"CALCULATE_AND_SAVE_TAX - Fetching user data to determine age")
+            logger.info(f"calculate_and_save_tax - Fetching user data to determine age")
             user_data = get_user_by_emp_id(emp_id, hostname)
             if user_data and 'dob' in user_data and user_data['dob']:
                 dob = datetime.datetime.strptime(user_data.get('dob', ''), '%Y-%m-%d')
                 today = datetime.datetime.now()
                 age_delta = relativedelta(today, dob)
                 emp_age = age_delta.years
-                logger.info(f"CALCULATE_AND_SAVE_TAX - Calculated age for user: {emp_age} years")
+                logger.info(f"calculate_and_save_tax - Calculated age for user: {emp_age} years")
             else:
-                logger.warning(f"CALCULATE_AND_SAVE_TAX - No DOB found for user, defaulting age to 0")
+                logger.warning(f"calculate_and_save_tax - No DOB found for user, defaulting age to 0")
         except Exception as e:
-            logger.error(f"CALCULATE_AND_SAVE_TAX - Could not calculate age for {emp_id}: {str(e)}")
+            logger.error(f"calculate_and_save_tax - Could not calculate age for {emp_id}: {str(e)}")
             
         # Create new taxation object if not found
-        logger.info(f"CALCULATE_AND_SAVE_TAX - Creating new taxation object with emp_id: {emp_id}, age: {emp_age}, regime: {regime or 'old'}, tax_year: {tax_year}")
+        logger.info(f"calculate_and_save_tax - Creating new taxation object with emp_id: {emp_id}, age: {emp_age}, regime: {regime or 'old'}, tax_year: {tax_year}")
         taxation = Taxation(
             emp_id=emp_id,
             emp_age=emp_age,
@@ -468,7 +489,7 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
         
     # Save the taxation data
     try:
-        logger.info(f"CALCULATE_AND_SAVE_TAX - Saving taxation data to database")
+        logger.info(f"calculate_and_save_tax - Saving taxation data to database")
         
         # Get dictionary representation and ensure serializable
         taxation_dict = _ensure_serializable(taxation.to_dict())
@@ -478,29 +499,29 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
         
         # Use database function to save
         save_taxation(taxation_dict, hostname)
-        logger.info(f"CALCULATE_AND_SAVE_TAX - Successfully saved taxation data")
+        logger.info(f"calculate_and_save_tax - Successfully saved taxation data")
     except Exception as e:
-        logger.error(f"CALCULATE_AND_SAVE_TAX - Error saving taxation data: {str(e)}")
+        logger.error(f"calculate_and_save_tax - Error saving taxation data: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error saving taxation data: {str(e)}")
     
     # Calculate the tax
     try:
-        logger.info(f"CALCULATE_AND_SAVE_TAX - Calculating total tax")
+        logger.info(f"calculate_and_save_tax - Calculating total tax")
         total_tax = calculate_total_tax(emp_id, hostname)
-        logger.info(f"CALCULATE_AND_SAVE_TAX - Tax calculation completed successfully, total tax: {total_tax}")
+        logger.info(f"calculate_and_save_tax - Tax calculation completed successfully, total tax: {total_tax}")
     except Exception as e:
-        logger.error(f"CALCULATE_AND_SAVE_TAX - Error calculating tax: {str(e)}")
+        logger.error(f"calculate_and_save_tax - Error calculating tax: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error calculating tax: {str(e)}")
     
     # Retrieve the updated taxation data
     try:
-        logger.info(f"CALCULATE_AND_SAVE_TAX - Retrieving updated taxation data with calculated tax")
+        logger.info(f"calculate_and_save_tax - Retrieving updated taxation data with calculated tax")
         updated_taxation_data = get_taxation_by_emp_id(emp_id, hostname)
         updated_taxation = Taxation.from_dict(updated_taxation_data)
-        logger.info(f"CALCULATE_AND_SAVE_TAX - Successfully retrieved updated taxation data with tax: {updated_taxation.total_tax}")
+        logger.info(f"calculate_and_save_tax - Successfully retrieved updated taxation data with tax: {updated_taxation.total_tax}")
         return updated_taxation
     except Exception as e:
-        logger.error(f"CALCULATE_AND_SAVE_TAX - Error retrieving updated taxation data: {str(e)}")
+        logger.error(f"calculate_and_save_tax - Error retrieving updated taxation data: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error retrieving updated taxation data: {str(e)}")
 
 def get_or_create_taxation_by_emp_id(emp_id: str, hostname: str) -> dict:
@@ -517,11 +538,11 @@ def get_or_create_taxation_by_emp_id(emp_id: str, hostname: str) -> dict:
     try:
         # Try to fetch existing taxation data
         taxation_data = get_taxation_by_emp_id(emp_id, hostname)
-        logger.info(f"Retrieved existing taxation data for {emp_id}")
+        logger.info(f"get_or_create_taxation_by_emp_id - Retrieved existing taxation data for {emp_id}")
         return taxation_data
     except HTTPException as e:
         if e.status_code == 404:
-            logger.info(f"Taxation data not found for {emp_id}, creating defaults")
+            logger.info(f"get_or_create_taxation_by_emp_id - Taxation data not found for {emp_id}, creating defaults")
             # Taxation not found, create default
             return create_default_taxation(emp_id, hostname)
         else:

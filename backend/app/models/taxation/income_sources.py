@@ -9,7 +9,10 @@ Contains classes for different types of income sources:
 """
 
 from dataclasses import dataclass
+import logging
 from typing import Dict, Any, Optional
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -104,20 +107,67 @@ class IncomeFromHouseProperty:
     property_tax: float = 0
     interest_on_home_loan: float = 0
 
-    def total_taxable_income_per_slab(self, regime: str = 'new'):
-        """Calculate taxable income from house property."""
-        standard_deduction = self.rent_income * 0.3
-        if regime == 'New':
-            if self.occupancy_status == 'Let-Out':
-                interest = self.interest_on_home_loan
-            else:
-                interest = 0
-        elif self.occupancy_status == 'Per-Construction':
-            interest = self.interest_on_home_loan * 0.2
-        else:
-            interest = self.interest_on_home_loan
+    
+    def calculate_annual_value(self) -> float:
+        """
+        Calculate annual value of house property.
+        For Let-Out property: Rent income - Unrealized rent - Municipal tax paid
+        For Self-Occupied property: Annual value is zero
+        """
+        if self.occupancy_status == 'Self-Occupied':
+            logger.info(f"Self-Occupied property: Annual value set to 0")
+            return 0
+        
+        # For Let-Out or Deemed Let-Out property
+        annual_value = self.rent_income - self.property_tax
+        logger.info(f"Calculating annual value: Rent {self.rent_income} - Property Tax {self.property_tax} = {annual_value}")
+        return max(0, annual_value)
 
-        return self.rent_income - self.property_tax - standard_deduction - interest
+    def total_taxable_income_per_slab(self, regime: str = 'old') -> float:
+        """
+        Calculate taxable income from house property.
+        
+        For Let-Out property:
+        Net Annual Value = Annual Value - Standard Deduction (30%) - Interest on Home Loan
+        
+        For Self-Occupied property:
+        Interest deduction up to 2 lakh (for loans taken after 1999)
+        """
+        logger.info(f"Calculating income from house property for regime: {regime}")
+        logger.info(f"Property status: {self.occupancy_status}, Rent: {self.rent_income}, Property Tax: {self.property_tax}, Interest: {self.interest_on_home_loan}")
+        
+        # Calculate annual value
+        annual_value = self.calculate_annual_value()
+        
+        if self.occupancy_status == 'Self-Occupied':
+            # For self-occupied property, only interest is deductible (up to 2 lakh)
+            interest_deduction = min(self.interest_on_home_loan, 200000)
+            annual_value = -interest_deduction
+            logger.info(f"Self-Occupied property: Interest deduction {interest_deduction}, Net income: {annual_value}")
+            return annual_value
+        
+        elif self.occupancy_status == 'Per-Construction':
+            # Pre-construction interest is deductible in 5 equal installments
+            # after construction is completed
+            pre_construction_interest = self.interest_on_home_loan * 0.2
+            logger.info(f"Per-Construction property: Interest deduction (1/5th) {pre_construction_interest}")
+            return annual_value - pre_construction_interest
+        
+        else:  # Let-Out or Deemed Let-Out
+            # Calculate standard deduction (30% of annual value)
+            standard_deduction = annual_value * 0.3
+            
+            # Net annual value after standard deduction and interest
+            net_income = annual_value - standard_deduction - self.interest_on_home_loan
+            
+            # Maximum loss allowed is -2 lakh
+            if net_income < 200000:
+                logger.info(f"Let-Out property: Annual value {annual_value}, Standard deduction {standard_deduction}, Interest {self.interest_on_home_loan}")
+                logger.info(f"Loss from house property capped at -2 lakh (from {net_income})")
+                return 200000
+            
+            logger.info(f"Let-Out property: Annual value {annual_value}, Standard deduction {standard_deduction}, Interest {self.interest_on_home_loan}, Net income: {net_income}")
+            return net_income
 
     @classmethod    
     def to_dict(cls) -> Dict[str, Any]:
@@ -153,17 +203,42 @@ class CapitalGains:
     ltcg_debt_mutual_fund: float = 0    # Long Term Capital Gain from debt mutual funds 
                                         # (taxed at 12.5%)
 
-    def total_stcg_special_rate(self):
+    def total_stcg_special_rate(self) -> float:
         """Total short-term capital gains charged at special rates."""
+        logger.info(f"STCG at special rate (under section 111A): {self.stcg_111a}")
         return self.stcg_111a
     
-    def total_stcg_slab_rate(self):
+    def total_stcg_slab_rate(self) -> float:
         """Total short-term capital gains taxed at slab rates."""
-        return self.stcg_any_other_asset + self.stcg_debt_mutual_fund
+        total = self.stcg_any_other_asset + self.stcg_debt_mutual_fund
+        logger.info(f"STCG at slab rates: {total}")
+        return total
     
-    def total_ltcg_special_rate(self):
+    def total_ltcg_special_rate(self) -> float:
         """Total long-term capital gains charged at special rates."""
-        return self.ltcg_112a + self.ltcg_any_other_asset + self.ltcg_debt_mutual_fund
+        total = self.ltcg_112a + self.ltcg_any_other_asset + self.ltcg_debt_mutual_fund
+        logger.info(f"LTCG at special rates: {total}")
+        return total
+        
+    def total_ltcg_slab_rate(self) -> float:
+        """Total long-term capital gains taxed at slab rates (should be zero as all LTCG has special rates)."""
+        return 0
+    
+    def calculate_ltcg_tax(self) -> tuple:
+        """
+        Calculate taxable LTCG amounts according to tax rules.
+        Returns a tuple of (ltcg_112a_taxable, ltcg_other_taxable)
+        """
+        # LTCG under 112A has 1L exemption
+        ltcg_112a_taxable = max(0, self.ltcg_112a - 125000)
+        
+        # Other LTCG assets taxed at 20% with indexation benefit (already calculated in input values)
+        ltcg_other_taxable = self.ltcg_any_other_asset + self.ltcg_debt_mutual_fund
+        
+        logger.info(f"LTCG under 112A: {self.ltcg_112a}, Exemption: 125000, Taxable: {ltcg_112a_taxable}")
+        logger.info(f"LTCG other assets: {self.ltcg_any_other_asset + self.ltcg_debt_mutual_fund}")
+        
+        return (ltcg_112a_taxable, ltcg_other_taxable)
     
     @classmethod
     def to_dict(cls) -> Dict[str, Any]:
@@ -186,25 +261,61 @@ class LeaveEncashment:
     leave_encashment_income_received: float = 0
     service_years: int = 0
     leave_balance: float = 0
+    average_monthly_salary: float = 100000  # TODO: Default value, should be properly calculated from salary history
 
 
 
-    def total_taxable_income_per_slab(self, regime: str = 'new') -> float:
-        """Calculate total leave salary income."""
-        max_deduction = 2500000  #25L
-        #Get average salary for last 10 months from the salary slips for now assume it is 1L per month
-        average_salary = 100000
-        salary_last_10_months = average_salary * 10
+    def total_taxable_income_per_slab(self, regime: str = 'old') -> float:
+        """
+        Calculate taxable leave encashment income.
         
-        if self.leave_balance > (self.service_years * 30):
-            deduction = average_salary * self.service_years
+        Exemption is least of:
+        1. Actual leave encashment received
+        2. 10 months' average salary (assumed as 100000 per month)
+        3. Maximum exemption limit (₹25,00,000)
+        4. Average salary × unexpired leave (30 days per year calculated for service years)
+        """
+        if regime == 'new':
+            # In new regime, leave encashment is fully taxable
+            logger.info(f"New regime - Leave encashment fully taxable: {self.leave_encashment_income_received}")
+            return self.leave_encashment_income_received
+            
+        logger.info(f"Calculating leave encashment for regime: {regime}")
+        logger.info(f"Leave encashment received: {self.leave_encashment_income_received}")
+        logger.info(f"Service years: {self.service_years}")
+        logger.info(f"Leave balance: {self.leave_balance}")
+        logger.info(f"Average monthly salary: {self.average_monthly_salary}")
+        
+        # Calculate all possible exemption amounts
+        actual_received = self.leave_encashment_income_received
+        ten_months_salary = self.average_monthly_salary * 10
+        statutory_limit = 2500000
+        
+        # Calculate unexpired leave based on service years
+        # Assume entitlement of 30 days per year and calculate unused leave value
+        salary_per_day = self.average_monthly_salary / 30
+        if self.leave_balance > 0:
+            # If leave balance is provided, use it directly
+            unexpired_leave_value = self.leave_balance * salary_per_day
         else:
-            deduction = average_salary * self.leave_balance
-
-        deduction = min(deduction, max_deduction)
-        taxable_income =  min(0, min(self.leave_encashment_income_received - deduction))
-
-        return taxable_income
+            # Otherwise calculate based on service years (assuming 30 days per year)
+            unexpired_leave_value = self.service_years * 30 * salary_per_day
+        
+        # Exemption is the least of the four amounts
+        exemption = min(actual_received, ten_months_salary, statutory_limit, unexpired_leave_value)
+        
+        # Taxable amount is received amount minus exemption
+        taxable_amount = max(0, self.leave_encashment_income_received - exemption)
+        
+        logger.info(f"Leave encashment exemption calculation:")
+        logger.info(f"Actual received: {actual_received}")
+        logger.info(f"10 months salary: {ten_months_salary}")
+        logger.info(f"Statutory limit: {statutory_limit}")
+        logger.info(f"Unexpired leave value: {unexpired_leave_value}")
+        logger.info(f"Exemption amount: {exemption}")
+        logger.info(f"Taxable amount: {taxable_amount}")
+        
+        return taxable_amount
 
     @classmethod
     def to_dict(cls) -> Dict[str, Any]:

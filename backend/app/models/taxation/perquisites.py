@@ -57,19 +57,26 @@ class Perquisites:
 
         logger.info(f"Furniture value: {furniture_value}")
         if self.accommodation_provided == 'Govt':
+            logger.info(f"Govt accommodation value: {self.accommodation_govt_lic_fees - self.accommodation_rent + furniture_value}")
             return self.accommodation_govt_lic_fees - self.accommodation_rent + furniture_value
         elif self.accommodation_provided == 'Employer-Owned':
             if self.accommodation_city_population == 'Exceeding 40 lakhs in 2011 Census':
+                logger.info(f"Exceeding 40 lakhs in 2011 Census: {(gross_salary * 0.1) + furniture_value}")
                 return (gross_salary * 0.1) + furniture_value
             elif self.accommodation_city_population == 'Between 15 lakhs and 40 lakhs in 2011 Census':
+                logger.info(f"Between 15 lakhs and 40 lakhs in 2011 Census: {(gross_salary * 0.075) + furniture_value}")
                 return (gross_salary * 0.075) + furniture_value
             elif self.accommodation_city_population == 'Below 15 lakhs in 2011 Census':
+                logger.info(f"Below 15 lakhs in 2011 Census: {gross_salary * 0.05}")
                 return gross_salary * 0.05
         elif self.accommodation_provided == 'Employer-Leased':
+            logger.info(f"Employer-Leased: {(min(self.accommodation_rent, (gross_salary * 0.10))) + furniture_value}")
             return ((min(self.accommodation_rent, (gross_salary * 0.10))) + furniture_value)
         elif self.accommodation_provided == 'Hotel provided for 15 days or above':
+            logger.info(f"Hotel provided for 15 days or above: {min(self.accommodation_rent, (gross_salary * 0.24)) - self.furniture_cost_paid_by_employee}")
             return min(self.accommodation_rent, (gross_salary * 0.24)) - self.furniture_cost_paid_by_employee
         else:
+            logger.info(f"No accommodation provided: 0")
             return 0
 
 
@@ -405,7 +412,7 @@ class Perquisites:
         return max(0, self.domestic_help_amount_paid_by_employer - self.domestic_help_amount_paid_by_employee)
 
     
-    def total(self, regime: str = 'new') -> float:
+    def total(self, gross_salary: float, regime: str = 'new') -> float:
         """
         Calculate total taxable value of all perquisites for the given regime.
         Includes all perquisite types as per Indian tax rules.
@@ -414,9 +421,9 @@ class Perquisites:
             return 0
         total_value = 0.0
         # Add all perquisite calculations
-        total_value += self.total_accommodation_value(gross_salary=0, regime=regime)  # gross_salary to be passed if available
-        total_value += self.total_car_value(gross_salary=0, regime=regime)
-        total_value += self.total_medical_reimbursement(gross_salary=0, regime=regime)
+        total_value += self.total_accommodation_value(gross_salary=gross_salary, regime=regime)  # gross_salary to be passed if available
+        total_value += self.total_car_value(gross_salary=gross_salary, regime=regime)
+        total_value += self.total_medical_reimbursement(gross_salary=gross_salary, regime=regime)
         total_value += self.total_lta_value(regime)
         total_value += self.total_free_education_value(regime)
         total_value += self.total_gas_electricity_water_value(regime)

@@ -216,6 +216,8 @@ const TaxDeclaration = () => {
       section_80ddb: 0,
       relation_80ddb: '',
       age_80ddb: 0,
+      section_80e_interest: 0,
+      relation_80e: '',
       section_80eeb: 0,
       ev_purchase_date: null,
       section_80g_100_wo_ql: 0,
@@ -2784,7 +2786,33 @@ const TaxDeclaration = () => {
                                     <FormHelperText>For self disability</FormHelperText>
                                   </FormControl>
                                 </Grid>
-                                
+                                <Grid item xs={12} md={6}>
+                                  <TextField
+                                    fullWidth
+                                    label="Section 80E (Educational Loan)"
+                                    type="text"
+                                    value={formatIndianNumber(taxationData.deductions.section_80e_interest)}
+                                    onChange={(e) => handleInputChange('deductions', 'section_80e_interest', e.target.value)}
+                                    InputProps={{ startAdornment: '₹' }}
+                                    disabled={taxationData.regime === 'new'}
+                                    onFocus={(e) => handleFocus('deductions', 'section_80e_interest', e.target.value)}
+                                  />
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                  <FormControl fullWidth disabled={taxationData.regime === 'new'}>
+                                    <InputLabel>Relationship (80E)</InputLabel>
+                                    <Select
+                                      value={taxationData.deductions.relation_80e || ''}
+                                      onChange={(e) => handleInputChange('deductions', 'relation_80e', e.target.value)}
+                                      label="Relationship (80E)"
+                                    >
+                                      <MenuItem value="Self">Self</MenuItem>
+                                      <MenuItem value="Spouse">Spouse</MenuItem>
+                                      <MenuItem value="Child">Child</MenuItem>
+                                    </Select>
+                                  </FormControl>
+                                </Grid>
+
                                 <Grid item xs={12} md={6}>
                                   <TextField
                                     fullWidth
@@ -3106,6 +3134,7 @@ const TaxDeclaration = () => {
                               {formatCurrency(
                                 taxationData.deductions.section_80dd +
                                 taxationData.deductions.section_80ddb +
+                                taxationData.deductions.section_80e_interest +
                                 taxationData.deductions.section_80eeb +
                                 taxationData.deductions.section_80g_100_wo_ql +
                                 taxationData.deductions.section_80g_50_wo_ql +

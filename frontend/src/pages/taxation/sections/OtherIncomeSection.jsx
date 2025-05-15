@@ -52,6 +52,14 @@ const OtherIncomeSection = ({
       ltcg_any_other_asset: ''
     };
   }
+
+  if (!taxationData.leave_encashment) {
+    taxationData.leave_encashment = {
+      leave_encashment_income_received: '',
+      service_years: '',
+      leave_balance: ''
+    };
+  }
   
   if (!taxationData.house_property) {
     taxationData.house_property = {
@@ -360,6 +368,59 @@ const OtherIncomeSection = ({
               onChange={(e) => handleInputChange('house_property', 'property_address', e.target.value)}
               onFocus={(e) => handleFocus('house_property', 'property_address', e.target.value)}
               placeholder="Enter complete property address"
+            />
+          </Grid>
+        </Grid>
+      </Paper>
+
+      <FormSectionHeader title="Leave Encashment" />
+      
+      <Paper variant="outlined" sx={{ p: 3 }}>
+        <Grid container spacing={3}>
+          {/* Leave Encashment Income */}
+            <Box 
+            sx={{ 
+              width: '100%', 
+              display: 'flex',
+              justifyContent: 'left'
+            }}
+          >
+            <Typography variant="h6" color="primary">Leave Encashment Income</Typography>
+          </Box>
+          
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="Leave Encashment Income Received"
+              type="text"
+              value={formatIndianNumber(taxationData.leave_encashment.leave_encashment_income_received)}
+              onChange={(e) => handleInputChange('leave_encashment', 'leave_encashment_income_received', e.target.value)}
+              InputProps={{ startAdornment: '₹' }}
+              onFocus={(e) => handleFocus('leave_encashment', 'leave_encashment_income_received', e.target.value)}
+            />
+          </Grid>
+          
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="Service Years"
+              type="text"
+              value={formatIndianNumber(taxationData.leave_encashment.service_years)}
+              onChange={(e) => handleInputChange('leave_encashment', 'service_years', e.target.value)}
+              InputProps={{ startAdornment: '₹' }}
+              onFocus={(e) => handleFocus('leave_encashment', 'service_years', e.target.value)}
+            />
+          </Grid>
+          
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="Leave Balance"
+              type="text"
+              value={formatIndianNumber(taxationData.leave_encashment.leave_balance)}
+              onChange={(e) => handleInputChange('leave_encashment', 'leave_balance', e.target.value)}
+              InputProps={{ startAdornment: '₹' }}
+              onFocus={(e) => handleFocus('leave_encashment', 'leave_balance', e.target.value)}
             />
           </Grid>
         </Grid>

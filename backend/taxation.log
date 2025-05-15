@@ -1,0 +1,218 @@
+2025-05-15 18:11:37,201 INFO [auth.auth:85]: Checking role for user: superadmin
+2025-05-15 18:11:37,261 INFO [services.taxation_service:371]: CALCULATE_AND_SAVE_TAX - Starting tax calculation and saving for employee ID: emp002
+2025-05-15 18:11:37,262 INFO [services.taxation_service:372]: CALCULATE_AND_SAVE_TAX - Parameters - tax_year: 2025-2026, regime: old, salary provided: True, other_sources provided: True, capital_gains provided: True, deductions provided: True, leave_encashment provided: True
+2025-05-15 18:11:37,265 INFO [services.taxation_service:395]: CALCULATE_AND_SAVE_TAX - Trying to fetch existing taxation data for employee: emp002
+2025-05-15 18:11:37,676 INFO [database.database_connector:15]: pms_localhost connected and indexes ensured.
+2025-05-15 18:11:38,260 INFO [services.taxation_service:399]: CALCULATE_AND_SAVE_TAX - Found existing taxation data for employee: emp002, age: 36, tax year: 2025-2026, regime: old
+2025-05-15 18:11:38,260 INFO [services.taxation_service:403]: CALCULATE_AND_SAVE_TAX - Updating regime from old to old
+2025-05-15 18:11:38,260 INFO [services.taxation_service:406]: CALCULATE_AND_SAVE_TAX - Updating tax year from 2025-2026 to 2025-2026
+2025-05-15 18:11:38,261 INFO [services.taxation_service:409]: CALCULATE_AND_SAVE_TAX - Updating salary information
+2025-05-15 18:11:38,261 INFO [services.taxation_service:412]: CALCULATE_AND_SAVE_TAX - Updating other sources information
+2025-05-15 18:11:38,261 INFO [services.taxation_service:415]: CALCULATE_AND_SAVE_TAX - Updating house property information
+2025-05-15 18:11:38,262 INFO [services.taxation_service:418]: CALCULATE_AND_SAVE_TAX - Updating capital gains information
+2025-05-15 18:11:38,262 INFO [services.taxation_service:421]: CALCULATE_AND_SAVE_TAX - Updating deductions information
+2025-05-15 18:11:38,262 INFO [services.taxation_service:424]: CALCULATE_AND_SAVE_TAX - Updating leave encashment information
+2025-05-15 18:11:38,262 INFO [services.taxation_service:471]: CALCULATE_AND_SAVE_TAX - Saving taxation data to database
+2025-05-15 18:11:38,428 INFO [services.taxation_service:481]: CALCULATE_AND_SAVE_TAX - Successfully saved taxation data
+2025-05-15 18:11:38,428 INFO [services.taxation_service:488]: CALCULATE_AND_SAVE_TAX - Calculating total tax
+2025-05-15 18:11:38,429 INFO [services.taxation_service:151]: calculate_total_tax() - Starting tax calculation for employee ID: emp002, hostname: localhost
+2025-05-15 18:11:38,430 INFO [services.taxation_service:155]: calculate_total_tax() - Fetching taxation data from database
+2025-05-15 18:11:38,469 INFO [services.taxation_service:159]: calculate_total_tax() - Successfully retrieved taxation data: ID=emp002, Age=36, Regime=old
+2025-05-15 18:11:38,469 INFO [services.taxation_service:176]: calculate_total_tax() - Tax calculation parameters - Regime: old, Age: 36, Govt Employee: False
+2025-05-15 18:11:38,469 INFO [services.taxation_service:179]: calculate_total_tax() - Calculating salary income with components - Basic: 1000000, DA: 100, HRA: 500050, HRA City: Delhi, HRA Percentage: 0.5, Special: 6000, Bonus: 9000
+2025-05-15 18:11:38,470 INFO [services.taxation_service:184]: calculate_total_tax() - Total salary income: 1000100
+2025-05-15 18:11:38,470 INFO [services.taxation_service:187]: calculate_total_tax() - Calculating other sources incomeSavings Interest: 7000, FD Interest: 700,RD Interest: 700,Dividend: 700,Gifts: 700,Other Interest: 700,Business&Professional Income: 700Other Income: 700
+2025-05-15 18:11:38,470 INFO [services.taxation_service:199]: calculate_total_tax() - Other sources taxable income: 1900
+2025-05-15 18:11:38,471 INFO [services.taxation_service:203]: calculate_total_tax() - STCG at special rates: 600
+2025-05-15 18:11:38,471 INFO [services.taxation_service:208]: calculate_total_tax() - STCG at slab rates: 1000
+2025-05-15 18:11:38,472 INFO [services.taxation_service:212]: calculate_total_tax() - LTCG at special rates: 800
+2025-05-15 18:11:38,474 INFO [services.taxation_service:214]: calculate_total_tax() - Gross income before deductions: 1003000
+2025-05-15 18:11:38,476 INFO [services.taxation_service:220]: calculate_total_tax() - Calculating deductions for old regime
+2025-05-15 18:11:38,477 WARNING [services.taxation_service:229]: calculate_total_tax() - Error parsing EV purchase date: strptime() argument 1 must be str, not datetime.date
+2025-05-15 18:11:38,478 INFO [services.taxation_service:241]: calculate_total_tax() - Section 80C components - LIC: 90, EPF: 90, SSP: 90, NSC: 90, ULIP: 90, TSMF: 90, Tuition: 90, Loan Principal: 90, Stamp Duty: 90, FD: 90, SCSS: 90, Others: 90, Total: 1080
+2025-05-15 18:11:38,479 INFO [services.taxation_service:249]: calculate_total_tax() - Section 80D components - Self/Family: 90, Preventive: 90, Parents: 90, Total: 270
+2025-05-15 18:11:38,481 INFO [models.taxation.deductions:63]: Section 80C components: Life Insurance Premium :90,                         Employee Provident Fund :90,                         Sukanya Samridhi Account :90,                         National Savings Certificate :90,                         Unit Linked Insurance Plan :90,                         Tax Saving Mutual Fund :90,                         Tuition Fees for full time education of upto 2 kids :90,                         Principal amount paid for housing loan installments :90,                         Stamp duty paid for purchase of residental property :90,                         Tax saving fixed deposit in a scheduled bank :90,                         Senior citizen savings scheme :90,                         Others :90,                         Pension Payment under section 80CCC :90,                         NPS :90,                         Additional contribution to NPS by self-employed or employee :90
+2025-05-15 18:11:38,499 INFO [models.taxation.deductions:96]: Section 80C total: 1350
+2025-05-15 18:11:38,500 INFO [models.taxation.deductions:116]: Calculating Section 80CCD(2) total for private employee                             1003000 * 10% = 100300.0
+2025-05-15 18:11:38,500 INFO [models.taxation.deductions:119]: Section 80CCD(2) Employer's contribution to NPS: 90                         Deduction: 90
+2025-05-15 18:11:38,501 INFO [models.taxation.deductions:140]: health insurance for self and family for age below 60:                             min(90 + min(90, 5000), 25000)                             = 180
+2025-05-15 18:11:38,502 INFO [models.taxation.deductions:160]: health insurance for parents for age below 60:                             min(90, 25000)                             = 90
+2025-05-15 18:11:38,502 INFO [models.taxation.deductions:176]: Calculating Section 80DD total for Child                             with disability percentage More than 80%
+2025-05-15 18:11:38,502 INFO [models.taxation.deductions:182]: Section 80DD min (Child, 125000) = 90
+2025-05-15 18:11:38,505 INFO [models.taxation.deductions:198]: Calculating Section 80DDB total for Spouse                             with age 36
+2025-05-15 18:11:38,506 INFO [models.taxation.deductions:201]: Section 80DDB min (80, 40000) = 80
+2025-05-15 18:11:38,511 INFO [models.taxation.deductions:232]: Calculating Section 80EEB total for 2025-05-15
+2025-05-15 18:11:38,511 INFO [models.taxation.deductions:249]: Section 80G Prime Minister national relief fund                         100% deduction for donations without qualifying limit:                         20
+2025-05-15 18:11:38,512 INFO [models.taxation.deductions:280]: Section 80G Any other fund that satisfies the conditions                         100% deduction for donations with qualifying limit:                         80
+2025-05-15 18:11:38,512 INFO [models.taxation.deductions:295]: Section 80G For repair or renovation of any notified temple, mosque, gurudwara, church or other places of worship                         50% deduction for donations with qualifying limit:                         20
+2025-05-15 18:11:38,529 INFO [models.taxation.deductions:321]: Calculating Section 80U total for More than 80%
+2025-05-15 18:11:38,530 INFO [models.taxation.deductions:326]: Section 80U min (80, 125000) = 80
+2025-05-15 18:11:38,536 INFO [services.taxation_service:260]: calculate_total_tax() - Total deductions: 92080
+2025-05-15 18:11:38,537 INFO [services.taxation_service:265]: calculate_total_tax() - Net taxable income: 910920
+2025-05-15 18:11:38,538 INFO [services.taxation_service:16]: COMPUTE_REGULAR_TAX - Starting regular tax computation with income: 910920 and regime: old
+2025-05-15 18:11:38,545 INFO [services.taxation_service:35]: COMPUTE_REGULAR_TAX - Using old regime tax slabs: [(0, 250000, 0.0), (250001, 500000, 0.05), (500001, 1000000, 0.2), (1000001, inf, 0.3)]
+2025-05-15 18:11:38,545 INFO [services.taxation_service:51]: COMPUTE_REGULAR_TAX - Slab 0-250000 at rate 0.0%: Taxable amount 250001, Tax on slab: 0.0
+2025-05-15 18:11:38,545 INFO [services.taxation_service:51]: COMPUTE_REGULAR_TAX - Slab 250001-500000 at rate 5.0%: Taxable amount 250000, Tax on slab: 12500.0
+2025-05-15 18:11:38,547 INFO [services.taxation_service:51]: COMPUTE_REGULAR_TAX - Slab 500001-1000000 at rate 20.0%: Taxable amount 410920, Tax on slab: 82184.0
+2025-05-15 18:11:38,547 INFO [services.taxation_service:53]: COMPUTE_REGULAR_TAX - Total regular tax calculated: 94684.0
+2025-05-15 18:11:38,555 INFO [services.taxation_service:54]: COMPUTE_REGULAR_TAX - Full breakdown by slabs: [
+  {
+    "slab": "0-250000",
+    "rate": "0.0%",
+    "taxable_amount": 250001,
+    "tax_on_slab": 0.0
+  },
+  {
+    "slab": "250001-500000",
+    "rate": "5.0%",
+    "taxable_amount": 250000,
+    "tax_on_slab": 12500.0
+  },
+  {
+    "slab": "500001-1000000",
+    "rate": "20.0%",
+    "taxable_amount": 410920,
+    "tax_on_slab": 82184.0
+  }
+]
+2025-05-15 18:11:38,561 INFO [services.taxation_service:269]: calculate_total_tax() - Tax on regular income: 94684.0
+2025-05-15 18:11:38,562 INFO [services.taxation_service:273]: calculate_total_tax() - Tax on STCG at special rate (15%): 120.0
+2025-05-15 18:11:38,563 INFO [services.taxation_service:282]: calculate_total_tax() - LTCG below 1L exemption limit, no tax
+2025-05-15 18:11:38,563 INFO [services.taxation_service:286]: calculate_total_tax() - Base tax (before rebate/surcharge/cess): 94804.0
+2025-05-15 18:11:38,564 INFO [services.taxation_service:90]: APPLY_87A_REBATE - Applying section 87A rebate with tax: 94804.0, income: 910920, regime: old
+2025-05-15 18:11:38,565 INFO [services.taxation_service:102]: APPLY_87A_REBATE - No rebate applicable: Income or regime not eligible
+2025-05-15 18:11:38,569 INFO [services.taxation_service:105]: APPLY_87A_REBATE - Tax before rebate: 94804.0, Rebate applied: 0, Tax after rebate: 94804.0
+2025-05-15 18:11:38,589 INFO [services.taxation_service:290]: calculate_total_tax() - Tax after Section 87A rebate: 94804.0
+2025-05-15 18:11:38,595 INFO [services.taxation_service:109]: COMPUTE_SURCHARGE - Computing surcharge with base tax: 94804.0, net income: 910920
+2025-05-15 18:11:38,596 INFO [services.taxation_service:131]: COMPUTE_SURCHARGE - Income <= 50L, no surcharge applicable
+2025-05-15 18:11:38,598 INFO [services.taxation_service:135]: COMPUTE_SURCHARGE - Regular income tax: 94804.0, Surcharge on regular income: 0.0
+2025-05-15 18:11:38,599 INFO [services.taxation_service:137]: COMPUTE_SURCHARGE - Income above threshold: 910920
+2025-05-15 18:11:38,600 INFO [services.taxation_service:141]: COMPUTE_SURCHARGE - Relief amount: 0
+2025-05-15 18:11:38,602 INFO [services.taxation_service:144]: COMPUTE_SURCHARGE - Surcharge: 0.0
+2025-05-15 18:11:38,604 INFO [services.taxation_service:146]: COMPUTE_SURCHARGE - Total tax: 94804.0
+2025-05-15 18:11:38,606 INFO [services.taxation_service:296]: calculate_total_tax() - Surcharge on tax: 0.0
+2025-05-15 18:11:38,609 INFO [services.taxation_service:300]: calculate_total_tax() - Health and Education Cess (4%): 3792.16
+2025-05-15 18:11:38,611 INFO [services.taxation_service:303]: calculate_total_tax() - Final tax amount: 98596.16
+2025-05-15 18:11:38,612 INFO [services.taxation_service:321]: calculate_total_tax() - Tax breakdown: {
+  "base_tax": 94804,
+  "tax_after_rebate": 94804,
+  "surcharge": 0,
+  "cess": 3792,
+  "total_tax": 98596,
+  "details": {
+    "regular_income": 910920,
+    "stcg_flat_rate": 120,
+    "ltcg_112a": 0,
+    "gross_income": 1003000,
+    "total_deductions": 92080,
+    "net_income": 910920
+  }
+}
+2025-05-15 18:11:38,614 INFO [services.taxation_service:331]: calculate_total_tax() - Updated taxation object: Tax payable: 98596, Tax paid: 0, Tax due: 98596, Tax refundable: 0, Tax pending: 98596
+2025-05-15 18:11:38,615 INFO [services.taxation_service:337]: calculate_total_tax() - Saving updated taxation details to database
+2025-05-15 18:11:38,744 INFO [services.taxation_service:348]: calculate_total_tax() - Successfully saved taxation details
+2025-05-15 18:11:38,744 INFO [services.taxation_service:353]: calculate_total_tax() - Completed tax calculation for emp002, Final Tax: 98596
+2025-05-15 18:11:38,744 INFO [services.taxation_service:490]: CALCULATE_AND_SAVE_TAX - Tax calculation completed successfully, total tax: 98596
+2025-05-15 18:11:38,745 INFO [services.taxation_service:497]: CALCULATE_AND_SAVE_TAX - Retrieving updated taxation data with calculated tax
+2025-05-15 18:11:38,786 INFO [services.taxation_service:500]: CALCULATE_AND_SAVE_TAX - Successfully retrieved updated taxation data with tax: 98596
+INFO:     127.0.0.1:52745 - "POST /save-taxation-data HTTP/1.1" 200 OK
+2025-05-15 18:11:38,833 INFO [auth.auth:85]: Checking role for user: superadmin
+2025-05-15 18:11:38,844 INFO [services.taxation_service:151]: calculate_total_tax() - Starting tax calculation for employee ID: emp002, hostname: localhost
+2025-05-15 18:11:38,845 INFO [services.taxation_service:155]: calculate_total_tax() - Fetching taxation data from database
+2025-05-15 18:11:38,888 INFO [services.taxation_service:159]: calculate_total_tax() - Successfully retrieved taxation data: ID=emp002, Age=36, Regime=old
+2025-05-15 18:11:38,888 INFO [services.taxation_service:176]: calculate_total_tax() - Tax calculation parameters - Regime: old, Age: 36, Govt Employee: False
+2025-05-15 18:11:38,889 INFO [services.taxation_service:179]: calculate_total_tax() - Calculating salary income with components - Basic: 1000000, DA: 100, HRA: 500050, HRA City: Delhi, HRA Percentage: 0.5, Special: 6000, Bonus: 9000
+2025-05-15 18:11:38,889 INFO [services.taxation_service:184]: calculate_total_tax() - Total salary income: 1000100
+2025-05-15 18:11:38,896 INFO [services.taxation_service:187]: calculate_total_tax() - Calculating other sources incomeSavings Interest: 7000, FD Interest: 700,RD Interest: 700,Dividend: 700,Gifts: 700,Other Interest: 700,Business&Professional Income: 700Other Income: 700
+2025-05-15 18:11:38,901 INFO [services.taxation_service:199]: calculate_total_tax() - Other sources taxable income: 1900
+2025-05-15 18:11:38,901 INFO [services.taxation_service:203]: calculate_total_tax() - STCG at special rates: 600
+2025-05-15 18:11:38,902 INFO [services.taxation_service:208]: calculate_total_tax() - STCG at slab rates: 1000
+2025-05-15 18:11:38,902 INFO [services.taxation_service:212]: calculate_total_tax() - LTCG at special rates: 800
+2025-05-15 18:11:38,902 INFO [services.taxation_service:214]: calculate_total_tax() - Gross income before deductions: 1003000
+2025-05-15 18:11:38,902 INFO [services.taxation_service:220]: calculate_total_tax() - Calculating deductions for old regime
+2025-05-15 18:11:38,903 WARNING [services.taxation_service:229]: calculate_total_tax() - Error parsing EV purchase date: strptime() argument 1 must be str, not datetime.date
+2025-05-15 18:11:38,904 INFO [services.taxation_service:241]: calculate_total_tax() - Section 80C components - LIC: 90, EPF: 90, SSP: 90, NSC: 90, ULIP: 90, TSMF: 90, Tuition: 90, Loan Principal: 90, Stamp Duty: 90, FD: 90, SCSS: 90, Others: 90, Total: 1080
+2025-05-15 18:11:38,905 INFO [services.taxation_service:249]: calculate_total_tax() - Section 80D components - Self/Family: 90, Preventive: 90, Parents: 90, Total: 270
+2025-05-15 18:11:38,906 INFO [models.taxation.deductions:63]: Section 80C components: Life Insurance Premium :90,                         Employee Provident Fund :90,                         Sukanya Samridhi Account :90,                         National Savings Certificate :90,                         Unit Linked Insurance Plan :90,                         Tax Saving Mutual Fund :90,                         Tuition Fees for full time education of upto 2 kids :90,                         Principal amount paid for housing loan installments :90,                         Stamp duty paid for purchase of residental property :90,                         Tax saving fixed deposit in a scheduled bank :90,                         Senior citizen savings scheme :90,                         Others :90,                         Pension Payment under section 80CCC :90,                         NPS :90,                         Additional contribution to NPS by self-employed or employee :90
+2025-05-15 18:11:38,910 INFO [models.taxation.deductions:96]: Section 80C total: 1350
+2025-05-15 18:11:38,911 INFO [models.taxation.deductions:116]: Calculating Section 80CCD(2) total for private employee                             1003000 * 10% = 100300.0
+2025-05-15 18:11:38,912 INFO [models.taxation.deductions:119]: Section 80CCD(2) Employer's contribution to NPS: 90                         Deduction: 90
+2025-05-15 18:11:38,919 INFO [models.taxation.deductions:140]: health insurance for self and family for age below 60:                             min(90 + min(90, 5000), 25000)                             = 180
+2025-05-15 18:11:38,919 INFO [models.taxation.deductions:160]: health insurance for parents for age below 60:                             min(90, 25000)                             = 90
+2025-05-15 18:11:38,920 INFO [models.taxation.deductions:176]: Calculating Section 80DD total for Child                             with disability percentage More than 80%
+2025-05-15 18:11:38,920 INFO [models.taxation.deductions:182]: Section 80DD min (Child, 125000) = 90
+2025-05-15 18:11:38,921 INFO [models.taxation.deductions:198]: Calculating Section 80DDB total for Spouse                             with age 36
+2025-05-15 18:11:38,923 INFO [models.taxation.deductions:201]: Section 80DDB min (80, 40000) = 80
+2025-05-15 18:11:38,932 INFO [models.taxation.deductions:232]: Calculating Section 80EEB total for 2025-05-15
+2025-05-15 18:11:38,935 INFO [models.taxation.deductions:249]: Section 80G Prime Minister national relief fund                         100% deduction for donations without qualifying limit:                         20
+2025-05-15 18:11:38,936 INFO [models.taxation.deductions:280]: Section 80G Any other fund that satisfies the conditions                         100% deduction for donations with qualifying limit:                         80
+2025-05-15 18:11:38,937 INFO [models.taxation.deductions:295]: Section 80G For repair or renovation of any notified temple, mosque, gurudwara, church or other places of worship                         50% deduction for donations with qualifying limit:                         20
+2025-05-15 18:11:38,937 INFO [models.taxation.deductions:321]: Calculating Section 80U total for More than 80%
+2025-05-15 18:11:38,937 INFO [models.taxation.deductions:326]: Section 80U min (80, 125000) = 80
+2025-05-15 18:11:38,937 INFO [services.taxation_service:260]: calculate_total_tax() - Total deductions: 92080
+2025-05-15 18:11:38,938 INFO [services.taxation_service:265]: calculate_total_tax() - Net taxable income: 910920
+2025-05-15 18:11:38,938 INFO [services.taxation_service:16]: COMPUTE_REGULAR_TAX - Starting regular tax computation with income: 910920 and regime: old
+2025-05-15 18:11:38,955 INFO [services.taxation_service:35]: COMPUTE_REGULAR_TAX - Using old regime tax slabs: [(0, 250000, 0.0), (250001, 500000, 0.05), (500001, 1000000, 0.2), (1000001, inf, 0.3)]
+2025-05-15 18:11:38,963 INFO [services.taxation_service:51]: COMPUTE_REGULAR_TAX - Slab 0-250000 at rate 0.0%: Taxable amount 250001, Tax on slab: 0.0
+2025-05-15 18:11:38,963 INFO [services.taxation_service:51]: COMPUTE_REGULAR_TAX - Slab 250001-500000 at rate 5.0%: Taxable amount 250000, Tax on slab: 12500.0
+2025-05-15 18:11:38,964 INFO [services.taxation_service:51]: COMPUTE_REGULAR_TAX - Slab 500001-1000000 at rate 20.0%: Taxable amount 410920, Tax on slab: 82184.0
+2025-05-15 18:11:38,965 INFO [services.taxation_service:53]: COMPUTE_REGULAR_TAX - Total regular tax calculated: 94684.0
+2025-05-15 18:11:38,973 INFO [services.taxation_service:54]: COMPUTE_REGULAR_TAX - Full breakdown by slabs: [
+  {
+    "slab": "0-250000",
+    "rate": "0.0%",
+    "taxable_amount": 250001,
+    "tax_on_slab": 0.0
+  },
+  {
+    "slab": "250001-500000",
+    "rate": "5.0%",
+    "taxable_amount": 250000,
+    "tax_on_slab": 12500.0
+  },
+  {
+    "slab": "500001-1000000",
+    "rate": "20.0%",
+    "taxable_amount": 410920,
+    "tax_on_slab": 82184.0
+  }
+]
+2025-05-15 18:11:38,981 INFO [services.taxation_service:269]: calculate_total_tax() - Tax on regular income: 94684.0
+2025-05-15 18:11:38,982 INFO [services.taxation_service:273]: calculate_total_tax() - Tax on STCG at special rate (15%): 120.0
+2025-05-15 18:11:38,983 INFO [services.taxation_service:282]: calculate_total_tax() - LTCG below 1L exemption limit, no tax
+2025-05-15 18:11:38,985 INFO [services.taxation_service:286]: calculate_total_tax() - Base tax (before rebate/surcharge/cess): 94804.0
+2025-05-15 18:11:38,985 INFO [services.taxation_service:90]: APPLY_87A_REBATE - Applying section 87A rebate with tax: 94804.0, income: 910920, regime: old
+2025-05-15 18:11:38,996 INFO [services.taxation_service:102]: APPLY_87A_REBATE - No rebate applicable: Income or regime not eligible
+2025-05-15 18:11:38,998 INFO [services.taxation_service:105]: APPLY_87A_REBATE - Tax before rebate: 94804.0, Rebate applied: 0, Tax after rebate: 94804.0
+2025-05-15 18:11:38,998 INFO [services.taxation_service:290]: calculate_total_tax() - Tax after Section 87A rebate: 94804.0
+2025-05-15 18:11:38,998 INFO [services.taxation_service:109]: COMPUTE_SURCHARGE - Computing surcharge with base tax: 94804.0, net income: 910920
+2025-05-15 18:11:39,002 INFO [services.taxation_service:131]: COMPUTE_SURCHARGE - Income <= 50L, no surcharge applicable
+2025-05-15 18:11:39,003 INFO [services.taxation_service:135]: COMPUTE_SURCHARGE - Regular income tax: 94804.0, Surcharge on regular income: 0.0
+2025-05-15 18:11:39,004 INFO [services.taxation_service:137]: COMPUTE_SURCHARGE - Income above threshold: 910920
+2025-05-15 18:11:39,004 INFO [services.taxation_service:141]: COMPUTE_SURCHARGE - Relief amount: 0
+2025-05-15 18:11:39,004 INFO [services.taxation_service:144]: COMPUTE_SURCHARGE - Surcharge: 0.0
+2025-05-15 18:11:39,005 INFO [services.taxation_service:146]: COMPUTE_SURCHARGE - Total tax: 94804.0
+2025-05-15 18:11:39,005 INFO [services.taxation_service:296]: calculate_total_tax() - Surcharge on tax: 0.0
+2025-05-15 18:11:39,012 INFO [services.taxation_service:300]: calculate_total_tax() - Health and Education Cess (4%): 3792.16
+2025-05-15 18:11:39,018 INFO [services.taxation_service:303]: calculate_total_tax() - Final tax amount: 98596.16
+2025-05-15 18:11:39,028 INFO [services.taxation_service:321]: calculate_total_tax() - Tax breakdown: {
+  "base_tax": 94804,
+  "tax_after_rebate": 94804,
+  "surcharge": 0,
+  "cess": 3792,
+  "total_tax": 98596,
+  "details": {
+    "regular_income": 910920,
+    "stcg_flat_rate": 120,
+    "ltcg_112a": 0,
+    "gross_income": 1003000,
+    "total_deductions": 92080,
+    "net_income": 910920
+  }
+}
+2025-05-15 18:11:39,030 INFO [services.taxation_service:331]: calculate_total_tax() - Updated taxation object: Tax payable: 98596, Tax paid: 0, Tax due: 98596, Tax refundable: 0, Tax pending: 98596
+2025-05-15 18:11:39,031 INFO [services.taxation_service:337]: calculate_total_tax() - Saving updated taxation details to database
+2025-05-15 18:11:39,213 INFO [services.taxation_service:348]: calculate_total_tax() - Successfully saved taxation details
+2025-05-15 18:11:39,214 INFO [services.taxation_service:353]: calculate_total_tax() - Completed tax calculation for emp002, Final Tax: 98596
+INFO:     127.0.0.1:52745 - "POST /calculate-tax HTTP/1.1" 200 OK
+

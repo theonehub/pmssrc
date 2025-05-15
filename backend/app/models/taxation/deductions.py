@@ -4,9 +4,12 @@ Deduction components model for taxation calculations.
 Represents all deduction components as per Indian Income Tax Act.
 """
 
+import logging
 from dataclasses import dataclass
 from datetime import date
 from typing import Dict, Any, Optional
+
+logger = logging.getLogger(__name__)
 
 from models.taxation.constants import (
     section_80g_100_wo_ql_heads,
@@ -57,6 +60,22 @@ class DeductionComponents:
         if regime == 'new':
             return 0
         else:
+            logger.info(f"Section 80C components: Life Insurance Premium :{self.section_80c_lic}, \
+                        Employee Provident Fund :{self.section_80c_epf}, \
+                        Sukanya Samridhi Account :{self.section_80c_ssp}, \
+                        National Savings Certificate :{self.section_80c_nsc}, \
+                        Unit Linked Insurance Plan :{self.section_80c_ulip}, \
+                        Tax Saving Mutual Fund :{self.section_80c_tsmf}, \
+                        Tuition Fees for full time education of upto 2 kids :{self.section_80c_tffte2c}, \
+                        Principal amount paid for housing loan installments :{self.section_80c_paphl}, \
+                        Stamp duty paid for purchase of residental property :{self.section_80c_sdpphp}, \
+                        Tax saving fixed deposit in a scheduled bank :{self.section_80c_tsfdsb}, \
+                        Senior citizen savings scheme :{self.section_80c_scss}, \
+                        Others :{self.section_80c_others}, \
+                        Pension Payment under section 80CCC :{self.section_80ccc_ppic}, \
+                        NPS :{self.section_80ccd_1_nps}, \
+                        Additional contribution to NPS by self-employed or employee :{self.section_80ccd_1b_additional}")
+            
             # Calculate Section 80C total (capped at 150,000)
             section_80c_total = (min(sum([
                 self.section_80c_lic,
@@ -74,6 +93,7 @@ class DeductionComponents:
                 self.section_80ccc_ppic,
                 self.section_80ccd_1_nps]), 150000) +
                 min(self.section_80ccd_1b_additional, 50000))
+            logger.info(f"Section 80C total: {section_80c_total}")
             return section_80c_total
             
     section_80ccd_2_enps: float = 0  # contribution to NPS by employer 
@@ -89,9 +109,15 @@ class DeductionComponents:
             return 0
         else:
             if is_govt_employee:
+                logger.info(f"Calculating Section 80CCD(2) total for government employee \
+                            {gross_income} * 14% = {gross_income * 0.14}")
                 max_cap = gross_income * 0.14
             else:
+                logger.info(f"Calculating Section 80CCD(2) total for private employee \
+                            {gross_income} * 10% = {gross_income * 0.10}")
                 max_cap = gross_income * 0.10
+            logger.info(f"Section 80CCD(2) Employer's contribution to NPS: {self.section_80ccd_2_enps} \
+                        Deduction: {min(self.section_80ccd_2_enps, max_cap)}")
             return min(self.section_80ccd_2_enps, max_cap)
             
     # section 80D Health Insurance Premium
@@ -106,8 +132,14 @@ class DeductionComponents:
             return 0
         else:
             if age >= 60:
+                logger.info(f"health insurance for self and family for age above 60: \
+                            min({self.section_80d_hisf} + min({self.section_80d_phcs}, 5000), 50000) \
+                            = {min(self.section_80d_hisf + min(self.section_80d_phcs, 5000), 50000)}")
                 return min(self.section_80d_hisf + min(self.section_80d_phcs, 5000), 50000)
             else:
+                logger.info(f"health insurance for self and family for age below 60: \
+                            min({self.section_80d_hisf} + min({self.section_80d_phcs}, 5000), 25000) \
+                            = {min(self.section_80d_hisf + min(self.section_80d_phcs, 5000), 25000)}")
                 return min(self.section_80d_hisf + min(self.section_80d_phcs, 5000), 25000)
 
     # section 80D Health Insurance Premium for parents
@@ -120,8 +152,14 @@ class DeductionComponents:
             return 0
         else:
             if age >= 60:
+                logger.info(f"health insurance for parents for age above 60: \
+                            min({self.section_80d_hi_parent}, 50000) \
+                            = {min(self.section_80d_hi_parent, 50000)}")
                 return min(self.section_80d_hi_parent, 50000)
             else:
+                logger.info(f"health insurance for parents for age below 60: \
+                            min({self.section_80d_hi_parent}, 25000) \
+                            = {min(self.section_80d_hi_parent, 25000)}")
                 return min(self.section_80d_hi_parent, 25000)
 
     # section 80DD Disability Deduction 
@@ -135,9 +173,13 @@ class DeductionComponents:
             return 0
         else:
             if self.relation_80dd in ['Spouse', 'Child', 'Parents', 'Sibling']:
+                logger.info(f"Calculating Section 80DD total for {self.relation_80dd} \
+                            with disability percentage {self.disability_percentage}")
                 if self.disability_percentage == 'Between 40%-80%':
+                    logger.info(f"Section 80DD min ({self.relation_80dd}, 75000) = {min(self.section_80dd, 75000)}")
                     return min(self.section_80dd, 75000)
                 else:
+                    logger.info(f"Section 80DD min ({self.relation_80dd}, 125000) = {min(self.section_80dd, 125000)}")
                     return min(self.section_80dd, 125000)
             else:
                 return 0
@@ -153,13 +195,31 @@ class DeductionComponents:
             return 0
         else:
             if self.relation_80ddb in ['Spouse', 'Child', 'Parents', 'Sibling']:
+                logger.info(f"Calculating Section 80DDB total for {self.relation_80ddb} \
+                            with age {age}")
                 if age < 60:
+                    logger.info(f"Section 80DDB min ({self.section_80ddb}, 40000) = {min(self.section_80ddb, 40000)}")
                     return min(self.section_80ddb, 40000)
                 else:
+                    logger.info(f"Section 80DDB min ({self.section_80ddb}, 100000) = {min(self.section_80ddb, 100000)}")
                     return min(self.section_80ddb, 100000)
             else:
                 return 0
+            
+    relation_80e: str = 'Self' # Self, Spouse, Child
+    section_80e_interest: float = 0 # No limit
 
+    def total_deductions_80e(self, regime: str = 'new') -> float:
+        """Calculate deductions for medical treatment of specified diseases under 80E."""   
+        if regime == 'new':
+            return 0
+        else:
+            if self.relation_80e in ['Self', 'Spouse', 'Child']:
+                logger.info(f"Section 80E {self.section_80e_interest}")
+                return self.section_80e_interest
+            else:
+                return 0
+            
     # section 80EEB interest on loan for EV vehicle purchased between 01.04.2019 & 31.03.2023
     section_80eeb: float = 0    # Max 150K
     ev_purchase_date: date = date.today()
@@ -169,7 +229,9 @@ class DeductionComponents:
         if regime == 'new':
             return 0
         else:
+            logger.info(f"Calculating Section 80EEB total for {ev_purchase_date}")
             if ev_purchase_date >= date(2019, 4, 1) and ev_purchase_date <= date(2023, 3, 31):
+                logger.info(f"Section 80EEB min ({self.section_80eeb}, 150000) = {min(self.section_80eeb, 150000)}")
                 return min(self.section_80eeb, 150000)
             else:
                 return 0
@@ -182,7 +244,11 @@ class DeductionComponents:
         """Calculate 100% deduction for donations without qualifying limit under 80G."""
         if regime == 'new':
             return 0
+        
         elif self.section_80g_100_head in section_80g_100_wo_ql_heads:
+            logger.info(f"Section 80G {self.section_80g_100_head} \
+                        100% deduction for donations without qualifying limit: \
+                        {self.section_80g_100_wo_ql}")
             return self.section_80g_100_wo_ql
         else:
             return 0
@@ -195,6 +261,9 @@ class DeductionComponents:
         if regime == 'new':
             return 0
         elif self.section_80g_50_head in section_80g_50_wo_ql_heads:
+            logger.info(f"Section 80G {self.section_80g_50_head} \
+                        50% deduction for donations without qualifying limit: \
+                        {self.section_80g_50_wo_ql}")
             return (self.section_80g_50_wo_ql * 0.5)
         else:
             return 0
@@ -208,6 +277,9 @@ class DeductionComponents:
         if regime == 'new':
             return 0
         elif self.section_80g_100_ql_head in section_80g_100_ql_heads:
+            logger.info(f"Section 80G {self.section_80g_100_ql_head} \
+                        100% deduction for donations with qualifying limit: \
+                        {self.section_80g_100_ql}")
             return min(self.section_80g_100_ql, (gross_total_income * 0.1))
         else:
             return 0
@@ -220,6 +292,9 @@ class DeductionComponents:
         if regime == 'new':
             return 0
         elif self.section_80g_50_ql_head in section_80g_50_ql_heads:
+            logger.info(f"Section 80G {self.section_80g_50_ql_head} \
+                        50% deduction for donations with qualifying limit: \
+                        {self.section_80g_50_ql}")
             return min(self.section_80g_50_ql, (gross_total_income * 0.1))
         else:
             return 0
@@ -243,9 +318,12 @@ class DeductionComponents:
         if regime == 'new':
             return 0
         else:
+            logger.info(f"Calculating Section 80U total for {self.disability_percentage_80u}")
             if self.disability_percentage_80u == 'Between 40%-80%':
+                logger.info(f"Section 80U min ({self.section_80u}, 75000) = {min(self.section_80u, 75000)}")
                 return min(self.section_80u, 75000)
             else:
+                logger.info(f"Section 80U min ({self.section_80u}, 125000) = {min(self.section_80u, 125000)}")
                 return min(self.section_80u, 125000)
 
     def total_deduction(self, regime: str = 'new', 
@@ -315,6 +393,8 @@ class DeductionComponents:
             "age_80ddb": cls.age_80ddb,
             "section_80ddb": cls.section_80ddb,
             "section_80eeb": cls.section_80eeb,
+            "relation_80e": cls.relation_80e,
+            "section_80e_interest": cls.section_80e_interest,
             "ev_purchase_date": cls.ev_purchase_date.isoformat() if hasattr(cls, 'ev_purchase_date') and cls.ev_purchase_date else None,
             "section_80g_100_wo_ql": cls.section_80g_100_wo_ql,
             "section_80g_100_head": cls.section_80g_100_head,

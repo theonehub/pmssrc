@@ -176,3 +176,43 @@ class CapitalGains:
             "ltcg_any_other_asset": cls.ltcg_any_other_asset,
             "ltcg_debt_mutual_fund": cls.ltcg_debt_mutual_fund
         }
+    
+@dataclass
+class LeaveEncashment:
+    """
+    Represents leave encashment income as per Indian Income Tax Act.
+    Includes leave encashment income from various sources.
+    """
+    leave_encashment_income_received: float = 0
+    service_years: int = 0
+    leave_balance: float = 0
+
+
+
+    def total_taxable_income_per_slab(self, regime: str = 'new') -> float:
+        """Calculate total leave salary income."""
+        max_deduction = 2500000  #25L
+        #Get average salary for last 10 months from the salary slips for now assume it is 1L per month
+        average_salary = 100000
+        salary_last_10_months = average_salary * 10
+        
+        if self.leave_balance > (self.service_years * 30):
+            deduction = average_salary * self.service_years
+        else:
+            deduction = average_salary * self.leave_balance
+
+        deduction = min(deduction, max_deduction)
+        taxable_income =  min(0, min(self.leave_encashment_income_received - deduction))
+
+        return taxable_income
+
+    @classmethod
+    def to_dict(cls) -> Dict[str, Any]:
+        """Convert the object to a dictionary for JSON serialization."""
+        return {
+            "leave_encashment_income_received": cls.leave_encashment_income_received,
+            "service_years": cls.service_years,
+            "leave_balance": cls.leave_balance
+        }
+    
+    

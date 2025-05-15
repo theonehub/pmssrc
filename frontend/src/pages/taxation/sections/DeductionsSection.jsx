@@ -474,7 +474,33 @@ const DeductionsSection = ({
             }}
           >
           </Box>
-
+          {/* Section 80E - Educational Loan */}
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Section 80E - Educational Loan"
+              type="text"
+              value={formatIndianNumber(taxationData.deductions.section_80e_interest)}
+              onChange={(e) => handleInputChange('deductions', 'section_80e_interest', e.target.value)}
+              InputProps={{ startAdornment: '₹' }}
+              onFocus={(e) => handleFocus('deductions', 'section_80e_interest', e.target.value)}
+            />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth>
+              <InputLabel>Relationship (80E)</InputLabel>
+              <Select
+                value={taxationData.deductions.relation_80e || ''}
+                label="Relationship (80E)"
+                onChange={(e) => handleInputChange('deductions', 'relation_80e', e.target.value)}
+              >
+                <MenuItem value="Self">Self</MenuItem>
+                <MenuItem value="Spouse">Spouse</MenuItem>
+                <MenuItem value="Child">Child</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          
           {/* Section 80EEB - Electric Vehicle Loan */}
           <Grid item xs={12} md={6}>
             <TextField

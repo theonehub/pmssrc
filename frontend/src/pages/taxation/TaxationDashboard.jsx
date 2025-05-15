@@ -574,6 +574,10 @@ const TaxationDashboard = () => {
                           )}</TableCell>
                         </TableRow>
                         <TableRow>
+                          <TableCell>Section 80E (Educational Loan)</TableCell>
+                          <TableCell align="right">{formatCurrency(userData.deductions?.section_80e_interest || 0)}</TableCell>
+                        </TableRow>
+                        <TableRow>
                           <TableCell>Section 80EEB (EV Loan)</TableCell>
                           <TableCell align="right">{formatCurrency(userData.deductions?.section_80eeb || 0)}</TableCell>
                         </TableRow>

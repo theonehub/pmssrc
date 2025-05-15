@@ -1,4 +1,4 @@
-from models.taxation import SalaryComponents, IncomeFromOtherSources, IncomeFromHouseProperty, CapitalGains, DeductionComponents, Taxation, Perquisites
+from models.taxation import SalaryComponents, IncomeFromOtherSources, IncomeFromHouseProperty, CapitalGains, DeductionComponents, Taxation, Perquisites, LeaveEncashment
 from database.taxation_database import get_taxation_by_emp_id, get_taxation_collection, save_taxation, _ensure_serializable
 from services.organisation_service import is_govt_organisation
 from database.user_database import get_user_by_emp_id
@@ -363,6 +363,7 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
 def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, regime: str = None,
                          salary: SalaryComponents = None, other_sources: IncomeFromOtherSources = None,
                          capital_gains: CapitalGains = None, deductions: DeductionComponents = None,
+                         leave_encashment: LeaveEncashment = None,
                          house_property: IncomeFromHouseProperty = None) -> Taxation:
     """
     Calculate the tax and save to the database
@@ -370,7 +371,8 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
     logger.info(f"CALCULATE_AND_SAVE_TAX - Starting tax calculation and saving for employee ID: {emp_id}")
     logger.info(f"CALCULATE_AND_SAVE_TAX - Parameters - tax_year: {tax_year}, regime: {regime}, "
                 f"salary provided: {salary is not None}, other_sources provided: {other_sources is not None}, "
-                f"capital_gains provided: {capital_gains is not None}, deductions provided: {deductions is not None}")
+                f"capital_gains provided: {capital_gains is not None}, deductions provided: {deductions is not None}, "
+                f"leave_encashment provided: {leave_encashment is not None}")
     
     # Get current tax year if not provided
     if not tax_year:
@@ -418,6 +420,9 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
         if deductions:
             logger.info(f"CALCULATE_AND_SAVE_TAX - Updating deductions information")
             taxation.deductions = deductions
+        if leave_encashment:
+            logger.info(f"CALCULATE_AND_SAVE_TAX - Updating leave encashment information")
+            taxation.leave_encashment = leave_encashment
     except Exception as e:
         logger.info(f"CALCULATE_AND_SAVE_TAX - No existing taxation data found for {emp_id}, creating new taxation object. Error: {str(e)}")
         
@@ -447,6 +452,7 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
             other_sources=other_sources or IncomeFromOtherSources(),
             house_property=house_property or IncomeFromHouseProperty(),
             capital_gains=capital_gains or CapitalGains(),
+            leave_encashment=leave_encashment or LeaveEncashment(),
             deductions=deductions or DeductionComponents(),
             tax_year=tax_year,
             filing_status='draft',
@@ -621,6 +627,12 @@ def create_default_taxation(emp_id: str, hostname: str) -> dict:
             ltcg_any_other_asset=0,
             ltcg_debt_mutual_fund=0
         )
+
+        default_leave_encashment = LeaveEncashment(
+            leave_encashment_income_received=0,
+            service_years=0,
+            leave_balance=0
+        )
         
         default_deductions = DeductionComponents(
             regime='old',
@@ -650,6 +662,8 @@ def create_default_taxation(emp_id: str, hostname: str) -> dict:
             section_80ddb=0,
             relation_80ddb='',
             age_80ddb=0,
+            section_80e_interest=0,
+            relation_80e='',
             section_80eeb=0,
             section_80g_100_wo_ql=0,
             section_80g_100_head='',
@@ -671,6 +685,7 @@ def create_default_taxation(emp_id: str, hostname: str) -> dict:
             other_sources=default_other_sources,
             house_property=default_house_property,
             capital_gains=default_capital_gains,
+            leave_encashment=default_leave_encashment,
             deductions=default_deductions,
             regime='old',
             total_tax=0,

@@ -397,6 +397,14 @@ export const saveTaxationData = async (taxationData) => {
       };
     }
 
+    if (!taxationData.leave_encashment) {
+      taxationData.leave_encashment = {
+        leave_encashment_income_received: 0,
+        service_years: 0,
+        leave_balance: 0
+      };
+    }
+
     if (!taxationData.house_property) {
       taxationData.house_property = {
         property_address: '',
@@ -435,6 +443,8 @@ export const saveTaxationData = async (taxationData) => {
         section_80ddb: 0,
         relation_80ddb: '',
         age_80ddb: 0,
+        section_80e_interest: 0,
+        relation_80e: '',
         section_80eeb: 0,
         ev_purchase_date: null,
         section_80g_100_wo_ql: 0,

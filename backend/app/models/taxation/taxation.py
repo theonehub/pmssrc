@@ -13,7 +13,8 @@ from typing import Dict, Any, Optional, List
 from models.taxation.income_sources import (
     IncomeFromOtherSources,
     IncomeFromHouseProperty,
-    CapitalGains
+    CapitalGains,
+    LeaveEncashment
 )
 from models.taxation.perquisites import Perquisites
 from models.taxation.salary import SalaryComponents  
@@ -36,6 +37,7 @@ class Taxation:
     other_sources: IncomeFromOtherSources
     house_property: IncomeFromHouseProperty
     capital_gains: CapitalGains
+    leave_encashment: LeaveEncashment
     deductions: DeductionComponents
     regime: str
     total_tax: float
@@ -65,6 +67,7 @@ class Taxation:
         other_sources_data = data.get('other_sources', {})
         house_property_data = data.get('house_property', {})
         capital_gains_data = data.get('capital_gains', {})
+        leave_encashment_data = data.get('leave_encashment', {})
         deductions_data = data.get('deductions', {})
         
         # Handle perquisites in salary data
@@ -253,6 +256,12 @@ class Taxation:
             ltcg_any_other_asset=capital_gains_data.get('ltcg_any_other_asset', 0),
             ltcg_debt_mutual_fund=capital_gains_data.get('ltcg_debt_mutual_fund', 0)
         )
+
+        leave_encashment = LeaveEncashment(
+            leave_encashment_income_received=leave_encashment_data.get('leave_encashment_income_received', 0),
+            service_years=leave_encashment_data.get('service_years', 0),
+            leave_balance=leave_encashment_data.get('leave_balance', 0)
+        )
         
         # Parse date string for EV purchase date
         ev_purchase_date = None
@@ -292,6 +301,8 @@ class Taxation:
             age_80ddb=deductions_data.get('age_80ddb', 0),
             section_80ddb=deductions_data.get('section_80ddb', 0),
             section_80eeb=deductions_data.get('section_80eeb', 0),
+            relation_80e=deductions_data.get('relation_80e', ''),
+            section_80e_interest=deductions_data.get('section_80e_interest', 0),
             ev_purchase_date=ev_purchase_date or datetime.date.today(),
             section_80g_100_wo_ql=deductions_data.get('section_80g_100_wo_ql', 0),
             section_80g_100_head=deductions_data.get('section_80g_100_head', ''),
@@ -315,6 +326,7 @@ class Taxation:
             other_sources=other_sources,
             house_property=house_property,
             capital_gains=capital_gains,
+            leave_encashment=leave_encashment,
             deductions=deductions,
             tax_year=data.get('tax_year', ''),
             filing_status=data.get('filing_status', 'draft'),
@@ -375,7 +387,7 @@ class Taxation:
                         else:
                             perq_dict = {}
                             for p_attr in dir(value):
-                                if not p_attr.startswith('_') and p_attr != 'to_dict' and p_attr != 'total':
+                                if not p_attr.startswith('_') and p_attr != 'to_dict' and not p_attr.startswith('total_'):
                                     p_value = getattr(value, p_attr)
                                     # Handle date objects
                                     if isinstance(p_value, datetime.date):
@@ -406,7 +418,17 @@ class Taxation:
                 if not attr.startswith('_') and attr != 'to_dict' and attr != 'total' and attr != 'total_stcg_special_rate' and attr != 'total_stcg_slab_rate' and attr != 'total_ltcg_special_rate':
                     capital_gains_dict[attr] = getattr(self.capital_gains, attr)
             result['capital_gains'] = capital_gains_dict
-        
+
+        # Handle leave_encashment components
+        if isinstance(self.leave_encashment, dict):
+            result['leave_encashment'] = self.leave_encashment
+        else:
+            leave_encashment_dict = {}
+            for attr in dir(self.leave_encashment):
+                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total' and attr != 'total_taxable_income_per_slab':
+                    leave_encashment_dict[attr] = getattr(self.leave_encashment, attr)
+            result['leave_encashment'] = leave_encashment_dict
+            
         # Handle house_property components
         if isinstance(self.house_property, dict):
             result['house_property'] = self.house_property
@@ -441,7 +463,9 @@ class Taxation:
         
     def get_taxable_income(self) -> float:
         """Calculate the total taxable income"""
-        gross_income = self.salary.total() + self.other_sources.total() + self.capital_gains.total()
+        gross_income = self.salary.total() + self.other_sources.total() \
+            + self.capital_gains.total_stcg_slab_rate() + self.capital_gains.total_ltcg_slab_rate() \
+            + self.leave_encashment.total_taxable_income_per_slab()
         deductions_total = 0 if self.regime == 'new' else self.deductions.total()
         return max(0, gross_income - deductions_total)
     
@@ -452,7 +476,7 @@ class Taxation:
             'emp_age': self.emp_age,
             'tax_year': self.tax_year,
             'regime': self.regime,
-            'gross_income': self.salary.total() + self.other_sources.total() + self.capital_gains.total(),
+            'gross_income': self.salary.total() + self.other_sources.total() + self.capital_gains.total_stcg_slab_rate()  + self.leave_encashment.total_taxable_income_per_slab(),
             'deductions': self.deductions.total() if self.regime == 'old' else 0,
             'taxable_income': self.get_taxable_income(),
             'total_tax': self.total_tax,

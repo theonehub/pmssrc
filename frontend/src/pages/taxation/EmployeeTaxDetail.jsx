@@ -451,7 +451,7 @@ const EmployeeTaxDetail = () => {
                           <TableRow><TableCell colSpan={2}><b>Other Deductions</b></TableCell></TableRow>
                           <TableRow><TableCell>80DD (Disability Dependent)</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80dd)}</TableCell></TableRow>
                           <TableRow><TableCell>80DDB (Specified Diseases)</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80ddb)}</TableCell></TableRow>
-                          <TableRow><TableCell>80E (Education Loan Interest)</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80e)}</TableCell></TableRow>
+                          <TableRow><TableCell>80E (Education Loan Interest)</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80e_interest)}</TableCell></TableRow>
                           <TableRow><TableCell>80EEB (EV Loan Interest)</TableCell><TableCell align="right">{formatCurrency(taxationData.deductions?.section_80eeb)}</TableCell></TableRow>
                           {/* Section 80G Donations */}
                           <TableRow><TableCell colSpan={2}><b>Section 80G (Donations)</b></TableCell></TableRow>

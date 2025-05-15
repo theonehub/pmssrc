@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from typing import List, Dict, Any, Optional
-from models.taxation import SalaryComponents, IncomeFromOtherSources, CapitalGains, DeductionComponents, Taxation, Perquisites, IncomeFromHouseProperty
+from models.taxation import SalaryComponents, IncomeFromOtherSources, CapitalGains, DeductionComponents, Taxation, Perquisites, IncomeFromHouseProperty, LeaveEncashment
 from services.taxation_service import calculate_total_tax, calculate_and_save_tax, get_or_create_taxation_by_emp_id
 from database.taxation_database import get_taxation_by_emp_id, update_tax_payment, get_all_taxation, update_filing_status
 from auth.auth import extract_hostname, role_checker, extract_emp_id
@@ -55,6 +55,7 @@ class TaxationDataRequest(BaseModel):
     salary: Optional[Dict[str, Any]] = None
     other_sources: Optional[Dict[str, Any]] = None
     capital_gains: Optional[Dict[str, Any]] = None
+    leave_encashment: Optional[Dict[str, Any]] = None
     house_property: Optional[Dict[str, Any]] = None
     deductions: Optional[Dict[str, Any]] = None
     tax_year: Optional[str] = None
@@ -77,6 +78,11 @@ class TaxationDataRequest(BaseModel):
                 "capital_gains": {
                     "stcg_111a": 50000,
                     "ltcg_112a": 200000
+                },
+                "leave_encashment": {
+                    "leave_encashment_income_received": 100000,
+                    "service_years": 5,
+                    "leave_balance": 10
                 },
                 "deductions": {
                     "section_80c": 150000,
@@ -114,6 +120,7 @@ def save_taxation_data(
         other_sources = IncomeFromOtherSources(**request.other_sources) if request.other_sources else None
         house_property = IncomeFromHouseProperty(**request.house_property) if request.house_property else None
         capital_gains = CapitalGains(**request.capital_gains) if request.capital_gains else None
+        leave_encashment = LeaveEncashment(**request.leave_encashment) if request.leave_encashment else None
         deductions = DeductionComponents(**request.deductions) if request.deductions else None
 
         # Calculate and save tax
@@ -125,6 +132,7 @@ def save_taxation_data(
             salary=salary,
             other_sources=other_sources,
             capital_gains=capital_gains,
+            leave_encashment=leave_encashment,
             house_property=house_property,
             deductions=deductions
         )

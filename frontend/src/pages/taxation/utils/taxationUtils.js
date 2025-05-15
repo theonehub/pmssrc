@@ -231,6 +231,11 @@ export const getDefaultTaxationState = (empId) => ({
     ltcg_any_other_asset: 0,
     ltcg_debt_mutual_fund: 0
   },
+  leave_encashment: {
+    leave_encashment_income_received: 0,
+    service_years: 0,
+    leave_balance: 0
+  },
   deductions: {
     section_80c_lic: 0,
     section_80c_epf: 0,
@@ -258,6 +263,8 @@ export const getDefaultTaxationState = (empId) => ({
     relation_80ddb: '',
     age_80ddb: 0,
     section_80eeb: 0,
+    section_80e_interest: 0,
+    relation_80e: '',
     section_80g_100_wo_ql: 0,
     section_80g_100_head: '',
     section_80g_50_wo_ql: 0,

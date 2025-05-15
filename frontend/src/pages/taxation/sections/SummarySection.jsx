@@ -100,6 +100,13 @@ const SummarySection = ({
                 <Grid item xs={8}><Typography>Other Income:</Typography></Grid>
                 <Grid item xs={4}><Typography align="right">{formatCurrency(taxationData.other_sources.other_income)}</Typography></Grid>
                 
+                <Grid item xs={8}><Typography>Leave Encashment Income:</Typography></Grid>
+                <Grid item xs={4}><Typography align="right">
+                  {formatCurrency(
+                    taxationData.leave_encashment.leave_encashment_income_received
+                  )}
+                </Typography></Grid>
+                
                 <Grid item xs={8}><Typography>Short Term Capital Gains:</Typography></Grid>
                 <Grid item xs={4}><Typography align="right">
                   {formatCurrency(
@@ -169,6 +176,7 @@ const SummarySection = ({
                     {formatCurrency(
                       taxationData.deductions.section_80dd +
                       taxationData.deductions.section_80ddb +
+                      taxationData.deductions.section_80e_interest +
                       taxationData.deductions.section_80eeb +
                       taxationData.deductions.section_80g_100_wo_ql +
                       taxationData.deductions.section_80g_50_wo_ql +

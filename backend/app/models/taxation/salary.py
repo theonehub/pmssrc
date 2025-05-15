@@ -51,6 +51,8 @@ class SalaryComponents:
     helper_in_performace_of_duties: float = 0           # Allowance granted to meet expenditure incurred on helper in performace of duties(Exempted)      
     academic_research: float = 0                        # Allowance granted for encouraging the academic, research & training pursuits in educational & research institutions(Exempted)
     uniform_allowance: float = 0                        # Allowance granted for expenditure incurred on purchase or maintenance of uniform for wear during performace of duties(Exempted)
+
+    #Other Allowances
     hills_high_altd_allowance: float = 0                # Compensatory Allowances for Hilly Area or High Altitute Allowance - Rs. 300 pm to Rs. 7,000 pm
     border_remote_allowance: float = 0                  # Border & Remote Area Allowance - Rs. 200 pm to Rs. 3,000 pm
     transport_employee_allowance: float = 0             # Allowances allowed to Transport Employees - Rs. 10,000 or 70% of Such Allowance, Whichever is less

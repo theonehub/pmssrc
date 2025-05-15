@@ -5,7 +5,8 @@ Taxation models for income tax calculations, declarations and processing.
 from models.taxation.income_sources import (
     IncomeFromOtherSources,
     IncomeFromHouseProperty,
-    CapitalGains
+    CapitalGains,
+    LeaveEncashment
 )
 from models.taxation.perquisites import Perquisites
 from models.taxation.salary import SalaryComponents
@@ -16,6 +17,7 @@ __all__ = [
     'IncomeFromOtherSources',
     'IncomeFromHouseProperty',
     'CapitalGains',
+    'LeaveEncashment',
     'Perquisites',
     'SalaryComponents',
     'DeductionComponents',

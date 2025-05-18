@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Typography,
@@ -9,7 +9,10 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Tooltip
+  Tooltip,
+  FormControlLabel,
+  Checkbox,
+  Button
 } from '@mui/material';
 import { formatIndianNumber } from '../utils/taxationUtils';
 import FormSectionHeader from '../components/FormSectionHeader';
@@ -21,13 +24,17 @@ import { occupancyStatuses } from '../utils/taxationConstants';
  * @param {Object} props.taxationData - Taxation data state
  * @param {Function} props.handleInputChange - Function to handle input change
  * @param {Function} props.handleFocus - Function to handle focus
+ * @param {Function} props.fetchVrsValue - Function to fetch VRS value
  * @returns {JSX.Element} Other Income section component
  */
 const OtherIncomeSection = ({
   taxationData,
   handleInputChange,
-  handleFocus
+  handleFocus,
+  fetchVrsValue
 }) => {
+  const [loading, setLoading] = useState(false);
+  
   // Ensure all required objects exist in taxationData
   if (!taxationData.other_sources) {
     taxationData.other_sources = {
@@ -57,7 +64,10 @@ const OtherIncomeSection = ({
     taxationData.leave_encashment = {
       leave_encashment_income_received: '',
       service_years: '',
-      leave_balance: ''
+      leave_encashed: '',
+      is_deceased: false,
+      average_monthly_salary: '',
+      during_employment: false
     };
   }
   
@@ -67,10 +77,20 @@ const OtherIncomeSection = ({
       occupancy_status: 'Self-Occupied',
       rent_income: '',
       property_tax: '',
-      interest_on_home_loan: ''
+      interest_on_home_loan: '',
+      pre_construction_loan_interest: ''
     };
   }
   
+  // Initialize voluntary_retirement object if it doesn't exist
+  if (!taxationData.voluntary_retirement) {
+    taxationData.voluntary_retirement = {
+      is_vrs_requested: false,
+      voluntary_retirement_amount: '',
+      max_exemption_limit: 500000
+    };
+  }
+
   useEffect(() => {
     console.log('occupancyStatuses:', occupancyStatuses);
     console.log('Current occupancy status:', taxationData.house_property.occupancy_status);
@@ -135,18 +155,7 @@ const OtherIncomeSection = ({
               onFocus={(e) => handleFocus('other_sources', 'other_interest', e.target.value)}
             />
           </Grid>
-          {/* Other Interest */}
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Business Professional Interest"
-              type="text"
-              value={formatIndianNumber(taxationData.other_sources.business_professional_income)}
-              onChange={(e) => handleInputChange('other_sources', 'business_professional_income', e.target.value)}
-              InputProps={{ startAdornment: '₹' }}
-              onFocus={(e) => handleFocus('other_sources', 'business_professional_income', e.target.value)}
-            />
-          </Grid>
+          
           {/* Dividend Income */}
           <Grid item xs={12} md={6}>
             <TextField
@@ -183,6 +192,33 @@ const OtherIncomeSection = ({
               onChange={(e) => handleInputChange('other_sources', 'other_income', e.target.value)}
               InputProps={{ startAdornment: '₹' }}
               onFocus={(e) => handleFocus('other_sources', 'other_income', e.target.value)}
+            />
+          </Grid>
+        </Grid>
+      </Paper>
+
+      <FormSectionHeader title="Business Professional Income" />
+      <Paper variant="outlined" sx={{ p: 3 }}>
+        <Grid container spacing={3}>
+          <Box 
+            sx={{ 
+              width: '100%', 
+              display: 'flex',
+              justifyContent: 'left'
+            }}
+          >
+            <Typography variant="h6" color="primary">Business Professional Income</Typography>
+          </Box>
+          {/* Business Professional Income */}
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Business Professional Income"
+              type="text"
+              value={formatIndianNumber(taxationData.other_sources.business_professional_income)}
+              onChange={(e) => handleInputChange('other_sources', 'business_professional_income', e.target.value)}
+              InputProps={{ startAdornment: '₹' }}
+              onFocus={(e) => handleFocus('other_sources', 'business_professional_income', e.target.value)}
             />
           </Grid>
         </Grid>
@@ -303,23 +339,32 @@ const OtherIncomeSection = ({
           </Box>
         
           <Grid item xs={12} md={6}>
-          <FormControl fullWidth>
-            <InputLabel>Occupancy Status</InputLabel>
-            <Tooltip title="Occupancy Status">
-              <Select
-                value={taxationData.house_property.occupancy_status || 'Self-Occupied'}
-                label="Occupancy Status"
-                onChange={(e) => handleInputChange('house_property', 'occupancy_status', e.target.value)}
-                onFocus={(e) => handleFocus('house_property', 'occupancy_status', e.target.value)}
-              >
-              {occupancyStatuses.map((status) => (
-                <MenuItem key={status} value={status}>
-                  {status}
-                </MenuItem>
-              ))}
-              </Select>
+            <Tooltip title="Occupancy Status" placement="top-start">
+              <FormControl fullWidth>
+                <InputLabel>Occupancy Status</InputLabel>
+                  <Select
+                    value={taxationData.house_property.occupancy_status || 'Self-Occupied'}
+                    label="Occupancy Status"
+                    onChange={(e) => {
+                      const newStatus = e.target.value;
+                      handleInputChange('house_property', 'occupancy_status', newStatus);
+                      
+                      // Reset rent_income and property_tax to 0 when status is Self-Occupied
+                      if (newStatus === 'Self-Occupied') {
+                        handleInputChange('house_property', 'rent_income', 0);
+                        handleInputChange('house_property', 'property_tax', 0);
+                      }
+                    }}
+                    onFocus={(e) => handleFocus('house_property', 'occupancy_status', e.target.value)}
+                  >
+                  {occupancyStatuses.map((status) => (
+                    <MenuItem key={status} value={status}>
+                      {status}
+                    </MenuItem>
+                  ))}
+                  </Select>
+              </FormControl>
             </Tooltip>
-          </FormControl>
           </Grid>
           
           <Grid item xs={12} md={4}>
@@ -330,6 +375,7 @@ const OtherIncomeSection = ({
               value={formatIndianNumber(taxationData.house_property.rent_income)}
               onChange={(e) => handleInputChange('house_property', 'rent_income', e.target.value)}
               InputProps={{ startAdornment: '₹' }}
+              disabled={taxationData.house_property.occupancy_status === 'Self-Occupied'}
               onFocus={(e) => handleFocus('house_property', 'rent_income', e.target.value)}
             />
           </Grid>
@@ -342,10 +388,10 @@ const OtherIncomeSection = ({
               value={formatIndianNumber(taxationData.house_property.property_tax)}
               onChange={(e) => handleInputChange('house_property', 'property_tax', e.target.value)}
               InputProps={{ startAdornment: '₹' }}
+              disabled={taxationData.house_property.occupancy_status === 'Self-Occupied'}
               onFocus={(e) => handleFocus('house_property', 'property_tax', e.target.value)}
             />
           </Grid>
-          
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
@@ -356,6 +402,28 @@ const OtherIncomeSection = ({
               InputProps={{ startAdornment: '₹' }}
               onFocus={(e) => handleFocus('house_property', 'interest_on_home_loan', e.target.value)}
             />
+          </Grid>
+          <Grid item xs={12} md={4}>
+          <Tooltip
+            title={
+              <>
+                Applicable only if construction is completed within 5 years of purchase.<br />
+                Input value sum of interest paid in last 5 years.<br />
+              </>
+              }
+              placement="top"
+              arrow
+            >
+              <TextField
+                fullWidth
+                label="Pre-Construction Loan Interest"
+                type="text"
+                value={formatIndianNumber(taxationData.house_property.pre_construction_loan_interest)}
+                onChange={(e) => handleInputChange('house_property', 'pre_construction_loan_interest', e.target.value)}
+                InputProps={{ startAdornment: '₹' }}
+                onFocus={(e) => handleFocus('house_property', 'pre_construction_loan_interest', e.target.value)}
+              />
+            </Tooltip>
           </Grid>
           <Grid item xs={12} md={4}>
             <TextField
@@ -387,7 +455,38 @@ const OtherIncomeSection = ({
           >
             <Typography variant="h6" color="primary">Leave Encashment Income</Typography>
           </Box>
-          
+          <Grid item xs={12} md={4}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={taxationData.leave_encashment.during_employment}
+                  onChange={(e) => {
+                    const newStatus = e.target.checked;
+                    handleInputChange('leave_encashment', 'during_employment', newStatus);
+                    if (newStatus === true) {
+                      handleInputChange('leave_encashment', 'service_years', 0);
+                      handleInputChange('leave_encashment', 'leave_encashed', 0);
+                    }
+                  }}
+                />
+              }
+              label="During Employment"
+            />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={taxationData.leave_encashment.is_deceased}
+                  onChange={(e) => {
+                    const newStatus = e.target.checked;
+                    handleInputChange('leave_encashment', 'is_deceased', newStatus);
+                  }}
+                />
+              }
+              label="Deceased"
+            />
+          </Grid>
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
@@ -403,11 +502,22 @@ const OtherIncomeSection = ({
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
+              label="Average Monthly Salary"
+              type="text"
+              value={formatIndianNumber(taxationData.leave_encashment.average_monthly_salary)}
+              onChange={(e) => handleInputChange('leave_encashment', 'average_monthly_salary', e.target.value)}
+              InputProps={{ startAdornment: '₹' }}
+              onFocus={(e) => handleFocus('leave_encashment', 'average_monthly_salary', e.target.value)}
+            />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
               label="Service Years"
               type="text"
               value={formatIndianNumber(taxationData.leave_encashment.service_years)}
               onChange={(e) => handleInputChange('leave_encashment', 'service_years', e.target.value)}
-              InputProps={{ startAdornment: '₹' }}
+              disabled={taxationData.leave_encashment.during_employment}
               onFocus={(e) => handleFocus('leave_encashment', 'service_years', e.target.value)}
             />
           </Grid>
@@ -415,13 +525,74 @@ const OtherIncomeSection = ({
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
-              label="Leave Balance"
+              label="Leave Encashed"
               type="text"
-              value={formatIndianNumber(taxationData.leave_encashment.leave_balance)}
-              onChange={(e) => handleInputChange('leave_encashment', 'leave_balance', e.target.value)}
-              InputProps={{ startAdornment: '₹' }}
-              onFocus={(e) => handleFocus('leave_encashment', 'leave_balance', e.target.value)}
+              value={formatIndianNumber(taxationData.leave_encashment.leave_encashed)}
+              onChange={(e) => handleInputChange('leave_encashment', 'leave_encashed', e.target.value)}
+              disabled={taxationData.leave_encashment.during_employment}
+              onFocus={(e) => handleFocus('leave_encashment', 'leave_encashed', e.target.value)}
             />
+          </Grid>
+          
+        </Grid>
+      </Paper>
+
+      <FormSectionHeader title="Voluntary Retirement Scheme" />
+      
+      <Paper variant="outlined" sx={{ p: 3 }}>
+        <Grid container spacing={3}>
+          <Box 
+            sx={{ 
+              width: '100%', 
+              display: 'flex',
+              justifyContent: 'left'
+            }}
+          >
+            <Typography variant="h6" color="primary">Voluntary Retirement Scheme (VRS)</Typography>
+          </Box>
+          
+          <Grid item xs={12} md={4}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={taxationData.voluntary_retirement.is_vrs_requested}
+                  onChange={(e) => {
+                    const newStatus = e.target.checked;
+                    handleInputChange('voluntary_retirement', 'is_vrs_requested', newStatus);
+                    if (!newStatus) {
+                      // Reset amount when unchecked
+                      handleInputChange('voluntary_retirement', 'voluntary_retirement_amount', '');
+                    }
+                  }}
+                />
+              }
+              label="VRS Requested"
+            />
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="VRS Amount"
+              type="text"
+              value={formatIndianNumber(taxationData.voluntary_retirement.voluntary_retirement_amount)}
+              onChange={(e) => handleInputChange('voluntary_retirement', 'voluntary_retirement_amount', e.target.value)}
+              InputProps={{ startAdornment: '₹' }}
+              onFocus={(e) => handleFocus('voluntary_retirement', 'voluntary_retirement_amount', e.target.value)}
+            />
+          </Grid>
+          
+          <Grid item xs={12} md={4}>
+            <Button 
+              variant="contained" 
+              onClick={() => {
+                fetchVrsValue();
+              }}
+              fullWidth
+              sx={{ height: '56px' }}
+            >
+              {loading ? 'Computing...' : 'Compute VRS Value'}
+            </Button>
           </Grid>
         </Grid>
       </Paper>

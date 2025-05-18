@@ -14,7 +14,8 @@ from models.taxation.income_sources import (
     IncomeFromOtherSources,
     IncomeFromHouseProperty,
     CapitalGains,
-    LeaveEncashment
+    LeaveEncashment,
+    VoluntaryRetirement
 )
 from models.taxation.perquisites import Perquisites
 from models.taxation.salary import SalaryComponents  
@@ -38,6 +39,7 @@ class Taxation:
     house_property: IncomeFromHouseProperty
     capital_gains: CapitalGains
     leave_encashment: LeaveEncashment
+    voluntary_retirement: VoluntaryRetirement
     deductions: DeductionComponents
     regime: str
     total_tax: float
@@ -68,6 +70,7 @@ class Taxation:
         house_property_data = data.get('house_property', {})
         capital_gains_data = data.get('capital_gains', {})
         leave_encashment_data = data.get('leave_encashment', {})
+        voluntary_retirement_data = data.get('voluntary_retirement', {})
         deductions_data = data.get('deductions', {})
         
         # Handle perquisites in salary data
@@ -188,6 +191,7 @@ class Taxation:
             basic=salary_data.get('basic', 0),
             dearness_allowance=salary_data.get('dearness_allowance', 0),
             hra=salary_data.get('hra', 0),
+            actual_rent_paid=salary_data.get('actual_rent_paid', 0),
             hra_city=salary_data.get('hra_city', 'Others'),
             hra_percentage=salary_data.get('hra_percentage', 0),
             special_allowance=salary_data.get('special_allowance', 0),
@@ -217,13 +221,22 @@ class Taxation:
             academic_research=salary_data.get('academic_research', 0),
             uniform_allowance=salary_data.get('uniform_allowance', 0),
             hills_high_altd_allowance=salary_data.get('hills_high_altd_allowance', 0),
+            hills_high_altd_exemption_limit=salary_data.get('hills_high_altd_exemption_limit', 0),
             border_remote_allowance= salary_data.get('border_remote_allowance', 0),
+            border_remote_exemption_limit=salary_data.get('border_remote_exemption_limit', 0),
             transport_employee_allowance= salary_data.get('transport_employee_allowance', 0),
             children_education_allowance= salary_data.get('children_education_allowance', 0),
+            children_education_count=salary_data.get('children_education_count', 0),
+            children_education_months=salary_data.get('children_education_months', 0),
             hostel_allowance= salary_data.get('hostel_allowance', 0),
+            hostel_count=salary_data.get('hostel_count', 0),
+            hostel_months=salary_data.get('hostel_months', 0),
             underground_mines_allowance= salary_data.get('underground_mines_allowance', 0),
+            govt_employee_entertainment_allowance= salary_data.get('govt_employee_entertainment_allowance', 0),
+            underground_mines_months=salary_data.get('underground_mines_months', 0),
             transport_allowance= salary_data.get('transport_allowance', 0),
-           
+            transport_months=salary_data.get('transport_months', 0),
+            
             perquisites=perquisites
         )
         
@@ -245,7 +258,8 @@ class Taxation:
             occupancy_status=house_property_data.get('occupancy_status', ''),
             rent_income=house_property_data.get('rent_income', 0),
             property_tax=house_property_data.get('property_tax', 0),
-            interest_on_home_loan=house_property_data.get('interest_on_home_loan', 0)
+            interest_on_home_loan=house_property_data.get('interest_on_home_loan', 0),
+            pre_construction_loan_interest=house_property_data.get('pre_construction_loan_interest', 0)
         )
 
         capital_gains = CapitalGains(
@@ -260,7 +274,16 @@ class Taxation:
         leave_encashment = LeaveEncashment(
             leave_encashment_income_received=leave_encashment_data.get('leave_encashment_income_received', 0),
             service_years=leave_encashment_data.get('service_years', 0),
-            leave_balance=leave_encashment_data.get('leave_balance', 0)
+            leave_encashed=leave_encashment_data.get('leave_encashed', 0),
+            is_deceased=leave_encashment_data.get('is_deceased', False),
+            average_monthly_salary=leave_encashment_data.get('average_monthly_salary', 0),
+            during_employment=leave_encashment_data.get('during_employment', False)
+        )
+        
+        voluntary_retirement = VoluntaryRetirement(
+            is_vrs_requested=voluntary_retirement_data.get('is_vrs_requested', False),
+            voluntary_retirement_amount=voluntary_retirement_data.get('voluntary_retirement_amount', 0),
+            max_exemption_limit=voluntary_retirement_data.get('max_exemption_limit', 500000)
         )
         
         # Parse date string for EV purchase date
@@ -332,6 +355,7 @@ class Taxation:
             house_property=house_property,
             capital_gains=capital_gains,
             leave_encashment=leave_encashment,
+            voluntary_retirement=voluntary_retirement,
             deductions=deductions,
             tax_year=data.get('tax_year', ''),
             filing_status=data.get('filing_status', 'draft'),
@@ -443,6 +467,16 @@ class Taxation:
                     leave_encashment_dict[attr] = getattr(self.leave_encashment, attr)
             result['leave_encashment'] = leave_encashment_dict
             
+        # Handle voluntary_retirement components
+        if isinstance(self.voluntary_retirement, dict):
+            result['voluntary_retirement'] = self.voluntary_retirement
+        else:
+            voluntary_retirement_dict = {}
+            for attr in dir(self.voluntary_retirement):
+                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total' and attr != 'total_taxable_income_per_slab' and attr != 'compute_vrs_value':
+                    voluntary_retirement_dict[attr] = getattr(self.voluntary_retirement, attr)
+            result['voluntary_retirement'] = voluntary_retirement_dict
+            
         # Handle house_property components
         if isinstance(self.house_property, dict):
             result['house_property'] = self.house_property
@@ -499,9 +533,20 @@ class Taxation:
         leave_encashment_total = self.leave_encashment.total_taxable_income_per_slab()
         logger.info(f"Leave encashment income total: {leave_encashment_total}")
         
+        # Calculate voluntary retirement
+        voluntary_retirement_total = 0
+        if hasattr(self, 'voluntary_retirement') and self.voluntary_retirement:
+            voluntary_retirement_total = self.voluntary_retirement.total_taxable_income_per_slab(
+                regime=self.regime,
+                age=self.emp_age,
+                service_years=self.voluntary_retirement.service_years,
+                last_drawn_monthly_salary=self.voluntary_retirement.last_drawn_monthly_salary
+            )
+            logger.info(f"Voluntary retirement income total: {voluntary_retirement_total}")
+        
         # Calculate gross income
         gross_income = salary_total + other_sources_total + house_property_total + \
-            stcg_slab_rate + leave_encashment_total
+            stcg_slab_rate + leave_encashment_total + voluntary_retirement_total
         logger.info(f"Gross income (excluding special rates): {gross_income}")
         
         # Calculate deductions (only for old regime)
@@ -527,8 +572,18 @@ class Taxation:
         capital_gains_total = self.capital_gains.total_stcg_slab_rate() + self.capital_gains.total_stcg_special_rate() + self.capital_gains.total_ltcg_special_rate()
         leave_encashment_total = self.leave_encashment.total_taxable_income_per_slab()
         
+        # Calculate voluntary retirement
+        voluntary_retirement_total = 0
+        if hasattr(self, 'voluntary_retirement') and self.voluntary_retirement:
+            voluntary_retirement_total = self.voluntary_retirement.total_taxable_income_per_slab(
+                regime=self.regime,
+                age=self.emp_age,
+                service_years=self.voluntary_retirement.service_years,
+                last_drawn_monthly_salary=self.voluntary_retirement.last_drawn_monthly_salary
+            )
+        
         # Calculate gross income
-        gross_income = salary_total + other_sources_total + house_property_total + capital_gains_total + leave_encashment_total
+        gross_income = salary_total + other_sources_total + house_property_total + capital_gains_total + leave_encashment_total + voluntary_retirement_total
         
         # Calculate deductions (only for old regime)
         deductions_total = self.deductions.total() if self.regime == 'old' else 0
@@ -544,7 +599,8 @@ class Taxation:
                 'other_sources': other_sources_total,
                 'house_property': house_property_total,
                 'capital_gains': capital_gains_total,
-                'leave_encashment': leave_encashment_total
+                'leave_encashment': leave_encashment_total,
+                'voluntary_retirement': voluntary_retirement_total
             },
             'deductions': deductions_total,
             'taxable_income': self.get_taxable_income(),

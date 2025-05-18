@@ -35,6 +35,7 @@ class Perquisites:
     furniture_cost_to_employer: float = 0
     furniture_cost_paid_by_employee: float = 0
 
+    #Gross Salary : Basic + DA
     def total_accommodation_value(self, gross_salary: float, regime: str = 'new') -> float:
         """Calculate taxable value of accommodation perquisite."""
         if regime == 'new':
@@ -73,8 +74,8 @@ class Perquisites:
             logger.info(f"Employer-Leased: {(min(self.accommodation_rent, (gross_salary * 0.10))) + furniture_value}")
             return ((min(self.accommodation_rent, (gross_salary * 0.10))) + furniture_value)
         elif self.accommodation_provided == 'Hotel provided for 15 days or above':
-            logger.info(f"Hotel provided for 15 days or above: {min(self.accommodation_rent, (gross_salary * 0.24)) - self.furniture_cost_paid_by_employee}")
-            return min(self.accommodation_rent, (gross_salary * 0.24)) - self.furniture_cost_paid_by_employee
+            logger.info(f"Hotel provided for 15 days or above: {min(self.accommodation_rent, (gross_salary * 0.24))}")
+            return min(self.accommodation_rent, (gross_salary * 0.24))
         else:
             logger.info(f"No accommodation provided: 0")
             return 0
@@ -91,7 +92,7 @@ class Perquisites:
     other_vehicle_cost_to_employer: float = 0
     other_vehicle_month_counts: int = 0
 
-    def total_car_value(self, gross_salary: float, regime: str = 'new') -> float:
+    def total_car_value(self, regime: str = 'new') -> float:
         """Calculate taxable value of car perquisite."""
         if regime == 'new':
             return 0
@@ -324,12 +325,19 @@ class Perquisites:
         logger.info(f"MAT value to employee: {self.mat_value_to_employee}")
         logger.info(f"MAT number of completed years of use: {self.mat_number_of_completed_years_of_use}")
         
+        # Ensure mat_number_of_completed_years_of_use is an integer
+        try:
+            years_of_use = int(self.mat_number_of_completed_years_of_use)
+        except (ValueError, TypeError):
+            logger.error(f"Invalid value for mat_number_of_completed_years_of_use: {self.mat_number_of_completed_years_of_use}, using 0")
+            years_of_use = 0
+        
         if self.mat_type == 'Electronics':
-            depreciated_value = (self.mat_value_to_employer * 0.5) * (self.mat_number_of_completed_years_of_use)
+            depreciated_value = (self.mat_value_to_employer * 0.5) * years_of_use
         elif self.mat_type == 'Motor Vehicle':
-            depreciated_value = (self.mat_value_to_employer * 0.2) * (self.mat_number_of_completed_years_of_use)
+            depreciated_value = (self.mat_value_to_employer * 0.2) * years_of_use
         else:
-            depreciated_value = (self.mat_value_to_employer * 0.1) * (self.mat_number_of_completed_years_of_use)
+            depreciated_value = (self.mat_value_to_employer * 0.1) * years_of_use
         
         return max(0, (self.mat_value_to_employer - depreciated_value) - self.mat_value_to_employee)
 
@@ -421,8 +429,8 @@ class Perquisites:
             return 0
         total_value = 0.0
         # Add all perquisite calculations
-        total_value += self.total_accommodation_value(gross_salary=gross_salary, regime=regime)  # gross_salary to be passed if available
-        total_value += self.total_car_value(gross_salary=gross_salary, regime=regime)
+        total_value += self.total_accommodation_value(gross_salary=gross_salary, regime=regime)
+        total_value += self.total_car_value(regime=regime)
         total_value += self.total_medical_reimbursement(gross_salary=gross_salary, regime=regime)
         total_value += self.total_lta_value(regime)
         total_value += self.total_free_education_value(regime)

@@ -476,15 +476,17 @@ const DeductionsSection = ({
           </Box>
           {/* Section 80E - Educational Loan */}
           <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Section 80E - Educational Loan"
-              type="text"
-              value={formatIndianNumber(taxationData.deductions.section_80e_interest)}
-              onChange={(e) => handleInputChange('deductions', 'section_80e_interest', e.target.value)}
-              InputProps={{ startAdornment: '₹' }}
-              onFocus={(e) => handleFocus('deductions', 'section_80e_interest', e.target.value)}
-            />
+            <Tooltip title="Higher Education, allowed for Initial Year + 7 immediately suceeding years">
+              <TextField
+                fullWidth
+                label="Section 80E - Educational Loan"
+                type="text"
+                value={formatIndianNumber(taxationData.deductions.section_80e_interest)}
+                onChange={(e) => handleInputChange('deductions', 'section_80e_interest', e.target.value)}
+                InputProps={{ startAdornment: '₹' }}
+                onFocus={(e) => handleFocus('deductions', 'section_80e_interest', e.target.value)}
+              />
+            </Tooltip>
           </Grid>
           <Grid item xs={12} md={6}>
             <FormControl fullWidth>

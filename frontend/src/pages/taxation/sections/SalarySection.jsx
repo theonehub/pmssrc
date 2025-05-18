@@ -134,7 +134,19 @@ const SalarySection = ({
             label="Auto-calculate HRA"
           />
         </Grid>
-        
+
+        {/* Rent Paid */}
+        <Grid item xs={12} md={6}>
+          <TextField
+            fullWidth
+            label="Actual Rent Paid"
+            type="text"
+            value={formatIndianNumber(taxationData.salary.actual_rent_paid)}
+            onChange={(e) => handleInputChange('salary', 'actual_rent_paid', e.target.value)}
+            InputProps={{ startAdornment: '₹' }}
+            onFocus={(e) => handleFocus('salary', 'actual_rent_paid', e.target.value)}
+          />
+        </Grid>
 
         {/* Special Allowance */}
         <Grid item xs={12} md={6}>
@@ -350,6 +362,20 @@ const SalarySection = ({
             />
           </Tooltip>
         </Grid>
+        <Grid item xs={12} md={6}>
+          <Tooltip title="Exemption limit for Hills/High Altitude Allowance">
+            <TextField
+              fullWidth
+              label="Hills/High Altitude Allowance Exemption Limit"
+              type="text"
+              value={formatIndianNumber(taxationData.salary.hills_high_altd_exemption_limit)}
+              onChange={(e) => handleInputChange('salary', 'hills_high_altd_exemption_limit', e.target.value)}
+              InputProps={{ startAdornment: '₹' }}
+              onFocus={(e) => handleFocus('salary', 'hills_high_altd_exemption_limit', e.target.value)}
+            />
+          </Tooltip>
+        </Grid>
+
 
         <Grid item xs={12} md={6}>
           <Tooltip title="Allowance for employees working in border or remote areas">
@@ -361,6 +387,19 @@ const SalarySection = ({
               onChange={(e) => handleInputChange('salary', 'border_remote_allowance', e.target.value)}
               InputProps={{ startAdornment: '₹' }}
               onFocus={(e) => handleFocus('salary', 'border_remote_allowance', e.target.value)}
+            />
+          </Tooltip>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Tooltip title="Exemption limit for Border/Remote Area Allowance">
+            <TextField
+              fullWidth
+              label="Border/Remote Area Allowance Exemption Limit"
+              type="text"
+              value={formatIndianNumber(taxationData.salary.border_remote_exemption_limit)}
+              onChange={(e) => handleInputChange('salary', 'border_remote_exemption_limit', e.target.value)}
+              InputProps={{ startAdornment: '₹' }}
+              onFocus={(e) => handleFocus('salary', 'border_remote_exemption_limit', e.target.value)}
             />
           </Tooltip>
         </Grid>
@@ -392,6 +431,30 @@ const SalarySection = ({
             />
           </Tooltip>
         </Grid>
+        <Grid item xs={12} md={6}>
+          <Tooltip title="Exemption limit for Children Education Allowance">
+            <TextField
+              fullWidth
+              label="Children Education Allowance Exemption Limit"
+              type="text"
+              value={formatIndianNumber(taxationData.salary.children_education_count)}
+              onChange={(e) => handleInputChange('salary', 'children_education_count', e.target.value)}
+              onFocus={(e) => handleFocus('salary', 'children_education_count', e.target.value)}
+            />
+          </Tooltip>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Tooltip title="Exemption limit for Children Education Allowance">
+            <TextField
+              fullWidth
+              label="Children Education Allowance Exemption Limit"
+              type="text"
+              value={formatIndianNumber(taxationData.salary.children_education_months)}
+              onChange={(e) => handleInputChange('salary', 'children_education_months', e.target.value)}
+              onFocus={(e) => handleFocus('salary', 'children_education_months', e.target.value)}
+            />
+          </Tooltip>
+        </Grid>
 
         <Grid item xs={12} md={6}>
           <Tooltip title="Allowance for hostel expenses">
@@ -408,6 +471,32 @@ const SalarySection = ({
         </Grid>
 
         <Grid item xs={12} md={6}>
+          <Tooltip title="Exemption limit for Hostel Allowance">
+            <TextField
+              fullWidth
+              label="Hostel Allowance Exemption Limit"
+              type="text"
+              value={formatIndianNumber(taxationData.salary.hostel_count)}
+              onChange={(e) => handleInputChange('salary', 'hostel_count', e.target.value)}
+              onFocus={(e) => handleFocus('salary', 'hostel_count', e.target.value)}
+            />
+          </Tooltip>
+        </Grid>
+        <Grid item xs={12} md={6}>
+          <Tooltip title="Exemption limit for Hostel Allowance">
+            <TextField
+              fullWidth
+              label="Hostel Allowance Exemption Limit"
+              type="text"
+              value={formatIndianNumber(taxationData.salary.hostel_months)} 
+              onChange={(e) => handleInputChange('salary', 'hostel_months', e.target.value)}
+              onFocus={(e) => handleFocus('salary', 'hostel_months', e.target.value)}
+            />
+          </Tooltip>
+        </Grid>
+        
+
+        <Grid item xs={12} md={6}>
           <Tooltip title="Transport allowance">
             <TextField
               fullWidth
@@ -420,6 +509,20 @@ const SalarySection = ({
             />
           </Tooltip>
         </Grid>
+        <Grid item xs={12} md={6}>
+          <Tooltip title="Exemption limit for Transport Allowance">
+            <TextField
+              fullWidth
+              label="Months for Transport Allowance"
+              type="text"
+              value={formatIndianNumber(taxationData.salary.transport_months)}
+              onChange={(e) => handleInputChange('salary', 'transport_months', e.target.value)}
+              onFocus={(e) => handleFocus('salary', 'transport_months', e.target.value)}
+            />
+          </Tooltip>
+        </Grid>
+
+
 
         <Grid item xs={12} md={6}>
           <Tooltip title="Allowance for employees working in underground mines">
@@ -434,7 +537,32 @@ const SalarySection = ({
             />
           </Tooltip>
         </Grid>
-        
+        <Grid item xs={12} md={6}>
+          <Tooltip title="Exemption limit for Underground Mines Allowance">
+            <TextField
+              fullWidth
+              label="Months for Underground Mines Allowance"
+              type="text"
+              value={formatIndianNumber(taxationData.salary.underground_mines_months)}
+              onChange={(e) => handleInputChange('salary', 'underground_mines_months', e.target.value)}
+              onFocus={(e) => handleFocus('salary', 'underground_mines_months', e.target.value)}
+            />
+          </Tooltip>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Tooltip title="Entertainment Allowance">
+            <TextField
+              fullWidth
+              label="Entertainment Allowance"
+              type="text"
+              value={formatIndianNumber(taxationData.salary.govt_employee_entertainment_allowance)}
+              onChange={(e) => handleInputChange('salary', 'govt_employee_entertainment_allowance', e.target.value)}
+              InputProps={{ startAdornment: '₹' }}
+              onFocus={(e) => handleFocus('salary', 'govt_employee_entertainment_allowance', e.target.value)}
+            />
+          </Tooltip>
+        </Grid>
         {/* Govt Employee - related fields could be conditionally rendered based on is_govt_employee flag */}
         {taxationData.is_govt_employee && (
           <>

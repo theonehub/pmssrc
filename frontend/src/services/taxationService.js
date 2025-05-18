@@ -79,6 +79,7 @@ export const saveTaxationData = async (taxationData) => {
         hra_city: 'Others',
         hra_percentage: 0.4,
         hra: 0,
+        actual_rent_paid: 0,
         special_allowance: 0,
         bonus: 0,
         commission: 0,
@@ -401,7 +402,10 @@ export const saveTaxationData = async (taxationData) => {
       taxationData.leave_encashment = {
         leave_encashment_income_received: 0,
         service_years: 0,
-        leave_balance: 0
+        leave_encashed: 0,
+        is_deceased: false,
+        average_monthly_salary: 0,
+        during_employment: false
       };
     }
 
@@ -411,7 +415,8 @@ export const saveTaxationData = async (taxationData) => {
         occupancy_status: 'Self-Occupied',
         rent_income: 0,
         property_tax: 0,
-        interest_on_home_loan: 0
+        interest_on_home_loan: 0,
+        pre_construction_loan_interest: 0
       }
     }
 
@@ -505,6 +510,19 @@ export const updateFilingStatus = async (empId, status) => {
     return response.data;
   } catch (error) {
     console.error('Error updating filing status:', error);
+    throw error;
+  }
+};
+
+// Compute VRS value for a user
+export const computeVrsValue = async (empId) => {
+  try {
+    const response = await apiClient().post('/compute-vrs', {
+      emp_id: empId
+    });
+    return response.data.vrs_value;
+  } catch (error) {
+    console.error('Error computing VRS value:', error);
     throw error;
   }
 };

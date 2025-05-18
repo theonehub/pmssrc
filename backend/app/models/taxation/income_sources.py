@@ -9,6 +9,7 @@ Contains classes for different types of income sources:
 """
 
 from dataclasses import dataclass
+import datetime
 import logging
 from typing import Dict, Any, Optional
 
@@ -23,15 +24,14 @@ class IncomeFromOtherSources:
     """
     regime: str = 'new'
     age: int = 0
-    interest_savings: float = 0
-    interest_fd: float = 0
-    interest_rd: float = 0
-    dividend_income: float = 0
-    gifts: float = 0
-    other_interest: float = 0
-    business_professional_income: float = 0
-    other_income: float = 0
-
+    interest_savings: float = 0     #Interest on Savings Account
+    interest_fd: float = 0          #Interest on Fixed Deposit
+    interest_rd: float = 0          #Interest on Recurring Deposit
+    dividend_income: float = 0      #Dividend Income
+    gifts: float = 0                #Gifts received
+    other_interest: float = 0       #Interest on other sources
+    business_professional_income: float = 0 #Business or Professional Income
+    other_income: float = 0        #Other Income (e.g. Rent, Interest on Bonds, etc.)
 
     @classmethod
     def get_section_80tt(cls, age: int, regime: str = 'new'):
@@ -40,30 +40,29 @@ class IncomeFromOtherSources:
             if age >= 60:
                 return "80TTB"
             else:
-                return "80TTC"
+                return "80TTA"
         else:
             return "Not Applicable"
 
     def total_taxable_income_per_slab(self, regime: str = 'new', age: int = 0):
         """Calculate taxable income per slab with applicable deductions."""
-        deduction = 10000
-        if regime == 'new':
-            return 0
-        
-        elif regime == 'old':
-            if age >= 60:
-                deduction = 50000
 
-        return max(0, sum([
-            self.interest_savings,
-            self.interest_fd,
-            self.interest_rd,
+        direct_taxable = sum([
             self.dividend_income,
             self.gifts,
             self.other_interest,
             self.business_professional_income,
             self.other_income
-        ]) - deduction)
+        ])
+
+        if (age < 60):
+            saving_ac = max((self.interest_savings - 10000), 0)
+            direct_taxable += saving_ac + self.interest_fd + self.interest_rd
+        else:
+            saving_ac = max(((self.interest_savings + self.interest_fd + self.interest_rd) - 50000), 0)
+            direct_taxable += saving_ac
+
+        return direct_taxable
 
     def total(self) -> float:
         """Calculate total income from other sources."""
@@ -102,10 +101,11 @@ class IncomeFromHouseProperty:
     Includes rental income, property tax, interest on home loan, etc.
     """
     property_address: str = ''
-    occupancy_status: str = ''  # Let-Out, Self-Occupied, Per-Construction
+    occupancy_status: str = ''  # Let-Out, Self-Occupied, Pre-Construction
     rent_income: float = 0
     property_tax: float = 0
     interest_on_home_loan: float = 0
+    pre_construction_loan_interest: float = 0
 
     
     def calculate_annual_value(self) -> float:
@@ -114,14 +114,12 @@ class IncomeFromHouseProperty:
         For Let-Out property: Rent income - Unrealized rent - Municipal tax paid
         For Self-Occupied property: Annual value is zero
         """
-        if self.occupancy_status == 'Self-Occupied':
-            logger.info(f"Self-Occupied property: Annual value set to 0")
+        if self.occupancy_status == 'Let-Out':
+            annual_value = self.rent_income - self.property_tax
+            logger.info(f"Calculating annual value: Rent {self.rent_income} - Property Tax {self.property_tax} = {annual_value}")
+            return max(0, annual_value)
+        else:
             return 0
-        
-        # For Let-Out or Deemed Let-Out property
-        annual_value = self.rent_income - self.property_tax
-        logger.info(f"Calculating annual value: Rent {self.rent_income} - Property Tax {self.property_tax} = {annual_value}")
-        return max(0, annual_value)
 
     def total_taxable_income_per_slab(self, regime: str = 'old') -> float:
         """
@@ -134,40 +132,29 @@ class IncomeFromHouseProperty:
         Interest deduction up to 2 lakh (for loans taken after 1999)
         """
         logger.info(f"Calculating income from house property for regime: {regime}")
-        logger.info(f"Property status: {self.occupancy_status}, Rent: {self.rent_income}, Property Tax: {self.property_tax}, Interest: {self.interest_on_home_loan}")
-        
-        # Calculate annual value
-        annual_value = self.calculate_annual_value()
+        logger.info(f"Property status: {self.occupancy_status}")
+        logger.info(f"Rent: {self.rent_income}")
+        logger.info(f"Property Tax: {self.property_tax}")
+        logger.info(f"Current Interest: {self.interest_on_home_loan}")
+        logger.info(f"Pre-Construction Interest: {self.pre_construction_loan_interest}")
+
         
         if self.occupancy_status == 'Self-Occupied':
             # For self-occupied property, only interest is deductible (up to 2 lakh)
-            interest_deduction = min(self.interest_on_home_loan, 200000)
-            annual_value = -interest_deduction
-            logger.info(f"Self-Occupied property: Interest deduction {interest_deduction}, Net income: {annual_value}")
-            return annual_value
-        
-        elif self.occupancy_status == 'Per-Construction':
-            # Pre-construction interest is deductible in 5 equal installments
-            # after construction is completed
-            pre_construction_interest = self.interest_on_home_loan * 0.2
-            logger.info(f"Per-Construction property: Interest deduction (1/5th) {pre_construction_interest}")
-            return annual_value - pre_construction_interest
+            interest_deduction = min(self.interest_on_home_loan + self.pre_construction_loan_interest, 200000)
+            logger.info(f"Self-Occupied property: Interest deduction {interest_deduction}")
+            return interest_deduction
         
         else:  # Let-Out or Deemed Let-Out
             # Calculate standard deduction (30% of annual value)
-            standard_deduction = annual_value * 0.3
-            
+            annual_value = (self.rent_income - self.property_tax) * 0.7
+            logger.info(f"Let-Out property: Annual value {annual_value}")
             # Net annual value after standard deduction and interest
-            net_income = annual_value - standard_deduction - self.interest_on_home_loan
-            
-            # Maximum loss allowed is -2 lakh
-            if net_income < 200000:
-                logger.info(f"Let-Out property: Annual value {annual_value}, Standard deduction {standard_deduction}, Interest {self.interest_on_home_loan}")
-                logger.info(f"Loss from house property capped at -2 lakh (from {net_income})")
-                return 200000
-            
-            logger.info(f"Let-Out property: Annual value {annual_value}, Standard deduction {standard_deduction}, Interest {self.interest_on_home_loan}, Net income: {net_income}")
+            net_income = annual_value - (self.interest_on_home_loan + self.pre_construction_loan_interest)
+            logger.info(f"Let-Out property: Interest deduction {self.interest_on_home_loan + self.pre_construction_loan_interest}")
+            logger.info(f"Let-Out property: Net income {net_income}")
             return net_income
+            
 
     @classmethod    
     def to_dict(cls) -> Dict[str, Any]:
@@ -177,7 +164,8 @@ class IncomeFromHouseProperty:
             "occupancy_status": cls.occupancy_status,
             "rent_income": cls.rent_income,
             "property_tax": cls.property_tax,
-            "interest_on_home_loan": cls.interest_on_home_loan
+            "interest_on_home_loan": cls.interest_on_home_loan,
+            "pre_construction_loan_interest": cls.pre_construction_loan_interest
         }
 
 
@@ -216,29 +204,9 @@ class CapitalGains:
     
     def total_ltcg_special_rate(self) -> float:
         """Total long-term capital gains charged at special rates."""
-        total = self.ltcg_112a + self.ltcg_any_other_asset + self.ltcg_debt_mutual_fund
+        total = max(self.ltcg_112a - 125000, 0) + self.ltcg_any_other_asset + self.ltcg_debt_mutual_fund
         logger.info(f"LTCG at special rates: {total}")
         return total
-        
-    def total_ltcg_slab_rate(self) -> float:
-        """Total long-term capital gains taxed at slab rates (should be zero as all LTCG has special rates)."""
-        return 0
-    
-    def calculate_ltcg_tax(self) -> tuple:
-        """
-        Calculate taxable LTCG amounts according to tax rules.
-        Returns a tuple of (ltcg_112a_taxable, ltcg_other_taxable)
-        """
-        # LTCG under 112A has 1L exemption
-        ltcg_112a_taxable = max(0, self.ltcg_112a - 125000)
-        
-        # Other LTCG assets taxed at 20% with indexation benefit (already calculated in input values)
-        ltcg_other_taxable = self.ltcg_any_other_asset + self.ltcg_debt_mutual_fund
-        
-        logger.info(f"LTCG under 112A: {self.ltcg_112a}, Exemption: 125000, Taxable: {ltcg_112a_taxable}")
-        logger.info(f"LTCG other assets: {self.ltcg_any_other_asset + self.ltcg_debt_mutual_fund}")
-        
-        return (ltcg_112a_taxable, ltcg_other_taxable)
     
     @classmethod
     def to_dict(cls) -> Dict[str, Any]:
@@ -260,12 +228,13 @@ class LeaveEncashment:
     """
     leave_encashment_income_received: float = 0
     service_years: int = 0
-    leave_balance: float = 0
-    average_monthly_salary: float = 100000  # TODO: Default value, should be properly calculated from salary history
+    leave_encashed: float = 0
+    is_deceased: bool = False
+    during_employment: bool = True
+    average_monthly_salary: float = 0
 
 
-
-    def total_taxable_income_per_slab(self, regime: str = 'old') -> float:
+    def total_taxable_income_per_slab(self, regime: str = 'old', is_govt_employee: bool = False) -> float:
         """
         Calculate taxable leave encashment income.
         
@@ -281,10 +250,19 @@ class LeaveEncashment:
             return self.leave_encashment_income_received
             
         logger.info(f"Calculating leave encashment for regime: {regime}")
-        logger.info(f"Leave encashment received: {self.leave_encashment_income_received}")
+        logger.info(f"During employment: {self.during_employment}")
+        logger.info(f"Leave encashment Amount: {self.leave_encashment_income_received}")
         logger.info(f"Service years: {self.service_years}")
-        logger.info(f"Leave balance: {self.leave_balance}")
+        logger.info(f"Leave Encashed: {self.leave_encashed}")
+        logger.info(f"Is deceased: {self.is_deceased}")
+        logger.info(f"Is govt employee: {is_govt_employee}")
         logger.info(f"Average monthly salary: {self.average_monthly_salary}")
+
+        if self.during_employment:
+            return self.leave_encashment_income_received
+        
+        if is_govt_employee or self.is_deceased:
+            return 0
         
         # Calculate all possible exemption amounts
         actual_received = self.leave_encashment_income_received
@@ -294,15 +272,16 @@ class LeaveEncashment:
         # Calculate unexpired leave based on service years
         # Assume entitlement of 30 days per year and calculate unused leave value
         salary_per_day = self.average_monthly_salary / 30
-        if self.leave_balance > 0:
+        max_leave_encashed_allowed = self.service_years * 30
+        if self.leave_encashed <= max_leave_encashed_allowed:
             # If leave balance is provided, use it directly
-            unexpired_leave_value = self.leave_balance * salary_per_day
+            unexpired_leave_value = self.leave_encashed * salary_per_day
         else:
             # Otherwise calculate based on service years (assuming 30 days per year)
-            unexpired_leave_value = self.service_years * 30 * salary_per_day
+            unexpired_leave_value = max_leave_encashed_allowed * salary_per_day
         
         # Exemption is the least of the four amounts
-        exemption = min(actual_received, ten_months_salary, statutory_limit, unexpired_leave_value)
+        exemption = min(statutory_limit, unexpired_leave_value, actual_received, ten_months_salary)
         
         # Taxable amount is received amount minus exemption
         taxable_amount = max(0, self.leave_encashment_income_received - exemption)
@@ -323,7 +302,119 @@ class LeaveEncashment:
         return {
             "leave_encashment_income_received": cls.leave_encashment_income_received,
             "service_years": cls.service_years,
-            "leave_balance": cls.leave_balance
+            "leave_encashed": cls.leave_encashed,
+            "is_deceased": cls.is_deceased,
+            "during_employment": cls.during_employment,
+            "average_monthly_salary": cls.average_monthly_salary
         }
     
+@dataclass
+class VoluntaryRetirement:
+    """
+    Represents voluntary retirement income as per Indian Income Tax Act.
+    Includes voluntary retirement income from various sources.
+    """
+    is_vrs_requested: bool = False
+    voluntary_retirement_amount: float = 0
+    max_exemption_limit: float = 500000     # 5L
+
+    def compute_vrs_value(self, age: int, service_years: int, last_drawn_monthly_salary: float) -> float:
+        """
+        Compute the value of voluntary retirement scheme.
+        """
+        logger.info(f"Computing VRS value for age: {age}, service years: {service_years}, last drawn monthly salary: {last_drawn_monthly_salary}")
+        if age < 40 or service_years < 10:
+            return 0
+        
+        single_day_salary = last_drawn_monthly_salary / 30
+        salary_45_days = single_day_salary * 45
+        logger.info(f"Salary for 45 days: {salary_45_days}")
+
+        months_remaining_for_retirement = (60 - age) * 12
+        logger.info(f"Months remaining for retirement: {months_remaining_for_retirement}")
+        salary_for_months_remaining = last_drawn_monthly_salary * months_remaining_for_retirement
+        logger.info(f"Salary for months remaining: {salary_for_months_remaining}")
+        salary_against_service_span = salary_45_days * service_years
+        logger.info(f"Salary against service span: {salary_against_service_span}")
+        vrs_value = min(salary_for_months_remaining, salary_against_service_span)
+        logger.info(f"VRS value: {vrs_value}")
+        return vrs_value
+
+    @classmethod
+    def to_dict(cls) -> Dict[str, Any]:
+        """Convert the object to a dictionary for JSON serialization."""
+        return {
+            "is_vrs_requested": cls.is_vrs_requested,
+            "voluntary_retirement_amount": cls.voluntary_retirement_amount,
+            "max_exemption_limit": cls.max_exemption_limit
+        }
+
+    def total_taxable_income_per_slab(self, regime: str = 'old', age: int = 0, service_years: int = 0, last_drawn_monthly_salary: float = 0) -> float:
+        """
+        Calculate taxable voluntary retirement income.
+        """
+        if regime == 'new':
+            return self.voluntary_retirement_amount
+        
+        vrs_value = self.compute_vrs_value(age, service_years, last_drawn_monthly_salary)
+        vrs_taxable_amount = max(0, self.voluntary_retirement_amount - self.max_exemption_limit)
+        return vrs_taxable_amount
+    
+
+@dataclass
+class Pension:
+    """
+    Represents pension income as per Indian Income Tax Act.
+    Includes both computed (regular monthly pension) and uncomputed pension (commutation, gratuity).
+    Different exemption rules apply for government vs non-government employees.
+    """
+    # Regular monthly pension (fully taxable)
+    total_pension_income: float = 0
+    computed_pension_percentage: float = 0
+    uncomputed_pension_frequency: str = 'monthly' # monthly, quarterly, annually
+    uncomputed_pension_amount: float = 0
+    
+    def total_taxable_income_per_slab_computed(self, regime: str = 'old', is_govt_employee: bool = False, is_gratuity_received: bool = False) -> float:
+        """
+        Calculate total taxable pension income.
+        
+        For regular monthly pension: Fully taxable in both regimes
+        For commuted pension and gratuity: Exemption depends on employee type
+        New regime: Some exemptions that are available in old regime may not apply
+        """
+        computed_taxable_pension = 0
+        computed_pension_amount = self.total_pension_income * self.computed_pension_percentage
+        if not is_govt_employee:
+            exemption_fraction = 1/3 if is_gratuity_received else 1/2
+            exemption_limit = self.total_pension_income * exemption_fraction
+            computed_taxable_pension =  min(computed_pension_amount, exemption_limit)
+            logger.info(f"Computed pension amount: {computed_pension_amount}")
+            logger.info(f"Exemption limit: {exemption_limit}")
+            logger.info(f"Computed taxable pension: {computed_taxable_pension}")
+        
+        return computed_taxable_pension
+    
+    def total_taxable_income_per_slab_uncomputed(self, regime: str = 'old') -> float:
+        """
+        Calculate total taxable pension income.
+        """
+        uncomputed_taxable_pension = 0
+        if self.uncomputed_pension_frequency == 'monthly':
+            uncomputed_taxable_pension = self.uncomputed_pension_amount*12
+        elif self.uncomputed_pension_frequency == 'quarterly':
+            uncomputed_taxable_pension = self.uncomputed_pension_amount*4
+        elif self.uncomputed_pension_frequency == 'annually':
+            uncomputed_taxable_pension = self.uncomputed_pension_amount
+        return uncomputed_taxable_pension
+
+    @classmethod
+    def to_dict(cls) -> Dict[str, Any]:
+        """Convert the object to a dictionary for JSON serialization."""
+        return {
+            "total_pension_income": cls.total_pension_income,
+            "computed_pension_percentage": cls.computed_pension_percentage,
+            "uncomputed_pension_frequency": cls.uncomputed_pension_frequency,
+            "uncomputed_pension_amount": cls.uncomputed_pension_amount
+        }
+
     

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getTaxationByEmpId, saveTaxationData, calculateTax } from '../../../services/taxationService';
+import { getTaxationByEmpId, saveTaxationData, calculateTax, computeVrsValue } from '../../../services/taxationService';
 import { getDefaultTaxationState, parseIndianNumber } from '../utils/taxationUtils';
 
 /**
@@ -88,7 +88,7 @@ const useTaxationForm = (empId) => {
       'accommodation_provided', 'accommodation_city_population', 'car_use', 
       'travel_through', 'loan_type', 'lta_claim_start_date', 'lta_claim_end_date',
       'grant_date', 'vesting_date', 'exercise_date', 'mat_type', 'mau_ownership',
-      'loan_start_date', 'loan_end_date'
+      'loan_start_date', 'loan_end_date', 'uncomputed_pension_frequency', 'mat_number_of_completed_years_of_use'
     ];
     
     let parsedValue;
@@ -267,6 +267,25 @@ const useTaxationForm = (empId) => {
     }
   };
 
+  // Fetch VRS value from backend
+  const fetchVrsValue = async () => {
+    try {
+      if (!empId) {
+        console.error('Employee ID is missing');
+        return;
+      }
+      
+      const vrsValue = await computeVrsValue(empId);
+      if (vrsValue) {
+        handleInputChange('voluntary_retirement', 'voluntary_retirement_amount', vrsValue);
+        return vrsValue;
+      }
+    } catch (error) {
+      console.error('Error fetching VRS value:', error);
+      setError('Failed to compute VRS value. Please try again later.');
+    }
+  };
+
   return {
     taxationData,
     setTaxationData,
@@ -292,7 +311,8 @@ const useTaxationForm = (empId) => {
     handleCityChange,
     handleHRAChange,
     handleCalculateTax,
-    handleSubmit
+    handleSubmit,
+    fetchVrsValue
   };
 };
 

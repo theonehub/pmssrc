@@ -63,8 +63,9 @@ const MedicalReimbursementSection = ({
               label="Traveling Allowance for Treatment"
               type="text"
               value={formatIndianNumber(taxationData.salary.perquisites?.travelling_allowance_for_treatment || 0)}
-            onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'travelling_allowance_for_treatment', e.target.value)}
-            InputProps={{ startAdornment: '₹' }}
+              onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'travelling_allowance_for_treatment', e.target.value)}
+              InputProps={{ startAdornment: '₹' }}
+              disabled={taxationData.salary.perquisites?.is_treated_in_India}
               onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'travelling_allowance_for_treatment', e.target.value)}
             />
           </Tooltip>
@@ -78,8 +79,9 @@ const MedicalReimbursementSection = ({
               label="RBI Limit for Illness"
               type="text"
               value={formatIndianNumber(taxationData.salary.perquisites?.rbi_limit_for_illness || 0)}
-            onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'rbi_limit_for_illness', e.target.value)}
+              onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'rbi_limit_for_illness', e.target.value)}
               InputProps={{ startAdornment: '₹' }}
+              disabled={taxationData.salary.perquisites?.is_treated_in_India}
               onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'rbi_limit_for_illness', e.target.value)}
             />
           </Tooltip>

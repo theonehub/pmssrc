@@ -1,4 +1,4 @@
-from models.taxation import SalaryComponents, IncomeFromOtherSources, IncomeFromHouseProperty, CapitalGains, DeductionComponents, Taxation, Perquisites, LeaveEncashment
+from models.taxation import SalaryComponents, IncomeFromOtherSources, IncomeFromHouseProperty, CapitalGains, DeductionComponents, Taxation, Perquisites, LeaveEncashment, VoluntaryRetirement
 from database.taxation_database import get_taxation_by_emp_id, get_taxation_collection, save_taxation, _ensure_serializable
 from services.organisation_service import is_govt_organisation
 from database.user_database import get_user_by_emp_id
@@ -177,7 +177,7 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
         
         # Calculate the total taxable income
         logger.info(f"calculate_total_tax() - Calculating salary income with components - Basic: {salary.basic}, DA: {salary.dearness_allowance}, "
-                    f"HRA: {salary.hra}, HRA City: {salary.hra_city}, HRA Percentage: {salary.hra_percentage}, Special: {salary.special_allowance}, Bonus: {salary.bonus}")
+                    f"HRA: {salary.hra}, Actual Rent Paid: {salary.actual_rent_paid}, HRA City: {salary.hra_city}, HRA Percentage: {salary.hra_percentage}, Special: {salary.special_allowance}, Bonus: {salary.bonus}")
         
         salary_income = salary.total()
         gross_income = salary_income
@@ -384,7 +384,7 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
 def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, regime: str = None,
                          salary: SalaryComponents = None, other_sources: IncomeFromOtherSources = None,
                          capital_gains: CapitalGains = None, deductions: DeductionComponents = None,
-                         leave_encashment: LeaveEncashment = None,
+                         leave_encashment: LeaveEncashment = None, voluntary_retirement: VoluntaryRetirement = None,
                          house_property: IncomeFromHouseProperty = None) -> Taxation:
     """
     Calculate the tax and save to the database
@@ -393,7 +393,8 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
     logger.info(f"calculate_and_save_tax - Parameters - tax_year: {tax_year}, regime: {regime}, "
                 f"salary provided: {salary is not None}, other_sources provided: {other_sources is not None}, "
                 f"capital_gains provided: {capital_gains is not None}, deductions provided: {deductions is not None}, "
-                f"leave_encashment provided: {leave_encashment is not None}")
+                f"leave_encashment provided: {leave_encashment is not None}, "
+                f"voluntary_retirement provided: {voluntary_retirement is not None}")
     
     # Get current tax year if not provided
     if not tax_year:
@@ -444,6 +445,9 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
         if leave_encashment:
             logger.info(f"calculate_and_save_tax - Updating leave encashment information")
             taxation.leave_encashment = leave_encashment
+        if voluntary_retirement:
+            logger.info(f"calculate_and_save_tax - Updating voluntary retirement information")
+            taxation.voluntary_retirement = voluntary_retirement
     except Exception as e:
         logger.info(f"calculate_and_save_tax - No existing taxation data found for {emp_id}, creating new taxation object. Error: {str(e)}")
         
@@ -474,6 +478,7 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
             house_property=house_property or IncomeFromHouseProperty(),
             capital_gains=capital_gains or CapitalGains(),
             leave_encashment=leave_encashment or LeaveEncashment(),
+            voluntary_retirement=voluntary_retirement or VoluntaryRetirement(),
             deductions=deductions or DeductionComponents(),
             tax_year=tax_year,
             filing_status='draft',
@@ -605,18 +610,28 @@ def create_default_taxation(emp_id: str, hostname: str) -> dict:
             basic=0,
             dearness_allowance=0,
             hra=0,
+            actual_rent_paid=0,
             hra_city='Others',
             hra_percentage=0.4,
             special_allowance=0,
             bonus=0,
             perquisites=default_perquisites,
             hills_high_altd_allowance=0,
+            hills_high_altd_exemption_limit=0,
             border_remote_allowance=0,
+            border_remote_exemption_limit=0,
             transport_employee_allowance=0,
             children_education_allowance=0,
+            children_education_count=0,
+            children_education_months=0,
             hostel_allowance=0,
+            hostel_count=0,
+            hostel_months=0,
             transport_allowance=0,
-            underground_mines_allowance=0
+            transport_months=0,
+            underground_mines_allowance=0,
+            underground_mines_months=0,
+            govt_employee_entertainment_allowance=0
         )
         
         default_other_sources = IncomeFromOtherSources(
@@ -637,7 +652,8 @@ def create_default_taxation(emp_id: str, hostname: str) -> dict:
             occupancy_status='Self-Occupied',
             rent_income=0,
             property_tax=0,
-            interest_on_home_loan=0
+            interest_on_home_loan=0,
+            pre_construction_loan_interest=0
         )
         
         default_capital_gains = CapitalGains(
@@ -652,7 +668,16 @@ def create_default_taxation(emp_id: str, hostname: str) -> dict:
         default_leave_encashment = LeaveEncashment(
             leave_encashment_income_received=0,
             service_years=0,
-            leave_balance=0
+            leave_encashed=0,
+            is_deceased=False,
+            average_monthly_salary=0,
+            during_employment=False
+        )
+        
+        default_voluntary_retirement = VoluntaryRetirement(
+            is_vrs_requested=False,
+            voluntary_retirement_amount=0,
+            max_exemption_limit=500000
         )
         
         default_deductions = DeductionComponents(
@@ -707,6 +732,7 @@ def create_default_taxation(emp_id: str, hostname: str) -> dict:
             house_property=default_house_property,
             capital_gains=default_capital_gains,
             leave_encashment=default_leave_encashment,
+            voluntary_retirement=default_voluntary_retirement,
             deductions=default_deductions,
             regime='old',
             total_tax=0,
@@ -730,3 +756,61 @@ def create_default_taxation(emp_id: str, hostname: str) -> dict:
     except Exception as e:
         logger.error(f"Error creating default taxation: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error creating default taxation: {str(e)}")
+
+def compute_vrs_from_user_data(emp_id: str, hostname: str) -> float:
+    """
+    Compute the VRS value for a user based on their profile data.
+    
+    Parameters:
+    - emp_id: Employee ID
+    - hostname: Organization hostname
+    
+    Returns:
+    - Computed VRS value
+    """
+    try:
+        # Get user data to calculate age and service years
+        user_data = get_user_by_emp_id(emp_id, hostname)
+        if not user_data:
+            logger.error(f"User {emp_id} not found")
+            raise HTTPException(status_code=404, detail=f"User {emp_id} not found")
+        
+        # Default monthly salary
+        last_drawn_monthly_salary = 100000
+        
+        # Calculate age from date of birth
+        try:
+            dob = datetime.datetime.strptime(user_data.get('dob', ''), '%Y-%m-%d')
+            today = datetime.datetime.now()
+            age_delta = relativedelta(today, dob)
+            age = age_delta.years
+            logger.info(f"Calculated age for {emp_id}: {age} years")
+        except (ValueError, AttributeError) as e:
+            logger.error(f"Could not calculate age for {emp_id}: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Invalid date of birth for user {emp_id}")
+        
+        # Calculate service years from date of joining
+        try:
+            doj = datetime.datetime.strptime(user_data.get('doj', ''), '%Y-%m-%d')
+            service_delta = relativedelta(today, doj)
+            service_years = service_delta.years
+            logger.info(f"Calculated service years for {emp_id}: {service_years} years")
+        except (ValueError, AttributeError) as e:
+            logger.error(f"Could not calculate service years for {emp_id}: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Invalid date of joining for user {emp_id}")
+        
+        # Create a VoluntaryRetirement instance and compute VRS value
+        vrs = VoluntaryRetirement()
+        vrs_value = vrs.compute_vrs_value(
+            age=age,
+            service_years=service_years,
+            last_drawn_monthly_salary=last_drawn_monthly_salary
+        )
+        
+        logger.info(f"Computed VRS value for {emp_id}: {vrs_value}")
+        return vrs_value
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error computing VRS value from user data: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error computing VRS value: {str(e)}")

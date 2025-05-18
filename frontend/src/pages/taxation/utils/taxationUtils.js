@@ -77,6 +77,7 @@ export const getDefaultTaxationState = (empId) => ({
     basic: 0,
     dearness_allowance: 0,
     hra: 0,
+    actual_rent_paid: 0,
     hra_city: 'Others',
     hra_percentage: 0.4,
     special_allowance: 0,
@@ -106,12 +107,21 @@ export const getDefaultTaxationState = (empId) => ({
     academic_research: 0,
     uniform_allowance: 0,
     hills_high_altd_allowance: 0,
+    hills_high_altd_exemption_limit: 0,
     border_remote_allowance: 0,
+    border_remote_exemption_limit: 0,
     transport_employee_allowance: 0,
     children_education_allowance: 0,
+    children_education_count: 0,
+    children_education_months: 0,
     hostel_allowance: 0,
+    hostel_count: 0,
+    hostel_months: 0,
     transport_allowance: 0,
+    transport_months: 0,
     underground_mines_allowance: 0,
+    underground_mines_months: 0,
+    govt_employee_entertainment_allowance: 0,
     perquisites: {
       // Accommodation perquisites
       accommodation_provided: 'Employer-Owned', 
@@ -221,7 +231,8 @@ export const getDefaultTaxationState = (empId) => ({
     occupancy_status: 'Self-Occupied',
     rent_income: 0,
     property_tax: 0,
-    interest_on_home_loan: 0
+    interest_on_home_loan: 0,
+    pre_construction_loan_interest: 0
   },
   capital_gains: {
     stcg_111a: 0,
@@ -234,7 +245,10 @@ export const getDefaultTaxationState = (empId) => ({
   leave_encashment: {
     leave_encashment_income_received: 0,
     service_years: 0,
-    leave_balance: 0
+    leave_encashed: 0,
+    is_deceased: false,
+    average_monthly_salary: 0,
+    during_employment: false
   },
   deductions: {
     section_80c_lic: 0,

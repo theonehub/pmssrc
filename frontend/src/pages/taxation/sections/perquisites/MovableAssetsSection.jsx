@@ -87,7 +87,10 @@ const MovableAssetsSection = ({
         <Grid item xs={12} md={6}>
           <FormControl fullWidth>
             <InputLabel>Asset Type</InputLabel>
-            <Tooltip title="Electronic items do not include household appliances (like Washing machine, microwave)">
+            <Tooltip 
+            title="Electronic items do not include household appliances (like Washing machine, microwave)"
+            placement="top"
+            >
             <Select
               value={taxationData.salary.perquisites?.mat_type || 'Electronics'}
               label="Asset Type"
@@ -134,7 +137,7 @@ const MovableAssetsSection = ({
             label="Number of Completed Years of Use"
             type="number"
             inputProps={{ min: 0 }}
-            value={taxationData.salary.perquisites?.number_of_completed_years_of_use || 0}
+            value={taxationData.salary.perquisites?.mat_number_of_completed_years_of_use || 0}
             onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'mat_number_of_completed_years_of_use', e.target.value)}
             onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'mat_number_of_completed_years_of_use', e.target.value)}
           />

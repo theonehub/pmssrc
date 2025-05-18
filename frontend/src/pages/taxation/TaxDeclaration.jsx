@@ -55,7 +55,8 @@ const TaxDeclaration = () => {
     handleCityChange,
     handleHRAChange,
     handleCalculateTax,
-    handleSubmit
+    handleSubmit,
+    fetchVrsValue
   } = useTaxationForm(empId);
 
   // Handle next step
@@ -108,6 +109,7 @@ const TaxDeclaration = () => {
             taxationData={taxationData}
             handleInputChange={handleInputChange}
             handleFocus={handleFocus}
+            fetchVrsValue={fetchVrsValue}
           />
         );
       case 4:

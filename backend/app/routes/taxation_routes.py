@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from typing import List, Dict, Any, Optional
 from models.taxation import SalaryComponents, IncomeFromOtherSources, CapitalGains, DeductionComponents, Taxation, Perquisites, IncomeFromHouseProperty, LeaveEncashment
-from services.taxation_service import calculate_total_tax, calculate_and_save_tax, get_or_create_taxation_by_emp_id
+from services.taxation_service import calculate_total_tax, calculate_and_save_tax, get_or_create_taxation_by_emp_id, compute_vrs_from_user_data
 from database.taxation_database import get_taxation_by_emp_id, update_tax_payment, get_all_taxation, update_filing_status
 from auth.auth import extract_hostname, role_checker, extract_emp_id
 from pydantic import BaseModel
 import logging
+from models.taxation.income_sources import VoluntaryRetirement
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,7 @@ class TaxationDataRequest(BaseModel):
     capital_gains: Optional[Dict[str, Any]] = None
     leave_encashment: Optional[Dict[str, Any]] = None
     house_property: Optional[Dict[str, Any]] = None
+    voluntary_retirement: Optional[Dict[str, Any]] = None
     deductions: Optional[Dict[str, Any]] = None
     tax_year: Optional[str] = None
     
@@ -68,6 +70,7 @@ class TaxationDataRequest(BaseModel):
                 "salary": {
                     "basic": 700000,
                     "hra": 350000,
+                    "actual_rent_paid": 150000,
                     "special_allowance": 200000,
                     "bonus": 150000
                 },
@@ -82,13 +85,33 @@ class TaxationDataRequest(BaseModel):
                 "leave_encashment": {
                     "leave_encashment_income_received": 100000,
                     "service_years": 5,
-                    "leave_balance": 10
+                    "leave_encashed": 10,
+                    "is_deceased": False,
+                    "average_monthly_salary": 100000,
+                    "during_employment": False
+                },
+                "voluntary_retirement": {
+                    "is_vrs_requested": True,
+                    "voluntary_retirement_amount": 500000,
+                    "max_exemption_limit": 500000,
+                    "service_years": 20,
+                    "last_drawn_monthly_salary": 50000
                 },
                 "deductions": {
                     "section_80c": 150000,
                     "section_80d": 25000
                 },
                 "tax_year": "2023-2024"
+            }
+        }
+
+class VrsCalculationRequest(BaseModel):
+    emp_id: str
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "emp_id": "EMP001"
             }
         }
 
@@ -121,6 +144,7 @@ def save_taxation_data(
         house_property = IncomeFromHouseProperty(**request.house_property) if request.house_property else None
         capital_gains = CapitalGains(**request.capital_gains) if request.capital_gains else None
         leave_encashment = LeaveEncashment(**request.leave_encashment) if request.leave_encashment else None
+        voluntary_retirement = VoluntaryRetirement(**request.voluntary_retirement) if request.voluntary_retirement else None
         deductions = DeductionComponents(**request.deductions) if request.deductions else None
 
         # Calculate and save tax
@@ -134,6 +158,7 @@ def save_taxation_data(
             capital_gains=capital_gains,
             leave_encashment=leave_encashment,
             house_property=house_property,
+            voluntary_retirement=voluntary_retirement,
             deductions=deductions
         )
         
@@ -204,6 +229,24 @@ def get_all_taxation_endpoint(
         raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving taxation records: {str(e)}")
+
+@router.post("/compute-vrs")
+def compute_vrs_endpoint(
+    request: VrsCalculationRequest,
+    hostname: str = Depends(extract_hostname),
+    role: str = Depends(role_checker(["admin", "superadmin", "user"]))
+):
+    """Compute VRS value based on user profile data"""
+    try:
+        # Call the service function to compute VRS value using user data
+        vrs_value = compute_vrs_from_user_data(request.emp_id, hostname)
+        
+        return {"vrs_value": vrs_value}
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error computing VRS value: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error computing VRS value: {str(e)}")
 
 @router.get("/my-taxation")
 def get_my_taxation_endpoint(

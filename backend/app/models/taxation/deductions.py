@@ -43,7 +43,7 @@ class DeductionComponents:
     section_80c_others: float = 0        # Others  Max all above 1,50,000
 
     # section 80CCC
-    section_80ccc_ppic: float = 0        # Pension Payment under section  Max 1,50,000
+    section_80ccc_ppic: float = 0        # Pension Plan of LIC or other Insurance Company  Max 1,50,000
 
     # section 80CCD
     section_80ccd_1_nps: float = 0       # self-employed or employee contribution to NPS
@@ -187,7 +187,7 @@ class DeductionComponents:
     # section 80DDB Specific Diseases
     relation_80ddb: str = '' # Spouse, Child, Parents, Sibling
     age_80ddb: int = 0
-    section_80ddb: float = 0 # if age < 60 - 40k else 100K
+    section_80ddb: float = 0 # if age < 60 - 40k else 1L
 
     def total_deductions_80ddb(self, regime: str = 'new', age: int = 0) -> float:
         """Calculate deductions for medical treatment of specified diseases under 80DDB."""
@@ -208,11 +208,12 @@ class DeductionComponents:
             else:
                 return 0
             
-    relation_80e: str = 'Self' # Self, Spouse, Child
+    relation_80e: str = 'Self' # Self, Spouse, Child    #TODO: Make sure that its not beyond taxable income
+                                                        #TODO: Make sure that its not beyond taxable income
     section_80e_interest: float = 0 # No limit
 
     def total_deductions_80e(self, regime: str = 'new') -> float:
-        """Calculate deductions for medical treatment of specified diseases under 80E."""   
+        """Calculate deductions for Education Loan Interest under 80E."""   
         if regime == 'new':
             return 0
         else:
@@ -238,6 +239,34 @@ class DeductionComponents:
                 return total
             else:
                 return 0
+
+
+    # section 80GGC Political party contributions
+    section_80ggc: float = 0        # Deduction on Political parties contribution (No Deductions for payments made in Cash)
+
+    def total_deductions_80ggc(self, regime: str = 'new') -> float:
+        """Calculate deduction for political party contributions under 80GGC."""
+        if regime == 'new':
+            return 0
+        else:
+            return self.section_80ggc
+
+    # section 80U Self disability
+    section_80u: float = 0
+    disability_percentage_80u: str = '' # Between 40%-80% - 75k, More than 80% - 125k
+
+    def total_deductions_80u(self, regime: str = 'new') -> float:
+        """Calculate deduction for self disability under section 80U."""
+        if regime == 'new':
+            return 0
+        else:
+            logger.info(f"Calculating Section 80U total for {self.disability_percentage_80u}")
+            if self.disability_percentage_80u == 'Between 40%-80%':
+                logger.info(f"Section 80U min ({self.section_80u}, 75000) = {min(self.section_80u, 75000)}")
+                return min(self.section_80u, 75000)
+            else:
+                logger.info(f"Section 80U min ({self.section_80u}, 125000) = {min(self.section_80u, 125000)}")
+                return min(self.section_80u, 125000)
 
     # section 80G Donations to charitable institutions
     section_80g_100_wo_ql: float = 0    # Donations entitled to 100% deduction without qualifying limit 
@@ -275,7 +304,8 @@ class DeductionComponents:
                                     # qualifying limit of 10% of adjusted gross total income  
     section_80g_100_ql_head: str = ''
 
-    def total_deductions_80g_100_ql(self, regime: str = 'new', gross_total_income: float = 0) -> float:
+    #TODO: Compute gross_income excluding 80G deductions(pic on whatsapp)
+    def total_deductions_80g_100_ql(self, regime: str = 'new', gross_income: float = 0) -> float:
         """Calculate 100% deduction for donations with qualifying limit under 80G."""
         if regime == 'new':
             return 0
@@ -283,51 +313,26 @@ class DeductionComponents:
             logger.info(f"Section 80G 100% deduction for donations with qualifying limit:")
             logger.info(f"Section 80G {self.section_80g_100_ql_head}")
             logger.info(f"{self.section_80g_100_ql}")
-            return min(self.section_80g_100_ql, (gross_total_income * 0.1))
+            return min(self.section_80g_100_ql, (gross_income * 0.1))
         else:
             return 0
 
     section_80g_50_ql: float = 0    # Donations entitled to 50% deduction with qualifying limit of 10% of adjusted gross total income  
     section_80g_50_ql_head: str = ''
 
-    def total_deductions_80g_50_ql(self, regime: str = 'new', gross_total_income: float = 0) -> float:
+    def total_deductions_80g_50_ql(self, regime: str = 'new', gross_income: float = 0) -> float:
         """Calculate 50% deduction for donations with qualifying limit under 80G."""
         if regime == 'new':
             return 0
         elif self.section_80g_50_ql_head in section_80g_50_ql_heads:
             logger.info(f"Section 80G 50% deduction for donations with qualifying limit:")
             logger.info(f"Section 80G {self.section_80g_50_ql_head}")
-            logger.info(f"{self.section_80g_50_ql}")
-            return min(self.section_80g_50_ql, (gross_total_income * 0.1))
+            logger.info(f"{self.section_80g_50_ql} * 0.5 = {self.section_80g_50_ql * 0.5}")
+            logger.info(f"{gross_income} * 0.1 = {gross_income * 0.1}")
+            return min((self.section_80g_50_ql * 0.5), (gross_income * 0.1))
         else:
             return 0
 
-    # section 80GGC Political party contributions
-    section_80ggc: float = 0        # Deduction on Political parties contribution (No Deductions for payments made in Cash)
-
-    def total_deductions_80ggc(self, regime: str = 'new') -> float:
-        """Calculate deduction for political party contributions under 80GGC."""
-        if regime == 'new':
-            return 0
-        else:
-            return self.section_80ggc
-
-    # section 80U Self disability
-    section_80u: float = 0
-    disability_percentage_80u: str = '' # Between 40%-80% - 75k, More than 80% - 125k
-
-    def total_deductions_80u(self, regime: str = 'new') -> float:
-        """Calculate deduction for self disability under section 80U."""
-        if regime == 'new':
-            return 0
-        else:
-            logger.info(f"Calculating Section 80U total for {self.disability_percentage_80u}")
-            if self.disability_percentage_80u == 'Between 40%-80%':
-                logger.info(f"Section 80U min ({self.section_80u}, 75000) = {min(self.section_80u, 75000)}")
-                return min(self.section_80u, 75000)
-            else:
-                logger.info(f"Section 80U min ({self.section_80u}, 125000) = {min(self.section_80u, 125000)}")
-                return min(self.section_80u, 125000)
 
     def total_deduction(self, regime: str = 'new', 
                         is_govt_employee: bool = False,         

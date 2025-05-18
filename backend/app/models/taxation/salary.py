@@ -24,7 +24,8 @@ class SalaryComponents:
     dearness_allowance: float = 0                       # Dearness Allowance(Slab)
     hra_city: str = 'Others'                            # HRA_City_selected(Metadata)
     hra_percentage: float = 0                           # HRA_Percentage(Metadata)
-    hra: float = 0                                      # HRA(Slab)
+    hra: float = 0                                       # HRA(Slab)
+    actual_rent_paid: float = 0                          # Actual Rent Paid(Slab)
     special_allowance: float = 0                        # Special Allowance(Slab)
     bonus: float = 0                                    # Bonus(Slab)
     commission: float = 0                               # Commission(Slab)
@@ -41,6 +42,7 @@ class SalaryComponents:
     servant_allowance: float = 0                        # Servant Allowance(Slab)
     any_other_allowance: float = 0                      # Any Other Allowance(Slab)
     any_other_allowance_exemption: float = 0            # Any Other Allowance Exemption(Slab-Deduction)
+    govt_employee_entertainment_allowance: float = 0    # Entertainment Allowance(Exempted)
     govt_employees_outside_india_allowance: float = 0   # Allowances to Government employees outside India(Exempted)
     supreme_high_court_judges_allowance: float = 0      # Allowance to High Court & Supreme Court Judges(Exempted)
     judge_compensatory_allowance: float = 0             # Compensatory Allowance received by a Judge(Exempted)
@@ -54,12 +56,20 @@ class SalaryComponents:
 
     #Other Allowances
     hills_high_altd_allowance: float = 0                # Compensatory Allowances for Hilly Area or High Altitute Allowance - Rs. 300 pm to Rs. 7,000 pm
+    hills_high_altd_exemption_limit: float = 0       # Exemption limit for Hills & High Altitude Allowance
     border_remote_allowance: float = 0                  # Border & Remote Area Allowance - Rs. 200 pm to Rs. 3,000 pm
+    border_remote_exemption_limit: float = 0            # Exemption limit for Border & Remote Area Allowance
     transport_employee_allowance: float = 0             # Allowances allowed to Transport Employees - Rs. 10,000 or 70% of Such Allowance, Whichever is less
     children_education_allowance: float = 0             # Children Education Allowance - Rs. 100 pm per child upto maximum 2 children
+    children_education_count: int = 0                             # Number of children for children education allowance
+    children_education_months: int = 0                   # Number of months for children education allowance
     hostel_allowance: float = 0                         # Hostel Expenditure Allowance - Rs. 300 pm per child upto maximum 2 children
-    transport_allowance: float = 0                      # Transport Allowance -Rs. 3,200 per month for blind or deaf and dumb
+    hostel_count: int = 0                             # Number of children for children education allowance
+    hostel_months: int = 0  
+    transport_allowance: float = 0   
+    transport_months: int = 0                   # Transport Allowance -Rs. 3,200 per month for blind or deaf and dumb
     underground_mines_allowance: float = 0              # Underground allowance to employee working in underground mines - Rs. 800 pm
+    underground_mines_months: int = 0                   # Number of months for underground mines allowance
 
     perquisites: Optional[Perquisites] = None
 
@@ -77,8 +87,7 @@ class SalaryComponents:
         # 2. 50% of salary (for metro cities) or 40% (for non-metro)
         # 3. Rent paid minus 10% of salary
         
-        rent_paid = self.hra
-        logger.info(f"Rent paid: {rent_paid}")
+        logger.info(f"Rent paid: {self.actual_rent_paid}")
         # Determine percentage based on city
         if self.hra_city in ['Delhi', 'Mumbai', 'Kolkata', 'Chennai']:
             percent_of_salary = 0.5 * basic_plus_da
@@ -87,11 +96,11 @@ class SalaryComponents:
 
         logger.info(f"Percent of salary: {percent_of_salary}")  
         
-        rent_minus_salary = max(0, rent_paid - (0.1 * basic_plus_da))
+        rent_minus_salary = max(0, self.actual_rent_paid - (0.1 * basic_plus_da))
         logger.info(f"Rent minus salary: {rent_minus_salary}")
         
         # Calculate exemption
-        hra_exemption = min(rent_paid, percent_of_salary, rent_minus_salary)
+        hra_exemption = min(self.hra, percent_of_salary, rent_minus_salary)
         logger.info(f"[Computed]HRA exemption calculated: {hra_exemption}")
         
         return hra_exemption
@@ -130,21 +139,26 @@ class SalaryComponents:
         
         # Other allowance exemptions
         other_allowances_exemption = (
-            min(self.hills_high_altd_allowance, 7000) +
-            min(self.border_remote_allowance, 3000) +
+            min(self.hills_high_altd_allowance, self.hills_high_altd_exemption_limit) +   #TODO: take exemption limit as input
+            min(self.border_remote_allowance, self.border_remote_exemption_limit) +   #TODO: take exemption limit as input
             min(self.transport_employee_allowance, min(10000, 0.7 * self.transport_employee_allowance)) +
-            min(self.children_education_allowance, 2400) +  # 100*2*12
-            min(self.hostel_allowance, 7200) +  # 300*2*12
-            min(self.transport_allowance, 38400) +  # 3200*12
-            min(self.underground_mines_allowance, 9600)  # 800*12
+            min(self.children_education_allowance, (self.children_education_count*100*self.children_education_months)) +  # 100*2*12 #TODO: take number of kids and months limit as input
+            min(self.hostel_allowance, (self.hostel_count*300*self.hostel_months)) +  # 300*2*12 #TODO: take months limit as input
+            min(self.transport_allowance, (self.transport_months*3200)) +  # 3200*12 #TODO: take months limit as input
+            min(self.underground_mines_allowance, (self.underground_mines_months*800)) # 800*12 #TODO: take months limit as input
         )
-        logger.info(f"hills_high_altd_allowance: {self.hills_high_altd_allowance}, min with 7000: {min(self.hills_high_altd_allowance, 7000)}")
-        logger.info(f"border_remote_allowance: {self.border_remote_allowance}, min with 3000: {min(self.border_remote_allowance, 3000)}")
-        logger.info(f"transport_employee_allowance: {self.transport_employee_allowance}, min with 10000: {min(self.transport_employee_allowance, min(10000, 0.7 * self.transport_employee_allowance))}")
-        logger.info(f"children_education_allowance: {self.children_education_allowance}, min with 2400: {min(self.children_education_allowance, 2400)}")
-        logger.info(f"hostel_allowance: {self.hostel_allowance}, min with 7200: {min(self.hostel_allowance, 7200)}")
-        logger.info(f"transport_allowance: {self.transport_allowance}, min with 38400: {min(self.transport_allowance, 38400)}")
-        logger.info(f"underground_mines_allowance: {self.underground_mines_allowance}, min with 9600: {min(self.underground_mines_allowance, 9600)}")
+
+        if self.govt_employee_entertainment_allowance > 0 and self.is_govt_employee:
+            other_allowances_exemption += min(self.govt_employee_entertainment_allowance, self.basic * 0.2, 5000)
+
+        logger.info(f"hills_high_altd_allowance: {self.hills_high_altd_allowance}, {min(self.hills_high_altd_allowance, self.hills_high_altd_exemption_limit)}")
+        logger.info(f"border_remote_allowance: {self.border_remote_allowance}, {min(self.border_remote_allowance, self.border_remote_exemption_limit)}")
+        logger.info(f"transport_employee_allowance: {self.transport_employee_allowance}, {min(self.transport_employee_allowance, min(10000, 0.7 * self.transport_employee_allowance))}")
+        logger.info(f"children_education_allowance: {self.children_education_allowance}, {min(self.children_education_allowance, (self.children_education_count*100*self.children_education_months))}")
+        logger.info(f"hostel_allowance: {self.hostel_allowance}, {min(self.hostel_allowance, (self.hostel_count*300*self.hostel_months))}")
+        logger.info(f"transport_allowance: {self.transport_allowance}, {min(self.transport_allowance, (self.transport_months*3200))}")
+        logger.info(f"underground_mines_allowance: {self.underground_mines_allowance}, {min(self.underground_mines_allowance, (self.underground_mines_months*800))}")
+        logger.info(f"govt_employee_entertainment_allowance: {self.govt_employee_entertainment_allowance}, {min(self.govt_employee_entertainment_allowance, self.basic * 0.2, 5000)}")
         logger.info(f"Other allowance exemptions: {other_allowances_exemption}")
 
         logger.info(f"Total salary exemptions - HRA: {hra_exemption}, Section 10: {section10_exemptions}, Other: {other_allowances_exemption}")
@@ -179,7 +193,8 @@ class SalaryComponents:
             self.children_education_allowance +
             self.hostel_allowance +
             self.transport_allowance +
-            self.underground_mines_allowance
+            self.underground_mines_allowance +
+            self.govt_employee_entertainment_allowance
         )
         
         # Calculate exemptions
@@ -206,6 +221,7 @@ class SalaryComponents:
             "hra_city": cls.hra_city,
             "hra_percentage": cls.hra_percentage,
             "hra": cls.hra,
+            "actual_rent_paid": cls.actual_rent_paid,
             "special_allowance": cls.special_allowance,
             "bonus": cls.bonus,
             "commission": cls.commission,
@@ -233,11 +249,20 @@ class SalaryComponents:
             "academic_research": cls.academic_research,
             "uniform_allowance": cls.uniform_allowance,
             "hills_high_altd_allowance": cls.hills_high_altd_allowance,
+            "hills_high_altd_exemption_limit": cls.hills_high_altd_exemption_limit,
             "border_remote_allowance": cls.border_remote_allowance,
+            "border_remote_exemption_limit": cls.border_remote_exemption_limit,
             "transport_employee_allowance": cls.transport_employee_allowance,
+            "transport_months": cls.transport_months,
             "children_education_allowance": cls.children_education_allowance,
+            "children_education_count": cls.children_education_count,
+            "children_education_months": cls.children_education_months,
             "hostel_allowance": cls.hostel_allowance,
+            "hostel_count": cls.hostel_count,
+            "hostel_months": cls.hostel_months,
             "transport_allowance": cls.transport_allowance,
+            "transport_months": cls.transport_months,
             "underground_mines_allowance": cls.underground_mines_allowance,
+            "govt_employee_entertainment_allowance": cls.govt_employee_entertainment_allowance,
             "perquisites": cls.perquisites.to_dict() if cls.perquisites else None
         } 

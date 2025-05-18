@@ -10,6 +10,7 @@ import {
   MenuItem,
   Box,
   Divider,
+  Tooltip,
   Typography
 } from '@mui/material';
 import FormSectionHeader from '../../components/FormSectionHeader';
@@ -144,6 +145,10 @@ const CarTransportSection = ({
         <Divider sx={{ my: 0, width: '100%' }} />
         {/* Other vehicle cost to employer */}
         <Grid item xs={12} md={6}>
+          <Tooltip 
+            title="Vehicle other than car"
+            placement="top"
+          >
           <TextField
             fullWidth
             label="Other Vehicle Cost to Employer"
@@ -153,6 +158,7 @@ const CarTransportSection = ({
             InputProps={{ startAdornment: '₹' }}
             onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'other_vehicle_cost_to_employer', e.target.value)}
           />
+          </Tooltip>
         </Grid>
         
         {/* Month count for other vehicle */}

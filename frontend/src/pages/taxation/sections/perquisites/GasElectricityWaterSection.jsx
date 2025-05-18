@@ -42,7 +42,7 @@ const GasElectricityWaterSection = ({
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
-            label="Gas Amount Paid by Employer"
+            label={taxationData.salary.perquisites?.is_gas_manufactured_by_employer ? "Gas Manufacturing Cost to Employer" : "Gas Amount Paid by Employee"}
             type="text"
             value={formatIndianNumber(taxationData.salary.perquisites?.gas_amount_paid_by_employer || 0)}
             onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'gas_amount_paid_by_employer', e.target.value)}
@@ -79,7 +79,7 @@ const GasElectricityWaterSection = ({
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
-            label="Electricity Amount Paid by Employer"
+            label={taxationData.salary.perquisites?.is_electricity_manufactured_by_employer ? "Electricity Manufacturing Cost to Employer" : "Electricity Amount Paid by Employee"}
             type="text"
             value={formatIndianNumber(taxationData.salary.perquisites?.electricity_amount_paid_by_employer || 0)}
             onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'electricity_amount_paid_by_employer', e.target.value)}
@@ -116,7 +116,7 @@ const GasElectricityWaterSection = ({
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
-            label="Water Amount Paid by Employer"
+            label={taxationData.salary.perquisites?.is_water_manufactured_by_employer ? "Water Manufacturing Cost to Employer" : "Water Amount Paid by Employee"}
             type="text"
             value={formatIndianNumber(taxationData.salary.perquisites?.water_amount_paid_by_employer || 0)}
             onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'water_amount_paid_by_employer', e.target.value)}

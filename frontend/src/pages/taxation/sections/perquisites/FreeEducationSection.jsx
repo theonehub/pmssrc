@@ -3,9 +3,9 @@ import {
   Grid,
   TextField,
   FormControlLabel,
-  Switch,
   Box,
   Divider,
+  Tooltip,
   Typography,
   Checkbox
 } from '@mui/material';
@@ -74,15 +74,20 @@ const FreeEducationSection = ({
         
         {/* First Child Monthly Expenses */}
         <Grid item xs={12} md={6}>
+          <Tooltip title="Value/Expenses met by Employer(Monthly)"
+          placement="top"
+          arrow
+          >
           <TextField
             fullWidth
-            label="Employer Monthly Expenses"
+            label="Value/Expenses met by Employer(Monthly)"
             type="text"
             value={formatIndianNumber(taxationData.salary.perquisites?.employer_monthly_expenses_1st_child || 0)}
             onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'employer_monthly_expenses_1st_child', e.target.value)}
             InputProps={{ startAdornment: '₹' }}
             onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'employer_monthly_expenses_1st_child', e.target.value)}
           />
+          </Tooltip>
         </Grid>
         <Box 
           sx={{ 
@@ -131,15 +136,20 @@ const FreeEducationSection = ({
         
         {/* Second Child Monthly Expenses */}
         <Grid item xs={12} md={6}>
+          <Tooltip title="Value/Expenses met by Employer(Monthly)"
+          placement="top"
+          arrow
+          >
           <TextField
             fullWidth
-            label="Employer Monthly Expenses"
+            label="Value/Expenses met by Employer(Monthly)"
             type="text"
             value={formatIndianNumber(taxationData.salary.perquisites?.employer_monthly_expenses_2nd_child || 0)}
             onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'employer_monthly_expenses_2nd_child', e.target.value)}
             InputProps={{ startAdornment: '₹' }}
             onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'employer_monthly_expenses_2nd_child', e.target.value)}
           />
+          </Tooltip>
         </Grid>
       </Grid>
     </>

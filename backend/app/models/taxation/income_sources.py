@@ -417,4 +417,202 @@ class Pension:
             "uncomputed_pension_amount": cls.uncomputed_pension_amount
         }
 
+@dataclass
+class Gratuity:
+    """
+    Represents gratuity income as per Indian Income Tax Act.
+    Includes gratuity income from various sources.
+    """
+    gratuity_income: float = 0
+    last_drawn_monthly_salary: float = 100000   #Basic + DA
+    is_govt_employee: bool = False
+    doj: Optional[datetime.datetime] = None
+    dol: Optional[datetime.datetime] = None
+    
+    def compute_service_years(self) -> float:
+        """
+        Compute the number of years of service based on DOJ and DOL.
+        Returns the service period in years with decimal precision.
+        """
+        if not self.doj or not self.dol:
+            logger.warning("DOJ or DOL is missing, cannot compute service years")
+            return 0.0
+            
+        # Calculate the difference between DOJ and DOL
+        service_days = (self.dol - self.doj).days
+        service_years = service_days / 365.25  # Using 365.25 to account for leap years
+        
+        logger.info(f"Computed service period: DOJ={self.doj}, DOL={self.dol}, days={service_days}, years={service_years:.2f}")
+        return service_years
+    
+    def total_taxable_income_per_slab(self, regime: str = 'old') -> float:
+        """
+        Calculate taxable gratuity income based on the tax regime.
+        
+        For government employees: Gratuity is fully exempt
+        For non-government employees: Exemption is least of:
+        1. Actual gratuity received
+        2. 15 days' salary for each year of service (based on last drawn salary)
+        3. ₹20,00,000 (statutory limit)
+        
+        In new regime: Some exemptions that are available in old regime may not apply
+        """
+        logger.info(f"Calculating gratuity for regime: {regime}")
+        logger.info(f"Gratuity income: {self.gratuity_income}")
+        logger.info(f"Last drawn monthly salary: {self.last_drawn_monthly_salary}")
+        logger.info(f"Is government employee: {self.is_govt_employee}")
+        
+        # Compute service years from DOJ and DOL
+        service_years = self.compute_service_years()
+        logger.info(f"Computed service years: {service_years:.2f}")
+        
+        if regime == 'new':
+            # In new regime, different rules may apply, but for now using same as old
+            pass
+        
+        # For government employees, gratuity is fully exempt
+        if self.is_govt_employee:
+            logger.info("Government employee: Gratuity fully exempt")
+            return 0
+        
+        # For non-government employees, calculate exemption
+        # 1. Actual gratuity received
+        actual_received = self.gratuity_income
+        
+        # 2. 15 days' salary for each year of service
+        daily_salary = self.last_drawn_monthly_salary / 26  # Considering 26 working days in a month
+        fifteen_days_salary = daily_salary * 15
+        salary_based_exemption = fifteen_days_salary * service_years
+        
+        # 3. Statutory limit (₹20,00,000)
+        statutory_limit = 2000000
+        
+        # Exemption is the least of the three amounts
+        exemption = min(actual_received, salary_based_exemption, statutory_limit)
+        
+        # Taxable amount is actual received minus exemption
+        taxable_amount = max(0, self.gratuity_income - exemption)
+        
+        logger.info(f"Gratuity exemption calculation:")
+        logger.info(f"Actual received: {actual_received}")
+        logger.info(f"Salary-based exemption: {salary_based_exemption}")
+        logger.info(f"Statutory limit: {statutory_limit}")
+        logger.info(f"Exemption amount: {exemption}")
+        logger.info(f"Taxable amount: {taxable_amount}")
+        
+        return taxable_amount
+    
+    @classmethod
+    def to_dict(cls) -> Dict[str, Any]:
+        """Convert the object to a dictionary for JSON serialization."""
+        return {
+            "gratuity_income": cls.gratuity_income,
+            "last_drawn_monthly_salary": cls.last_drawn_monthly_salary,
+            "is_govt_employee": cls.is_govt_employee,
+            "doj": cls.doj.isoformat() if cls.doj else None,
+            "dol": cls.dol.isoformat() if cls.dol else None
+        }
+
+@dataclass
+class RetrenchmentCompensation:
+    """
+    Represents retrenchment compensation under Section 10(10B) of the Income Tax Act.
+    Retrenchment compensation is exempt up to the lower of:
+    1. Actual amount received
+    2. Rs. 5,00,000
+    3. 15 days' average pay for each completed year of service or part thereof in excess of 6 months
+    """
+    retrenchment_amount: float = 0
+    last_drawn_monthly_salary: float = 100000  # Average pay for last 12 months
+    doj: Optional[datetime.datetime] = None
+    dol: Optional[datetime.datetime] = None
+    is_workman: bool = True  # Whether the employee qualifies as a workman under Industrial Disputes Act
+    
+    def compute_service_years(self) -> float:
+        """
+        Compute the number of years of service based on DOJ and DOL.
+        Returns the service period in years with decimal precision.
+        """
+        if not self.doj or not self.dol:
+            logger.warning("DOJ or DOL is missing, cannot compute service years")
+            return 0.0
+            
+        # Calculate the difference between DOJ and DOL
+        service_days = (self.dol - self.doj).days
+        service_years = service_days / 365.25  # Using 365.25 to account for leap years
+        
+        logger.info(f"Computed service period: DOJ={self.doj}, DOL={self.dol}, days={service_days}, years={service_years:.2f}")
+        return service_years
+    
+    def total_taxable_income_per_slab(self, regime: str = 'old') -> float:
+        """
+        Calculate taxable retrenchment compensation based on the tax regime.
+        
+        Exemption is least of:
+        1. Actual amount received
+        2. Rs. 5,00,000 (statutory limit)
+        3. 15 days' average pay for each completed year of service
+        
+        Non-workmen may have different rules in some cases, but generally same calculation applies.
+        """
+        logger.info(f"Calculating retrenchment compensation for regime: {regime}")
+        logger.info(f"Retrenchment amount: {self.retrenchment_amount}")
+        logger.info(f"Last drawn monthly salary: {self.last_drawn_monthly_salary}")
+        logger.info(f"Is workman: {self.is_workman}")
+        
+        if regime == 'new':
+            # In new regime, different rules may apply, but for now using same as old
+            pass
+        
+        # If not a workman under Industrial Disputes Act, may have different exemption rules
+        # But for simplicity, assuming same calculation
+        
+        # Compute service years from DOJ and DOL
+        service_years = self.compute_service_years()
+        logger.info(f"Computed service years: {service_years:.2f}")
+        
+        # Calculate exemption
+        # 1. Actual amount received
+        actual_received = self.retrenchment_amount
+        
+        # 2. Statutory limit (₹5,00,000)
+        statutory_limit = 500000
+        
+        # 3. 15 days' average pay for each completed year of service
+        daily_salary = self.last_drawn_monthly_salary / 30  # Average daily wage
+        fifteen_days_salary = daily_salary * 15
+        
+        # Count completed years of service and part thereof in excess of 6 months
+        completed_years = int(service_years)
+        remaining_days = (service_years - completed_years) * 365.25
+        if remaining_days > 182.625:  # More than 6 months
+            completed_years += 1
+            
+        salary_based_exemption = fifteen_days_salary * completed_years
+        
+        # Exemption is the least of the three amounts
+        exemption = min(actual_received, salary_based_exemption, statutory_limit)
+        
+        # Taxable amount is actual received minus exemption
+        taxable_amount = max(0, self.retrenchment_amount - exemption)
+        
+        logger.info(f"Retrenchment compensation exemption calculation:")
+        logger.info(f"Actual received: {actual_received}")
+        logger.info(f"Salary-based exemption: {salary_based_exemption}")
+        logger.info(f"Statutory limit: {statutory_limit}")
+        logger.info(f"Exemption amount: {exemption}")
+        logger.info(f"Taxable amount: {taxable_amount}")
+        
+        return taxable_amount
+    
+    @classmethod
+    def to_dict(cls) -> Dict[str, Any]:
+        """Convert the object to a dictionary for JSON serialization."""
+        return {
+            "retrenchment_amount": cls.retrenchment_amount,
+            "last_drawn_monthly_salary": cls.last_drawn_monthly_salary,
+            "is_workman": cls.is_workman,
+            "doj": cls.doj.isoformat() if cls.doj else None,
+            "dol": cls.dol.isoformat() if cls.dol else None
+        }
     

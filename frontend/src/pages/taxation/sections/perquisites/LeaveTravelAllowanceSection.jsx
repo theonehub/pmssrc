@@ -7,7 +7,6 @@ import {
   Select,
   MenuItem,
   Box,
-  Divider,
   Tooltip
 } from '@mui/material';
 import FormSectionHeader from '../../components/FormSectionHeader';
@@ -66,10 +65,10 @@ const LeaveTravelAllowanceSection = ({
           <Tooltip
             title={
               <>
-                If Mode is Air, Economy Class Fair.<br />
-                If Mode is Railways, 3rd AC Fair.<br />
-                If Mode is Public Transport, Actual Fair.<br />
-                If Mode is Railways, 2nd AC Fair
+                Mode:Air, Economy Class Fair.<br />
+                Mode:Railways, 1st Class AC Fair.<br />
+                Mode:Public Transport Fair equivalent to 1st Class Railways Fair.<br />
+                Mode:Bus, 1st Class Deluxe Bus Fair.
               </>
               }
               placement="top"
@@ -120,7 +119,10 @@ const LeaveTravelAllowanceSection = ({
         </Grid>
          {/* LTA claimed count */}
          <Grid item xs={12} md={6}>
-          <Tooltip title="Number of LTA Claims">
+          <Tooltip title="Max 2 claims per current block of 4 Years"
+          placement="top"
+          arrow
+          >
           <TextField
             fullWidth
             label="Number of LTA Claims"

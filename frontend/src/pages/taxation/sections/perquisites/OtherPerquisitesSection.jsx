@@ -2,7 +2,10 @@ import React from 'react';
 import {
   Grid,
   Tooltip,
-  TextField
+  TextField,
+  Box,
+  Typography,
+  Divider
 } from '@mui/material';
 import FormSectionHeader from '../../components/FormSectionHeader';
 import { formatIndianNumber } from '../../utils/taxationUtils';
@@ -25,9 +28,20 @@ const OtherPerquisitesSection = ({
       <FormSectionHeader title="Other Perquisites" />
       
       <Grid container spacing={3}>
+      <Box 
+          sx={{ 
+            width: '100%', 
+            display: 'flex',
+            justifyContent: 'left'
+          }}
+        >
+          <Typography variant="h6" color="primary">Domestic Help</Typography>
+        </Box>
+        <Divider sx={{ my: 0, width: '100%' }} />
+        
         {/* Domestic Help */}
         <Grid item xs={12} md={6}>
-          <Tooltip title="Amount paid by employer for domestic help">
+          <Tooltip title="Amount paid by employer">
             <TextField
               fullWidth
               label="Domestic Help Amount Paid by Employer"
@@ -41,7 +55,7 @@ const OtherPerquisitesSection = ({
         </Grid>
         
         <Grid item xs={12} md={6}>
-          <Tooltip title="Amount paid by employee for domestic help">
+          <Tooltip title="Amount recovered from employee">
             <TextField
               fullWidth
               label="Domestic Help Amount Paid by Employee"
@@ -54,12 +68,23 @@ const OtherPerquisitesSection = ({
           </Tooltip>
         </Grid>
         
+        <Box 
+          sx={{ 
+            width: '100%', 
+            display: 'flex',
+            justifyContent: 'left'
+          }}
+        >
+          <Typography variant="h6" color="primary">Lunch/Refreshment</Typography>
+        </Box>
+        <Divider sx={{ my: 0, width: '100%' }} />
+        
         {/* Lunch/Refreshment */}
         <Grid item xs={12} md={6}>
-          <Tooltip title="Amount paid by employer for lunch">
+          <Tooltip title="Amount paid by employer">
             <TextField
               fullWidth
-              label="Lunch Amount Paid by Employer"
+              label="Amount Paid by Employer"
               type="text"
               value={formatIndianNumber(taxationData.salary.perquisites?.lunch_amount_paid_by_employer || 0)}
             onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'lunch_amount_paid_by_employer', e.target.value)}
@@ -70,10 +95,10 @@ const OtherPerquisitesSection = ({
         </Grid>
         
         <Grid item xs={12} md={6}>
-          <Tooltip title="Amount paid by employee for lunch">
+          <Tooltip title="Amount recovered from employee">
             <TextField
               fullWidth
-              label="Lunch Amount Paid by Employee"
+              label="Amount recovered from employee"
               type="text"
               value={formatIndianNumber(taxationData.salary.perquisites?.lunch_amount_paid_by_employee || 0)}
             onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'lunch_amount_paid_by_employee', e.target.value)}
@@ -83,12 +108,23 @@ const OtherPerquisitesSection = ({
           </Tooltip>
         </Grid>
         
+        <Box 
+          sx={{ 
+            width: '100%', 
+            display: 'flex',
+            justifyContent: 'left'
+          }}
+        >
+          <Typography variant="h6" color="primary">Monetary Benefits</Typography>
+        </Box>
+        <Divider sx={{ my: 0, width: '100%' }} />
+        
         {/* Monetary Benefits */}
         <Grid item xs={12} md={6}>
           <Tooltip title="Amount paid by employer for monetary benefits">
             <TextField
               fullWidth
-              label="Monetary Amount Paid by Employer"
+              label="Amount Paid by Employer"
               type="text"
               value={formatIndianNumber(taxationData.salary.perquisites?.monetary_amount_paid_by_employer || 0)}
             onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'monetary_amount_paid_by_employer', e.target.value)}
@@ -99,10 +135,10 @@ const OtherPerquisitesSection = ({
         </Grid>
         
         <Grid item xs={12} md={6}>
-          <Tooltip title="Expenditure for official purpose">
+          <Tooltip title="Official purpose Usage">
             <TextField
               fullWidth
-              label="Expenditure for Official Purpose"
+              label="Official Purpose Usage"
               type="text"
               value={formatIndianNumber(taxationData.salary.perquisites?.expenditure_for_offical_purpose || 0)}
             onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'expenditure_for_offical_purpose', e.target.value)}
@@ -113,10 +149,10 @@ const OtherPerquisitesSection = ({
         </Grid>
         
         <Grid item xs={12} md={6}>
-          <Tooltip title="Monetary benefits amount paid by employee">
+          <Tooltip title="Amount recovered by employee">
             <TextField
               fullWidth
-              label="Monetary Benefits Amount Paid by Employee"
+              label="Amount recovered by employee"
               type="text"
               value={formatIndianNumber(taxationData.salary.perquisites?.monetary_benefits_amount_paid_by_employee || 0)}
             onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'monetary_benefits_amount_paid_by_employee', e.target.value)}
@@ -125,12 +161,22 @@ const OtherPerquisitesSection = ({
             />
           </Tooltip>
         </Grid>
+        <Box 
+          sx={{ 
+            width: '100%', 
+            display: 'flex',
+            justifyContent: 'left'
+          }}
+        >
+          <Typography variant="h6" color="primary">Gift Vouchers</Typography>
+        </Box>
+        <Divider sx={{ my: 0, width: '100%' }} />
         
         <Grid item xs={12} md={6}>
-          <Tooltip title="Gift vouchers amount paid by employer">
+          <Tooltip title="Amount paid by employer">
             <TextField
               fullWidth
-              label="Gift Vouchers Amount Paid by Employer"
+              label="Amount Paid by Employer"
               type="text"
               value={formatIndianNumber(taxationData.salary.perquisites?.gift_vouchers_amount_paid_by_employer || 0)}
             onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'gift_vouchers_amount_paid_by_employer', e.target.value)}
@@ -139,13 +185,23 @@ const OtherPerquisitesSection = ({
             />
           </Tooltip>
         </Grid>
+        <Box 
+          sx={{ 
+            width: '100%', 
+            display: 'flex',
+            justifyContent: 'left'
+          }}
+        >
+          <Typography variant="h6" color="primary">Club Expenses</Typography>
+        </Box>
+        <Divider sx={{ my: 0, width: '100%' }} />
         
         {/* Club Expenses */}
         <Grid item xs={12} md={6}>
-          <Tooltip title="Club expenses amount paid by employer">
+          <Tooltip title="Amount paid by employer">
             <TextField
               fullWidth
-              label="Club Expenses Amount Paid by Employer"
+              label="Amount Paid by Employer"
               type="text"
               value={formatIndianNumber(taxationData.salary.perquisites?.club_expenses_amount_paid_by_employer || 0)}
             onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'club_expenses_amount_paid_by_employer', e.target.value)}
@@ -156,10 +212,10 @@ const OtherPerquisitesSection = ({
         </Grid>
         
         <Grid item xs={12} md={6}>
-          <Tooltip title="Club expenses amount paid by employee">
+          <Tooltip title="Amount recovered from employee">
             <TextField
               fullWidth
-              label="Club Expenses Amount Paid by Employee"
+              label="Amount recovered from employee"
               type="text"
               value={formatIndianNumber(taxationData.salary.perquisites?.club_expenses_amount_paid_by_employee || 0)}
             onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'club_expenses_amount_paid_by_employee', e.target.value)}
@@ -170,10 +226,10 @@ const OtherPerquisitesSection = ({
         </Grid>
         
         <Grid item xs={12} md={6}>
-          <Tooltip title="Club expenses amount paid for official purpose">
+          <Tooltip title="Official purpose usage">
             <TextField
               fullWidth
-              label="Club Expenses Amount Paid for Official Purpose"
+              label="Official purpose usage"
               type="text"
               value={formatIndianNumber(taxationData.salary.perquisites?.club_expenses_amount_paid_for_offical_purpose || 0)}
             onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'club_expenses_amount_paid_for_offical_purpose', e.target.value)}

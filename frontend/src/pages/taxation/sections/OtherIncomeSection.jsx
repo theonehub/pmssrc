@@ -91,6 +91,27 @@ const OtherIncomeSection = ({
     };
   }
 
+  // Initialize gratuity object if it doesn't exist
+  if (!taxationData.gratuity) {
+    taxationData.gratuity = {
+      gratuity_income: '',
+      is_govt_employee: false,
+      doj: null,
+      dol: null
+    };
+  }
+
+  // Initialize retrenchment_compensation object if it doesn't exist
+  if (!taxationData.retrenchment_compensation) {
+    taxationData.retrenchment_compensation = {
+      retrenchment_amount: '',
+      last_drawn_monthly_salary: 100000,
+      is_workman: true,
+      doj: null,
+      dol: null
+    };
+  }
+
   useEffect(() => {
     console.log('occupancyStatuses:', occupancyStatuses);
     console.log('Current occupancy status:', taxationData.house_property.occupancy_status);
@@ -441,6 +462,85 @@ const OtherIncomeSection = ({
         </Grid>
       </Paper>
 
+      <FormSectionHeader title="Gratuity Income" />
+      
+      <Paper variant="outlined" sx={{ p: 3 }}>
+        <Grid container spacing={3}>
+          <Box 
+            sx={{ 
+              width: '100%', 
+              display: 'flex',
+              justifyContent: 'left'
+            }}
+          >
+            <Typography variant="h6" color="primary">Gratuity Income</Typography>
+          </Box>
+          
+          <Grid item xs={12} md={4}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={taxationData.gratuity.is_govt_employee}
+                  onChange={(e) => {
+                    const newStatus = e.target.checked;
+                    handleInputChange('gratuity', 'is_govt_employee', newStatus);
+                  }}
+                />
+              }
+              label="Government Employee"
+            />
+          </Grid>
+          
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="Gratuity Income"
+              type="text"
+              value={formatIndianNumber(taxationData.gratuity.gratuity_income)}
+              onChange={(e) => handleInputChange('gratuity', 'gratuity_income', e.target.value)}
+              InputProps={{ startAdornment: '₹' }}
+              onFocus={(e) => handleFocus('gratuity', 'gratuity_income', e.target.value)}
+            />
+          </Grid>
+          
+          <Grid item xs={12} md={4}>
+            <Tooltip
+              title="The date when you joined the organization"
+              placement="top"
+              arrow
+            >
+              <TextField
+                fullWidth
+                label="Date of Joining"
+                type="date"
+                value={taxationData.gratuity.doj || ''}
+                onChange={(e) => handleInputChange('gratuity', 'doj', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                onFocus={(e) => handleFocus('gratuity', 'doj', e.target.value)}
+              />
+            </Tooltip>
+          </Grid>
+          
+          <Grid item xs={12} md={4}>
+            <Tooltip
+              title="The date when you left the organization"
+              placement="top"
+              arrow
+            >
+              <TextField
+                fullWidth
+                label="Date of Leaving"
+                type="date"
+                value={taxationData.gratuity.dol || ''}
+                onChange={(e) => handleInputChange('gratuity', 'dol', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                onFocus={(e) => handleFocus('gratuity', 'dol', e.target.value)}
+              />
+            </Tooltip>
+          </Grid>
+        </Grid>
+      </Paper>
+
       <FormSectionHeader title="Leave Encashment" />
       
       <Paper variant="outlined" sx={{ p: 3 }}>
@@ -593,6 +693,103 @@ const OtherIncomeSection = ({
             >
               {loading ? 'Computing...' : 'Compute VRS Value'}
             </Button>
+          </Grid>
+        </Grid>
+      </Paper>
+
+      <FormSectionHeader title="Retrenchment Compensation" />
+      
+      <Paper variant="outlined" sx={{ p: 3 }}>
+        <Grid container spacing={3}>
+          <Box 
+            sx={{ 
+              width: '100%', 
+              display: 'flex',
+              justifyContent: 'left'
+            }}
+          >
+            <Typography variant="h6" color="primary">Retrenchment Compensation</Typography>
+          </Box>
+          
+          <Grid item xs={12} md={4}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={taxationData.retrenchment_compensation.is_workman}
+                  onChange={(e) => {
+                    const newStatus = e.target.checked;
+                    handleInputChange('retrenchment_compensation', 'is_workman', newStatus);
+                  }}
+                />
+              }
+              label="Qualifies as Workman under Industrial Disputes Act"
+            />
+          </Grid>
+          
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label="Retrenchment Amount"
+              type="text"
+              value={formatIndianNumber(taxationData.retrenchment_compensation.retrenchment_amount)}
+              onChange={(e) => handleInputChange('retrenchment_compensation', 'retrenchment_amount', e.target.value)}
+              InputProps={{ startAdornment: '₹' }}
+              onFocus={(e) => handleFocus('retrenchment_compensation', 'retrenchment_amount', e.target.value)}
+            />
+          </Grid>
+          
+          <Grid item xs={12} md={4}>
+            <Tooltip
+              title="Average monthly salary for the last 3 months before retrenchment"
+              placement="top"
+              arrow
+            >
+              <TextField
+                fullWidth
+                label="Last Drawn Monthly Salary"
+                type="text"
+                value={formatIndianNumber(taxationData.retrenchment_compensation.last_drawn_monthly_salary)}
+                onChange={(e) => handleInputChange('retrenchment_compensation', 'last_drawn_monthly_salary', e.target.value)}
+                InputProps={{ startAdornment: '₹' }}
+                onFocus={(e) => handleFocus('retrenchment_compensation', 'last_drawn_monthly_salary', e.target.value)}
+              />
+            </Tooltip>
+          </Grid>
+          
+          <Grid item xs={12} md={4}>
+            <Tooltip
+              title="The date when you joined the organization"
+              placement="top"
+              arrow
+            >
+              <TextField
+                fullWidth
+                label="Date of Joining"
+                type="date"
+                value={taxationData.retrenchment_compensation.doj || ''}
+                onChange={(e) => handleInputChange('retrenchment_compensation', 'doj', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                onFocus={(e) => handleFocus('retrenchment_compensation', 'doj', e.target.value)}
+              />
+            </Tooltip>
+          </Grid>
+          
+          <Grid item xs={12} md={4}>
+            <Tooltip
+              title="The date when your employment was terminated"
+              placement="top"
+              arrow
+            >
+              <TextField
+                fullWidth
+                label="Date of Termination"
+                type="date"
+                value={taxationData.retrenchment_compensation.dol || ''}
+                onChange={(e) => handleInputChange('retrenchment_compensation', 'dol', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                onFocus={(e) => handleFocus('retrenchment_compensation', 'dol', e.target.value)}
+              />
+            </Tooltip>
           </Grid>
         </Grid>
       </Paper>

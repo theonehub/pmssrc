@@ -124,7 +124,7 @@ class Perquisites:
                                                     * self.other_vehicle_month_counts))
     
 
-    # Medical Reimbursement
+    # Medical Reimbursement -- ToDo: OpenEnded for now as not able to figureout components for Gross Salary
     is_treated_in_India: bool = False
     medical_reimbursement_by_employer: float = 0
     travelling_allowance_for_treatment: float = 0
@@ -144,7 +144,7 @@ class Perquisites:
             return max(0, self.medical_reimbursement_by_employer - 15000)
         else:
             travel_value = 0
-            if gross_salary < 200000:   # 2L
+            if gross_salary > 200000:   # 2L
                 travel_value = self.travelling_allowance_for_treatment
             return travel_value + min(0, self.medical_reimbursement_by_employer - self.rbi_limit_for_illness)
 
@@ -234,42 +234,119 @@ class Perquisites:
     # Interest-free/concessional loan
     loan_type: str = 'Personal'
     loan_amount: float = 0
+    outstanding_loan_amount: float = 0 
     loan_interest_rate_company: float = 0
     loan_interest_rate_sbi: float = 0
     loan_month_count: int = 0
+    loan_emi_amount: float = 0
     loan_start_date: str = ''
     loan_end_date: str = ''
+
+
+    #TODO: Prepayment of loan need to be worked on.
 
     def total_interest_amount(self, regime: str = 'new') -> float:
         """Taxable value of interest-free/concessional loan perquisite."""
         if regime == 'new':
             return 0
+
         logger.info(f"Calculating total interest amount for regime: {regime}")
         logger.info(f"Loan type: {self.loan_type}")
         logger.info(f"Loan amount: {self.loan_amount}")
+        logger.info(f"Outstanding loan amount: {self.outstanding_loan_amount}")
         logger.info(f"Loan interest rate company: {self.loan_interest_rate_company}")
         logger.info(f"Loan interest rate SBI: {self.loan_interest_rate_sbi}")
-        logger.info(f"Loan month count: {self.loan_month_count}")
+        logger.info(f"Loan EMI amount: {self.loan_emi_amount}")
         logger.info(f"Loan start date: {self.loan_start_date}")
         logger.info(f"Loan end date: {self.loan_end_date}")
         
-        interest_rate_diff = self.loan_interest_rate_sbi - self.loan_interest_rate_company
-        if interest_rate_diff > 0:
-            return max(0, interest_rate_diff)/12 * self.loan_month_count
-        else:
+        # Early return for exempt loans
+        if self.loan_type == 'Medical' or self.loan_amount <= 20000:
             return 0
+        
+        # If no EMI amount or dates are provided, use the simple calculation
+        if not self.loan_emi_amount or not self.loan_start_date or not self.loan_end_date:
+            interest_rate_diff = self.loan_interest_rate_sbi - self.loan_interest_rate_company
+            if interest_rate_diff > 0:
+                return max(0, interest_rate_diff)/12 * self.loan_month_count
+            else:
+                return 0
+                
+        try:
+            # Parse the start and end dates
+            from datetime import datetime
+            start_date = datetime.strptime(self.loan_start_date, "%Y-%m-%d")
+            end_date = datetime.strptime(self.loan_end_date, "%Y-%m-%d")
+            
+            # Calculate loan tenure in months
+            import math
+            tenure_days = (end_date - start_date).days
+            tenure_months = math.ceil(tenure_days / 30)
+            
+            # Initialize variables for calculation
+            outstanding = self.loan_amount if self.outstanding_loan_amount == 0 else self.outstanding_loan_amount
+            monthly_company_rate = self.loan_interest_rate_company / 100 / 12
+            monthly_sbi_rate = self.loan_interest_rate_sbi / 100 / 12
+            
+            # Determine fiscal year boundaries (April 1 to March 31)
+            current_year = datetime.now().year
+            fy_start = datetime(current_year - 1 if datetime.now().month < 4 else current_year, 4, 1)
+            fy_end = datetime(current_year if datetime.now().month < 4 else current_year + 1, 3, 31)
+            
+            # Track interest difference for the fiscal year
+            total_interest_diff = 0
+            
+            # Process each month's payment
+            current_date = start_date
+            for month in range(min(tenure_months, 12)):  # Limit to 12 months for one fiscal year
+                # Skip if before fiscal year
+                if current_date < fy_start:
+                    current_date = current_date.replace(month=current_date.month + 1 if current_date.month < 12 else 1,
+                                                       year=current_date.year if current_date.month < 12 else current_date.year + 1)
+                    continue
+                    
+                # Break if after fiscal year
+                if current_date > fy_end:
+                    break
+                
+                # Calculate interest based on outstanding amount
+                company_interest = outstanding * monthly_company_rate
+                sbi_interest = outstanding * monthly_sbi_rate
+                
+                # Calculate interest difference for this month
+                interest_diff = sbi_interest - company_interest
+                if interest_diff > 0:
+                    total_interest_diff += interest_diff
+                
+                # Update outstanding loan amount
+                principal_payment = self.loan_emi_amount - company_interest
+                outstanding = max(0, outstanding - principal_payment)
+                
+                # Move to next month
+                current_date = current_date.replace(month=current_date.month + 1 if current_date.month < 12 else 1,
+                                                  year=current_date.year if current_date.month < 12 else current_date.year + 1)
+                
+                # Break if loan is fully paid
+                if outstanding <= 0:
+                    break
+            
+            logger.info(f"Calculated total interest difference: {total_interest_diff}")
+            return total_interest_diff * 12  # Annual value
+            
+        except Exception as e:
+            logger.error(f"Error calculating loan interest: {str(e)}")
+            # Fallback to simple calculation
+            interest_rate_diff = self.loan_interest_rate_sbi - self.loan_interest_rate_company
+            if interest_rate_diff > 0:
+                return max(0, interest_rate_diff)/12 * self.loan_month_count
+            else:
+                return 0
 
     
     # ESOP
     number_of_esop_shares_awarded: float = 0
     esop_exercise_price_per_share: float = 0
     esop_allotment_price_per_share: float = 0
-    grant_date: Optional[date] = None
-    vesting_date: Optional[date] = None
-    exercise_date: Optional[date] = None
-    vesting_period: int = 0
-    exercise_period: int = 0
-    exercise_price_per_share: float = 0
 
     def allocation_gain(self, regime: str = 'new') -> float:
         """Taxable value of ESOP allocation gain."""
@@ -279,14 +356,8 @@ class Perquisites:
         logger.info(f"ESOP allotment price per share: {self.esop_allotment_price_per_share}")
         logger.info(f"ESOP exercise price per share: {self.esop_exercise_price_per_share}")
         logger.info(f"Number of ESOP shares awarded: {self.number_of_esop_shares_awarded}")
-        logger.info(f"Grant date: {self.grant_date}")
-        logger.info(f"Vesting date: {self.vesting_date}")
-        logger.info(f"Exercise date: {self.exercise_date}")
-        logger.info(f"Vesting period: {self.vesting_period}")
-        logger.info(f"Exercise period: {self.exercise_period}")
-        logger.info(f"Exercise price per share: {self.exercise_price_per_share}")
         
-        return max(0, (self.esop_allotment_price_per_share - self.esop_exercise_price_per_share) * self.number_of_esop_shares_awarded)
+        return max(0, (self.esop_exercise_price_per_share - self.esop_allotment_price_per_share) * self.number_of_esop_shares_awarded)
 
 
     mau_ownership: str = 'Employer-Owned'  # 'Employer-Owned', 'Employer-Hired'
@@ -344,6 +415,7 @@ class Perquisites:
     # Lunch/Refreshment
     lunch_amount_paid_by_employer: float = 0
     lunch_amount_paid_by_employee: float = 0
+    lunch_amount_days_per_year: int = 0
 
     def total_lunch_value(self, regime: str = 'new') -> float:
         """Taxable value of lunch/refreshment perquisite."""
@@ -354,8 +426,7 @@ class Perquisites:
         logger.info(f"Lunch amount paid by employee: {self.lunch_amount_paid_by_employee}")
         # Apply the exemption of Rs. 50 per meal
         exemption_per_meal = 50
-        # Assume daily lunch for 22 working days per month
-        annual_exemption = exemption_per_meal * 22 * 12
+        annual_exemption = exemption_per_meal * self.lunch_amount_days_per_year
         return max(0, self.lunch_amount_paid_by_employer - 
                     self.lunch_amount_paid_by_employee - 
                     annual_exemption)
@@ -387,7 +458,10 @@ class Perquisites:
         logger.info(f"Calculating total gift vouchers value for regime: {regime}")
         logger.info(f"Gift vouchers amount paid by employer: {self.gift_vouchers_amount_paid_by_employer}")
         # Only the amount above 5,000 is taxable
-        return max(0, self.gift_vouchers_amount_paid_by_employer - 5000)
+        if self.gift_vouchers_amount_paid_by_employer <= 5000:
+            return 0
+        else:
+            return self.gift_vouchers_amount_paid_by_employer
 
     # Club Expenses
     club_expenses_amount_paid_by_employer: float = 0
@@ -503,9 +577,11 @@ class Perquisites:
             # Loan details
             "loan_type": self.loan_type,
             "loan_amount": self.loan_amount,
+            "outstanding_loan_amount": self.outstanding_loan_amount,
             "loan_interest_rate_company": self.loan_interest_rate_company,
             "loan_interest_rate_sbi": self.loan_interest_rate_sbi,
             "loan_month_count": self.loan_month_count,
+            "loan_emi_amount": self.loan_emi_amount,
             "loan_start_date": self.loan_start_date,
             "loan_end_date": self.loan_end_date,
             

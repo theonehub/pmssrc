@@ -64,7 +64,7 @@ const MovableAssetsSection = ({
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
-            label="Asset Value to Employee"
+            label="Amount Paid by Employee"
             type="text"
             value={formatIndianNumber(taxationData.salary.perquisites?.mau_value_to_employee || 0)}
             onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'mau_value_to_employee', e.target.value)}
@@ -121,7 +121,7 @@ const MovableAssetsSection = ({
         <Grid item xs={12} md={6}>
           <TextField
             fullWidth
-            label="Asset Value to Employee"
+            label="Amount Paid by Employee"
             type="text"
             value={formatIndianNumber(taxationData.salary.perquisites?.mat_value_to_employee || 0)}
             onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'mat_value_to_employee', e.target.value)}

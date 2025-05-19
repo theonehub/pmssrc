@@ -17,7 +17,7 @@ export const formSteps = [
   'Salary Income',
   'Perquisites',
   'Other Income',
-  /*'Separation',*/
+  'Separation',
   'Deductions',
   'Review & Submit'
 ];

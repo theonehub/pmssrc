@@ -15,7 +15,9 @@ from models.taxation.income_sources import (
     IncomeFromHouseProperty,
     CapitalGains,
     LeaveEncashment,
-    VoluntaryRetirement
+    VoluntaryRetirement,
+    Gratuity,
+    RetrenchmentCompensation
 )
 from models.taxation.perquisites import Perquisites
 from models.taxation.salary import SalaryComponents  
@@ -40,6 +42,8 @@ class Taxation:
     capital_gains: CapitalGains
     leave_encashment: LeaveEncashment
     voluntary_retirement: VoluntaryRetirement
+    retrenchment: RetrenchmentCompensation
+    gratuity: Gratuity
     deductions: DeductionComponents
     regime: str
     total_tax: float
@@ -71,8 +75,10 @@ class Taxation:
         capital_gains_data = data.get('capital_gains', {})
         leave_encashment_data = data.get('leave_encashment', {})
         voluntary_retirement_data = data.get('voluntary_retirement', {})
+        gratuity_data = data.get('gratuity', {})
         deductions_data = data.get('deductions', {})
-        
+        retrenchment_data = data.get('RetrenchmentCompensation', {})
+
         # Handle perquisites in salary data
         perquisites = None
         if 'perquisites' in salary_data and salary_data['perquisites']:
@@ -282,8 +288,12 @@ class Taxation:
         
         voluntary_retirement = VoluntaryRetirement(
             is_vrs_requested=voluntary_retirement_data.get('is_vrs_requested', False),
-            voluntary_retirement_amount=voluntary_retirement_data.get('voluntary_retirement_amount', 0),
-            max_exemption_limit=voluntary_retirement_data.get('max_exemption_limit', 500000)
+            voluntary_retirement_amount=voluntary_retirement_data.get('voluntary_retirement_amount', 0)
+        )
+
+        retrenchment = RetrenchmentCompensation (
+            retrenchment_amount=retrenchment_data.get('retrenchment_amount', 0),
+            is_provided=retrenchment_data.get('is_provided', False)
         )
         
         # Parse date string for EV purchase date
@@ -356,6 +366,7 @@ class Taxation:
             capital_gains=capital_gains,
             leave_encashment=leave_encashment,
             voluntary_retirement=voluntary_retirement,
+            retrenchment=retrenchment,
             deductions=deductions,
             tax_year=data.get('tax_year', ''),
             filing_status=data.get('filing_status', 'draft'),
@@ -476,7 +487,17 @@ class Taxation:
                 if not attr.startswith('_') and attr != 'to_dict' and attr != 'total' and attr != 'total_taxable_income_per_slab' and attr != 'compute_vrs_value':
                     voluntary_retirement_dict[attr] = getattr(self.voluntary_retirement, attr)
             result['voluntary_retirement'] = voluntary_retirement_dict
-            
+        
+        # Handle retrenchment components
+        if isinstance(self.retrenchment, dict):
+            result['retrenchment'] = self.retrenchment
+        else:
+            retrenchment_dict = {}
+            for attr in dir(self.retrenchment):
+                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total' and attr != 'total_taxable_income_per_slab':
+                    retrenchment_dict[attr] = getattr(self.retrenchment, attr)
+            result['retrenchment'] = retrenchment_dict
+        
         # Handle house_property components
         if isinstance(self.house_property, dict):
             result['house_property'] = self.house_property
@@ -544,6 +565,14 @@ class Taxation:
             )
             logger.info(f"Voluntary retirement income total: {voluntary_retirement_total}")
         
+        # # Calculate retrenchment
+        retrenchment_total = 0   #TODO: Add retrenchment income
+        # if hasattr(self, 'retrenchment') and self.retrenchment:
+        #     retrenchment_total = self.retrenchment.total_taxable_income_per_slab(
+        #         regime=self.regime,
+        #     )
+        #     logger.info(f"Retrenchment income total: {retrenchment_total}")
+        
         # Calculate gross income
         gross_income = salary_total + other_sources_total + house_property_total + \
             stcg_slab_rate + leave_encashment_total + voluntary_retirement_total
@@ -600,7 +629,8 @@ class Taxation:
                 'house_property': house_property_total,
                 'capital_gains': capital_gains_total,
                 'leave_encashment': leave_encashment_total,
-                'voluntary_retirement': voluntary_retirement_total
+                'voluntary_retirement': voluntary_retirement_total,
+                # 'retrenchment': retrenchment_total
             },
             'deductions': deductions_total,
             'taxable_income': self.get_taxable_income(),

@@ -13,6 +13,7 @@ class UserInfo(BaseModel):
     gender: str
     dob: str
     doj: str
+    dol: str                #date of leaving
     mobile: str #= Field(..., pattern="^\\d{10}$")
     manager_id: Optional[str] = None
     leave_balance: Optional[dict] = {}
@@ -63,6 +64,7 @@ class UserInfo(BaseModel):
                 "gender": "male",
                 "dob": "1990-01-15",
                 "doj": "2020-01-15",
+                "dol": "2025-01-15",
                 "mobile": "1234567890",
                 "manager_id": "EMP002",
                 "password": "password123",

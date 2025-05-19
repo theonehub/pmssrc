@@ -23,6 +23,7 @@ import SalarySection from './sections/SalarySection';
 import PerquisitesSection from './sections/PerquisitesSection';
 import OtherIncomeSection from './sections/OtherIncomeSection';
 import DeductionsSection from './sections/DeductionsSection';
+import SeparationSection from './sections/SeparationSection';
 import SummarySection from './sections/SummarySection';
 
 /**
@@ -114,13 +115,21 @@ const TaxDeclaration = () => {
         );
       case 4:
         return (
-          <DeductionsSection
+          <SeparationSection
             taxationData={taxationData}
             handleInputChange={handleInputChange}
             handleFocus={handleFocus}
           />
         );
       case 5:
+        return (
+          <DeductionsSection
+            taxationData={taxationData}
+            handleInputChange={handleInputChange}
+            handleFocus={handleFocus}
+          />
+        );
+      case 6:
         return (
           <SummarySection
             taxationData={taxationData}

@@ -1,4 +1,4 @@
-from models.taxation import SalaryComponents, IncomeFromOtherSources, IncomeFromHouseProperty, CapitalGains, DeductionComponents, Taxation, Perquisites, LeaveEncashment, VoluntaryRetirement
+from models.taxation import SalaryComponents, IncomeFromOtherSources, IncomeFromHouseProperty, CapitalGains, DeductionComponents, Taxation, Perquisites, LeaveEncashment, VoluntaryRetirement, RetrenchmentCompensation
 from database.taxation_database import get_taxation_by_emp_id, get_taxation_collection, save_taxation, _ensure_serializable
 from services.organisation_service import is_govt_organisation
 from database.user_database import get_user_by_emp_id
@@ -385,6 +385,7 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
                          salary: SalaryComponents = None, other_sources: IncomeFromOtherSources = None,
                          capital_gains: CapitalGains = None, deductions: DeductionComponents = None,
                          leave_encashment: LeaveEncashment = None, voluntary_retirement: VoluntaryRetirement = None,
+                         retrenchment: RetrenchmentCompensation = None,
                          house_property: IncomeFromHouseProperty = None) -> Taxation:
     """
     Calculate the tax and save to the database
@@ -479,6 +480,7 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
             capital_gains=capital_gains or CapitalGains(),
             leave_encashment=leave_encashment or LeaveEncashment(),
             voluntary_retirement=voluntary_retirement or VoluntaryRetirement(),
+            retrenchment=retrenchment or RetrenchmentCompensation(),
             deductions=deductions or DeductionComponents(),
             tax_year=tax_year,
             filing_status='draft',
@@ -676,8 +678,12 @@ def create_default_taxation(emp_id: str, hostname: str) -> dict:
         
         default_voluntary_retirement = VoluntaryRetirement(
             is_vrs_requested=False,
-            voluntary_retirement_amount=0,
-            max_exemption_limit=500000
+            voluntary_retirement_amount=0
+        )
+
+        default_retrenchment = RetrenchmentCompensation(
+            retrenchment_amount=0,
+            is_provided=False
         )
         
         default_deductions = DeductionComponents(

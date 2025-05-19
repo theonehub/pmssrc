@@ -29,6 +29,7 @@ def create_default_user():
                     gender="Male", 
                     dob="1990-01-01", 
                     doj="1990-01-01", 
+                    dol='',
                     mobile="1234567890", 
                     password=hash_password("admin123"), 
                     role="superadmin",

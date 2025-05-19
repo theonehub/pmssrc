@@ -227,14 +227,12 @@ class LeaveEncashment:
     Includes leave encashment income from various sources.
     """
     leave_encashment_income_received: float = 0
-    service_years: int = 0
     leave_encashed: float = 0
     is_deceased: bool = False
     during_employment: bool = True
-    average_monthly_salary: float = 0
 
 
-    def total_taxable_income_per_slab(self, regime: str = 'old', is_govt_employee: bool = False) -> float:
+    def total_taxable_income_per_slab(self, regime: str = 'old', is_govt_employee: bool = False, service_years: int = 0, average_monthly_salary: float = 0) -> float:
         """
         Calculate taxable leave encashment income.
         
@@ -252,11 +250,11 @@ class LeaveEncashment:
         logger.info(f"Calculating leave encashment for regime: {regime}")
         logger.info(f"During employment: {self.during_employment}")
         logger.info(f"Leave encashment Amount: {self.leave_encashment_income_received}")
-        logger.info(f"Service years: {self.service_years}")
+        logger.info(f"Service years: {service_years}")
         logger.info(f"Leave Encashed: {self.leave_encashed}")
         logger.info(f"Is deceased: {self.is_deceased}")
         logger.info(f"Is govt employee: {is_govt_employee}")
-        logger.info(f"Average monthly salary: {self.average_monthly_salary}")
+        logger.info(f"Average monthly salary: {average_monthly_salary}")
 
         if self.during_employment:
             return self.leave_encashment_income_received
@@ -266,13 +264,13 @@ class LeaveEncashment:
         
         # Calculate all possible exemption amounts
         actual_received = self.leave_encashment_income_received
-        ten_months_salary = self.average_monthly_salary * 10
+        ten_months_salary = average_monthly_salary * 10
         statutory_limit = 2500000
         
         # Calculate unexpired leave based on service years
         # Assume entitlement of 30 days per year and calculate unused leave value
-        salary_per_day = self.average_monthly_salary / 30
-        max_leave_encashed_allowed = self.service_years * 30
+        salary_per_day = average_monthly_salary / 30
+        max_leave_encashed_allowed = service_years * 30
         if self.leave_encashed <= max_leave_encashed_allowed:
             # If leave balance is provided, use it directly
             unexpired_leave_value = self.leave_encashed * salary_per_day
@@ -301,11 +299,9 @@ class LeaveEncashment:
         """Convert the object to a dictionary for JSON serialization."""
         return {
             "leave_encashment_income_received": cls.leave_encashment_income_received,
-            "service_years": cls.service_years,
             "leave_encashed": cls.leave_encashed,
             "is_deceased": cls.is_deceased,
             "during_employment": cls.during_employment,
-            "average_monthly_salary": cls.average_monthly_salary
         }
     
 @dataclass
@@ -316,7 +312,6 @@ class VoluntaryRetirement:
     """
     is_vrs_requested: bool = False
     voluntary_retirement_amount: float = 0
-    max_exemption_limit: float = 500000     # 5L
 
     def compute_vrs_value(self, age: int, service_years: int, last_drawn_monthly_salary: float) -> float:
         """
@@ -345,8 +340,7 @@ class VoluntaryRetirement:
         """Convert the object to a dictionary for JSON serialization."""
         return {
             "is_vrs_requested": cls.is_vrs_requested,
-            "voluntary_retirement_amount": cls.voluntary_retirement_amount,
-            "max_exemption_limit": cls.max_exemption_limit
+            "voluntary_retirement_amount": cls.voluntary_retirement_amount
         }
 
     def total_taxable_income_per_slab(self, regime: str = 'old', age: int = 0, service_years: int = 0, last_drawn_monthly_salary: float = 0) -> float:
@@ -357,7 +351,7 @@ class VoluntaryRetirement:
             return self.voluntary_retirement_amount
         
         vrs_value = self.compute_vrs_value(age, service_years, last_drawn_monthly_salary)
-        vrs_taxable_amount = max(0, self.voluntary_retirement_amount - self.max_exemption_limit)
+        vrs_taxable_amount = max(0, self.voluntary_retirement_amount - 500000)
         return vrs_taxable_amount
     
 
@@ -424,28 +418,25 @@ class Gratuity:
     Includes gratuity income from various sources.
     """
     gratuity_income: float = 0
-    last_drawn_monthly_salary: float = 100000   #Basic + DA
-    is_govt_employee: bool = False
-    doj: Optional[datetime.datetime] = None
-    dol: Optional[datetime.datetime] = None
+    #last_drawn_monthly_salary: float = 100000   #Basic + DA
     
-    def compute_service_years(self) -> float:
+    def compute_service_years(self, doj: datetime.datetime, dol: datetime.datetime) -> float:
         """
         Compute the number of years of service based on DOJ and DOL.
         Returns the service period in years with decimal precision.
         """
-        if not self.doj or not self.dol:
+        if not doj or not dol:
             logger.warning("DOJ or DOL is missing, cannot compute service years")
             return 0.0
             
         # Calculate the difference between DOJ and DOL
-        service_days = (self.dol - self.doj).days
+        service_days = (dol - doj).days
         service_years = service_days / 365.25  # Using 365.25 to account for leap years
         
-        logger.info(f"Computed service period: DOJ={self.doj}, DOL={self.dol}, days={service_days}, years={service_years:.2f}")
+        logger.info(f"Computed service period: DOJ={doj}, DOL={dol}, days={service_days}, years={service_years:.2f}")
         return service_years
     
-    def total_taxable_income_per_slab(self, regime: str = 'old') -> float:
+    def total_taxable_income_per_slab(self, regime: str = 'old', doj: datetime.datetime = None, dol: datetime.datetime = None, last_drawn_monthly_salary: float = 0, is_govt_employee: bool = False) -> float:
         """
         Calculate taxable gratuity income based on the tax regime.
         
@@ -459,8 +450,7 @@ class Gratuity:
         """
         logger.info(f"Calculating gratuity for regime: {regime}")
         logger.info(f"Gratuity income: {self.gratuity_income}")
-        logger.info(f"Last drawn monthly salary: {self.last_drawn_monthly_salary}")
-        logger.info(f"Is government employee: {self.is_govt_employee}")
+        logger.info(f"Last drawn monthly salary: {last_drawn_monthly_salary}")
         
         # Compute service years from DOJ and DOL
         service_years = self.compute_service_years()
@@ -471,7 +461,7 @@ class Gratuity:
             pass
         
         # For government employees, gratuity is fully exempt
-        if self.is_govt_employee:
+        if is_govt_employee:
             logger.info("Government employee: Gratuity fully exempt")
             return 0
         
@@ -480,7 +470,7 @@ class Gratuity:
         actual_received = self.gratuity_income
         
         # 2. 15 days' salary for each year of service
-        daily_salary = self.last_drawn_monthly_salary / 26  # Considering 26 working days in a month
+        daily_salary = last_drawn_monthly_salary / 26  # Considering 26 working days in a month
         fifteen_days_salary = daily_salary * 15
         salary_based_exemption = fifteen_days_salary * service_years
         
@@ -506,11 +496,7 @@ class Gratuity:
     def to_dict(cls) -> Dict[str, Any]:
         """Convert the object to a dictionary for JSON serialization."""
         return {
-            "gratuity_income": cls.gratuity_income,
-            "last_drawn_monthly_salary": cls.last_drawn_monthly_salary,
-            "is_govt_employee": cls.is_govt_employee,
-            "doj": cls.doj.isoformat() if cls.doj else None,
-            "dol": cls.dol.isoformat() if cls.dol else None
+            "gratuity_income": cls.gratuity_income
         }
 
 @dataclass
@@ -523,28 +509,26 @@ class RetrenchmentCompensation:
     3. 15 days' average pay for each completed year of service or part thereof in excess of 6 months
     """
     retrenchment_amount: float = 0
-    last_drawn_monthly_salary: float = 100000  # Average pay for last 12 months
-    doj: Optional[datetime.datetime] = None
-    dol: Optional[datetime.datetime] = None
-    is_workman: bool = True  # Whether the employee qualifies as a workman under Industrial Disputes Act
+    is_provided: bool = False
     
-    def compute_service_years(self) -> float:
+    def compute_service_years(self, doj: datetime.datetime, dol: datetime.datetime) -> float:
         """
         Compute the number of years of service based on DOJ and DOL.
         Returns the service period in years with decimal precision.
         """
-        if not self.doj or not self.dol:
+
+        if not doj or not dol:
             logger.warning("DOJ or DOL is missing, cannot compute service years")
             return 0.0
             
         # Calculate the difference between DOJ and DOL
-        service_days = (self.dol - self.doj).days
+        service_days = (dol - doj).days
         service_years = service_days / 365.25  # Using 365.25 to account for leap years
         
-        logger.info(f"Computed service period: DOJ={self.doj}, DOL={self.dol}, days={service_days}, years={service_years:.2f}")
+        logger.info(f"Computed service period: DOJ={doj}, DOL={dol}, days={service_days}, years={service_years:.2f}")
         return service_years
     
-    def total_taxable_income_per_slab(self, regime: str = 'old') -> float:
+    def total_taxable_income_per_slab(self, regime: str = 'old', doj: datetime.datetime = None, dol: datetime.datetime = None, last_drawn_monthly_salary: float = 0) -> float:
         """
         Calculate taxable retrenchment compensation based on the tax regime.
         
@@ -557,8 +541,7 @@ class RetrenchmentCompensation:
         """
         logger.info(f"Calculating retrenchment compensation for regime: {regime}")
         logger.info(f"Retrenchment amount: {self.retrenchment_amount}")
-        logger.info(f"Last drawn monthly salary: {self.last_drawn_monthly_salary}")
-        logger.info(f"Is workman: {self.is_workman}")
+        logger.info(f"Last drawn monthly salary: {last_drawn_monthly_salary}")
         
         if regime == 'new':
             # In new regime, different rules may apply, but for now using same as old
@@ -568,7 +551,7 @@ class RetrenchmentCompensation:
         # But for simplicity, assuming same calculation
         
         # Compute service years from DOJ and DOL
-        service_years = self.compute_service_years()
+        service_years = self.compute_service_years(doj, dol)
         logger.info(f"Computed service years: {service_years:.2f}")
         
         # Calculate exemption
@@ -579,7 +562,7 @@ class RetrenchmentCompensation:
         statutory_limit = 500000
         
         # 3. 15 days' average pay for each completed year of service
-        daily_salary = self.last_drawn_monthly_salary / 30  # Average daily wage
+        daily_salary = last_drawn_monthly_salary / 30  # Average daily wage
         fifteen_days_salary = daily_salary * 15
         
         # Count completed years of service and part thereof in excess of 6 months
@@ -610,9 +593,6 @@ class RetrenchmentCompensation:
         """Convert the object to a dictionary for JSON serialization."""
         return {
             "retrenchment_amount": cls.retrenchment_amount,
-            "last_drawn_monthly_salary": cls.last_drawn_monthly_salary,
-            "is_workman": cls.is_workman,
-            "doj": cls.doj.isoformat() if cls.doj else None,
-            "dol": cls.dol.isoformat() if cls.dol else None
+            "is_provided": cls.is_provided
         }
     

@@ -401,10 +401,8 @@ export const saveTaxationData = async (taxationData) => {
     if (!taxationData.leave_encashment) {
       taxationData.leave_encashment = {
         leave_encashment_income_received: 0,
-        service_years: 0,
         leave_encashed: 0,
         is_deceased: false,
-        average_monthly_salary: 0,
         during_employment: false
       };
     }

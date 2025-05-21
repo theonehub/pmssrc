@@ -179,7 +179,7 @@ export const saveTaxationData = async (taxationData) => {
           lunch_amount_paid_by_employee: 0,
           
           // ESOP & Stock Options fields
-          number_of_esop_shares_awarded: 0,
+          number_of_esop_shares_exercised: 0,
           esop_exercise_price_per_share: 0,
           esop_allotment_price_per_share: 0,
           grant_date: null,
@@ -286,15 +286,9 @@ export const saveTaxationData = async (taxationData) => {
         lunch_amount_paid_by_employee: 0,
         
         // ESOP & Stock Options fields
-        number_of_esop_shares_awarded: 0,
+        number_of_esop_shares_exercised: 0,
         esop_exercise_price_per_share: 0,
         esop_allotment_price_per_share: 0,
-        grant_date: null,
-        vesting_date: null,
-        exercise_date: null,
-        vesting_period: 0,
-        exercise_period: 0,
-        exercise_price_per_share: 0,
         
         // Movable Asset
         mau_ownership: 'Employer-Owned',
@@ -417,6 +411,16 @@ export const saveTaxationData = async (taxationData) => {
         pre_construction_loan_interest: 0
       }
     }
+
+    if (!taxationData.pension) {
+      taxationData.pension = {
+        total_pension_income: 0,
+        computed_pension_percentage: 0,
+        uncomputed_pension_frequency: 'Monthly',
+        uncomputed_pension_amount: 0
+      };
+    }
+
 
     // Initialize deductions if missing
     if (!taxationData.deductions) {

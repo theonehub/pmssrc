@@ -17,7 +17,8 @@ from models.taxation.income_sources import (
     LeaveEncashment,
     VoluntaryRetirement,
     Gratuity,
-    RetrenchmentCompensation
+    RetrenchmentCompensation,
+    Pension
 )
 from models.taxation.perquisites import Perquisites
 from models.taxation.salary import SalaryComponents  
@@ -43,6 +44,7 @@ class Taxation:
     leave_encashment: LeaveEncashment
     voluntary_retirement: VoluntaryRetirement
     retrenchment: RetrenchmentCompensation
+    pension: Pension
     gratuity: Gratuity
     deductions: DeductionComponents
     regime: str
@@ -75,6 +77,7 @@ class Taxation:
         capital_gains_data = data.get('capital_gains', {})
         leave_encashment_data = data.get('leave_encashment', {})
         voluntary_retirement_data = data.get('voluntary_retirement', {})
+        pension_data = data.get('pension', {})
         gratuity_data = data.get('gratuity', {})
         deductions_data = data.get('deductions', {})
         retrenchment_data = data.get('RetrenchmentCompensation', {})
@@ -155,14 +158,9 @@ class Taxation:
                 lunch_amount_paid_by_employee=perquisites_data.get('lunch_amount_paid_by_employee', 0),
 
                 # ESOP
-                number_of_esop_shares_awarded=perquisites_data.get('number_of_esop_shares_awarded', 0),
+                number_of_esop_shares_exercised=perquisites_data.get('number_of_esop_shares_exercised', 0),
                 esop_exercise_price_per_share=perquisites_data.get('esop_exercise_price_per_share', 0),
                 esop_allotment_price_per_share=perquisites_data.get('esop_allotment_price_per_share', 0),
-                grant_date=cls._parse_date(perquisites_data.get('grant_date')),
-                vesting_date=cls._parse_date(perquisites_data.get('vesting_date')),
-                exercise_date=cls._parse_date(perquisites_data.get('exercise_date')),
-                vesting_period=perquisites_data.get('vesting_period', 0),
-                exercise_period=perquisites_data.get('exercise_period', 0),
 
                 # Movable assets
                 mau_ownership=perquisites_data.get('mau_ownership', 'Employer-Owned'),
@@ -279,10 +277,8 @@ class Taxation:
 
         leave_encashment = LeaveEncashment(
             leave_encashment_income_received=leave_encashment_data.get('leave_encashment_income_received', 0),
-            service_years=leave_encashment_data.get('service_years', 0),
             leave_encashed=leave_encashment_data.get('leave_encashed', 0),
             is_deceased=leave_encashment_data.get('is_deceased', False),
-            average_monthly_salary=leave_encashment_data.get('average_monthly_salary', 0),
             during_employment=leave_encashment_data.get('during_employment', False)
         )
         
@@ -294,6 +290,17 @@ class Taxation:
         retrenchment = RetrenchmentCompensation (
             retrenchment_amount=retrenchment_data.get('retrenchment_amount', 0),
             is_provided=retrenchment_data.get('is_provided', False)
+        )
+
+        pension = Pension(
+            total_pension_income=pension_data.get('total_pension_income', 0),
+            computed_pension_percentage=pension_data.get('computed_pension_percentage', 0),
+            uncomputed_pension_frequency=pension_data.get('uncomputed_pension_frequency', 'monthly'),
+            uncomputed_pension_amount=pension_data.get('uncomputed_pension_amount', 0)
+        )
+
+        gratuity = Gratuity(
+            gratuity_income=gratuity_data.get('gratuity_income', 0)
         )
         
         # Parse date string for EV purchase date
@@ -367,6 +374,8 @@ class Taxation:
             leave_encashment=leave_encashment,
             voluntary_retirement=voluntary_retirement,
             retrenchment=retrenchment,
+            pension=pension,
+            gratuity=gratuity,
             deductions=deductions,
             tax_year=data.get('tax_year', ''),
             filing_status=data.get('filing_status', 'draft'),
@@ -494,10 +503,19 @@ class Taxation:
         else:
             retrenchment_dict = {}
             for attr in dir(self.retrenchment):
-                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total' and attr != 'total_taxable_income_per_slab':
+                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total' and attr != 'total_taxable_income_per_slab' and attr != 'compute_service_years':
                     retrenchment_dict[attr] = getattr(self.retrenchment, attr)
             result['retrenchment'] = retrenchment_dict
         
+        if isinstance(self.pension, dict):
+            result['pension'] = self.pension
+        else:
+            pension_dict = {}
+            for attr in dir(self.pension):
+                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total' and attr != 'total_taxable_income_per_slab_computed' and attr != 'total_taxable_income_per_slab_uncomputed':
+                    pension_dict[attr] = getattr(self.pension, attr)
+            result['pension'] = pension_dict
+
         # Handle house_property components
         if isinstance(self.house_property, dict):
             result['house_property'] = self.house_property

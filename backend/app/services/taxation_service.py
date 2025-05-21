@@ -1,4 +1,17 @@
-from models.taxation import SalaryComponents, IncomeFromOtherSources, IncomeFromHouseProperty, CapitalGains, DeductionComponents, Taxation, Perquisites, LeaveEncashment, VoluntaryRetirement, RetrenchmentCompensation
+from models.taxation import (
+    SalaryComponents, 
+    IncomeFromOtherSources, 
+    IncomeFromHouseProperty, 
+    CapitalGains, 
+    DeductionComponents, 
+    Taxation, 
+    Perquisites, 
+    LeaveEncashment, 
+    VoluntaryRetirement, 
+    RetrenchmentCompensation,
+    Pension,
+    Gratuity
+)
 from database.taxation_database import get_taxation_by_emp_id, get_taxation_collection, save_taxation, _ensure_serializable
 from services.organisation_service import is_govt_organisation
 from database.user_database import get_user_by_emp_id
@@ -385,8 +398,8 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
                          salary: SalaryComponents = None, other_sources: IncomeFromOtherSources = None,
                          capital_gains: CapitalGains = None, deductions: DeductionComponents = None,
                          leave_encashment: LeaveEncashment = None, voluntary_retirement: VoluntaryRetirement = None,
-                         retrenchment: RetrenchmentCompensation = None,
-                         house_property: IncomeFromHouseProperty = None) -> Taxation:
+                         retrenchment: RetrenchmentCompensation = None, pension: Pension = None,
+                         gratuity: Gratuity = None, house_property: IncomeFromHouseProperty = None) -> Taxation:
     """
     Calculate the tax and save to the database
     """
@@ -449,6 +462,15 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
         if voluntary_retirement:
             logger.info(f"calculate_and_save_tax - Updating voluntary retirement information")
             taxation.voluntary_retirement = voluntary_retirement
+        if retrenchment:
+            logger.info(f"calculate_and_save_tax - Updating retrenchment information")
+            taxation.retrenchment = retrenchment
+        if pension:
+            logger.info(f"calculate_and_save_tax - Updating pension information")
+            taxation.pension = pension
+        if gratuity:
+            logger.info(f"calculate_and_save_tax - Updating gratuity information")
+            taxation.gratuity = gratuity
     except Exception as e:
         logger.info(f"calculate_and_save_tax - No existing taxation data found for {emp_id}, creating new taxation object. Error: {str(e)}")
         
@@ -480,8 +502,10 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
             capital_gains=capital_gains or CapitalGains(),
             leave_encashment=leave_encashment or LeaveEncashment(),
             voluntary_retirement=voluntary_retirement or VoluntaryRetirement(),
-            retrenchment=retrenchment or RetrenchmentCompensation(),
+            retrenchment=retrenchment or RetrenchmentCompensation(),    
             deductions=deductions or DeductionComponents(),
+            pension=pension or Pension(),
+            gratuity=gratuity or Gratuity(),
             tax_year=tax_year,
             filing_status='draft',
             total_tax=0,
@@ -669,10 +693,8 @@ def create_default_taxation(emp_id: str, hostname: str) -> dict:
 
         default_leave_encashment = LeaveEncashment(
             leave_encashment_income_received=0,
-            service_years=0,
             leave_encashed=0,
             is_deceased=False,
-            average_monthly_salary=0,
             during_employment=False
         )
         
@@ -684,6 +706,17 @@ def create_default_taxation(emp_id: str, hostname: str) -> dict:
         default_retrenchment = RetrenchmentCompensation(
             retrenchment_amount=0,
             is_provided=False
+        )
+        
+        default_pension = Pension(
+            total_pension_income=0,
+            computed_pension_percentage=0,
+            uncomputed_pension_frequency='Monthly',
+            uncomputed_pension_amount=0
+        )
+
+        default_gratuity = Gratuity(
+            gratuity_income=0
         )
         
         default_deductions = DeductionComponents(
@@ -739,7 +772,10 @@ def create_default_taxation(emp_id: str, hostname: str) -> dict:
             capital_gains=default_capital_gains,
             leave_encashment=default_leave_encashment,
             voluntary_retirement=default_voluntary_retirement,
+            retrenchment=default_retrenchment,
             deductions=default_deductions,
+            pension=default_pension,
+            gratuity=default_gratuity,
             regime='old',
             total_tax=0,
             tax_breakup={},

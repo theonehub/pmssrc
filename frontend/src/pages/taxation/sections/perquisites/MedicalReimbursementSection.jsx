@@ -42,7 +42,10 @@ const MedicalReimbursementSection = ({
         
         {/* Medical reimbursement by employer */}
         <Grid item xs={12} md={6}>
-          <Tooltip title="Medical Reimbursement by Employer">
+          <Tooltip title="Medical Reimbursement by Employer"
+          placement="top"
+          arrow
+          >
             <TextField
               fullWidth
               label="Medical Reimbursement by Employer"
@@ -57,7 +60,10 @@ const MedicalReimbursementSection = ({
         
         {/* Traveling allowance for treatment */}
         <Grid item xs={12} md={6}>
-          <Tooltip title="Traveling Allowance for Treatment">
+          <Tooltip title="Traveling Allowance for Treatment"
+          placement="top"
+          arrow
+          >
             <TextField
               fullWidth
               label="Traveling Allowance for Treatment"
@@ -73,7 +79,10 @@ const MedicalReimbursementSection = ({
         
         {/* RBI limit for illness */}
         <Grid item xs={12} md={6}>
-          <Tooltip title="RBI Limit for Illness">
+          <Tooltip title="RBI Limit for Illness"
+          placement="top"
+          arrow
+          >
             <TextField
               fullWidth
               label="RBI Limit for Illness"

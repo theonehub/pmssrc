@@ -233,7 +233,10 @@ const DeductionsSection = ({
           
           {/* NPS Contribution (Sec 80CCD(1)) */}
           <Grid item xs={12} md={6}>
-            <Tooltip title="NPS contribution (Sec 80CCD(1))">
+            <Tooltip title="NPS contribution (Sec 80CCD(1))"
+            placement="top"
+            arrow
+            >
               <TextField
                 fullWidth
                 label="NPS Contribution (Sec 80CCD(1))"
@@ -248,7 +251,10 @@ const DeductionsSection = ({
           
           {/* Additional NPS (Sec 80CCD(1B)) */}
           <Grid item xs={12} md={6}>
-            <Tooltip title="Additional NPS (Sec 80CCD(1B)) Max ₹50,000">
+            <Tooltip title="Additional NPS (Sec 80CCD(1B)) Max ₹50,000"
+            placement="top"
+            arrow
+            >
               <TextField
                 fullWidth
                 label="Additional NPS (Sec 80CCD(1B)) Max ₹50,000"
@@ -263,7 +269,10 @@ const DeductionsSection = ({
           
           {/* Employer NPS (Sec 80CCD(2)) */}
           <Grid item xs={12} md={6}>
-            <Tooltip title="Employer NPS Contribution (Sec 80CCD(2))">
+            <Tooltip title="Employer NPS Contribution (Sec 80CCD(2))"
+            placement="top"
+            arrow
+            >
               <TextField
                 fullWidth
                 label="Employer NPS Contribution (Sec 80CCD(2))"
@@ -385,7 +394,10 @@ const DeductionsSection = ({
           
           {/* Section 80DDB - Medical Treatment */}
           <Grid item xs={12} md={6}>
-            <Tooltip title="Medical Treatment">
+            <Tooltip title="Medical Treatment"
+            placement="top"
+            arrow
+            >
               <TextField
                 fullWidth
                 label="Section 80DDB - Medical Treatment"
@@ -401,7 +413,10 @@ const DeductionsSection = ({
           {/* Relation for 80DDB */}
           <Grid item xs={12} md={6}>
             <FormControl fullWidth>
-              <Tooltip title="Relation with treated person">
+              <Tooltip title="Relation with treated person"
+              placement="top"
+              arrow
+              >
                 <InputLabel>Relation</InputLabel>
                 <Select
                   value={taxationData.deductions.relation_80ddb || 'Parents'}
@@ -476,7 +491,10 @@ const DeductionsSection = ({
           </Box>
           {/* Section 80E - Educational Loan */}
           <Grid item xs={12} md={6}>
-            <Tooltip title="Higher Education, allowed for Initial Year + 7 immediately suceeding years">
+            <Tooltip title="Higher Education, allowed for Initial Year + 7 immediately suceeding years"
+            placement="top"
+            arrow
+            >
               <TextField
                 fullWidth
                 label="Section 80E - Educational Loan"
@@ -517,7 +535,10 @@ const DeductionsSection = ({
           </Grid>
           {/* Loan Start Date */}
           <Grid item xs={12} md={6}>
-            <Tooltip title="Date of Purchase should be between 1st Apirl 2019 and 31st March 2023">
+            <Tooltip title="Date of Purchase should be between 1st Apirl 2019 and 31st March 2023"
+            placement="top"
+            arrow
+            >
               <TextField
                 fullWidth
                 label="Date of Purchase"

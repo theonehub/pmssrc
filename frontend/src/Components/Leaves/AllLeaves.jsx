@@ -192,7 +192,10 @@ const AllLeaves = () => {
                       <TableCell>
                         {leave.status && leave.status.toUpperCase() === 'PENDING' ? (
                           <Box sx={{ display: 'flex', gap: 1 }}>
-                            <Tooltip title="Approve Leave">
+                            <Tooltip title="Approve Leave"
+                            placement="top"
+                            arrow
+                            >
                               <IconButton
                                 color="success"
                                 onClick={() => handleApproveReject(leave, 'approved')}
@@ -201,7 +204,10 @@ const AllLeaves = () => {
                                 <CheckCircleIcon />
                               </IconButton>
                             </Tooltip>
-                            <Tooltip title="Reject Leave">
+                            <Tooltip title="Reject Leave"
+                            placement="top"
+                            arrow
+                            >
                               <IconButton
                                 color="error"
                                 onClick={() => handleApproveReject(leave, 'rejected')}

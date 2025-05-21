@@ -1,7 +1,8 @@
 import React from 'react';
 import {
   Grid,
-  TextField
+  TextField,
+  Tooltip
 } from '@mui/material';
 import FormSectionHeader from '../../components/FormSectionHeader';
 import { formatIndianNumber } from '../../utils/taxationUtils';
@@ -23,53 +24,21 @@ const ESOPStockOptionsSection = ({
     <>
       <FormSectionHeader title="ESOP & Stock Options" />
       
-      <Grid container spacing={3}>
-        {/* Grant Date */}
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            label="Grant Date"
-            type="date"
-            value={taxationData.salary.perquisites?.grant_date || ''}
-            onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'grant_date', e.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
-        </Grid>
-        
-        {/* Vesting Date */}
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            label="Vesting Date"
-            type="date"
-            value={taxationData.salary.perquisites?.vesting_date || ''}
-            onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'vesting_date', e.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
-        </Grid>
-        
-        {/* Exercise Date */}
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            label="Exercise Date"
-            type="date"
-            value={taxationData.salary.perquisites?.exercise_date || ''}
-            onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'exercise_date', e.target.value)}
-            InputLabelProps={{ shrink: true }}
-          />
-        </Grid>
-        
         {/* Number of Options */}
         <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            label="Number of Shares Awarded"
-            type="number"
-            value={taxationData.salary.perquisites?.number_of_esop_shares_awarded || 0}
-            onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'number_of_esop_shares_awarded', e.target.value)}
-            onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'number_of_esop_shares_awarded', e.target.value)}
-          />
+          <Tooltip title="ESOPs and Stocks Exercised within current financial year."
+          placement="top"
+          arrow
+          >
+            <TextField
+              fullWidth
+              label="Number of Shares Exercised"
+              type="number"
+              value={taxationData.salary.perquisites?.number_of_esop_shares_exercised || 0}
+            onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'number_of_esop_shares_exercised', e.target.value)}
+            onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'number_of_esop_shares_exercised', e.target.value)}
+            />
+          </Tooltip>
         </Grid>
         
         {/* FMV on Exercise Date */}
@@ -97,7 +66,6 @@ const ESOPStockOptionsSection = ({
             onFocus={(e) => handleNestedFocus('salary', 'perquisites', 'esop_exercise_price_per_share', e.target.value)}
           />
         </Grid>
-      </Grid>
     </>
   );
 };

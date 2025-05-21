@@ -8,6 +8,7 @@ from models.taxation.income_sources import (
     CapitalGains,
     LeaveEncashment,
     VoluntaryRetirement,
+    Pension,
     Gratuity,
     RetrenchmentCompensation
 )

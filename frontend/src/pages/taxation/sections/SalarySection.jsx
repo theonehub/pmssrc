@@ -97,7 +97,10 @@ const SalarySection = ({
         <Grid item xs={12} md={6}>
           <FormControl fullWidth>
             <InputLabel>City Category for HRA</InputLabel>
-            <Tooltip title="City Category for HRA">
+            <Tooltip title="City Category for HRA"
+            placement="top"
+            arrow
+            >
               <Select
               value={cityForHRA}
               label="City Category for HRA"
@@ -322,35 +325,24 @@ const SalarySection = ({
             InputProps={{ startAdornment: '₹' }} 
             onFocus={(e) => handleFocus('salary', 'servant_allowance', e.target.value)} />
         </Grid>
-        {/* Any Other Allowance */}
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            label="Any Other Allowance"
-            type="text"
-            value={formatIndianNumber(taxationData.salary.any_other_allowance)}
-            onChange={(e) => handleInputChange('salary', 'any_other_allowance', e.target.value)}
-            InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleFocus('salary', 'any_other_allowance', e.target.value)}
-          />
-        </Grid>
+        <Box 
+          sx={{ 
+            width: '100%', 
+            display: 'flex',
+            justifyContent: 'left'
+          }}
+        >
+          <Typography variant="h6" color="primary">XYZ</Typography>
+        </Box>
+        <Divider sx={{ my: 0, width: '100%' }} />
         
-        {/* Any Other Allowance Exemption */}
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            label="Any Other Allowance Exemption"
-            type="text"
-            value={formatIndianNumber(taxationData.salary.any_other_allowance_exemption)}
-            onChange={(e) => handleInputChange('salary', 'any_other_allowance_exemption', e.target.value)}
-            InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleFocus('salary', 'any_other_allowance_exemption', e.target.value)}
-          />
-        </Grid>
         
         {/* New Allowances */}
         <Grid item xs={12} md={6}>
-          <Tooltip title="Allowance for employees working in hilly areas">
+          <Tooltip title="Allowance for employees working in hilly areas"
+            placement="top"
+            arrow
+            >
             <TextField
               fullWidth
               label="Hills/High Altitude Allowance"
@@ -363,7 +355,10 @@ const SalarySection = ({
           </Tooltip>
         </Grid>
         <Grid item xs={12} md={6}>
-          <Tooltip title="Exemption limit for Hills/High Altitude Allowance">
+          <Tooltip title="Exemption limit for Hills/High Altitude Allowance"
+            placement="top"
+            arrow
+            >
             <TextField
               fullWidth
               label="Hills/High Altitude Allowance Exemption Limit"
@@ -375,10 +370,21 @@ const SalarySection = ({
             />
           </Tooltip>
         </Grid>
-
-
+        <Box 
+          sx={{ 
+            width: '100%', 
+            display: 'flex',
+            justifyContent: 'left'
+          }}
+        >
+          <Typography variant="h6" color="primary">XYZ</Typography>
+        </Box>
+        <Divider sx={{ my: 0, width: '100%' }} />
         <Grid item xs={12} md={6}>
-          <Tooltip title="Allowance for employees working in border or remote areas">
+          <Tooltip title="Allowance for employees working in border or remote areas"
+            placement="top"
+            arrow
+            >
             <TextField
               fullWidth
               label="Border/Remote Area Allowance"
@@ -391,7 +397,10 @@ const SalarySection = ({
           </Tooltip>
         </Grid>
         <Grid item xs={12} md={6}>
-          <Tooltip title="Exemption limit for Border/Remote Area Allowance">
+          <Tooltip title="Exemption limit for Border/Remote Area Allowance"
+            placement="top"
+            arrow
+            >
             <TextField
               fullWidth
               label="Border/Remote Area Allowance Exemption Limit"
@@ -403,9 +412,21 @@ const SalarySection = ({
             />
           </Tooltip>
         </Grid>
-
+        <Box 
+          sx={{ 
+            width: '100%', 
+            display: 'flex',
+            justifyContent: 'left'
+          }}
+        >
+          <Typography variant="h6" color="primary">XYZ</Typography>
+        </Box>
+        <Divider sx={{ my: 0, width: '100%' }} />
         <Grid item xs={12} md={6}>
-          <Tooltip title="Transport allowance for employees">
+          <Tooltip title="Transport allowance for employees"
+            placement="top"
+            arrow
+            >
             <TextField
               fullWidth
               label="Transport Employee Allowance"
@@ -419,7 +440,10 @@ const SalarySection = ({
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <Tooltip title="Allowance for children's education">
+          <Tooltip title="Allowance for children's education"
+            placement="top"
+            arrow
+            >
             <TextField
               fullWidth
               label="Children Education Allowance"
@@ -432,7 +456,10 @@ const SalarySection = ({
           </Tooltip>
         </Grid>
         <Grid item xs={12} md={6}>
-          <Tooltip title="Exemption limit for Children Education Allowance">
+          <Tooltip title="Exemption limit for Children Education Allowance"
+            placement="top"
+            arrow
+            >
             <TextField
               fullWidth
               label="Children Education Allowance Exemption Limit"
@@ -444,7 +471,10 @@ const SalarySection = ({
           </Tooltip>
         </Grid>
         <Grid item xs={12} md={6}>
-          <Tooltip title="Exemption limit for Children Education Allowance">
+          <Tooltip title="Exemption limit for Children Education Allowance"
+            placement="top"
+            arrow
+            >
             <TextField
               fullWidth
               label="Children Education Allowance Exemption Limit"
@@ -455,9 +485,21 @@ const SalarySection = ({
             />
           </Tooltip>
         </Grid>
-
+        <Box 
+          sx={{ 
+            width: '100%', 
+            display: 'flex',
+            justifyContent: 'left'
+          }}
+        >
+          <Typography variant="h6" color="primary">XYZ</Typography>
+        </Box>
+        <Divider sx={{ my: 0, width: '100%' }} />
         <Grid item xs={12} md={6}>
-          <Tooltip title="Allowance for hostel expenses">
+          <Tooltip title="Allowance for hostel expenses"
+            placement="top"
+            arrow
+            >
             <TextField
               fullWidth
               label="Hostel Allowance"
@@ -471,7 +513,10 @@ const SalarySection = ({
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <Tooltip title="Exemption limit for Hostel Allowance">
+          <Tooltip title="Exemption limit for Hostel Allowance"
+            placement="top"
+            arrow
+            >
             <TextField
               fullWidth
               label="Hostel Allowance Exemption Limit"
@@ -483,7 +528,10 @@ const SalarySection = ({
           </Tooltip>
         </Grid>
         <Grid item xs={12} md={6}>
-          <Tooltip title="Exemption limit for Hostel Allowance">
+          <Tooltip title="Exemption limit for Hostel Allowance"
+            placement="top"
+            arrow
+            >
             <TextField
               fullWidth
               label="Hostel Allowance Exemption Limit"
@@ -495,9 +543,21 @@ const SalarySection = ({
           </Tooltip>
         </Grid>
         
-
+        <Box 
+          sx={{ 
+            width: '100%', 
+            display: 'flex',
+            justifyContent: 'left'
+          }}
+        >
+          <Typography variant="h6" color="primary">XYZ</Typography>
+        </Box>
+        <Divider sx={{ my: 0, width: '100%' }} />
         <Grid item xs={12} md={6}>
-          <Tooltip title="Transport allowance">
+          <Tooltip title="Transport allowance"
+            placement="top"
+            arrow
+            >
             <TextField
               fullWidth
               label="Transport Allowance"
@@ -510,7 +570,10 @@ const SalarySection = ({
           </Tooltip>
         </Grid>
         <Grid item xs={12} md={6}>
-          <Tooltip title="Exemption limit for Transport Allowance">
+          <Tooltip title="Exemption limit for Transport Allowance"
+            placement="top"
+            arrow
+            >
             <TextField
               fullWidth
               label="Months for Transport Allowance"
@@ -522,10 +585,22 @@ const SalarySection = ({
           </Tooltip>
         </Grid>
 
-
+        <Box 
+          sx={{ 
+            width: '100%', 
+            display: 'flex',
+            justifyContent: 'left'
+          }}
+        >
+          <Typography variant="h6" color="primary">XYZ</Typography>
+        </Box>
+        <Divider sx={{ my: 0, width: '100%' }} />
 
         <Grid item xs={12} md={6}>
-          <Tooltip title="Allowance for employees working in underground mines">
+          <Tooltip title="Allowance for employees working in underground mines"
+            placement="top"
+            arrow
+            >
             <TextField
               fullWidth
               label="Underground Mines Allowance"
@@ -538,7 +613,10 @@ const SalarySection = ({
           </Tooltip>
         </Grid>
         <Grid item xs={12} md={6}>
-          <Tooltip title="Exemption limit for Underground Mines Allowance">
+          <Tooltip title="Exemption limit for Underground Mines Allowance"
+            placement="top"
+            arrow
+            >
             <TextField
               fullWidth
               label="Months for Underground Mines Allowance"
@@ -549,9 +627,21 @@ const SalarySection = ({
             />
           </Tooltip>
         </Grid>
-
+        <Box 
+          sx={{ 
+            width: '100%', 
+            display: 'flex',
+            justifyContent: 'left'
+          }}
+        >
+          <Typography variant="h6" color="primary">XYZ</Typography>
+        </Box>
+        <Divider sx={{ my: 0, width: '100%' }} />
         <Grid item xs={12} md={6}>
-          <Tooltip title="Entertainment Allowance">
+          <Tooltip title="Entertainment Allowance"
+            placement="top"
+            arrow
+            >
             <TextField
               fullWidth
               label="Entertainment Allowance"
@@ -578,7 +668,10 @@ const SalarySection = ({
             <Divider sx={{ my: 0, width: '100%' }} />
             {/* Government-specific allowances */}
             <Grid item xs={12} md={6}>
-              <Tooltip title="This allowance is applicable to government employees working outside India.">
+              <Tooltip title="This allowance is applicable to government employees working outside India."
+                placement="top"
+                arrow
+                >
                 <TextField 
                   fullWidth 
                   label="Govt Employees Allowance (Outside India)" 
@@ -591,7 +684,10 @@ const SalarySection = ({
               </Tooltip>
             </Grid>
             <Grid item xs={12} md={6}>
-              <Tooltip title="This allowance is applicable to high court and supreme court judges.">
+              <Tooltip title="This allowance is applicable to high court and supreme court judges."
+                placement="top"
+                arrow
+                >
                 <TextField 
                   fullWidth 
                   label="High Court/Supreme Court Judges Allowance" 
@@ -604,7 +700,10 @@ const SalarySection = ({
               </Tooltip>
             </Grid>
             <Grid item xs={12} md={6}>
-              <Tooltip title="Compensatory Allowance received by a Judge.">
+              <Tooltip title="Compensatory Allowance received by a Judge."
+                placement="top"
+                arrow
+                >
                 <TextField 
                   fullWidth 
                   label="Compensatory Allowance (Judge)" 
@@ -617,7 +716,10 @@ const SalarySection = ({
               </Tooltip>
             </Grid>
             <Grid item xs={12} md={6}>
-              <Tooltip title="This allowance is exempted under Section 10(14) of the Income Tax Act, 1961.">
+              <Tooltip title="This allowance is exempted under Section 10(14) of the Income Tax Act, 1961."
+                placement="top"
+                arrow
+                >
                 <TextField 
                   fullWidth 
                   label="Special Allowances (Sec 10/14)" 
@@ -646,7 +748,10 @@ const SalarySection = ({
         <Divider sx={{ my: 0, width: '100%' }} />
         
         <Grid item xs={12} md={6}>
-          <Tooltip title="Allowance granted to meet cost of travel on tour.">
+          <Tooltip title="Allowance granted to meet cost of travel on tour."
+            placement="top"
+            arrow
+            >
             <TextField 
               fullWidth 
               label="Travel Allowance (Tour)" 
@@ -659,7 +764,10 @@ const SalarySection = ({
           </Tooltip>
         </Grid>
         <Grid item xs={12} md={6}>
-          <Tooltip title="Allowance granted to meet cost of daily charges incurred on tour.">
+          <Tooltip title="Allowance granted to meet cost of daily charges incurred on tour."
+            placement="top"
+            arrow
+            >
             <TextField 
               fullWidth 
               label="Tour Daily Charge Allowance" 
@@ -672,7 +780,10 @@ const SalarySection = ({
           </Tooltip>
         </Grid>
         <Grid item xs={12} md={6}>
-          <Tooltip title="Allowance granted to meet expenditure incurred on conveyance in performace of duties.">
+          <Tooltip title="Allowance granted to meet expenditure incurred on conveyance in performace of duties."
+            placement="top"
+            arrow
+            >
             <TextField 
               fullWidth 
               label="Conveyance Allowance (Duties)" 
@@ -685,7 +796,10 @@ const SalarySection = ({
           </Tooltip>
         </Grid>
         <Grid item xs={12} md={6}>
-          <Tooltip title="Allowance granted to meet expenditure incurred on helper in performace of duties.">
+          <Tooltip title="Allowance granted to meet expenditure incurred on helper in performace of duties."
+            placement="top"
+            arrow
+            >
             <TextField 
               fullWidth 
               label="Helper Allowance (Duties)" 
@@ -698,7 +812,10 @@ const SalarySection = ({
           </Tooltip>
         </Grid>
         <Grid item xs={12} md={6}>
-          <Tooltip title="Allowance granted for encouraging the academic, research & training pursuits in educational & research institutions.">
+          <Tooltip title="Allowance granted for encouraging the academic, research & training pursuits in educational & research institutions."
+            placement="top"
+            arrow
+            >
             <TextField 
               fullWidth 
               label="Academic/Research Allowance" 
@@ -711,7 +828,10 @@ const SalarySection = ({
           </Tooltip>
         </Grid>
         <Grid item xs={12} md={6}>
-          <Tooltip title="Allowance granted for expenditure incurred on purchase or maintenance of uniform for wear during performace of duties.">
+          <Tooltip title="Allowance granted for expenditure incurred on purchase or maintenance of uniform for wear during performace of duties."
+            placement="top"
+            arrow
+            >
             <TextField 
               fullWidth 
               label="Uniform Allowance (Duties)" 
@@ -723,7 +843,33 @@ const SalarySection = ({
             />
           </Tooltip>
         </Grid>
+        {/* Any Other Allowance */}
+        <Grid item xs={12} md={6}>
+          <TextField
+            fullWidth
+            label="Any Other Allowance"
+            type="text"
+            value={formatIndianNumber(taxationData.salary.any_other_allowance)}
+            onChange={(e) => handleInputChange('salary', 'any_other_allowance', e.target.value)}
+            InputProps={{ startAdornment: '₹' }}
+            onFocus={(e) => handleFocus('salary', 'any_other_allowance', e.target.value)}
+          />
+        </Grid>
+        
+        {/* Any Other Allowance Exemption */}
+        <Grid item xs={12} md={6}>
+          <TextField
+            fullWidth
+            label="Any Other Allowance Exemption"
+            type="text"
+            value={formatIndianNumber(taxationData.salary.any_other_allowance_exemption)}
+            onChange={(e) => handleInputChange('salary', 'any_other_allowance_exemption', e.target.value)}
+            InputProps={{ startAdornment: '₹' }}
+            onFocus={(e) => handleFocus('salary', 'any_other_allowance_exemption', e.target.value)}
+          />
+        </Grid>
       </Grid>
+      
     </Box>
   );
 };

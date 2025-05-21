@@ -57,6 +57,16 @@ const SeparationSection = ({
     };
   }
 
+  // Initialize pension object if it doesn't exist
+  if (!taxationData.pension) {
+    taxationData.pension = {
+      total_pension_income: 0,
+      computed_pension_percentage: 0,
+      uncomputed_pension_frequency: 'Monthly',
+      uncomputed_pension_amount: 0
+    };
+  }
+
   return (
     <Box sx={{ py: 2 }}>
       <Typography variant="h6" gutterBottom>

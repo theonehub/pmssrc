@@ -328,7 +328,7 @@ const OtherIncomeSection = ({
           </Box>
         
           <Grid item xs={12} md={6}>
-            <Tooltip title="Occupancy Status" placement="top-start">
+            <Tooltip title="Occupancy Status" placement="top-start" arrow>
               <FormControl fullWidth>
                 <InputLabel>Occupancy Status</InputLabel>
                   <Select

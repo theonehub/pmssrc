@@ -344,7 +344,7 @@ class Perquisites:
 
     
     # ESOP
-    number_of_esop_shares_awarded: float = 0
+    number_of_esop_shares_exercised: float = 0
     esop_exercise_price_per_share: float = 0
     esop_allotment_price_per_share: float = 0
 
@@ -355,9 +355,9 @@ class Perquisites:
         logger.info(f"Calculating allocation gain for regime: {regime}")
         logger.info(f"ESOP allotment price per share: {self.esop_allotment_price_per_share}")
         logger.info(f"ESOP exercise price per share: {self.esop_exercise_price_per_share}")
-        logger.info(f"Number of ESOP shares awarded: {self.number_of_esop_shares_awarded}")
+        logger.info(f"Number of ESOP shares Exercised: {self.number_of_esop_shares_exercised}")
         
-        return max(0, (self.esop_exercise_price_per_share - self.esop_allotment_price_per_share) * self.number_of_esop_shares_awarded)
+        return max(0, (self.esop_exercise_price_per_share - self.esop_allotment_price_per_share) * self.number_of_esop_shares_exercised)
 
 
     mau_ownership: str = 'Employer-Owned'  # 'Employer-Owned', 'Employer-Hired'
@@ -590,15 +590,9 @@ class Perquisites:
             "lunch_amount_paid_by_employee": self.lunch_amount_paid_by_employee,
             
             # ESOP
-            "number_of_esop_shares_awarded": self.number_of_esop_shares_awarded,
+            "number_of_esop_shares_exercised": self.number_of_esop_shares_exercised,
             "esop_exercise_price_per_share": self.esop_exercise_price_per_share,
             "esop_allotment_price_per_share": self.esop_allotment_price_per_share,
-            "grant_date": self.grant_date.isoformat() if self.grant_date else None,
-            "vesting_date": self.vesting_date.isoformat() if self.vesting_date else None,
-            "exercise_date": self.exercise_date.isoformat() if self.exercise_date else None,
-            "vesting_period": self.vesting_period,
-            "exercise_period": self.exercise_period,
-            "exercise_price_per_share": self.exercise_price_per_share,
             
             # Movable assets
             "mau_ownership": self.mau_ownership,

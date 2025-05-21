@@ -281,7 +281,9 @@ function AttendenceUserList() {
                       <TableCell onClick={() => requestSort('lwp')} sx={{ cursor: 'pointer' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                           LWP (Current Month) {getSortIcon('lwp')}
-                          <Tooltip title="Leave Without Pay - Days absent without approved leave" arrow>
+                          <Tooltip title="Leave Without Pay - Days absent without approved leave" 
+                          placement="top"
+                          arrow>
                             <IconButton size="small" sx={{ ml: 0.5, color: 'inherit' }}>
                               <InfoIcon fontSize="small" />
                             </IconButton>

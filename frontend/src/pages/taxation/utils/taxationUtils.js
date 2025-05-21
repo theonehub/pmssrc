@@ -250,6 +250,12 @@ export const getDefaultTaxationState = (empId) => ({
     average_monthly_salary: 0,
     during_employment: false
   },
+  pension: {
+    total_pension_income: 0,
+    computed_pension_percentage: 0,
+    uncomputed_pension_frequency: 'Monthly',
+    uncomputed_pension_amount: 0
+  },
   deductions: {
     section_80c_lic: 0,
     section_80c_epf: 0,

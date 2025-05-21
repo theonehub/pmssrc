@@ -215,7 +215,10 @@ function MyReimbursements () {
       <Box sx={{ mt: 4 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4">My Reimbursements</Typography>
-          <Tooltip title="Add Reimbursement">
+          <Tooltip title="Add Reimbursement"
+            placement="top"
+            arrow
+            >
             <IconButton color="primary" onClick={() => setShowModal(true)}>
               <AddIcon />
             </IconButton>
@@ -285,7 +288,10 @@ function MyReimbursements () {
                     <TableCell>
                       {req.status === 'PENDING' && (
                         <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Tooltip title="Edit">
+                          <Tooltip title="Edit"
+                            placement="top"
+                            arrow
+                            >
                             <IconButton
                               color="primary"
                               size="small"
@@ -294,7 +300,10 @@ function MyReimbursements () {
                               <EditIcon />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Delete">
+                          <Tooltip title="Delete"
+                            placement="top"
+                            arrow
+                            >
                             <IconButton
                               color="error"
                               size="small"

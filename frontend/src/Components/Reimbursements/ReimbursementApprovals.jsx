@@ -207,7 +207,10 @@ function ReimbursementApprovals() {
                 <TableCell>
                   {req.file_url ? (
                     <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Tooltip title="View File">
+                      <Tooltip title="View File"
+                        placement="top"
+                        arrow
+                        >
                         <IconButton
                           color="primary"
                           size="small"
@@ -216,7 +219,10 @@ function ReimbursementApprovals() {
                           <VisibilityIcon />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Download File">
+                      <Tooltip title="Download File"
+                        placement="top"
+                        arrow
+                        >
                         <IconButton
                           color="primary"
                           size="small"
@@ -235,7 +241,10 @@ function ReimbursementApprovals() {
                 {showActions && (
                   <TableCell>
                     <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Tooltip title="Approve Request">
+                      <Tooltip title="Approve Request"
+                        placement="top"
+                        arrow
+                        >
                         <IconButton
                           color="success"
                           size="small"
@@ -244,7 +253,10 @@ function ReimbursementApprovals() {
                           <CheckCircleIcon />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Reject Request">
+                      <Tooltip title="Reject Request"
+                        placement="top"
+                        arrow
+                        >
                         <IconButton
                           color="error"
                           size="small"

@@ -110,7 +110,10 @@ function ReimbursementTypes() {
       <Container>
         <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4">Reimbursement Types</Typography>
-          <Tooltip title="Add New Type">
+          <Tooltip title="Add New Type"
+            placement="top"
+            arrow
+            >
             <IconButton color="primary" onClick={() => setShowModal(true)}>
               <AddIcon />
             </IconButton>
@@ -175,7 +178,10 @@ function ReimbursementTypes() {
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Tooltip title="Edit Type">
+                        <Tooltip title="Edit Type"
+                          placement="top"
+                          arrow
+                          >
                           <IconButton
                             color="primary"
                             size="small"
@@ -184,7 +190,10 @@ function ReimbursementTypes() {
                             <EditIcon />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Delete Type">
+                        <Tooltip title="Delete Type"
+                          placement="top"
+                          arrow
+                          >
                           <IconButton
                             color="error"
                             size="small"

@@ -137,7 +137,7 @@ function UsersList() {
       
       setUsers(response.data.users);
       setTotalUsers(response.data.total);
-      setFilteredUsers(response.data.users);
+      //setFilteredUsers(response.data.users);
     } catch (error) {
       console.error('Error fetching users:', error);
       setAlert({

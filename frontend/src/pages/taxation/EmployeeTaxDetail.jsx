@@ -78,6 +78,17 @@ const EmployeeTaxDetail = () => {
     }
   };
 
+  // Get total value of perquisites
+  const calculatePerquisitesTotal = (perquisites) => {
+    if (!perquisites) return 0;
+    
+    // Since the perquisites is an object containing various perquisite values,
+    // we need to determine its total value
+    return Object.values(perquisites)
+      .filter(value => typeof value === 'number')
+      .reduce((sum, value) => sum + value, 0);
+  };
+
   // Format currency
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
@@ -239,15 +250,15 @@ const EmployeeTaxDetail = () => {
                     <Typography variant="subtitle1">Filing Status:</Typography>
                   </Grid>
                   <Grid item xs={6}>
-                    <Box sx={{ 
-                      display: 'inline-block', 
-                      bgcolor: getStatusColor(taxationData.filing_status), 
-                      px: 1, 
-                      py: 0.5, 
-                      borderRadius: 1 
-                    }}>
-                      {(taxationData.filing_status?.charAt(0)?.toUpperCase() + taxationData.filing_status?.slice(1)) || 'N/A'}
-                    </Box>
+                                      <Box sx={{ 
+                    display: 'inline-block', 
+                    bgcolor: getStatusColor(taxationData.filing_status), 
+                    px: 1, 
+                    py: 0.5, 
+                    borderRadius: 1 
+                  }}>
+                    {(taxationData.filing_status?.charAt(0)?.toUpperCase() + taxationData.filing_status?.slice(1)) || 'N/A'}
+                  </Box>
                   </Grid>
                 </Grid>
               </Paper>
@@ -358,8 +369,7 @@ const EmployeeTaxDetail = () => {
                         <TableRow>
                           <TableCell>Perquisites</TableCell>
                           <TableCell align="right">
-                            {formatCurrency(
-                            )}
+                            {formatCurrency(calculatePerquisitesTotal(taxationData.salary.perquisites))}
                           </TableCell>
                         </TableRow>
                       )}

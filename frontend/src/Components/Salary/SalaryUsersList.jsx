@@ -424,7 +424,10 @@ function SalaryUsersList() {
                     <TableCell>{user.designation}</TableCell>
                     <TableCell>{user.location}</TableCell>
                     <TableCell>
-                      <Tooltip title="View Components">
+                      <Tooltip title="View Components"
+                      placement="top"
+                      arrow
+                      >
                         <IconButton
                           color="primary"
                           size="small"
@@ -433,7 +436,10 @@ function SalaryUsersList() {
                           <VisibilityIcon />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Edit Components">
+                      <Tooltip title="Edit Components"
+                      placement="top"
+                      arrow
+                      >
                         <IconButton
                           color="primary"
                           size="small"

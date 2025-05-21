@@ -41,7 +41,10 @@ const OtherPerquisitesSection = ({
         
         {/* Domestic Help */}
         <Grid item xs={12} md={6}>
-          <Tooltip title="Amount paid by employer">
+          <Tooltip title="Amount paid by employer"
+          placement="top"
+          arrow
+          >
             <TextField
               fullWidth
               label="Domestic Help Amount Paid by Employer"
@@ -55,7 +58,10 @@ const OtherPerquisitesSection = ({
         </Grid>
         
         <Grid item xs={12} md={6}>
-          <Tooltip title="Amount recovered from employee">
+          <Tooltip title="Amount recovered from employee"
+          placement="top"
+          arrow
+          >
             <TextField
               fullWidth
               label="Domestic Help Amount Paid by Employee"
@@ -81,7 +87,10 @@ const OtherPerquisitesSection = ({
         
         {/* Lunch/Refreshment */}
         <Grid item xs={12} md={6}>
-          <Tooltip title="Amount paid by employer">
+          <Tooltip title="Amount paid by employer"
+          placement="top"
+          arrow
+          >
             <TextField
               fullWidth
               label="Amount Paid by Employer"
@@ -95,7 +104,10 @@ const OtherPerquisitesSection = ({
         </Grid>
         
         <Grid item xs={12} md={6}>
-          <Tooltip title="Amount recovered from employee">
+          <Tooltip title="Amount recovered from employee"
+          placement="top"
+          arrow
+          >
             <TextField
               fullWidth
               label="Amount recovered from employee"
@@ -121,7 +133,10 @@ const OtherPerquisitesSection = ({
         
         {/* Monetary Benefits */}
         <Grid item xs={12} md={6}>
-          <Tooltip title="Amount paid by employer for monetary benefits">
+          <Tooltip title="Amount paid by employer for monetary benefits"
+          placement="top"
+          arrow
+          >
             <TextField
               fullWidth
               label="Amount Paid by Employer"
@@ -135,7 +150,10 @@ const OtherPerquisitesSection = ({
         </Grid>
         
         <Grid item xs={12} md={6}>
-          <Tooltip title="Official purpose Usage">
+          <Tooltip title="Official purpose Usage"
+          placement="top"
+          arrow
+          >
             <TextField
               fullWidth
               label="Official Purpose Usage"
@@ -149,7 +167,10 @@ const OtherPerquisitesSection = ({
         </Grid>
         
         <Grid item xs={12} md={6}>
-          <Tooltip title="Amount recovered by employee">
+          <Tooltip title="Amount recovered by employee"
+          placement="top"
+          arrow
+          >
             <TextField
               fullWidth
               label="Amount recovered by employee"
@@ -173,7 +194,10 @@ const OtherPerquisitesSection = ({
         <Divider sx={{ my: 0, width: '100%' }} />
         
         <Grid item xs={12} md={6}>
-          <Tooltip title="Amount paid by employer">
+          <Tooltip title="Amount paid by employer"
+          placement="top"
+          arrow
+          >
             <TextField
               fullWidth
               label="Amount Paid by Employer"
@@ -198,7 +222,10 @@ const OtherPerquisitesSection = ({
         
         {/* Club Expenses */}
         <Grid item xs={12} md={6}>
-          <Tooltip title="Amount paid by employer">
+          <Tooltip title="Amount paid by employer"
+          placement="top"
+          arrow
+          >
             <TextField
               fullWidth
               label="Amount Paid by Employer"
@@ -212,7 +239,10 @@ const OtherPerquisitesSection = ({
         </Grid>
         
         <Grid item xs={12} md={6}>
-          <Tooltip title="Amount recovered from employee">
+          <Tooltip title="Amount recovered from employee"
+          placement="top"
+          arrow
+          >
             <TextField
               fullWidth
               label="Amount recovered from employee"
@@ -226,7 +256,10 @@ const OtherPerquisitesSection = ({
         </Grid>
         
         <Grid item xs={12} md={6}>
-          <Tooltip title="Official purpose usage">
+          <Tooltip title="Official purpose usage"
+          placement="top"
+          arrow
+          >
             <TextField
               fullWidth
               label="Official purpose usage"

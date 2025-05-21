@@ -146,6 +146,17 @@ const TaxationDashboard = () => {
     navigate(`/taxation/employee/${userId}`);
   };
 
+  // Get total value of perquisites
+  const calculatePerquisitesTotal = (perquisites) => {
+    if (!perquisites) return 0;
+    
+    // Since the perquisites is an object containing various perquisite values,
+    // we need to determine its total value
+    return Object.values(perquisites)
+      .filter(value => typeof value === 'number')
+      .reduce((sum, value) => sum + value, 0);
+  };
+
   // Format currency
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
@@ -204,7 +215,7 @@ const TaxationDashboard = () => {
                     py: 0.5, 
                     borderRadius: 1 
                   }}>
-                    {row.filing_status.charAt(0).toUpperCase() + row.filing_status.slice(1)}
+                    {row.filing_status?.charAt(0)?.toUpperCase() + row.filing_status?.slice(1) || 'N/A'}
                   </Box>
                 </TableCell>
                 <TableCell>
@@ -439,8 +450,7 @@ const TaxationDashboard = () => {
                       <TableRow>
                         <TableCell>Perquisites</TableCell>
                         <TableCell align="right">
-                          {formatCurrency(
-                          )}
+                          {formatCurrency(calculatePerquisitesTotal(userData.salary.perquisites))}
                         </TableCell>
                       </TableRow>
                     )}
@@ -483,7 +493,7 @@ const TaxationDashboard = () => {
                       <TableCell align="right">{formatCurrency(userData.other_sources?.other_interest || 0)}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Bussiness & Professional Income</TableCell>
+                      <TableCell>Business & Professional Income</TableCell>
                       <TableCell align="right">{formatCurrency(userData.other_sources?.business_professional_income || 0)}</TableCell>
                     </TableRow>
                     <TableRow>

@@ -203,7 +203,10 @@ function SalaryComponents() {
                     
                     <TableCell>
                       <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Tooltip title="Edit Component">
+                        <Tooltip title="Edit Component"
+                        placement="top"
+                        arrow
+                        >
                           <IconButton
                             color="primary"
                             size="small"
@@ -212,7 +215,10 @@ function SalaryComponents() {
                             <EditIcon />
                           </IconButton> 
                         </Tooltip>
-                        <Tooltip title="Delete Component">
+                        <Tooltip title="Delete Component"
+                        placement="top"
+                        arrow
+                        >
                           <IconButton
                             color="error"
                             size="small"

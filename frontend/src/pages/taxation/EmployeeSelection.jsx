@@ -180,7 +180,7 @@ const EmployeeSelection = () => {
                         py: 0.5, 
                         borderRadius: 1 
                       }}>
-                        {employee.filing_status.charAt(0).toUpperCase() + employee.filing_status.slice(1)}
+                        {employee.filing_status?.charAt(0)?.toUpperCase() + employee.filing_status?.slice(1) || 'N/A'}
                       </Box>
                     </TableCell>
                     <TableCell>

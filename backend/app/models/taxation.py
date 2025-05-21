@@ -11,7 +11,9 @@ from models.taxation.income_sources import (
     CapitalGains,
     LeaveEncashment,
     VoluntaryRetirement,
-    RetrenchmentCompensation
+    RetrenchmentCompensation,
+    Pension,
+    Gratuity
 )
 from models.taxation.perquisites import Perquisites
 from models.taxation.salary import SalaryComponents
@@ -39,6 +41,8 @@ __all__ = [
     'LeaveEncashment',
     'VoluntaryRetirement',
     'RetrenchmentCompensation',
+    'Pension',
+    'Gratuity',
     'Perquisites',
     'SalaryComponents',
     'DeductionComponents',

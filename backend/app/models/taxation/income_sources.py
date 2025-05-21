@@ -453,7 +453,7 @@ class Gratuity:
         logger.info(f"Last drawn monthly salary: {last_drawn_monthly_salary}")
         
         # Compute service years from DOJ and DOL
-        service_years = self.compute_service_years()
+        service_years = self.compute_service_years(doj, dol)
         logger.info(f"Computed service years: {service_years:.2f}")
         
         if regime == 'new':

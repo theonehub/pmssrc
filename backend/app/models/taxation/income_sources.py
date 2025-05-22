@@ -183,6 +183,10 @@ class CapitalGains:
         logger.info(f"STCG at special rate (under section 111A): {self.stcg_111a}")
         return self.stcg_111a
     
+    def tax_on_stcg_special_rate(self) -> float:
+        """Tax on short-term capital gains charged at special rates."""
+        return self.stcg_111a * 0.20
+    
     def total_stcg_slab_rate(self) -> float:
         """Total short-term capital gains taxed at slab rates."""
         total = self.stcg_any_other_asset + self.stcg_debt_mutual_fund
@@ -194,6 +198,10 @@ class CapitalGains:
         total = max(self.ltcg_112a - 125000, 0) + self.ltcg_any_other_asset + self.ltcg_debt_mutual_fund
         logger.info(f"LTCG at special rates: {total}")
         return total
+    
+    def tax_on_ltcg_special_rate(self) -> float:
+        """Tax on long-term capital gains charged at special rates."""
+        return self.total_ltcg_special_rate() * 0.125
     
     @classmethod
     def to_dict(cls) -> Dict[str, Any]:

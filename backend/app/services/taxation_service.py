@@ -189,7 +189,7 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
         
         logger.info(f"calculate_total_tax() - Tax calculation parameters - Regime: {regime}, Age: {age}, Govt Employee: {is_govt_employee}")
         
-        salary_income = salary.total_taxable_income_per_slab(regime, age)
+        salary_income = salary.total_taxable_income_per_slab(regime)
         gross_income = salary_income
         logger.info(f"calculate_total_tax() - Total salary income: {salary_income}")
         
@@ -197,89 +197,14 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
         gross_income += other_income
         logger.info(f"calculate_total_tax() - Other sources taxable income: {other_income}")
         
-        # Calculate short-term capital gains taxed at special rates
-        stcg_special_rate = cap_gains.total_stcg_special_rate()
-        logger.info(f"calculate_total_tax() - STCG at special rates: {stcg_special_rate}")
-        
         # Calculate short-term capital gains taxed at slab rates
         stcg_slab_rate = cap_gains.total_stcg_slab_rate()
         gross_income += stcg_slab_rate
         logger.info(f"calculate_total_tax() - STCG at slab rates: {stcg_slab_rate}")
-        
-        # Calculate long-term capital gains taxed at special rates
-        ltcg_special_rate = cap_gains.total_ltcg_special_rate()
-        logger.info(f"calculate_total_tax() - LTCG at special rates: {ltcg_special_rate}")
-        
         logger.info(f"calculate_total_tax() - Gross income before deductions: {gross_income}")
         
         # Calculate the total deductions
-        total_deductions = 0
-        if regime == 'old':
-            logger.info(f"calculate_total_tax() - Calculating deductions for old regime")
-            
-            # Parse EV purchase date for section 80EEB calculations
-            ev_purchase_date = None
-            if hasattr(deductions, 'ev_purchase_date') and deductions.ev_purchase_date:
-                try:
-                    # Handle both string and datetime.date inputs
-                    if isinstance(deductions.ev_purchase_date, datetime.date):
-                        ev_purchase_date = deductions.ev_purchase_date
-                    else:
-                        ev_purchase_date = datetime.datetime.strptime(deductions.ev_purchase_date, '%Y-%m-%d').date()
-                    logger.info(f"calculate_total_tax() - EV purchase date: {ev_purchase_date}")
-                except (ValueError, TypeError) as e:
-                    logger.warning(f"calculate_total_tax() - Error parsing EV purchase date: {str(e)}")
-                    try:
-                        # Try ISO format
-                        ev_purchase_date = datetime.datetime.fromisoformat(str(deductions.ev_purchase_date)).date()
-                        logger.info(f"calculate_total_tax() - EV purchase date parsed with ISO format: {ev_purchase_date}")
-                    except (ValueError, TypeError) as e:
-                        logger.warning(f"calculate_total_tax() - Failed to parse EV purchase date with ISO format: {str(e)}")
-                        ev_purchase_date = None
-            
-            # Log Section 80C deductions details
-            section_80c_total = sum([
-                deductions.section_80c_lic, deductions.section_80c_epf,
-                deductions.section_80c_ssp, deductions.section_80c_nsc,
-                deductions.section_80c_ulip, deductions.section_80c_tsmf,
-                deductions.section_80c_tffte2c, deductions.section_80c_paphl,
-                deductions.section_80c_sdpphp, deductions.section_80c_tsfdsb,
-                deductions.section_80c_scss, deductions.section_80c_others
-            ])
-            logger.info(f"calculate_total_tax() - Section 80C components:")
-            logger.info(f"LIC: {deductions.section_80c_lic}")
-            logger.info(f"EPF: {deductions.section_80c_epf}")
-            logger.info(f"SSP: {deductions.section_80c_ssp}")
-            logger.info(f"NSC: {deductions.section_80c_nsc}")
-            logger.info(f"ULIP: {deductions.section_80c_ulip}")
-            logger.info(f"TSMF: {deductions.section_80c_tsmf}")
-            logger.info(f"TFFTE2C: {deductions.section_80c_tffte2c}")
-            logger.info(f"Loan Principal: {deductions.section_80c_paphl}")
-            logger.info(f"Stamp Duty: {deductions.section_80c_sdpphp}")
-            logger.info(f"FD: {deductions.section_80c_tsfdsb}")
-            logger.info(f"SCSS: {deductions.section_80c_scss}")
-            logger.info(f"Others: {deductions.section_80c_others}")
-
-            # Log Section 80D deductions details
-            section_80d_total = deductions.section_80d_hisf + deductions.section_80d_phcs + deductions.section_80d_hi_parent
-
-            logger.info(f"calculate_total_tax() - Section 80D components:")
-            logger.info(f"Self/Family: {deductions.section_80d_hisf}")
-            logger.info(f"Preventive: {deductions.section_80d_phcs}")
-            logger.info(f"Parents: {deductions.section_80d_hi_parent}")
-            logger.info(f"Total: {section_80d_total}")
-            
-            # Calculate all deductions
-            total_deductions = deductions.total_deduction(
-                regime=regime,
-                is_govt_employee=is_govt_employee,
-                gross_income=gross_income,
-                age=age,
-                ev_purchase_date=ev_purchase_date or datetime.datetime.now().date()
-            )
-            logger.info(f"calculate_total_tax() - Total deductions: {total_deductions}")
-        else:
-            logger.info(f"calculate_total_tax() - New regime selected - no deductions applicable")
+        total_deductions = deductions.total_deduction_per_slab(salary, other_sources, cap_gains, regime, is_govt_employee, age)
         
         net_income = max(0, gross_income - total_deductions)
         logger.info(f"calculate_total_tax() - Net taxable income: {net_income}")
@@ -288,19 +213,13 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
         tax_on_regular = compute_regular_tax(net_income, regime)
         logger.info(f"calculate_total_tax() - Tax on regular income: {tax_on_regular}")
         
-        # Calculate tax on STCG at special rates (15% for section 111A)
-        tax_on_stcg_special = stcg_special_rate * 0.20
-        logger.info(f"calculate_total_tax() - Tax on STCG at special rate (15%): {tax_on_stcg_special}")
-        
+        # Calculate tax on STCG at special rates (20% for section 111A)
+        tax_on_stcg_special = cap_gains.tax_on_stcg_special_rate()
+        logger.info(f"calculate_total_tax() - Tax on STCG at special rate (20%): {tax_on_stcg_special}")
 
-        # Calculate tax on LTCG at special rates
-        tax_on_ltcg_112a = 0
-        if ltcg_special_rate > 125000:  # Exemption of first 1 lakh for LTCG under section 112A
-            tax_on_ltcg_112a = (ltcg_special_rate - 125000) * 0.125
-            logger.info(f"calculate_total_tax() - Tax on LTCG at special rate (10% above 1L): {tax_on_ltcg_112a}")
-        else:
-            logger.info(f"calculate_total_tax() - LTCG below 1L exemption limit, no tax")
-        
+        tax_on_ltcg_112a = cap_gains.tax_on_ltcg_special_rate()
+        logger.info(f"calculate_total_tax() - Tax on LTCG at special rate (12.5%): {tax_on_ltcg_112a}")
+
         # Total base tax
         base_tax = tax_on_regular + tax_on_stcg_special + tax_on_ltcg_112a
         logger.info(f"calculate_total_tax() - Base tax (before rebate/surcharge/cess): {base_tax}")
@@ -380,7 +299,7 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
         logger.error(f"calculate_total_tax() - Unexpected error in tax calculation: {str(e)}")
         return getattr(taxation, 'total_tax', 0)
 
-def calculate_and_save_tax(emp_id: str, hostname: str, emp_age: int = None, is_govt_emp: bool = False, 
+def calculate_and_save_tax(emp_id: str, hostname: str, emp_age: int = None, is_govt_employee: bool = False, 
                             tax_year: str = None, regime: str = None,
                             salary: SalaryComponents = None, other_sources: IncomeFromOtherSources = None,
                             capital_gains: CapitalGains = None, deductions: DeductionComponents = None,
@@ -391,7 +310,7 @@ def calculate_and_save_tax(emp_id: str, hostname: str, emp_age: int = None, is_g
     Calculate the tax and save to the database
     """
     logger.info(f"calculate_and_save_tax - Starting tax calculation and saving for employee ID: {emp_id}")
-    logger.info(f"calculate_and_save_tax - Parameters - emp_age: {emp_age}, is_govt_emp: {is_govt_emp}, regime: {regime}, "
+    logger.info(f"calculate_and_save_tax - Parameters - emp_age: {emp_age}, is_govt_employee: {is_govt_employee}, regime: {regime}, "
                 f"salary provided: {salary is not None}, other_sources provided: {other_sources is not None}, "
                 f"capital_gains provided: {capital_gains is not None}, deductions provided: {deductions is not None}, "
                 f"leave_encashment provided: {leave_encashment is not None}, "

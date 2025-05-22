@@ -429,7 +429,8 @@ class Taxation:
             for attr in dir(self.salary):
                 if not attr.startswith('_') and attr != 'to_dict' and attr != 'total' \
                     and attr != 'calculate_exemptions' and attr != 'calculate_taxable_salary' \
-                        and attr != 'calculate_annual_value' and attr != 'calculate_hra_exemption':
+                        and attr != 'calculate_annual_value' and attr != 'calculate_hra_exemption' \
+                            and attr != 'total_taxable_income_per_slab':
                     value = getattr(self.salary, attr)
                     # Handle perquisites specially
                     if attr == 'perquisites' and value is not None:
@@ -473,7 +474,8 @@ class Taxation:
                     and attr != 'total_stcg_special_rate' and attr != 'total_stcg_slab_rate' \
                         and attr != 'total_ltcg_special_rate' and attr != 'calculate_ltcg_tax' \
                             and attr != 'calculate_stcg_tax' and attr != 'total_ltcg_slab_rate' \
-                                and attr != 'calculate_ltcg_tax_per_slab' and attr != 'calculate_stcg_tax_per_slab':
+                                and attr != 'calculate_ltcg_tax_per_slab' and attr != 'calculate_stcg_tax_per_slab'\
+                                    and attr != 'tax_on_stcg_special_rate' and attr != 'tax_on_ltcg_special_rate':
                     capital_gains_dict[attr] = getattr(self.capital_gains, attr)
             result['capital_gains'] = capital_gains_dict
 
@@ -536,7 +538,9 @@ class Taxation:
         else:
             deductions_dict = {}
             for attr in dir(self.deductions):
-                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total' and attr != 'total_deduction' and not attr.startswith('total_deductions_'):
+                if not attr.startswith('_') and attr != 'to_dict' and attr != 'total' \
+                    and attr != 'total_deduction' and not attr.startswith('total_deductions_') \
+                        and attr != 'total_deduction_per_slab':
                     value = getattr(self.deductions, attr)
                     # Handle date objects
                     if isinstance(value, datetime.date):

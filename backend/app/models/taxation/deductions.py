@@ -12,7 +12,7 @@ from typing import Dict, Any, Optional
 logger = logging.getLogger(__name__)
 
 from models.taxation.salary import SalaryComponents
-from models.taxation.income_sources import IncomeFromOtherSources
+from models.taxation.income_sources import IncomeFromOtherSources, CapitalGains
 from models.taxation.constants import (
     section_80g_100_wo_ql_heads,
     section_80g_50_wo_ql_heads,
@@ -229,13 +229,13 @@ class DeductionComponents:
     section_80eeb: float = 0    # Max 150K
     ev_purchase_date: date = date.today()
 
-    def total_deductions_80eeb(self, regime: str = 'new', ev_purchase_date: date = date.today()) -> float:
+    def total_deductions_80eeb(self, regime: str = 'new') -> float:
         """Calculate deductions for electric vehicle loan interest under 80EEB."""
         if regime == 'new':
             return 0
         else:
-            logger.info(f"Calculating Section 80EEB total for {ev_purchase_date}")
-            if ev_purchase_date >= date(2019, 4, 1) and ev_purchase_date <= date(2023, 3, 31):
+            logger.info(f"Calculating Section 80EEB total for {self.ev_purchase_date}")
+            if self.ev_purchase_date >= date(2019, 4, 1) and self.ev_purchase_date <= date(2023, 3, 31):
                 total = min(self.section_80eeb, 150000)
                 logger.info(f"Section 80EEB min ({self.section_80eeb}, 150000) = {total}")
                 return total
@@ -337,10 +337,10 @@ class DeductionComponents:
 
     def total_deductions_80g(self, salary: SalaryComponents, 
                              income_from_other_sources: IncomeFromOtherSources, 
+                             capital_gains: CapitalGains,
                              regime: str = 'new', 
                             is_govt_employee: bool = False, 
-                            age: int = 0, parent_age: int = 0, 
-                            ev_purchase_date: date = date.today()) -> float:
+                            age: int = 0, parent_age: int = 0) -> float:
         """Calculate total 80G deductions."""
         gross_income_basic_da = salary.basic + salary.dearness_allowance
 
@@ -352,11 +352,11 @@ class DeductionComponents:
                     self.total_deductions_80dd(regime), 
                     self.total_deductions_80ddb(regime, age), 
                     self.total_deductions_80e(regime), 
-                    self.total_deductions_80eeb(regime, ev_purchase_date), 
+                    self.total_deductions_80eeb(regime), 
                     self.total_deductions_80ggc(regime), 
                     self.total_deductions_80u(regime)])
         logger.info(f"Deduction computed for 80G(80c to 80u): {deduction}")
-        
+
         ### compute income
         #Gross Total Income
         #– Exempt income (e.g., agricultural income)
@@ -365,8 +365,10 @@ class DeductionComponents:
         #– Deductions under Sections 80C to 80U (excluding 80G)
         #– Income on which income tax is not payable (like shares from an AOP)
         gross_income = sum([
-            salary.total_taxable_income_per_slab(gross_salary=(salary.basic+salary.dearness_allowance), regime=regime),
-            income_from_other_sources.total_taxable_income_per_slab(regime=regime)
+            salary.total_taxable_income_per_slab(regime=regime),
+            income_from_other_sources.total_taxable_income_per_slab(regime=regime),
+            capital_gains.total_stcg_slab_rate()
+            #TODO: add more components here
         ])
         logger.info(f"Gross income: {gross_income}")
 
@@ -384,8 +386,7 @@ class DeductionComponents:
                                  regime: str = 'new', 
                                  is_govt_employee: bool = False, 
                                  age: int = 0, 
-                                 parent_age: int = 0,
-                                 ev_purchase_date: date = date.today()) -> float:
+                                 parent_age: int = 0) -> float:
         """
         Calculate total deductions from all sections.
         
@@ -404,10 +405,10 @@ class DeductionComponents:
                 self.total_deductions_80d_parent(regime, age) +
                 self.total_deductions_80dd(regime) +
                 self.total_deductions_80ddb(regime, age) +
-                self.total_deductions_80eeb(regime, ev_purchase_date) +
+                self.total_deductions_80eeb(regime) +
                 self.total_deductions_80ggc(regime) +
                 self.total_deductions_80u(regime) +
-                self.total_deductions_80g(salary, income_from_other_sources, regime, is_govt_employee, age, parent_age, ev_purchase_date))
+                self.total_deductions_80g(salary, income_from_other_sources, regime, is_govt_employee, age, parent_age))
 
     @classmethod
     def to_dict(cls) -> Dict[str, Any]:

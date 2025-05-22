@@ -11,7 +11,7 @@ Contains classes for different types of income sources:
 from dataclasses import dataclass
 import datetime
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
 
@@ -64,19 +64,6 @@ class IncomeFromOtherSources:
 
         return direct_taxable
 
-    def total(self) -> float:
-        """Calculate total income from other sources."""
-        return sum([
-            self.interest_savings,
-            self.interest_fd,
-            self.interest_rd,
-            self.dividend_income,
-            self.gifts,
-            self.other_interest,
-            self.business_professional_income,
-            self.other_income
-        ])
-    
     @classmethod
     def to_dict(cls) -> Dict[str, Any]:
         """Convert the object to a dictionary for JSON serialization."""

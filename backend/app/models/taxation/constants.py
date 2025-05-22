@@ -30,16 +30,25 @@ section_80g_100_wo_ql_heads = [
     'Any 2 or more of the above'
 ]
 
-section_80g_50_wo_ql_heads = ["Prime Minister's Drought Relief Fund"]
+section_80g_50_wo_ql_heads = [
+    'Jawaharlal Nehru Memorial Fund',
+    'Prime Minister’s Drought Relief Fund',
+    'Indira Gandhi Memorial Trust',
+    'Rajiv Gandhi Foundation',
+    'Any 2 or more of the above'
+]
+
 
 section_80g_100_ql_heads = [
-    "Donations to government or any approved local authority to promote family planning",
-    "Any other fund that satisfies the conditions"
+    'Donations to the Government or any approved local authority, institution or association to be utilized for the purpose of promoting family planning',
+    'Donation by a company to the Indian Olympic Association or to any other notified association or institution established in India for the development of infrastructure for sports and games in India or for the sponsorship of sports and games in India',
+    'Any 2 or more of the above'
 ]
 
 section_80g_50_ql_heads = [
-    "Donations to government or any approved local authority to except to promote family planning",
-    "Any Corporation for promoting interest of minority community",
-    "For repair or renovation of any notified temple, mosque, gurudwara, church or other places of worship",
-    "Any other fund that satisfies the conditions"
+    'Donations to any other fund or institution which satisfies the conditions mentioned in Section 80G(5)',
+    'Donations to the Government or any local authority to be utilized for any charitable purpose other than promoting family planning',
+    'Donations to an authority constituted in India for the purpose of dealing with and satisfying the need for housing accommodation or for the purpose of planning, development or improvement of cities, towns and villages',
+    'Donations to an institution or fund engaged in the repair or renovation of notified temples, mosques, gurudwaras, churches or other places of historic, archaeological or artistic importance or of public worship',
+    'Any 2 or more of the above'
 ] 

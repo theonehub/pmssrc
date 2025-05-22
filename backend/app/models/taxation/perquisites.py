@@ -494,7 +494,7 @@ class Perquisites:
         return max(0, self.domestic_help_amount_paid_by_employer - self.domestic_help_amount_paid_by_employee)
 
     
-    def total(self, gross_salary: float, regime: str = 'new') -> float:
+    def total_taxable_income_per_slab(self, gross_salary: float, regime: str = 'new') -> float:
         """
         Calculate total taxable value of all perquisites for the given regime.
         Includes all perquisite types as per Indian tax rules.
@@ -505,7 +505,6 @@ class Perquisites:
         # Add all perquisite calculations
         total_value += self.total_accommodation_value(gross_salary=gross_salary, regime=regime)
         total_value += self.total_car_value(regime=regime)
-        total_value += self.total_medical_reimbursement(gross_salary=gross_salary, regime=regime)
         total_value += self.total_lta_value(regime)
         total_value += self.total_free_education_value(regime)
         total_value += self.total_gas_electricity_water_value(regime)

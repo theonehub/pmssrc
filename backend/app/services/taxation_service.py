@@ -169,7 +169,8 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
         taxation_data = get_taxation_by_emp_id(emp_id, hostname)
         # Convert to Taxation object
         taxation = Taxation.from_dict(taxation_data)
-        logger.info(f"calculate_total_tax() - Successfully retrieved taxation data: ID={taxation.emp_id}, Age={taxation.emp_age}, Regime={taxation.regime}")
+        logger.info(f"calculate_total_tax() - Successfully retrieved taxation data: ID={taxation.emp_id}, "
+                    f"Age={taxation.emp_age}, Regime={taxation.regime}")
     except Exception as e:
         # If taxation data doesn't exist or can't be retrieved, return 0
         logger.error(f"calculate_total_tax() - Error retrieving taxation data: {str(e)}")
@@ -184,28 +185,13 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
         deductions = taxation.deductions
         regime = taxation.regime
         age = taxation.emp_age
-        is_govt_employee = getattr(taxation, 'is_govt_employee', False)
+        is_govt_employee = taxation.is_govt_employee
         
         logger.info(f"calculate_total_tax() - Tax calculation parameters - Regime: {regime}, Age: {age}, Govt Employee: {is_govt_employee}")
         
-        # Calculate the total taxable income
-        logger.info(f"calculate_total_tax() - Calculating salary income with components - Basic: {salary.basic}, DA: {salary.dearness_allowance}, "
-                    f"HRA: {salary.hra}, Actual Rent Paid: {salary.actual_rent_paid}, HRA City: {salary.hra_city}, HRA Percentage: {salary.hra_percentage}, Special: {salary.special_allowance}, Bonus: {salary.bonus}")
-        
-        salary_income = salary.total()
+        salary_income = salary.total_taxable_income_per_slab(regime, age)
         gross_income = salary_income
         logger.info(f"calculate_total_tax() - Total salary income: {salary_income}")
-        
-        # Calculate other income sources
-        logger.info(f"calculate_total_tax() - Calculating other sources income")
-        logger.info(f"Savings Interest: {other_sources.interest_savings}")
-        logger.info(f"FD Interest: {other_sources.interest_fd}")
-        logger.info(f"RD Interest: {other_sources.interest_rd}")
-        logger.info(f"Dividend: {other_sources.dividend_income}")
-        logger.info(f"Gifts: {other_sources.gifts}")
-        logger.info(f"Other Interest: {other_sources.other_interest}")
-        logger.info(f"Business&Professional Income: {other_sources.business_professional_income}")
-        logger.info(f"Other Income: {other_sources.other_income}")
         
         other_income = other_sources.total_taxable_income_per_slab(regime, age)
         gross_income += other_income
@@ -374,7 +360,7 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
             taxation_dict = _ensure_serializable(taxation.to_dict())
             
             # Add update timestamp
-            taxation_dict["updated_at"] = datetime.datetime.utcnow()
+            taxation_dict["updated_at"] = datetime.datetime.now()
             
             # Use the save_taxation function to handle database operations
             save_taxation(taxation_dict, hostname)
@@ -394,17 +380,18 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
         logger.error(f"calculate_total_tax() - Unexpected error in tax calculation: {str(e)}")
         return getattr(taxation, 'total_tax', 0)
 
-def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, regime: str = None,
-                         salary: SalaryComponents = None, other_sources: IncomeFromOtherSources = None,
-                         capital_gains: CapitalGains = None, deductions: DeductionComponents = None,
-                         leave_encashment: LeaveEncashment = None, voluntary_retirement: VoluntaryRetirement = None,
-                         retrenchment: RetrenchmentCompensation = None, pension: Pension = None,
-                         gratuity: Gratuity = None, house_property: IncomeFromHouseProperty = None) -> Taxation:
+def calculate_and_save_tax(emp_id: str, hostname: str, emp_age: int = None, is_govt_emp: bool = False, 
+                            tax_year: str = None, regime: str = None,
+                            salary: SalaryComponents = None, other_sources: IncomeFromOtherSources = None,
+                            capital_gains: CapitalGains = None, deductions: DeductionComponents = None,
+                            leave_encashment: LeaveEncashment = None, voluntary_retirement: VoluntaryRetirement = None,
+                            retrenchment: RetrenchmentCompensation = None, pension: Pension = None,
+                            gratuity: Gratuity = None, house_property: IncomeFromHouseProperty = None) -> Taxation:
     """
     Calculate the tax and save to the database
     """
     logger.info(f"calculate_and_save_tax - Starting tax calculation and saving for employee ID: {emp_id}")
-    logger.info(f"calculate_and_save_tax - Parameters - tax_year: {tax_year}, regime: {regime}, "
+    logger.info(f"calculate_and_save_tax - Parameters - emp_age: {emp_age}, is_govt_emp: {is_govt_emp}, regime: {regime}, "
                 f"salary provided: {salary is not None}, other_sources provided: {other_sources is not None}, "
                 f"capital_gains provided: {capital_gains is not None}, deductions provided: {deductions is not None}, "
                 f"leave_encashment provided: {leave_encashment is not None}, "
@@ -426,13 +413,30 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
         
         logger.info(f"calculate_and_save_tax - Auto-determined tax year: {tax_year}")
     
+    if emp_age is 0:
+        # Get user age
+        try:
+            logger.info(f"calculate_and_save_tax - Fetching user data to determine age")
+            user_data = get_user_by_emp_id(emp_id, hostname)
+            if user_data and 'dob' in user_data and user_data['dob']:
+                dob = datetime.datetime.strptime(user_data.get('dob', ''), '%Y-%m-%d')
+                today = datetime.datetime.now()
+                age_delta = relativedelta(today, dob)
+                emp_age = age_delta.years
+                logger.info(f"calculate_and_save_tax - Calculated age for user: {emp_age} years")
+            else:   
+                logger.warning(f"calculate_and_save_tax - No DOB found for user, defaulting age to 0")
+        except Exception as e:
+            logger.error(f"calculate_and_save_tax - Could not calculate age for {emp_id}: {str(e)}")
+            
     # Try to fetch existing taxation data
     try:
         logger.info(f"calculate_and_save_tax - Trying to fetch existing taxation data for employee: {emp_id}")
         taxation_data = get_taxation_by_emp_id(emp_id, hostname)
         # Convert to Taxation object
         taxation = Taxation.from_dict(taxation_data)
-        logger.info(f"calculate_and_save_tax - Found existing taxation data for employee: {emp_id}, age: {taxation.emp_age}, tax year: {taxation.tax_year}, regime: {taxation.regime}")
+        logger.info(f"calculate_and_save_tax - Found existing taxation data for employee: {emp_id},"
+                    f" age: {taxation.emp_age}, tax year: {taxation.tax_year}, regime: {taxation.regime}")
         
         # Update with provided values
         if regime:
@@ -474,22 +478,7 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
     except Exception as e:
         logger.info(f"calculate_and_save_tax - No existing taxation data found for {emp_id}, creating new taxation object. Error: {str(e)}")
         
-        # Get user age
-        emp_age = 0
-        try:
-            logger.info(f"calculate_and_save_tax - Fetching user data to determine age")
-            user_data = get_user_by_emp_id(emp_id, hostname)
-            if user_data and 'dob' in user_data and user_data['dob']:
-                dob = datetime.datetime.strptime(user_data.get('dob', ''), '%Y-%m-%d')
-                today = datetime.datetime.now()
-                age_delta = relativedelta(today, dob)
-                emp_age = age_delta.years
-                logger.info(f"calculate_and_save_tax - Calculated age for user: {emp_age} years")
-            else:
-                logger.warning(f"calculate_and_save_tax - No DOB found for user, defaulting age to 0")
-        except Exception as e:
-            logger.error(f"calculate_and_save_tax - Could not calculate age for {emp_id}: {str(e)}")
-            
+        
         # Create new taxation object if not found
         logger.info(f"calculate_and_save_tax - Creating new taxation object with emp_id: {emp_id}, age: {emp_age}, regime: {regime or 'old'}, tax_year: {tax_year}")
         taxation = Taxation(
@@ -526,7 +515,7 @@ def calculate_and_save_tax(emp_id: str, hostname: str, tax_year: str = None, reg
         taxation_dict = _ensure_serializable(taxation.to_dict())
         
         # Add update timestamp
-        taxation_dict["updated_at"] = datetime.datetime.utcnow()
+        taxation_dict["updated_at"] = datetime.datetime.now()
         
         # Use database function to save
         save_taxation(taxation_dict, hostname)

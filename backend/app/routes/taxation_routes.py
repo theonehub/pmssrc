@@ -1,12 +1,30 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from typing import List, Dict, Any, Optional
-from models.taxation import SalaryComponents, IncomeFromOtherSources, CapitalGains, DeductionComponents, Taxation, Perquisites, IncomeFromHouseProperty, LeaveEncashment, Gratuity, RetrenchmentCompensation, Pension
-from services.taxation_service import calculate_total_tax, calculate_and_save_tax, get_or_create_taxation_by_emp_id, compute_vrs_from_user_data
-from database.taxation_database import get_taxation_by_emp_id, update_tax_payment, get_all_taxation, update_filing_status
+from models.taxation import (
+    SalaryComponents, 
+    IncomeFromOtherSources, 
+    CapitalGains, DeductionComponents, 
+    IncomeFromHouseProperty, 
+    LeaveEncashment, 
+    VoluntaryRetirement,
+    Gratuity, 
+    RetrenchmentCompensation, 
+    Pension
+)
+from services.taxation_service import (
+    calculate_total_tax, 
+    calculate_and_save_tax, 
+    get_or_create_taxation_by_emp_id, 
+    compute_vrs_from_user_data
+)
+from database.taxation_database import (
+    update_tax_payment, 
+    get_all_taxation, 
+    update_filing_status
+)
 from auth.auth import extract_hostname, role_checker, extract_emp_id
 from pydantic import BaseModel
 import logging
-from models.taxation.income_sources import VoluntaryRetirement
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +71,9 @@ class FilingStatusRequest(BaseModel):
 class TaxationDataRequest(BaseModel):
     emp_id: str
     regime: str
+    emp_age: int
+    is_govt_employee: bool
+    tax_year: str
     salary: Optional[Dict[str, Any]] = None
     other_sources: Optional[Dict[str, Any]] = None
     capital_gains: Optional[Dict[str, Any]] = None
@@ -64,7 +85,6 @@ class TaxationDataRequest(BaseModel):
     pension: Optional[Dict[str, Any]] = None
 
     deductions: Optional[Dict[str, Any]] = None
-    tax_year: Optional[str] = None
     
     class Config:
         schema_extra = {
@@ -113,7 +133,9 @@ class TaxationDataRequest(BaseModel):
                     "section_80c": 150000,
                     "section_80d": 25000
                 },
-                "tax_year": "2023-2024"
+                "tax_year": "2023-2024",
+                "emp_age": 30,
+                "is_govt_employee": False
             }
         }
 
@@ -164,6 +186,8 @@ def save_taxation_data(
         # Calculate and save tax
         taxation = calculate_and_save_tax(
             emp_id=request.emp_id,
+            emp_age=request.emp_age,
+            is_govt_employee=request.is_govt_employee,
             hostname=hostname,
             tax_year=request.tax_year,
             regime=request.regime,

@@ -11,6 +11,8 @@ from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
+from models.taxation.salary import SalaryComponents
+from models.taxation.income_sources import IncomeFromOtherSources
 from models.taxation.constants import (
     section_80g_100_wo_ql_heads,
     section_80g_50_wo_ql_heads,
@@ -74,7 +76,7 @@ class DeductionComponents:
             logger.info(f"Others :{self.section_80c_others}")
             logger.info(f"Pension Payment under section 80CCC :{self.section_80ccc_ppic}")
             logger.info(f"NPS :{self.section_80ccd_1_nps}")
-            logger.info(f"Additional contribution to NPS by self-employed or employee :{self.section_80ccd_1b_additional}")
+            logger.info(f"Additional contribution to NPS by self-employed or employee(50K) :{self.section_80ccd_1b_additional}")
             
             # Calculate Section 80C total (capped at 150,000)
             section_80c_total = (min(sum([
@@ -99,8 +101,9 @@ class DeductionComponents:
     section_80ccd_2_enps: float = 0  # contribution to NPS by employer 
                                      # 14% of salary(govt employees) 
                                      # 10% of salary(private employees)
-
-    def total_deductions_80ccd_2(self, regime: str = 'new', gross_income: float = 0, is_govt_employee: bool = False) -> float:
+    #Gross income is Basic + DA only
+    #TODO: Not including in deductions for now.
+    def total_deductions_80ccd_2(self, regime: str = 'new', gross_income_basic_da: float = 0, is_govt_employee: bool = False) -> float:
         """
         Calculate total deductions under 80CCD(2) - Employer's contribution to NPS
         Limit is 14% of salary for government employees, 10% for private
@@ -109,16 +112,16 @@ class DeductionComponents:
             return 0
         else:
             if is_govt_employee:
-                logger.info(f"Calculating Section 80CCD(2) total for government employee {gross_income} * 14% = {gross_income * 0.14}")
-                max_cap = gross_income * 0.14
+                logger.info(f"Calculating Section 80CCD(2) total for government employee {gross_income_basic_da} * 14% = {gross_income_basic_da * 0.14}")
+                max_cap = gross_income_basic_da * 0.14
             else:
-                logger.info(f"Calculating Section 80CCD(2) total for private employee {gross_income} * 10% = {gross_income * 0.10}")
-                max_cap = gross_income * 0.10
+                logger.info(f"Calculating Section 80CCD(2) total for private employee {gross_income_basic_da} * 10% = {gross_income_basic_da * 0.10}")
+                max_cap = gross_income_basic_da * 0.10
             logger.info(f"Section 80CCD(2) Employer's contribution to NPS: {self.section_80ccd_2_enps}")
             logger.info(f"Deduction: {min(self.section_80ccd_2_enps, max_cap)}")
             return min(self.section_80ccd_2_enps, max_cap)
             
-    # section 80D Health Insurance Premium
+    # section 80D Health Insurance Premium Self and Family
     section_80d_hisf: float = 0     # Health Insurance Premium for self and family
                                     # Max 25,000 if age is above 60 otherwise 50,000
     section_80d_phcs: float = 0     # Preventive health checkups max 5000 per year
@@ -130,35 +133,34 @@ class DeductionComponents:
             return 0
         else:
             if age >= 60:
-                total = min(self.section_80d_hisf + min(self.section_80d_phcs, 5000), 50000)
-                logger.info(f"health insurance for self and family for age above 60:")
-                logger.info(f"min({self.section_80d_hisf} + min({self.section_80d_phcs}, 5000), 50000) = {total}")
-                return total
+                max_cap = 50000
+                
             else:
-                total = min(self.section_80d_hisf + min(self.section_80d_phcs, 5000), 25000)
-                logger.info(f"health insurance for self and family for age below 60:")
-                logger.info(f"min({self.section_80d_hisf} + min({self.section_80d_phcs}, 5000), 25000) = {total}")
-                return total
+                max_cap = 25000
+            
+        total = min((self.section_80d_hisf + min(self.section_80d_phcs, 5000)), max_cap)
+        logger.info(f"Health insurance for self and family for age {age}:")
+        logger.info(f"min(({self.section_80d_hisf} + min({self.section_80d_phcs}, 5000)), {max_cap}) = {total}")
+        return total
 
     # section 80D Health Insurance Premium for parents
     section_80d_hi_parent: float = 0  # Health Insurance Premium for parents
                                     # Max 25,000 if age is above 60 otherwise 50,000
     
-    def total_deductions_80d_parent(self, regime: str = 'new', age: int = 0) -> float:
+    def total_deductions_80d_parent(self, regime: str = 'new', parent_age: int = 0) -> float:
         """Calculate total deductions for health insurance for parents."""
         if regime == 'new':
             return 0
         else:
-            if age >= 60:
-                total = min(self.section_80d_hi_parent, 50000)
-                logger.info(f"health insurance for parents for age above 60:")
-                logger.info(f"min({self.section_80d_hi_parent}, 50000) = {total}")
-                return total
+            if parent_age >= 60:
+                max_cap = 50000
             else:
-                total = min(self.section_80d_hi_parent, 25000)
-                logger.info(f"health insurance for parents for age below 60:")
-                logger.info(f"min({self.section_80d_hi_parent}, 25000) = {total}")
-                return total
+                max_cap = 25000
+            total = min(self.section_80d_hi_parent, max_cap)
+            logger.info(f"Health insurance for parents for age {parent_age}:")
+            logger.info(f"min({self.section_80d_hi_parent}, {max_cap}) = {total}")
+            return total
+
 
     # section 80DD Disability Deduction 
     relation_80dd: str = '' # Spouse, Child, Parents, Sibling
@@ -208,8 +210,8 @@ class DeductionComponents:
             else:
                 return 0
             
-    relation_80e: str = 'Self' # Self, Spouse, Child    #TODO: Make sure that its not beyond taxable income
-                                                        #TODO: Make sure that its not beyond taxable income
+    # section 80E Education Loan Interest
+    relation_80e: str = 'Self' # Self, Spouse, Child                                  
     section_80e_interest: float = 0 # No limit
 
     def total_deductions_80e(self, regime: str = 'new') -> float:
@@ -295,7 +297,7 @@ class DeductionComponents:
         elif self.section_80g_50_head in section_80g_50_wo_ql_heads:
             logger.info(f"Section 80G 50% deduction for donations without qualifying limit:")
             logger.info(f"Section 80G {self.section_80g_50_head}")
-            logger.info(f"{self.section_80g_50_wo_ql}")
+            logger.info(f"{self.section_80g_50_wo_ql} * 0.5 = {self.section_80g_50_wo_ql * 0.5}")
             return (self.section_80g_50_wo_ql * 0.5)
         else:
             return 0
@@ -312,7 +314,7 @@ class DeductionComponents:
         elif self.section_80g_100_ql_head in section_80g_100_ql_heads:
             logger.info(f"Section 80G 100% deduction for donations with qualifying limit:")
             logger.info(f"Section 80G {self.section_80g_100_ql_head}")
-            logger.info(f"{self.section_80g_100_ql}")
+            logger.info(f"min({self.section_80g_100_ql}, ({gross_income} * 0.1)) = {min(self.section_80g_100_ql, (gross_income * 0.1))}")
             return min(self.section_80g_100_ql, (gross_income * 0.1))
         else:
             return 0
@@ -333,11 +335,57 @@ class DeductionComponents:
         else:
             return 0
 
+    def total_deductions_80g(self, salary: SalaryComponents, 
+                             income_from_other_sources: IncomeFromOtherSources, 
+                             regime: str = 'new', 
+                            is_govt_employee: bool = False, 
+                            age: int = 0, parent_age: int = 0, 
+                            ev_purchase_date: date = date.today()) -> float:
+        """Calculate total 80G deductions."""
+        gross_income_basic_da = salary.basic + salary.dearness_allowance
 
-    def total_deduction(self, regime: str = 'new', 
-                        is_govt_employee: bool = False,         
-                        gross_income: float = 0, age: int = 0,             
-                        ev_purchase_date: date = date.today()) -> float:
+        ##Compute deductions
+        deduction = sum([self.total_deductions_80c_80ccd_80ccd_1_1b(regime), 
+                    self.total_deductions_80ccd_2(regime, gross_income_basic_da, is_govt_employee), 
+                    self.total_deductions_80d_self_family(regime, age), 
+                    self.total_deductions_80d_parent(regime, parent_age), 
+                    self.total_deductions_80dd(regime), 
+                    self.total_deductions_80ddb(regime, age), 
+                    self.total_deductions_80e(regime), 
+                    self.total_deductions_80eeb(regime, ev_purchase_date), 
+                    self.total_deductions_80ggc(regime), 
+                    self.total_deductions_80u(regime)])
+        logger.info(f"Deduction computed for 80G(80c to 80u): {deduction}")
+        
+        ### compute income
+        #Gross Total Income
+        #– Exempt income (e.g., agricultural income)
+        #– Long-term capital gains (LTCG)
+        #– Short-term capital gains under Section 111A (STT-paid equity gains)
+        #– Deductions under Sections 80C to 80U (excluding 80G)
+        #– Income on which income tax is not payable (like shares from an AOP)
+        gross_income = sum([
+            salary.total_taxable_income_per_slab(gross_salary=(salary.basic+salary.dearness_allowance), regime=regime),
+            income_from_other_sources.total_taxable_income_per_slab(regime=regime)
+        ])
+        logger.info(f"Gross income: {gross_income}")
+
+        ##Compute 80G
+        total_deductions_80g = sum([
+            self.total_deductions_80g_100_wo_ql(regime),
+            self.total_deductions_80g_50_wo_ql(regime),
+            self.total_deductions_80g_100_ql(regime, gross_income),
+            self.total_deductions_80g_50_ql(regime, gross_income)
+        ])
+        return total_deductions_80g
+
+    def total_deduction_per_slab(self, salary: SalaryComponents, 
+                                 income_from_other_sources: IncomeFromOtherSources, 
+                                 regime: str = 'new', 
+                                 is_govt_employee: bool = False, 
+                                 age: int = 0, 
+                                 parent_age: int = 0,
+                                 ev_purchase_date: date = date.today()) -> float:
         """
         Calculate total deductions from all sections.
         
@@ -352,22 +400,14 @@ class DeductionComponents:
         - Total deduction amount
         """
         return (self.total_deductions_80c_80ccd_80ccd_1_1b(regime) +
-                self.total_deductions_80ccd_2(regime, gross_income, is_govt_employee) +
                 self.total_deductions_80d_self_family(regime, age) +
                 self.total_deductions_80d_parent(regime, age) +
                 self.total_deductions_80dd(regime) +
                 self.total_deductions_80ddb(regime, age) +
                 self.total_deductions_80eeb(regime, ev_purchase_date) +
-                self.total_deductions_80g_100_wo_ql(regime) +
-                self.total_deductions_80g_50_wo_ql(regime) +
-                self.total_deductions_80g_100_ql(regime, gross_income) +
-                self.total_deductions_80g_50_ql(regime, gross_income) +
                 self.total_deductions_80ggc(regime) +
-                self.total_deductions_80u(regime))
-
-    def total(self, regime: str = 'new', is_govt_employee: bool = False, gross_income: float = 0, age: int = 0, ev_purchase_date: date = date.today()) -> float:
-        """Alias for total_deduction to maintain compatibility."""
-        return self.total_deduction(regime, is_govt_employee, gross_income, age, ev_purchase_date)
+                self.total_deductions_80u(regime) +
+                self.total_deductions_80g(salary, income_from_other_sources, regime, is_govt_employee, age, parent_age, ev_purchase_date))
 
     @classmethod
     def to_dict(cls) -> Dict[str, Any]:

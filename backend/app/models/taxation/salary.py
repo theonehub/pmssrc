@@ -24,8 +24,8 @@ class SalaryComponents:
     dearness_allowance: float = 0                       # Dearness Allowance(Slab)
     hra_city: str = 'Others'                            # HRA_City_selected(Metadata)
     hra_percentage: float = 0                           # HRA_Percentage(Metadata)
-    hra: float = 0                                       # HRA(Slab)
-    actual_rent_paid: float = 0                          # Actual Rent Paid(Slab)
+    hra: float = 0                                      # HRA(Slab)
+    actual_rent_paid: float = 0                         # Actual Rent Paid(Slab)
     special_allowance: float = 0                        # Special Allowance(Slab)
     bonus: float = 0                                    # Bonus(Slab)
     commission: float = 0                               # Commission(Slab)
@@ -105,7 +105,7 @@ class SalaryComponents:
         
         return hra_exemption
 
-    def calculate_exemptions(self, regime: str = 'old', is_govt_employee: bool = False) -> float:
+    def calculate_exemptions(self, regime: str = 'old', is_govt_employee: bool = False, age: int = 0) -> float:
         """Calculate all exemptions applicable to salary components."""
         if regime == 'new':
             return 0
@@ -165,7 +165,7 @@ class SalaryComponents:
         
         return hra_exemption + section10_exemptions + other_allowances_exemption + self.any_other_allowance_exemption
 
-    def total(self, regime: str = 'old') -> float:
+    def total_taxable_income_per_slab(self, regime: str = 'old') -> float:
         """Calculate total taxable salary components."""
         # Sum all salary components
         gross_salary = (
@@ -194,7 +194,8 @@ class SalaryComponents:
             self.hostel_allowance +
             self.transport_allowance +
             self.underground_mines_allowance +
-            self.govt_employee_entertainment_allowance
+            self.govt_employee_entertainment_allowance +
+            self.perquisites.total_taxable_income_per_slab(gross_salary=(self.basic+self.dearness_allowance), regime=regime)
         )
         
         # Calculate exemptions
@@ -203,7 +204,7 @@ class SalaryComponents:
         # Add perquisites value if exists
         perquisites_value = 0
         if self.perquisites:
-            perquisites_value = self.perquisites.total(gross_salary=gross_salary, regime=regime)
+            perquisites_value = self.perquisites.total_taxable_income_per_slab(gross_salary=gross_salary, regime=regime)
             logger.info(f"Perquisites total: {perquisites_value}")
         
         # Calculate taxable salary

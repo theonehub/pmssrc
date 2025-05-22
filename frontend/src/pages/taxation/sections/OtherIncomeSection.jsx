@@ -21,14 +21,12 @@ import { occupancyStatuses } from '../utils/taxationConstants';
  * @param {Object} props.taxationData - Taxation data state
  * @param {Function} props.handleInputChange - Function to handle input change
  * @param {Function} props.handleFocus - Function to handle focus
- * @param {Function} props.fetchVrsValue - Function to fetch VRS value
  * @returns {JSX.Element} Other Income section component
  */
 const OtherIncomeSection = ({
   taxationData,
   handleInputChange,
-  handleFocus,
-  fetchVrsValue
+  handleFocus
 }) => {
   const [loading, setLoading] = useState(false);
   

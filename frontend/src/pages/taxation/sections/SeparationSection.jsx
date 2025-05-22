@@ -17,13 +17,13 @@ import { formatIndianNumber } from '../utils/taxationUtils';
 import FormSectionHeader from '../components/FormSectionHeader';
 
 /**
- * Other Income Section Component
+ * Separation Section Component
  * @param {Object} props - Component props
  * @param {Object} props.taxationData - Taxation data state
  * @param {Function} props.handleInputChange - Function to handle input change
  * @param {Function} props.handleFocus - Function to handle focus
  * @param {Function} props.fetchVrsValue - Function to fetch VRS value
- * @returns {JSX.Element} Other Income section component
+ * @returns {JSX.Element} Separation section component
  */
 const SeparationSection = ({
   taxationData,
@@ -124,7 +124,6 @@ const SeparationSection = ({
                     const newStatus = e.target.checked;
                     handleInputChange('leave_encashment', 'during_employment', newStatus);
                     if (newStatus === true) {
-                      handleInputChange('leave_encashment', 'service_years', 0);
                       handleInputChange('leave_encashment', 'leave_encashed', 0);
                     }
                   }}
@@ -320,7 +319,7 @@ const SeparationSection = ({
                 onChange={(e) =>
                   handleInputChange('pension', 'computed_pension_percentage', e.target.value)
                 }
-                InputProps={{ startAdornment: '%' }}
+                InputProps={{ endAdornment: '%' }}
                 onFocus={(e) =>
                   handleFocus('pension', 'computed_pension_percentage', e.target.value)
                 }
@@ -328,7 +327,7 @@ const SeparationSection = ({
             </Grid>
             <FormControl sx={{ minWidth: 80 }}>
                 <Select
-                  value={taxationData.pension.uncomputed_pension_frequency}
+                  value={taxationData.pension.uncomputed_pension_frequency || 'Monthly'}
                   onChange={(e) => {
                     handleInputChange('pension', 'uncomputed_pension_frequency', e.target.value);
                     }}

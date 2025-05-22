@@ -95,10 +95,8 @@ def test_taxation_components():
     # 6. Create leave encashment
     leave_encashment = LeaveEncashment(
         leave_encashment_income_received=500000,
-        service_years=15,
         leave_encashed=90,
         is_deceased=False,
-        average_monthly_salary=120000
     )
     
     # 7. Create deductions

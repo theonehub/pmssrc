@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from typing import List, Dict, Any, Optional
-from models.taxation import SalaryComponents, IncomeFromOtherSources, CapitalGains, DeductionComponents, Taxation, Perquisites, IncomeFromHouseProperty, LeaveEncashment, Gratuity, RetrenchmentCompensation
+from models.taxation import SalaryComponents, IncomeFromOtherSources, CapitalGains, DeductionComponents, Taxation, Perquisites, IncomeFromHouseProperty, LeaveEncashment, Gratuity, RetrenchmentCompensation, Pension
 from services.taxation_service import calculate_total_tax, calculate_and_save_tax, get_or_create_taxation_by_emp_id, compute_vrs_from_user_data
 from database.taxation_database import get_taxation_by_emp_id, update_tax_payment, get_all_taxation, update_filing_status
 from auth.auth import extract_hostname, role_checker, extract_emp_id
@@ -61,6 +61,7 @@ class TaxationDataRequest(BaseModel):
     voluntary_retirement: Optional[Dict[str, Any]] = None
     gratuity: Optional[Dict[str, Any]] = None
     retrenchment: Optional[Dict[str, Any]] = None
+    pension: Optional[Dict[str, Any]] = None
 
     deductions: Optional[Dict[str, Any]] = None
     tax_year: Optional[str] = None
@@ -101,6 +102,12 @@ class TaxationDataRequest(BaseModel):
                 "retrenchment": {
                     "retrenchment_amount": 500000,
                     "is_provided": False
+                },
+                "pension": {
+                    "total_pension_income": 500000,
+                    "computed_pension_percentage": 10,
+                    "uncomputed_pension_frequency": "Monthly",
+                    "uncomputed_pension_amount": 500000
                 },
                 "deductions": {
                     "section_80c": 150000,
@@ -153,7 +160,7 @@ def save_taxation_data(
         gratuity = Gratuity(**request.gratuity) if request.gratuity else None
         retrenchment = RetrenchmentCompensation(**request.retrenchment) if request.retrenchment else None
         deductions = DeductionComponents(**request.deductions) if request.deductions else None
-
+        pension = Pension(**request.pension) if request.pension else None
         # Calculate and save tax
         taxation = calculate_and_save_tax(
             emp_id=request.emp_id,
@@ -166,7 +173,10 @@ def save_taxation_data(
             leave_encashment=leave_encashment,
             house_property=house_property,
             voluntary_retirement=voluntary_retirement,
-            deductions=deductions
+            deductions=deductions,
+            gratuity=gratuity,
+            retrenchment=retrenchment,
+            pension=pension
         )
         
         return {"status": "success", "taxation": taxation}

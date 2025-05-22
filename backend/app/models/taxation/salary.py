@@ -105,7 +105,7 @@ class SalaryComponents:
         
         return hra_exemption
 
-    def calculate_exemptions(self, regime: str = 'old') -> float:
+    def calculate_exemptions(self, regime: str = 'old', is_govt_employee: bool = False) -> float:
         """Calculate all exemptions applicable to salary components."""
         if regime == 'new':
             return 0
@@ -148,7 +148,7 @@ class SalaryComponents:
             min(self.underground_mines_allowance, (self.underground_mines_months*800)) # 800*12 #TODO: take months limit as input
         )
 
-        if self.govt_employee_entertainment_allowance > 0 and self.is_govt_employee:
+        if self.govt_employee_entertainment_allowance > 0 and is_govt_employee:
             other_allowances_exemption += min(self.govt_employee_entertainment_allowance, self.basic * 0.2, 5000)
 
         logger.info(f"hills_high_altd_allowance: {self.hills_high_altd_allowance}, {min(self.hills_high_altd_allowance, self.hills_high_altd_exemption_limit)}")

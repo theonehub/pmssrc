@@ -56,7 +56,7 @@ const useTaxationForm = (empId) => {
     const stringFields = [
       'occupancy_status', 'property_address', 'relation_80dd', 'section_80g_100_head',
       'relation_80ddb', 'disability_percentage', 'disability_percentage_80u', 'ev_purchase_date',
-      'section_80g_100_ql_head', 'section_80g_50_head', 'section_80g_50_ql_head',
+      'section_80g_100_ql_head', 'section_80g_50_head', 'section_80g_50_ql_head', 'uncomputed_pension_frequency'
     ];
     
     if (stringFields.includes(field)) {

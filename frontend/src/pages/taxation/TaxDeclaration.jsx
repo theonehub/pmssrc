@@ -119,6 +119,7 @@ const TaxDeclaration = () => {
             taxationData={taxationData}
             handleInputChange={handleInputChange}
             handleFocus={handleFocus}
+            fetchVrsValue={fetchVrsValue}
           />
         );
       case 5:

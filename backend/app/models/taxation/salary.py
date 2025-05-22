@@ -166,9 +166,20 @@ class SalaryComponents:
         return hra_exemption + section10_exemptions + other_allowances_exemption + self.any_other_allowance_exemption
 
     def total_taxable_income_per_slab(self, regime: str = 'old') -> float:
-        """Calculate total taxable salary components."""
-        # Sum all salary components
-        gross_salary = (
+        """
+        Calculate total taxable salary components.
+        
+        FIXED CRITICAL ERRORS:
+        1. Perquisites calculation was being called twice
+        2. Missing null check for perquisites
+        3. Incorrect gross salary calculation for perquisites
+        """
+        # Initialize perquisites if not exists
+        if self.perquisites is None:
+            self.perquisites = Perquisites()
+            
+        # Sum all salary components (excluding perquisites initially)
+        gross_salary_without_perquisites = (
             self.basic +
             self.dearness_allowance +
             self.hra +
@@ -194,76 +205,87 @@ class SalaryComponents:
             self.hostel_allowance +
             self.transport_allowance +
             self.underground_mines_allowance +
-            self.govt_employee_entertainment_allowance +
-            self.perquisites.total_taxable_income_per_slab(gross_salary=(self.basic+self.dearness_allowance), regime=regime)
+            self.govt_employee_entertainment_allowance
         )
+        
+        # FIXED: Calculate perquisites value separately with proper gross salary (Basic + DA)
+        perquisites_value = 0
+        if self.perquisites:
+            perquisites_value = self.perquisites.total_taxable_income_per_slab(
+                gross_salary=(self.basic + self.dearness_allowance), 
+                regime=regime
+            )
+            logger.info(f"Perquisites total: {perquisites_value}")
+        
+        # Calculate total gross salary including perquisites
+        gross_salary = gross_salary_without_perquisites + perquisites_value
         
         # Calculate exemptions
         exemptions = self.calculate_exemptions(regime)
         
-        # Add perquisites value if exists
-        perquisites_value = 0
-        if self.perquisites:
-            perquisites_value = self.perquisites.total_taxable_income_per_slab(gross_salary=gross_salary, regime=regime)
-            logger.info(f"Perquisites total: {perquisites_value}")
-        
         # Calculate taxable salary
-        taxable_salary = gross_salary - exemptions + perquisites_value
-        logger.info(f"Salary calculation - Gross: {gross_salary}, Exemptions: {exemptions}, Perquisites: {perquisites_value}, Taxable: {taxable_salary}")
+        taxable_salary = max(0, gross_salary - exemptions)
+        logger.info(f"Salary calculation - Gross (without perq): {gross_salary_without_perquisites}, "
+                   f"Perquisites: {perquisites_value}, Total Gross: {gross_salary}, "
+                   f"Exemptions: {exemptions}, Taxable: {taxable_salary}")
         
         return taxable_salary
     
-    @classmethod
-    def to_dict(cls) -> Dict[str, Any]:
-        """Convert the object to a dictionary for JSON serialization."""
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert the object to a dictionary for JSON serialization.
+        
+        FIXED CRITICAL ERROR: Changed from @classmethod to instance method.
+        """
         return {
-            "basic": cls.basic,
-            "dearness_allowance": cls.dearness_allowance,
-            "hra_city": cls.hra_city,
-            "hra_percentage": cls.hra_percentage,
-            "hra": cls.hra,
-            "actual_rent_paid": cls.actual_rent_paid,
-            "special_allowance": cls.special_allowance,
-            "bonus": cls.bonus,
-            "commission": cls.commission,
-            "city_compensatory_allowance": cls.city_compensatory_allowance,
-            "rural_allowance": cls.rural_allowance,
-            "proctorship_allowance": cls.proctorship_allowance,
-            "wardenship_allowance": cls.wardenship_allowance,
-            "project_allowance": cls.project_allowance,
-            "deputation_allowance": cls.deputation_allowance,
-            "overtime_allowance": cls.overtime_allowance,
-            "any_other_allowance": cls.any_other_allowance,
-            "any_other_allowance_exemption": cls.any_other_allowance_exemption,
-            "interim_relief": cls.interim_relief,
-            "tiffin_allowance": cls.tiffin_allowance,
-            "fixed_medical_allowance": cls.fixed_medical_allowance,
-            "servant_allowance": cls.servant_allowance,
-            "govt_employees_outside_india_allowance": cls.govt_employees_outside_india_allowance,
-            "supreme_high_court_judges_allowance": cls.supreme_high_court_judges_allowance,
-            "judge_compensatory_allowance": cls.judge_compensatory_allowance,
-            "section_10_14_special_allowances": cls.section_10_14_special_allowances,
-            "travel_on_tour_allowance": cls.travel_on_tour_allowance,
-            "tour_daily_charge_allowance": cls.tour_daily_charge_allowance,
-            "conveyance_in_performace_of_duties": cls.conveyance_in_performace_of_duties,
-            "helper_in_performace_of_duties": cls.helper_in_performace_of_duties,
-            "academic_research": cls.academic_research,
-            "uniform_allowance": cls.uniform_allowance,
-            "hills_high_altd_allowance": cls.hills_high_altd_allowance,
-            "hills_high_altd_exemption_limit": cls.hills_high_altd_exemption_limit,
-            "border_remote_allowance": cls.border_remote_allowance,
-            "border_remote_exemption_limit": cls.border_remote_exemption_limit,
-            "transport_employee_allowance": cls.transport_employee_allowance,
-            "transport_months": cls.transport_months,
-            "children_education_allowance": cls.children_education_allowance,
-            "children_education_count": cls.children_education_count,
-            "children_education_months": cls.children_education_months,
-            "hostel_allowance": cls.hostel_allowance,
-            "hostel_count": cls.hostel_count,
-            "hostel_months": cls.hostel_months,
-            "transport_allowance": cls.transport_allowance,
-            "transport_months": cls.transport_months,
-            "underground_mines_allowance": cls.underground_mines_allowance,
-            "govt_employee_entertainment_allowance": cls.govt_employee_entertainment_allowance,
-            "perquisites": cls.perquisites.to_dict() if cls.perquisites else None
+            "basic": self.basic,
+            "dearness_allowance": self.dearness_allowance,
+            "hra_city": self.hra_city,
+            "hra_percentage": self.hra_percentage,
+            "hra": self.hra,
+            "actual_rent_paid": self.actual_rent_paid,
+            "special_allowance": self.special_allowance,
+            "bonus": self.bonus,
+            "commission": self.commission,
+            "city_compensatory_allowance": self.city_compensatory_allowance,
+            "rural_allowance": self.rural_allowance,
+            "proctorship_allowance": self.proctorship_allowance,
+            "wardenship_allowance": self.wardenship_allowance,
+            "project_allowance": self.project_allowance,
+            "deputation_allowance": self.deputation_allowance,
+            "overtime_allowance": self.overtime_allowance,
+            "any_other_allowance": self.any_other_allowance,
+            "any_other_allowance_exemption": self.any_other_allowance_exemption,
+            "interim_relief": self.interim_relief,
+            "tiffin_allowance": self.tiffin_allowance,
+            "fixed_medical_allowance": self.fixed_medical_allowance,
+            "servant_allowance": self.servant_allowance,
+            "govt_employees_outside_india_allowance": self.govt_employees_outside_india_allowance,
+            "supreme_high_court_judges_allowance": self.supreme_high_court_judges_allowance,
+            "judge_compensatory_allowance": self.judge_compensatory_allowance,
+            "section_10_14_special_allowances": self.section_10_14_special_allowances,
+            "travel_on_tour_allowance": self.travel_on_tour_allowance,
+            "tour_daily_charge_allowance": self.tour_daily_charge_allowance,
+            "conveyance_in_performace_of_duties": self.conveyance_in_performace_of_duties,
+            "helper_in_performace_of_duties": self.helper_in_performace_of_duties,
+            "academic_research": self.academic_research,
+            "uniform_allowance": self.uniform_allowance,
+            "hills_high_altd_allowance": self.hills_high_altd_allowance,
+            "hills_high_altd_exemption_limit": self.hills_high_altd_exemption_limit,
+            "border_remote_allowance": self.border_remote_allowance,
+            "border_remote_exemption_limit": self.border_remote_exemption_limit,
+            "transport_employee_allowance": self.transport_employee_allowance,
+            "transport_months": self.transport_months,
+            "children_education_allowance": self.children_education_allowance,
+            "children_education_count": self.children_education_count,
+            "children_education_months": self.children_education_months,
+            "hostel_allowance": self.hostel_allowance,
+            "hostel_count": self.hostel_count,
+            "hostel_months": self.hostel_months,
+            "transport_allowance": self.transport_allowance,
+            "transport_months": self.transport_months,
+            "underground_mines_allowance": self.underground_mines_allowance,
+            "underground_mines_months": self.underground_mines_months,
+            "govt_employee_entertainment_allowance": self.govt_employee_entertainment_allowance,
+            "perquisites": self.perquisites.to_dict() if self.perquisites else None
         } 

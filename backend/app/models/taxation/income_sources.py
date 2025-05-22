@@ -45,24 +45,58 @@ class IncomeFromOtherSources:
             return "Not Applicable"
 
     def total_taxable_income_per_slab(self, regime: str = 'new', age: int = 0):
-        """Calculate taxable income per slab with applicable deductions."""
-
-        direct_taxable = sum([
+        """
+        Calculate taxable income per slab with proper Section 80TTA/80TTB treatment.
+        
+        FIXES APPLIED:
+        1. Section 80TTA (age < 60): Only savings account interest eligible, up to Rs. 10,000
+        2. Section 80TTB (age >= 60): All bank interest eligible, up to Rs. 50,000
+        3. These deductions only apply in the old regime
+        4. Proper segregation of interest types
+        
+        Args:
+            regime: Tax regime ('old' or 'new')
+            age: Age of taxpayer for 80TTA/80TTB eligibility
+            
+        Returns:
+            Total taxable income from other sources
+        """
+        logger.info(f"total_taxable_income_per_slab - Calculating for regime: {regime}, age: {age}")
+        
+        # Items always fully taxable
+        directly_taxable = sum([
             self.dividend_income,
             self.gifts,
             self.other_interest,
             self.business_professional_income,
             self.other_income
         ])
+        logger.info(f"total_taxable_income_per_slab - Directly taxable income: {directly_taxable}")
 
-        if (age < 60):
-            saving_ac = max((self.interest_savings - 10000), 0)
-            direct_taxable += saving_ac + self.interest_fd + self.interest_rd
+        # Interest income treatment based on regime and age
+        total_interest = self.interest_savings + self.interest_fd + self.interest_rd
+        logger.info(f"total_taxable_income_per_slab - Total interest income: Savings: {self.interest_savings}, FD: {self.interest_fd}, RD: {self.interest_rd}, Total: {total_interest}")
+        
+        if regime == 'old':
+            if age >= 60:
+                # Section 80TTB: All bank interest (savings, FD, RD) eligible for exemption up to Rs. 50,000
+                exempt_interest = min(50000, total_interest)
+                taxable_interest = max(0, total_interest - exempt_interest)
+                logger.info(f"total_taxable_income_per_slab - Senior citizen (80TTB): Total interest: {total_interest}, Exempt: {exempt_interest}, Taxable: {taxable_interest}")
+            else:
+                # Section 80TTA: Only savings account interest eligible for exemption up to Rs. 10,000
+                exempt_savings_interest = min(10000, self.interest_savings)
+                taxable_interest = max(0, self.interest_savings - exempt_savings_interest) + self.interest_fd + self.interest_rd
+                logger.info(f"total_taxable_income_per_slab - Below 60 (80TTA): Savings interest: {self.interest_savings}, Exempt savings: {exempt_savings_interest}, FD+RD: {self.interest_fd + self.interest_rd}, Total taxable interest: {taxable_interest}")
         else:
-            saving_ac = max(((self.interest_savings + self.interest_fd + self.interest_rd) - 50000), 0)
-            direct_taxable += saving_ac
+            # New regime: No exemptions for interest income
+            taxable_interest = total_interest
+            logger.info(f"total_taxable_income_per_slab - New regime: No interest exemptions, total taxable: {taxable_interest}")
 
-        return direct_taxable
+        total_taxable = directly_taxable + taxable_interest
+        logger.info(f"total_taxable_income_per_slab - Final taxable income: {total_taxable}")
+        
+        return total_taxable
 
     @classmethod
     def to_dict(cls) -> Dict[str, Any]:
@@ -94,7 +128,16 @@ class IncomeFromHouseProperty:
     interest_on_home_loan: float = 0
     pre_construction_loan_interest: float = 0
 
-    
+    def __init__(self, property_address: str = '', occupancy_status: str = 'Self-Occupied', 
+                 rent_income: float = 0, property_tax: float = 0, 
+                 interest_on_home_loan: float = 0, pre_construction_loan_interest: float = 0):
+        self.property_address = property_address
+        self.occupancy_status = occupancy_status  # Self-Occupied, Let-Out, Deemed Let-Out
+        self.rent_income = rent_income
+        self.property_tax = property_tax
+        self.interest_on_home_loan = interest_on_home_loan
+        self.pre_construction_loan_interest = pre_construction_loan_interest
+        
     def calculate_annual_value(self) -> float:
         """
         Calculate annual value of house property.
@@ -112,48 +155,90 @@ class IncomeFromHouseProperty:
         """
         Calculate taxable income from house property.
         
-        For Let-Out property:
-        Net Annual Value = Annual Value - Standard Deduction (30%) - Interest on Home Loan
+        For Self-Occupied Property:
+        - Annual Value: Nil
+        - Less: Interest on home loan (up to Rs. 2 lakh limit)
         
-        For Self-Occupied property:
-        Interest deduction up to 2 lakh (for loans taken after 1999)
+        For Let-Out Property:
+        - Annual Value: Rent received or municipal value, whichever is higher
+        - Less: Municipal taxes paid (if any)
+        - Less: 30% standard deduction on net annual value
+        - Less: Interest on home loan (no upper limit)
+        
+        Args:
+            regime: Tax regime ('old' or 'new')
+            
+        Returns:
+            Net taxable income from house property (can be negative)
         """
-        logger.info(f"Calculating income from house property for regime: {regime}")
-        logger.info(f"Property status: {self.occupancy_status}")
-        logger.info(f"Rent: {self.rent_income}")
-        logger.info(f"Property Tax: {self.property_tax}")
-        logger.info(f"Current Interest: {self.interest_on_home_loan}")
-        logger.info(f"Pre-Construction Interest: {self.pre_construction_loan_interest}")
-
+        logger.info(f"total_taxable_income_per_slab - House property calculation for occupancy: {self.occupancy_status}, regime: {regime}")
         
         if self.occupancy_status == 'Self-Occupied':
-            # For self-occupied property, only interest is deductible (up to 2 lakh)
-            interest_deduction = min(self.interest_on_home_loan + self.pre_construction_loan_interest, 200000)
-            logger.info(f"Self-Occupied property: Interest deduction {interest_deduction}")
-            return interest_deduction
-        
-        else:  # Let-Out or Deemed Let-Out
-            # Calculate standard deduction (30% of annual value)
-            annual_value = (self.rent_income - self.property_tax) * 0.7
-            logger.info(f"Let-Out property: Annual value {annual_value}")
-            # Net annual value after standard deduction and interest
-            net_income = annual_value - (self.interest_on_home_loan + self.pre_construction_loan_interest)
-            logger.info(f"Let-Out property: Interest deduction {self.interest_on_home_loan + self.pre_construction_loan_interest}")
-            logger.info(f"Let-Out property: Net income {net_income}")
+            # For self-occupied property
+            annual_value = 0
+            
+            # Deduct interest on home loan (maximum Rs. 2,00,000 for self-occupied)
+            interest_deduction = min(200000, self.interest_on_home_loan)
+            
+            # Pre-construction interest can be claimed in 5 equal installments
+            pre_construction_deduction = self.pre_construction_loan_interest / 5
+            
+            net_income = annual_value - interest_deduction - pre_construction_deduction
+            
+            logger.info(f"total_taxable_income_per_slab - Self-occupied: Annual value: {annual_value}, "
+                       f"Interest deduction (max 2L): {interest_deduction}, "
+                       f"Pre-construction interest: {pre_construction_deduction}, "
+                       f"Net income: {net_income}")
+            
             return net_income
             
-
-    @classmethod    
-    def to_dict(cls) -> Dict[str, Any]:
-        """Convert the object to a dictionary for JSON serialization."""
+        else:  # Let-Out or Deemed Let-Out
+            # Annual value is the rent received
+            annual_value = self.rent_income
+            
+            # Less: Municipal taxes paid
+            net_annual_value = annual_value - self.property_tax
+            
+            # Less: 30% standard deduction on net annual value
+            standard_deduction = net_annual_value * 0.30
+            
+            # Less: Interest on home loan (no upper limit for let-out property)
+            interest_deduction = self.interest_on_home_loan
+            
+            # Pre-construction interest in 5 equal installments
+            pre_construction_deduction = self.pre_construction_loan_interest / 5
+            
+            net_income = net_annual_value - standard_deduction - interest_deduction - pre_construction_deduction
+            
+            logger.info(f"total_taxable_income_per_slab - Let-out: Annual value: {annual_value}, "
+                       f"Property tax: {self.property_tax}, Net annual value: {net_annual_value}, "
+                       f"Standard deduction (30%): {standard_deduction}, "
+                       f"Interest deduction: {interest_deduction}, "
+                       f"Pre-construction interest: {pre_construction_deduction}, "
+                       f"Net income: {net_income}")
+            
+            return net_income
+    
+    def to_dict(self) -> dict:
         return {
-            "property_address": cls.property_address,
-            "occupancy_status": cls.occupancy_status,
-            "rent_income": cls.rent_income,
-            "property_tax": cls.property_tax,
-            "interest_on_home_loan": cls.interest_on_home_loan,
-            "pre_construction_loan_interest": cls.pre_construction_loan_interest
+            'property_address': self.property_address,
+            'occupancy_status': self.occupancy_status,
+            'rent_income': self.rent_income,
+            'property_tax': self.property_tax,
+            'interest_on_home_loan': self.interest_on_home_loan,
+            'pre_construction_loan_interest': self.pre_construction_loan_interest
         }
+    
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(
+            property_address=data.get('property_address', ''),
+            occupancy_status=data.get('occupancy_status', 'Self-Occupied'),
+            rent_income=data.get('rent_income', 0),
+            property_tax=data.get('property_tax', 0),
+            interest_on_home_loan=data.get('interest_on_home_loan', 0),
+            pre_construction_loan_interest=data.get('pre_construction_loan_interest', 0)
+        )
 
 
 @dataclass
@@ -179,13 +264,21 @@ class CapitalGains:
                                         # (taxed at 12.5%)
 
     def total_stcg_special_rate(self) -> float:
-        """Total short-term capital gains charged at special rates."""
+        """
+        Total short-term capital gains charged at special rates.
+        STCG 111A (equity shares/MF with STT): 20% rate (Budget 2024)
+        """
         logger.info(f"STCG at special rate (under section 111A): {self.stcg_111a}")
         return self.stcg_111a
     
     def tax_on_stcg_special_rate(self) -> float:
-        """Tax on short-term capital gains charged at special rates."""
-        return self.stcg_111a * 0.20
+        """
+        Tax on short-term capital gains charged at special rates.
+        UPDATED: 20% rate as per Budget 2024 (previously 15%)
+        """
+        tax = self.stcg_111a * 0.20  # Updated rate
+        logger.info(f"Tax on STCG at special rate (20% - Budget 2024): {tax}")
+        return tax
     
     def total_stcg_slab_rate(self) -> float:
         """Total short-term capital gains taxed at slab rates."""
@@ -194,14 +287,36 @@ class CapitalGains:
         return total
     
     def total_ltcg_special_rate(self) -> float:
-        """Total long-term capital gains charged at special rates."""
-        total = max(self.ltcg_112a - 125000, 0) + self.ltcg_any_other_asset + self.ltcg_debt_mutual_fund
-        logger.info(f"LTCG at special rates: {total}")
+        """
+        Total long-term capital gains charged at special rates.
+        UPDATED: 12.5% rate and Rs. 1.25 lakh exemption as per Budget 2024
+        """
+        # LTCG 112A: Exemption increased from Rs. 1 lakh to Rs. 1.25 lakh
+        ltcg_112a_taxable = max(0, self.ltcg_112a - 125000)  # Updated exemption
+        
+        # Other LTCG: No exemption, direct 12.5% rate
+        ltcg_other = self.ltcg_any_other_asset + self.ltcg_debt_mutual_fund
+        
+        total = ltcg_112a_taxable + ltcg_other
+        logger.info(f"LTCG at special rates: 112A taxable (after 1.25L exemption): {ltcg_112a_taxable}, Other LTCG: {ltcg_other}, Total: {total}")
         return total
     
     def tax_on_ltcg_special_rate(self) -> float:
-        """Tax on long-term capital gains charged at special rates."""
-        return self.total_ltcg_special_rate() * 0.125
+        """
+        Tax on long-term capital gains charged at special rates.
+        UPDATED: 12.5% rate as per Budget 2024 (previously 10% for 112A and 20% for others)
+        """
+        # LTCG 112A with exemption
+        ltcg_112a_taxable = max(0, self.ltcg_112a - 125000)  # Updated exemption
+        ltcg_112a_tax = ltcg_112a_taxable * 0.125  # Updated rate
+        
+        # Other LTCG
+        ltcg_other = self.ltcg_any_other_asset + self.ltcg_debt_mutual_fund
+        ltcg_other_tax = ltcg_other * 0.125  # Updated rate
+        
+        total_tax = ltcg_112a_tax + ltcg_other_tax
+        logger.info(f"Tax on LTCG: 112A tax (12.5%): {ltcg_112a_tax}, Other LTCG tax (12.5%): {ltcg_other_tax}, Total: {total_tax}")
+        return total_tax
     
     @classmethod
     def to_dict(cls) -> Dict[str, Any]:

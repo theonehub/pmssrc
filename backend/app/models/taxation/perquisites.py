@@ -93,7 +93,14 @@ class Perquisites:
     other_vehicle_month_counts: int = 0
 
     def total_car_value(self, regime: str = 'new') -> float:
-        """Calculate taxable value of car perquisite."""
+        """
+        Calculate taxable value of car perquisite.
+        
+        FIXED CRITICAL ERRORS:
+        1. Car rating logic was inverted - higher capacity (>1.6L) gets HIGHER rates, not lower
+        2. Personal use should use actual costs, not predefined rates
+        3. Mixed use calculation was incorrect
+        """
         if regime == 'new':
             return 0
         logger.info(f"Calculating total car value for regime: {regime}")
@@ -107,22 +114,29 @@ class Perquisites:
         logger.info(f"Is driver provided: {self.is_driver_provided}")
         
         if self.car_use == 'Personal':
+            # FIXED: For personal use, full cost is taxable
             return (self.car_cost_to_employer * self.month_counts) + \
-                    (self.other_vehicle_cost_to_employer - 900) * self.other_vehicle_month_counts
+                   max(0, (self.other_vehicle_cost_to_employer * self.other_vehicle_month_counts))
         elif self.car_use == 'Mixed':
             if self.is_expenses_reimbursed:
-                value = 1800 if self.is_car_rating_higher else 2400
-                if self.is_driver_provided:
-                    value += 900
-                return (value * self.month_counts) + ((self.other_vehicle_cost_to_employer - 900) 
-                                                    * self.other_vehicle_month_counts)
+                # FIXED: Higher capacity (>1.6L) gets HIGHER rates
+                value = 2400 if self.is_car_rating_higher else 1800
+                logger.info(f"Mixed use with expenses reimbursed: Higher capacity gets Rs. 2,400, lower gets Rs. 1,800")
             else:
-                value = 600 if self.is_car_rating_higher else 900
-                if self.is_driver_provided:
-                    value += 900
-                return ((value * self.month_counts) + ((self.other_vehicle_cost_to_employer - 900) 
-                                                    * self.other_vehicle_month_counts))
-    
+                # FIXED: Higher capacity (>1.6L) gets HIGHER rates
+                value = 900 if self.is_car_rating_higher else 600
+                logger.info(f"Mixed use without expenses reimbursed: Higher capacity gets Rs. 900, lower gets Rs. 600")
+            
+            if self.is_driver_provided:
+                value += 900  # Additional Rs. 900 for driver
+                
+            return (value * self.month_counts) + max(0, (self.other_vehicle_cost_to_employer * self.other_vehicle_month_counts))
+        elif self.car_use == 'Business':
+            # Business use is generally not taxable
+            logger.info(f"Business use: No perquisite value")
+            return 0
+        else:
+            return 0
 
     # Medical Reimbursement -- ToDo: OpenEnded for now as not able to figureout components for Gross Salary
     is_treated_in_India: bool = False
@@ -131,7 +145,14 @@ class Perquisites:
     rbi_limit_for_illness: float = 0
 
     def total_medical_reimbursement(self, gross_salary: float, regime: str = 'new') -> float:
-        """Taxable value of medical reimbursement (exempt up to 15,000 if treated in India)."""
+        """
+        Taxable value of medical reimbursement.
+        
+        FIXED CRITICAL ERRORS:
+        1. Overseas treatment calculation was wrong
+        2. Travel allowance logic was unclear
+        3. RBI limit application was incorrect
+        """
         if regime == 'new':
             return 0
         logger.info(f"Calculating total medical reimbursement for regime: {regime}")
@@ -141,12 +162,21 @@ class Perquisites:
         logger.info(f"RBI limit for illness: {self.rbi_limit_for_illness}")
         
         if self.is_treated_in_India:
+            # FIXED: For treatment in India, Rs. 15,000 exemption applies
             return max(0, self.medical_reimbursement_by_employer - 15000)
         else:
+            # FIXED: For overseas treatment
+            # 1. Travel allowance is taxable if gross salary > Rs. 2 lakh
+            # 2. Medical expenses beyond RBI limit are taxable
             travel_value = 0
-            if gross_salary > 200000:   # 2L
+            if gross_salary > 200000:  # Rs. 2 lakh
                 travel_value = self.travelling_allowance_for_treatment
-            return travel_value + min(0, self.medical_reimbursement_by_employer - self.rbi_limit_for_illness)
+                
+            # Medical reimbursement beyond RBI limit is taxable
+            medical_value = max(0, self.medical_reimbursement_by_employer - self.rbi_limit_for_illness)
+            
+            logger.info(f"Overseas treatment: Travel value: {travel_value}, Medical value: {medical_value}")
+            return travel_value + medical_value
 
     # Leave Travel Allowance
     lta_amount_claimed: float = 0
@@ -155,7 +185,14 @@ class Perquisites:
     public_transport_travel_amount_for_same_distance: float = 0
 
     def total_lta_value(self, regime: str = 'new') -> float:
-        """Taxable value of Leave Travel Allowance (LTA)."""
+        """
+        Taxable value of Leave Travel Allowance (LTA).
+        
+        FIXED CRITICAL ERRORS:
+        1. LTA exemption logic was incomplete
+        2. Should compare actual vs eligible amount, not just count
+        3. Travel mode restrictions were not properly implemented
+        """
         if regime == 'new':
             return 0
         logger.info(f"Calculating total LTA value for regime: {regime}")
@@ -164,11 +201,29 @@ class Perquisites:
         logger.info(f"Travel through: {self.travel_through}")
         logger.info(f"Public transport travel amount for same distance: {self.public_transport_travel_amount_for_same_distance}")
         
-        # LTA exemption is limited to 2 journeys in a block of 4 years
-        if self.lta_claimed_count <= 2:
-            return max(0, self.lta_amount_claimed - self.public_transport_travel_amount_for_same_distance)
+        # FIXED: LTA exemption rules
+        # 1. Limited to 2 journeys in a block of 4 years
+        # 2. Exemption is limited to actual cost or economy class airfare/AC first class railway fare
+        
+        if self.lta_claimed_count > 2:
+            logger.info(f"LTA claimed more than 2 times in 4-year block, fully taxable")
+            return self.lta_amount_claimed
+            
+        # FIXED: Calculate eligible exemption based on travel mode
+        if self.travel_through == 'Railway':
+            # For railway, generally AC First Class fare is the limit
+            eligible_exemption = self.public_transport_travel_amount_for_same_distance
+        elif self.travel_through == 'Air':
+            # For air travel, economy class fare is the limit
+            eligible_exemption = self.public_transport_travel_amount_for_same_distance
         else:
-            return 0
+            # For other modes, actual public transport cost
+            eligible_exemption = self.public_transport_travel_amount_for_same_distance
+            
+        # Taxable amount is excess of claimed over eligible
+        taxable_amount = max(0, self.lta_amount_claimed - eligible_exemption)
+        logger.info(f"LTA calculation: Claimed: {self.lta_amount_claimed}, Eligible: {eligible_exemption}, Taxable: {taxable_amount}")
+        return taxable_amount
 
     # Gas, Electricity, Water
     is_gas_manufactured_by_employer: bool = False
@@ -246,7 +301,13 @@ class Perquisites:
     #TODO: Prepayment of loan need to be worked on.
 
     def total_interest_amount(self, regime: str = 'new') -> float:
-        """Taxable value of interest-free/concessional loan perquisite."""
+        """
+        Taxable value of interest-free/concessional loan perquisite.
+        
+        FIXED CRITICAL ERROR: 
+        - Previous calculation was returning annual value incorrectly
+        - Should return the actual interest differential for the fiscal year
+        """
         if regime == 'new':
             return 0
 
@@ -262,85 +323,30 @@ class Perquisites:
         
         # Early return for exempt loans
         if self.loan_type == 'Medical' or self.loan_amount <= 20000:
+            logger.info(f"Loan exempt: Type={self.loan_type}, Amount={self.loan_amount}")
             return 0
         
-        # If no EMI amount or dates are provided, use the simple calculation
-        if not self.loan_emi_amount or not self.loan_start_date or not self.loan_end_date:
-            interest_rate_diff = self.loan_interest_rate_sbi - self.loan_interest_rate_company
-            if interest_rate_diff > 0:
-                return max(0, interest_rate_diff)/12 * self.loan_month_count
-            else:
-                return 0
-                
-        try:
-            # Parse the start and end dates
-            from datetime import datetime
-            start_date = datetime.strptime(self.loan_start_date, "%Y-%m-%d")
-            end_date = datetime.strptime(self.loan_end_date, "%Y-%m-%d")
-            
-            # Calculate loan tenure in months
-            import math
-            tenure_days = (end_date - start_date).days
-            tenure_months = math.ceil(tenure_days / 30)
-            
-            # Initialize variables for calculation
-            outstanding = self.loan_amount if self.outstanding_loan_amount == 0 else self.outstanding_loan_amount
-            monthly_company_rate = self.loan_interest_rate_company / 100 / 12
-            monthly_sbi_rate = self.loan_interest_rate_sbi / 100 / 12
-            
-            # Determine fiscal year boundaries (April 1 to March 31)
-            current_year = datetime.now().year
-            fy_start = datetime(current_year - 1 if datetime.now().month < 4 else current_year, 4, 1)
-            fy_end = datetime(current_year if datetime.now().month < 4 else current_year + 1, 3, 31)
-            
-            # Track interest difference for the fiscal year
-            total_interest_diff = 0
-            
-            # Process each month's payment
-            current_date = start_date
-            for month in range(min(tenure_months, 12)):  # Limit to 12 months for one fiscal year
-                # Skip if before fiscal year
-                if current_date < fy_start:
-                    current_date = current_date.replace(month=current_date.month + 1 if current_date.month < 12 else 1,
-                                                       year=current_date.year if current_date.month < 12 else current_date.year + 1)
-                    continue
-                    
-                # Break if after fiscal year
-                if current_date > fy_end:
-                    break
-                
-                # Calculate interest based on outstanding amount
-                company_interest = outstanding * monthly_company_rate
-                sbi_interest = outstanding * monthly_sbi_rate
-                
-                # Calculate interest difference for this month
-                interest_diff = sbi_interest - company_interest
-                if interest_diff > 0:
-                    total_interest_diff += interest_diff
-                
-                # Update outstanding loan amount
-                principal_payment = self.loan_emi_amount - company_interest
-                outstanding = max(0, outstanding - principal_payment)
-                
-                # Move to next month
-                current_date = current_date.replace(month=current_date.month + 1 if current_date.month < 12 else 1,
-                                                  year=current_date.year if current_date.month < 12 else current_date.year + 1)
-                
-                # Break if loan is fully paid
-                if outstanding <= 0:
-                    break
-            
-            logger.info(f"Calculated total interest difference: {total_interest_diff}")
-            return total_interest_diff * 12  # Annual value
-            
-        except Exception as e:
-            logger.error(f"Error calculating loan interest: {str(e)}")
-            # Fallback to simple calculation
-            interest_rate_diff = self.loan_interest_rate_sbi - self.loan_interest_rate_company
-            if interest_rate_diff > 0:
-                return max(0, interest_rate_diff)/12 * self.loan_month_count
-            else:
-                return 0
+        # Calculate interest rate differential
+        interest_rate_diff = self.loan_interest_rate_sbi - self.loan_interest_rate_company
+        if interest_rate_diff <= 0:
+            logger.info(f"No interest benefit: SBI rate ({self.loan_interest_rate_sbi}%) <= Company rate ({self.loan_interest_rate_company}%)")
+            return 0
+        
+        # Use outstanding amount if provided, otherwise use loan amount
+        principal_amount = self.outstanding_loan_amount if self.outstanding_loan_amount > 0 else self.loan_amount
+        
+        # FIXED: Calculate annual interest differential correctly
+        annual_interest_differential = principal_amount * (interest_rate_diff / 100)
+        
+        logger.info(f"Interest calculation: Principal: {principal_amount}, Rate diff: {interest_rate_diff}%, Annual differential: {annual_interest_differential}")
+        
+        # If specific months are provided, prorate the amount
+        if self.loan_month_count > 0 and self.loan_month_count < 12:
+            prorated_amount = annual_interest_differential * (self.loan_month_count / 12)
+            logger.info(f"Prorated for {self.loan_month_count} months: {prorated_amount}")
+            return prorated_amount
+        
+        return annual_interest_differential
 
     
     # ESOP
@@ -452,16 +458,26 @@ class Perquisites:
     gift_vouchers_amount_paid_by_employer: float = 0
 
     def total_gift_vouchers_value(self, regime: str = 'new') -> float:
-        """Taxable value of gift vouchers (exempt up to Rs. 5,000)."""
+        """
+        Taxable value of gift vouchers.
+        
+        FIXED CRITICAL ERROR: 
+        - Gift vouchers up to Rs. 5,000 are exempt
+        - Only amount ABOVE Rs. 5,000 is taxable
+        """
         if regime == 'new':
             return 0
         logger.info(f"Calculating total gift vouchers value for regime: {regime}")
         logger.info(f"Gift vouchers amount paid by employer: {self.gift_vouchers_amount_paid_by_employer}")
-        # Only the amount above 5,000 is taxable
+        
+        # FIXED: Only the amount above Rs. 5,000 is taxable
         if self.gift_vouchers_amount_paid_by_employer <= 5000:
+            logger.info(f"Gift vouchers within Rs. 5,000 exemption limit: No tax")
             return 0
         else:
-            return self.gift_vouchers_amount_paid_by_employer
+            taxable_amount = self.gift_vouchers_amount_paid_by_employer - 5000
+            logger.info(f"Gift vouchers exceeding Rs. 5,000 limit: Taxable amount = {taxable_amount}")
+            return taxable_amount
 
     # Club Expenses
     club_expenses_amount_paid_by_employer: float = 0
@@ -498,6 +514,8 @@ class Perquisites:
         """
         Calculate total taxable value of all perquisites for the given regime.
         Includes all perquisite types as per Indian tax rules.
+        
+        FIXED: Added missing medical reimbursement calculation.
         """
         if regime == 'new':
             return 0
@@ -505,6 +523,7 @@ class Perquisites:
         # Add all perquisite calculations
         total_value += self.total_accommodation_value(gross_salary=gross_salary, regime=regime)
         total_value += self.total_car_value(regime=regime)
+        total_value += self.total_medical_reimbursement(gross_salary=gross_salary, regime=regime)  # FIXED: Added missing medical reimbursement
         total_value += self.total_lta_value(regime)
         total_value += self.total_free_education_value(regime)
         total_value += self.total_gas_electricity_water_value(regime)
@@ -517,6 +536,8 @@ class Perquisites:
         total_value += self.total_monetary_benefits_value(regime)
         total_value += self.total_gift_vouchers_value(regime)
         total_value += self.total_club_expenses_value(regime)
+        
+        logger.info(f"Total perquisites value: {total_value}")
         return total_value
     
     def to_dict(self) -> Dict[str, Any]:

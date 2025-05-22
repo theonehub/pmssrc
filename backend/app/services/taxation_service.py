@@ -25,34 +25,57 @@ import json
 # Configure detailed logging
 logger = logging.getLogger(__name__)
 
-def compute_regular_tax(income: float, regime: str = 'old') -> float:
-    logger.info(f"compute_regular_tax - Starting regular tax computation with income: {income} and regime: {regime}")
+def compute_regular_tax(income: float, regime: str = 'old', age: int = 0) -> float:
+    """
+    Compute regular income tax based on income tax slabs.
+    
+    Args:
+        income: Taxable income amount
+        regime: Tax regime ('old' or 'new')
+        age: Age of taxpayer for senior citizen benefits
+        
+    Returns:
+        Total tax amount
+    """
+    logger.info(f"compute_regular_tax - Starting regular tax computation with income: {income}, regime: {regime}, age: {age}")
     
     if regime == 'new':
+        # New regime tax slabs (Budget 2025 rates)
         slabs = [
-            (0, 300000, 0.0),
-            (300001, 600000, 0.05),
-            (600001, 900000, 0.10),
-            (900001, 1200000, 0.15),
-            (1200001, 1500000, 0.20),
-            (1500001, float('inf'), 0.30)
+            (0, 400000, 0.0),           # Up to Rs. 4 lakh - Nil
+            (400001, 800000, 0.05),     # Rs. 4-8 lakh - 5%
+            (800001, 1200000, 0.10),    # Rs. 8-12 lakh - 10%
+            (1200001, 1600000, 0.15),   # Rs. 12-16 lakh - 15%
+            (1600001, 2000000, 0.20),   # Rs. 16-20 lakh - 20%
+            (2000001, 2400000, 0.25),   # Rs. 20-24 lakh - 25%
+            (2400001, float('inf'), 0.30) # Above Rs. 24 lakh - 30%
         ]
-        logger.info(f"compute_regular_tax - Using new regime tax slabs: {slabs}")
+        logger.info(f"compute_regular_tax - Using new regime tax slabs (Budget 2025): {slabs}")
     else:
+        # Old regime tax slabs with age-based exemptions
+        if age >= 80:  # Super Senior Citizens
+            basic_exemption = 500000  # Rs. 5 lakh exemption
+        elif age >= 60:  # Senior Citizens
+            basic_exemption = 300000  # Rs. 3 lakh exemption
+        else:
+            basic_exemption = 250000  # Rs. 2.5 lakh exemption
+            
         slabs = [
-            (0, 250000, 0.0),
-            (250001, 500000, 0.05),
+            (0, basic_exemption, 0.0),
+            (basic_exemption + 1, 500000, 0.05) if basic_exemption < 500000 else None,
             (500001, 1000000, 0.20),
             (1000001, float('inf'), 0.30)
         ]
-        logger.info(f"compute_regular_tax - Using old regime tax slabs: {slabs}")
+        # Remove None entries for senior citizens
+        slabs = [slab for slab in slabs if slab is not None]
+        logger.info(f"compute_regular_tax - Using old regime tax slabs with basic exemption {basic_exemption}: {slabs}")
 
     tax = 0
     slab_breakdown = []
     
     for lower, upper, rate in slabs:
         if income > lower:
-            taxable = min(upper, income) - lower + 1
+            taxable = min(upper, income) - lower
             slab_tax = taxable * rate
             tax += slab_tax
             slab_breakdown.append({
@@ -69,27 +92,37 @@ def compute_regular_tax(income: float, regime: str = 'old') -> float:
     return tax
 
 def compute_capital_gains_tax(cap_gains: CapitalGains, regime: str = 'old') -> float:
+    """
+    Compute capital gains tax with updated rates as per Budget 2024.
+    
+    Args:
+        cap_gains: CapitalGains object containing all capital gains data
+        regime: Tax regime ('old' or 'new')
+        
+    Returns:
+        Total capital gains tax (excluding items taxed at slab rates)
+    """
     logger.info(f"compute_capital_gains_tax - Starting capital gains tax computation with regime: {regime}")
     logger.info(f"compute_capital_gains_tax - Capital gains input: STCG 111A: {cap_gains.stcg_111a}, "
                 f"STCG Other: {cap_gains.stcg_any_other_asset}, STCG Debt MF: {cap_gains.stcg_debt_mutual_fund}, "
                 f"LTCG 112A: {cap_gains.ltcg_112a}, LTCG Other: {cap_gains.ltcg_any_other_asset}, "
                 f"LTCG Debt MF: {cap_gains.ltcg_debt_mutual_fund}")
     
-    # Short-term capital gains on equity (Section 111A) - 15% flat rate
-    stcg_111a_tax = cap_gains.stcg_111a * 0.15
-    logger.info(f"compute_capital_gains_tax - STCG 111A Tax (15% flat rate): {stcg_111a_tax}")
+    # UPDATED: Short-term capital gains on equity (Section 111A) - 20% flat rate (Budget 2024)
+    stcg_111a_tax = cap_gains.stcg_111a * 0.20
+    logger.info(f"compute_capital_gains_tax - STCG 111A Tax (20% flat rate - Budget 2024): {stcg_111a_tax}")
     
-    # Long-term capital gains on equity (Section 112A) - 10% flat rate above Rs. 1 lakh
-    ltcg_112a_exemption = min(100000, cap_gains.ltcg_112a)
+    # UPDATED: Long-term capital gains on equity (Section 112A) - 12.5% flat rate above Rs. 1.25 lakh (Budget 2024)
+    ltcg_112a_exemption = min(125000, cap_gains.ltcg_112a)  # Updated exemption limit
     ltcg_112a_taxable = max(0, cap_gains.ltcg_112a - ltcg_112a_exemption)
-    ltcg_112a_tax = ltcg_112a_taxable * 0.10
+    ltcg_112a_tax = ltcg_112a_taxable * 0.125  # Updated rate to 12.5%
     logger.info(f"compute_capital_gains_tax - LTCG 112A: Total: {cap_gains.ltcg_112a}, Exemption: {ltcg_112a_exemption}, "
-                f"Taxable: {ltcg_112a_taxable}, Tax (10%): {ltcg_112a_tax}")
+                f"Taxable: {ltcg_112a_taxable}, Tax (12.5% - Budget 2024): {ltcg_112a_tax}")
     
-    # Other LTCG taxed at 20%
+    # UPDATED: Other LTCG taxed at 12.5% (Budget 2024)
     ltcg_other = cap_gains.ltcg_any_other_asset + cap_gains.ltcg_debt_mutual_fund
-    ltcg_other_tax = ltcg_other * 0.20
-    logger.info(f"compute_capital_gains_tax - Other LTCG: Total: {ltcg_other}, Tax (20%): {ltcg_other_tax}")
+    ltcg_other_tax = ltcg_other * 0.125  # Updated rate to 12.5%
+    logger.info(f"compute_capital_gains_tax - Other LTCG: Total: {ltcg_other}, Tax (12.5% - Budget 2024): {ltcg_other_tax}")
     
     # Other STCG taxed at slab rates - this will be calculated separately with compute_regular_tax
     logger.info(f"compute_capital_gains_tax - STCG to be taxed at slab rates: {cap_gains.stcg_any_other_asset + cap_gains.stcg_debt_mutual_fund}")
@@ -100,6 +133,17 @@ def compute_capital_gains_tax(cap_gains: CapitalGains, regime: str = 'old') -> f
     return total_cg_tax
 
 def apply_87a_rebate(tax: float, income: float, regime: str) -> float:
+    """
+    Apply section 87A rebate with updated limits as per Budget 2025.
+    
+    Args:
+        tax: Tax amount before rebate
+        income: Total taxable income
+        regime: Tax regime ('old' or 'new')
+        
+    Returns:
+        Tax amount after applying rebate
+    """
     logger.info(f"apply_87a_rebate - Applying section 87A rebate with tax: {tax}, income: {income}, regime: {regime}")
     
     original_tax = tax
@@ -107,16 +151,39 @@ def apply_87a_rebate(tax: float, income: float, regime: str) -> float:
         rebate_amount = min(12500, tax)
         tax = max(0, tax - rebate_amount)
         logger.info(f"apply_87a_rebate - Old Regime: Income <= 500000, Rebate: {rebate_amount}")
-    elif regime == 'new' and income <= 700000:
-        rebate_amount = min(25000, tax)
+    elif regime == 'new' and income <= 1200000:  # UPDATED: New limit for 12 lakh income (Budget 2025)
+        rebate_amount = min(60000, tax)  # UPDATED: Increased rebate to Rs. 60,000 (Budget 2025)
         tax = max(0, tax - rebate_amount)
-        logger.info(f"apply_87a_rebate - New Regime: Income <= 700000, Rebate: {rebate_amount}")
+        logger.info(f"apply_87a_rebate - New Regime: Income <= 1200000, Rebate: {rebate_amount} (Budget 2025)")
     else:
         logger.info(f"apply_87a_rebate - No rebate applicable: Income or regime not eligible")
         rebate_amount = 0
     
     logger.info(f"apply_87a_rebate - Tax before rebate: {original_tax}, Rebate applied: {rebate_amount}, Tax after rebate: {tax}")
     return tax
+
+def apply_standard_deduction(gross_salary: float, regime: str) -> float:
+    """
+    Apply standard deduction for salaried individuals.
+    
+    Args:
+        gross_salary: Gross salary income
+        regime: Tax regime ('old' or 'new')
+        
+    Returns:
+        Standard deduction amount
+    """
+    if gross_salary <= 0:
+        return 0
+        
+    if regime == 'new':
+        standard_deduction = min(75000, gross_salary)  # Rs. 75,000 for new regime
+        logger.info(f"apply_standard_deduction - New regime standard deduction: {standard_deduction}")
+    else:
+        standard_deduction = min(50000, gross_salary)  # Rs. 50,000 for old regime
+        logger.info(f"apply_standard_deduction - Old regime standard deduction: {standard_deduction}")
+        
+    return standard_deduction
 
 def compute_surcharge(base_tax: float, net_income: float) -> dict: #return total_tax,total_surcharge
     logger.info(f"compute_surcharge - Computing surcharge with base tax: {base_tax}, net income: {net_income}")
@@ -161,7 +228,25 @@ def compute_surcharge(base_tax: float, net_income: float) -> dict: #return total
 
 
 def calculate_total_tax(emp_id: str, hostname: str) -> float:
-    logger.info(f"calculate_total_tax() - Starting tax calculation for employee ID: {emp_id}, hostname: {hostname}")
+    """
+    Calculate total tax liability for an employee with comprehensive income sources and deductions.
+    
+    FIXES APPLIED:
+    1. Added all missing income sources (house property, leave encashment, pension, gratuity, etc.)
+    2. Fixed deduction calculation method calls
+    3. Added standard deduction for salaried income
+    4. Updated capital gains calculations with latest rates
+    5. Added age-based tax slab calculations
+    6. Proper integration of all income heads
+    
+    Args:
+        emp_id: Employee ID
+        hostname: Organization hostname
+        
+    Returns:
+        Total tax amount
+    """
+    logger.info(f"calculate_total_tax() - Starting comprehensive tax calculation for employee ID: {emp_id}, hostname: {hostname}")
     
     # Get the taxation data for the employee from the database
     try:
@@ -181,7 +266,13 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
         # Get components for calculation
         salary = taxation.salary
         other_sources = taxation.other_sources
+        house_property = taxation.house_property  # FIXED: Added missing house property
         cap_gains = taxation.capital_gains
+        leave_encashment = taxation.leave_encashment  # FIXED: Added missing leave encashment
+        voluntary_retirement = taxation.voluntary_retirement  # FIXED: Added missing VRS
+        pension = taxation.pension  # FIXED: Added missing pension
+        gratuity = taxation.gratuity  # FIXED: Added missing gratuity
+        retrenchment = taxation.retrenchment  # FIXED: Added missing retrenchment
         deductions = taxation.deductions
         regime = taxation.regime
         age = taxation.emp_age
@@ -189,42 +280,156 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
         
         logger.info(f"calculate_total_tax() - Tax calculation parameters - Regime: {regime}, Age: {age}, Govt Employee: {is_govt_employee}")
         
-        salary_income = salary.total_taxable_income_per_slab(regime)
-        gross_income = salary_income
-        logger.info(f"calculate_total_tax() - Total salary income: {salary_income}")
+        # ========== INCOME CALCULATION ==========
         
+        # 1. SALARY INCOME with Standard Deduction
+        gross_salary_income = salary.total_taxable_income_per_slab(regime)
+        standard_deduction = apply_standard_deduction(gross_salary_income, regime)  # FIXED: Added standard deduction
+        salary_income = max(0, gross_salary_income - standard_deduction)
+        logger.info(f"calculate_total_tax() - Gross salary income: {gross_salary_income}, Standard deduction: {standard_deduction}, Net salary income: {salary_income}")
+        
+        # 2. INCOME FROM OTHER SOURCES (with proper 80TTA/80TTB treatment)
         other_income = other_sources.total_taxable_income_per_slab(regime, age)
-        gross_income += other_income
         logger.info(f"calculate_total_tax() - Other sources taxable income: {other_income}")
         
-        # Calculate short-term capital gains taxed at slab rates
+        # 3. HOUSE PROPERTY INCOME (FIXED: Was completely missing)
+        house_property_income = house_property.total_taxable_income_per_slab(regime)
+        logger.info(f"calculate_total_tax() - House property income: {house_property_income}")
+        
+        # 4. LEAVE ENCASHMENT INCOME (FIXED: Was missing)
+        # Need to get service years and average salary for exemption calculation
+        try:
+            user_data = get_user_by_emp_id(emp_id, hostname)
+            if user_data and 'doj' in user_data and user_data['doj']:
+                doj = datetime.datetime.strptime(user_data.get('doj', ''), '%Y-%m-%d')
+                today = datetime.datetime.now()
+                service_years = relativedelta(today, doj).years
+                # Use basic + DA as average monthly salary for leave encashment calculation
+                average_monthly_salary = (salary.basic + salary.dearness_allowance) / 12 if (salary.basic + salary.dearness_allowance) > 0 else 100000
+            else:
+                service_years = 0
+                average_monthly_salary = 100000
+        except Exception as e:
+            logger.warning(f"calculate_total_tax() - Could not calculate service years: {str(e)}")
+            service_years = 0
+            average_monthly_salary = 100000
+            
+        leave_encashment_income = leave_encashment.total_taxable_income_per_slab(
+            regime=regime, 
+            is_govt_employee=is_govt_employee, 
+            service_years=service_years, 
+            average_monthly_salary=average_monthly_salary
+        )
+        logger.info(f"calculate_total_tax() - Leave encashment taxable income: {leave_encashment_income}")
+        
+        # 5. VOLUNTARY RETIREMENT INCOME (FIXED: Was missing)
+        vrs_income = 0
+        if hasattr(voluntary_retirement, 'total_taxable_income_per_slab'):
+            vrs_income = voluntary_retirement.total_taxable_income_per_slab(
+                regime=regime, 
+                age=age, 
+                service_years=service_years, 
+                last_drawn_monthly_salary=average_monthly_salary * 12
+            )
+        logger.info(f"calculate_total_tax() - VRS taxable income: {vrs_income}")
+        
+        # 6. PENSION INCOME (FIXED: Was missing)
+        pension_income = 0
+        if hasattr(pension, 'total_taxable_income_per_slab_computed'):
+            pension_income += pension.total_taxable_income_per_slab_computed(
+                regime=regime, 
+                is_govt_employee=is_govt_employee, 
+                is_gratuity_received=gratuity.gratuity_income > 0
+            )
+        if hasattr(pension, 'total_taxable_income_per_slab_uncomputed'):
+            pension_income += pension.total_taxable_income_per_slab_uncomputed(regime=regime)
+        logger.info(f"calculate_total_tax() - Pension taxable income: {pension_income}")
+        
+        # 7. GRATUITY INCOME (FIXED: Was missing)
+        gratuity_income = 0
+        if hasattr(gratuity, 'total_taxable_income_per_slab'):
+            try:
+                doj_date = datetime.datetime.strptime(user_data.get('doj', ''), '%Y-%m-%d') if user_data and 'doj' in user_data else None
+                dol_date = datetime.datetime.now()  # Assuming current date as date of leaving for calculation
+                gratuity_income = gratuity.total_taxable_income_per_slab(
+                    regime=regime,
+                    doj=doj_date,
+                    dol=dol_date,
+                    last_drawn_monthly_salary=average_monthly_salary * 12,
+                    is_govt_employee=is_govt_employee
+                )
+            except Exception as e:
+                logger.warning(f"calculate_total_tax() - Error calculating gratuity: {str(e)}")
+                gratuity_income = 0
+        logger.info(f"calculate_total_tax() - Gratuity taxable income: {gratuity_income}")
+        
+        # 8. RETRENCHMENT COMPENSATION (FIXED: Was missing)
+        retrenchment_income = 0
+        if hasattr(retrenchment, 'total_taxable_income_per_slab') and retrenchment.is_provided:
+            try:
+                doj_date = datetime.datetime.strptime(user_data.get('doj', ''), '%Y-%m-%d') if user_data and 'doj' in user_data else None
+                dol_date = datetime.datetime.now()
+                retrenchment_income = retrenchment.total_taxable_income_per_slab(
+                    regime=regime,
+                    doj=doj_date,
+                    dol=dol_date,
+                    last_drawn_monthly_salary=average_monthly_salary * 12
+                )
+            except Exception as e:
+                logger.warning(f"calculate_total_tax() - Error calculating retrenchment: {str(e)}")
+                retrenchment_income = 0
+        logger.info(f"calculate_total_tax() - Retrenchment taxable income: {retrenchment_income}")
+        
+        # 9. CAPITAL GAINS (Short-term gains taxed at slab rates)
         stcg_slab_rate = cap_gains.total_stcg_slab_rate()
-        gross_income += stcg_slab_rate
         logger.info(f"calculate_total_tax() - STCG at slab rates: {stcg_slab_rate}")
-        logger.info(f"calculate_total_tax() - Gross income before deductions: {gross_income}")
         
-        # Calculate the total deductions
-        total_deductions = deductions.total_deduction_per_slab(salary, other_sources, cap_gains, regime, is_govt_employee, age)
+        # Calculate GROSS INCOME (all sources combined)
+        gross_income = (salary_income + other_income + house_property_income + 
+                       leave_encashment_income + vrs_income + pension_income + 
+                       gratuity_income + retrenchment_income + stcg_slab_rate)
+        logger.info(f"calculate_total_tax() - Total gross income before deductions: {gross_income}")
         
+        # ========== DEDUCTION CALCULATION ==========
+        
+        # FIXED: Corrected method call with proper parameters
+        total_deductions = 0
+        if regime == 'old':  # Deductions only apply in old regime
+            total_deductions = deductions.total_deduction_per_slab(
+                salary=salary, 
+                income_from_other_sources=other_sources, 
+                regime=regime, 
+                is_govt_employee=is_govt_employee, 
+                age=age, 
+                parent_age=age  # Assuming same age for parent age if not provided
+            )
+            logger.info(f"calculate_total_tax() - Total deductions (old regime): {total_deductions}")
+        else:
+            logger.info(f"calculate_total_tax() - No deductions applicable (new regime)")
+        
+        # Calculate NET TAXABLE INCOME
         net_income = max(0, gross_income - total_deductions)
         logger.info(f"calculate_total_tax() - Net taxable income: {net_income}")
         
-
-        tax_on_regular = compute_regular_tax(net_income, regime)
+        # ========== TAX CALCULATION ==========
+        
+        # 1. Tax on regular income (FIXED: Added age parameter for senior citizen slabs)
+        tax_on_regular = compute_regular_tax(net_income, regime, age)
         logger.info(f"calculate_total_tax() - Tax on regular income: {tax_on_regular}")
         
-        # Calculate tax on STCG at special rates (20% for section 111A)
+        # 2. Tax on STCG at special rates (FIXED: Updated rates)
         tax_on_stcg_special = cap_gains.tax_on_stcg_special_rate()
         logger.info(f"calculate_total_tax() - Tax on STCG at special rate (20%): {tax_on_stcg_special}")
 
-        tax_on_ltcg_112a = cap_gains.tax_on_ltcg_special_rate()
-        logger.info(f"calculate_total_tax() - Tax on LTCG at special rate (12.5%): {tax_on_ltcg_112a}")
+        # 3. Tax on LTCG at special rates (FIXED: Updated rates)
+        tax_on_ltcg_special = cap_gains.tax_on_ltcg_special_rate()
+        logger.info(f"calculate_total_tax() - Tax on LTCG at special rate (12.5%): {tax_on_ltcg_special}")
 
         # Total base tax
-        base_tax = tax_on_regular + tax_on_stcg_special + tax_on_ltcg_112a
+        base_tax = tax_on_regular + tax_on_stcg_special + tax_on_ltcg_special
         logger.info(f"calculate_total_tax() - Base tax (before rebate/surcharge/cess): {base_tax}")
         
-        # Apply rebate under section 87A
+        # Apply rebate under section 87A (FIXED: Updated rebate limits)
         tax_after_rebate = apply_87a_rebate(base_tax, net_income, regime)
         logger.info(f"calculate_total_tax() - Tax after Section 87A rebate: {tax_after_rebate}")
         
@@ -241,7 +446,7 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
         final_tax = total_tax + cess
         logger.info(f"calculate_total_tax() - Final tax amount: {final_tax}")
         
-        # Prepare tax breakup
+        # Prepare comprehensive tax breakup
         tax_breakup = {
             "base_tax": round(base_tax),
             "tax_after_rebate": round(tax_after_rebate),
@@ -249,15 +454,28 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
             "cess": round(cess),
             "total_tax": round(final_tax),
             "details": {
-                "regular_income": round(net_income),
-                "stcg_flat_rate": round(tax_on_stcg_special),
-                "ltcg_112a": round(tax_on_ltcg_112a),
+                "gross_salary_income": round(gross_salary_income),
+                "standard_deduction": round(standard_deduction),
+                "net_salary_income": round(salary_income),
+                "other_sources_income": round(other_income),
+                "house_property_income": round(house_property_income),
+                "leave_encashment_income": round(leave_encashment_income),
+                "vrs_income": round(vrs_income),
+                "pension_income": round(pension_income),
+                "gratuity_income": round(gratuity_income),
+                "retrenchment_income": round(retrenchment_income),
+                "stcg_slab_rate": round(stcg_slab_rate),
+                "stcg_special_rate_tax": round(tax_on_stcg_special),
+                "ltcg_special_rate_tax": round(tax_on_ltcg_special),
                 "gross_income": round(gross_income),
                 "total_deductions": round(total_deductions),
-                "net_income": round(net_income)
+                "net_income": round(net_income),
+                "regime": regime,
+                "age": age,
+                "is_govt_employee": is_govt_employee
             }
         }
-        logger.info(f"calculate_total_tax() - Tax breakdown: {json.dumps(tax_breakup, indent=2)}")
+        logger.info(f"calculate_total_tax() - Comprehensive tax breakdown: {json.dumps(tax_breakup, indent=2)}")
         
         # Update tax breakup in taxation object
         taxation.tax_breakup = tax_breakup
@@ -289,8 +507,9 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
             logger.error(f"calculate_total_tax() - Error saving taxation details: {str(e)}")
         
         # Return rounded value
-        logger.info(f"calculate_total_tax() - Completed tax calculation for {emp_id}, Final Tax: {round(final_tax)}")
+        logger.info(f"calculate_total_tax() - Completed comprehensive tax calculation for {emp_id}, Final Tax: {round(final_tax)}")
         return round(final_tax)
+        
     except AttributeError as e:
         logger.error(f"calculate_total_tax() - Error in tax calculation, attribute error: {str(e)}")
         # Return 0 or existing tax value if available

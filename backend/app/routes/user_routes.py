@@ -256,6 +256,16 @@ def read_users_me(hostname: str = Depends(extract_hostname),
     user = us.get_user_by_emp_id(current_emp_id, hostname)
     return mongodb_jsonable_encoder(user)
 
+@router.get("/users/emp/{emp_id}")
+def read_users_me(emp_id: str, hostname: str = Depends(extract_hostname), 
+                  role: str = Depends(role_checker(["admin", "superadmin", "manager"]))):
+    """
+    Returns the username of the current logged-in user.
+    """
+    logger.info("read_users_me successful for username: %s", emp_id)
+    user = us.get_user_by_emp_id(emp_id, hostname)
+    return mongodb_jsonable_encoder(user)
+
 @router.get("/users")
 def list_users(
     skip: int = Query(0, ge=0),

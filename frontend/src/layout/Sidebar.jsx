@@ -44,7 +44,6 @@ const Sidebar = () => {
     home: false,
     organization: false,
     leaves: false,
-    salary: false,
     reimbursements: false,
     taxation: false,
     settings: false
@@ -134,31 +133,6 @@ const Sidebar = () => {
           icon: <EventBusyIcon />,
           path: '/lwp',
           roles: ['admin', 'superadmin']
-        }
-      ]
-    },
-    {
-      id: 'salary',
-      title: 'Salary',
-      icon: <WalletIcon />,
-      items: [
-        {
-          title: 'Salary Components',
-          icon: <WalletIcon />,
-          path: '/salary-components',
-          roles: ['admin', 'superadmin', 'hr']
-        },
-        {
-          title: 'Salary Users List',
-          icon: <WalletIcon />,
-          path: '/salary-users-list',
-          roles: ['admin', 'superadmin', 'hr']
-        },
-        {
-          title: 'Salary Declaration',
-          icon: <EditIcon />,
-          path: '/salary-declaration',
-          roles: ['admin', 'superadmin', 'hr', 'manager']
         }
       ]
     },

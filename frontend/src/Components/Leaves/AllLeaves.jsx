@@ -17,6 +17,8 @@ import {
   TextField,
   Grid,
   IconButton,
+  Card,
+  CardContent,
 } from '@mui/material';
 import { toast } from 'react-toastify';
 import axios from '../../utils/axios';
@@ -33,9 +35,11 @@ const AllLeaves = () => {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [leaveStats, setLeaveStats] = useState({ total: 0, pending: 0 });
 
   useEffect(() => {
     fetchLeaves();
+    fetchLeaveStats();
   }, []);
 
   const fetchLeaves = async () => {
@@ -46,6 +50,15 @@ const AllLeaves = () => {
       toast.error('Failed to fetch leaves');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchLeaveStats = async () => {
+    try {
+      const response = await axios.get('http://localhost:8000/leaves/stats');
+      setLeaveStats(response.data);
+    } catch (error) {
+      toast.error('Failed to fetch leave stats');
     }
   };
 
@@ -97,8 +110,35 @@ const AllLeaves = () => {
             All Leaves
           </Typography>
           
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} sm={6}>
+              <Card>
+                <CardContent>
+                  <Typography color="textSecondary" gutterBottom>
+                    Total Leaves Applied
+                  </Typography>
+                  <Typography variant="h4" component="div">
+                    {leaveStats.total}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Card>
+                <CardContent>
+                  <Typography color="textSecondary" gutterBottom>
+                    Pending Approval
+                  </Typography>
+                  <Typography variant="h4" component="div">
+                    {leaveStats.pending}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          </Grid>
+
           <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid columns={{ xs: 12, sm: 6 }}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Search"
@@ -108,7 +148,7 @@ const AllLeaves = () => {
                 placeholder="Search by name, email or leave type"
               />
             </Grid>
-            <Grid columns={{ xs: 12, sm: 6 }}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 select

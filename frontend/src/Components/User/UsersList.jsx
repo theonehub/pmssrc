@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Box, 
   Button, 
@@ -13,7 +13,6 @@ import {
   TextField,
   InputAdornment,
   IconButton,
-  Pagination,
   Select,
   MenuItem,
   FormControl,
@@ -28,28 +27,41 @@ import {
   Radio,
   RadioGroup,
   Grid,
-  Input
+  Input,
+  Card,
+  CardContent,
+  Skeleton,
+  Tooltip,
+  Fade,
+  Chip,
+  CircularProgress,
+  TablePagination,
+  Avatar,
+  TableSortLabel
 } from '@mui/material';
 import { 
   Add as AddIcon, 
   UploadFile as UploadFileIcon,
   Search as SearchIcon,
-  ArrowUpward as ArrowUpwardIcon,
-  ArrowDownward as ArrowDownwardIcon,
-  Download as DownloadIcon
+  Download as DownloadIcon,
+  Refresh as RefreshIcon,
+  People as PeopleIcon,
+  Person as PersonIcon,
+  Edit as EditIcon,
+  Visibility as VisibilityIcon
 } from '@mui/icons-material';
 import api from '../../utils/apiUtils';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../layout/PageLayout';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import ProtectedRoute from '../Common/ProtectedRoute';
-import {BsChevronLeft, BsChevronRight, BsSearch, BsCaretUpFill, BsCaretDownFill } from 'react-icons/bs';
 
 function UsersList() {
   const navigate = useNavigate();
+  
+  // State management
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -57,18 +69,59 @@ function UsersList() {
   const [importing, setImporting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
-  const [alert, setAlert] = useState({ open: false, message: '', severity: 'success' });
+  const [alert, setAlert] = useState({ 
+    open: false, 
+    message: '', 
+    severity: 'success' 
+  });
 
   // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalUsers, setTotalUsers] = useState(0);
+
+  // Memoized fetch function
+  const fetchUsers = useCallback(async (showRefreshLoader = false) => {
+    if (showRefreshLoader) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
+    try {
+      const response = await api.get('/users', {
+        skip: page * rowsPerPage,
+        limit: rowsPerPage
+      });
+      
+      setUsers(response.data.users || []);
+      setTotalUsers(response.data.total || 0);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      const errorMessage = error.response?.data?.detail || 'Failed to fetch users';
+      showAlert(errorMessage, 'error');
+      setUsers([]);
+      setTotalUsers(0);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [page, rowsPerPage]);
 
   useEffect(() => {
     fetchUsers();
-  }, [currentPage, pageSize]);
+  }, [fetchUsers]);
 
-  // Sort function
+  // Helper functions
+  const showAlert = (message, severity = 'success') => {
+    setAlert({ open: true, message, severity });
+  };
+
+  const handleCloseAlert = () => {
+    setAlert(prev => ({ ...prev, open: false }));
+  };
+
+  // Sort and filter functionality
   const requestSort = (key) => {
     let direction = 'asc';
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
@@ -77,7 +130,6 @@ function UsersList() {
     setSortConfig({ key, direction });
   };
 
-  // Sort and filter users
   const getSortedAndFilteredUsers = () => {
     let filteredUsers = [...users];
     
@@ -85,12 +137,12 @@ function UsersList() {
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filteredUsers = filteredUsers.filter(user => 
-        user.emp_id.toLowerCase().includes(searchLower) ||
-        user.name.toLowerCase().includes(searchLower) ||
-        user.email.toLowerCase().includes(searchLower) ||
-        user.gender.toLowerCase().includes(searchLower) ||
-        user.role.toLowerCase().includes(searchLower) ||
-        user.mobile.includes(searchTerm)
+        user.emp_id?.toLowerCase().includes(searchLower) ||
+        user.name?.toLowerCase().includes(searchLower) ||
+        user.email?.toLowerCase().includes(searchLower) ||
+        user.gender?.toLowerCase().includes(searchLower) ||
+        user.role?.toLowerCase().includes(searchLower) ||
+        user.mobile?.includes(searchTerm)
       );
     }
 
@@ -119,41 +171,10 @@ function UsersList() {
     return filteredUsers;
   };
 
-  // Get sort icon
-  const getSortIcon = (columnKey) => {
-    if (sortConfig.key !== columnKey) {
-      return null;
-    }
-    return sortConfig.direction === 'asc' ? <BsCaretUpFill /> : <BsCaretDownFill />;
-  };
-
-  const fetchUsers = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get('/users', {
-        skip: (currentPage - 1) * pageSize,
-        limit: pageSize
-      });
-      
-      setUsers(response.data.users);
-      setTotalUsers(response.data.total);
-      //setFilteredUsers(response.data.users);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      setAlert({
-        open: true,
-        message: error.response?.data?.detail || 'Failed to fetch users',
-        severity: 'error'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Event handlers
   const handleCreateUser = async (e) => {
     e.preventDefault();
     
-    // Add user data
     const userData = {
       emp_id: e.target.emp_id.value,
       name: e.target.name.value,
@@ -179,9 +200,7 @@ function UsersList() {
     const photo = e.target.photo.files[0];
     
     try {
-      // Check if there are any files to upload
       if (panFile || aadharFile || photo) {
-        // Use the multiple file upload approach
         const files = {};
         if (panFile) files.pan_file = panFile;
         if (aadharFile) files.aadhar_file = aadharFile;
@@ -193,34 +212,22 @@ function UsersList() {
           { user_data: JSON.stringify(userData) }
         );
       } else {
-        // Use JSON approach (no files)
         await api.post('/users', userData);
       }
       
-      setAlert({
-        open: true,
-        message: 'User created successfully',
-        severity: 'success'
-      });
+      showAlert('User created successfully', 'success');
       setShowCreateUserModal(false);
       fetchUsers();
     } catch (error) {
-      setAlert({
-        open: true,
-        message: error.response?.data?.detail || 'Failed to create user',
-        severity: 'error'
-      });
+      const errorMessage = error.response?.data?.detail || 'Failed to create user';
+      showAlert(errorMessage, 'error');
     }
   };
 
   const handleImport = async (e) => {
     e.preventDefault();
     if (!importFile) {
-      setAlert({
-        open: true,
-        message: 'Please select a file to upload',
-        severity: 'warning'
-      });
+      showAlert('Please select a file to upload', 'warning');
       return;
     }
 
@@ -228,21 +235,13 @@ function UsersList() {
     
     try {
       await api.upload('/users/import/with-file', importFile);
-      
-      setAlert({
-        open: true,
-        message: 'Users imported successfully',
-        severity: 'success'
-      });
+      showAlert('Users imported successfully', 'success');
       setShowImportModal(false);
       setImportFile(null);
       fetchUsers();
     } catch (error) {
-      setAlert({
-        open: true,
-        message: error.response?.data?.detail || 'Failed to import users',
-        severity: 'error'
-      });
+      const errorMessage = error.response?.data?.detail || 'Failed to import users';
+      showAlert(errorMessage, 'error');
     } finally {
       setImporting(false);
     }
@@ -252,208 +251,379 @@ function UsersList() {
     try {
       const response = await api.get('/users/template', {}, { responseType: 'blob' });
       
-      // Create a URL for the blob
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      
-      // Create a temporary link element
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', 'user_import_template.xlsx');
-      
-      // Append to body, click and remove
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      // Clean up the URL
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      setAlert({
-        open: true,
-        message: 'Failed to download template',
-        severity: 'error'
-      });
+      showAlert('Failed to download template', 'error');
     }
   };
 
-  const handleCloseAlert = () => {
-    setAlert({ ...alert, open: false });
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
   };
 
-  // Calculate total pages
-  const totalPages = Math.ceil(totalUsers / pageSize);
-
-  // Generate page numbers
-  const getPageNumbers = () => {
-    const pages = [];
-    const maxVisiblePages = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-    if (endPage - startPage + 1 < maxVisiblePages) {
-      startPage = Math.max(1, endPage - maxVisiblePages + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(
-        <Pagination.Item
-          key={i}
-          active={i === currentPage}
-          onClick={() => setCurrentPage(i)}
-        >
-          {i}
-        </Pagination.Item>
-      );
-    }
-
-    return pages;
+  const handlePageChange = (event, newPage) => {
+    setPage(newPage);
   };
 
-  return (
-    <PageLayout title="Users Management">
-      <Box sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-          <Typography variant="h4">Users List</Typography>
-          <Box>
+  const handleRowsPerPageChange = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const handleRefresh = () => {
+    fetchUsers(true);
+  };
+
+  // Render helpers
+  const renderTableSkeleton = () => (
+    Array.from({ length: rowsPerPage }).map((_, index) => (
+      <TableRow key={index}>
+        <TableCell><Skeleton /></TableCell>
+        <TableCell><Skeleton /></TableCell>
+        <TableCell><Skeleton /></TableCell>
+        <TableCell><Skeleton /></TableCell>
+        <TableCell><Skeleton /></TableCell>
+        <TableCell><Skeleton /></TableCell>
+        <TableCell><Skeleton /></TableCell>
+        <TableCell><Skeleton width={120} /></TableCell>
+      </TableRow>
+    ))
+  );
+
+  const renderEmptyState = () => (
+    <TableRow>
+      <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <PeopleIcon 
+            sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} 
+          />
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            {searchTerm ? 'No users found' : 'No users yet'}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {searchTerm 
+              ? `No users match "${searchTerm}"`
+              : 'Get started by adding your first user'
+            }
+          </Typography>
+          {!searchTerm && (
             <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => setShowCreateUserModal(true)}
-              sx={{ mr: 2 }}
             >
               Add User
             </Button>
-            <Button
-              variant="outlined"
-              startIcon={<UploadFileIcon />}
-              onClick={() => setShowImportModal(true)}
-            >
-              Import Users
-            </Button>
-          </Box>
+          )}
         </Box>
+      </TableCell>
+    </TableRow>
+  );
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-          <TextField
-              placeholder="Search users..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ width: '300px' }}
-          />
-          <FormControl sx={{ minWidth: 120 }}>
-            <InputLabel>Show</InputLabel>
-            <Select
-              value={pageSize}
-              label="Show"
-              onChange={(e) => {
-                setPageSize(e.target.value);
-                setCurrentPage(1);
-              }}
-            >
-                {[5, 10, 20, 50, 100].map((size) => (
-                <MenuItem key={size} value={size}>
-                  {size}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Box>
+  const getRoleBadgeColor = (role) => {
+    switch (role?.toLowerCase()) {
+      case 'admin': return 'error';
+      case 'manager': return 'warning';
+      case 'hr': return 'info';
+      case 'employee': return 'success';
+      default: return 'default';
+    }
+  };
 
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow sx={{ 
-                '& .MuiTableCell-head': { 
-                  backgroundColor: 'primary.main',
-                  color: 'white',
-                  fontWeight: 'bold',
-                  fontSize: '0.875rem',
-                  padding: '12px 16px'
-                }
-              }}>
-                <TableCell>Employee ID</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Role</TableCell>
-                <TableCell>Gender</TableCell>
-                <TableCell>Mobile</TableCell>
-                <TableCell>Date of Birth</TableCell>
-                <TableCell>Date of Joining</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={8} align="center">Loading...</TableCell>
-                </TableRow>
-              ) : users.length > 0 ? (
-                getSortedAndFilteredUsers().map((user) => (
-                  <TableRow 
-                    key={user.emp_id}
-                    sx={{ 
-                      '&:hover': { 
-                        backgroundColor: 'action.hover',
-                        cursor: 'pointer'
-                      }
-                    }}
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    return name.split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const filteredUsers = getSortedAndFilteredUsers();
+
+  return (
+    <PageLayout>
+      <Box sx={{ p: 3 }}>
+        {/* Header */}
+        <Card elevation={1} sx={{ mb: 3 }}>
+          <CardContent>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} sm={6}>
+                <Typography variant="h4" color="primary" gutterBottom>
+                  Users Management
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Manage user accounts and permissions
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                  <Tooltip title="Refresh">
+                    <IconButton 
+                      onClick={handleRefresh}
+                      disabled={refreshing}
+                      color="primary"
+                    >
+                      <RefreshIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Button
+                    variant="outlined"
+                    startIcon={<UploadFileIcon />}
+                    onClick={() => setShowImportModal(true)}
+                    size="large"
                   >
-                    <TableCell>{user.emp_id}</TableCell>
-                    <TableCell>{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Box
-                        component="span"
-                        sx={{
-                          display: 'inline-block',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          backgroundColor: getRoleBadgeColor(user.role),
-                          color: 'white',
-                          fontSize: '0.75rem',
-                          fontWeight: 'bold'
+                    Import
+                  </Button>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() => setShowCreateUserModal(true)}
+                    size="large"
+                  >
+                    Add User
+                  </Button>
+                </Box>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {/* Search and Controls */}
+        <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={8}>
+              <TextField
+                fullWidth
+                label="Search users"
+                variant="outlined"
+                value={searchTerm}
+                onChange={handleSearchChange}
+                placeholder="Search by ID, name, email, role, or mobile..."
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  {loading ? 'Loading...' : `${filteredUsers.length} user${filteredUsers.length !== 1 ? 's' : ''}`}
+                </Typography>
+                {refreshing && <CircularProgress size={16} />}
+              </Box>
+            </Grid>
+          </Grid>
+        </Paper>
+
+        {/* Table */}
+        <Paper elevation={1}>
+          <TableContainer>
+            <Table stickyHeader>
+              <TableHead>
+                <TableRow sx={{ 
+                  '& .MuiTableCell-head': { 
+                    backgroundColor: 'primary.main',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    fontSize: '0.875rem'
+                  }
+                }}>
+                  <TableCell>
+                    <TableSortLabel
+                      active={sortConfig.key === 'emp_id'}
+                      direction={sortConfig.direction}
+                      onClick={() => requestSort('emp_id')}
+                      sx={{ color: 'inherit', '&:hover': { color: 'inherit' } }}
+                    >
+                      Employee ID
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={sortConfig.key === 'name'}
+                      direction={sortConfig.direction}
+                      onClick={() => requestSort('name')}
+                      sx={{ color: 'inherit', '&:hover': { color: 'inherit' } }}
+                    >
+                      Name
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell>Email</TableCell>
+                  <TableCell>Role</TableCell>
+                  <TableCell>Gender</TableCell>
+                  <TableCell>Mobile</TableCell>
+                  <TableCell>
+                    <TableSortLabel
+                      active={sortConfig.key === 'doj'}
+                      direction={sortConfig.direction}
+                      onClick={() => requestSort('doj')}
+                      sx={{ color: 'inherit', '&:hover': { color: 'inherit' } }}
+                    >
+                      Joining Date
+                    </TableSortLabel>
+                  </TableCell>
+                  <TableCell align="center">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  renderTableSkeleton()
+                ) : filteredUsers.length > 0 ? (
+                  filteredUsers.map((user) => (
+                    <Fade in key={user.emp_id} timeout={300}>
+                      <TableRow 
+                        hover
+                        sx={{ 
+                          '&:hover': { 
+                            backgroundColor: 'action.hover' 
+                          }
                         }}
                       >
-                        {user.role}
-                      </Box>
-                    </TableCell>
-                    <TableCell>{user.gender}</TableCell>
-                    <TableCell>{user.mobile}</TableCell>
-                    <TableCell>{new Date(user.dob).toLocaleDateString()}</TableCell>
-                    <TableCell>{new Date(user.doj).toLocaleDateString()}</TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={8} align="center">No users found</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-              </Table>
-        </TableContainer>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight="medium">
+                            {user.emp_id}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Avatar 
+                              sx={{ 
+                                width: 32, 
+                                height: 32, 
+                                fontSize: '0.875rem',
+                                bgcolor: 'primary.main'
+                              }}
+                            >
+                              {getInitials(user.name)}
+                            </Avatar>
+                            <Box>
+                              <Typography variant="subtitle2" fontWeight="medium">
+                                {user.name}
+                              </Typography>
+                              {user.designation && (
+                                <Typography variant="caption" color="text.secondary">
+                                  {user.designation}
+                                </Typography>
+                              )}
+                            </Box>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {user.email}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={user.role}
+                            color={getRoleBadgeColor(user.role)}
+                            size="small"
+                            variant="outlined"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {user.gender}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {user.mobile}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {formatDate(user.doj)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                            <Tooltip title="View Details">
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => navigate(`/users/${user.emp_id}`)}
+                              >
+                                <VisibilityIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Edit User">
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => navigate(`/users/${user.emp_id}/edit`)}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    </Fade>
+                  ))
+                ) : (
+                  renderEmptyState()
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
 
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-          <Pagination
-            count={Math.ceil(totalUsers / pageSize)}
-            page={currentPage}
-            onChange={(event, value) => setCurrentPage(value)}
-            color="primary"
-          />
-        </Box>
+          {/* Pagination */}
+          {totalUsers > 0 && (
+            <TablePagination
+              component="div"
+              count={totalUsers}
+              page={page}
+              onPageChange={handlePageChange}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={handleRowsPerPageChange}
+              rowsPerPageOptions={[5, 10, 25, 50]}
+              showFirstButton
+              showLastButton
+            />
+          )}
+        </Paper>
 
-        {/* Create User Dialog */}
-        <Dialog open={showCreateUserModal} onClose={() => setShowCreateUserModal(false)} maxWidth="md" fullWidth>
-          <DialogTitle>Create New User</DialogTitle>
+        {/* Create User Modal */}
+        <Dialog
+          open={showCreateUserModal}
+          onClose={() => setShowCreateUserModal(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>
+            <Typography variant="h5" component="div">
+              Add New User
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Fill in the user details to create a new account
+            </Typography>
+          </DialogTitle>
           <DialogContent>
-            <Box component="form" onSubmit={handleCreateUser} sx={{ mt: 2 }}>
-              <Grid container spacing={2}>
-                <Grid columns={{ xs: 12, sm: 6 }}>
+            <form onSubmit={handleCreateUser}>
+              <Grid container spacing={3} sx={{ mt: 1 }}>
+                <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="Employee ID"
@@ -461,15 +631,15 @@ function UsersList() {
                     required
                   />
                 </Grid>
-                <Grid columns={{ xs: 12, sm: 6 }}>
+                <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Name"
+                    label="Full Name"
                     name="name"
                     required
                   />
                 </Grid>
-                <Grid columns={{ xs: 12, sm: 6 }}>
+                <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="Email"
@@ -478,36 +648,37 @@ function UsersList() {
                     required
                   />
                 </Grid>
-                <Grid columns={{ xs: 12, sm: 6 }}>
-                  <FormControl component="fieldset">
-                    <RadioGroup row name="gender">
-                      <FormControlLabel value="male" control={<Radio />} label="Male" />
-                      <FormControlLabel value="female" control={<Radio />} label="Female" />
-                      <FormControlLabel value="other" control={<Radio />} label="Other" />
-                    </RadioGroup>
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth required>
+                    <InputLabel>Gender</InputLabel>
+                    <Select name="gender" label="Gender">
+                      <MenuItem value="Male">Male</MenuItem>
+                      <MenuItem value="Female">Female</MenuItem>
+                      <MenuItem value="Other">Other</MenuItem>
+                    </Select>
                   </FormControl>
                 </Grid>
-                <Grid columns={{ xs: 12, sm: 6 }}>
+                <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="Date of Birth"
                     name="dob"
                     type="date"
-                    required
                     InputLabelProps={{ shrink: true }}
+                    required
                   />
                 </Grid>
-                <Grid columns={{ xs: 12, sm: 6 }}>
+                <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="Date of Joining"
                     name="doj"
                     type="date"
-                    required
                     InputLabelProps={{ shrink: true }}
+                    required
                   />
                 </Grid>
-                <Grid columns={{ xs: 12, sm: 6 }}>
+                <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="Mobile"
@@ -515,35 +686,14 @@ function UsersList() {
                     required
                   />
                 </Grid>
-                <Grid columns={{ xs: 12, sm: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="Department"
-                    name="department"
-                  />
-                </Grid>
-                <Grid columns={{ xs: 12, sm: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="Designation"
-                    name="designation"
-                  />
-                </Grid>
-                <Grid columns={{ xs: 12, sm: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="Location"
-                    name="location"
-                  />
-                </Grid>
-                <Grid columns={{ xs: 12, sm: 6 }}>
+                <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="Manager ID"
                     name="manager_id"
                   />
                 </Grid>
-                <Grid columns={{ xs: 12, sm: 6 }}>
+                <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
                     label="Password"
@@ -552,144 +702,99 @@ function UsersList() {
                     required
                   />
                 </Grid>
-                <Grid columns={{ xs: 12, sm: 6 }}>
-                  <FormControl fullWidth>
+                <Grid item xs={12} md={6}>
+                  <FormControl fullWidth required>
                     <InputLabel>Role</InputLabel>
-                    <Select name="role" label="Role" required>
-                      <MenuItem value="user">User</MenuItem>
+                    <Select name="role" label="Role">
+                      <MenuItem value="employee">Employee</MenuItem>
                       <MenuItem value="manager">Manager</MenuItem>
+                      <MenuItem value="hr">HR</MenuItem>
                       <MenuItem value="admin">Admin</MenuItem>
-                      <MenuItem value="superadmin">Super Admin</MenuItem>
                     </Select>
                   </FormControl>
                 </Grid>
                 
-                {/* New Fields */}
-                <Grid columns={{ xs: 12, sm: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="PAN Number"
-                    name="pan_number"
-                    required
-                    inputProps={{ maxLength: 10 }}
-                    helperText="10 characters alphanumeric"
-                  />
-                </Grid>
-                <Grid columns={{ xs: 12, sm: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="UAN Number"
-                    name="uan_number"
-                    inputProps={{ maxLength: 12 }}
-                    helperText="12 digits"
-                  />
-                </Grid>
-                <Grid columns={{ xs: 12, sm: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="Aadhar Number"
-                    name="aadhar_number"
-                    required
-                    inputProps={{ maxLength: 12 }}
-                    helperText="12 digits"
-                  />
-                </Grid>
-                <Grid columns={{ xs: 12, sm: 6 }}>
-                  <TextField
-                    fullWidth
-                    label="ESI Number"
-                    name="esi_number"
-                    helperText="Optional"
-                  />
-                </Grid>
+                {/* Additional fields in collapsible section could be added here */}
                 
-                {/* File Upload Fields */}
-                <Grid columns={{ xs: 12, sm: 6 }}>
-                  <FormControl fullWidth>
-                    <InputLabel shrink>PAN Card (PDF/Image)</InputLabel>
-                    <Input
-                      type="file"
-                      name="pan_file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                    />
-                  </FormControl>
-                </Grid>
-                <Grid columns={{ xs: 12, sm: 6 }}>
-                  <FormControl fullWidth>
-                    <InputLabel shrink>Aadhar Card (PDF/Image)</InputLabel>
-                    <Input
-                      type="file"
-                      name="aadhar_file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                    />
-                  </FormControl>
-                </Grid>
-                <Grid columns={{ xs: 12, sm: 6 }}>
-                  <FormControl fullWidth>
-                    <InputLabel shrink>Photo</InputLabel>
-                    <Input
-                      type="file"
-                      name="photo"
-                      accept=".jpg,.jpeg,.png"
-                    />
-                  </FormControl>
+                <Grid item xs={12}>
+                  <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                    <Button 
+                      onClick={() => setShowCreateUserModal(false)}
+                      size="large"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      variant="contained"
+                      size="large"
+                    >
+                      Create User
+                    </Button>
+                  </Box>
                 </Grid>
               </Grid>
-              
-              <DialogActions>
-                <Button onClick={() => setShowCreateUserModal(false)}>Cancel</Button>
-                <Button type="submit" variant="contained">Create</Button>
-              </DialogActions>
-            </Box>
+            </form>
           </DialogContent>
         </Dialog>
 
-        {/* Import Users Dialog */}
-        <Dialog open={showImportModal} onClose={() => setShowImportModal(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Import Users</DialogTitle>
+        {/* Import Modal */}
+        <Dialog
+          open={showImportModal}
+          onClose={() => setShowImportModal(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>
+            Import Users
+          </DialogTitle>
           <DialogContent>
-            <Box component="form" onSubmit={handleImport} sx={{ mt: 2 }}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <input
-                  type="file"
-                  accept=".xlsx"
-                onChange={(e) => setImportFile(e.target.files[0])}
-                    style={{ flex: 1 }}
-              />
-                  <Button
-                    variant="outlined"
-                    onClick={handleDownloadTemplate}
-                    startIcon={<DownloadIcon />}
-                  >
-                    Download Template
-                  </Button>
-                </Box>
-                <Typography variant="body2" color="text.secondary">
-                  Download the template file, fill in the user details, and upload it here.
-                  Required fields: emp_id, email, name, gender, dob, doj, mobile, manager_id, password, role
-                </Typography>
+            <form onSubmit={handleImport}>
+              <Box sx={{ mb: 2 }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<DownloadIcon />}
+                  onClick={handleDownloadTemplate}
+                  fullWidth
+                  sx={{ mb: 2 }}
+                >
+                  Download Template
+                </Button>
               </Box>
-              <DialogActions>
-                <Button onClick={() => setShowImportModal(false)}>Cancel</Button>
-                <Button type="submit" variant="contained" disabled={!importFile || importing}>
+              <Input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={(e) => setImportFile(e.target.files[0])}
+                fullWidth
+              />
+              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>
+                <Button onClick={() => setShowImportModal(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  variant="contained"
+                  disabled={importing || !importFile}
+                >
                   {importing ? 'Importing...' : 'Import'}
                 </Button>
-              </DialogActions>
-            </Box>
+              </Box>
+            </form>
           </DialogContent>
         </Dialog>
 
+        {/* Toast Notifications */}
         <Snackbar 
           open={alert.open} 
           autoHideDuration={6000} 
           onClose={handleCloseAlert}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
           <Alert 
             onClose={handleCloseAlert} 
             severity={alert.severity}
             sx={{ width: '100%' }}
+            variant="filled"
           >
             {alert.message}
           </Alert>
@@ -698,21 +803,5 @@ function UsersList() {
     </PageLayout>
   );
 }
-
-// Helper function to get badge color based on role
-const getRoleBadgeColor = (role) => {
-  switch (role?.toLowerCase()) {
-    case 'admin':
-      return 'primary.main';
-    case 'superadmin':
-      return 'error.main';
-    case 'manager':
-      return 'info.main';
-    case 'user':
-      return 'success.main';
-    default:
-      return 'grey.500';
-  }
-};
 
 export default UsersList;

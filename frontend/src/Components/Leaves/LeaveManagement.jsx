@@ -262,7 +262,7 @@ const LeaveManagement = () => {
         {/* Leave Balance Cards */}
         <Grid container spacing={2} sx={{ mb: 4 }}>
           {Object.entries(leaveBalance).map(([type, balance]) => (
-            <Grid columns={{ xs: 12, sm: 6, md: 4 }} key={type}>
+            <Grid item xs={12} sm={6} md={4} key={type}>
               <Card 
                 sx={{ 
                   bgcolor: getLeaveTypeColor(type),

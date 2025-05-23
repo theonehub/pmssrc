@@ -8,7 +8,6 @@ import json
 
 from services.user_service import create_default_user
 from routes import auth_routes, user_routes, project_attributes_routes,\
-    salary_component_routes, salary_computation_routes, \
     public_holiday_routes, attendance_routes, company_leave_routes, leave_routes, \
     reimbursement_routes, reimbursement_type_routes,\
     organisation_routes, taxation_routes
@@ -50,7 +49,6 @@ app.add_middleware(
 # Include routers
 app.include_router(auth_routes.router, tags=["Authentication"])
 app.include_router(user_routes.router, tags=["User Management"])
-app.include_router(salary_component_routes.router, tags=["Salary Components"])
 app.include_router(attendance_routes.routes, tags=["Attendance"])
 app.include_router(project_attributes_routes.router, tags=["Attributes"])
 app.include_router(reimbursement_type_routes.router, tags=["Reimbursement Types"])
@@ -58,7 +56,6 @@ app.include_router(reimbursement_routes.router, tags=["My-Reimbursements"])
 app.include_router(public_holiday_routes.router, tags=["Public Holidays"])
 app.include_router(company_leave_routes.router, tags=["Company Leaves"])
 app.include_router(leave_routes.router, tags=["Leave Management"])
-app.include_router(salary_computation_routes.router, tags=["Salary Computation"])
 app.include_router(organisation_routes.router, tags=["Organization"])
 app.include_router(taxation_routes.router, tags=["Taxation"])
 

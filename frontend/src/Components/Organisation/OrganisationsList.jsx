@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { getToken } from '../../utils/auth';
 import PageLayout from '../../layout/PageLayout';
@@ -20,80 +20,150 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle
+  DialogTitle,
+  Chip,
+  TablePagination,
+  InputAdornment,
+  Card,
+  CardContent,
+  Grid,
+  Skeleton,
+  Tooltip,
+  IconButton,
+  Fade
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon
+  Delete as DeleteIcon,
+  Search as SearchIcon,
+  Refresh as RefreshIcon,
+  FilterList as FilterIcon,
+  Business as BusinessIcon
 } from '@mui/icons-material';
 import { EmptyOrganisation } from '../../models/organisation';
 import OrganisationForm from './OrganisationForm';
 
+const API_BASE_URL = 'http://localhost:8000';
+
 function OrganisationsList() {
+  // State management
   const [organisations, setOrganisations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(0);
-  const [limit, setLimit] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [total, setTotal] = useState(0);
   const [showForm, setShowForm] = useState(false);
   const [currentOrganisation, setCurrentOrganisation] = useState(EmptyOrganisation);
-  const [toast, setToast] = useState({ show: false, message: '', severity: 'success' });
+  const [toast, setToast] = useState({ 
+    show: false, 
+    message: '', 
+    severity: 'success' 
+  });
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch organisations from API
-  const fetchOrganisations = async () => {
-    setLoading(true);
+  // Memoized fetch function
+  const fetchOrganisations = useCallback(async (showRefreshLoader = false) => {
+    if (showRefreshLoader) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
     try {
-      const res = await axios.get(`http://localhost:8000/organisations?skip=${page * limit}&limit=${limit}`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      setOrganisations(res.data.organisations);
-      setTotal(res.data.total);
+      const token = getToken();
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await axios.get(
+        `${API_BASE_URL}/organisations`,
+        {
+          params: {
+            skip: page * rowsPerPage,
+            limit: rowsPerPage,
+            search: searchTerm || undefined
+          },
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setOrganisations(response.data.organisations || []);
+      setTotal(response.data.total || 0);
     } catch (error) {
       console.error('Error fetching organisations:', error);
-      setToast({
-        show: true,
-        message: 'Failed to load organisations. ' + (error.response?.data?.detail || error.message),
-        severity: 'error'
-      });
+      const errorMessage = error.response?.data?.detail || 
+                          error.message || 
+                          'Failed to load organisations';
+      
+      showToast(errorMessage, 'error');
+      
+      // Reset data on error
+      setOrganisations([]);
+      setTotal(0);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [page, rowsPerPage, searchTerm]);
 
+  // Effects
   useEffect(() => {
     fetchOrganisations();
-  }, [page, limit]);
+  }, [fetchOrganisations]);
 
+  // Helper functions
+  const showToast = (message, severity = 'success') => {
+    setToast({ show: true, message, severity });
+  };
+
+  const closeToast = () => {
+    setToast(prev => ({ ...prev, show: false }));
+  };
+
+  // Event handlers
   const handleEdit = (organisation) => {
     setCurrentOrganisation(organisation);
     setShowForm(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this organisation?')) return;
+  const handleDeleteClick = (id) => {
+    setDeleteConfirmId(id);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirmId) return;
 
     try {
-      await axios.delete(`http://localhost:8000/organisation/${id}`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const token = getToken();
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      await axios.delete(
+        `${API_BASE_URL}/organisation/${deleteConfirmId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       
-      setToast({
-        show: true,
-        message: 'Organisation deleted successfully',
-        severity: 'success'
-      });
-      
+      showToast('Organisation deleted successfully', 'success');
       fetchOrganisations();
     } catch (error) {
       console.error('Error deleting organisation:', error);
-      setToast({
-        show: true,
-        message: 'Failed to delete organisation: ' + (error.response?.data?.detail || error.message),
-        severity: 'error'
-      });
+      const errorMessage = error.response?.data?.detail || 
+                          error.message || 
+                          'Failed to delete organisation';
+      showToast(errorMessage, 'error');
+    } finally {
+      setDeleteConfirmId(null);
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmId(null);
   };
 
   const handleAdd = () => {
@@ -107,195 +177,315 @@ function OrganisationsList() {
   };
 
   const handleFormSubmit = async (formData) => {
-    console.log('handleFormSubmit called with:', formData);
     try {
       const token = getToken();
       if (!token) {
-        console.log('No token found');
-        setToast({
-          show: true,
-          message: 'Authentication required. Please login again.',
-          severity: 'error'
-        });
-        return;
+        throw new Error('Authentication required. Please login again.');
       }
 
-      console.log('Making API request with token:', token);
-      if (formData.organisation_id) {
-        // Update existing organisation
-        await axios.put(`http://localhost:8000/organisation/${formData.organisation_id}`, formData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setToast({
-          show: true,
-          message: 'Organisation updated successfully',
-          severity: 'success'
-        });
-      } else {
-        // Create new organisation
-        console.log('Creating new organisation with data:', formData);
-        const response = await axios.post('http://localhost:8000/organisation', formData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        console.log('API response:', response);
-        setToast({
-          show: true,
-          message: 'Organisation created successfully',
-          severity: 'success'
-        });
-      }
+      const isUpdate = formData.organisation_id;
+      const url = isUpdate 
+        ? `${API_BASE_URL}/organisation/${formData.organisation_id}`
+        : `${API_BASE_URL}/organisation`;
       
+      const method = isUpdate ? 'put' : 'post';
+      
+      await axios[method](url, formData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const successMessage = isUpdate 
+        ? 'Organisation updated successfully'
+        : 'Organisation created successfully';
+      
+      showToast(successMessage, 'success');
       handleFormClose();
       fetchOrganisations();
     } catch (error) {
       console.error('Error saving organisation:', error);
-      console.error('Error response:', error.response);
-      setToast({
-        show: true,
-        message: 'Failed to save organisation: ' + (error.response?.data?.detail || error.message),
-        severity: 'error'
-      });
+      const errorMessage = error.response?.data?.detail || 
+                          error.message || 
+                          'Failed to save organisation';
+      showToast(errorMessage, 'error');
+      throw error; // Re-throw to let form handle the error state
     }
   };
 
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    // Reset to first page when searching
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
+    setPage(0); // Reset to first page when searching
+  };
+
+  const handlePageChange = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleRowsPerPageChange = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
 
-  // Filter organisations based on search term
-  const filteredOrganisations = organisations.filter(
-    (org) => org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-             org.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-             org.country.toLowerCase().includes(searchTerm.toLowerCase())
+  const handleRefresh = () => {
+    fetchOrganisations(true);
+  };
+
+  // Render helpers
+  const renderTableSkeleton = () => (
+    Array.from({ length: rowsPerPage }).map((_, index) => (
+      <TableRow key={index}>
+        <TableCell><Skeleton /></TableCell>
+        <TableCell><Skeleton /></TableCell>
+        <TableCell><Skeleton /></TableCell>
+        <TableCell><Skeleton /></TableCell>
+        <TableCell><Skeleton /></TableCell>
+        <TableCell><Skeleton /></TableCell>
+        <TableCell><Skeleton width={120} /></TableCell>
+      </TableRow>
+    ))
+  );
+
+  const renderStatusChip = (isActive) => (
+    <Chip
+      label={isActive ? 'Active' : 'Inactive'}
+      color={isActive ? 'success' : 'default'}
+      size="small"
+      variant="outlined"
+    />
+  );
+
+  const renderEmptyState = () => (
+    <TableRow>
+      <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <BusinessIcon 
+            sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} 
+          />
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            {searchTerm ? 'No organisations found' : 'No organisations yet'}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {searchTerm 
+              ? `No organisations match "${searchTerm}"`
+              : 'Get started by adding your first organisation'
+            }
+          </Typography>
+          {!searchTerm && (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleAdd}
+            >
+              Add Organisation
+            </Button>
+          )}
+        </Box>
+      </TableCell>
+    </TableRow>
   );
 
   return (
     <PageLayout>
       <Box sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4">Organisations</Typography>
-          <Button 
-            variant="contained" 
-            startIcon={<AddIcon />} 
-            onClick={handleAdd}
-          >
-            Add Organisation
-          </Button>
-        </Box>
+        {/* Header */}
+        <Card elevation={1} sx={{ mb: 3 }}>
+          <CardContent>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} sm={6}>
+                <Typography variant="h4" color="primary" gutterBottom>
+                  Organisations
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Manage your organisations and their details
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                  <Tooltip title="Refresh">
+                    <IconButton 
+                      onClick={handleRefresh}
+                      disabled={refreshing}
+                      color="primary"
+                    >
+                      <RefreshIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Button 
+                    variant="contained" 
+                    startIcon={<AddIcon />} 
+                    onClick={handleAdd}
+                    size="large"
+                  >
+                    Add Organisation
+                  </Button>
+                </Box>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
 
-        <TextField
-          fullWidth
-          label="Search by name, city, or country"
-          variant="outlined"
-          value={searchTerm}
-          onChange={handleSearch}
-          sx={{ mb: 3 }}
-        />
+        {/* Search and Filters */}
+        <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={8}>
+              <TextField
+                fullWidth
+                label="Search organisations"
+                variant="outlined"
+                value={searchTerm}
+                onChange={handleSearchChange}
+                placeholder="Search by name, city, or country..."
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  {loading ? 'Loading...' : `${total} organisation${total !== 1 ? 's' : ''}`}
+                </Typography>
+                {refreshing && <CircularProgress size={16} />}
+              </Box>
+            </Grid>
+          </Grid>
+        </Paper>
 
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow sx={{ 
-                '& .MuiTableCell-head': { 
-                  backgroundColor: 'primary.main',
-                  color: 'white',
-                  fontWeight: 'bold',
-                  fontSize: '0.875rem',
-                  padding: '12px 16px'
-                }
-              }}>
-                <TableCell>Name</TableCell>
-                <TableCell>City</TableCell>
-                <TableCell>Country</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Employee Strength</TableCell>
-                <TableCell>Used Employee Strength</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={5} align="center">
-                    <CircularProgress size={24} />
-                  </TableCell>
+        {/* Table */}
+        <Paper elevation={1}>
+          <TableContainer>
+            <Table stickyHeader>
+              <TableHead>
+                <TableRow sx={{ 
+                  '& .MuiTableCell-head': { 
+                    backgroundColor: 'primary.main',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    fontSize: '0.875rem'
+                  }
+                }}>
+                  <TableCell>Organisation Name</TableCell>
+                  <TableCell>Location</TableCell>
+                  <TableCell>Country</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell align="center">Employee Strength</TableCell>
+                  <TableCell align="center">Used Strength</TableCell>
+                  <TableCell align="center">Actions</TableCell>
                 </TableRow>
-              ) : filteredOrganisations.length > 0 ? (
-                filteredOrganisations.map((org) => (
-                  <TableRow key={org.id}>
-                    <TableCell>{org.name}</TableCell>
-                    <TableCell>{org.city}</TableCell>
-                    <TableCell>{org.country}</TableCell>
-                    <TableCell>{org.is_active ? 'Active' : 'Inactive'}</TableCell>
-                    <TableCell>{org.employee_strength}</TableCell>
-                    <TableCell>{org.used_employee_strength}</TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Button
-                          size="small"
-                          variant="contained"
-                          color="primary"
-                          startIcon={<EditIcon />}
-                          onClick={() => handleEdit(org)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="contained"
-                          color="error"
-                          startIcon={<DeleteIcon />}
-                          onClick={() => handleDelete(org.organisation_id)}
-                        >
-                          Delete
-                        </Button>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} align="center">
-                    No organisations found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  renderTableSkeleton()
+                ) : organisations.length > 0 ? (
+                  organisations.map((org) => (
+                    <Fade in key={org.organisation_id} timeout={300}>
+                      <TableRow 
+                        hover
+                        sx={{ 
+                          '&:hover': { 
+                            backgroundColor: 'action.hover' 
+                          }
+                        }}
+                      >
+                        <TableCell>
+                          <Box>
+                            <Typography variant="subtitle2" fontWeight="medium">
+                              {org.name}
+                            </Typography>
+                            {org.email && (
+                              <Typography variant="caption" color="text.secondary">
+                                {org.email}
+                              </Typography>
+                            )}
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Box>
+                            <Typography variant="body2">
+                              {org.city}
+                            </Typography>
+                            {org.state && (
+                              <Typography variant="caption" color="text.secondary">
+                                {org.state}
+                              </Typography>
+                            )}
+                          </Box>
+                        </TableCell>
+                        <TableCell>{org.country}</TableCell>
+                        <TableCell>{renderStatusChip(org.is_active)}</TableCell>
+                        <TableCell align="center">
+                          <Typography variant="body2" fontWeight="medium">
+                            {org.employee_strength || 'N/A'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Typography variant="body2">
+                            {org.used_employee_strength || 0}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                            <Tooltip title="Edit">
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => handleEdit(org)}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleDeleteClick(org.organisation_id)}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    </Fade>
+                  ))
+                ) : (
+                  renderEmptyState()
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
 
-        {/* Pagination controls - simplified, you might want to add actual pagination UI */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-          <Button 
-            disabled={page === 0} 
-            onClick={() => setPage(page - 1)}
-          >
-            Previous
-          </Button>
-          <Box sx={{ mx: 2, display: 'flex', alignItems: 'center' }}>
-            Page {page + 1} of {Math.ceil(total / limit)}
-          </Box>
-          <Button 
-            disabled={page >= Math.ceil(total / limit) - 1} 
-            onClick={() => setPage(page + 1)}
-          >
-            Next
-          </Button>
-        </Box>
+          {/* Pagination */}
+          {total > 0 && (
+            <TablePagination
+              component="div"
+              count={total}
+              page={page}
+              onPageChange={handlePageChange}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={handleRowsPerPageChange}
+              rowsPerPageOptions={[5, 10, 25, 50]}
+              showFirstButton
+              showLastButton
+            />
+          )}
+        </Paper>
 
-        {/* Feedback Toast */}
+        {/* Toast Notifications */}
         <Snackbar
           open={toast.show}
           autoHideDuration={6000}
-          onClose={() => setToast({ ...toast, show: false })}
+          onClose={closeToast}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
           <Alert 
-            onClose={() => setToast({ ...toast, show: false })} 
+            onClose={closeToast} 
             severity={toast.severity}
             sx={{ width: '100%' }}
+            variant="filled"
           >
             {toast.message}
           </Alert>
@@ -305,22 +495,64 @@ function OrganisationsList() {
         <Dialog
           open={showForm}
           onClose={handleFormClose}
-          maxWidth="md"
+          maxWidth="lg"
           fullWidth
           disableEscapeKeyDown={false}
-          onBackdropClick={handleFormClose}
+          PaperProps={{
+            sx: { minHeight: '80vh' }
+          }}
         >
-          <DialogTitle>
-            {currentOrganisation.id ? 'Edit Organisation' : 'Add Organisation'}
+          <DialogTitle sx={{ pb: 1 }}>
+            <Typography variant="h5" component="div">
+              {currentOrganisation.organisation_id ? 'Edit Organisation' : 'Add New Organisation'}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {currentOrganisation.organisation_id 
+                ? 'Update organisation details' 
+                : 'Fill in the details to create a new organisation'
+              }
+            </Typography>
           </DialogTitle>
-          <DialogContent>
+          <DialogContent sx={{ pt: 1 }}>
             <OrganisationForm 
               organisation={currentOrganisation} 
               onSubmit={handleFormSubmit} 
             />
           </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={handleFormClose} size="large">
+              Cancel
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          open={!!deleteConfirmId}
+          onClose={handleDeleteCancel}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle color="error.main">
+            Confirm Deletion
+          </DialogTitle>
+          <DialogContent>
+            <Typography>
+              Are you sure you want to delete this organisation? This action cannot be undone.
+            </Typography>
+          </DialogContent>
           <DialogActions>
-            <Button onClick={handleFormClose}>Cancel</Button>
+            <Button onClick={handleDeleteCancel}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleDeleteConfirm} 
+              color="error" 
+              variant="contained"
+              autoFocus
+            >
+              Delete
+            </Button>
           </DialogActions>
         </Dialog>
       </Box>

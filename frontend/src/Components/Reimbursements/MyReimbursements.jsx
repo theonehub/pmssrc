@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import api from '../../utils/apiUtils';
 import {
   Button,
@@ -21,20 +21,43 @@ import {
   Typography,
   CircularProgress,
   IconButton,
-  Tooltip
+  Tooltip,
+  Card,
+  CardContent,
+  Grid,
+  InputAdornment,
+  Skeleton,
+  Fade,
+  Chip,
+  Snackbar,
+  FormControl,
+  InputLabel,
+  Avatar
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Upload as UploadIcon
+  Upload as UploadIcon,
+  Search as SearchIcon,
+  Refresh as RefreshIcon,
+  Receipt as ReceiptIcon,
+  AttachMoney as MoneyIcon,
+  Description as DescriptionIcon,
+  CloudUpload as CloudUploadIcon
 } from '@mui/icons-material';
 import PageLayout from '../../layout/PageLayout';
 
-function MyReimbursements () {
+function MyReimbursements() {
+  // State management
   const [requests, setRequests] = useState([]);
+  const [filteredRequests, setFilteredRequests] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [formData, setFormData] = useState({
     reimbursement_type_id: '',
     amount: '',
@@ -44,35 +67,115 @@ function MyReimbursements () {
   const [types, setTypes] = useState([]);
   const [error, setError] = useState(null);
   const [editingRequest, setEditingRequest] = useState(null);
-  const [showEditModal, setShowEditModal] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [toast, setToast] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Memoized fetch function
+  const fetchData = useCallback(async (showRefreshLoader = false) => {
+    if (showRefreshLoader) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
 
-  const fetchData = async () => {
-    setLoading(true);
     try {
       const [reqRes, typesRes] = await Promise.all([
         api.get('/reimbursements/my-requests'),
         api.get('/reimbursement-types/')
       ]);
-      setRequests(reqRes.data);
-      setTypes(typesRes.data);
+      setRequests(reqRes.data || []);
+      setTypes(typesRes.data || []);
     } catch (err) {
       console.error('Error fetching requests:', err);
-      setError(err.response?.data?.detail || 'Failed to fetch requests.');
+      const errorMessage = err.response?.data?.detail || 'Failed to fetch requests.';
+      showToast(errorMessage, 'error');
+      setRequests([]);
+      setTypes([]);
     } finally {
       setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  // Filter requests based on search term and status
+  useEffect(() => {
+    let filtered = [...requests];
+
+    // Apply search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(request =>
+        request.note?.toLowerCase().includes(searchLower) ||
+        request.amount?.toString().includes(searchTerm) ||
+        request.status?.toLowerCase().includes(searchLower) ||
+        types.find(type => type.id === request.reimbursement_type_id)?.name?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(request => request.status?.toLowerCase() === statusFilter);
+    }
+
+    setFilteredRequests(filtered);
+  }, [requests, searchTerm, statusFilter, types]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Helper functions
+  const showToast = (message, severity = 'success') => {
+    setToast({ open: true, message, severity });
+  };
+
+  const handleCloseToast = () => {
+    setToast(prev => ({ ...prev, open: false }));
+  };
+
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'approved':
+        return 'success';
+      case 'pending':
+        return 'warning';
+      case 'rejected':
+        return 'error';
+      default:
+        return 'default';
     }
   };
 
+  const getTypeName = (typeId) => {
+    const type = types.find(t => t.id === typeId);
+    return type?.name || 'Unknown';
+  };
+
+  const formatAmount = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR'
+    }).format(amount);
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  // Event handlers
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     try {
       if (formData.file) {
-        // Use upload utility for file uploads
         await api.upload(
           '/reimbursements/with-file',
           formData.file,
@@ -83,7 +186,6 @@ function MyReimbursements () {
           }
         );
       } else {
-        // Use JSON approach for regular submissions
         await api.post('/reimbursements', {
           reimbursement_type_id: formData.reimbursement_type_id,
           amount: parseFloat(formData.amount),
@@ -91,32 +193,59 @@ function MyReimbursements () {
         });
       }
       
-      setShowModal(false);
-      setFormData({
-        reimbursement_type_id: '',
-        amount: '',
-        note: '',
-        file: null
-      });
-      fetchData(); // Refresh the list
+      showToast('Reimbursement request submitted successfully!', 'success');
+      handleClose();
+      fetchData();
     } catch (err) {
       console.error('Error submitting request:', err);
-      setError(err.response?.data?.detail || 'Failed to submit request.');
+      const errorMessage = err.response?.data?.detail || 'Failed to submit request.';
+      showToast(errorMessage, 'error');
+    }
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      if (formData.file) {
+        await api.upload(
+          `/reimbursements/${editingRequest.id}/with-file`,
+          formData.file,
+          {
+            reimbursement_type_id: formData.reimbursement_type_id,
+            amount: formData.amount,
+            note: formData.note
+          },
+          'put'
+        );
+      } else {
+        await api.put(`/reimbursements/${editingRequest.id}`, {
+          reimbursement_type_id: formData.reimbursement_type_id,
+          amount: parseFloat(formData.amount),
+          note: formData.note
+        });
+      }
+      
+      showToast('Reimbursement request updated successfully!', 'success');
+      handleEditClose();
+      fetchData();
+    } catch (err) {
+      console.error('Error updating request:', err);
+      const errorMessage = err.response?.data?.detail || 'Failed to update request.';
+      showToast(errorMessage, 'error');
     }
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file size (e.g., max 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        setError('File size should not exceed 5MB');
+        showToast('File size should not exceed 5MB', 'error');
         return;
       }
-      // Validate file type
       const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
       if (!allowedTypes.includes(file.type)) {
-        setError('Only JPEG, PNG and PDF files are allowed');
+        showToast('Only JPEG, PNG and PDF files are allowed', 'error');
         return;
       }
       setFormData({ ...formData, file: file });
@@ -134,17 +263,16 @@ function MyReimbursements () {
     setError(null);
   };
 
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'approved':
-        return 'success.main';
-      case 'pending':
-        return 'warning.main';
-      case 'rejected':
-        return 'error.main';
-      default:
-        return 'grey.500';
-    }
+  const handleEditClose = () => {
+    setShowEditModal(false);
+    setEditingRequest(null);
+    setFormData({
+      reimbursement_type_id: '',
+      amount: '',
+      note: '',
+      file: null
+    });
+    setError(null);
   };
 
   const handleEdit = (request) => {
@@ -158,318 +286,577 @@ function MyReimbursements () {
     setShowEditModal(true);
   };
 
-  const handleDelete = async (requestId) => {
-    if (window.confirm('Are you sure you want to delete this reimbursement request?')) {
-      try {
-        await api.delete(`/reimbursements/${requestId}`);
-        fetchData();
-      } catch (err) {
-        console.error('Error deleting request:', err);
-        setError(err.response?.data?.detail || 'Failed to delete request.');
-      }
+  const handleDeleteClick = (requestId) => {
+    setDeleteConfirmId(requestId);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirmId) return;
+
+    try {
+      await api.delete(`/reimbursements/${deleteConfirmId}`);
+      showToast('Reimbursement request deleted successfully!', 'success');
+      fetchData();
+    } catch (err) {
+      console.error('Error deleting request:', err);
+      const errorMessage = err.response?.data?.detail || 'Failed to delete request.';
+      showToast(errorMessage, 'error');
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
-  const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    
-    try {
-      if (formData.file) {
-        // Use upload utility for file uploads
-        await api.upload(
-          `/reimbursements/${editingRequest.id}/with-file`,
-          formData.file,
-          {
-            reimbursement_type_id: formData.reimbursement_type_id,
-            amount: formData.amount,
-            note: formData.note
-          },
-          'put' // Use PUT method
-        );
-      } else {
-        // Use JSON approach for regular submissions
-        await api.put(`/reimbursements/${editingRequest.id}`, {
-          reimbursement_type_id: formData.reimbursement_type_id,
-          amount: parseFloat(formData.amount),
-          note: formData.note
-        });
-      }
-      
-      setShowEditModal(false);
-      setEditingRequest(null);
-      setFormData({
-        reimbursement_type_id: '',
-        amount: '',
-        note: '',
-        file: null
-      });
-      fetchData();
-    } catch (err) {
-      console.error('Error updating request:', err);
-      setError(err.response?.data?.detail || 'Failed to update request.');
-    }
+  const handleDeleteCancel = () => {
+    setDeleteConfirmId(null);
+  };
+
+  const handleSearchChange = (event) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const handleStatusFilterChange = (event) => {
+    setStatusFilter(event.target.value);
+  };
+
+  const handleRefresh = () => {
+    fetchData(true);
+  };
+
+  // Render helpers
+  const renderTableSkeleton = () => (
+    Array.from({ length: 5 }).map((_, index) => (
+      <TableRow key={index}>
+        <TableCell><Skeleton /></TableCell>
+        <TableCell><Skeleton /></TableCell>
+        <TableCell><Skeleton /></TableCell>
+        <TableCell><Skeleton /></TableCell>
+        <TableCell><Skeleton /></TableCell>
+        <TableCell><Skeleton /></TableCell>
+        <TableCell><Skeleton width={120} /></TableCell>
+      </TableRow>
+    ))
+  );
+
+  const renderEmptyState = () => (
+    <TableRow>
+      <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <ReceiptIcon 
+            sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} 
+          />
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            {searchTerm || statusFilter !== 'all' ? 'No requests found' : 'No reimbursement requests yet'}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            {searchTerm || statusFilter !== 'all'
+              ? 'Try adjusting your search or filter criteria'
+              : 'Get started by submitting your first reimbursement request'
+            }
+          </Typography>
+          {!searchTerm && statusFilter === 'all' && (
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setShowModal(true)}
+            >
+              Submit Request
+            </Button>
+          )}
+        </Box>
+      </TableCell>
+    </TableRow>
+  );
+
+  const canEdit = (status) => {
+    return status?.toLowerCase() === 'pending';
+  };
+
+  const canDelete = (status) => {
+    return status?.toLowerCase() === 'pending';
   };
 
   return (
     <PageLayout>
-      <Box sx={{ mt: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4">My Reimbursements</Typography>
-          <Tooltip title="Add Reimbursement"
-            placement="top"
-            arrow
-            >
-            <IconButton color="primary" onClick={() => setShowModal(true)}>
-              <AddIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-
-        {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
-
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow sx={{
-                '& .MuiTableCell-head': {
-                  backgroundColor: 'primary.main',
-                  color: 'white',
-                  fontWeight: 'bold',
-                  fontSize: '0.875rem',
-                  padding: '12px 16px'
-                }
-              }}>
-                <TableCell>Type</TableCell>
-                <TableCell>Amount</TableCell>
-                <TableCell>Date</TableCell>
-                <TableCell>Description</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    <CircularProgress color="primary" />
-                  </TableCell>
-                </TableRow>
-              ) : requests.length > 0 ? (
-                requests.map((req) => (
-                  <TableRow
-                    key={req.id}
-                    sx={{
-                      '&:hover': {
-                        backgroundColor: 'action.hover',
-                        cursor: 'pointer'
-                      }
-                    }}
+      <Box sx={{ p: 3 }}>
+        {/* Header */}
+        <Card elevation={1} sx={{ mb: 3 }}>
+          <CardContent>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} sm={6}>
+                <Typography variant="h4" color="primary" gutterBottom>
+                  My Reimbursements
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Submit and track your reimbursement requests
+                </Typography>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                  <Tooltip title="Refresh">
+                    <IconButton 
+                      onClick={handleRefresh}
+                      disabled={refreshing}
+                      color="primary"
+                    >
+                      <RefreshIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() => setShowModal(true)}
+                    size="large"
                   >
-                    <TableCell>{req.type_name}</TableCell>
-                    <TableCell>₹{parseFloat(req.amount).toLocaleString('en-IN')}</TableCell>
-                    <TableCell>{new Date(req.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell>{req.note}</TableCell>
-                    <TableCell>
-                      <Box
-                        component="span"
-                        sx={{
-                          display: 'inline-block',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          backgroundColor: getStatusColor(req.status),
-                          color: 'white',
-                          fontSize: '0.75rem',
-                          fontWeight: 'bold'
+                    Submit Request
+                  </Button>
+                </Box>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {/* Search and Filters */}
+        <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Search requests"
+                variant="outlined"
+                value={searchTerm}
+                onChange={handleSearchChange}
+                placeholder="Search by note, amount, or type..."
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth>
+                <InputLabel>Status Filter</InputLabel>
+                <Select
+                  value={statusFilter}
+                  label="Status Filter"
+                  onChange={handleStatusFilterChange}
+                >
+                  <MenuItem value="all">All Status</MenuItem>
+                  <MenuItem value="pending">Pending</MenuItem>
+                  <MenuItem value="approved">Approved</MenuItem>
+                  <MenuItem value="rejected">Rejected</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="body2" color="text.secondary">
+                  {loading ? 'Loading...' : `${filteredRequests.length} request${filteredRequests.length !== 1 ? 's' : ''}`}
+                </Typography>
+                {refreshing && <CircularProgress size={16} />}
+              </Box>
+            </Grid>
+          </Grid>
+        </Paper>
+
+        {/* Table */}
+        <Paper elevation={1}>
+          <TableContainer>
+            <Table stickyHeader>
+              <TableHead>
+                <TableRow sx={{ 
+                  '& .MuiTableCell-head': { 
+                    backgroundColor: 'primary.main',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    fontSize: '0.875rem'
+                  }
+                }}>
+                  <TableCell>Type</TableCell>
+                  <TableCell>Amount</TableCell>
+                  <TableCell>Note</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Submitted Date</TableCell>
+                  <TableCell>Attachment</TableCell>
+                  <TableCell align="center">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {loading ? (
+                  renderTableSkeleton()
+                ) : filteredRequests.length > 0 ? (
+                  filteredRequests.map((request) => (
+                    <Fade in key={request.id} timeout={300}>
+                      <TableRow 
+                        hover
+                        sx={{ 
+                          '&:hover': { 
+                            backgroundColor: 'action.hover' 
+                          }
                         }}
                       >
-                        {req.status}
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Avatar 
+                              sx={{ 
+                                width: 32, 
+                                height: 32, 
+                                bgcolor: 'primary.main',
+                                fontSize: '0.75rem'
+                              }}
+                            >
+                              <ReceiptIcon fontSize="small" />
+                            </Avatar>
+                            <Typography variant="subtitle2" fontWeight="medium">
+                              {getTypeName(request.reimbursement_type_id)}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight="medium" color="success.main">
+                            {formatAmount(request.amount)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {request.note || 'No description'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={request.status}
+                            color={getStatusColor(request.status)}
+                            size="small"
+                            variant="outlined"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {formatDate(request.created_at)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          {request.file_path ? (
+                            <Tooltip title="View Attachment">
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => window.open(request.file_path, '_blank')}
+                              >
+                                <DescriptionIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          ) : (
+                            <Typography variant="caption" color="text.secondary">
+                              No file
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell align="center">
+                          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                            {canEdit(request.status) && (
+                              <Tooltip title="Edit Request">
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handleEdit(request)}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                            {canDelete(request.status) && (
+                              <Tooltip title="Delete Request">
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleDeleteClick(request.id)}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                            {!canEdit(request.status) && !canDelete(request.status) && (
+                              <Typography variant="caption" color="text.secondary">
+                                No actions
+                              </Typography>
+                            )}
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    </Fade>
+                  ))
+                ) : (
+                  renderEmptyState()
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+
+        {/* Submit Request Dialog */}
+        <Dialog open={showModal} onClose={handleClose} maxWidth="sm" fullWidth>
+          <DialogTitle>
+            <Typography variant="h5" component="div">
+              Submit Reimbursement Request
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Fill in the details for your reimbursement request
+            </Typography>
+          </DialogTitle>
+          <DialogContent>
+            <form onSubmit={handleSubmit}>
+              <Grid container spacing={3} sx={{ mt: 1 }}>
+                <Grid item xs={12}>
+                  <FormControl fullWidth required>
+                    <InputLabel>Reimbursement Type</InputLabel>
+                    <Select
+                      value={formData.reimbursement_type_id}
+                      label="Reimbursement Type"
+                      onChange={(e) => setFormData({ ...formData, reimbursement_type_id: e.target.value })}
+                    >
+                      {types.map((type) => (
+                        <MenuItem key={type.id} value={type.id}>
+                          {type.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Amount"
+                    type="number"
+                    value={formData.amount}
+                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                    required
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <MoneyIcon color="action" />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Note/Description"
+                    multiline
+                    rows={3}
+                    value={formData.note}
+                    onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                    placeholder="Add details about your reimbursement request..."
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Box sx={{ 
+                    border: '2px dashed',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    p: 2,
+                    textAlign: 'center',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      bgcolor: 'action.hover'
+                    }
+                  }}>
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={handleFileChange}
+                      style={{ display: 'none' }}
+                      id="file-upload"
+                    />
+                    <label htmlFor="file-upload">
+                      <Box sx={{ cursor: 'pointer' }}>
+                        <CloudUploadIcon sx={{ fontSize: 40, color: 'text.secondary', mb: 1 }} />
+                        <Typography variant="body2" color="text.secondary">
+                          Click to upload receipt/bill (PDF, JPG, PNG - Max 5MB)
+                        </Typography>
+                        {formData.file && (
+                          <Typography variant="body2" color="primary" sx={{ mt: 1 }}>
+                            Selected: {formData.file.name}
+                          </Typography>
+                        )}
                       </Box>
-                    </TableCell>
-                    <TableCell>
-                      {req.status === 'PENDING' && (
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Tooltip title="Edit"
-                            placement="top"
-                            arrow
-                            >
-                            <IconButton
-                              color="primary"
-                              size="small"
-                              onClick={() => handleEdit(req)}
-                            >
-                              <EditIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete"
-                            placement="top"
-                            arrow
-                            >
-                            <IconButton
-                              color="error"
-                              size="small"
-                              onClick={() => handleDelete(req.id)}
-                            >
-                              <DeleteIcon />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} align="center">No reimbursements found</TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        <Dialog open={showModal} onClose={handleClose}>
-          <form onSubmit={handleSubmit}>
-            <DialogTitle>Submit Reimbursement Request</DialogTitle>
-            <DialogContent>
-              <Box sx={{ mt: 2 }}>
-                <Select
-                  fullWidth
-                  value={formData.reimbursement_type_id}
-                  onChange={(e) => setFormData({ ...formData, reimbursement_type_id: e.target.value })}
-                  displayEmpty
-                  required
-                  sx={{ mb: 2 }}
-                >
-                  <MenuItem value="" disabled>Select Type</MenuItem>
-                  {types.map((type) => (
-                    <MenuItem key={type.reimbursement_type_id} value={type.reimbursement_type_id}>
-                      {type.reimbursement_type_name}
-                    </MenuItem>
-                  ))}
-                </Select>
-                <TextField
-                  fullWidth
-                  type="number"
-                  label="Amount"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  sx={{ mb: 2 }}
-                  required
-                />
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={3}
-                  label="Note"
-                  value={formData.note}
-                  onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                  sx={{ mb: 2 }}
-                  required
-                />
-                <TextField
-                  fullWidth
-                  type="file"
-                  inputProps={{
-                    accept: '.jpg,.jpeg,.png,.pdf'
-                  }}
-                  InputProps={{
-                    startAdornment: (
-                      <IconButton component="span">
-                        <UploadIcon />
-                      </IconButton>
-                    ),
-                  }}
-                  onChange={handleFileChange}
-                  sx={{ mb: 2 }}
-                />
-                {formData.file && (
-                  <Typography variant="caption" display="block" gutterBottom>
-                    Selected file: {formData.file.name}
-                  </Typography>
-                )}
-              </Box>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={handleClose}>Cancel</Button>
-              <Button type="submit" variant="contained" color="primary">
-                Submit
-              </Button>
-            </DialogActions>
-          </form>
+                    </label>
+                  </Box>
+                </Grid>
+                <Grid item xs={12}>
+                  <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                    <Button onClick={handleClose} size="large">
+                      Cancel
+                    </Button>
+                    <Button type="submit" variant="contained" size="large">
+                      Submit Request
+                    </Button>
+                  </Box>
+                </Grid>
+              </Grid>
+            </form>
+          </DialogContent>
         </Dialog>
 
-        <Dialog open={showEditModal} onClose={() => { setShowEditModal(false); setEditingRequest(null); }}>
-          <form onSubmit={handleEditSubmit}>
-            <DialogTitle>Edit Reimbursement Request</DialogTitle>
-            <DialogContent>
-              <Box sx={{ mt: 2 }}>
-                <Select
-                  fullWidth
-                  value={formData.reimbursement_type_id}
-                  onChange={(e) => setFormData({ ...formData, reimbursement_type_id: e.target.value })}
-                  displayEmpty
-                  required
-                  sx={{ mb: 2 }}
-                >
-                  <MenuItem value="" disabled>Select Type</MenuItem>
-                  {types.map((type) => (
-                    <MenuItem key={type.reimbursement_type_id} value={type.reimbursement_type_id}>
-                      {type.reimbursement_type_name}
-                    </MenuItem>
-                  ))}
-                </Select>
-                <TextField
-                  fullWidth
-                  type="number"
-                  label="Amount"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  sx={{ mb: 2 }}
-                  required
-                />
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={3}
-                  label="Note"
-                  value={formData.note}
-                  onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                  sx={{ mb: 2 }}
-                  required
-                />
-                <TextField
-                  fullWidth
-                  type="file"
-                  inputProps={{
-                    accept: '.jpg,.jpeg,.png,.pdf'
-                  }}
-                  InputProps={{
-                    startAdornment: (
-                      <IconButton component="span">
-                        <UploadIcon />
-                      </IconButton>
-                    ),
-                  }}
-                  onChange={handleFileChange}
-                  sx={{ mb: 2 }}
-                />
-                {formData.file && (
-                  <Typography variant="caption" display="block" gutterBottom>
-                    Selected file: {formData.file.name}
-                  </Typography>
-                )}
-              </Box>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => { setShowEditModal(false); setEditingRequest(null); }}>Cancel</Button>
-              <Button type="submit" variant="contained" color="primary">
-                Update
-              </Button>
-            </DialogActions>
-          </form>
+        {/* Edit Request Dialog */}
+        <Dialog open={showEditModal} onClose={handleEditClose} maxWidth="sm" fullWidth>
+          <DialogTitle>
+            <Typography variant="h5" component="div">
+              Edit Reimbursement Request
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Update your reimbursement request details
+            </Typography>
+          </DialogTitle>
+          <DialogContent>
+            <form onSubmit={handleEditSubmit}>
+              <Grid container spacing={3} sx={{ mt: 1 }}>
+                <Grid item xs={12}>
+                  <FormControl fullWidth required>
+                    <InputLabel>Reimbursement Type</InputLabel>
+                    <Select
+                      value={formData.reimbursement_type_id}
+                      label="Reimbursement Type"
+                      onChange={(e) => setFormData({ ...formData, reimbursement_type_id: e.target.value })}
+                    >
+                      {types.map((type) => (
+                        <MenuItem key={type.id} value={type.id}>
+                          {type.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Amount"
+                    type="number"
+                    value={formData.amount}
+                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                    required
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <MoneyIcon color="action" />
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Note/Description"
+                    multiline
+                    rows={3}
+                    value={formData.note}
+                    onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                    placeholder="Add details about your reimbursement request..."
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <Box sx={{ 
+                    border: '2px dashed',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    p: 2,
+                    textAlign: 'center',
+                    '&:hover': {
+                      borderColor: 'primary.main',
+                      bgcolor: 'action.hover'
+                    }
+                  }}>
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={handleFileChange}
+                      style={{ display: 'none' }}
+                      id="edit-file-upload"
+                    />
+                    <label htmlFor="edit-file-upload">
+                      <Box sx={{ cursor: 'pointer' }}>
+                        <CloudUploadIcon sx={{ fontSize: 40, color: 'text.secondary', mb: 1 }} />
+                        <Typography variant="body2" color="text.secondary">
+                          Click to upload new receipt/bill (PDF, JPG, PNG - Max 5MB)
+                        </Typography>
+                        {formData.file && (
+                          <Typography variant="body2" color="primary" sx={{ mt: 1 }}>
+                            Selected: {formData.file.name}
+                          </Typography>
+                        )}
+                      </Box>
+                    </label>
+                  </Box>
+                </Grid>
+                <Grid item xs={12}>
+                  <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                    <Button onClick={handleEditClose} size="large">
+                      Cancel
+                    </Button>
+                    <Button type="submit" variant="contained" size="large">
+                      Update Request
+                    </Button>
+                  </Box>
+                </Grid>
+              </Grid>
+            </form>
+          </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          open={!!deleteConfirmId}
+          onClose={handleDeleteCancel}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle color="error.main">
+            Confirm Deletion
+          </DialogTitle>
+          <DialogContent>
+            <Typography>
+              Are you sure you want to delete this reimbursement request? This action cannot be undone.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleDeleteCancel}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleDeleteConfirm} 
+              color="error" 
+              variant="contained"
+              autoFocus
+            >
+              Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Toast Notifications */}
+        <Snackbar 
+          open={toast.open} 
+          autoHideDuration={6000} 
+          onClose={handleCloseToast}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        >
+          <Alert 
+            onClose={handleCloseToast} 
+            severity={toast.severity}
+            sx={{ width: '100%' }}
+            variant="filled"
+          >
+            {toast.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </PageLayout>
   );
-};
+}
 
 export default MyReimbursements;

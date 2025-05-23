@@ -3,9 +3,10 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './Components/Auth/Login';
 import Home from './pages/Home';
 import UsersList from './Components/User/UsersList';
+import UserDetail from './Components/User/UserDetail';
+import UserEdit from './Components/User/UserEdit';
 import AttendanceUserList from './Components/Attendence/AttendenceUserList';
 import ProtectedRoute from './Components/Common/ProtectedRoute';
-import SalaryComponents from './Components/Salary/SalaryComponents';
 import LWPManagement from './features/lwp/components/LWPManagement';
 import ProjectAttributes from './features/project-attributes/components/ProjectAttributes';
 import ReimbursementTypes from './Components/Reimbursements/ReimbursementTypes';
@@ -15,8 +16,6 @@ import PublicHolidays from './Components/PublicHolidays/PublicHolidays';
 import LeaveManagement from './Components/Leaves/LeaveManagement';
 import AllLeaves from './Components/Leaves/AllLeaves';
 import CompanyLeaves from './Components/CompanyLeaves/CompanyLeaves';
-import SalaryUsersList from './Components/Salary/SalaryUsersList';
-import SalaryDeclaration from './Components/Salary/SalaryDeclaration';
 import OrganisationsList from './Components/Organisation/OrganisationsList';
 
 // Taxation Pages
@@ -34,11 +33,22 @@ function App() {
         <Route path="/" element={<Login />} />
         <Route path="/login" element={<Login />} />
         <Route path="/home" element={<Home />} />
-        <Route path="/salary-declaration" element={<SalaryDeclaration />} />
         
         <Route path="/users" element={
           <ProtectedRoute allowedRoles={['manager', 'admin', 'superadmin']}>
             <UsersList />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/users/:empId" element={
+          <ProtectedRoute allowedRoles={['manager', 'admin', 'superadmin']}>
+            <UserDetail />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/users/:empId/edit" element={
+          <ProtectedRoute allowedRoles={['manager', 'admin', 'superadmin']}>
+            <UserEdit />
           </ProtectedRoute>
         } />
 
@@ -53,16 +63,6 @@ function App() {
           </ProtectedRoute>
         } />
 
-        <Route path="/salary-components" element={
-          <ProtectedRoute allowedRoles={['admin', 'superadmin', 'hr']}>
-            <SalaryComponents />
-          </ProtectedRoute>
-        } />
-        <Route path="/salary-users-list" element={
-          <ProtectedRoute allowedRoles={['admin', 'superadmin', 'hr']}>
-            <SalaryUsersList />
-          </ProtectedRoute>
-        } />
         <Route path="/lwp" element={
           <ProtectedRoute allowedRoles={['admin', 'superadmin', 'hr']}>
             <LWPManagement />

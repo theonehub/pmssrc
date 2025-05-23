@@ -142,7 +142,7 @@ def get_todays_attendance_stats(hostname: str):
     today_start = datetime(now.year, now.month, now.day)
     tomorrow_start = today_start + timedelta(days=1)
 
-    total_employees = collection.count_documents({
+    total_users = collection.count_documents({
         "date": {"$gte": today_start, "$lt": tomorrow_start}
     })
     
@@ -158,9 +158,9 @@ def get_todays_attendance_stats(hostname: str):
     })
     
     return {
-        "total_employees": total_employees,
+        "total_users": total_users,
         "checked_in": checked_in,
         "checked_out": checked_out,
-        "pending_check_in": total_employees - checked_in,
+        "pending_check_in": total_users - checked_in,
         "pending_check_out": checked_in - checked_out
     } 

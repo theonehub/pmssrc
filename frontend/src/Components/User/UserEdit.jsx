@@ -20,7 +20,8 @@ import {
   InputAdornment,
   Divider,
   Avatar,
-  Snackbar
+  Snackbar,
+  Chip
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -32,11 +33,108 @@ import {
   CalendarToday as CalendarIcon,
   Badge as BadgeIcon,
   LocationOn as LocationIcon,
-  Numbers as NumbersIcon
+  Numbers as NumbersIcon,
+  CloudUpload as CloudUploadIcon,
+  Delete as DeleteIcon,
+  PhotoCamera as PhotoCameraIcon,
+  Description as DescriptionIcon
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../utils/apiUtils';
 import PageLayout from '../../layout/PageLayout';
+
+const FileUploadButton = ({ 
+  label, 
+  file, 
+  onFileSelect, 
+  onFileRemove, 
+  accept, 
+  required = false,
+  icon 
+}) => {
+  const handleFileChange = (event) => {
+    const selectedFile = event.target.files[0];
+    if (selectedFile) {
+      onFileSelect(selectedFile);
+    }
+  };
+
+  return (
+    <Box>
+      <Typography variant="subtitle2" gutterBottom>
+        {label} {required && <span style={{ color: 'red' }}>*</span>}
+      </Typography>
+      <Box
+        sx={{
+          border: '2px dashed',
+          borderColor: file ? 'success.main' : 'grey.300',
+          borderRadius: 2,
+          p: 2,
+          textAlign: 'center',
+          bgcolor: file ? 'success.50' : 'grey.50',
+          cursor: 'pointer',
+          '&:hover': {
+            borderColor: 'primary.main',
+            bgcolor: 'grey.100'
+          }
+        }}
+      >
+        {file ? (
+          <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+              {icon}
+              <Typography variant="body2" sx={{ ml: 1 }}>
+                {file.name}
+              </Typography>
+            </Box>
+            <Chip
+              label={`${(file.size / 1024 / 1024).toFixed(2)} MB`}
+              size="small"
+              color="success"
+              sx={{ mb: 1 }}
+            />
+            <Box>
+              <IconButton
+                size="small"
+                color="error"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFileRemove();
+                }}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Box>
+          </Box>
+        ) : (
+          <Box>
+            {icon}
+            <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+              Click to upload {label.toLowerCase()}
+            </Typography>
+            <Typography variant="caption" color="textSecondary">
+              {accept === 'image/*' ? 'PNG, JPG up to 2MB' : 'PNG, JPG, PDF up to 5MB'}
+            </Typography>
+          </Box>
+        )}
+        <input
+          type="file"
+          accept={accept}
+          onChange={handleFileChange}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            opacity: 0,
+            cursor: 'pointer'
+          }}
+        />
+      </Box>
+    </Box>
+  );
+};
 
 const UserEdit = () => {
   const { empId } = useParams();
@@ -44,10 +142,16 @@ const UserEdit = () => {
   
   const [user, setUser] = useState(null);
   const [formData, setFormData] = useState({});
+  const [files, setFiles] = useState({
+    panFile: null,
+    aadharFile: null,
+    photo: null
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [errors, setErrors] = useState({});
+  const [fileErrors, setFileErrors] = useState({});
   const [toast, setToast] = useState({
     open: false,
     message: '',
@@ -78,7 +182,8 @@ const UserEdit = () => {
         department: userData.department || '',
         designation: userData.designation || '',
         location: userData.location || '',
-        esi_number: userData.esi_number || ''
+        esi_number: userData.esi_number || '',
+        password: ''  // Empty password for updates
       });
     } catch (error) {
       console.error('Error fetching user:', error);
@@ -91,6 +196,49 @@ const UserEdit = () => {
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);
+
+  const validateFile = (file, type) => {
+    const maxSizes = {
+      photo: 2 * 1024 * 1024, // 2MB
+      document: 5 * 1024 * 1024 // 5MB
+    };
+
+    const allowedTypes = {
+      photo: ['image/jpeg', 'image/png'],
+      document: ['image/jpeg', 'image/png', 'application/pdf']
+    };
+
+    const fileType = type === 'photo' ? 'photo' : 'document';
+    const maxSize = maxSizes[fileType];
+    const allowed = allowedTypes[fileType];
+
+    if (file.size > maxSize) {
+      return `File size must be less than ${maxSize / 1024 / 1024}MB`;
+    }
+
+    if (!allowed.includes(file.type)) {
+      return `Invalid file type. Allowed: ${fileType === 'photo' ? 'JPG, PNG' : 'JPG, PNG, PDF'}`;
+    }
+
+    return null;
+  };
+
+  const handleFileSelect = (fileType, file) => {
+    const error = validateFile(file, fileType === 'photo' ? 'photo' : 'document');
+    
+    if (error) {
+      setFileErrors(prev => ({ ...prev, [fileType]: error }));
+      return;
+    }
+
+    setFiles(prev => ({ ...prev, [fileType]: file }));
+    setFileErrors(prev => ({ ...prev, [fileType]: null }));
+  };
+
+  const handleFileRemove = (fileType) => {
+    setFiles(prev => ({ ...prev, [fileType]: null }));
+    setFileErrors(prev => ({ ...prev, [fileType]: null }));
+  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -111,6 +259,15 @@ const UserEdit = () => {
       newErrors.mobile = 'Mobile must be 10 digits';
     }
     
+    // Note: Password is not required for updates - backend will use existing password if not provided
+    
+    // Check for file errors (only if files are uploaded)
+    const hasFileErrors = Object.values(fileErrors).some(error => error !== null);
+    if (hasFileErrors) {
+      showToast('Please fix file upload errors before submitting', 'error');
+      return false;
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -133,10 +290,25 @@ const UserEdit = () => {
     
     setSaving(true);
     try {
-      await api.put(`/users/${empId}`, formData);
+      const hasFiles = files.panFile || files.aadharFile || files.photo;
+      
+      if (hasFiles) {
+        // Use the with-files endpoint with PUT method
+        await api.uploadMultiple(`/users/emp/${empId}/with-files`, {
+          pan_file: files.panFile,
+          aadhar_file: files.aadharFile,
+          photo: files.photo
+        }, {
+          user_data: JSON.stringify(formData)
+        }, 'put');
+      } else {
+        // Use the regular endpoint
+        await api.put(`/users/emp/${empId}`, formData);
+      }
+      
       showToast('User updated successfully!', 'success');
       setTimeout(() => {
-        navigate(`/users/${empId}`);
+        navigate(`/users/emp/${empId}`);
       }, 1500);
     } catch (error) {
       console.error('Error updating user:', error);
@@ -238,7 +410,7 @@ const UserEdit = () => {
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <IconButton 
-                  onClick={() => navigate(`/users/${empId}`)}
+                  onClick={() => navigate(`/users/emp/${empId}`)}
                   color="primary"
                 >
                   <ArrowBackIcon />
@@ -581,6 +753,178 @@ const UserEdit = () => {
                           ),
                         }}
                       />
+                    </Grid>
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Document Uploads */}
+            <Grid item xs={12}>
+              <Card elevation={1}>
+                <CardContent>
+                  <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CloudUploadIcon />
+                    📎 Document Uploads - COMPLETELY OPTIONAL
+                  </Typography>
+                  <Divider sx={{ mb: 3 }} />
+                  
+                  <Alert severity="success" sx={{ mb: 3 }}>
+                    <Typography variant="body2">
+                      <strong>✅ No file uploads required!</strong> You can update the user information without uploading any documents. 
+                      Document uploads are completely optional.
+                    </Typography>
+                  </Alert>
+                  
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={4}>
+                      <Box sx={{ border: '1px dashed #ccc', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: '#f9f9f9' }}>
+                        <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                          📄 PAN Card Document (Optional)
+                        </Typography>
+                        {files.panFile ? (
+                          <Box>
+                            <Typography variant="body2" color="success.main">
+                              {files.panFile.name}
+                            </Typography>
+                            <Button 
+                              size="small" 
+                              color="error" 
+                              onClick={() => handleFileRemove('panFile')}
+                              sx={{ mt: 1 }}
+                            >
+                              Remove
+                            </Button>
+                          </Box>
+                        ) : (
+                          <Box>
+                            <input
+                              type="file"
+                              accept="image/*,.pdf"
+                              onChange={(e) => {
+                                if (e.target.files[0]) {
+                                  handleFileSelect('panFile', e.target.files[0]);
+                                }
+                              }}
+                              style={{ display: 'none' }}
+                              id="pan-file-input-edit"
+                            />
+                            <label htmlFor="pan-file-input-edit">
+                              <Button variant="outlined" component="span" size="small">
+                                Choose File (Optional)
+                              </Button>
+                            </label>
+                            <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 1 }}>
+                              PNG, JPG, PDF up to 5MB
+                            </Typography>
+                          </Box>
+                        )}
+                        {fileErrors.panFile && (
+                          <Alert severity="error" sx={{ mt: 1 }} variant="outlined">
+                            {fileErrors.panFile}
+                          </Alert>
+                        )}
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={12} md={4}>
+                      <Box sx={{ border: '1px dashed #ccc', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: '#f9f9f9' }}>
+                        <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                          📄 Aadhar Card Document (Optional)
+                        </Typography>
+                        {files.aadharFile ? (
+                          <Box>
+                            <Typography variant="body2" color="success.main">
+                              {files.aadharFile.name}
+                            </Typography>
+                            <Button 
+                              size="small" 
+                              color="error" 
+                              onClick={() => handleFileRemove('aadharFile')}
+                              sx={{ mt: 1 }}
+                            >
+                              Remove
+                            </Button>
+                          </Box>
+                        ) : (
+                          <Box>
+                            <input
+                              type="file"
+                              accept="image/*,.pdf"
+                              onChange={(e) => {
+                                if (e.target.files[0]) {
+                                  handleFileSelect('aadharFile', e.target.files[0]);
+                                }
+                              }}
+                              style={{ display: 'none' }}
+                              id="aadhar-file-input-edit"
+                            />
+                            <label htmlFor="aadhar-file-input-edit">
+                              <Button variant="outlined" component="span" size="small">
+                                Choose File (Optional)
+                              </Button>
+                            </label>
+                            <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 1 }}>
+                              PNG, JPG, PDF up to 5MB
+                            </Typography>
+                          </Box>
+                        )}
+                        {fileErrors.aadharFile && (
+                          <Alert severity="error" sx={{ mt: 1 }} variant="outlined">
+                            {fileErrors.aadharFile}
+                          </Alert>
+                        )}
+                      </Box>
+                    </Grid>
+
+                    <Grid item xs={12} md={4}>
+                      <Box sx={{ border: '1px dashed #ccc', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: '#f9f9f9' }}>
+                        <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                          📷 Profile Photo (Optional)
+                        </Typography>
+                        {files.photo ? (
+                          <Box>
+                            <Typography variant="body2" color="success.main">
+                              {files.photo.name}
+                            </Typography>
+                            <Button 
+                              size="small" 
+                              color="error" 
+                              onClick={() => handleFileRemove('photo')}
+                              sx={{ mt: 1 }}
+                            >
+                              Remove
+                            </Button>
+                          </Box>
+                        ) : (
+                          <Box>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                if (e.target.files[0]) {
+                                  handleFileSelect('photo', e.target.files[0]);
+                                }
+                              }}
+                              style={{ display: 'none' }}
+                              id="photo-file-input-edit"
+                            />
+                            <label htmlFor="photo-file-input-edit">
+                              <Button variant="outlined" component="span" size="small">
+                                Choose File (Optional)
+                              </Button>
+                            </label>
+                            <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 1 }}>
+                              PNG, JPG up to 2MB
+                            </Typography>
+                          </Box>
+                        )}
+                        {fileErrors.photo && (
+                          <Alert severity="error" sx={{ mt: 1 }} variant="outlined">
+                            {fileErrors.photo}
+                          </Alert>
+                        )}
+                      </Box>
                     </Grid>
                   </Grid>
                 </CardContent>

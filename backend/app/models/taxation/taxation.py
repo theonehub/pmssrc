@@ -188,7 +188,7 @@ class Taxation:
         
         # Setup regime and age info
         regime = data.get('regime', 'old')
-        emp_age = data.get('emp_age', 0)
+        emp_age = int(data.get('emp_age', 0)) if data.get('emp_age') is not None else 0
         
         # Create component objects
         salary = SalaryComponents(

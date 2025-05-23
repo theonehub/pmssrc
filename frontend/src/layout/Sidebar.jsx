@@ -28,6 +28,10 @@ import {
   Business as BusinessIcon,
   CurrencyRupee as CurrencyRupeeIcon,
   CalculateOutlined as CalculateIcon,
+  AccountBalance as AccountBalanceIcon,
+  Payment as PaymentIcon,
+  RequestPage as RequestPageIcon,
+  Assessment as AssessmentIcon,
   ExpandLess,
   ExpandMore
 } from '@mui/icons-material';
@@ -44,6 +48,7 @@ const Sidebar = () => {
     home: false,
     organization: false,
     leaves: false,
+    payouts: false,
     reimbursements: false,
     taxation: false,
     settings: false
@@ -133,6 +138,43 @@ const Sidebar = () => {
           icon: <EventBusyIcon />,
           path: '/lwp',
           roles: ['admin', 'superadmin']
+        }
+      ]
+    },
+    {
+      id: 'payouts',
+      title: 'Payouts & Salary',
+      icon: <AccountBalanceIcon />,
+      items: [
+        {
+          title: 'My Salary Details',
+          icon: <WalletIcon />,
+          path: '/payouts/my-salary',
+          roles: ['user', 'manager', 'admin', 'superadmin']
+        },
+        {
+          title: 'My Payslips',
+          icon: <RequestPageIcon />,
+          path: '/payouts/my-payslips',
+          roles: ['user', 'manager', 'admin', 'superadmin']
+        },
+        {
+          title: 'Salary Calculator',
+          icon: <CalculateIcon />,
+          path: '/payouts/admin',
+          roles: ['admin', 'superadmin']
+        },
+        {
+          title: 'Monthly Processing',
+          icon: <AssessmentIcon />,
+          path: '/payouts/monthly',
+          roles: ['admin', 'superadmin']
+        },
+        {
+          title: 'Payout Reports',
+          icon: <AssessmentIcon />,
+          path: '/payouts/reports',
+          roles: ['manager', 'admin', 'superadmin']
         }
       ]
     },

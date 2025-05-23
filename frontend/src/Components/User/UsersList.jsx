@@ -63,7 +63,7 @@ function UsersList() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
-  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+
   const [showImportModal, setShowImportModal] = useState(false);
   const [importFile, setImportFile] = useState(null);
   const [importing, setImporting] = useState(false);
@@ -172,57 +172,7 @@ function UsersList() {
   };
 
   // Event handlers
-  const handleCreateUser = async (e) => {
-    e.preventDefault();
-    
-    const userData = {
-      emp_id: e.target.emp_id.value,
-      name: e.target.name.value,
-      email: e.target.email.value,
-      gender: e.target.gender.value,
-      dob: e.target.dob.value,
-      doj: e.target.doj.value,
-      mobile: e.target.mobile.value,
-      manager_id: e.target.manager_id.value,
-      password: e.target.password.value,
-      role: e.target.role.value,
-      pan_number: e.target.pan_number.value || null,
-      uan_number: e.target.uan_number.value || null,
-      aadhar_number: e.target.aadhar_number.value || null,
-      department: e.target.department.value || null,
-      designation: e.target.designation.value || null,
-      location: e.target.location.value || null,
-      esi_number: e.target.esi_number.value || null,
-    };
 
-    const panFile = e.target.pan_file.files[0];
-    const aadharFile = e.target.aadhar_file.files[0];
-    const photo = e.target.photo.files[0];
-    
-    try {
-      if (panFile || aadharFile || photo) {
-        const files = {};
-        if (panFile) files.pan_file = panFile;
-        if (aadharFile) files.aadhar_file = aadharFile;
-        if (photo) files.photo = photo;
-        
-        await api.uploadMultiple(
-          '/users/with-files',
-          files,
-          { user_data: JSON.stringify(userData) }
-        );
-      } else {
-        await api.post('/users', userData);
-      }
-      
-      showAlert('User created successfully', 'success');
-      setShowCreateUserModal(false);
-      fetchUsers();
-    } catch (error) {
-      const errorMessage = error.response?.data?.detail || 'Failed to create user';
-      showAlert(errorMessage, 'error');
-    }
-  };
 
   const handleImport = async (e) => {
     e.preventDefault();
@@ -317,7 +267,7 @@ function UsersList() {
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              onClick={() => setShowCreateUserModal(true)}
+              onClick={() => navigate('/users/add')}
             >
               Add User
             </Button>
@@ -394,7 +344,7 @@ function UsersList() {
                   <Button
                     variant="contained"
                     startIcon={<AddIcon />}
-                    onClick={() => setShowCreateUserModal(true)}
+                    onClick={() => navigate('/users/add')}
                     size="large"
                   >
                     Add User
@@ -563,7 +513,7 @@ function UsersList() {
                               <IconButton
                                 size="small"
                                 color="primary"
-                                onClick={() => navigate(`/users/${user.emp_id}`)}
+                                onClick={() => navigate(`/users/emp/${user.emp_id}`)}
                               >
                                 <VisibilityIcon fontSize="small" />
                               </IconButton>
@@ -572,7 +522,7 @@ function UsersList() {
                               <IconButton
                                 size="small"
                                 color="primary"
-                                onClick={() => navigate(`/users/${user.emp_id}/edit`)}
+                                onClick={() => navigate(`/users/emp/${user.emp_id}/edit`)}
                               >
                                 <EditIcon fontSize="small" />
                               </IconButton>
@@ -605,138 +555,7 @@ function UsersList() {
           )}
         </Paper>
 
-        {/* Create User Modal */}
-        <Dialog
-          open={showCreateUserModal}
-          onClose={() => setShowCreateUserModal(false)}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle>
-            <Typography variant="h5" component="div">
-              Add New User
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Fill in the user details to create a new account
-            </Typography>
-          </DialogTitle>
-          <DialogContent>
-            <form onSubmit={handleCreateUser}>
-              <Grid container spacing={3} sx={{ mt: 1 }}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Employee ID"
-                    name="emp_id"
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Full Name"
-                    name="name"
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Email"
-                    name="email"
-                    type="email"
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth required>
-                    <InputLabel>Gender</InputLabel>
-                    <Select name="gender" label="Gender">
-                      <MenuItem value="Male">Male</MenuItem>
-                      <MenuItem value="Female">Female</MenuItem>
-                      <MenuItem value="Other">Other</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Date of Birth"
-                    name="dob"
-                    type="date"
-                    InputLabelProps={{ shrink: true }}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Date of Joining"
-                    name="doj"
-                    type="date"
-                    InputLabelProps={{ shrink: true }}
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Mobile"
-                    name="mobile"
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Manager ID"
-                    name="manager_id"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Password"
-                    name="password"
-                    type="password"
-                    required
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth required>
-                    <InputLabel>Role</InputLabel>
-                    <Select name="role" label="Role">
-                      <MenuItem value="employee">Employee</MenuItem>
-                      <MenuItem value="manager">Manager</MenuItem>
-                      <MenuItem value="hr">HR</MenuItem>
-                      <MenuItem value="admin">Admin</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                
-                {/* Additional fields in collapsible section could be added here */}
-                
-                <Grid item xs={12}>
-                  <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                    <Button 
-                      onClick={() => setShowCreateUserModal(false)}
-                      size="large"
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      type="submit" 
-                      variant="contained"
-                      size="large"
-                    >
-                      Create User
-                    </Button>
-                  </Box>
-                </Grid>
-              </Grid>
-            </form>
-          </DialogContent>
-        </Dialog>
+
 
         {/* Import Modal */}
         <Dialog

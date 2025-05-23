@@ -9,7 +9,7 @@ def get_activity_tracker_collection(hostname: str):
     db = connect_to_database(hostname)
     return db["activity_tracker"]
 
-def create_activity_tracker(hostname: str, activity_tracker: ActivityTracker):
+def create_activity_tracker(activity_tracker: ActivityTracker, hostname: str):
     collection = get_activity_tracker_collection(hostname)
     collection.insert_one(activity_tracker.model_dump())
 

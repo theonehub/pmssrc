@@ -329,7 +329,7 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
                 regime=regime, 
                 age=age, 
                 service_years=service_years, 
-                last_drawn_monthly_salary=average_monthly_salary * 12
+                last_drawn_monthly_salary=average_monthly_salary
             )
         logger.info(f"calculate_total_tax() - VRS taxable income: {vrs_income}")
         
@@ -355,7 +355,7 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
                     regime=regime,
                     doj=doj_date,
                     dol=dol_date,
-                    last_drawn_monthly_salary=average_monthly_salary * 12,
+                    last_drawn_monthly_salary=average_monthly_salary,
                     is_govt_employee=is_govt_employee
                 )
             except Exception as e:
@@ -373,7 +373,7 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
                     regime=regime,
                     doj=doj_date,
                     dol=dol_date,
-                    last_drawn_monthly_salary=average_monthly_salary * 12
+                    last_drawn_monthly_salary=average_monthly_salary
                 )
             except Exception as e:
                 logger.warning(f"calculate_total_tax() - Error calculating retrenchment: {str(e)}")

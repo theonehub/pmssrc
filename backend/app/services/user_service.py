@@ -10,6 +10,7 @@ from database.user_database import (
     get_user_by_emp_id as db_get_user_by_emp_id,
     get_users_stats as db_get_users_stats,
     get_users_by_manager_id as db_get_users_by_manager_id,
+    update_user as db_update_user,
     update_user_leave_balance as db_update_user_leave_balance
 )
 
@@ -95,6 +96,24 @@ def get_users_by_manager_id(manager_id: str, hostname: str):
     users = list(users)
     logger.info("Fetched users by manager_id: %s, count: %d", manager_id, len(users))
     return users
+
+def update_user(emp_id: str, user: UserInfo, hostname: str):
+    """
+    Updates an existing user in the user_collection.
+    """
+    try:
+        # Only hash password if it's provided and not already hashed
+        if user.password and not user.password.startswith('$2b$'):
+            # If it's a new password, hash it
+            user.password = hash_password(user.password)
+        # If password is empty or already hashed, leave it as is
+        
+        msg = db_update_user(emp_id, user, hostname)
+        logger.info(msg)
+        return msg
+    except Exception as e:
+        logger.exception("Exception occurred during user update.")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 def update_user_leave_balance(emp_id: str, leave_name: str, leave_count: int, hostname: str):
     """

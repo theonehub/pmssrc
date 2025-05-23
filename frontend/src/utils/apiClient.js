@@ -1,7 +1,6 @@
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = 'http://your-api-url.com/api'; // Replace with your actual API URL
+const API_BASE_URL = 'http://localhost:8000'; // Updated to match your backend
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -12,9 +11,9 @@ const apiClient = axios.create({
 
 // Add request interceptor to add auth token
 apiClient.interceptors.request.use(
-  async (config) => {
+  (config) => {
     try {
-      const token = await AsyncStorage.getItem('authToken');
+      const token = localStorage.getItem('token'); // Changed from AsyncStorage to localStorage
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -29,11 +28,13 @@ apiClient.interceptors.request.use(
 // Add response interceptor to handle errors
 apiClient.interceptors.response.use(
   (response) => response,
-  async (error) => {
+  (error) => {
     if (error.response?.status === 401) {
       // Handle unauthorized access
-      await AsyncStorage.removeItem('authToken');
-      // You might want to redirect to login here
+      localStorage.removeItem('token'); // Changed from AsyncStorage to localStorage
+      localStorage.removeItem('user_info');
+      // Redirect to login
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }

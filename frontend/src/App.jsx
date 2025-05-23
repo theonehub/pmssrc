@@ -5,6 +5,7 @@ import Home from './pages/Home';
 import UsersList from './Components/User/UsersList';
 import UserDetail from './Components/User/UserDetail';
 import UserEdit from './Components/User/UserEdit';
+import AddNewUser from './Components/User/AddNewUser';
 import AttendanceUserList from './Components/Attendence/AttendenceUserList';
 import ProtectedRoute from './Components/Common/ProtectedRoute';
 import LWPManagement from './features/lwp/components/LWPManagement';
@@ -24,6 +25,11 @@ import TaxDeclaration from './pages/taxation/TaxDeclaration';
 import EmployeeTaxDetail from './pages/taxation/EmployeeTaxDetail';
 import EmployeeSelection from './pages/taxation/EmployeeSelection';
 
+// Payout Pages
+import MySalaryDetails from './pages/payouts/MySalaryDetails';
+import MyPayslips from './pages/payouts/MyPayslips';
+import AdminPayouts from './pages/payouts/AdminPayouts';
+
 //import { isAuthenticated } from './utils/auth';
 
 function App() {
@@ -40,15 +46,21 @@ function App() {
           </ProtectedRoute>
         } />
 
-        <Route path="/users/:empId" element={
+        <Route path="/users/emp/:empId" element={
           <ProtectedRoute allowedRoles={['manager', 'admin', 'superadmin']}>
             <UserDetail />
           </ProtectedRoute>
         } />
 
-        <Route path="/users/:empId/edit" element={
+        <Route path="/users/emp/:empId/edit" element={
           <ProtectedRoute allowedRoles={['manager', 'admin', 'superadmin']}>
             <UserEdit />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/users/add" element={
+          <ProtectedRoute allowedRoles={['manager', 'admin', 'superadmin']}>
+            <AddNewUser />
           </ProtectedRoute>
         } />
 
@@ -133,6 +145,23 @@ function App() {
         <Route path="/taxation/employee-selection" element={
           <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
             <EmployeeSelection />
+          </ProtectedRoute>
+        } />
+
+        {/* Payout Routes */}
+        <Route path="/payouts/my-salary" element={
+          <ProtectedRoute allowedRoles={['user', 'manager', 'admin', 'superadmin']}>
+            <MySalaryDetails />
+          </ProtectedRoute>
+        } />
+        <Route path="/payouts/my-payslips" element={
+          <ProtectedRoute allowedRoles={['user', 'manager', 'admin', 'superadmin']}>
+            <MyPayslips />
+          </ProtectedRoute>
+        } />
+        <Route path="/payouts/admin" element={
+          <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
+            <AdminPayouts />
           </ProtectedRoute>
         } />
       </Routes>

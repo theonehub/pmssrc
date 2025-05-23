@@ -13,7 +13,7 @@ class UserInfo(BaseModel):
     gender: str
     dob: str
     doj: str
-    dol: str                #date of leaving
+    dol: Optional[str] = None                  #date of leaving
     mobile: str #= Field(..., pattern="^\\d{10}$")
     manager_id: Optional[str] = None
     leave_balance: Optional[dict] = {}

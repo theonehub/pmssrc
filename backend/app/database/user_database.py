@@ -74,6 +74,40 @@ def get_emp_ids_by_manager_id(manager_id: str, hostname: str):
     users = collection.find({"manager_id": manager_id}, {"_id": 0, "emp_id": 1})
     return [user["emp_id"] for user in users]
 
+def update_user(emp_id: str, user: UserInfo, hostname: str):
+    """
+    Updates an existing user in the database.
+    """
+    logger.info(f"Updating user: {emp_id}")
+    collection = get_user_collection(hostname)
+    
+    # Check if user exists
+    existing_user = collection.find_one({"emp_id": emp_id})
+    if not existing_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Prepare update data (exclude emp_id and created_at from updates)
+    update_data = user.model_dump(exclude_unset=True)
+    if 'emp_id' in update_data:
+        del update_data['emp_id']  # Don't allow emp_id to be updated
+    
+    # Hash password if it's being updated
+    if 'password' in update_data and update_data['password']:
+        update_data['password'] = hash_password(update_data['password'])
+    
+    # Add updated_at timestamp
+    from datetime import datetime
+    update_data['updated_at'] = datetime.now()
+    
+    result = collection.update_one({"emp_id": emp_id}, {"$set": update_data})
+    
+    if result.modified_count == 0:
+        logger.warning(f"No changes made to user: {emp_id}")
+        return {"msg": "No changes were made", "emp_id": emp_id}
+    
+    logger.info(f"User updated successfully: {emp_id}")
+    return {"msg": "User updated successfully", "emp_id": emp_id, "modified_count": result.modified_count}
+
 def update_user_leave_balance(emp_id: str, leave_name: str, leave_count: int, hostname: str):
     """
     Updates the leave balance for a user.

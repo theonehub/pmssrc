@@ -14,7 +14,8 @@ import {
   Tooltip,
   CircularProgress,
   Alert,
-  Skeleton
+  Skeleton,
+  Snackbar
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -25,7 +26,12 @@ import {
   Business as BusinessIcon,
   CalendarToday as CalendarIcon,
   Badge as BadgeIcon,
-  LocationOn as LocationIcon
+  LocationOn as LocationIcon,
+  Download as DownloadIcon,
+  Visibility as VisibilityIcon,
+  Description as DescriptionIcon,
+  PhotoCamera as PhotoCameraIcon,
+  CloudDownload as CloudDownloadIcon
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../utils/apiUtils';
@@ -38,13 +44,18 @@ const UserDetail = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [toast, setToast] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
 
   const fetchUser = useCallback(async () => {
     if (!empId) return;
 
     setLoading(true);
     try {
-      const response = await api.get(`/users/${empId}`);
+      const response = await api.get(`/users/emp/${empId}`);
       setUser(response.data);
     } catch (error) {
       console.error('Error fetching user:', error);
@@ -84,6 +95,61 @@ const UserDetail = () => {
       case 'employee': return 'success';
       default: return 'default';
     }
+  };
+
+  const handleViewFile = (filePath, documentType) => {
+    if (!filePath) return;
+    
+    try {
+      // Create a full URL for the file
+      const fileUrl = `http://localhost:8000/files/${filePath}`;
+      
+      // Open file in a new tab
+      window.open(fileUrl, '_blank', 'noopener,noreferrer');
+      showToast(`Opening ${documentType}...`, 'info');
+    } catch (error) {
+      console.error('Error opening file:', error);
+      showToast(`Failed to open ${documentType}`, 'error');
+    }
+  };
+
+  const handleDownloadFile = async (filePath, fileName) => {
+    if (!filePath) return;
+    
+    try {
+      // Get the file content as blob
+      const response = await api.get(`/files/${filePath}`, {}, { 
+        responseType: 'blob' 
+      });
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Extract file extension from the original path
+      const fileExtension = filePath.split('.').pop();
+      link.setAttribute('download', `${fileName}_${user.emp_id}.${fileExtension}`);
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      showToast('Failed to download file. Please try again.', 'error');
+    }
+  };
+
+  const showToast = (message, severity = 'success') => {
+    setToast({ open: true, message, severity });
+  };
+
+  const handleCloseToast = () => {
+    setToast(prev => ({ ...prev, open: false }));
   };
 
   if (loading) {
@@ -200,7 +266,7 @@ const UserDetail = () => {
                 <Button
                   variant="contained"
                   startIcon={<EditIcon />}
-                  onClick={() => navigate(`/users/${user.emp_id}/edit`)}
+                  onClick={() => navigate(`/users/emp/${user.emp_id}/edit`)}
                 >
                   Edit
                 </Button>
@@ -396,7 +462,155 @@ const UserDetail = () => {
               </Card>
             </Grid>
           )}
+
+          {/* Uploaded Documents */}
+          {(user.pan_file_path || user.aadhar_file_path || user.photo_path) && (
+            <Grid item xs={12}>
+              <Card elevation={1}>
+                <CardContent>
+                  <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <DescriptionIcon />
+                    Uploaded Documents
+                  </Typography>
+                  <Divider sx={{ mb: 2 }} />
+                  
+                  <Grid container spacing={3}>
+                    {user.pan_file_path && (
+                      <Grid item xs={12} md={4}>
+                        <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
+                          <Box sx={{ textAlign: 'center' }}>
+                            <DescriptionIcon 
+                              sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} 
+                            />
+                            <Typography variant="subtitle2" gutterBottom>
+                              PAN Card Document
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+                              {user.pan_file_path.split('/').pop()}
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                              <Tooltip title="View Document">
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handleViewFile(user.pan_file_path, 'PAN Card')}
+                                >
+                                  <VisibilityIcon />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Download Document">
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handleDownloadFile(user.pan_file_path, 'PAN_Card')}
+                                >
+                                  <DownloadIcon />
+                                </IconButton>
+                              </Tooltip>
+                            </Box>
+                          </Box>
+                        </Card>
+                      </Grid>
+                    )}
+
+                    {user.aadhar_file_path && (
+                      <Grid item xs={12} md={4}>
+                        <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
+                          <Box sx={{ textAlign: 'center' }}>
+                            <DescriptionIcon 
+                              sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} 
+                            />
+                            <Typography variant="subtitle2" gutterBottom>
+                              Aadhar Card Document
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+                              {user.aadhar_file_path.split('/').pop()}
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                              <Tooltip title="View Document">
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handleViewFile(user.aadhar_file_path, 'Aadhar Card')}
+                                >
+                                  <VisibilityIcon />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Download Document">
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handleDownloadFile(user.aadhar_file_path, 'Aadhar_Card')}
+                                >
+                                  <DownloadIcon />
+                                </IconButton>
+                              </Tooltip>
+                            </Box>
+                          </Box>
+                        </Card>
+                      </Grid>
+                    )}
+
+                    {user.photo_path && (
+                      <Grid item xs={12} md={4}>
+                        <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
+                          <Box sx={{ textAlign: 'center' }}>
+                            <PhotoCameraIcon 
+                              sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} 
+                            />
+                            <Typography variant="subtitle2" gutterBottom>
+                              Profile Photo
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+                              {user.photo_path.split('/').pop()}
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                              <Tooltip title="View Photo">
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handleViewFile(user.photo_path, 'Profile Photo')}
+                                >
+                                  <VisibilityIcon />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Download Photo">
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() => handleDownloadFile(user.photo_path, 'Profile_Photo')}
+                                >
+                                  <DownloadIcon />
+                                </IconButton>
+                              </Tooltip>
+                            </Box>
+                          </Box>
+                        </Card>
+                      </Grid>
+                    )}
+                  </Grid>
+                </CardContent>
+              </Card>
+            </Grid>
+          )}
         </Grid>
+
+        {/* Toast Notifications */}
+        <Snackbar 
+          open={toast.open} 
+          autoHideDuration={6000} 
+          onClose={handleCloseToast}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        >
+          <Alert 
+            onClose={handleCloseToast} 
+            severity={toast.severity}
+            sx={{ width: '100%' }}
+            variant="filled"
+          >
+            {toast.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </PageLayout>
   );

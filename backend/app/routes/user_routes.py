@@ -220,24 +220,26 @@ async def import_users_with_file(
             us.create_user(user, hostname)
             created += 1
             activity = ActivityTracker(
+                activity_id=str(uuid.uuid4()),
                 emp_id=current_emp_id,
                 activity="importUsersSuccess",
                 date=datetime.now(),
                 metadata=user.model_dump()
             )
-            track_activity(activity)
+            track_activity(activity, hostname)
         except Exception as e:
             failed += 1
             error_msg = f"Row {idx}: {str(e)}"
             logger.error(error_msg)
             errors.append(error_msg)
             activity = ActivityTracker(
+                activity_id=str(uuid.uuid4()),
                 emp_id=current_emp_id,
                 activity="importUsersFailed",
                 date=datetime.now(),
                 metadata={}
             )
-            track_activity(activity)
+            track_activity(activity, hostname)
 
     logger.info("User import completed: %d created, %d failed", created, failed)
     return {
@@ -310,6 +312,119 @@ def get_my_directs(hostname: str = Depends(extract_hostname),
 def get_user_by_manager_id(manager_id: str, hostname: str = Depends(extract_hostname)):
     users = us.get_user_by_manager_id(manager_id, hostname)
     return mongodb_jsonable_encoder(users)
+
+@router.put("/users/emp/{emp_id}")
+async def update_user(
+    emp_id: str,
+    data: UserInfo = Body(...),
+    current_emp_id: str = Depends(extract_emp_id),
+    hostname: str = Depends(extract_hostname),
+    role: str = Depends(role_checker(["admin", "superadmin", "manager"]))
+):
+    """
+    Update an existing user (JSON only)
+    """
+    try:
+        logger.info("Updating user: %s", emp_id)
+        
+        # For updates, if password is not provided or empty, get the existing password
+        if not data.password:
+            existing_user = us.get_user_by_emp_id(emp_id, hostname)
+            if not existing_user:
+                raise HTTPException(status_code=404, detail="User not found")
+            data.password = existing_user['password']  # Use existing hashed password
+        
+        us.validate_user_data(data)
+        
+        result = us.update_user(emp_id, data, hostname)
+        
+        # Track activity
+        activity = ActivityTracker(
+            activity_id=str(uuid.uuid4()),
+            emp_id=current_emp_id,
+            activity="updateUser",
+            date=datetime.now(),
+            metadata={"updated_emp_id": emp_id, "data": data.model_dump()}
+        )
+        track_activity(activity, hostname)
+        
+        logger.info(result)
+        return result
+    except Exception as e:
+        logger.error(f"Error updating user: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.put("/users/emp/{emp_id}/with-files")
+async def update_user_with_files(
+    emp_id: str,
+    user_data: str = Form(...),
+    pan_file: UploadFile = File(None),
+    aadhar_file: UploadFile = File(None),
+    photo: UploadFile = File(None),
+    current_emp_id: str = Depends(extract_emp_id),
+    hostname: str = Depends(extract_hostname),
+    role: str = Depends(role_checker(["admin", "superadmin", "manager"]))
+):
+    """
+    Update an existing user with document uploads
+    """
+    try:
+        # Parse the JSON string into UserInfo model
+        try:
+            user_data_dict = json.loads(user_data)
+            
+            # For updates, if password is not provided, get the existing password
+            if 'password' not in user_data_dict or not user_data_dict['password']:
+                existing_user = us.get_user_by_emp_id(emp_id, hostname)
+                if not existing_user:
+                    raise HTTPException(status_code=404, detail="User not found")
+                user_data_dict['password'] = existing_user['password']  # Use existing hashed password
+            
+            user_info = UserInfo(**user_data_dict)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid JSON data")
+        
+        logger.info("Updating user with files: %s", emp_id)
+        us.validate_user_data(user_info)
+
+        # Validate and save files
+        if photo:
+            is_valid, error = validate_file(photo, allowed_types=["image/jpeg", "image/png"], max_size=2*1024*1024)
+            if not is_valid:
+                raise HTTPException(status_code=400, detail=f"Invalid photo: {error}")
+            user_info.photo_path = await save_file(photo, "photos")
+            
+        if pan_file:
+            is_valid, error = validate_file(pan_file, allowed_types=["image/jpeg", "image/png", "application/pdf"], max_size=5*1024*1024)
+            if not is_valid:
+                raise HTTPException(status_code=400, detail=f"Invalid PAN file: {error}")
+            user_info.pan_file_path = await save_file(pan_file, "pan")
+            
+        if aadhar_file:
+            is_valid, error = validate_file(aadhar_file, allowed_types=["image/jpeg", "image/png", "application/pdf"], max_size=5*1024*1024)
+            if not is_valid:
+                raise HTTPException(status_code=400, detail=f"Invalid Aadhar file: {error}")
+            user_info.aadhar_file_path = await save_file(aadhar_file, "aadhar")
+
+        result = us.update_user(emp_id, user_info, hostname)
+        
+        # Track activity
+        activity = ActivityTracker(
+            activity_id=str(uuid.uuid4()),
+            emp_id=current_emp_id,
+            activity="updateUserWithFiles",
+            date=datetime.now(),
+            metadata={"updated_emp_id": emp_id}
+        )
+        track_activity(activity, hostname)
+        
+        logger.info(result)
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating user with files: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/users/template")
 def download_template():

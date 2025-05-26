@@ -13,6 +13,7 @@ from routes import auth_routes, user_routes, project_attributes_routes,\
     public_holiday_routes, attendance_routes, company_leave_routes, leave_routes, \
     reimbursement_routes, reimbursement_type_routes,\
     organisation_routes, taxation_routes, payout_routes, payslip_routes
+from api.controllers.company_leave_controller import router as company_leave_v1_router
 from utils.json_encoder import mongodb_jsonable_encoder, MongoJSONResponse
 
 # Configure the root logger.
@@ -64,7 +65,8 @@ app.include_router(project_attributes_routes.router, tags=["Attributes"])
 app.include_router(reimbursement_type_routes.router, tags=["Reimbursement Types"])
 app.include_router(reimbursement_routes.router, tags=["My-Reimbursements"])
 app.include_router(public_holiday_routes.router, tags=["Public Holidays"])
-app.include_router(company_leave_routes.router, tags=["Company Leaves"])
+app.include_router(company_leave_routes.router, tags=["Company Leaves (Legacy)"])
+app.include_router(company_leave_v1_router, tags=["Company Leaves V1"])
 app.include_router(leave_routes.router, tags=["Leave Management"])
 app.include_router(organisation_routes.router, tags=["Organization"])
 app.include_router(taxation_routes.router, tags=["Taxation"])

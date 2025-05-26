@@ -282,38 +282,75 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
         
         # ========== INCOME CALCULATION ==========
         
-        # 1. SALARY INCOME with Standard Deduction and LWP Adjustment
-        # Try to get LWP-adjusted salary from actual payout records
+        # 1. SALARY INCOME with Standard Deduction, LWP Adjustment, and Salary Change Projection
+        # First try to get salary projection considering mid-year changes
+        salary_projection = None
+        try:
+            from services.salary_history_service import calculate_annual_salary_projection
+            salary_projection = calculate_annual_salary_projection(emp_id, taxation.tax_year, hostname)
+            logger.info(f"calculate_total_tax() - Salary projection found: {salary_projection.salary_changes_count} changes")
+        except Exception as e:
+            logger.warning(f"calculate_total_tax() - Could not calculate salary projection: {str(e)}")
+        
+        # Then try to get LWP-adjusted salary from actual payout records
         lwp_adjusted_salary = calculate_lwp_adjusted_annual_salary(emp_id, hostname, taxation.tax_year)
         
+        # Determine which salary calculation method to use (priority order):
+        # 1. LWP-adjusted salary (actual payouts) - most accurate
+        # 2. Salary projection (considering mid-year changes) - second most accurate
+        # 3. Static taxation data (fallback) - least accurate
+        
         if lwp_adjusted_salary:
-            # Use actual earned salary considering LWP
+            # Use actual earned salary considering LWP (highest priority)
             gross_salary_income = lwp_adjusted_salary["actual_annual_gross"]
             logger.info(f"calculate_total_tax() - Using LWP-adjusted salary: {gross_salary_income} "
                        f"(LWP days: {lwp_adjusted_salary['total_lwp_days']}, "
                        f"Adjustment ratio: {lwp_adjusted_salary['lwp_adjustment_ratio']:.4f})")
             
             # Update tax breakup with LWP details
-            lwp_details = {
+            salary_calculation_details = {
+                "method_used": "lwp_adjusted",
                 "lwp_adjustment_applied": True,
                 "theoretical_annual_salary": salary.total_taxable_income_per_slab(regime),
                 "actual_annual_salary": gross_salary_income,
                 "total_lwp_days": lwp_adjusted_salary["total_lwp_days"],
                 "lwp_adjustment_ratio": lwp_adjusted_salary["lwp_adjustment_ratio"],
-                "lwp_salary_reduction": salary.total_taxable_income_per_slab(regime) - gross_salary_income
+                "lwp_salary_reduction": salary.total_taxable_income_per_slab(regime) - gross_salary_income,
+                "salary_changes_count": salary_projection.salary_changes_count if salary_projection else 0
+            }
+        elif salary_projection and salary_projection.salary_changes_count > 0:
+            # Use salary projection considering mid-year changes (second priority)
+            gross_salary_income = salary_projection.projected_annual_gross
+            logger.info(f"calculate_total_tax() - Using salary projection: {gross_salary_income} "
+                       f"(Salary changes: {salary_projection.salary_changes_count}, "
+                       f"Last change: {salary_projection.last_change_date})")
+            
+            salary_calculation_details = {
+                "method_used": "salary_projection",
+                "lwp_adjustment_applied": False,
+                "theoretical_annual_salary": salary.total_taxable_income_per_slab(regime),
+                "projected_annual_salary": gross_salary_income,
+                "salary_changes_count": salary_projection.salary_changes_count,
+                "last_change_date": str(salary_projection.last_change_date),
+                "projection_calculation_date": str(salary_projection.calculation_date),
+                "total_lwp_days": 0,
+                "lwp_adjustment_ratio": 1.0,
+                "salary_projection_difference": gross_salary_income - salary.total_taxable_income_per_slab(regime)
             }
         else:
-            # Fallback to theoretical salary from taxation data
+            # Fallback to theoretical salary from taxation data (lowest priority)
             gross_salary_income = salary.total_taxable_income_per_slab(regime)
-            logger.info(f"calculate_total_tax() - Using theoretical salary (no payout records): {gross_salary_income}")
+            logger.info(f"calculate_total_tax() - Using theoretical salary (no payout records or salary changes): {gross_salary_income}")
             
-            lwp_details = {
+            salary_calculation_details = {
+                "method_used": "static_taxation_data",
                 "lwp_adjustment_applied": False,
                 "theoretical_annual_salary": gross_salary_income,
                 "actual_annual_salary": gross_salary_income,
                 "total_lwp_days": 0,
                 "lwp_adjustment_ratio": 1.0,
-                "lwp_salary_reduction": 0
+                "lwp_salary_reduction": 0,
+                "salary_changes_count": 0
             }
         
         standard_deduction = apply_standard_deduction(gross_salary_income, regime)  # FIXED: Added standard deduction

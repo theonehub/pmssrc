@@ -169,22 +169,22 @@ export const payoutService = {
     }
   },
 
-  // Download payslip
+  // Download payslip as PDF
   downloadPayslip: async (payoutId) => {
     try {
-      const response = await apiClient.get(`/api/payouts/${payoutId}/payslip/download`, {
+      const response = await apiClient.get(`/api/payslip/pdf/${payoutId}`, {
         responseType: 'blob'
       });
       
       // Create blob URL and trigger download
-      const blob = new Blob([response.data], { type: 'application/json' });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       
       // Extract filename from Content-Disposition header
       const contentDisposition = response.headers['content-disposition'];
-      let filename = 'payslip.json';
+      let filename = `payslip_${payoutId}.pdf`;
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename="(.+)"/);
         if (filenameMatch) {
@@ -201,6 +201,55 @@ export const payoutService = {
       return { success: true, filename };
     } catch (error) {
       console.error('Error downloading payslip:', error);
+      throw error;
+    }
+  },
+
+  // Get payslip history for an employee
+  getPayslipHistory: async (employeeId, year) => {
+    try {
+      const response = await apiClient.get(`/api/payslip/history/${employeeId}?year=${year}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching payslip history:', error);
+      throw error;
+    }
+  },
+
+  // Email payslip to employee
+  emailPayslip: async (payoutId, recipientEmail = null) => {
+    try {
+      const data = recipientEmail ? { recipient_email: recipientEmail } : {};
+      const response = await apiClient.post(`/api/payslip/email/${payoutId}`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error emailing payslip:', error);
+      throw error;
+    }
+  },
+
+  // Bulk generate payslips (Admin only)
+  bulkGeneratePayslips: async (month, year, statusFilter = null) => {
+    try {
+      let url = `/api/payslip/generate/bulk?month=${month}&year=${year}`;
+      if (statusFilter) {
+        url += `&status_filter=${statusFilter}`;
+      }
+      const response = await apiClient.post(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error in bulk payslip generation:', error);
+      throw error;
+    }
+  },
+
+  // Bulk email payslips (Admin only)
+  bulkEmailPayslips: async (month, year) => {
+    try {
+      const response = await apiClient.post(`/api/payslip/email/bulk?month=${month}&year=${year}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error in bulk payslip email:', error);
       throw error;
     }
   },
@@ -294,6 +343,14 @@ export const payoutService = {
     return statusLabels[status] || status;
   },
 
+  getMonthName: (month) => {
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return monthNames[month - 1] || '';
+  },
+
   getCurrentFinancialYear: () => {
     const today = new Date();
     const currentYear = today.getFullYear();
@@ -309,14 +366,6 @@ export const payoutService = {
 
   getFinancialYearLabel: (year) => {
     return `FY ${year}-${(year + 1).toString().slice(-2)}`;
-  },
-
-  getMonthName: (month) => {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return months[month - 1] || '';
   }
 };
 

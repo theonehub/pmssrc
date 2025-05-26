@@ -169,7 +169,7 @@ export const validateHRA = (hra, basic, da, rentPaid, cityCategory) => {
   
   return {
     exemption: maxHRAExemption,
-    taxable: hra - maxHRAExemption,
+    taxable: Math.max(0, rentPaid - maxHRAExemption),
     calculations: {
       actualHRA: hra,
       cityBasedLimit: maxHRAByCity,
@@ -245,7 +245,9 @@ export const validateTaxationForm = (taxationData) => {
         taxationData.salary.actual_rent_paid || 0,
         cityCategory
       );
-      salaryWarnings.hra_info = `HRA exemption: ₹${hraValidation.exemption.toLocaleString('en-IN')}, Taxable: ₹${hraValidation.taxable.toLocaleString('en-IN')}`;
+      if (hraValidation.taxable > 0) {
+        salaryWarnings.hra_info = `HRA exemption: ₹${hraValidation.exemption.toLocaleString('en-IN')}, Taxable: ₹${hraValidation.taxable.toLocaleString('en-IN')}`;
+      } 
     }
     
     if (Object.keys(salaryWarnings).length > 0) {

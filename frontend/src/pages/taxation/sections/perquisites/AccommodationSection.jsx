@@ -10,7 +10,8 @@ import {
   Checkbox,
   Box,
   Typography,
-  Divider
+  Divider,
+  Tooltip
 } from '@mui/material';
 import FormSectionHeader from '../../components/FormSectionHeader';
 import { formatIndianNumber } from '../../utils/taxationUtils';
@@ -105,6 +106,16 @@ const AccommodationSection = ({
         <Divider sx={{ my: 0, width: '100%' }} />
         {/* Furniture Owned */}
         <Grid item xs={12} md={6}>
+          <Tooltip title= {
+            <>
+            Furniture Ownership:<br/>
+            - Employer's: Taxable amount 10% of Employer's Furniture Cost difference Employee Contibution.<br/>
+            - Non-Employer's: Employer\'s Furniture Cost difference Employee Contibution.<br/>
+            </>
+          }
+          placement="top"
+          arrow
+          >
           <FormControlLabel
             control={
               <Checkbox
@@ -112,8 +123,9 @@ const AccommodationSection = ({
                 onChange={(e) => handleNestedInputChange('salary', 'perquisites', 'is_furniture_owned', e.target.checked)}
               />
             }
-            label="Employer-Owned"
-          />
+              label="Employer-Owned"
+            />
+          </Tooltip>
         </Grid>
         {/* Furniture Cost to Employer */}
         <Grid item xs={12} md={6}>

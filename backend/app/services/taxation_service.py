@@ -62,9 +62,9 @@ def compute_regular_tax(income: float, regime: str = 'old', age: int = 0) -> flo
             
         slabs = [
             (0, basic_exemption, 0.0),
-            (basic_exemption + 1, 500000, 0.05) if basic_exemption < 500000 else None,
-            (500001, 1000000, 0.20),
-            (1000001, float('inf'), 0.30)
+            (basic_exemption, 500000, 0.05) if basic_exemption < 500000 else None,
+            (500000, 1000000, 0.20),
+            (1000000, float('inf'), 0.30)
         ]
         # Remove None entries for senior citizens
         slabs = [slab for slab in slabs if slab is not None]
@@ -282,8 +282,40 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
         
         # ========== INCOME CALCULATION ==========
         
-        # 1. SALARY INCOME with Standard Deduction
-        gross_salary_income = salary.total_taxable_income_per_slab(regime)
+        # 1. SALARY INCOME with Standard Deduction and LWP Adjustment
+        # Try to get LWP-adjusted salary from actual payout records
+        lwp_adjusted_salary = calculate_lwp_adjusted_annual_salary(emp_id, hostname, taxation.tax_year)
+        
+        if lwp_adjusted_salary:
+            # Use actual earned salary considering LWP
+            gross_salary_income = lwp_adjusted_salary["actual_annual_gross"]
+            logger.info(f"calculate_total_tax() - Using LWP-adjusted salary: {gross_salary_income} "
+                       f"(LWP days: {lwp_adjusted_salary['total_lwp_days']}, "
+                       f"Adjustment ratio: {lwp_adjusted_salary['lwp_adjustment_ratio']:.4f})")
+            
+            # Update tax breakup with LWP details
+            lwp_details = {
+                "lwp_adjustment_applied": True,
+                "theoretical_annual_salary": salary.total_taxable_income_per_slab(regime),
+                "actual_annual_salary": gross_salary_income,
+                "total_lwp_days": lwp_adjusted_salary["total_lwp_days"],
+                "lwp_adjustment_ratio": lwp_adjusted_salary["lwp_adjustment_ratio"],
+                "lwp_salary_reduction": salary.total_taxable_income_per_slab(regime) - gross_salary_income
+            }
+        else:
+            # Fallback to theoretical salary from taxation data
+            gross_salary_income = salary.total_taxable_income_per_slab(regime)
+            logger.info(f"calculate_total_tax() - Using theoretical salary (no payout records): {gross_salary_income}")
+            
+            lwp_details = {
+                "lwp_adjustment_applied": False,
+                "theoretical_annual_salary": gross_salary_income,
+                "actual_annual_salary": gross_salary_income,
+                "total_lwp_days": 0,
+                "lwp_adjustment_ratio": 1.0,
+                "lwp_salary_reduction": 0
+            }
+        
         standard_deduction = apply_standard_deduction(gross_salary_income, regime)  # FIXED: Added standard deduction
         salary_income = max(0, gross_salary_income - standard_deduction)
         logger.info(f"calculate_total_tax() - Gross salary income: {gross_salary_income}, Standard deduction: {standard_deduction}, Net salary income: {salary_income}")
@@ -409,7 +441,7 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
         
         # Calculate NET TAXABLE INCOME
         net_income = max(0, gross_income - total_deductions)
-        logger.info(f"calculate_total_tax() - Net taxable income: {net_income}")
+        logger.info(f"calculate_total_tax() - Net taxable income {gross_income} - {total_deductions}: {net_income}")
         
         # ========== TAX CALCULATION ==========
         
@@ -473,6 +505,15 @@ def calculate_total_tax(emp_id: str, hostname: str) -> float:
                 "regime": regime,
                 "age": age,
                 "is_govt_employee": is_govt_employee
+            },
+            "lwp_adjustment": {
+                "applied": lwp_details["lwp_adjustment_applied"],
+                "theoretical_annual_salary": round(lwp_details["theoretical_annual_salary"]),
+                "actual_annual_salary": round(lwp_details["actual_annual_salary"]),
+                "total_lwp_days": lwp_details["total_lwp_days"],
+                "lwp_adjustment_ratio": round(lwp_details["lwp_adjustment_ratio"], 4),
+                "salary_reduction_due_to_lwp": round(lwp_details["lwp_salary_reduction"]),
+                "tax_savings_due_to_lwp": round((lwp_details["lwp_salary_reduction"] * (tax_on_regular / max(net_income, 1))) if lwp_details["lwp_salary_reduction"] > 0 else 0)
             }
         }
         logger.info(f"calculate_total_tax() - Comprehensive tax breakdown: {json.dumps(tax_breakup, indent=2)}")
@@ -551,7 +592,7 @@ def calculate_and_save_tax(emp_id: str, hostname: str, emp_age: int = None, is_g
         
         logger.info(f"calculate_and_save_tax - Auto-determined tax year: {tax_year}")
     
-    if emp_age is 0:
+    if emp_age == 0:
         # Get user age
         try:
             logger.info(f"calculate_and_save_tax - Fetching user data to determine age")
@@ -983,3 +1024,97 @@ def compute_vrs_from_user_data(emp_id: str, hostname: str) -> float:
     except Exception as e:
         logger.error(f"Error computing VRS value from user data: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error computing VRS value: {str(e)}")
+
+def calculate_lwp_adjusted_annual_salary(emp_id: str, hostname: str, tax_year: str = None) -> dict:
+    """
+    Calculate actual annual salary considering LWP deductions from payout records.
+    
+    Args:
+        emp_id: Employee ID
+        hostname: Organization hostname
+        tax_year: Tax year in format "YYYY-YYYY" (e.g., "2024-2025")
+        
+    Returns:
+        Dictionary with actual annual salary components and LWP adjustment details
+    """
+    logger.info(f"calculate_lwp_adjusted_annual_salary - Starting LWP-adjusted salary calculation for {emp_id}")
+    
+    try:
+        # Import here to avoid circular imports
+        from database.payout_database import PayoutDatabase
+        
+        # Determine tax year if not provided
+        if not tax_year:
+            current_date = datetime.datetime.now()
+            current_month = current_date.month
+            current_year = current_date.year
+            
+            if current_month < 4:  # January to March
+                tax_year = f"{current_year-1}-{current_year}"
+                year_to_query = current_year
+            else:  # April to December
+                tax_year = f"{current_year}-{current_year+1}"
+                year_to_query = current_year
+        else:
+            # Extract year from tax_year format "YYYY-YYYY"
+            year_to_query = int(tax_year.split('-')[0])
+        
+        logger.info(f"calculate_lwp_adjusted_annual_salary - Using tax year: {tax_year}, querying year: {year_to_query}")
+        
+        # Get payout database
+        payout_db = PayoutDatabase(hostname)
+        
+        # Get all payouts for the employee for the tax year
+        payouts = payout_db.get_employee_payouts(emp_id, year=year_to_query)
+        logger.info(f"calculate_lwp_adjusted_annual_salary - Found {len(payouts)} payout records for {emp_id}")
+        
+        if not payouts:
+            logger.warning(f"calculate_lwp_adjusted_annual_salary - No payout records found for {emp_id}, returning None")
+            return None
+        
+        # Calculate actual annual amounts from payouts
+        actual_annual_basic = sum(payout.basic_salary for payout in payouts)
+        actual_annual_da = sum(payout.da for payout in payouts)
+        actual_annual_hra = sum(payout.hra for payout in payouts)
+        actual_annual_special_allowance = sum(payout.special_allowance for payout in payouts)
+        actual_annual_bonus = sum(payout.bonus for payout in payouts)
+        
+        # Calculate total working days and LWP days
+        total_working_days = sum(getattr(payout, 'working_days_in_period', 0) for payout in payouts)
+        total_lwp_days = sum(getattr(payout, 'lwp_days', 0) for payout in payouts)
+        total_effective_working_days = sum(getattr(payout, 'effective_working_days', 0) for payout in payouts)
+        
+        # Calculate total days in the year (for months with payouts)
+        total_days_in_year = sum(getattr(payout, 'total_days_in_month', 0) for payout in payouts)
+        
+        # Calculate LWP adjustment ratio
+        lwp_adjustment_ratio = total_effective_working_days / total_working_days if total_working_days > 0 else 1.0
+        
+        actual_annual_gross = (actual_annual_basic + actual_annual_da + actual_annual_hra + 
+                              actual_annual_special_allowance + actual_annual_bonus)
+        
+        result = {
+            "actual_annual_basic": actual_annual_basic,
+            "actual_annual_da": actual_annual_da,
+            "actual_annual_hra": actual_annual_hra,
+            "actual_annual_special_allowance": actual_annual_special_allowance,
+            "actual_annual_bonus": actual_annual_bonus,
+            "actual_annual_gross": actual_annual_gross,
+            "total_working_days": total_working_days,
+            "total_lwp_days": total_lwp_days,
+            "total_effective_working_days": total_effective_working_days,
+            "total_days_in_year": total_days_in_year,
+            "lwp_adjustment_ratio": lwp_adjustment_ratio,
+            "months_with_payouts": len(payouts),
+            "tax_year": tax_year
+        }
+        
+        logger.info(f"calculate_lwp_adjusted_annual_salary - LWP-adjusted salary calculated: "
+                   f"Gross: {actual_annual_gross}, LWP days: {total_lwp_days}, "
+                   f"Adjustment ratio: {lwp_adjustment_ratio:.4f}")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"calculate_lwp_adjusted_annual_salary - Error calculating LWP-adjusted salary: {str(e)}")
+        return None

@@ -26,6 +26,58 @@ from models.taxation.deductions import DeductionComponents
 
 logger = logging.getLogger(__name__)
 
+func_list = [
+    'calculate_hra_exemption',
+    'calculate_exemptions',
+    'calculate_taxable_salary',
+    'calculate_annual_value',
+    'total_taxable_income_per_slab',
+    'total',
+    'to_dict',
+    'from_dict',
+    'total_taxable_income_per_slab',
+    'compute_service_years',
+    'total_accommodation_value',
+    'total_car_value',
+    'total_medical_reimbursement',
+    'get_section_80tt',
+    'total_lta_value',
+    'total_gas_electricity_water_value',
+    'total_free_education_value',
+    'total_interest_amount',
+    'allocation_gain',
+    'total_mau_value',
+    'total_mat_value',
+    'total_lunch_value',
+    'total_monetary_benefits_value',
+    'total_gift_vouchers_value',
+    'total_club_expenses_value',
+    'total_domestic_help_value',
+    'total_stcg_special_rate',
+    'tax_on_stcg_special_rate',
+    'total_stcg_slab_rate',
+    'total_ltcg_special_rate',
+    'tax_on_ltcg_special_rate',
+    'total_taxable_income_per_slab_uncomputed',
+    'total_taxable_income_per_slab_computed',
+    'total_deductions_80d_self_family',
+    'total_deductions_80d_parent',
+    'total_deductions_80dd',
+    'total_deductions_80ddb',
+    'total_deductions_80e',
+    'total_deductions_80eeb',
+    'total_deductions_80ggc',
+    'total_deductions_80c_80ccd_80ccd_1_1b',
+    'total_deductions_80g_100_wo_ql',
+    'total_deductions_80g_50_wo_ql',
+    'total_deductions_80g_100_ql',
+    'total_deductions_80g_50_ql',
+    'total_deductions_80g',
+    'total_deduction_per_slab',
+    'total_deductions_80ccd_2',
+    'compute_vrs_value',
+    'total_deductions_80u'
+] 
 
 @dataclass
 class Taxation:
@@ -427,10 +479,7 @@ class Taxation:
         else:
             salary_dict = {}
             for attr in dir(self.salary):
-                if not attr.startswith('_') and attr not in [
-                    'to_dict', 'total', 'calculate_exemptions', 'calculate_taxable_salary', 
-                    'calculate_annual_value', 'calculate_hra_exemption', 'total_taxable_income_per_slab'
-                ]:
+                if not attr.startswith('_') and attr not in func_list:
                     value = getattr(self.salary, attr)
                     # Handle perquisites specially
                     if attr == 'perquisites' and value is not None:
@@ -439,15 +488,7 @@ class Taxation:
                         else:
                             perq_dict = {}
                             for p_attr in dir(value):
-                                if not p_attr.startswith('_') and p_attr not in [
-                                    'to_dict', 'total_accommodation_value', 'total_car_value', 
-                                    'total_medical_reimbursement', 'total_lta_value', 'total_gas_electricity_water_value',
-                                    'total_free_education_value', 'total_interest_amount', 'total_lunch_value',
-                                    'allocation_gain', 'total_mau_value', 'total_mat_value', 
-                                    'total_monetary_benefits_value', 'total_gift_vouchers_value', 
-                                    'total_club_expenses_value', 'total_domestic_help_value', 
-                                    'total_taxable_income_per_slab'
-                                ]:
+                                if not p_attr.startswith('_') and p_attr not in func_list:
                                     p_value = getattr(value, p_attr)
                                     # Handle date objects
                                     if isinstance(p_value, datetime.date):
@@ -465,11 +506,7 @@ class Taxation:
         else:
             other_sources_dict = {}
             for attr in dir(self.other_sources):
-                if not attr.startswith('_') and attr not in [
-                    'to_dict', 'total', 'total_taxable_income_per_slab', 'get_section_80tt',
-                    'calculate_exemptions', 'calculate_taxable_salary', 'calculate_annual_value', 
-                    'calculate_hra_exemption'
-                ]:
+                if not attr.startswith('_') and attr not in func_list:
                     other_sources_dict[attr] = getattr(self.other_sources, attr)
             result['other_sources'] = other_sources_dict
         
@@ -479,12 +516,7 @@ class Taxation:
         else:
             capital_gains_dict = {}
             for attr in dir(self.capital_gains):
-                if not attr.startswith('_') and attr not in [
-                    'to_dict', 'total', 'total_stcg_special_rate', 'total_stcg_slab_rate',
-                    'total_ltcg_special_rate', 'calculate_ltcg_tax', 'calculate_stcg_tax', 
-                    'total_ltcg_slab_rate', 'calculate_ltcg_tax_per_slab', 'calculate_stcg_tax_per_slab',
-                    'tax_on_stcg_special_rate', 'tax_on_ltcg_special_rate'
-                ]:
+                if not attr.startswith('_') and attr not in func_list:
                     capital_gains_dict[attr] = getattr(self.capital_gains, attr)
             result['capital_gains'] = capital_gains_dict
 
@@ -494,9 +526,7 @@ class Taxation:
         else:
             leave_encashment_dict = {}
             for attr in dir(self.leave_encashment):
-                if not attr.startswith('_') and attr not in [
-                    'to_dict', 'total', 'total_taxable_income_per_slab'
-                ]:
+                if not attr.startswith('_') and attr not in func_list:
                     leave_encashment_dict[attr] = getattr(self.leave_encashment, attr)
             result['leave_encashment'] = leave_encashment_dict
             
@@ -506,9 +536,7 @@ class Taxation:
         else:
             voluntary_retirement_dict = {}
             for attr in dir(self.voluntary_retirement):
-                if not attr.startswith('_') and attr not in [
-                    'to_dict', 'total', 'total_taxable_income_per_slab', 'compute_vrs_value'
-                ]:
+                if not attr.startswith('_') and attr not in func_list:
                     voluntary_retirement_dict[attr] = getattr(self.voluntary_retirement, attr)
             result['voluntary_retirement'] = voluntary_retirement_dict
         
@@ -518,9 +546,7 @@ class Taxation:
         else:
             retrenchment_dict = {}
             for attr in dir(self.retrenchment):
-                if not attr.startswith('_') and attr not in [
-                    'to_dict', 'total', 'total_taxable_income_per_slab', 'compute_service_years'
-                ]:
+                if not attr.startswith('_') and attr not in func_list:
                     retrenchment_dict[attr] = getattr(self.retrenchment, attr)
             result['retrenchment'] = retrenchment_dict
         
@@ -530,10 +556,7 @@ class Taxation:
         else:
             pension_dict = {}
             for attr in dir(self.pension):
-                if not attr.startswith('_') and attr not in [
-                    'to_dict', 'total', 'total_taxable_income_per_slab_computed', 
-                    'total_taxable_income_per_slab_uncomputed'
-                ]:
+                if not attr.startswith('_') and attr not in func_list:
                     pension_dict[attr] = getattr(self.pension, attr)
             result['pension'] = pension_dict
 
@@ -543,9 +566,7 @@ class Taxation:
         else:
             gratuity_dict = {}
             for attr in dir(self.gratuity):
-                if not attr.startswith('_') and attr not in [
-                    'to_dict', 'total', 'total_taxable_income_per_slab'
-                ]:
+                if not attr.startswith('_') and attr not in func_list:
                     gratuity_dict[attr] = getattr(self.gratuity, attr)
             result['gratuity'] = gratuity_dict
 
@@ -555,10 +576,7 @@ class Taxation:
         else:
             house_property_dict = {}
             for attr in dir(self.house_property):
-                if not attr.startswith('_') and attr not in [
-                    'to_dict', 'total_taxable_income_per_slab', 'calculate_exemptions',
-                    'calculate_taxable_salary', 'calculate_annual_value', 'from_dict'
-                ]:
+                if not attr.startswith('_') and attr not in func_list:
                     value = getattr(self.house_property, attr)
                     if isinstance(value, datetime.date):
                         house_property_dict[attr] = value.isoformat()
@@ -572,9 +590,7 @@ class Taxation:
         else:
             deductions_dict = {}
             for attr in dir(self.deductions):
-                if not attr.startswith('_') and attr not in [
-                    'to_dict', 'total', 'total_deduction', 'total_deduction_per_slab'
-                ] and not attr.startswith('total_deductions_'):
+                if not attr.startswith('_') and attr not in func_list:
                     value = getattr(self.deductions, attr)
                     # Handle date objects
                     if isinstance(value, datetime.date):

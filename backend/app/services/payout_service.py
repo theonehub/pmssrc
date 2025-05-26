@@ -7,8 +7,9 @@ import json
 from fastapi import HTTPException
 
 from database.payout_database import PayoutDatabase
-from services.taxation_service import calculate_total_tax, get_or_create_taxation_by_emp_id
+from services.taxation_service import calculate_total_tax, get_or_create_taxation_by_emp_id, get_taxation_by_emp_id
 from services.user_service import get_user_by_emp_id, get_all_users
+from services.employee_leave_service import calculate_lwp_for_month
 from models.payout import (
     PayoutCreate, PayoutUpdate, PayoutInDB, PayoutStatus,
     BulkPayoutRequest, BulkPayoutResponse, PayoutSummary,
@@ -39,52 +40,143 @@ def calculate_monthly_payout_service(
         if not employee:
             raise HTTPException(status_code=404, detail=f"Employee {employee_id} not found")
         
-        # Calculate pay period
-        pay_period_start = date(year, month, 1)
+        # Check if employee has date of joining
+        doj_str = employee.get('doj')
+        if not doj_str:
+            raise HTTPException(status_code=400, detail=f"Employee {employee_id} does not have a date of joining")
+        
+        # Parse date of joining
+        try:
+            if 'T' in doj_str:
+                doj = datetime.strptime(doj_str.split('T')[0], '%Y-%m-%d').date()
+            else:
+                doj = datetime.strptime(doj_str, '%Y-%m-%d').date()
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid date of joining format for employee {employee_id}")
+        
+        # Check and parse date of leaving (DOL) if present
+        dol = None
+        dol_str = employee.get('dol')
+        if dol_str and dol_str.strip():  # Check if DOL exists and is not empty
+            try:
+                if 'T' in dol_str:
+                    dol = datetime.strptime(dol_str.split('T')[0], '%Y-%m-%d').date()
+                else:
+                    dol = datetime.strptime(dol_str, '%Y-%m-%d').date()
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"Invalid date of leaving format for employee {employee_id}")
+        
+        # Calculate pay period considering date of joining and leaving
+        month_start = date(year, month, 1)
         last_day = calendar.monthrange(year, month)[1]
-        pay_period_end = date(year, month, last_day)
+        month_end = date(year, month, last_day)
+        
+        # Adjust pay period start based on date of joining
+        if doj > month_start:
+            if doj > month_end:
+                # Employee joined after this month, no payout
+                raise HTTPException(status_code=400, detail=f"Employee {employee_id} joined after {month:02d}/{year}")
+            pay_period_start = doj
+        else:
+            pay_period_start = month_start
+        
+        # Adjust pay period end based on date of leaving
+        if dol:
+            if dol < month_start:
+                # Employee left before this month, no payout
+                raise HTTPException(status_code=400, detail=f"Employee {employee_id} left before {month:02d}/{year}")
+            elif dol < month_end:
+                # Employee left during this month
+                pay_period_end = dol
+            else:
+                # Employee left after this month or is still active
+                pay_period_end = month_end
+        else:
+            # No leaving date, employee is still active
+            pay_period_end = month_end
+        
+        # Validate that pay period is valid
+        if pay_period_start > pay_period_end:
+            raise HTTPException(status_code=400, detail=f"Employee {employee_id} has invalid employment period for {month:02d}/{year}")
+        
+        # Check if there are any working days in the period
+        working_days_in_period = (pay_period_end - pay_period_start).days + 1
+        if working_days_in_period <= 0:
+            raise HTTPException(status_code=400, detail=f"Employee {employee_id} has no working days in {month:02d}/{year}")
         payout_date = date(year, month, 30) if last_day >= 30 else date(year, month, last_day)
         
-        # Get annual salary calculation from taxation service
-        # First, try to get the taxation data for salary components
-        tax_data = get_or_create_taxation_by_emp_id(employee_id, hostname)
+        # Try to get existing taxation data (without creating defaults)
+        try:
+            tax_data = get_taxation_by_emp_id(employee_id, hostname)
+        except HTTPException as e:
+            if e.status_code == 404:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Taxation data not found for employee {employee_id}. Please fill taxation data first."
+                )
+            else:
+                raise
         
         if not tax_data:
-            # If no tax data exists, create default values
-            annual_gross_salary = 600000  # Default 5 lakhs per annum
-            basic_salary = annual_gross_salary * 0.5 / 12  # 50% basic
-            da = annual_gross_salary * 0.2 / 12  # 20% DA
-            hra = annual_gross_salary * 0.2 / 12  # 20% HRA
-            special_allowance = annual_gross_salary * 0.1 / 12  # 10% special allowance
-            bonus = 0
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Taxation data not found for employee {employee_id}. Please fill taxation data first."
+            )
+        
+        # Extract salary components from tax data (no defaults)
+        salary_data = tax_data.get("salary", {})
+        
+        # Validate that required salary components exist
+        required_components = ["basic", "dearness_allowance", "hra", "special_allowance"]
+        missing_components = [comp for comp in required_components if salary_data.get(comp) is None]
+        
+        if missing_components:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Missing salary components in taxation data for employee {employee_id}: {', '.join(missing_components)}. Please complete taxation data first."
+            )
+        
+        # Get salary components (no defaults)
+        basic_annual = salary_data.get("basic", 0)
+        da_annual = salary_data.get("dearness_allowance", 0)
+        hra_annual = salary_data.get("hra", 0)
+        special_allowance_annual = salary_data.get("special_allowance", 0)
+        bonus_annual = salary_data.get("bonus", 0)
+        
+        annual_gross_salary = basic_annual + da_annual + hra_annual + special_allowance_annual + bonus_annual
+        
+        # Calculate LWP days for the month
+        try:
+            lwp_days = calculate_lwp_for_month(employee_id, month, year, hostname)
+            logger.info(f"LWP days calculated for employee {employee_id}: {lwp_days}")
+        except Exception as lwp_error:
+            logger.warning(f"LWP calculation failed for {employee_id}: {str(lwp_error)}")
+            lwp_days = 0
+        
+        # Calculate effective working days (working days in period minus LWP days)
+        effective_working_days = max(0, working_days_in_period - lwp_days)
+        
+        # Calculate working days ratio for partial month (considering DOJ, DOL, and LWP)
+        total_days_in_month = last_day
+        working_ratio = working_days_in_period / total_days_in_month
+        effective_working_ratio = effective_working_days / total_days_in_month
+        
+        # Calculate monthly components based on effective working ratio (considering LWP)
+        basic_salary = (basic_annual / 12) * effective_working_ratio
+        da = (da_annual / 12) * effective_working_ratio
+        hra = (hra_annual / 12) * effective_working_ratio
+        special_allowance = (special_allowance_annual / 12) * effective_working_ratio
+        bonus = (bonus_annual / 12) * effective_working_ratio
+        
+        # Calculate tax using the taxation service
+        try:
+            annual_tax = calculate_total_tax(employee_id, hostname)
+            # Prorate tax based on effective working ratio (considering LWP)
+            monthly_tax = (annual_tax / 12) * effective_working_ratio
+        except Exception as tax_error:
+            logger.warning(f"Tax calculation failed for {employee_id}: {str(tax_error)}")
             annual_tax = 0
             monthly_tax = 0
-        else:
-            # Extract salary components from tax data
-            salary_data = tax_data.get("salary", {})
-            annual_gross_salary = (
-                salary_data.get("basic", 300000) +
-                salary_data.get("dearness_allowance", 120000) +
-                salary_data.get("hra", 120000) +
-                salary_data.get("special_allowance", 60000) +
-                salary_data.get("bonus", 0)
-            )
-            
-            # Calculate monthly components from annual values
-            basic_salary = salary_data.get("basic", 300000) / 12
-            da = salary_data.get("dearness_allowance", 120000) / 12
-            hra = salary_data.get("hra", 120000) / 12
-            special_allowance = salary_data.get("special_allowance", 60000) / 12
-            bonus = salary_data.get("bonus", 0) / 12
-            
-            # Calculate tax using the taxation service
-            try:
-                annual_tax = calculate_total_tax(employee_id, hostname)
-                monthly_tax = annual_tax / 12
-            except Exception as tax_error:
-                logger.warning(f"Tax calculation failed for {employee_id}: {str(tax_error)}")
-                annual_tax = 0
-                monthly_tax = 0
         
         # Apply overrides if provided
         if override_salary:
@@ -125,14 +217,19 @@ def calculate_monthly_payout_service(
         net_salary = max(0, actual_gross - total_deductions)
         
         # Get tax regime from employee's tax data
-        tax_data = get_or_create_taxation_by_emp_id(employee_id, hostname)
-        tax_regime = tax_data.get("tax_regime", "new") if tax_data else "new"
+        tax_regime = tax_data.get("regime", "new") if tax_data else "new"
         
         payout = PayoutCreate(
             employee_id=employee_id,
             pay_period_start=pay_period_start,
             pay_period_end=pay_period_end,
             payout_date=payout_date,
+            
+            # Attendance and Working Days
+            total_days_in_month=total_days_in_month,
+            working_days_in_period=working_days_in_period,
+            lwp_days=lwp_days,
+            effective_working_days=effective_working_days,
             
             # Salary Components
             basic_salary=round(basic_salary, 2),
@@ -177,7 +274,7 @@ def calculate_monthly_payout_service(
             
             # Status
             status=PayoutStatus.PENDING,
-            notes=f"Auto-calculated for {month:02d}/{year}"
+            notes=f"Auto-calculated for {pay_period_start.strftime('%d/%m/%Y')} to {pay_period_end.strftime('%d/%m/%Y')}. Working days: {working_days_in_period}, LWP days: {lwp_days}, Effective working days: {effective_working_days}"
         )
         
         logger.info(f"Monthly payout calculated successfully for employee {employee_id}")
@@ -455,14 +552,19 @@ def generate_payslip_data_service(payout_id: str, hostname: str) -> PayslipData:
             
             pay_period=pay_period,
             payout_date=payout_date_str,
-            days_in_month=calendar.monthrange(
+            days_in_month=getattr(payout, 'total_days_in_month', calendar.monthrange(
                 payout.pay_period_start.year, 
                 payout.pay_period_start.month
-            )[1],
-            days_worked=calendar.monthrange(
+            )[1]),
+            days_worked=getattr(payout, 'working_days_in_period', calendar.monthrange(
                 payout.pay_period_start.year, 
                 payout.pay_period_start.month
-            )[1],  # TODO: Get actual attendance
+            )[1]),
+            lwp_days=getattr(payout, 'lwp_days', 0),
+            effective_working_days=getattr(payout, 'effective_working_days', calendar.monthrange(
+                payout.pay_period_start.year, 
+                payout.pay_period_start.month
+            )[1]),
             
             earnings=earnings,
             total_earnings=payout.gross_salary,

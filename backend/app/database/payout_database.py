@@ -19,6 +19,30 @@ class PayoutDatabase:
         self.schedule_collection = self.db.payout_schedules
         self._ensure_indexes()
     
+    def _convert_dates_to_datetime(self, data: dict) -> dict:
+        """Convert date objects to datetime objects for MongoDB compatibility"""
+        converted_data = data.copy()
+        date_fields = ['pay_period_start', 'pay_period_end', 'payout_date']
+        
+        for field in date_fields:
+            if field in converted_data and isinstance(converted_data[field], date):
+                # Convert date to datetime at start of day
+                converted_data[field] = datetime.combine(converted_data[field], datetime.min.time())
+        
+        return converted_data
+    
+    def _convert_datetime_to_date(self, data: dict) -> dict:
+        """Convert datetime objects back to date objects for model compatibility"""
+        converted_data = data.copy()
+        date_fields = ['pay_period_start', 'pay_period_end', 'payout_date']
+        
+        for field in date_fields:
+            if field in converted_data and isinstance(converted_data[field], datetime):
+                # Convert datetime back to date
+                converted_data[field] = converted_data[field].date()
+        
+        return converted_data
+    
     def _ensure_indexes(self):
         """Ensure necessary indexes for optimal query performance"""
         try:
@@ -57,10 +81,17 @@ class PayoutDatabase:
             payout_dict["created_at"] = datetime.now()
             payout_dict["updated_at"] = datetime.now()
             
+            # Convert date objects to datetime for MongoDB
+            payout_dict = self._convert_dates_to_datetime(payout_dict)
+            
             result = self.collection.insert_one(payout_dict)
             
             # Retrieve the created payout
             created_payout = self.collection.find_one({"_id": result.inserted_id})
+            
+            # Convert datetime back to date for model compatibility
+            created_payout = self._convert_datetime_to_date(created_payout)
+            
             created_payout["id"] = str(created_payout["_id"])
             del created_payout["_id"]
             
@@ -76,6 +107,8 @@ class PayoutDatabase:
         try:
             payout = self.collection.find_one({"_id": ObjectId(payout_id)})
             if payout:
+                # Convert datetime back to date for model compatibility
+                payout = self._convert_datetime_to_date(payout)
                 payout["id"] = str(payout["_id"])
                 del payout["_id"]
                 return PayoutInDB(**payout)
@@ -96,22 +129,24 @@ class PayoutDatabase:
             query = {"employee_id": employee_id}
             
             if year:
-                start_date = date(year, 1, 1)
-                end_date = date(year, 12, 31)
+                start_date = datetime.combine(date(year, 1, 1), datetime.min.time())
+                end_date = datetime.combine(date(year, 12, 31), datetime.min.time())
                 query["pay_period_start"] = {"$gte": start_date, "$lte": end_date}
             
             if month and year:
-                start_date = date(year, month, 1)
+                start_date = datetime.combine(date(year, month, 1), datetime.min.time())
                 if month == 12:
-                    end_date = date(year + 1, 1, 1) - timedelta(days=1)
+                    end_date = datetime.combine(date(year + 1, 1, 1) - timedelta(days=1), datetime.min.time())
                 else:
-                    end_date = date(year, month + 1, 1) - timedelta(days=1)
+                    end_date = datetime.combine(date(year, month + 1, 1) - timedelta(days=1), datetime.min.time())
                 query["pay_period_start"] = {"$gte": start_date, "$lte": end_date}
             
             payouts = self.collection.find(query).sort("pay_period_start", DESCENDING).limit(limit)
             
             result = []
             for payout in payouts:
+                # Convert datetime back to date for model compatibility
+                payout = self._convert_datetime_to_date(payout)
                 payout["id"] = str(payout["_id"])
                 del payout["_id"]
                 result.append(PayoutInDB(**payout))
@@ -130,11 +165,11 @@ class PayoutDatabase:
     ) -> List[PayoutInDB]:
         """Get all payouts for a specific month"""
         try:
-            start_date = date(year, month, 1)
+            start_date = datetime.combine(date(year, month, 1), datetime.min.time())
             if month == 12:
-                end_date = date(year + 1, 1, 1) - timedelta(days=1)
+                end_date = datetime.combine(date(year + 1, 1, 1) - timedelta(days=1), datetime.min.time())
             else:
-                end_date = date(year, month + 1, 1) - timedelta(days=1)
+                end_date = datetime.combine(date(year, month + 1, 1) - timedelta(days=1), datetime.min.time())
             
             query = {
                 "pay_period_start": {"$gte": start_date, "$lte": end_date}
@@ -147,6 +182,8 @@ class PayoutDatabase:
             
             result = []
             for payout in payouts:
+                # Convert datetime back to date for model compatibility
+                payout = self._convert_datetime_to_date(payout)
                 payout["id"] = str(payout["_id"])
                 del payout["_id"]
                 result.append(PayoutInDB(**payout))
@@ -162,6 +199,9 @@ class PayoutDatabase:
         try:
             update_dict = {k: v for k, v in update_data.dict().items() if v is not None}
             update_dict["updated_at"] = datetime.now()
+            
+            # Convert any date objects to datetime for MongoDB
+            update_dict = self._convert_dates_to_datetime(update_dict)
             
             result = self.collection.update_one(
                 {"_id": ObjectId(payout_id)},
@@ -261,10 +301,14 @@ class PayoutDatabase:
     ) -> bool:
         """Check if payout already exists for the period"""
         try:
+            # Convert dates to datetime for MongoDB query
+            start_datetime = datetime.combine(pay_period_start, datetime.min.time())
+            end_datetime = datetime.combine(pay_period_end, datetime.min.time())
+            
             existing = self.collection.find_one({
                 "employee_id": employee_id,
-                "pay_period_start": pay_period_start,
-                "pay_period_end": pay_period_end
+                "pay_period_start": start_datetime,
+                "pay_period_end": end_datetime
             })
             return existing is not None
         except Exception as e:
@@ -274,11 +318,11 @@ class PayoutDatabase:
     def get_payout_summary(self, month: int, year: int) -> PayoutSummary:
         """Get payout summary for a month"""
         try:
-            start_date = date(year, month, 1)
+            start_date = datetime.combine(date(year, month, 1), datetime.min.time())
             if month == 12:
-                end_date = date(year + 1, 1, 1) - timedelta(days=1)
+                end_date = datetime.combine(date(year + 1, 1, 1) - timedelta(days=1), datetime.min.time())
             else:
-                end_date = date(year, month + 1, 1) - timedelta(days=1)
+                end_date = datetime.combine(date(year, month + 1, 1) - timedelta(days=1), datetime.min.time())
             
             pipeline = [
                 {

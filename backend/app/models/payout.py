@@ -65,6 +65,12 @@ class PayoutBase(BaseModel):
     # Reimbursements
     reimbursements: float = Field(0.0, ge=0)
     
+    # Attendance and Working Days
+    total_days_in_month: int = Field(0, ge=0)
+    working_days_in_period: int = Field(0, ge=0)
+    lwp_days: int = Field(0, ge=0)
+    effective_working_days: int = Field(0, ge=0)
+    
     # Status and Notes
     status: PayoutStatus = PayoutStatus.PENDING
     notes: Optional[str] = None
@@ -149,6 +155,8 @@ class PayslipData(BaseModel):
     payout_date: str
     days_in_month: int = 30
     days_worked: int = 30
+    lwp_days: int = 0
+    effective_working_days: int = 30
     
     # Earnings
     earnings: Dict[str, float] = {}

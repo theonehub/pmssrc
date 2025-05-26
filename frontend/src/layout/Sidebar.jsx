@@ -36,12 +36,14 @@ import {
   ExpandMore
 } from '@mui/icons-material';
 import { getUserRole } from '../utils/auth';
+import { useCalculator } from '../context/CalculatorContext';
 
 const Sidebar = () => {
   const role = getUserRole();
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { openCalculator } = useCalculator();
   
   // State to track which menu categories are expanded
   const [expanded, setExpanded] = useState({
@@ -238,6 +240,12 @@ const Sidebar = () => {
           icon: <SettingsIcon />,
           path: '/attributes',
           roles: ['superadmin']
+        },
+        {
+          title: 'Calculator',
+          icon: <CalculateIcon />,
+          action: 'calculator',
+          roles: ['user', 'manager', 'admin', 'superadmin']
         }
       ]
     }
@@ -310,9 +318,15 @@ const Sidebar = () => {
                 <List component="div" disablePadding>
                   {category.items.map((item) => (
                     item.roles.includes(role) && (
-                      <ListItem key={item.path} disablePadding>
+                      <ListItem key={item.path || item.action} disablePadding>
                         <ListItemButton
-                          onClick={() => navigate(item.path)}
+                          onClick={() => {
+                            if (item.action === 'calculator') {
+                              openCalculator();
+                            } else if (item.path) {
+                              navigate(item.path);
+                            }
+                          }}
                           sx={{
                             pl: 4,
                             '&:hover': {

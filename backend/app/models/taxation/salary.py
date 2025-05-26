@@ -125,40 +125,42 @@ class SalaryComponents:
             self.conveyance_in_performace_of_duties +
             self.helper_in_performace_of_duties +
             self.academic_research +
-            self.uniform_allowance
+            self.uniform_allowance +
+            self.any_other_allowance_exemption
         )
-        logger.info(f"govt_employees_outside_india_allowance: {self.govt_employees_outside_india_allowance}")
-        logger.info(f"supreme_high_court_judges_allowance: {self.supreme_high_court_judges_allowance}")
-        logger.info(f"judge_compensatory_allowance: {self.judge_compensatory_allowance}")
-        logger.info(f"section_10_14_special_allowances: {self.section_10_14_special_allowances}")
-        logger.info(f"travel_on_tour_allowance: {self.travel_on_tour_allowance}")
-        logger.info(f"tour_daily_charge_allowance: {self.tour_daily_charge_allowance}")
-        logger.info(f"conveyance_in_performace_of_duties: {self.conveyance_in_performace_of_duties}")
-        logger.info(f"helper_in_performace_of_duties: {self.helper_in_performace_of_duties}")
-        logger.info(f"[Computed] Section 10 and other exemptions: {section10_exemptions}")
+        logger.info(f"Govt Employees Outside India Allowance: {self.govt_employees_outside_india_allowance}")
+        logger.info(f"Supreme High Court Judges Allowance: {self.supreme_high_court_judges_allowance}")
+        logger.info(f"Judge Compensatory Allowance: {self.judge_compensatory_allowance}")
+        logger.info(f"Section 10(14) Special Allowances: {self.section_10_14_special_allowances}")
+        logger.info(f"Travel on Tour Allowance: {self.travel_on_tour_allowance}")
+        logger.info(f"Tour Daily Charge Allowance: {self.tour_daily_charge_allowance}")
+        logger.info(f"Conveyance in Performace of Duties: {self.conveyance_in_performace_of_duties}")
+        logger.info(f"Section 10 and other exemptions: {section10_exemptions}")
         
         # Other allowance exemptions
         other_allowances_exemption = (
-            min(self.hills_high_altd_allowance, self.hills_high_altd_exemption_limit) +   #TODO: take exemption limit as input
-            min(self.border_remote_allowance, self.border_remote_exemption_limit) +   #TODO: take exemption limit as input
+            min(self.hills_high_altd_allowance, self.hills_high_altd_exemption_limit) + 
+            min(self.border_remote_allowance, self.border_remote_exemption_limit) +
             min(self.transport_employee_allowance, min(10000, 0.7 * self.transport_employee_allowance)) +
-            min(self.children_education_allowance, (self.children_education_count*100*self.children_education_months)) +  # 100*2*12 #TODO: take number of kids and months limit as input
-            min(self.hostel_allowance, (self.hostel_count*300*self.hostel_months)) +  # 300*2*12 #TODO: take months limit as input
-            min(self.transport_allowance, (self.transport_months*3200)) +  # 3200*12 #TODO: take months limit as input
-            min(self.underground_mines_allowance, (self.underground_mines_months*800)) # 800*12 #TODO: take months limit as input
+            min(self.children_education_allowance, (self.children_education_count*100*self.children_education_months)) +
+            min(self.hostel_allowance, (self.hostel_count*300*self.hostel_months)) +
+            min(self.transport_allowance, (self.transport_months*3200)) +
+            min(self.underground_mines_allowance, (self.underground_mines_months*800)) +
+            self.any_other_allowance_exemption
         )
 
         if self.govt_employee_entertainment_allowance > 0 and is_govt_employee:
+            logger.info(f"Entertainment Allowance(Exempted only for Govt Employees): min({self.govt_employee_entertainment_allowance}, {self.basic} * 0.2, 5000) = {min(self.govt_employee_entertainment_allowance, self.basic * 0.2, 5000)}")
             other_allowances_exemption += min(self.govt_employee_entertainment_allowance, self.basic * 0.2, 5000)
 
-        logger.info(f"hills_high_altd_allowance: {self.hills_high_altd_allowance}, {min(self.hills_high_altd_allowance, self.hills_high_altd_exemption_limit)}")
-        logger.info(f"border_remote_allowance: {self.border_remote_allowance}, {min(self.border_remote_allowance, self.border_remote_exemption_limit)}")
-        logger.info(f"transport_employee_allowance: {self.transport_employee_allowance}, {min(self.transport_employee_allowance, min(10000, 0.7 * self.transport_employee_allowance))}")
-        logger.info(f"children_education_allowance: {self.children_education_allowance}, {min(self.children_education_allowance, (self.children_education_count*100*self.children_education_months))}")
-        logger.info(f"hostel_allowance: {self.hostel_allowance}, {min(self.hostel_allowance, (self.hostel_count*300*self.hostel_months))}")
-        logger.info(f"transport_allowance: {self.transport_allowance}, {min(self.transport_allowance, (self.transport_months*3200))}")
-        logger.info(f"underground_mines_allowance: {self.underground_mines_allowance}, {min(self.underground_mines_allowance, (self.underground_mines_months*800))}")
-        logger.info(f"govt_employee_entertainment_allowance: {self.govt_employee_entertainment_allowance}, {min(self.govt_employee_entertainment_allowance, self.basic * 0.2, 5000)}")
+        logger.info(f"Hills/High Altitude Allowance: min({self.hills_high_altd_allowance}, {self.hills_high_altd_exemption_limit}) = {min(self.hills_high_altd_allowance, self.hills_high_altd_exemption_limit)}")
+        logger.info(f"Border/Remote Area Allowance: min({self.border_remote_allowance}, {self.border_remote_exemption_limit}) = {min(self.border_remote_allowance, self.border_remote_exemption_limit)}")
+        logger.info(f"Transport Employee Allowance: min({self.transport_employee_allowance}, min(10000, 0.7 * {self.transport_employee_allowance})) = {min(self.transport_employee_allowance, min(10000, 0.7 * self.transport_employee_allowance))}")
+        logger.info(f"Children Education Allowance: min({self.children_education_allowance}, ({self.children_education_count} * 100 * {self.children_education_months})) = {min(self.children_education_allowance, (self.children_education_count*100*self.children_education_months))}")
+        logger.info(f"Hostel Allowance: min({self.hostel_allowance}, ({self.hostel_count} * 300 * {self.hostel_months})) = {min(self.hostel_allowance, (self.hostel_count*300*self.hostel_months))}")
+        logger.info(f"Transport Allowance: min({self.transport_allowance}, ({self.transport_months} * 3200)) = {min(self.transport_allowance, (self.transport_months*3200))}")
+        logger.info(f"Underground Mines Allowance: min({self.underground_mines_allowance}, ({self.underground_mines_months} * 800)) = {min(self.underground_mines_allowance, (self.underground_mines_months*800))}")
+        logger.info(f"Any Other Allowance Exemption: {self.any_other_allowance_exemption}")
         logger.info(f"Other allowance exemptions: {other_allowances_exemption}")
 
         logger.info(f"Total salary exemptions - HRA: {hra_exemption}, Section 10: {section10_exemptions}, Other: {other_allowances_exemption}")
@@ -205,8 +207,59 @@ class SalaryComponents:
             self.hostel_allowance +
             self.transport_allowance +
             self.underground_mines_allowance +
-            self.govt_employee_entertainment_allowance
+            self.govt_employee_entertainment_allowance+
+            self.govt_employees_outside_india_allowance +
+            self.supreme_high_court_judges_allowance +
+            self.judge_compensatory_allowance +
+            self.section_10_14_special_allowances +
+            self.travel_on_tour_allowance +
+            self.tour_daily_charge_allowance +
+            self.conveyance_in_performace_of_duties +
+            self.helper_in_performace_of_duties +
+            self.academic_research +
+            self.uniform_allowance
         )
+
+        logger.info(f"Basic: {self.basic}")
+        logger.info(f"Dearness Allowance: {self.dearness_allowance}")
+        logger.info(f"HRA: {self.hra}")
+        logger.info(f"Special Allowance: {self.special_allowance}")
+        logger.info(f"Bonus: {self.bonus}")
+        logger.info(f"Commission: {self.commission}")
+        logger.info(f"City Compensatory Allowance: {self.city_compensatory_allowance}")
+        logger.info(f"Rural Allowance: {self.rural_allowance}")
+        logger.info(f"Proctorship Allowance: {self.proctorship_allowance}")
+        logger.info(f"Wardenship Allowance: {self.wardenship_allowance}")
+        logger.info(f"Project Allowance: {self.project_allowance}")
+        logger.info(f"Deputation Allowance: {self.deputation_allowance}")
+        logger.info(f"Overtime Allowance: {self.overtime_allowance}")
+        logger.info(f"Interim Relief: {self.interim_relief}")
+        logger.info(f"Tiffin Allowance: {self.tiffin_allowance}")
+        logger.info(f"Fixed Medical Allowance: {self.fixed_medical_allowance}")
+        logger.info(f"Servant Allowance: {self.servant_allowance}")
+        logger.info(f"Hills/High Altitude Allowance: {self.hills_high_altd_allowance}")
+        logger.info(f"Border/Remote Area Allowance: {self.border_remote_allowance}")
+        logger.info(f"Transport Employee Allowance: {self.transport_employee_allowance}")
+        logger.info(f"Children Education Allowance: {self.children_education_allowance}")
+        logger.info(f"Hostel Allowance: {self.hostel_allowance}")
+        logger.info(f"Transport Allowance: {self.transport_allowance}")
+        logger.info(f"Underground Mines Allowance: {self.underground_mines_allowance}")
+        
+        logger.info(f"Any Other Allowance: {self.any_other_allowance}")
+        logger.info(f"Any Other Allowance Exemption: {self.any_other_allowance_exemption}")
+        logger.info(f"Govt Employee Entertainment Allowance: {self.govt_employee_entertainment_allowance}")
+        logger.info(f"Govt Employees Outside India Allowance: {self.govt_employees_outside_india_allowance}")
+        logger.info(f"Govt Employee Outside India Allowance: {self.govt_employees_outside_india_allowance}")
+        logger.info(f"Supreme High Court Judges Allowance: {self.supreme_high_court_judges_allowance}")
+        logger.info(f"Judge Compensatory Allowance: {self.judge_compensatory_allowance}")
+        logger.info(f"Section 10(14) Special Allowances: {self.section_10_14_special_allowances}")
+        logger.info(f"Travel on Tour Allowance: {self.travel_on_tour_allowance}")
+        logger.info(f"Tour Daily Charge Allowance: {self.tour_daily_charge_allowance}")
+        logger.info(f"Conveyance in Performace of Duties: {self.conveyance_in_performace_of_duties}")
+        logger.info(f"Helper in Performace of Duties: {self.helper_in_performace_of_duties}")
+        logger.info(f"Academic Research: {self.academic_research}")
+        logger.info(f"Uniform Allowance: {self.uniform_allowance}")
+        
         
         # FIXED: Calculate perquisites value separately with proper gross salary (Basic + DA)
         perquisites_value = 0

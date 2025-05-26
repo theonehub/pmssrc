@@ -41,6 +41,10 @@ class Perquisites:
         if regime == 'new':
             return 0
         
+        if self.accommodation_rent == 0:
+            logger.info(f"Not Computting Accommodation perquisite as rent is 0 !!")
+            return 0
+        
         logger.info(f"Calculating total accommodation value for regime: {regime}")
         logger.info(f"Gross salary: {gross_salary}")
         logger.info(f"Furniture owned: {self.is_furniture_owned}")
@@ -56,25 +60,25 @@ class Perquisites:
         else:
             furniture_value = self.furniture_cost_to_employer - self.furniture_cost_paid_by_employee
 
-        logger.info(f"Furniture value: {furniture_value}")
+        logger.info(f"Taxable Furniture value: {furniture_value}")
         if self.accommodation_provided == 'Govt':
-            logger.info(f"Govt accommodation value: {self.accommodation_govt_lic_fees - self.accommodation_rent + furniture_value}")
-            return self.accommodation_govt_lic_fees - self.accommodation_rent + furniture_value
+            logger.info(f"Govt accommodation value: {max(0, self.accommodation_govt_lic_fees - self.accommodation_rent) + furniture_value}")
+            return max(0, self.accommodation_govt_lic_fees - self.accommodation_rent) + furniture_value
         elif self.accommodation_provided == 'Employer-Owned':
             if self.accommodation_city_population == 'Exceeding 40 lakhs in 2011 Census':
-                logger.info(f"Exceeding 40 lakhs in 2011 Census: {(gross_salary * 0.1) + furniture_value}")
+                logger.info(f"Exceeding 40 lakhs in 2011 Census: {gross_salary} * 0.1 + {furniture_value} = {((gross_salary * 0.1) + furniture_value)}")
                 return (gross_salary * 0.1) + furniture_value
             elif self.accommodation_city_population == 'Between 15 lakhs and 40 lakhs in 2011 Census':
-                logger.info(f"Between 15 lakhs and 40 lakhs in 2011 Census: {(gross_salary * 0.075) + furniture_value}")
+                logger.info(f"Between 15 lakhs and 40 lakhs in 2011 Census: {gross_salary} * 0.075 + {furniture_value} = {((gross_salary * 0.075) + furniture_value)}")
                 return (gross_salary * 0.075) + furniture_value
             elif self.accommodation_city_population == 'Below 15 lakhs in 2011 Census':
-                logger.info(f"Below 15 lakhs in 2011 Census: {gross_salary * 0.05}")
+                logger.info(f"Below 15 lakhs in 2011 Census: {gross_salary * 0.05} = {gross_salary * 0.05}")
                 return gross_salary * 0.05
         elif self.accommodation_provided == 'Employer-Leased':
-            logger.info(f"Employer-Leased: {(min(self.accommodation_rent, (gross_salary * 0.10))) + furniture_value}")
+            logger.info(f"Employer-Leased: {(min(self.accommodation_rent, (gross_salary * 0.10))) + furniture_value} = {((min(self.accommodation_rent, (gross_salary * 0.10))) + furniture_value)}")
             return ((min(self.accommodation_rent, (gross_salary * 0.10))) + furniture_value)
         elif self.accommodation_provided == 'Hotel provided for 15 days or above':
-            logger.info(f"Hotel provided for 15 days or above: {min(self.accommodation_rent, (gross_salary * 0.24))}")
+            logger.info(f"Hotel provided for 15 days or above: {min(self.accommodation_rent, (gross_salary * 0.24))} = {min(self.accommodation_rent, (gross_salary * 0.24))}")
             return min(self.accommodation_rent, (gross_salary * 0.24))
         else:
             logger.info(f"No accommodation provided: 0")
@@ -103,6 +107,11 @@ class Perquisites:
         """
         if regime == 'new':
             return 0
+        
+        if self.month_counts == 0 and self.other_vehicle_month_counts == 0:
+            logger.info(f"Not Computting Car perquisite as month counts are 0 !!")
+            return 0
+        
         logger.info(f"Calculating total car value for regime: {regime}")
         logger.info(f"Car use: {self.car_use}")
         logger.info(f"Car cost to employer: {self.car_cost_to_employer}")
@@ -195,6 +204,13 @@ class Perquisites:
         """
         if regime == 'new':
             return 0
+        
+        if self.lta_amount_claimed == 0:
+            logger.info(f"Not Computting LTA perquisite as amount claimed is 0 !!")
+            return 0
+        
+
+        
         logger.info(f"Calculating total LTA value for regime: {regime}")
         logger.info(f"LTA amount claimed: {self.lta_amount_claimed}")
         logger.info(f"LTA claimed count: {self.lta_claimed_count}")
@@ -204,11 +220,12 @@ class Perquisites:
         # FIXED: LTA exemption rules
         # 1. Limited to 2 journeys in a block of 4 years
         # 2. Exemption is limited to actual cost or economy class airfare/AC first class railway fare
-        
+
         if self.lta_claimed_count > 2:
             logger.info(f"LTA claimed more than 2 times in 4-year block, fully taxable")
             return self.lta_amount_claimed
-            
+                    
+
         # FIXED: Calculate eligible exemption based on travel mode
         if self.travel_through == 'Railway':
             # For railway, generally AC First Class fare is the limit
@@ -242,6 +259,7 @@ class Perquisites:
         """Taxable value of gas, electricity, and water perquisite."""
         if regime == 'new':
             return 0
+        
         logger.info(f"Calculating total gas, electricity, and water value for regime: {regime}")
         logger.info(f"Is gas manufactured by employer: {self.is_gas_manufactured_by_employer}")
         logger.info(f"Gas amount paid by employer: {self.gas_amount_paid_by_employer}")
@@ -328,16 +346,18 @@ class Perquisites:
         
         # Calculate interest rate differential
         interest_rate_diff = self.loan_interest_rate_sbi - self.loan_interest_rate_company
+        logger.info(f"Interest rate differential: {interest_rate_diff}")
         if interest_rate_diff <= 0:
             logger.info(f"No interest benefit: SBI rate ({self.loan_interest_rate_sbi}%) <= Company rate ({self.loan_interest_rate_company}%)")
             return 0
         
         # Use outstanding amount if provided, otherwise use loan amount
         principal_amount = self.outstanding_loan_amount if self.outstanding_loan_amount > 0 else self.loan_amount
-        
+        logger.info(f"Principal amount: {principal_amount}")
+
         # FIXED: Calculate annual interest differential correctly
         annual_interest_differential = principal_amount * (interest_rate_diff / 100)
-        
+                
         logger.info(f"Interest calculation: Principal: {principal_amount}, Rate diff: {interest_rate_diff}%, Annual differential: {annual_interest_differential}")
         
         # If specific months are provided, prorate the amount
@@ -523,7 +543,7 @@ class Perquisites:
         # Add all perquisite calculations
         total_value += self.total_accommodation_value(gross_salary=gross_salary, regime=regime)
         total_value += self.total_car_value(regime=regime)
-        total_value += self.total_medical_reimbursement(gross_salary=gross_salary, regime=regime)  # FIXED: Added missing medical reimbursement
+        #total_value += self.total_medical_reimbursement(gross_salary=gross_salary, regime=regime)  # FIXED: Added missing medical reimbursement
         total_value += self.total_lta_value(regime)
         total_value += self.total_free_education_value(regime)
         total_value += self.total_gas_electricity_water_value(regime)

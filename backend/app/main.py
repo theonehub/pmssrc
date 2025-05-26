@@ -12,7 +12,7 @@ from services.user_service import create_default_user
 from routes import auth_routes, user_routes, project_attributes_routes,\
     public_holiday_routes, attendance_routes, company_leave_routes, leave_routes, \
     reimbursement_routes, reimbursement_type_routes,\
-    organisation_routes, taxation_routes, payout_routes
+    organisation_routes, taxation_routes, payout_routes, payslip_routes
 from utils.json_encoder import mongodb_jsonable_encoder, MongoJSONResponse
 
 # Configure the root logger.
@@ -69,6 +69,7 @@ app.include_router(leave_routes.router, tags=["Leave Management"])
 app.include_router(organisation_routes.router, tags=["Organization"])
 app.include_router(taxation_routes.router, tags=["Taxation"])
 app.include_router(payout_routes.router, tags=["Payouts"])
+app.include_router(payslip_routes.router, tags=["Payslips"])
 
 # Run the server
 if __name__ == "__main__":

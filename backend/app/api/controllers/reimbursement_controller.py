@@ -30,7 +30,7 @@ from application.dto.reimbursement_dto import (
     ReimbursementValidationError,
     ReimbursementBusinessRuleError
 )
-from auth.auth_dependency import get_current_user
+from auth.dependencies import get_current_user
 
 
 logger = logging.getLogger(__name__)

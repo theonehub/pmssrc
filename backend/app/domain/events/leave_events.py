@@ -283,6 +283,49 @@ class EmployeeLeaveCancelled(DomainEvent):
 
 
 @dataclass
+class EmployeeLeaveUpdated(DomainEvent):
+    """
+    Event raised when employee leave details are updated.
+    
+    This event can trigger:
+    - Manager notifications
+    - Calendar updates
+    - Approval workflow reset
+    - Audit logging
+    """
+    
+    leave_application_id: str
+    employee_id: EmployeeId
+    old_date_range: DateRange
+    new_date_range: DateRange
+    old_working_days: int
+    new_working_days: int
+    updated_by: str
+    
+    def get_event_type(self) -> str:
+        return "leave.employee_leave_updated"
+    
+    def get_aggregate_id(self) -> str:
+        return self.leave_application_id
+    
+    def get_update_details(self) -> dict:
+        """Get leave update details"""
+        return {
+            "leave_application_id": self.leave_application_id,
+            "employee_id": str(self.employee_id),
+            "date_changes": {
+                "old_range": str(self.old_date_range),
+                "new_range": str(self.new_date_range)
+            },
+            "working_days_changes": {
+                "old": self.old_working_days,
+                "new": self.new_working_days
+            },
+            "updated_by": self.updated_by
+        }
+
+
+@dataclass
 class EmployeeLeaveBalanceUpdated(DomainEvent):
     """
     Event raised when employee leave balance is updated.
@@ -447,6 +490,7 @@ LEAVE_EVENT_TYPE_REGISTRY = {
     "leave.employee_leave_approved": EmployeeLeaveApproved,
     "leave.employee_leave_rejected": EmployeeLeaveRejected,
     "leave.employee_leave_cancelled": EmployeeLeaveCancelled,
+    "leave.employee_leave_updated": EmployeeLeaveUpdated,
     "leave.employee_leave_balance_updated": EmployeeLeaveBalanceUpdated,
     "leave.employee_leave_accrued": EmployeeLeaveAccrued,
     "leave.employee_leave_carried_over": EmployeeLeaveCarriedOver,

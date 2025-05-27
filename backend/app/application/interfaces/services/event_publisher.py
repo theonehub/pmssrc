@@ -1,50 +1,44 @@
 """
 Event Publisher Interface
-Defines the contract for publishing domain events
+Abstract interface for publishing domain events
 """
 
 from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any, Callable
 from datetime import datetime
 
-from domain.events.employee_events import DomainEvent
+from domain.events.base_event import DomainEvent
 
 
 class EventPublisher(ABC):
     """
-    Event publisher interface following SOLID principles.
+    Abstract interface for publishing domain events.
     
     Follows SOLID principles:
     - SRP: Only handles event publishing
-    - OCP: Can be implemented by different event systems
-    - LSP: Any implementation can be substituted
-    - ISP: Focused interface for event operations
-    - DIP: Depends on abstractions, not concrete implementations
+    - OCP: Can be extended with new implementations
+    - LSP: All implementations must be substitutable
+    - ISP: Focused interface for event publishing
+    - DIP: Depends on abstractions
     """
     
     @abstractmethod
-    def publish(self, event: DomainEvent) -> bool:
+    async def publish(self, event: DomainEvent) -> None:
         """
         Publish a single domain event.
         
         Args:
             event: Domain event to publish
-            
-        Returns:
-            True if event published successfully, False otherwise
         """
         pass
     
     @abstractmethod
-    def publish_batch(self, events: List[DomainEvent]) -> Dict[str, bool]:
+    async def publish_batch(self, events: List[DomainEvent]) -> None:
         """
-        Publish multiple domain events in batch.
+        Publish multiple domain events.
         
         Args:
             events: List of domain events to publish
-            
-        Returns:
-            Dictionary mapping event IDs to success status
         """
         pass
     
@@ -118,7 +112,7 @@ class InMemoryEventPublisher(EventPublisher):
         self._subscription_counter = 0
         self._subscriptions: Dict[str, tuple] = {}  # subscription_id -> (event_type, handler)
     
-    def publish(self, event: DomainEvent) -> bool:
+    async def publish(self, event: DomainEvent) -> None:
         """Publish event and notify subscribers"""
         try:
             # Store event
@@ -129,22 +123,17 @@ class InMemoryEventPublisher(EventPublisher):
             if event_type in self._subscribers:
                 for handler in self._subscribers[event_type]:
                     try:
-                        handler(event)
+                        await handler(event)
                     except Exception as e:
                         # Log error but don't fail the publish operation
                         print(f"Error in event handler: {e}")
-            
-            return True
         except Exception:
-            return False
+            pass
     
-    def publish_batch(self, events: List[DomainEvent]) -> Dict[str, bool]:
+    async def publish_batch(self, events: List[DomainEvent]) -> None:
         """Publish multiple events"""
-        results = {}
         for event in events:
-            event_id = f"{event.get_aggregate_id()}_{event.occurred_at.isoformat()}"
-            results[event_id] = self.publish(event)
-        return results
+            await self.publish(event)
     
     def subscribe(
         self, 

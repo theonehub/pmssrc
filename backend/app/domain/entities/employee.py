@@ -54,11 +54,13 @@ class Employee:
     first_name: str
     last_name: str
     email: str
-    phone: Optional[str] = None
     
     # Employment Details
     date_of_joining: date
     date_of_birth: date
+    
+    # Optional fields with defaults
+    phone: Optional[str] = None
     employee_type: EmployeeType = EmployeeType.PERMANENT
     status: EmployeeStatus = EmployeeStatus.ACTIVE
     

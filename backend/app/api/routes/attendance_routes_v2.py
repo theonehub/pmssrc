@@ -1,0 +1,356 @@
+"""
+SOLID-Compliant Attendance Routes
+Clean API layer following SOLID principles
+"""
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Path
+from fastapi.responses import JSONResponse
+from typing import List, Optional
+import logging
+from datetime import datetime
+
+from api.controllers.attendance_controller import AttendanceController
+from application.dto.attendance_dto import (
+    AttendanceCheckInRequestDTO,
+    AttendanceCheckOutRequestDTO,
+    AttendanceSearchFiltersDTO,
+    AttendanceResponseDTO,
+    AttendanceStatsResponseDTO,
+    AttendanceValidationError,
+    AttendanceBusinessRuleError,
+    AttendanceNotFoundError
+)
+from auth.auth import extract_emp_id, extract_hostname, role_checker
+
+logger = logging.getLogger(__name__)
+
+# Create router
+router = APIRouter(prefix="/api/v2/attendance", tags=["Attendance V2 (SOLID)"])
+
+
+def get_attendance_controller() -> AttendanceController:
+    """Dependency injection for attendance controller"""
+    from config.dependency_container import get_dependency_container
+    container = get_dependency_container()
+    return container.get_attendance_controller()
+
+
+# ==================== ATTENDANCE ENDPOINTS ====================
+
+@router.post("/checkin", response_model=AttendanceResponseDTO)
+async def checkin(
+    current_emp_id: str = Depends(extract_emp_id),
+    hostname: str = Depends(extract_hostname),
+    controller: AttendanceController = Depends(get_attendance_controller)
+):
+    """Record employee check-in"""
+    try:
+        logger.info(f"Check-in request for employee: {current_emp_id}")
+        
+        request = AttendanceCheckInRequestDTO(
+            emp_id=current_emp_id,
+            hostname=hostname,
+            timestamp=datetime.now()
+        )
+        
+        response = await controller.checkin(request)
+        
+        return response
+        
+    except AttendanceValidationError as e:
+        logger.warning(f"Validation error during check-in: {e}")
+        raise HTTPException(status_code=400, detail={"error": "validation_error", "message": str(e)})
+    
+    except AttendanceBusinessRuleError as e:
+        logger.warning(f"Business rule error during check-in: {e}")
+        raise HTTPException(status_code=422, detail={"error": "business_rule_error", "message": str(e)})
+    
+    except Exception as e:
+        logger.error(f"Unexpected error during check-in: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/checkout", response_model=AttendanceResponseDTO)
+async def checkout(
+    current_emp_id: str = Depends(extract_emp_id),
+    hostname: str = Depends(extract_hostname),
+    controller: AttendanceController = Depends(get_attendance_controller)
+):
+    """Record employee check-out"""
+    try:
+        logger.info(f"Check-out request for employee: {current_emp_id}")
+        
+        request = AttendanceCheckOutRequestDTO(
+            emp_id=current_emp_id,
+            hostname=hostname,
+            timestamp=datetime.now()
+        )
+        
+        response = await controller.checkout(request)
+        
+        return response
+        
+    except AttendanceValidationError as e:
+        logger.warning(f"Validation error during check-out: {e}")
+        raise HTTPException(status_code=400, detail={"error": "validation_error", "message": str(e)})
+    
+    except AttendanceBusinessRuleError as e:
+        logger.warning(f"Business rule error during check-out: {e}")
+        raise HTTPException(status_code=422, detail={"error": "business_rule_error", "message": str(e)})
+    
+    except Exception as e:
+        logger.error(f"Unexpected error during check-out: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/employee/{emp_id}/month/{month}/year/{year}", response_model=List[AttendanceResponseDTO])
+async def get_employee_attendance_by_month(
+    emp_id: str = Path(..., description="Employee ID"),
+    month: int = Path(..., ge=1, le=12, description="Month (1-12)"),
+    year: int = Path(..., ge=2000, le=3000, description="Year"),
+    hostname: str = Depends(extract_hostname),
+    current_emp_id: str = Depends(extract_emp_id),
+    role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
+    controller: AttendanceController = Depends(get_attendance_controller)
+):
+    """Get employee attendance records for a specific month"""
+    try:
+        logger.info(f"Getting attendance for employee {emp_id} for {month}/{year}")
+        
+        filters = AttendanceSearchFiltersDTO(
+            emp_id=emp_id,
+            month=month,
+            year=year,
+            hostname=hostname
+        )
+        
+        response = await controller.get_employee_attendance_by_month(filters)
+        
+        return response
+        
+    except AttendanceNotFoundError as e:
+        logger.warning(f"Attendance not found: {e}")
+        raise HTTPException(status_code=404, detail={"error": "not_found", "message": str(e)})
+    
+    except Exception as e:
+        logger.error(f"Error getting employee attendance: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/employee/{emp_id}/year/{year}", response_model=List[AttendanceResponseDTO])
+async def get_employee_attendance_by_year(
+    emp_id: str = Path(..., description="Employee ID"),
+    year: int = Path(..., ge=2000, le=3000, description="Year"),
+    hostname: str = Depends(extract_hostname),
+    current_emp_id: str = Depends(extract_emp_id),
+    role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
+    controller: AttendanceController = Depends(get_attendance_controller)
+):
+    """Get employee attendance records for a specific year"""
+    try:
+        logger.info(f"Getting attendance for employee {emp_id} for year {year}")
+        
+        filters = AttendanceSearchFiltersDTO(
+            emp_id=emp_id,
+            year=year,
+            hostname=hostname
+        )
+        
+        response = await controller.get_employee_attendance_by_year(filters)
+        
+        return response
+        
+    except AttendanceNotFoundError as e:
+        logger.warning(f"Attendance not found: {e}")
+        raise HTTPException(status_code=404, detail={"error": "not_found", "message": str(e)})
+    
+    except Exception as e:
+        logger.error(f"Error getting employee attendance: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/team/date/{date}/month/{month}/year/{year}", response_model=List[AttendanceResponseDTO])
+async def get_team_attendance_by_date(
+    date: int = Path(..., ge=1, le=31, description="Date (1-31)"),
+    month: int = Path(..., ge=1, le=12, description="Month (1-12)"),
+    year: int = Path(..., ge=2000, le=3000, description="Year"),
+    hostname: str = Depends(extract_hostname),
+    current_emp_id: str = Depends(extract_emp_id),
+    role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
+    controller: AttendanceController = Depends(get_attendance_controller)
+):
+    """Get team attendance records for a specific date"""
+    try:
+        logger.info(f"Getting team attendance for {date}/{month}/{year}")
+        
+        filters = AttendanceSearchFiltersDTO(
+            manager_id=current_emp_id,
+            date=date,
+            month=month,
+            year=year,
+            hostname=hostname
+        )
+        
+        response = await controller.get_team_attendance_by_date(filters)
+        
+        return response
+        
+    except AttendanceNotFoundError as e:
+        logger.warning(f"Team attendance not found: {e}")
+        raise HTTPException(status_code=404, detail={"error": "not_found", "message": str(e)})
+    
+    except Exception as e:
+        logger.error(f"Error getting team attendance: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/team/month/{month}/year/{year}", response_model=List[AttendanceResponseDTO])
+async def get_team_attendance_by_month(
+    month: int = Path(..., ge=1, le=12, description="Month (1-12)"),
+    year: int = Path(..., ge=2000, le=3000, description="Year"),
+    hostname: str = Depends(extract_hostname),
+    current_emp_id: str = Depends(extract_emp_id),
+    role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
+    controller: AttendanceController = Depends(get_attendance_controller)
+):
+    """Get team attendance records for a specific month"""
+    try:
+        logger.info(f"Getting team attendance for {month}/{year}")
+        
+        filters = AttendanceSearchFiltersDTO(
+            manager_id=current_emp_id,
+            month=month,
+            year=year,
+            hostname=hostname
+        )
+        
+        response = await controller.get_team_attendance_by_month(filters)
+        
+        return response
+        
+    except AttendanceNotFoundError as e:
+        logger.warning(f"Team attendance not found: {e}")
+        raise HTTPException(status_code=404, detail={"error": "not_found", "message": str(e)})
+    
+    except Exception as e:
+        logger.error(f"Error getting team attendance: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/team/year/{year}", response_model=List[AttendanceResponseDTO])
+async def get_team_attendance_by_year(
+    year: int = Path(..., ge=2000, le=3000, description="Year"),
+    hostname: str = Depends(extract_hostname),
+    current_emp_id: str = Depends(extract_emp_id),
+    role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
+    controller: AttendanceController = Depends(get_attendance_controller)
+):
+    """Get team attendance records for a specific year"""
+    try:
+        logger.info(f"Getting team attendance for year {year}")
+        
+        filters = AttendanceSearchFiltersDTO(
+            manager_id=current_emp_id,
+            year=year,
+            hostname=hostname
+        )
+        
+        response = await controller.get_team_attendance_by_year(filters)
+        
+        return response
+        
+    except AttendanceNotFoundError as e:
+        logger.warning(f"Team attendance not found: {e}")
+        raise HTTPException(status_code=404, detail={"error": "not_found", "message": str(e)})
+    
+    except Exception as e:
+        logger.error(f"Error getting team attendance: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/stats/today", response_model=AttendanceStatsResponseDTO)
+async def get_todays_attendance_stats(
+    hostname: str = Depends(extract_hostname),
+    current_emp_id: str = Depends(extract_emp_id),
+    role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
+    controller: AttendanceController = Depends(get_attendance_controller)
+):
+    """Get today's attendance statistics"""
+    try:
+        logger.info("Getting today's attendance statistics")
+        
+        response = await controller.get_todays_attendance_stats(hostname)
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error getting attendance statistics: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/my/month/{month}/year/{year}", response_model=List[AttendanceResponseDTO])
+async def get_my_attendance_by_month(
+    month: int = Path(..., ge=1, le=12, description="Month (1-12)"),
+    year: int = Path(..., ge=2000, le=3000, description="Year"),
+    hostname: str = Depends(extract_hostname),
+    current_emp_id: str = Depends(extract_emp_id),
+    controller: AttendanceController = Depends(get_attendance_controller)
+):
+    """Get my attendance records for a specific month"""
+    try:
+        logger.info(f"Getting my attendance for {month}/{year}")
+        
+        filters = AttendanceSearchFiltersDTO(
+            emp_id=current_emp_id,
+            month=month,
+            year=year,
+            hostname=hostname
+        )
+        
+        response = await controller.get_employee_attendance_by_month(filters)
+        
+        return response
+        
+    except AttendanceNotFoundError as e:
+        logger.warning(f"My attendance not found: {e}")
+        raise HTTPException(status_code=404, detail={"error": "not_found", "message": str(e)})
+    
+    except Exception as e:
+        logger.error(f"Error getting my attendance: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/my/year/{year}", response_model=List[AttendanceResponseDTO])
+async def get_my_attendance_by_year(
+    year: int = Path(..., ge=2000, le=3000, description="Year"),
+    hostname: str = Depends(extract_hostname),
+    current_emp_id: str = Depends(extract_emp_id),
+    controller: AttendanceController = Depends(get_attendance_controller)
+):
+    """Get my attendance records for a specific year"""
+    try:
+        logger.info(f"Getting my attendance for year {year}")
+        
+        filters = AttendanceSearchFiltersDTO(
+            emp_id=current_emp_id,
+            year=year,
+            hostname=hostname
+        )
+        
+        response = await controller.get_employee_attendance_by_year(filters)
+        
+        return response
+        
+    except AttendanceNotFoundError as e:
+        logger.warning(f"My attendance not found: {e}")
+        raise HTTPException(status_code=404, detail={"error": "not_found", "message": str(e)})
+    
+    except Exception as e:
+        logger.error(f"Error getting my attendance: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "service": "attendance_v2"} 

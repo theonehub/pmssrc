@@ -10,6 +10,31 @@ logger = logging.getLogger(__name__)
 # OAuth2 scheme for dependency injection.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    """
+    Dependency that decodes the JWT token to extract the current user information.
+    Raises HTTP 401 if token is invalid or required fields are missing.
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        role: str = payload.get("role")
+        emp_id: str = payload.get("emp_id")
+        if username is None or role is None:
+            logger.warning("Token payload is missing username or role.")
+            raise HTTPException(status_code=401, detail="Invalid token payload")
+        return {
+            "username": username,
+            "role": role,
+            "emp_id": emp_id
+        }
+    except JWTError as e:
+        logger.error("Failed to decode token: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate token",
+        )
+
 def get_current_user_role(token: str = Depends(oauth2_scheme)):
     """
     Dependency that decodes the JWT token to extract the user's role.

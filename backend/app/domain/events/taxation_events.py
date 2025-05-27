@@ -3,60 +3,46 @@ Taxation Domain Events
 Events that represent important business occurrences in the taxation domain
 """
 
-from dataclasses import dataclass
-from datetime import datetime
-from typing import Optional
-from abc import ABC
+from dataclasses import dataclass, field
+from datetime import date, datetime
+from typing import Optional, Dict, Any
+from decimal import Decimal
 
 from domain.value_objects.employee_id import EmployeeId
 from domain.value_objects.money import Money
-from domain.value_objects.tax_regime import TaxRegime
 from domain.events.employee_events import DomainEvent
 
 
 @dataclass
-class TaxCalculated(DomainEvent):
+class TaxationCalculated(DomainEvent):
     """
-    Event raised when tax calculation is completed.
+    Event raised when tax calculation is completed for an employee.
     
     This event can trigger:
+    - Tax report generation
     - Payroll system updates
-    - Form 16 generation
-    - Tax liability notifications
-    - Compliance reporting
-    - Analytics updates
+    - Notification to HR/Finance
+    - Audit trail updates
     """
     
     employee_id: EmployeeId
     tax_year: str
-    regime: TaxRegime
+    regime: str
+    total_tax: Money
     taxable_income: Money
-    calculated_tax: Money
-    total_tax_liability: Money
+    calculated_by: Optional[EmployeeId] = None
+    occurred_at: datetime = field(default_factory=lambda: datetime.utcnow())
+    event_id: str = field(default_factory=lambda: str(__import__('uuid').uuid4()))
+    
+    def __post_init__(self):
+        """Initialize parent class"""
+        super().__init__(self.occurred_at, self.event_id)
     
     def get_event_type(self) -> str:
-        return "taxation.tax_calculated"
+        return "taxation.calculated"
     
     def get_aggregate_id(self) -> str:
-        return f"{self.employee_id}_{self.tax_year}"
-    
-    def get_calculation_summary(self) -> dict:
-        """Get tax calculation summary"""
-        return {
-            "employee_id": str(self.employee_id),
-            "tax_year": self.tax_year,
-            "regime": str(self.regime),
-            "taxable_income": self.taxable_income.format(),
-            "calculated_tax": self.calculated_tax.format(),
-            "total_tax_liability": self.total_tax_liability.format(),
-            "effective_tax_rate": self._calculate_effective_rate()
-        }
-    
-    def _calculate_effective_rate(self) -> float:
-        """Calculate effective tax rate"""
-        if self.taxable_income.is_zero():
-            return 0.0
-        return float((self.total_tax_liability.amount / self.taxable_income.amount) * 100)
+        return str(self.employee_id)
 
 
 @dataclass
@@ -65,254 +51,206 @@ class TaxRegimeChanged(DomainEvent):
     Event raised when an employee's tax regime is changed.
     
     This event can trigger:
-    - Deduction validation and cleanup
     - Tax recalculation
     - Notification to employee
-    - Compliance updates
-    - Audit logging
+    - Payroll adjustments
+    - Compliance record updates
     """
     
     employee_id: EmployeeId
+    old_regime: str
+    new_regime: str
     tax_year: str
-    old_regime: TaxRegime
-    new_regime: TaxRegime
-    reason: str
+    effective_date: date
+    changed_by: Optional[EmployeeId] = None
     
     def get_event_type(self) -> str:
         return "taxation.regime_changed"
     
     def get_aggregate_id(self) -> str:
-        return f"{self.employee_id}_{self.tax_year}"
-    
-    def get_regime_change_details(self) -> dict:
-        """Get regime change details"""
-        return {
-            "employee_id": str(self.employee_id),
-            "tax_year": self.tax_year,
-            "regime_change": {
-                "from": str(self.old_regime),
-                "to": str(self.new_regime)
-            },
-            "reason": self.reason,
-            "impact": self._get_regime_impact()
-        }
-    
-    def _get_regime_impact(self) -> dict:
-        """Get impact of regime change"""
-        return {
-            "deductions_allowed_before": self.old_regime.allows_deductions(),
-            "deductions_allowed_after": self.new_regime.allows_deductions(),
-            "exemption_limit_change": {
-                "old": float(self.old_regime.get_basic_exemption_limit()),
-                "new": float(self.new_regime.get_basic_exemption_limit())
-            }
-        }
+        return str(self.employee_id)
 
 
 @dataclass
-class DeductionAdded(DomainEvent):
+class TaxComponentUpdated(DomainEvent):
     """
-    Event raised when a tax deduction is added.
+    Event raised when tax component (salary, deductions, etc.) is updated.
     
     This event can trigger:
     - Tax recalculation
-    - Validation of supporting documents
-    - Notification to employee
-    - Compliance checks
-    """
-    
-    employee_id: EmployeeId
-    tax_year: str
-    section: str
-    amount: Money
-    old_amount: Money
-    description: Optional[str] = None
-    
-    def get_event_type(self) -> str:
-        return "taxation.deduction_added"
-    
-    def get_aggregate_id(self) -> str:
-        return f"{self.employee_id}_{self.tax_year}"
-    
-    def is_new_deduction(self) -> bool:
-        """Check if this is a new deduction (not an update)"""
-        return self.old_amount.is_zero()
-    
-    def is_deduction_update(self) -> bool:
-        """Check if this is an update to existing deduction"""
-        return not self.old_amount.is_zero()
-    
-    def get_amount_change(self) -> Money:
-        """Get the change in deduction amount"""
-        return self.amount.subtract(self.old_amount)
-    
-    def get_deduction_details(self) -> dict:
-        """Get deduction details"""
-        return {
-            "employee_id": str(self.employee_id),
-            "tax_year": self.tax_year,
-            "section": self.section,
-            "amount": self.amount.format(),
-            "old_amount": self.old_amount.format(),
-            "change": self.get_amount_change().format(),
-            "description": self.description,
-            "is_new": self.is_new_deduction()
-        }
-
-
-@dataclass
-class DeductionRemoved(DomainEvent):
-    """
-    Event raised when a tax deduction is removed.
-    
-    This event can trigger:
-    - Tax recalculation
-    - Notification to employee
+    - Impact analysis
     - Audit logging
-    - Compliance updates
+    - Approval workflows
     """
     
     employee_id: EmployeeId
-    tax_year: str
-    section: str
-    amount: Money
+    component_type: str  # 'salary', 'deductions', 'capital_gains', etc.
+    component_name: str
+    old_value: Optional[Money] = None
+    new_value: Optional[Money] = None
+    tax_year: str = ""
+    updated_by: Optional[EmployeeId] = None
     
     def get_event_type(self) -> str:
-        return "taxation.deduction_removed"
+        return "taxation.component_updated"
     
     def get_aggregate_id(self) -> str:
-        return f"{self.employee_id}_{self.tax_year}"
-    
-    def get_removal_details(self) -> dict:
-        """Get deduction removal details"""
-        return {
-            "employee_id": str(self.employee_id),
-            "tax_year": self.tax_year,
-            "section": self.section,
-            "removed_amount": self.amount.format()
-        }
+        return str(self.employee_id)
 
 
 @dataclass
-class TaxProjectionCalculated(DomainEvent):
+class TaxDeductionApplied(DomainEvent):
     """
-    Event raised when tax projection is calculated for future periods.
+    Event raised when tax deduction is applied.
     
     This event can trigger:
-    - Investment planning recommendations
-    - Salary optimization suggestions
-    - Financial planning notifications
+    - Deduction verification
+    - Compliance tracking
+    - Document requirement notifications
+    - Audit trail updates
     """
     
     employee_id: EmployeeId
-    projection_year: str
-    projected_income: Money
+    deduction_section: str  # '80C', '80D', etc.
+    deduction_amount: Money
+    tax_year: str
+    applied_by: Optional[EmployeeId] = None
+    
+    def get_event_type(self) -> str:
+        return "taxation.deduction_applied"
+    
+    def get_aggregate_id(self) -> str:
+        return str(self.employee_id)
+
+
+@dataclass
+class TaxProjectionGenerated(DomainEvent):
+    """
+    Event raised when tax projection is generated for an employee.
+    
+    This event can trigger:
+    - Investment planning notifications
+    - Tax savings suggestions
+    - Financial planning updates
+    """
+    
+    employee_id: EmployeeId
     projected_tax: Money
-    regime: TaxRegime
-    assumptions: dict
+    projected_savings: Money
+    tax_year: str
+    projection_type: str  # 'annual', 'quarterly', 'monthly'
+    generated_by: Optional[EmployeeId] = None
     
     def get_event_type(self) -> str:
-        return "taxation.projection_calculated"
+        return "taxation.projection_generated"
     
     def get_aggregate_id(self) -> str:
-        return f"{self.employee_id}_{self.projection_year}"
+        return str(self.employee_id)
 
 
 @dataclass
-class TaxComplianceAlert(DomainEvent):
+class LWPTaxAdjustmentApplied(DomainEvent):
     """
-    Event raised when tax compliance issues are detected.
+    Event raised when LWP (Leave Without Pay) tax adjustment is applied.
     
     This event can trigger:
-    - Compliance notifications
-    - Document requests
-    - Audit alerts
-    - Corrective action workflows
+    - Salary adjustment notifications
+    - Tax recalculation
+    - Payroll updates
+    """
+    
+    employee_id: EmployeeId
+    lwp_days: int
+    salary_reduction: Money
+    tax_savings: Money
+    adjustment_period: str
+    applied_by: Optional[EmployeeId] = None
+    
+    def get_event_type(self) -> str:
+        return "taxation.lwp_adjustment_applied"
+    
+    def get_aggregate_id(self) -> str:
+        return str(self.employee_id)
+
+
+@dataclass
+class TaxFilingStatusUpdated(DomainEvent):
+    """
+    Event raised when tax filing status is updated.
+    
+    This event can trigger:
+    - Filing deadline reminders
+    - Document preparation
+    - Compliance tracking
+    """
+    
+    employee_id: EmployeeId
+    old_status: str
+    new_status: str
+    tax_year: str
+    updated_by: Optional[EmployeeId] = None
+    
+    def get_event_type(self) -> str:
+        return "taxation.filing_status_updated"
+    
+    def get_aggregate_id(self) -> str:
+        return str(self.employee_id)
+
+
+@dataclass
+class TaxationUpdated(DomainEvent):
+    """
+    Event raised when taxation record is updated.
+    
+    This event can trigger:
+    - Change notifications
+    - Audit logging
+    - Dependent calculations
     """
     
     employee_id: EmployeeId
     tax_year: str
-    alert_type: str  # "missing_documents", "limit_exceeded", "invalid_deduction", etc.
-    message: str
-    severity: str  # "low", "medium", "high", "critical"
+    update_type: str
+    updated_fields: Dict[str, Any]
+    updated_by: Optional[EmployeeId] = None
     
     def get_event_type(self) -> str:
-        return "taxation.compliance_alert"
+        return "taxation.updated"
     
     def get_aggregate_id(self) -> str:
-        return f"{self.employee_id}_{self.tax_year}"
-    
-    def is_critical(self) -> bool:
-        """Check if this is a critical compliance alert"""
-        return self.severity == "critical"
-    
-    def requires_immediate_action(self) -> bool:
-        """Check if alert requires immediate action"""
-        return self.severity in ["high", "critical"]
+        return str(self.employee_id)
 
 
 @dataclass
-class Form16Generated(DomainEvent):
+class TaxFilingStatusChanged(DomainEvent):
     """
-    Event raised when Form 16 is generated for an employee.
+    Event raised when tax filing status is changed.
     
-    This event can trigger:
-    - Document delivery to employee
-    - Digital signature workflows
-    - Archive storage
-    - Notification systems
+    This is an alias for TaxFilingStatusUpdated for backward compatibility.
     """
     
     employee_id: EmployeeId
+    old_status: str
+    new_status: str
     tax_year: str
-    form16_id: str
-    file_path: Optional[str] = None
+    updated_by: Optional[EmployeeId] = None
     
     def get_event_type(self) -> str:
-        return "taxation.form16_generated"
+        return "taxation.filing_status_changed"
     
     def get_aggregate_id(self) -> str:
-        return f"{self.employee_id}_{self.tax_year}"
+        return str(self.employee_id)
 
 
-@dataclass
-class TaxOptimizationSuggested(DomainEvent):
-    """
-    Event raised when tax optimization suggestions are generated.
-    
-    This event can trigger:
-    - Employee notifications
-    - Financial advisor consultations
-    - Investment recommendations
-    - Planning session scheduling
-    """
-    
-    employee_id: EmployeeId
-    tax_year: str
-    suggestions: list
-    potential_savings: Money
-    
-    def get_event_type(self) -> str:
-        return "taxation.optimization_suggested"
-    
-    def get_aggregate_id(self) -> str:
-        return f"{self.employee_id}_{self.tax_year}"
-    
-    def has_significant_savings(self, threshold: Money) -> bool:
-        """Check if potential savings exceed threshold"""
-        return self.potential_savings.amount >= threshold.amount
-
-
-# Event type registry for taxation events
+# Event type registry for easy lookup
 TAXATION_EVENT_TYPE_REGISTRY = {
-    "taxation.tax_calculated": TaxCalculated,
+    "taxation.calculated": TaxationCalculated,
     "taxation.regime_changed": TaxRegimeChanged,
-    "taxation.deduction_added": DeductionAdded,
-    "taxation.deduction_removed": DeductionRemoved,
-    "taxation.projection_calculated": TaxProjectionCalculated,
-    "taxation.compliance_alert": TaxComplianceAlert,
-    "taxation.form16_generated": Form16Generated,
-    "taxation.optimization_suggested": TaxOptimizationSuggested,
+    "taxation.component_updated": TaxComponentUpdated,
+    "taxation.deduction_applied": TaxDeductionApplied,
+    "taxation.projection_generated": TaxProjectionGenerated,
+    "taxation.lwp_adjustment_applied": LWPTaxAdjustmentApplied,
+    "taxation.filing_status_updated": TaxFilingStatusUpdated,
 }
 
 

@@ -28,6 +28,7 @@ class CompanyLeaveCreateRequestDTO:
     leave_type_name: str
     leave_category: str
     annual_allocation: int
+    created_by: str
     accrual_type: str = "annually"
     description: Optional[str] = None
     
@@ -46,7 +47,6 @@ class CompanyLeaveCreateRequestDTO:
     gender_specific: Optional[str] = None
     
     # Metadata
-    created_by: str
     effective_from: Optional[str] = None
     
     @classmethod
@@ -178,6 +178,7 @@ class CompanyLeaveUpdateRequestDTO:
     DTO for company leave update request.
     """
     
+    updated_by: str
     leave_type_name: Optional[str] = None
     annual_allocation: Optional[int] = None
     description: Optional[str] = None
@@ -197,7 +198,6 @@ class CompanyLeaveUpdateRequestDTO:
     probation_allocation: Optional[int] = None
     
     # Metadata
-    updated_by: str
     update_reason: Optional[str] = None
     
     @classmethod

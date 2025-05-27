@@ -5,7 +5,7 @@ from jose import JWTError, jwt
 from config import SECRET_KEY, ALGORITHM
 from models.user_model import User
 from typing import List
-from services.user_service import get_user_by_emp_id
+from infrastructure.services.legacy_migration_service import get_user_by_emp_id
 
 # Set up a logger for this module.
 logger = logging.getLogger(__name__)
@@ -63,15 +63,15 @@ def  extract_role(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     return role
 
-def get_current_user(emp_id: str = Depends(extract_emp_id), hostname: str = Depends(extract_hostname)):
+async def get_current_user(emp_id: str = Depends(extract_emp_id), hostname: str = Depends(extract_hostname)):
     """
     Dependency to get the current authenticated user from the JWT token.
     Raises HTTP 401 if token is invalid or user is not found.
     """
     # Retrieve the user info from the database based on emp_id.
-    user = get_user_by_emp_id(emp_id, hostname)
+    user = await get_user_by_emp_id(emp_id, hostname)
     if not user:
-        user = get_user_by_emp_id(emp_id, "global_database")
+        user = await get_user_by_emp_id(emp_id, "global_database")
     if user is None:
         logger.warning("User not found for emp_id: %s", emp_id)
         raise credentials_exception

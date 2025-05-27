@@ -8,8 +8,10 @@ import sys
 # Add the parent directory to Python path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from services.payout_service import PayoutService
-from services.organisation_service import OrganisationService
+# MIGRATION NOTE: Legacy services have been moved to infrastructure layer
+# This scheduler will need to be updated to use the new SOLID architecture
+# from infrastructure.services.payroll_migration_service import PayrollMigrationService
+# from infrastructure.services.organization_migration_service import OrganizationMigrationService
 from database.database_connector import connect_to_database
 
 logger = logging.getLogger(__name__)

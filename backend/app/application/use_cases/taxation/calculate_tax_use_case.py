@@ -1,26 +1,31 @@
 """
 Calculate Tax Use Case
-Handles tax calculation business workflow
+Handles tax calculation business logic
 """
 
-from typing import Optional, Dict, Any
 import logging
-from datetime import datetime
+from typing import Dict, Any, Optional
+from datetime import datetime, date
 
-from domain.entities.employee import Employee
-from domain.entities.taxation import Taxation
+from application.dto.taxation_dto import (
+    TaxCalculationRequestDTO,
+    TaxationResponseDTO,
+    TaxBreakdownDTO,
+    TaxationCalculationError,
+    TaxationNotFoundError
+)
+from application.interfaces.repositories.taxation_repository import (
+    TaxationQueryRepository,
+    TaxationCommandRepository,
+    TaxationCalculationRepository
+)
+from application.interfaces.services.notification_service import NotificationService
+from domain.events.taxation_events import TaxationCalculated
 from domain.value_objects.employee_id import EmployeeId
 from domain.value_objects.money import Money
-from domain.value_objects.tax_regime import TaxRegime
-from domain.domain_services.tax_calculator import TaxCalculatorFactory, TaxOptimizationService
 
-from application.interfaces.repositories.employee_repository import EmployeeQueryRepository
-from application.interfaces.repositories.taxation_repository import (
-    TaxationCommandRepository, TaxationQueryRepository
-)
-from application.interfaces.services.email_service import EmailService
-from application.interfaces.services.event_publisher import EventPublisher
-from application.dto.taxation_dto import TaxCalculationRequestDTO, TaxCalculationResponseDTO
+
+logger = logging.getLogger(__name__)
 
 
 class CalculateTaxUseCase:
@@ -28,316 +33,401 @@ class CalculateTaxUseCase:
     Use case for calculating employee tax.
     
     Follows SOLID principles:
-    - SRP: Only handles tax calculation workflow
-    - OCP: Can be extended without modification
-    - LSP: Can be substituted with other tax calculation implementations
-    - ISP: Depends only on required interfaces
-    - DIP: Depends on abstractions, not concrete implementations
+    - SRP: Only handles tax calculation logic
+    - OCP: Can be extended with new calculation methods
+    - LSP: Can be substituted with enhanced versions
+    - ISP: Focused interface for tax calculation
+    - DIP: Depends on repository abstractions
     """
     
     def __init__(
         self,
-        employee_query_repo: EmployeeQueryRepository,
-        taxation_command_repo: TaxationCommandRepository,
-        taxation_query_repo: TaxationQueryRepository,
-        email_service: EmailService,
-        event_publisher: EventPublisher,
-        tax_calculator_factory: TaxCalculatorFactory
+        query_repository: TaxationQueryRepository,
+        command_repository: TaxationCommandRepository,
+        calculation_repository: TaxationCalculationRepository,
+        notification_service: NotificationService
     ):
-        self.employee_query_repo = employee_query_repo
-        self.taxation_command_repo = taxation_command_repo
-        self.taxation_query_repo = taxation_query_repo
-        self.email_service = email_service
-        self.event_publisher = event_publisher
-        self.tax_calculator_factory = tax_calculator_factory
-        self.logger = logging.getLogger(__name__)
+        self.query_repository = query_repository
+        self.command_repository = command_repository
+        self.calculation_repository = calculation_repository
+        self.notification_service = notification_service
     
-    def execute(self, request: TaxCalculationRequestDTO) -> TaxCalculationResponseDTO:
+    async def execute(
+        self,
+        request: TaxCalculationRequestDTO,
+        hostname: str
+    ) -> TaxationResponseDTO:
         """
-        Execute tax calculation workflow.
+        Execute tax calculation for an employee.
         
-        Business Rules:
-        1. Employee must exist and be active
-        2. Tax year must be valid
-        3. Salary information must be available
-        4. Tax regime must be specified
-        5. Deductions must be validated
+        Args:
+            request: Tax calculation request
+            hostname: Organization hostname
+            
+        Returns:
+            Updated taxation response with calculated tax
+            
+        Raises:
+            TaxationNotFoundError: If taxation record not found
+            TaxationCalculationError: If calculation fails
         """
-        
         try:
-            self.logger.info(f"Starting tax calculation for employee {request.employee_id} for year {request.tax_year}")
+            logger.info(f"Starting tax calculation for employee: {request.employee_id}")
             
-            # Step 1: Validate and get employee
-            employee = self._get_and_validate_employee(request.employee_id)
-            
-            # Step 2: Get or create taxation record
-            taxation = self._get_or_create_taxation_record(
-                employee, request.tax_year, request.regime, request.gross_annual_salary
-            )
-            
-            # Step 3: Update deductions
-            self._update_deductions(taxation, request.deductions)
-            
-            # Step 4: Calculate tax
-            total_tax_liability = taxation.calculate_tax()
-            
-            # Step 5: Save taxation record
-            self.taxation_command_repo.save(taxation)
-            
-            # Step 6: Publish domain events
-            self._publish_domain_events(taxation)
-            
-            # Step 7: Send notification email
-            if request.send_notification:
-                self._send_tax_calculation_notification(employee, taxation)
-            
-            # Step 8: Generate optimization suggestions if requested
-            optimization_suggestions = []
-            if request.include_optimization_suggestions:
-                optimization_suggestions = self._generate_optimization_suggestions(
-                    employee, taxation
+            # Validate request
+            validation_errors = request.validate()
+            if validation_errors:
+                raise TaxationCalculationError(
+                    f"Validation failed: {', '.join(validation_errors)}",
+                    {"employee_id": request.employee_id, "errors": validation_errors}
                 )
             
-            self.logger.info(f"Tax calculation completed for employee {request.employee_id}")
-            
-            return TaxCalculationResponseDTO(
-                employee_id=request.employee_id,
-                tax_year=request.tax_year,
-                regime=taxation.regime,
-                gross_annual_salary=taxation.gross_annual_salary,
-                taxable_income=taxation.taxable_income,
-                calculated_tax=taxation.calculated_tax,
-                surcharge_amount=taxation.surcharge_amount,
-                cess_amount=taxation.cess_amount,
-                rebate_87a=taxation.rebate_87a,
-                total_tax_liability=taxation.total_tax_liability,
-                effective_tax_rate=taxation.get_effective_tax_rate(),
-                deductions=taxation.deductions,
-                optimization_suggestions=optimization_suggestions,
-                calculated_at=taxation.calculated_at
+            # Get current taxation record
+            taxation = await self._get_or_create_taxation_record(
+                request.employee_id, 
+                hostname
             )
             
+            if not taxation:
+                raise TaxationNotFoundError(request.employee_id)
+            
+            # Check if recalculation is needed
+            if not request.force_recalculate and self._is_calculation_current(taxation):
+                logger.info(f"Tax already calculated for {request.employee_id}, returning existing calculation")
+                return taxation
+            
+            # Perform tax calculation
+            calculation_result = await self._perform_tax_calculation(
+                taxation,
+                request.calculation_type,
+                hostname
+            )
+            
+            # Update taxation record with calculation results
+            updated_taxation = await self._update_taxation_with_calculation(
+                taxation,
+                calculation_result,
+                hostname,
+                request.calculated_by
+            )
+            
+            # Raise domain event
+            await self._raise_tax_calculated_event(
+                updated_taxation,
+                calculation_result,
+                request.calculated_by
+            )
+            
+            # Send notifications if requested
+            if request.calculation_type == "full":
+                await self._send_calculation_notifications(
+                    updated_taxation,
+                    calculation_result
+                )
+            
+            logger.info(f"Tax calculation completed for {request.employee_id}, total tax: {updated_taxation.total_tax}")
+            return updated_taxation
+            
+        except (TaxationNotFoundError, TaxationCalculationError):
+            raise
         except Exception as e:
-            self.logger.error(f"Tax calculation failed for employee {request.employee_id}: {str(e)}")
-            raise TaxCalculationError(f"Tax calculation failed: {str(e)}") from e
-    
-    def _get_and_validate_employee(self, employee_id: str) -> Employee:
-        """Get and validate employee"""
-        
-        emp_id = EmployeeId.from_string(employee_id)
-        employee = self.employee_query_repo.get_by_id(emp_id)
-        
-        if not employee:
-            raise EmployeeNotFoundError(f"Employee with ID {employee_id} not found")
-        
-        if not employee.is_active():
-            raise InactiveEmployeeError(f"Employee {employee_id} is not active")
-        
-        return employee
-    
-    def _get_or_create_taxation_record(
-        self, 
-        employee: Employee, 
-        tax_year: str, 
-        regime: TaxRegime,
-        gross_annual_salary: Money
-    ) -> Taxation:
-        """Get existing taxation record or create new one"""
-        
-        # Try to get existing record
-        existing_taxation = self.taxation_query_repo.get_by_employee_and_year(
-            employee.employee_id, tax_year
-        )
-        
-        if existing_taxation:
-            # Update existing record if needed
-            if existing_taxation.regime != regime:
-                existing_taxation.change_regime(regime, "User requested regime change")
-            
-            # Update salary if different
-            if existing_taxation.gross_annual_salary != gross_annual_salary:
-                existing_taxation.gross_annual_salary = gross_annual_salary
-                existing_taxation.updated_at = datetime.utcnow()
-            
-            return existing_taxation
-        else:
-            # Create new taxation record
-            return Taxation.create_new_taxation(
-                employee_id=employee.employee_id,
-                tax_year=tax_year,
-                regime=regime,
-                gross_annual_salary=gross_annual_salary,
-                basic_salary=employee.salary_details.basic_salary,
-                hra=employee.salary_details.hra
+            logger.error(f"Unexpected error calculating tax for {request.employee_id}: {e}")
+            raise TaxationCalculationError(
+                f"Unexpected error during tax calculation: {str(e)}",
+                {"employee_id": request.employee_id, "error": str(e)}
             )
     
-    def _update_deductions(self, taxation: Taxation, deductions: Dict[str, float]):
-        """Update tax deductions"""
-        
-        # Remove existing deductions not in the new list
-        existing_sections = set(taxation.deductions.keys())
-        new_sections = set(deductions.keys())
-        
-        for section in existing_sections - new_sections:
-            taxation.remove_deduction(section)
-        
-        # Add or update deductions
-        for section, amount in deductions.items():
-            if amount > 0:
-                money_amount = Money.from_float(amount)
-                taxation.add_deduction(section, money_amount)
-    
-    def _publish_domain_events(self, taxation: Taxation):
-        """Publish domain events"""
-        
-        events = taxation.get_domain_events()
-        for event in events:
-            try:
-                self.event_publisher.publish(event)
-            except Exception as e:
-                self.logger.warning(f"Failed to publish event {event.get_event_type()}: {str(e)}")
-        
-        taxation.clear_domain_events()
-    
-    def _send_tax_calculation_notification(self, employee: Employee, taxation: Taxation):
-        """Send tax calculation notification email"""
-        
-        try:
-            self.email_service.send_tax_calculation_notification(
-                to_email=employee.contact_info.email,
-                employee_name=employee.get_full_name(),
-                tax_year=taxation.tax_year,
-                total_tax_liability=float(taxation.total_tax_liability.amount),
-                regime=str(taxation.regime)
-            )
-        except Exception as e:
-            self.logger.warning(f"Failed to send tax calculation notification: {str(e)}")
-    
-    def _generate_optimization_suggestions(
-        self, 
-        employee: Employee, 
-        taxation: Taxation
-    ) -> list:
-        """Generate tax optimization suggestions"""
-        
-        try:
-            tax_calculator = self.tax_calculator_factory.create_calculator()
-            optimization_service = TaxOptimizationService(tax_calculator)
-            
-            suggestions = optimization_service.suggest_optimizations(
-                current_income=taxation.gross_annual_salary,
-                current_deductions=taxation.deductions,
-                regime=taxation.regime,
-                employee_age=employee.get_age()
-            )
-            
-            # Convert Money objects to float for DTO
-            serialized_suggestions = []
-            for suggestion in suggestions:
-                serialized_suggestion = {}
-                for key, value in suggestion.items():
-                    if isinstance(value, Money):
-                        serialized_suggestion[key] = float(value.amount)
-                    else:
-                        serialized_suggestion[key] = value
-                serialized_suggestions.append(serialized_suggestion)
-            
-            return serialized_suggestions
-            
-        except Exception as e:
-            self.logger.warning(f"Failed to generate optimization suggestions: {str(e)}")
-            return []
-
-
-class CompareTaxRegimesUseCase:
-    """
-    Use case for comparing tax liability under different regimes.
-    """
-    
-    def __init__(
+    async def calculate_with_projections(
         self,
-        employee_query_repo: EmployeeQueryRepository,
-        tax_calculator_factory: TaxCalculatorFactory
-    ):
-        self.employee_query_repo = employee_query_repo
-        self.tax_calculator_factory = tax_calculator_factory
-        self.logger = logging.getLogger(__name__)
-    
-    def execute(
-        self, 
-        employee_id: str, 
-        gross_annual_salary: float,
-        deductions: Dict[str, float]
+        employee_id: str,
+        hostname: str,
+        calculated_by: str = ""
     ) -> Dict[str, Any]:
-        """Compare tax liability under both regimes"""
+        """
+        Calculate tax with salary projections and LWP adjustments.
         
+        Args:
+            employee_id: Employee identifier
+            hostname: Organization hostname
+            calculated_by: User performing calculation
+            
+        Returns:
+            Comprehensive calculation results including projections
+        """
         try:
-            # Get employee for age information
-            emp_id = EmployeeId.from_string(employee_id)
-            employee = self.employee_query_repo.get_by_id(emp_id)
+            logger.info(f"Calculating tax with projections for employee: {employee_id}")
             
-            if not employee:
-                raise EmployeeNotFoundError(f"Employee with ID {employee_id} not found")
+            # Get current year
+            current_year = self._get_current_tax_year()
             
-            # Create tax calculator and optimization service
-            tax_calculator = self.tax_calculator_factory.create_calculator()
-            optimization_service = TaxOptimizationService(tax_calculator)
+            # Get or create taxation record
+            taxation = await self._get_or_create_taxation_record(employee_id, hostname)
+            if not taxation:
+                raise TaxationNotFoundError(employee_id, current_year)
             
-            # Convert inputs
-            income = Money.from_float(gross_annual_salary)
-            deduction_money = {k: Money.from_float(v) for k, v in deductions.items()}
-            
-            # Compare regimes
-            comparison = optimization_service.compare_regimes(
-                income=income,
-                deductions=deduction_money,
-                employee_age=employee.get_age()
+            # Get salary projection (considering mid-year changes)
+            salary_projection = await self.calculation_repository.get_salary_projection(
+                employee_id, 
+                current_year, 
+                hostname
             )
             
-            # Convert Money objects to float for response
-            def convert_money_dict(d):
-                result = {}
-                for key, value in d.items():
-                    if isinstance(value, Money):
-                        result[key] = float(value.amount)
-                    elif isinstance(value, dict):
-                        result[key] = convert_money_dict(value)
-                    else:
-                        result[key] = str(value) if hasattr(value, '__str__') else value
-                return result
+            # Calculate LWP adjustment
+            lwp_adjustment = await self.calculation_repository.calculate_lwp_adjustment(
+                employee_id,
+                current_year,
+                0,  # Will be calculated from payout records
+                hostname
+            )
+            
+            # Perform comprehensive tax calculation
+            base_calculation = await self.calculation_repository.calculate_tax(
+                employee_id,
+                current_year,
+                hostname,
+                force_recalculate=True
+            )
+            
+            # Combine all calculations
+            comprehensive_result = {
+                "base_calculation": base_calculation,
+                "salary_projection": salary_projection,
+                "lwp_adjustment": lwp_adjustment,
+                "effective_tax": self._calculate_effective_tax(
+                    base_calculation,
+                    salary_projection,
+                    lwp_adjustment
+                ),
+                "calculated_at": datetime.utcnow().isoformat(),
+                "calculated_by": calculated_by
+            }
+            
+            # Update taxation record
+            await self.command_repository.update_tax_calculation(
+                employee_id,
+                current_year,
+                comprehensive_result,
+                hostname
+            )
+            
+            logger.info(f"Comprehensive tax calculation completed for {employee_id}")
+            return comprehensive_result
+            
+        except Exception as e:
+            logger.error(f"Error in comprehensive tax calculation for {employee_id}: {e}")
+            raise TaxationCalculationError(
+                f"Comprehensive calculation failed: {str(e)}",
+                {"employee_id": employee_id, "error": str(e)}
+            )
+    
+    async def _get_or_create_taxation_record(
+        self,
+        employee_id: str,
+        hostname: str
+    ) -> Optional[TaxationResponseDTO]:
+        """Get existing taxation record or create default one"""
+        try:
+            # Try to get current year record
+            current_year = self._get_current_tax_year()
+            taxation = await self.query_repository.get_taxation_by_employee(
+                employee_id,
+                current_year,
+                hostname
+            )
+            
+            if taxation:
+                return taxation
+            
+            # Get current taxation (any year)
+            taxation = await self.query_repository.get_current_taxation(
+                employee_id,
+                hostname
+            )
+            
+            return taxation
+            
+        except Exception as e:
+            logger.error(f"Error getting/creating taxation record for {employee_id}: {e}")
+            return None
+    
+    def _is_calculation_current(self, taxation: TaxationResponseDTO) -> bool:
+        """Check if tax calculation is current (within last 24 hours)"""
+        if not taxation.calculated_at:
+            return False
+        
+        try:
+            calculated_time = datetime.fromisoformat(taxation.calculated_at.replace('Z', '+00:00'))
+            time_diff = datetime.utcnow() - calculated_time.replace(tzinfo=None)
+            return time_diff.total_seconds() < 86400  # 24 hours
+        except:
+            return False
+    
+    async def _perform_tax_calculation(
+        self,
+        taxation: TaxationResponseDTO,
+        calculation_type: str,
+        hostname: str
+    ) -> Dict[str, Any]:
+        """Perform the actual tax calculation"""
+        try:
+            if calculation_type == "quick":
+                # Quick calculation without detailed breakdown
+                return await self.calculation_repository.calculate_tax(
+                    taxation.employee_id,
+                    taxation.tax_year,
+                    hostname,
+                    force_recalculate=True
+                )
+            elif calculation_type == "projection":
+                # Projection calculation
+                projection = await self.calculation_repository.calculate_tax_projection(
+                    taxation.employee_id,
+                    "annual",
+                    hostname
+                )
+                return {
+                    "projection": projection.to_dict(),
+                    "calculation_type": "projection"
+                }
+            else:
+                # Full calculation with all components
+                return await self.calculation_repository.calculate_tax(
+                    taxation.employee_id,
+                    taxation.tax_year,
+                    hostname,
+                    force_recalculate=True
+                )
+                
+        except Exception as e:
+            logger.error(f"Error performing tax calculation: {e}")
+            raise TaxationCalculationError(
+                f"Calculation failed: {str(e)}",
+                {"employee_id": taxation.employee_id, "calculation_type": calculation_type}
+            )
+    
+    async def _update_taxation_with_calculation(
+        self,
+        taxation: TaxationResponseDTO,
+        calculation_result: Dict[str, Any],
+        hostname: str,
+        calculated_by: str
+    ) -> TaxationResponseDTO:
+        """Update taxation record with calculation results"""
+        try:
+            # Update the calculation results
+            success = await self.command_repository.update_tax_calculation(
+                taxation.employee_id,
+                taxation.tax_year,
+                calculation_result,
+                hostname
+            )
+            
+            if not success:
+                raise TaxationCalculationError(
+                    "Failed to update taxation record with calculation results"
+                )
+            
+            # Get updated record
+            updated_taxation = await self.query_repository.get_taxation_by_employee(
+                taxation.employee_id,
+                taxation.tax_year,
+                hostname
+            )
+            
+            if not updated_taxation:
+                raise TaxationCalculationError(
+                    "Failed to retrieve updated taxation record"
+                )
+            
+            return updated_taxation
+            
+        except Exception as e:
+            logger.error(f"Error updating taxation record: {e}")
+            raise TaxationCalculationError(
+                f"Failed to update taxation record: {str(e)}"
+            )
+    
+    async def _raise_tax_calculated_event(
+        self,
+        taxation: TaxationResponseDTO,
+        calculation_result: Dict[str, Any],
+        calculated_by: str
+    ):
+        """Raise tax calculated domain event"""
+        try:
+            event = TaxationCalculated(
+                employee_id=EmployeeId(taxation.employee_id),
+                tax_year=taxation.tax_year,
+                regime=taxation.regime,
+                total_tax=Money.from_float(taxation.total_tax),
+                taxable_income=Money.from_float(taxation.taxable_income),
+                calculated_by=EmployeeId(calculated_by) if calculated_by else None
+            )
+            
+            # In a full implementation, this would be handled by an event bus
+            logger.info(f"Tax calculation event raised for {taxation.employee_id}")
+            
+        except Exception as e:
+            logger.warning(f"Failed to raise tax calculated event: {e}")
+    
+    async def _send_calculation_notifications(
+        self,
+        taxation: TaxationResponseDTO,
+        calculation_result: Dict[str, Any]
+    ):
+        """Send notifications about tax calculation"""
+        try:
+            # This would be implemented with actual notification logic
+            logger.info(f"Sending tax calculation notifications for {taxation.employee_id}")
+            
+        except Exception as e:
+            logger.warning(f"Failed to send calculation notifications: {e}")
+    
+    def _get_current_tax_year(self) -> str:
+        """Get current tax year in Indian format"""
+        current_date = date.today()
+        if current_date.month >= 4:  # April onwards
+            return f"{current_date.year}-{current_date.year + 1}"
+        else:  # January to March
+            return f"{current_date.year - 1}-{current_date.year}"
+    
+    def _calculate_effective_tax(
+        self,
+        base_calculation: Dict[str, Any],
+        salary_projection: Optional[Dict[str, Any]],
+        lwp_adjustment: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Calculate effective tax considering all adjustments"""
+        try:
+            base_tax = base_calculation.get("total_tax", 0)
+            
+            # Apply salary projection adjustments
+            if salary_projection:
+                projected_tax = salary_projection.get("projected_tax", base_tax)
+            else:
+                projected_tax = base_tax
+            
+            # Apply LWP adjustments
+            if lwp_adjustment:
+                lwp_tax_savings = lwp_adjustment.get("tax_savings", 0)
+                effective_tax = max(0, projected_tax - lwp_tax_savings)
+            else:
+                effective_tax = projected_tax
             
             return {
-                'old_regime': convert_money_dict(comparison['old_regime']),
-                'new_regime': convert_money_dict(comparison['new_regime']),
-                'recommendation': comparison['recommendation']
+                "base_tax": base_tax,
+                "projected_tax": projected_tax,
+                "effective_tax": effective_tax,
+                "lwp_savings": lwp_adjustment.get("tax_savings", 0) if lwp_adjustment else 0,
+                "total_adjustments": projected_tax - base_tax
             }
             
         except Exception as e:
-            self.logger.error(f"Tax regime comparison failed: {str(e)}")
-            raise TaxCalculationError(f"Tax regime comparison failed: {str(e)}") from e
-
-
-# Custom Exceptions
-class TaxCalculationError(Exception):
-    """Base exception for tax calculation operations"""
-    pass
-
-
-class EmployeeNotFoundError(TaxCalculationError):
-    """Exception raised when employee is not found"""
-    pass
-
-
-class InactiveEmployeeError(TaxCalculationError):
-    """Exception raised when employee is inactive"""
-    pass
-
-
-class InvalidTaxYearError(TaxCalculationError):
-    """Exception raised when tax year is invalid"""
-    pass
-
-
-class InvalidDeductionError(TaxCalculationError):
-    """Exception raised when deduction is invalid"""
-    pass 
+            logger.error(f"Error calculating effective tax: {e}")
+            return {
+                "base_tax": base_calculation.get("total_tax", 0),
+                "projected_tax": base_calculation.get("total_tax", 0),
+                "effective_tax": base_calculation.get("total_tax", 0),
+                "lwp_savings": 0,
+                "total_adjustments": 0
+            } 

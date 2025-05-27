@@ -3,7 +3,7 @@ Employee Domain Events
 Events that represent important business occurrences in the employee domain
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Optional
 from abc import ABC
@@ -12,7 +12,6 @@ from domain.value_objects.employee_id import EmployeeId
 from domain.value_objects.money import Money
 
 
-@dataclass
 class DomainEvent(ABC):
     """
     Base class for all domain events.
@@ -25,14 +24,11 @@ class DomainEvent(ABC):
     - DIP: Doesn't depend on concrete implementations
     """
     
-    occurred_at: datetime
-    event_id: Optional[str] = None
+    def __init__(self, occurred_at: datetime = None, event_id: str = ""):
+        self.occurred_at = occurred_at or datetime.utcnow()
+        self.event_id = event_id or str(__import__('uuid').uuid4())
     
-    def __post_init__(self):
-        """Generate event ID if not provided"""
-        if self.event_id is None:
-            import uuid
-            object.__setattr__(self, 'event_id', str(uuid.uuid4()))
+
 
 
 @dataclass
@@ -51,6 +47,12 @@ class EmployeeCreated(DomainEvent):
     name: str
     email: str
     date_of_joining: date
+    occurred_at: datetime = field(default_factory=lambda: datetime.utcnow())
+    event_id: str = field(default_factory=lambda: str(__import__('uuid').uuid4()))
+    
+    def __post_init__(self):
+        """Initialize parent class"""
+        super().__init__(self.occurred_at, self.event_id)
     
     def get_event_type(self) -> str:
         return "employee.created"

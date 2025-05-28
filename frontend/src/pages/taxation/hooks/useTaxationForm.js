@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getTaxationByEmpId, saveTaxationData, calculateTax, computeVrsValue } from '../../../services/taxationService';
 import { getDefaultTaxationState, parseIndianNumber } from '../utils/taxationUtils';
 
@@ -16,38 +16,38 @@ const useTaxationForm = (empId) => {
   const [success, setSuccess] = useState(null);
   const [cityForHRA, setCityForHRA] = useState('Others');
   const [autoComputeHRA, setAutoComputeHRA] = useState(true);
+  const [taxBreakup, setTaxBreakup] = useState(null);
 
-  // Fetch taxation data
-  const fetchTaxationData = async () => {
+  const fetchTaxationData = useCallback(async () => {
+    if (!empId) return;
+    
     try {
       setLoading(true);
       setError(null);
+      const data = await getTaxationByEmpId(empId);
+      setTaxationData(data);
       
-      const result = await getTaxationByEmpId(empId);
-      
-      if (result) {
-        setTaxationData(result);
-        
-        // Set city for HRA if available
-        if (result.salary && result.salary.hra_city) {
-          setCityForHRA(result.salary.hra_city);
-        }
-        
-        // Reset calculated tax
-        setCalculatedTax(null);
+      // Set city for HRA if available
+      if (data.salary && data.salary.hra_city) {
+        setCityForHRA(data.salary.hra_city);
       }
+      
+      // Reset calculated tax
+      setCalculatedTax(null);
     } catch (err) {
-      console.error('Error fetching taxation data:', err);
-      setError('Failed to fetch taxation data. Please try again later.');
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.error('Error fetching taxation data:', err);
+      }
+      setError('Failed to load taxation data');
     } finally {
       setLoading(false);
     }
-  };
+  }, [empId]);
 
-  // Load data on initial render
   useEffect(() => {
     fetchTaxationData();
-  }, [empId]);
+  }, [fetchTaxationData]);
 
   // Handle input change for non-nested fields
   const handleInputChange = (section, field, value) => {
@@ -226,7 +226,10 @@ const useTaxationForm = (empId) => {
       
       setSuccess('Tax calculated successfully!');
     } catch (err) {
-      console.error('Error calculating tax:', err);
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.error('Error calculating tax:', err);
+      }
       setError('Failed to calculate tax. Please try again later.');
     } finally {
       setSubmitting(false);
@@ -260,7 +263,10 @@ const useTaxationForm = (empId) => {
         navigate('/taxation');
       }, 2000);
     } catch (err) {
-      console.error('Error submitting tax declaration:', err);
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.error('Error submitting tax declaration:', err);
+      }
       setError('Failed to submit tax declaration. Please try again later.');
     } finally {
       setSubmitting(false);
@@ -271,7 +277,10 @@ const useTaxationForm = (empId) => {
   const fetchVrsValue = async () => {
     try {
       if (!empId) {
-        console.error('Employee ID is missing');
+        if (process.env.NODE_ENV === 'development') {
+          // eslint-disable-next-line no-console
+          console.error('Employee ID is missing');
+        }
         return;
       }
       
@@ -281,9 +290,42 @@ const useTaxationForm = (empId) => {
         return vrsValue;
       }
     } catch (error) {
-      console.error('Error fetching VRS value:', error);
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.error('Error fetching VRS value:', error);
+      }
       setError('Failed to compute VRS value. Please try again later.');
     }
+  };
+
+  const calculateTaxBreakup = async () => {
+    try {
+      setSubmitting(true);
+      setError(null);
+      
+      const breakup = await calculateTax(empId, taxationData?.tax_year, taxationData?.regime);
+      setTaxBreakup(breakup);
+    } catch (err) {
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.error('Error calculating tax:', err);
+      }
+      setError('Failed to calculate tax');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const resetForm = () => {
+    fetchTaxationData();
+    setError(null);
+    setSuccess(null);
+    setTaxBreakup(null);
+  };
+
+  const clearMessages = () => {
+    setError(null);
+    setSuccess(null);
   };
 
   return {
@@ -301,6 +343,8 @@ const useTaxationForm = (empId) => {
     setCityForHRA,
     autoComputeHRA,
     setAutoComputeHRA,
+    taxBreakup,
+    setTaxBreakup,
     fetchTaxationData,
     handleInputChange,
     handleNestedInputChange,
@@ -312,7 +356,11 @@ const useTaxationForm = (empId) => {
     handleHRAChange,
     handleCalculateTax,
     handleSubmit,
-    fetchVrsValue
+    fetchVrsValue,
+    calculateTaxBreakup,
+    resetForm,
+    clearMessages,
+    refetch: fetchTaxationData
   };
 };
 

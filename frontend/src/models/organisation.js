@@ -17,7 +17,7 @@ export const OrganisationModel = {
   description: '',
   is_active: true,
   created_at: '',
-  updated_at: ''
+  updated_at: '',
 };
 
 // Empty organisation for initializing forms
@@ -37,5 +37,5 @@ export const EmptyOrganisation = {
   employee_strength: '',
   pan_number: '',
   gst_number: '',
-  tan_number: ''
-}; 
+  tan_number: '',
+};

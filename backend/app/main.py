@@ -57,6 +57,13 @@ except ImportError:
     print("Info: Company leave routes v2 not available - continuing without them")
 
 try:
+    from app.api.routes.company_leave_legacy_adapter import router as company_leave_legacy_router
+    COMPANY_LEAVE_LEGACY_AVAILABLE = True
+except ImportError:
+    COMPANY_LEAVE_LEGACY_AVAILABLE = False
+    print("Info: Company leave legacy adapter not available - continuing without them")
+
+try:
     from app.api.routes.project_attributes_routes_v2 import router as project_attributes_routes_v2_router
     PROJECT_ATTRIBUTES_ROUTES_V2_AVAILABLE = True
 except ImportError:
@@ -197,6 +204,10 @@ if PUBLIC_HOLIDAY_ROUTES_V2_AVAILABLE:
 if COMPANY_LEAVE_ROUTES_V2_AVAILABLE:
     app.include_router(company_leave_routes_v2_router, tags=["🏢 Company Leaves V2 (SOLID)"])
     logger.info("✅ Company leave routes v2 registered")
+
+if COMPANY_LEAVE_LEGACY_AVAILABLE:
+    app.include_router(company_leave_legacy_router, tags=["🏢 Company Leaves Legacy Adapter"])
+    logger.info("✅ Company leave legacy adapter registered")
 
 if PROJECT_ATTRIBUTES_ROUTES_V2_AVAILABLE:
     app.include_router(project_attributes_routes_v2_router, tags=["📊 Project Attributes V2 (SOLID)"])

@@ -29,6 +29,9 @@ describe('LeaveManagement Component', () => {
     // Wait for the leave requests to be loaded and displayed
     await waitFor(() => {
       expect(screen.getByText(/john doe/i)).toBeInTheDocument();
+    });
+    
+    await waitFor(() => {
       expect(screen.getByText(/jane smith/i)).toBeInTheDocument();
     });
   });

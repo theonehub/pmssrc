@@ -155,7 +155,7 @@ export const validateSection80D = (amount, age, type) => {
     isValid: true, // Always allow but provide warnings
     warning: amount > limit ? 
              `Section 80D ${type} deduction exceeds statutory limit of ₹${limit.toLocaleString('en-IN')} for ${age >= 60 ? 'senior citizens' : 'individuals below 60'}. Excess amount will not be considered.` : null,
-    limit: limit
+    limit
   };
 };
 
@@ -187,7 +187,7 @@ export const validateLTA = (claimedCount, amount) => {
 };
 
 export const validateChildrenAllowances = (childrenCount, months) => {
-  let warnings = [];
+  const warnings = [];
   if (childrenCount > TAXATION_LIMITS.MAX_CHILDREN_FOR_EDUCATION) {
     warnings.push(`Children count exceeds limit of ${TAXATION_LIMITS.MAX_CHILDREN_FOR_EDUCATION} for education allowance`);
   }
@@ -291,7 +291,7 @@ export const validateTaxationForm = (taxationData) => {
   
   return {
     isValid: true, // Always allow submission, just provide warnings
-    warnings: warnings,
+    warnings,
     hasWarnings: Object.keys(warnings).length > 0
   };
 };
@@ -349,17 +349,221 @@ export const getValidationMessage = (field, value, context = {}) => {
   }
 };
 
-export default {
-  TAXATION_LIMITS,
-  validateAmount,
-  validateAge,
-  validateSection80C,
-  validateSection80D,
-  validateHRA,
-  validateLTA,
-  validateChildrenAllowances,
-  validateInterestFreeLoan,
-  validateTaxationForm,
-  sanitizeNumericInput,
-  getValidationMessage
-}; 
+const validationRules = {
+  // Basic validation for required fields
+  required: (value) => {
+    if (value === null || value === undefined || value === '') {
+      return 'This field is required';
+    }
+    return null;
+  },
+
+  // Numeric validation
+  numeric: (value) => {
+    if (value !== '' && (isNaN(value) || value < 0)) {
+      return 'Please enter a valid positive number';
+    }
+    return null;
+  },
+
+  // Email validation
+  email: (value) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (value && !emailRegex.test(value)) {
+      return 'Please enter a valid email address';
+    }
+    return null;
+  },
+
+  // PAN validation
+  pan: (value) => {
+    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+    if (value && !panRegex.test(value)) {
+      return 'Please enter a valid PAN number (e.g., ABCDE1234F)';
+    }
+    return null;
+  },
+
+  // Aadhar validation
+  aadhar: (value) => {
+    const aadharRegex = /^[0-9]{12}$/;
+    if (value && !aadharRegex.test(value)) {
+      return 'Please enter a valid 12-digit Aadhar number';
+    }
+    return null;
+  },
+
+  // Age validation
+  age: (value) => {
+    const age = parseInt(value);
+    if (value !== '' && (isNaN(age) || age < 18 || age > 100)) {
+      return 'Please enter a valid age between 18 and 100';
+    }
+    return null;
+  },
+
+  // Percentage validation
+  percentage: (value) => {
+    const percent = parseFloat(value);
+    if (value !== '' && (isNaN(percent) || percent < 0 || percent > 100)) {
+      return 'Please enter a valid percentage between 0 and 100';
+    }
+    return null;
+  },
+
+  // Section 80C limit validation
+  section80C: (value, context = {}) => {
+    const amount = parseFloat(value) || 0;
+    const currentTotal = context.currentTotal || 0;
+    const maxLimit = 150000; // Section 80C limit
+    
+    if (currentTotal + amount > maxLimit) {
+      return `Total Section 80C deductions cannot exceed ₹${maxLimit.toLocaleString()}`;
+    }
+    return null;
+  },
+
+  // HRA validation
+  hra: (value, context = {}) => {
+    const hra = parseFloat(value) || 0;
+    const basic = context.basic || 0;
+    const da = context.da || 0;
+    const rentPaid = context.rentPaid || 0;
+    const city = context.city || 'Others';
+    
+    if (hra > 0 && basic > 0) {
+      const salary = basic + da;
+      const cityRate = ['Delhi', 'Mumbai', 'Kolkata', 'Chennai'].includes(city) ? 0.5 : 0.4;
+      const maxHRAByCity = salary * cityRate;
+      const maxHRAByRent = Math.max(0, rentPaid - (salary * 0.1));
+      const maxExemption = Math.min(hra, maxHRAByCity, maxHRAByRent);
+      
+      if (maxExemption < hra) {
+        return `HRA exemption limited to ₹${maxExemption.toLocaleString()}. Excess ₹${(hra - maxExemption).toLocaleString()} will be taxable.`;
+      }
+    }
+    return null;
+  },
+
+  // LTA validation
+  lta: (value, context = {}) => {
+    const claimedCount = parseInt(context.claimedCount) || 0;
+    if (claimedCount > 2) {
+      return 'LTA can be claimed maximum 2 times in a block of 4 years';
+    }
+    return null;
+  },
+
+  // Children education allowance validation
+  childrenEducation: (value, context = {}) => {
+    const childrenCount = parseInt(context.childrenCount) || 0;
+    if (childrenCount > 2) {
+      return 'Education allowance is exempt only for first 2 children';
+    }
+    return null;
+  },
+
+  // Loan amount validation
+  loanAmount: (value) => {
+    const amount = parseFloat(value) || 0;
+    const exemptionLimit = 20000; // Loan exemption limit
+    
+    if (amount > exemptionLimit) {
+      return `Loan amount exceeds exemption limit of ₹${exemptionLimit.toLocaleString()}. Perquisite value will be calculated.`;
+    }
+    return null;
+  },
+
+  // Interest rate validation
+  interestRate: (value) => {
+    const rate = parseFloat(value);
+    if (value !== '' && (isNaN(rate) || rate < 0 || rate > 50)) {
+      return 'Please enter a valid interest rate between 0 and 50%';
+    }
+    return null;
+  },
+
+  // Date validation
+  date: (value) => {
+    if (value && isNaN(Date.parse(value))) {
+      return 'Please enter a valid date';
+    }
+    return null;
+  },
+
+  // Future date validation
+  futureDate: (value) => {
+    if (value) {
+      const inputDate = new Date(value);
+      const today = new Date();
+      if (inputDate <= today) {
+        return 'Please enter a future date';
+      }
+    }
+    return null;
+  },
+
+  // Past date validation
+  pastDate: (value) => {
+    if (value) {
+      const inputDate = new Date(value);
+      const today = new Date();
+      if (inputDate >= today) {
+        return 'Please enter a past date';
+      }
+    }
+    return null;
+  },
+
+  // Financial year validation
+  financialYear: (value) => {
+    const currentYear = new Date().getFullYear();
+    const year = parseInt(value);
+    if (value !== '' && (isNaN(year) || year < 2000 || year > currentYear + 1)) {
+      return `Please enter a valid financial year between 2000 and ${currentYear + 1}`;
+    }
+    return null;
+  },
+
+  // Salary component validation
+  salaryComponent: (value, context = {}) => {
+    const amount = parseFloat(value) || 0;
+    const maxLimit = context.maxLimit || 10000000; // 1 crore default limit
+    
+    if (amount > maxLimit) {
+      return `Amount cannot exceed ₹${maxLimit.toLocaleString()}`;
+    }
+    return null;
+  },
+
+  // Deduction validation
+  deduction: (value, context = {}) => {
+    const amount = parseFloat(value) || 0;
+    const income = context.income || 0;
+    
+    if (amount > income) {
+      return 'Deduction cannot exceed total income';
+    }
+    return null;
+  },
+
+  // Tax regime validation
+  taxRegime: (value) => {
+    const validRegimes = ['old', 'new'];
+    if (value && !validRegimes.includes(value.toLowerCase())) {
+      return 'Please select a valid tax regime (Old or New)';
+    }
+    return null;
+  },
+
+  // Filing status validation
+  filingStatus: (value) => {
+    const validStatuses = ['draft', 'filed', 'approved', 'rejected', 'pending'];
+    if (value && !validStatuses.includes(value.toLowerCase())) {
+      return 'Please select a valid filing status';
+    }
+    return null;
+  }
+};
+
+export default validationRules; 

@@ -5,7 +5,7 @@ const dataService = {
   // User Management
   async getUsers(skip = 0, limit = 10) {
     const response = await apiClient.get('/users', { params: { skip, limit } });
-    return response.data;  // { total, users: [...] }
+    return response.data; // { total, users: [...] }
   },
 
   async getUserStats() {
@@ -19,7 +19,9 @@ const dataService = {
   },
 
   async getManagerDirects(managerId) {
-    const response = await apiClient.get('/users/manager/directs', { params: { manager_id: managerId } });
+    const response = await apiClient.get('/users/manager/directs', {
+      params: { manager_id: managerId },
+    });
     return response.data;
   },
 
@@ -29,22 +31,18 @@ const dataService = {
   },
 
   async createUser(formData) {
-    const response = await apiClient.post(
-      '/users/create',
-      formData,
-      { headers: { 'Content-Type': 'multipart/form-data' } }
-    );
+    const response = await apiClient.post('/users/create', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data;
   },
 
   async importUsers(file) {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await apiClient.post(
-      '/users/import',
-      formData,
-      { headers: { 'Content-Type': 'multipart/form-data' } }
-    );
+    const response = await apiClient.post('/users/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data;
   },
 
@@ -74,9 +72,7 @@ const dataService = {
   },
 
   async getMyAttendanceByYear(year) {
-    const response = await apiClient.get(
-      `/attendance/my/year/${year}`
-    );
+    const response = await apiClient.get(`/attendance/my/year/${year}`);
     return response.data;
   },
 
@@ -95,9 +91,7 @@ const dataService = {
   },
 
   async getTeamAttendanceByYear(year) {
-    const response = await apiClient.get(
-      `/attendance/manager/year/${year}`
-    );
+    const response = await apiClient.get(`/attendance/manager/year/${year}`);
     return response.data;
   },
 
@@ -116,16 +110,14 @@ const dataService = {
   },
 
   async getAdminAttendanceByYear(year) {
-    const response = await apiClient.get(
-      `/attendance/admin/year/${year}`
-    );
+    const response = await apiClient.get(`/attendance/admin/year/${year}`);
     return response.data;
   },
 
   async getAttendanceStatsToday() {
     const response = await apiClient.get('/attendance/stats/today');
     return response.data;
-  }
+  },
 };
 
-export default dataService; 
+export default dataService;

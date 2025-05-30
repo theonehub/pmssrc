@@ -94,6 +94,7 @@ class SolidUserRepository(BaseRepository[User]):
         """
         return {
             "emp_id": str(getattr(user, 'employee_id', getattr(user, 'emp_id', ''))),
+            "username": getattr(user, 'username', str(getattr(user, 'employee_id', getattr(user, 'emp_id', '')))),
             "email": getattr(user, 'email', ''),
             "name": getattr(user, 'name', ''),
             "gender": getattr(user, 'gender', ''),
@@ -152,6 +153,7 @@ class SolidUserRepository(BaseRepository[User]):
         return SimpleUser(
             employee_id=document.get("emp_id"),
             emp_id=document.get("emp_id"),  # For backward compatibility
+            username=document.get("username", document.get("emp_id")),  # Default to emp_id if username not present
             email=document.get("email"),
             name=document.get("name"),
             gender=document.get("gender"),
@@ -288,20 +290,35 @@ class SolidUserRepository(BaseRepository[User]):
     
     async def get_by_email(self, email: str) -> Optional[User]:
         """
-        Get user by email.
+        Get user by email address.
         
-        Provides email lookup not available in original procedural code.
+        Replaces: get_user_by_email() function
         """
         try:
-            filters = {"email": email}
-            documents = await self._execute_query(filters=filters, limit=1)
-            
-            if documents:
-                return self._document_to_entity(documents[0])
-            return None
-            
+            filter_query = {"email": email}
+            document = await self.find_one(filter_query)
+            return self._document_to_entity(document) if document else None
         except Exception as e:
             logger.error(f"Error getting user by email {email}: {e}")
+            raise
+    
+    async def get_by_username(self, username: str) -> Optional[User]:
+        """
+        Get user by username.
+        
+        Args:
+            username: Username to search for
+            
+        Returns:
+            User entity if found, None otherwise
+        """
+        try:
+            # First try by username field, then fall back to emp_id for backward compatibility
+            filter_query = {"$or": [{"username": username}, {"emp_id": username}]}
+            document = await self.find_one(filter_query)
+            return self._document_to_entity(document) if document else None
+        except Exception as e:
+            logger.error(f"Error getting user by username {username}: {e}")
             raise
     
     async def get_by_mobile(self, mobile: str) -> Optional[User]:

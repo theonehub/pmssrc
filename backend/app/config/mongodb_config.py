@@ -4,14 +4,17 @@ MongoDB Configuration for Taxation System
 
 import os
 from typing import Dict, Any
-from pydantic import BaseSettings
+try:
+    from pydantic_settings import BaseSettings
+except ImportError:
+    from pydantic import BaseSettings
 
 class MongoDBSettings(BaseSettings):
     """MongoDB configuration settings"""
     
     # MongoDB connection settings
-    mongodb_url: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
-    database_name: str = os.getenv("MONGODB_DATABASE", "pms_taxation")
+    mongodb_url: str = os.getenv("MONGODB_URL", "mongodb+srv://admin:test123@mongodbtest.jhfj7s3.mongodb.net/?appName=mongodbTest")
+    database_name: str = os.getenv("MONGODB_DATABASE", "")
     
     # Connection pool settings
     max_pool_size: int = int(os.getenv("MONGODB_MAX_POOL_SIZE", "100"))
@@ -43,13 +46,14 @@ def get_mongodb_connection_string() -> str:
     if mongodb_settings.username and mongodb_settings.password:
         # With authentication
         return (
-            f"mongodb://{mongodb_settings.username}:{mongodb_settings.password}@"
+            f"mongodb+srv://{mongodb_settings.username}:{mongodb_settings.password}@"
             f"{mongodb_settings.mongodb_url.replace('mongodb://', '')}"
             f"/{mongodb_settings.database_name}?authSource={mongodb_settings.auth_source}"
         )
     else:
         # Without authentication
-        return f"{mongodb_settings.mongodb_url}/{mongodb_settings.database_name}"
+        # return f"{mongodb_settings.mongodb_url}/{mongodb_settings.database_name}"
+        return f"{mongodb_settings.mongodb_url}"
 
 def get_mongodb_client_options() -> Dict[str, Any]:
     """Get MongoDB client options"""

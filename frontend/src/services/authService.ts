@@ -5,6 +5,7 @@ import { LoginCredentials, AuthResponse, User } from '../types';
 
 /**
  * Authentication service for handling login, logout, and user data
+ * Updated to use v2 API endpoints
  */
 class AuthService {
   /**
@@ -14,27 +15,39 @@ class AuthService {
    */
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
-      const response = await post<AuthResponse>('/auth/login', credentials);
+      // Updated to use v2 API endpoint
+      const response = await post<AuthResponse>('/api/v2/auth/login', credentials);
 
-      if (!response.success || !response.data) {
-        throw new Error(response.error || 'Login failed');
+      // Accept direct backend response (not wrapped in { success, data })
+      if (!response.access_token) {
+        throw new Error('Login failed');
       }
 
-      const { access_token, user } = response.data;
+      const { access_token, user_info, permissions } = response;
 
-      // Store token and user data
+      // Store token and user data (updated format)
       setToken(access_token);
-      if (user) {
-        localStorage.setItem('user_info', JSON.stringify(user));
+      if (user_info) {
+        // Store user info in the expected format for compatibility
+        const userForStorage = {
+          emp_id: user_info.emp_id,
+          name: user_info.name,
+          email: user_info.email,
+          role: user_info.role,
+          department: user_info.department,
+          position: user_info.position,
+          permissions: permissions
+        };
+        localStorage.setItem('user_info', JSON.stringify(userForStorage));
+        localStorage.setItem('user_permissions', JSON.stringify(permissions));
       }
 
-      return response.data;
+      return response;
     } catch (error: any) {
       if (process.env.NODE_ENV === 'development') {
         // eslint-disable-next-line no-console
         console.error('Login error:', error);
       }
-      
       // Re-throw the error to be handled by the calling component
       throw error;
     }
@@ -46,12 +59,13 @@ class AuthService {
    */
   async logout(): Promise<void> {
     try {
-      // Optional: Call logout endpoint to invalidate token on server
-      // await post('/auth/logout');
+      // Call v2 logout endpoint to invalidate token on server
+      await post('/api/v2/auth/logout', { logout_all_devices: false });
 
       // Remove token and user data from storage
       removeToken();
       localStorage.removeItem('user_info');
+      localStorage.removeItem('user_permissions');
       localStorage.removeItem(STORAGE_KEYS.USER_PREFERENCES);
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -61,6 +75,7 @@ class AuthService {
       // Still remove local data even if server call fails
       removeToken();
       localStorage.removeItem('user_info');
+      localStorage.removeItem('user_permissions');
       localStorage.removeItem(STORAGE_KEYS.USER_PREFERENCES);
     }
   }
@@ -80,6 +95,33 @@ class AuthService {
       }
       return null;
     }
+  }
+
+  /**
+   * Get user permissions from storage
+   * @returns Array of permissions or empty array if not found
+   */
+  getUserPermissions(): string[] {
+    try {
+      const permissions = localStorage.getItem('user_permissions');
+      return permissions ? JSON.parse(permissions) : [];
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.error('Error getting user permissions:', error);
+      }
+      return [];
+    }
+  }
+
+  /**
+   * Check if user has specific permission
+   * @param permission - Permission to check
+   * @returns True if user has the permission
+   */
+  hasPermission(permission: string): boolean {
+    const permissions = this.getUserPermissions();
+    return permissions.includes(permission);
   }
 
   /**
@@ -105,11 +147,12 @@ class AuthService {
    */
   async refreshUserData(): Promise<User | null> {
     try {
-      const response = await get<User>('/auth/me');
+      // Updated to use v2 API endpoint
+      const response = await get<User>('/api/v2/auth/me');
 
-      if (response.success && response.data) {
-        localStorage.setItem('user_info', JSON.stringify(response.data));
-        return response.data;
+      if (response) {
+        localStorage.setItem('user_info', JSON.stringify(response));
+        return response;
       }
 
       return null;
@@ -133,15 +176,16 @@ class AuthService {
     newPassword: string
   ): Promise<boolean> {
     try {
+      // Updated to use v2 API endpoint
       const response = await post<{ message: string }>(
-        '/auth/change-password',
+        '/api/v2/auth/change-password',
         {
           current_password: currentPassword,
           new_password: newPassword,
         }
       );
 
-      return response.success;
+      return !!response.message;
     } catch (error: any) {
       if (process.env.NODE_ENV === 'development') {
         // eslint-disable-next-line no-console
@@ -158,14 +202,15 @@ class AuthService {
    */
   async requestPasswordReset(email: string): Promise<boolean> {
     try {
+      // Updated to use v2 API endpoint
       const response = await post<{ message: string }>(
-        '/auth/forgot-password',
+        '/api/v2/auth/reset-password',
         {
           email,
         }
       );
 
-      return response.success;
+      return !!response.message;
     } catch (error: any) {
       if (process.env.NODE_ENV === 'development') {
         // eslint-disable-next-line no-console
@@ -183,16 +228,84 @@ class AuthService {
    */
   async resetPassword(token: string, newPassword: string): Promise<boolean> {
     try {
-      const response = await post<{ message: string }>('/auth/reset-password', {
-        token,
+      // Updated to use v2 API endpoint
+      const response = await post<{ message: string }>('/api/v2/auth/reset-password/confirm', {
+        reset_token: token,
         new_password: newPassword,
       });
 
-      return response.success;
+      return !!response.message;
     } catch (error: any) {
       if (process.env.NODE_ENV === 'development') {
         // eslint-disable-next-line no-console
         console.error('Error resetting password:', error);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Validate current token
+   * @returns Promise with validation status
+   */
+  async validateToken(): Promise<boolean> {
+    try {
+      const token = getToken();
+      if (!token) return false;
+
+      // Use v2 API endpoint for token validation
+      const response = await post<{ is_valid: boolean }>('/api/v2/auth/validate');
+      
+      return response.is_valid === true;
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.error('Error validating token:', error);
+      }
+      return false;
+    }
+  }
+
+  /**
+   * Get session information
+   * @returns Promise with session data
+   */
+  async getSessionInfo(): Promise<any> {
+    try {
+      // Use v2 API endpoint for session info
+      const response = await get<any>('/api/v2/auth/session');
+      
+      return response || null;
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.error('Error getting session info:', error);
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Refresh access token
+   * @param refreshToken - Refresh token
+   * @returns Promise with new token data
+   */
+  async refreshToken(refreshToken: string): Promise<any> {
+    try {
+      // Use v2 API endpoint for token refresh
+      const response = await post<any>('/api/v2/auth/refresh', {
+        refresh_token: refreshToken
+      });
+      
+      if (response?.access_token) {
+        setToken(response.access_token);
+      }
+      
+      return response;
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.error('Error refreshing token:', error);
       }
       throw error;
     }

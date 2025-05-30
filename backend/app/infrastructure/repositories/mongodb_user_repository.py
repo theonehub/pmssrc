@@ -56,6 +56,7 @@ class MongoDBUserRepository(UserRepository):
         """Convert domain entity to database document."""
         return {
             "employee_id": str(user.employee_id),
+            "username": getattr(user, 'username', str(user.employee_id)),  # Default to employee_id if username not present
             "email": user.email.value,
             "name": user.name,
             "gender": user.gender.value,
@@ -99,6 +100,7 @@ class MongoDBUserRepository(UserRepository):
         """Convert database document to domain entity."""
         return User.reconstruct(
             employee_id=EmployeeId(document["employee_id"]),
+            username=document.get("username", document.get("employee_id")),  # Default to employee_id if username not present
             email=document["email"],
             name=document["name"],
             gender=Gender(document["gender"]),
@@ -300,6 +302,26 @@ class MongoDBUserRepository(UserRepository):
             
         except Exception as e:
             logger.error(f"Error getting user by email {email}: {e}")
+            raise
+    
+    async def get_by_username(self, username: str) -> Optional[User]:
+        """Get user by username."""
+        try:
+            # Search across all organization databases
+            for org_id in [None, "global_database"]:  # Add more org IDs as needed
+                collection = self._get_collection(org_id)
+                document = await collection.find_one({
+                    "username": username,
+                    "is_deleted": {"$ne": True}
+                })
+                
+                if document:
+                    return self._document_to_user(document)
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting user by username {username}: {e}")
             raise
     
     async def get_by_mobile(self, mobile: str) -> Optional[User]:

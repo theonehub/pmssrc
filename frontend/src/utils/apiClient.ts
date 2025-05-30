@@ -5,8 +5,7 @@ import axios, {
   AxiosError,
   InternalAxiosRequestConfig,
 } from 'axios';
-import { API_CONFIG, STORAGE_KEYS, ERROR_MESSAGES } from '../constants';
-import { ApiResponse } from '../types';
+import { API_CONFIG, STORAGE_KEYS } from '../constants';
 
 /**
  * Create axios instance with default configuration
@@ -96,60 +95,17 @@ apiClient.interceptors.response.use(
 );
 
 /**
- * Generic API request wrapper with type safety
- * @param config - Axios request configuration
- * @returns Promise with typed response
- */
-export const apiRequest = async <T = any>(
-  config: AxiosRequestConfig
-): Promise<ApiResponse<T>> => {
-  try {
-    const response = await apiClient(config);
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      const axiosError = error as AxiosError<ApiResponse>;
-
-      // Return structured error response
-      const errorResponse: ApiResponse<T> = {
-        success: false,
-        error:
-          axiosError.response?.data?.error ||
-          axiosError.message ||
-          ERROR_MESSAGES.NETWORK_ERROR,
-      };
-
-      if (axiosError.response?.data?.message) {
-        errorResponse.message = axiosError.response.data.message;
-      }
-
-      if (axiosError.response?.data?.errors) {
-        errorResponse.errors = axiosError.response.data.errors;
-      }
-
-      return errorResponse;
-    }
-
-    // Handle non-axios errors
-    return {
-      success: false,
-      error:
-        error instanceof Error ? error.message : ERROR_MESSAGES.SERVER_ERROR,
-    };
-  }
-};
-
-/**
  * GET request helper
  * @param url - Request URL
  * @param config - Additional axios configuration
- * @returns Promise with typed response
+ * @returns Promise with typed response (raw backend response)
  */
-export const get = <T = any>(
+export const get = async <T = any>(
   url: string,
   config?: AxiosRequestConfig
-): Promise<ApiResponse<T>> => {
-  return apiRequest<T>({ ...config, method: 'GET', url });
+): Promise<T> => {
+  const response = await apiClient.get<T>(url, config);
+  return response.data;
 };
 
 /**
@@ -157,14 +113,15 @@ export const get = <T = any>(
  * @param url - Request URL
  * @param data - Request payload
  * @param config - Additional axios configuration
- * @returns Promise with typed response
+ * @returns Promise with typed response (raw backend response)
  */
-export const post = <T = any>(
+export const post = async <T = any>(
   url: string,
   data?: any,
   config?: AxiosRequestConfig
-): Promise<ApiResponse<T>> => {
-  return apiRequest<T>({ ...config, method: 'POST', url, data });
+): Promise<T> => {
+  const response = await apiClient.post<T>(url, data, config);
+  return response.data;
 };
 
 /**
@@ -172,27 +129,29 @@ export const post = <T = any>(
  * @param url - Request URL
  * @param data - Request payload
  * @param config - Additional axios configuration
- * @returns Promise with typed response
+ * @returns Promise with typed response (raw backend response)
  */
-export const put = <T = any>(
+export const put = async <T = any>(
   url: string,
   data?: any,
   config?: AxiosRequestConfig
-): Promise<ApiResponse<T>> => {
-  return apiRequest<T>({ ...config, method: 'PUT', url, data });
+): Promise<T> => {
+  const response = await apiClient.put<T>(url, data, config);
+  return response.data;
 };
 
 /**
  * DELETE request helper
  * @param url - Request URL
  * @param config - Additional axios configuration
- * @returns Promise with typed response
+ * @returns Promise with typed response (raw backend response)
  */
-export const del = <T = any>(
+export const del = async <T = any>(
   url: string,
   config?: AxiosRequestConfig
-): Promise<ApiResponse<T>> => {
-  return apiRequest<T>({ ...config, method: 'DELETE', url });
+): Promise<T> => {
+  const response = await apiClient.delete<T>(url, config);
+  return response.data;
 };
 
 /**
@@ -200,14 +159,15 @@ export const del = <T = any>(
  * @param url - Request URL
  * @param data - Request payload
  * @param config - Additional axios configuration
- * @returns Promise with typed response
+ * @returns Promise with typed response (raw backend response)
  */
-export const patch = <T = any>(
+export const patch = async <T = any>(
   url: string,
   data?: any,
   config?: AxiosRequestConfig
-): Promise<ApiResponse<T>> => {
-  return apiRequest<T>({ ...config, method: 'PATCH', url, data });
+): Promise<T> => {
+  const response = await apiClient.patch<T>(url, data, config);
+  return response.data;
 };
 
 export default apiClient;

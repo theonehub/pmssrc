@@ -480,10 +480,10 @@ class UserServiceImpl(UserService):
     async def authenticate_user(self, request: UserLoginRequestDTO) -> UserLoginResponseDTO:
         """Authenticate user with credentials."""
         try:
-            logger.info(f"Authenticating user: {request.email}")
+            logger.info(f"Authenticating user: {request.username}")
             return await self._authenticate_user_use_case.execute(request)
         except Exception as e:
-            logger.error(f"Error authenticating user {request.email}: {e}")
+            logger.error(f"Error authenticating user {request.username}: {e}")
             raise
     
     async def logout_user(

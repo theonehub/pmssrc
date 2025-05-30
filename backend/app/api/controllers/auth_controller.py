@@ -14,8 +14,10 @@ from app.application.dto.auth_dto import (
     PasswordResetResponseDTO, TokenValidationResponseDTO, UserProfileResponseDTO,
     SessionInfoResponseDTO, AuthHealthResponseDTO, AuthErrorResponseDTO
 )
+from app.auth.jwt_handler import create_access_token, decode_access_token
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class AuthController:
@@ -82,38 +84,91 @@ class AuthController:
         try:
             logger.info(f"Login attempt for user: {request.username} @ {request.hostname}")
             
-            # For now, use placeholder logic
-            # In real implementation, this would use proper authentication services
-            if request.username == "admin" and request.password == "admin123":
-                # Create mock user info
-                user_info = {
-                    "emp_id": "admin",
-                    "name": "Administrator",
-                    "email": "admin@company.com",
-                    "role": "admin",
-                    "department": "IT",
-                    "position": "Administrator"
-                }
-                
-                # Get user permissions based on role
-                permissions = self._get_user_permissions("admin")
-                
-                # Token expiration (typically 1 hour)
-                expires_in = 3600
-                
-                logger.info(f"User {request.username} logged in successfully")
-                
-                return LoginResponseDTO(
-                    access_token="mock_access_token_here",
-                    token_type="bearer",
-                    expires_in=expires_in,
-                    user_info=user_info,
-                    permissions=permissions,
-                    last_login=None,
-                    login_time=datetime.now()
-                )
-            else:
+            # Get database connection
+            from app.config.mongodb_config import get_mongodb_connection_string, get_mongodb_client_options
+            from app.infrastructure.database.mongodb_connector import MongoDBConnector
+            from app.auth.password_handler import verify_password
+            
+            connector = MongoDBConnector()
+            connection_string = get_mongodb_connection_string()
+            logger.info(f"Connection string: {connection_string}")
+            options = get_mongodb_client_options()
+            
+            await connector.connect(connection_string, **options)
+            
+            # Get users collection
+            users_collection = connector.get_collection('pms_'+request.hostname, 'users_info')
+            
+            # Find user by username and hostname
+            user = await users_collection.find_one({
+                "username": request.username,
+                "hostname": request.hostname
+            })
+            
+            if not user:
+                users_collection = connector.get_collection('pms_global_database', 'users_info')
+            
+                # Try without hostname for global users
+                user = await users_collection.find_one({
+                    "username": request.username
+                })
+            
+            await connector.disconnect()
+            
+            # Verify user exists and password is correct
+            if not user or not verify_password(request.password, user["password"]):
                 raise ValueError("Invalid username or password")
+            
+            # Check if user is active
+            if not user.get("is_active", True):
+                raise ValueError("User account is inactive")
+            
+            # Create user info
+            user_info = {
+                "emp_id": user.get("emp_id", user["username"]),
+                "name": user.get("name", "User"),
+                "email": user.get("email", user["username"]+"@"+request.hostname+".com"),
+                "role": user.get("role", "user"),
+                "department": user.get("department", "General"),
+                "position": user.get("position", user.get("designation", "Employee"))
+            }
+            
+            # Get user permissions based on role
+            permissions = self._get_user_permissions(user.get("role", "user"))
+            
+            # Token expiration (typically 8 hours)
+            expires_in = 28800  # 8 hours in seconds
+            expires_delta = timedelta(seconds=expires_in)
+            
+            # Prepare token data
+            token_data = {
+                "sub": user.get("emp_id", user["username"]),  # Subject (user identifier)
+                "username": user["username"],
+                "emp_id": user.get("emp_id", user["username"]),
+                "role": user.get("role", "user"),
+                "hostname": request.hostname,
+                "permissions": permissions,
+                "iat": datetime.utcnow().timestamp(),  # Issued at
+                "type": "access_token"
+            }
+            
+            # Generate proper JWT token
+            access_token = create_access_token(
+                data=token_data,
+                expires_delta=expires_delta
+            )
+            
+            logger.info(f"User {request.username} logged in successfully")
+            
+            return LoginResponseDTO(
+                access_token=access_token,
+                token_type="bearer",
+                expires_in=expires_in,
+                user_info=user_info,
+                permissions=permissions,
+                last_login=user.get("last_login"),
+                login_time=datetime.now()
+            )
             
         except Exception as e:
             logger.error(f"Login error: {e}")
@@ -168,14 +223,42 @@ class AuthController:
         try:
             logger.info("Token refresh request")
             
-            # For now, return a placeholder response
-            return TokenResponseDTO(
-                access_token="new_access_token_here",
-                token_type="bearer",
-                expires_in=3600,
-                refresh_token=request.refresh_token,  # Could be rotated
-                issued_at=datetime.now()
-            )
+            # For now, we'll implement a simple refresh mechanism
+            # In a production system, you'd validate the refresh token properly
+            
+            # Decode the refresh token to get user info
+            try:
+                payload = decode_access_token(request.refresh_token)
+                
+                # Create new access token with same user data
+                new_expires_delta = timedelta(hours=8)
+                new_token_data = {
+                    "sub": payload.get("sub"),
+                    "username": payload.get("username"),
+                    "emp_id": payload.get("emp_id"),
+                    "role": payload.get("role"),
+                    "hostname": payload.get("hostname"),
+                    "permissions": payload.get("permissions", []),
+                    "iat": datetime.utcnow().timestamp(),
+                    "type": "access_token"
+                }
+                
+                new_access_token = create_access_token(
+                    data=new_token_data,
+                    expires_delta=new_expires_delta
+                )
+                
+                return TokenResponseDTO(
+                    access_token=new_access_token,
+                    token_type="bearer",
+                    expires_in=28800,  # 8 hours
+                    refresh_token=request.refresh_token,  # Could be rotated in production
+                    issued_at=datetime.now()
+                )
+                
+            except Exception as e:
+                logger.error(f"Invalid refresh token: {e}")
+                raise ValueError("Invalid refresh token")
             
         except Exception as e:
             logger.error(f"Token refresh error: {e}")
@@ -197,24 +280,33 @@ class AuthController:
         try:
             logger.info("Token validation request")
             
-            # For now, return placeholder validation
-            if token == "mock_access_token_here":
+            # Decode and validate JWT token
+            try:
+                payload = decode_access_token(token)
+                
+                # Extract user information from token
                 user_info = {
-                    "emp_id": "admin",
-                    "role": "admin",
-                    "hostname": "company.com"
+                    "emp_id": payload.get("emp_id"),
+                    "username": payload.get("username"),
+                    "role": payload.get("role"),
+                    "hostname": payload.get("hostname")
                 }
                 
-                permissions = self._get_user_permissions("admin")
+                permissions = payload.get("permissions", [])
+                
+                # Check if token is expired (this is handled by JWT decode, but we can add extra checks)
+                expires_at = datetime.fromtimestamp(payload.get("exp", 0))
                 
                 return TokenValidationResponseDTO(
                     is_valid=True,
                     user_info=user_info,
                     permissions=permissions,
-                    expires_at=datetime.now() + timedelta(hours=1),
+                    expires_at=expires_at,
                     token_type="bearer"
                 )
-            else:
+                
+            except Exception as e:
+                logger.warning(f"Token validation failed: {e}")
                 return TokenValidationResponseDTO(
                     is_valid=False,
                     user_info=None,

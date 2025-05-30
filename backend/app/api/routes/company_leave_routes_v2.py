@@ -9,8 +9,8 @@ from typing import List, Optional
 import logging
 from datetime import datetime
 
-from api.controllers.company_leave_controller import CompanyLeaveController
-from application.dto.company_leave_dto import (
+from app.api.controllers.company_leave_controller import CompanyLeaveController
+from app.application.dto.company_leave_dto import (
     CompanyLeaveCreateRequestDTO,
     CompanyLeaveUpdateRequestDTO,
     CompanyLeaveSearchFiltersDTO,
@@ -19,7 +19,7 @@ from application.dto.company_leave_dto import (
     CompanyLeaveBusinessRuleError,
     CompanyLeaveNotFoundError
 )
-from auth.auth import extract_emp_id, extract_hostname, role_checker
+from app.auth.auth import extract_emp_id, extract_hostname, role_checker
 
 logger = logging.getLogger(__name__)
 
@@ -29,9 +29,14 @@ router = APIRouter(prefix="/api/v2/company-leaves", tags=["Company Leaves V2 (SO
 
 def get_company_leave_controller() -> CompanyLeaveController:
     """Dependency injection for company leave controller"""
-    from config.dependency_container import get_dependency_container
-    container = get_dependency_container()
-    return container.get_company_leave_controller()
+    try:
+        from app.config.dependency_container import get_dependency_container
+        container = get_dependency_container()
+        return container.get_company_leave_controller()
+    except Exception as e:
+        logger.warning(f"Could not get company leave controller from container: {e}")
+        # Fallback to direct instantiation
+        return CompanyLeaveController()
 
 
 # ==================== COMPANY LEAVE ENDPOINTS ====================

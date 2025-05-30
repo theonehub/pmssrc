@@ -8,8 +8,8 @@ from fastapi.responses import JSONResponse
 from typing import List, Optional
 import logging
 
-from api.controllers.reimbursement_controller import ReimbursementController
-from application.dto.reimbursement_dto import (
+from app.api.controllers.reimbursement_controller import ReimbursementController
+from app.application.dto.reimbursement_dto import (
     ReimbursementRequestCreateDTO,
     ReimbursementTypeCreateRequestDTO,
     ReimbursementApprovalDTO,
@@ -18,16 +18,26 @@ from application.dto.reimbursement_dto import (
     ReimbursementResponseDTO,
     ReimbursementTypeResponseDTO,
     ReimbursementValidationError,
-    ReimbursementBusinessRuleError,
-    ReimbursementNotFoundError
+    ReimbursementBusinessRuleError
 )
-from auth.auth import extract_hostname, extract_emp_id, role_checker
-from config.dependency_container import get_reimbursement_controller
+from app.auth.auth import extract_hostname, extract_emp_id, role_checker
 
 logger = logging.getLogger(__name__)
 
 # Create router
 router = APIRouter(prefix="/api/v2/reimbursements", tags=["Reimbursements V2"])
+
+
+def get_reimbursement_controller() -> ReimbursementController:
+    """Dependency injection for reimbursement controller"""
+    try:
+        from app.config.dependency_container import get_dependency_container
+        container = get_dependency_container()
+        return container.get_reimbursement_controller()
+    except Exception as e:
+        logger.warning(f"Could not get reimbursement controller from container: {e}")
+        # Fallback to direct instantiation
+        return ReimbursementController()
 
 
 def get_controller() -> ReimbursementController:
@@ -233,8 +243,6 @@ async def get_reimbursement_request(
         result = await controller.get_reimbursement_request(request_id, emp_id, hostname)
         return result
         
-    except ReimbursementNotFoundError as e:
-        raise HTTPException(status_code=404, detail=e.message)
     except Exception as e:
         logger.error(f"Error getting reimbursement request: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -263,12 +271,6 @@ async def update_reimbursement_request(
         )
         return result
         
-    except ReimbursementNotFoundError as e:
-        raise HTTPException(status_code=404, detail=e.message)
-    except ReimbursementValidationError as e:
-        raise HTTPException(status_code=400, detail=e.message)
-    except ReimbursementBusinessRuleError as e:
-        raise HTTPException(status_code=422, detail=e.message)
     except Exception as e:
         logger.error(f"Error updating reimbursement request: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -298,10 +300,6 @@ async def approve_reimbursement_request(
         )
         return result
         
-    except ReimbursementNotFoundError as e:
-        raise HTTPException(status_code=404, detail=e.message)
-    except ReimbursementBusinessRuleError as e:
-        raise HTTPException(status_code=422, detail=e.message)
     except Exception as e:
         logger.error(f"Error approving reimbursement request: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -328,10 +326,6 @@ async def reject_reimbursement_request(
         )
         return result
         
-    except ReimbursementNotFoundError as e:
-        raise HTTPException(status_code=404, detail=e.message)
-    except ReimbursementBusinessRuleError as e:
-        raise HTTPException(status_code=422, detail=e.message)
     except Exception as e:
         logger.error(f"Error rejecting reimbursement request: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -353,10 +347,6 @@ async def delete_reimbursement_request(
         await controller.delete_reimbursement_request(request_id, emp_id, hostname)
         return {"message": "Reimbursement request deleted successfully"}
         
-    except ReimbursementNotFoundError as e:
-        raise HTTPException(status_code=404, detail=e.message)
-    except ReimbursementBusinessRuleError as e:
-        raise HTTPException(status_code=422, detail=e.message)
     except Exception as e:
         logger.error(f"Error deleting reimbursement request: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -426,8 +416,6 @@ async def get_reimbursement_type(
         result = await controller.get_reimbursement_type(type_id, hostname)
         return result
         
-    except ReimbursementNotFoundError as e:
-        raise HTTPException(status_code=404, detail=e.message)
     except Exception as e:
         logger.error(f"Error getting reimbursement type: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -454,10 +442,6 @@ async def update_reimbursement_type(
         )
         return result
         
-    except ReimbursementNotFoundError as e:
-        raise HTTPException(status_code=404, detail=e.message)
-    except ReimbursementValidationError as e:
-        raise HTTPException(status_code=400, detail=e.message)
     except Exception as e:
         logger.error(f"Error updating reimbursement type: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -480,8 +464,6 @@ async def delete_reimbursement_type(
         await controller.delete_reimbursement_type(type_id, emp_id, hostname)
         return {"message": "Reimbursement type deleted successfully"}
         
-    except ReimbursementNotFoundError as e:
-        raise HTTPException(status_code=404, detail=e.message)
     except Exception as e:
         logger.error(f"Error deleting reimbursement type: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")

@@ -62,18 +62,18 @@ const Home: React.FC = () => {
       try {
         setLoading(true);
 
-        // Fetch user statistics
-        const usersResponse = await get<DashboardStats>('/users/stats');
-        if (usersResponse.success && usersResponse.data) {
-          setUsersStats(usersResponse.data);
+        // Fetch user statistics using v2 API
+        const usersResponse = await get<DashboardStats>('/api/v2/users/analytics/statistics');
+        if (usersResponse) {
+          setUsersStats(usersResponse);
         }
 
-        // Fetch attendance statistics
+        // Fetch attendance statistics using v2 API
         const attendanceResponse = await get<AttendanceStats>(
-          '/attendance/stats/today'
+          '/api/v2/attendance/stats/today'
         );
-        if (attendanceResponse.success && attendanceResponse.data) {
-          setAttendanceStats(attendanceResponse.data);
+        if (attendanceResponse) {
+          setAttendanceStats(attendanceResponse);
         }
       } catch (error) {
         if (process.env.NODE_ENV === 'development') {
@@ -96,17 +96,14 @@ const Home: React.FC = () => {
   const handleCheckIn = async (): Promise<void> => {
     try {
       setAttendanceLoading(true);
-      const response = await post('/attendance/checkin');
+      await post('/api/v2/attendance/checkin');
 
-      if (response.success) {
-        setSnackbar({
-          open: true,
-          message: 'Check-in successful!',
-          severity: 'success',
-        });
-      } else {
-        throw new Error(response.error || 'Failed to check in');
-      }
+      // If we get a response without error, consider it successful
+      setSnackbar({
+        open: true,
+        message: 'Check-in successful!',
+        severity: 'success',
+      });
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         // eslint-disable-next-line no-console
@@ -125,17 +122,14 @@ const Home: React.FC = () => {
   const handleCheckOut = async (): Promise<void> => {
     try {
       setAttendanceLoading(true);
-      const response = await post('/attendance/checkout');
+      await post('/api/v2/attendance/checkout');
 
-      if (response.success) {
-        setSnackbar({
-          open: true,
-          message: 'Check-out successful!',
-          severity: 'success',
-        });
-      } else {
-        throw new Error(response.error || 'Failed to check out');
-      }
+      // If we get a response without error, consider it successful
+      setSnackbar({
+        open: true,
+        message: 'Check-out successful!',
+        severity: 'success',
+      });
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         // eslint-disable-next-line no-console

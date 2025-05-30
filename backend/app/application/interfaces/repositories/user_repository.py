@@ -107,10 +107,23 @@ class UserQueryRepository(ABC):
     @abstractmethod
     async def get_by_email(self, email: str) -> Optional[User]:
         """
-        Get user by email.
+        Get user by email address.
         
         Args:
-            email: Email to search for
+            email: Email address to search for
+            
+        Returns:
+            User entity if found, None otherwise
+        """
+        pass
+    
+    @abstractmethod
+    async def get_by_username(self, username: str) -> Optional[User]:
+        """
+        Get user by username.
+        
+        Args:
+            username: Username to search for
             
         Returns:
             User entity if found, None otherwise

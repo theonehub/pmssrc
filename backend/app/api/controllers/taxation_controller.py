@@ -7,7 +7,7 @@ import logging
 from typing import Dict, Any, Optional, List
 from fastapi import HTTPException, status
 
-from application.dto.taxation_dto import (
+from app.application.dto.taxation_dto import (
     TaxationCreateRequestDTO,
     TaxationUpdateRequestDTO,
     TaxationResponseDTO,
@@ -21,12 +21,12 @@ from application.dto.taxation_dto import (
     TaxationBusinessRuleError,
     TaxationCalculationError
 )
-from application.use_cases.taxation.calculate_tax_use_case import CalculateTaxUseCase
-from application.use_cases.taxation.create_taxation_use_case import (
+from app.application.use_cases.taxation.calculate_tax_use_case import CalculateTaxUseCase
+from app.application.use_cases.taxation.create_taxation_use_case import (
     CreateTaxationUseCase,
     BulkCreateTaxationUseCase
 )
-from application.interfaces.repositories.taxation_repository import (
+from app.application.interfaces.repositories.taxation_repository import (
     TaxationQueryRepository,
     TaxationCommandRepository,
     TaxationAnalyticsRepository

@@ -7,8 +7,8 @@ from typing import Dict, Any, Optional, List
 from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body
 from fastapi import status as http_status
 
-from api.controllers.taxation_controller import TaxationController
-from application.dto.taxation_dto import (
+from app.api.controllers.taxation_controller import TaxationController
+from app.application.dto.taxation_dto import (
     TaxationCreateRequestDTO,
     TaxationUpdateRequestDTO,
     TaxationResponseDTO,
@@ -18,7 +18,7 @@ from application.dto.taxation_dto import (
     TaxComparisonDTO,
     TaxStatisticsDTO
 )
-from auth.dependencies import get_current_user, get_hostname
+from app.auth.dependencies import get_current_user, get_hostname
 
 
 # Create router

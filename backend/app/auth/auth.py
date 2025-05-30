@@ -2,10 +2,8 @@ import logging
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from config import SECRET_KEY, ALGORITHM
-from models.user_model import User
+from app.config import JWT_SECRET_KEY, JWT_ALGORITHM
 from typing import List
-from infrastructure.services.legacy_migration_service import get_user_by_emp_id
 
 # Set up a logger for this module.
 logger = logging.getLogger(__name__)
@@ -25,7 +23,7 @@ def extract_emp_id(token: str = Depends(oauth2_scheme)):
     """
     try:
         # Decode the token using the secret key and algorithm.
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
         emp_id: str = payload.get("sub")
         if emp_id is None:
             logger.warning("Token payload does not contain emp_id.")
@@ -42,7 +40,7 @@ def extract_hostname(token: str = Depends(oauth2_scheme)):
     """
     try:
         # Decode the token using the secret key and algorithm.
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
         hostname: str = payload.get("hostname")
         if hostname is None:
             logger.warning("Token payload does not contain hostname.")
@@ -56,7 +54,7 @@ def  extract_role(token: str = Depends(oauth2_scheme)):
     """
     Extracts the role from the JWT token.
     """
-    payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
     role: str = payload.get("role")
     if role is None:
         logger.warning("Token payload does not contain role.")
@@ -87,3 +85,18 @@ def role_checker(roles: List[str]):
             raise credentials_exception
         return role
     return checker
+
+# Simple User class for authentication
+class User:
+    def __init__(self, emp_id: str, role: str):
+        self.emp_id = emp_id
+        self.role = role
+
+# Simple stub for user lookup
+async def get_user_by_emp_id(emp_id: str, hostname: str = None):
+    """Simple stub for user lookup - replace with actual implementation"""
+    # For now, return a mock user for testing
+    return {
+        "emp_id": emp_id,
+        "role": "employee"  # Default role
+    }

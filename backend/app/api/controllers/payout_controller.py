@@ -7,13 +7,13 @@ import logging
 from typing import List, Optional, Dict, Any
 from datetime import date, datetime
 
-from application.dto.payroll_dto import (
+from app.application.dto.payroll_dto import (
     PayoutCalculationRequestDTO, PayoutCreateRequestDTO, PayoutUpdateRequestDTO,
     BulkPayoutRequestDTO, PayoutSearchFiltersDTO, PayslipGenerationRequestDTO,
     PayoutResponseDTO, PayoutSummaryResponseDTO, PayoutHistoryResponseDTO,
     BulkPayoutResponseDTO, PayslipResponseDTO, PayrollErrorResponseDTO
 )
-from infrastructure.services.payroll_migration_service import (
+from app.infrastructure.services.payroll_migration_service import (
     calculate_monthly_payout_service,
     create_payout_service,
     get_employee_payouts_service,

@@ -55,14 +55,12 @@ class MongoDBConnector(DatabaseConnector):
             # Create async client
             self._client = AsyncIOMotorClient(
                 connection_string,
-                serverSelectionTimeoutMS=5000,
                 **kwargs
             )
             
             # Create sync client for operations that require it
             self._sync_client = MongoClient(
                 connection_string,
-                serverSelectionTimeoutMS=5000,
                 **kwargs
             )
             

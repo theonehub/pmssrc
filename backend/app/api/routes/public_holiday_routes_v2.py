@@ -9,8 +9,8 @@ from typing import List, Optional
 import logging
 from datetime import datetime
 
-from api.controllers.public_holiday_controller import PublicHolidayController
-from application.dto.public_holiday_dto import (
+from app.api.controllers.public_holiday_controller import PublicHolidayController
+from app.application.dto.public_holiday_dto import (
     PublicHolidayCreateRequestDTO,
     PublicHolidayUpdateRequestDTO,
     PublicHolidaySearchFiltersDTO,
@@ -20,7 +20,7 @@ from application.dto.public_holiday_dto import (
     PublicHolidayBusinessRuleError,
     PublicHolidayNotFoundError
 )
-from auth.auth import extract_emp_id, extract_hostname, role_checker
+from app.auth.auth import extract_emp_id, extract_hostname, role_checker
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +30,14 @@ router = APIRouter(prefix="/api/v2/public-holidays", tags=["Public Holidays V2 (
 
 def get_public_holiday_controller() -> PublicHolidayController:
     """Dependency injection for public holiday controller"""
-    from config.dependency_container import get_dependency_container
-    container = get_dependency_container()
-    return container.get_public_holiday_controller()
+    try:
+        from app.config.dependency_container import get_dependency_container
+        container = get_dependency_container()
+        return container.get_public_holiday_controller()
+    except Exception as e:
+        logger.warning(f"Could not get public holiday controller from container: {e}")
+        # Fallback to direct instantiation
+        return PublicHolidayController()
 
 
 # ==================== PUBLIC HOLIDAY ENDPOINTS ====================

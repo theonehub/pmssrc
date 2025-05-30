@@ -5,24 +5,25 @@ Clean API layer following SOLID principles
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from fastapi.responses import JSONResponse
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import logging
 from datetime import datetime
 
-from api.controllers.attendance_controller import AttendanceController
-from application.dto.attendance_dto import (
+from app.api.controllers.attendance_controller import AttendanceController
+from app.application.dto.attendance_dto import (
     AttendanceCheckInRequestDTO,
     AttendanceCheckOutRequestDTO,
     AttendanceSearchFiltersDTO,
     AttendanceResponseDTO,
-    AttendanceStatsResponseDTO,
+    AttendanceStatisticsDTO,
     AttendanceValidationError,
     AttendanceBusinessRuleError,
     AttendanceNotFoundError
 )
-from auth.auth import extract_emp_id, extract_hostname, role_checker
+from app.auth.auth import extract_emp_id, extract_hostname, role_checker
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # Create router
 router = APIRouter(prefix="/api/v2/attendance", tags=["Attendance V2 (SOLID)"])
@@ -30,9 +31,14 @@ router = APIRouter(prefix="/api/v2/attendance", tags=["Attendance V2 (SOLID)"])
 
 def get_attendance_controller() -> AttendanceController:
     """Dependency injection for attendance controller"""
-    from config.dependency_container import get_dependency_container
-    container = get_dependency_container()
-    return container.get_attendance_controller()
+    try:
+        from app.config.dependency_container import get_dependency_container
+        container = get_dependency_container()
+        return container.get_attendance_controller()
+    except Exception as e:
+        logger.warning(f"Could not get attendance controller from container: {e}")
+        # Fallback to direct instantiation
+        return AttendanceController()
 
 
 # ==================== ATTENDANCE ENDPOINTS ====================
@@ -268,7 +274,7 @@ async def get_team_attendance_by_year(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/stats/today", response_model=AttendanceStatsResponseDTO)
+@router.get("/stats/today", response_model=AttendanceStatisticsDTO)
 async def get_todays_attendance_stats(
     hostname: str = Depends(extract_hostname),
     current_emp_id: str = Depends(extract_emp_id),
@@ -353,4 +359,9 @@ async def get_my_attendance_by_year(
 @router.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "service": "attendance_v2"} 
+    return {
+        "status": "healthy", 
+        "service": "attendance_v2",
+        "timestamp": datetime.now().isoformat(),
+        "version": "2.0.0"
+    } 

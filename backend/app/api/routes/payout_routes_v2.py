@@ -10,15 +10,15 @@ from fastapi.responses import StreamingResponse
 from datetime import date, datetime
 import calendar
 
-from api.controllers.payout_controller import PayoutController
-from application.dto.payroll_dto import (
+from app.api.controllers.payout_controller import PayoutController
+from app.application.dto.payroll_dto import (
     PayoutCalculationRequestDTO, PayoutCreateRequestDTO, PayoutUpdateRequestDTO,
     BulkPayoutRequestDTO, PayoutSearchFiltersDTO, PayslipGenerationRequestDTO,
     PayoutResponseDTO, PayoutSummaryResponseDTO, PayoutHistoryResponseDTO,
     BulkPayoutResponseDTO, PayslipResponseDTO, PayoutStatusEnum
 )
-from config.dependency_container import get_payout_controller
-from auth.auth import extract_emp_id, extract_hostname, role_checker
+from app.config.dependency_container import get_payout_controller
+from app.auth.auth import extract_emp_id, extract_hostname, role_checker
 
 logger = logging.getLogger(__name__)
 

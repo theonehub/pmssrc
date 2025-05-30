@@ -33,7 +33,19 @@ export interface LoginCredentials {
 export interface AuthResponse {
   access_token: string;
   token_type: string;
-  user?: User;
+  expires_in: number;
+  refresh_token?: string;
+  user_info: {
+    emp_id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+    department: string;
+    position: string;
+  };
+  permissions: string[];
+  last_login?: string;
+  login_time: string;
 }
 
 export interface TokenData {

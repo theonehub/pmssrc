@@ -43,6 +43,7 @@ class User:
     
     # Authentication (required)
     email: str
+    username: str
     password: Password
     
     # Authorization (required)
@@ -96,6 +97,7 @@ class User:
             self._add_domain_event(UserCreated(
                 aggregate_id=str(self.user_id),
                 user_id=self.user_id,
+                username=self.username,
                 name=self.name,
                 email=self.email,
                 role=self.permissions.role,
@@ -131,6 +133,7 @@ class User:
             user_id=user_id,
             name=name,
             email=email.lower().strip(),
+            username=str(user_id),  # Set username to emp_id
             password=password_vo,
             permissions=permissions,
             personal_details=personal_details,

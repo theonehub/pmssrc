@@ -70,10 +70,10 @@ class AuthenticateUserUseCase:
             UserAuthenticationError: If authentication fails
             UserBusinessRuleError: If user cannot login (locked, inactive, etc.)
         """
-        logger.info(f"Authenticating user: {request.email}")
+        logger.info(f"Authenticating user: {request.username}")
         
-        # Step 1: Get user by email
-        user = await self._get_user_by_email(request.email)
+        # Step 1: Get user by username
+        user = await self._get_user_by_username(request.username)
         
         # Step 2: Check if user can login
         await self._check_login_eligibility(user)
@@ -107,9 +107,9 @@ class AuthenticateUserUseCase:
         logger.info(f"User authenticated successfully: {user.employee_id}")
         return response
     
-    async def _get_user_by_email(self, email: str) -> User:
-        """Get user by email"""
-        user = await self.query_repository.get_by_email(email)
+    async def _get_user_by_username(self, username: str) -> User:
+        """Get user by username"""
+        user = await self.query_repository.get_by_username(username)
         
         if not user:
             raise UserAuthenticationError(

@@ -328,7 +328,7 @@ class UserSearchFiltersDTO:
 class UserLoginRequestDTO:
     """DTO for user login"""
     
-    email: str
+    username: str
     password: str
     ip_address: Optional[str] = None
     user_agent: Optional[str] = None
@@ -337,8 +337,8 @@ class UserLoginRequestDTO:
         """Validate login request"""
         errors = []
         
-        if not self.email or not self.email.strip():
-            errors.append("Email is required")
+        if not self.username or not self.username.strip():
+            errors.append("Username is required")
         
         if not self.password:
             errors.append("Password is required")

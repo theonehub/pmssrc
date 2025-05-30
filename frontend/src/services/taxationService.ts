@@ -25,7 +25,7 @@ export const getAllTaxation = async (
   filingStatus: FilingStatus | null = null
 ): Promise<TaxationData[]> => {
   try {
-    const url = '/all-taxation';
+    const url = '/api/v2/taxation/all-taxation';
     const params: Record<string, string> = {};
 
     if (taxYear) params.tax_year = taxYear;
@@ -50,7 +50,7 @@ export const getTaxationByEmpId = async (
 ): Promise<TaxationData> => {
   try {
     const response: AxiosResponse<TaxationData> = await apiClient().get(
-      `/taxation/${empId}`
+      `/api/v2/taxation/taxation/${empId}`
     );
     return response.data;
   } catch (error) {
@@ -70,7 +70,7 @@ export const calculateTax = async (
 ): Promise<any> => {
   try {
     const response: AxiosResponse<any> = await apiClient().post(
-      '/calculate-tax',
+      '/api/v2/taxation/calculate',
       {
         emp_id: empId,
         tax_year: taxYear,
@@ -406,8 +406,9 @@ export const saveTaxationData = async (
       taxationData.tax_refundable = 0;
     if (taxationData.tax_pending === undefined) taxationData.tax_pending = 0;
 
+    // Updated to use v2 API endpoint
     const response: AxiosResponse<TaxationData> = await apiClient().post(
-      '/save-taxation-data',
+      '/api/v2/taxation/save-taxation-data',
       taxationData
     );
     return response.data;
@@ -422,8 +423,9 @@ export const updateTaxPayment = async (
   amountPaid: number
 ): Promise<any> => {
   try {
+    // Updated to use v2 API endpoint
     const response: AxiosResponse<any> = await apiClient().post(
-      '/update-tax-payment',
+      '/api/v2/taxation/update-tax-payment',
       {
         emp_id: empId,
         amount_paid: amountPaid,
@@ -462,14 +464,18 @@ export const updateFilingStatus = async (
   }
 };
 
-// Compute VRS value for a user
-export const computeVrsValue = async (empId: string): Promise<number> => {
+// Compute VRS value for an employee
+export const computeVrsValue = async (
+  empId: string,
+  vrsData: any
+): Promise<any> => {
   try {
-    const response: AxiosResponse<{ vrs_value: number }> =
-      await apiClient().post('/compute-vrs', {
-        emp_id: empId,
-      });
-    return response.data.vrs_value;
+    // Updated to use v2 API endpoint
+    const response: AxiosResponse<any> = await apiClient().post(
+      `/api/v2/taxation/compute-vrs-value/${empId}`,
+      vrsData
+    );
+    return response.data;
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
       // eslint-disable-next-line no-console
@@ -482,8 +488,9 @@ export const computeVrsValue = async (empId: string): Promise<number> => {
 // Get current user's taxation data
 export const getMyTaxation = async (): Promise<TaxationData> => {
   try {
+    // Updated to use v2 API endpoint
     const response: AxiosResponse<TaxationData> =
-      await apiClient().get(`/my-taxation`);
+      await apiClient().get(`/api/v2/taxation/my-taxation`);
     return response.data;
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {

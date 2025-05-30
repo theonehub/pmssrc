@@ -38,53 +38,84 @@ class AttendanceMarkingTypeEnum(str, Enum):
 
 class AttendanceCheckInRequestDTO(BaseModel):
     """DTO for check-in requests"""
-    employee_id: str = Field(..., description="Employee ID")
+    employee_id: Optional[str] = Field(None, description="Employee ID")
+    emp_id: Optional[str] = Field(None, description="Employee ID (alternate field name)")
     check_in_time: Optional[datetime] = Field(None, description="Check-in time (defaults to current time)")
+    timestamp: Optional[datetime] = Field(None, description="Timestamp (alternate field name)")
     location: Optional[str] = Field(None, description="Check-in location")
+    hostname: Optional[str] = Field(None, description="Hostname")
     
-    @validator('employee_id')
-    def validate_employee_id(cls, v):
-        if not v or not v.strip():
+    @validator('employee_id', pre=True, always=True)
+    def validate_employee_id(cls, v, values):
+        # Use emp_id if employee_id is not provided
+        if not v:
+            v = values.get('emp_id')
+        if not v or not str(v).strip():
             raise ValueError("Employee ID is required")
-        return v.strip()
+        return str(v).strip()
     
-    @validator('check_in_time')
-    def validate_check_in_time(cls, v):
-        if v and v > datetime.utcnow():
+    @validator('check_in_time', pre=True, always=True)
+    def validate_check_in_time(cls, v, values):
+        # Use timestamp if check_in_time is not provided
+        if not v:
+            v = values.get('timestamp')
+        if v and v > datetime.now():
             raise ValueError("Check-in time cannot be in the future")
         return v
 
 
 class AttendanceCheckOutRequestDTO(BaseModel):
     """DTO for check-out requests"""
-    employee_id: str = Field(..., description="Employee ID")
+    employee_id: Optional[str] = Field(None, description="Employee ID")
+    emp_id: Optional[str] = Field(None, description="Employee ID (alternate field name)")
     check_out_time: Optional[datetime] = Field(None, description="Check-out time (defaults to current time)")
+    timestamp: Optional[datetime] = Field(None, description="Timestamp (alternate field name)")
     location: Optional[str] = Field(None, description="Check-out location")
+    hostname: Optional[str] = Field(None, description="Hostname")
     
-    @validator('employee_id')
-    def validate_employee_id(cls, v):
-        if not v or not v.strip():
+    @validator('employee_id', pre=True, always=True)
+    def validate_employee_id(cls, v, values):
+        # Use emp_id if employee_id is not provided
+        if not v:
+            v = values.get('emp_id')
+        if not v or not str(v).strip():
             raise ValueError("Employee ID is required")
-        return v.strip()
+        return str(v).strip()
     
-    @validator('check_out_time')
-    def validate_check_out_time(cls, v):
-        if v and v > datetime.utcnow():
+    @validator('check_out_time', pre=True, always=True)
+    def validate_check_out_time(cls, v, values):
+        # Use timestamp if check_out_time is not provided
+        if not v:
+            v = values.get('timestamp')
+        if v and v > datetime.now():
             raise ValueError("Check-out time cannot be in the future")
         return v
 
 
 class AttendanceBreakRequestDTO(BaseModel):
     """DTO for break start/end requests"""
-    employee_id: str = Field(..., description="Employee ID")
+    employee_id: Optional[str] = Field(None, description="Employee ID")
+    emp_id: Optional[str] = Field(None, description="Employee ID (alternate field name)")
     break_time: Optional[datetime] = Field(None, description="Break time (defaults to current time)")
+    timestamp: Optional[datetime] = Field(None, description="Timestamp (alternate field name)")
     break_type: str = Field("start", description="Break type: 'start' or 'end'")
+    hostname: Optional[str] = Field(None, description="Hostname")
     
-    @validator('employee_id')
-    def validate_employee_id(cls, v):
-        if not v or not v.strip():
+    @validator('employee_id', pre=True, always=True)
+    def validate_employee_id(cls, v, values):
+        # Use emp_id if employee_id is not provided
+        if not v:
+            v = values.get('emp_id')
+        if not v or not str(v).strip():
             raise ValueError("Employee ID is required")
-        return v.strip()
+        return str(v).strip()
+    
+    @validator('break_time', pre=True, always=True)
+    def validate_break_time(cls, v, values):
+        # Use timestamp if break_time is not provided
+        if not v:
+            v = values.get('timestamp')
+        return v
     
     @validator('break_type')
     def validate_break_type(cls, v):
@@ -163,11 +194,17 @@ class AttendanceCommentRequestDTO(BaseModel):
 class AttendanceSearchFiltersDTO(BaseModel):
     """DTO for attendance search filters"""
     employee_id: Optional[str] = Field(None, description="Filter by employee ID")
+    emp_id: Optional[str] = Field(None, description="Filter by employee ID (alternate field name)")
     employee_ids: Optional[List[str]] = Field(None, description="Filter by multiple employee IDs")
+    manager_id: Optional[str] = Field(None, description="Filter by manager ID for team queries")
     status: Optional[AttendanceStatusEnum] = Field(None, description="Filter by status")
     statuses: Optional[List[AttendanceStatusEnum]] = Field(None, description="Filter by multiple statuses")
     start_date: Optional[date] = Field(None, description="Start date filter")
     end_date: Optional[date] = Field(None, description="End date filter")
+    date: Optional[int] = Field(None, ge=1, le=31, description="Specific date (1-31)")
+    month: Optional[int] = Field(None, ge=1, le=12, description="Specific month (1-12)")
+    year: Optional[int] = Field(None, ge=2000, le=3000, description="Specific year")
+    hostname: Optional[str] = Field(None, description="Filter by hostname")
     is_regularized: Optional[bool] = Field(None, description="Filter by regularization status")
     has_overtime: Optional[bool] = Field(None, description="Filter by overtime presence")
     marking_type: Optional[AttendanceMarkingTypeEnum] = Field(None, description="Filter by marking type")
@@ -283,7 +320,7 @@ class DepartmentAttendanceDTO(BaseModel):
 
 class AttendanceTrendDTO(BaseModel):
     """DTO for attendance trends"""
-    date: date = Field(..., description="Date")
+    trend_date: date = Field(..., description="Date")
     total_employees: int = Field(0, description="Total employees")
     present_count: int = Field(0, description="Present count")
     absent_count: int = Field(0, description="Absent count")
@@ -368,7 +405,7 @@ class AttendanceNotFoundError(Exception):
 class AttendanceHealthCheckDTO(BaseModel):
     """DTO for attendance system health check"""
     status: str = Field("healthy", description="System status")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Health check timestamp")
+    timestamp: datetime = Field(default_factory=datetime.now, description="Health check timestamp")
     database_status: str = Field("connected", description="Database connection status")
     total_records: int = Field(0, description="Total attendance records")
     today_records: int = Field(0, description="Today's attendance records")

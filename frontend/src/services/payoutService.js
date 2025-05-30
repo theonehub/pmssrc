@@ -1,10 +1,10 @@
 import apiClient from '../utils/apiClient';
 
 export const payoutService = {
-  // Employee payout services
+  // Employee payout services (Updated to v2 endpoints)
   getEmployeePayouts: async (employeeId, year = null, month = null) => {
     try {
-      let url = `/api/payouts/employee/${employeeId}`;
+      let url = `/api/v2/payouts/employee/${employeeId}`;
       const params = new URLSearchParams();
 
       if (year) params.append('year', year);
@@ -25,10 +25,10 @@ export const payoutService = {
     }
   },
 
-  // Get current user's payouts (using new endpoint)
+  // Get current user's payouts (using v2 endpoint)
   getMyPayouts: async (year = null, month = null) => {
     try {
-      let url = `/api/payouts/my-payouts`;
+      let url = `/api/v2/payouts/my-payouts`;
       const params = new URLSearchParams();
 
       if (year) params.append('year', year);
@@ -52,7 +52,7 @@ export const payoutService = {
   // Get payout by ID
   getPayoutById: async payoutId => {
     try {
-      const response = await apiClient.get(`/api/payouts/${payoutId}`);
+      const response = await apiClient.get(`/api/v2/payouts/${payoutId}`);
       return response.data;
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -83,7 +83,7 @@ export const payoutService = {
       }
 
       const response = await apiClient.post(
-        `/api/payouts/calculate?${params.toString()}`,
+        `/api/v2/payouts/calculate?${params.toString()}`,
         requestBody
       );
       return response.data;
@@ -99,7 +99,7 @@ export const payoutService = {
   // Create payout
   createPayout: async payoutData => {
     try {
-      const response = await apiClient.post('/api/payouts/create', payoutData);
+      const response = await apiClient.post('/api/v2/payouts/create', payoutData);
       return response.data;
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -114,7 +114,7 @@ export const payoutService = {
   updatePayout: async (payoutId, updateData) => {
     try {
       const response = await apiClient.put(
-        `/api/payouts/${payoutId}`,
+        `/api/v2/payouts/${payoutId}`,
         updateData
       );
       return response.data;
@@ -131,7 +131,7 @@ export const payoutService = {
   updatePayoutStatus: async (payoutId, status) => {
     try {
       const response = await apiClient.put(
-        `/api/payouts/${payoutId}/status`,
+        `/api/v2/payouts/${payoutId}/status`,
         status
       );
       return response.data;
@@ -148,7 +148,7 @@ export const payoutService = {
   autoGenerateCurrentMonthPayout: async employeeId => {
     try {
       const response = await apiClient.post(
-        `/api/payouts/auto-generate/${employeeId}`
+        `/api/v2/payouts/auto-generate/${employeeId}`
       );
       return response.data;
     } catch (error) {
@@ -164,7 +164,7 @@ export const payoutService = {
   bulkProcessPayouts: async request => {
     try {
       const response = await apiClient.post(
-        '/api/payouts/bulk-process',
+        '/api/v2/payouts/bulk-process',
         request
       );
       return response.data;
@@ -180,7 +180,7 @@ export const payoutService = {
   // Get monthly payouts (admin)
   getMonthlyPayouts: async (year, month, status = null) => {
     try {
-      let url = `/api/payouts/monthly/${year}/${month}`;
+      let url = `/api/v2/payouts/monthly/${year}/${month}`;
       if (status) {
         url += `?status=${status}`;
       }
@@ -200,7 +200,7 @@ export const payoutService = {
   getMonthlyPayoutSummary: async (year, month) => {
     try {
       const response = await apiClient.get(
-        `/api/payouts/summary/${year}/${month}`
+        `/api/v2/payouts/summary/${year}/${month}`
       );
       return response.data;
     } catch (error) {
@@ -269,7 +269,7 @@ export const payoutService = {
   getPayslipHistory: async (employeeId, year) => {
     try {
       const response = await apiClient.get(
-        `/api/payslip/history/${employeeId}?year=${year}`
+        `/api/v2/payslips/history/${employeeId}?year=${year}`
       );
       return response.data;
     } catch (error) {
@@ -286,7 +286,7 @@ export const payoutService = {
     try {
       const data = recipientEmail ? { recipient_email: recipientEmail } : {};
       const response = await apiClient.post(
-        `/api/payslip/email/${payoutId}`,
+        `/api/v2/payslips/email/${payoutId}`,
         data
       );
       return response.data;
@@ -302,7 +302,7 @@ export const payoutService = {
   // Bulk generate payslips (Admin only)
   bulkGeneratePayslips: async (month, year, statusFilter = null) => {
     try {
-      let url = `/api/payslip/generate/bulk?month=${month}&year=${year}`;
+      let url = `/api/v2/payslips/generate/bulk?month=${month}&year=${year}`;
       if (statusFilter) {
         url += `&status_filter=${statusFilter}`;
       }
@@ -321,7 +321,7 @@ export const payoutService = {
   bulkEmailPayslips: async (month, year) => {
     try {
       const response = await apiClient.post(
-        `/api/payslip/email/bulk?month=${month}&year=${year}`
+        `/api/v2/payslips/email/bulk?month=${month}&year=${year}`
       );
       return response.data;
     } catch (error) {
@@ -333,11 +333,11 @@ export const payoutService = {
     }
   },
 
-  // Get employee payout history
+  // Get employee payout history (using v2 endpoint)
   getEmployeePayoutHistory: async (employeeId, year) => {
     try {
       const response = await apiClient.get(
-        `/api/payouts/history/${employeeId}/${year}`
+        `/api/v2/payouts/history/${employeeId}/${year}`
       );
       return response.data;
     } catch (error) {
@@ -349,10 +349,10 @@ export const payoutService = {
     }
   },
 
-  // Get my payout history (using new endpoint)
+  // Get my payout history (using v2 endpoint)
   getMyPayoutHistory: async year => {
     try {
-      const response = await apiClient.get(`/api/payouts/my-history/${year}`);
+      const response = await apiClient.get(`/api/v2/payouts/my-history/${year}`);
       return response.data;
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -363,10 +363,10 @@ export const payoutService = {
     }
   },
 
-  // Create payout schedule
+  // Create payout schedule (using v2 endpoint)
   createPayoutSchedule: async schedule => {
     try {
-      const response = await apiClient.post('/api/payouts/schedule', schedule);
+      const response = await apiClient.post('/api/v2/payouts/schedule', schedule);
       return response.data;
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -382,7 +382,7 @@ export const payoutService = {
     try {
       const data = targetDate ? targetDate : null;
       const response = await apiClient.post(
-        '/api/payouts/process-scheduled',
+        '/api/v2/payouts/process-scheduled',
         data
       );
       return response.data;

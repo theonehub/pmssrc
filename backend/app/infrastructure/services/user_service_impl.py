@@ -7,29 +7,29 @@ import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 
-from application.interfaces.services.user_service import (
+from app.application.interfaces.services.user_service import (
     UserCommandService, UserQueryService, UserAuthenticationService,
     UserAuthorizationService, UserAnalyticsService, UserProfileService,
     UserBulkOperationsService, UserValidationService, UserNotificationService,
     UserService
 )
-from application.interfaces.repositories.user_repository import UserRepository
-from application.use_cases.user.create_user_use_case import CreateUserUseCase
-from application.use_cases.user.authenticate_user_use_case import AuthenticateUserUseCase
-from application.use_cases.user.get_user_use_case import GetUserUseCase
-from application.dto.user_dto import (
+from app.application.interfaces.repositories.user_repository import UserRepository
+from app.application.use_cases.user.create_user_use_case import CreateUserUseCase
+from app.application.use_cases.user.authenticate_user_use_case import AuthenticateUserUseCase
+from app.application.use_cases.user.get_user_use_case import GetUserUseCase
+from app.application.dto.user_dto import (
     CreateUserRequestDTO, UpdateUserRequestDTO, UpdateUserDocumentsRequestDTO,
     ChangeUserPasswordRequestDTO, ChangeUserRoleRequestDTO, UserStatusUpdateRequestDTO,
     UserSearchFiltersDTO, UserLoginRequestDTO, UserResponseDTO, UserSummaryDTO,
     UserListResponseDTO, UserStatisticsDTO, UserAnalyticsDTO, UserLoginResponseDTO,
     UserProfileCompletionDTO, BulkUserUpdateDTO, BulkUserUpdateResultDTO
 )
-from domain.entities.user import User
-from domain.value_objects.employee_id import EmployeeId
-from domain.value_objects.user_credentials import UserRole, UserStatus
-from infrastructure.services.password_service import PasswordService
-from infrastructure.services.notification_service import NotificationService
-from infrastructure.services.file_upload_service import FileUploadService
+from app.domain.entities.user import User
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.user_credentials import UserRole, UserStatus
+from app.infrastructure.services.password_service import PasswordService
+from app.infrastructure.services.notification_service import NotificationService
+from app.infrastructure.services.file_upload_service import FileUploadService
 
 logger = logging.getLogger(__name__)
 

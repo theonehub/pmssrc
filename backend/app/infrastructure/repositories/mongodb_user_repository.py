@@ -11,19 +11,19 @@ from pymongo import ASCENDING, DESCENDING
 from pymongo.errors import DuplicateKeyError
 from pymongo.collection import Collection
 
-from domain.entities.user import User
-from domain.value_objects.employee_id import EmployeeId
-from domain.value_objects.user_credentials import UserRole, UserStatus, Gender
-from application.interfaces.repositories.user_repository import (
+from app.domain.entities.user import User
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.user_credentials import UserRole, UserStatus, Gender
+from app.application.interfaces.repositories.user_repository import (
     UserCommandRepository, UserQueryRepository, UserAnalyticsRepository,
     UserProfileRepository, UserBulkOperationsRepository, UserRepository
 )
-from application.dto.user_dto import (
+from app.application.dto.user_dto import (
     UserSearchFiltersDTO, UserStatisticsDTO, UserAnalyticsDTO,
     UserProfileCompletionDTO
 )
-from infrastructure.database.database_connector import DatabaseConnector
-from domain.events.user_events import UserCreated, UserUpdated, UserDeleted
+from app.infrastructure.database.database_connector import DatabaseConnector
+from app.domain.events.user_events import UserCreated, UserUpdated, UserDeleted
 
 logger = logging.getLogger(__name__)
 

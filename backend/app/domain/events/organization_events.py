@@ -7,9 +7,9 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
 
-from domain.events.employee_events import DomainEvent
-from domain.value_objects.organization_id import OrganizationId
-from domain.value_objects.organization_details import (
+from app.domain.events.employee_events import DomainEvent
+from app.domain.value_objects.organization_id import OrganizationId
+from app.domain.value_objects.organization_details import (
     ContactInformation, Address, TaxInformation, OrganizationType, OrganizationStatus
 )
 

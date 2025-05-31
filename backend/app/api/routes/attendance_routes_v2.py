@@ -6,8 +6,11 @@ Clean API layer following SOLID principles
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from fastapi.responses import JSONResponse
 from typing import List, Optional, Dict, Any
-import logging
 from datetime import datetime
+from app.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 from app.api.controllers.attendance_controller import AttendanceController
 from app.application.dto.attendance_dto import (
@@ -22,9 +25,6 @@ from app.application.dto.attendance_dto import (
 )
 from app.auth.auth import extract_emp_id, extract_hostname, role_checker
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
 # Create router
 router = APIRouter(prefix="/api/v2/attendance", tags=["Attendance V2 (SOLID)"])
 
@@ -32,8 +32,11 @@ router = APIRouter(prefix="/api/v2/attendance", tags=["Attendance V2 (SOLID)"])
 def get_attendance_controller() -> AttendanceController:
     """Dependency injection for attendance controller"""
     try:
+        logger.info("Getting attendance controller from container")
         from app.config.dependency_container import get_dependency_container
+        logger.info("Getting dependency container")
         container = get_dependency_container()
+        logger.info("Getting attendance controller from container")
         return container.get_attendance_controller()
     except Exception as e:
         logger.warning(f"Could not get attendance controller from container: {e}")

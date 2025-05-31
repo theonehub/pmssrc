@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, Dict, Any
 
-from domain.events.base_event import DomainEvent
-from domain.value_objects.employee_id import EmployeeId
-from domain.value_objects.user_credentials import UserRole, UserStatus
+from app.domain.events.base_event import DomainEvent
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.user_credentials import UserRole, UserStatus
 
 
 @dataclass

@@ -6,7 +6,7 @@ Handles data transfer between layers and API validation
 from datetime import datetime, date, time
 from typing import Optional, List, Dict, Any
 from decimal import Decimal
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, model_validator
 from enum import Enum
 
 
@@ -45,23 +45,24 @@ class AttendanceCheckInRequestDTO(BaseModel):
     location: Optional[str] = Field(None, description="Check-in location")
     hostname: Optional[str] = Field(None, description="Hostname")
     
-    @validator('employee_id', pre=True, always=True)
-    def validate_employee_id(cls, v, values):
+    @model_validator(mode='after')
+    def validate_employee_required(self):
+        """Final validation to ensure either employee_id or emp_id is provided"""
         # Use emp_id if employee_id is not provided
-        if not v:
-            v = values.get('emp_id')
-        if not v or not str(v).strip():
+        if not self.employee_id and self.emp_id:
+            self.employee_id = str(self.emp_id).strip()
+        
+        if not self.employee_id or not str(self.employee_id).strip():
             raise ValueError("Employee ID is required")
-        return str(v).strip()
-    
-    @validator('check_in_time', pre=True, always=True)
-    def validate_check_in_time(cls, v, values):
+            
         # Use timestamp if check_in_time is not provided
-        if not v:
-            v = values.get('timestamp')
-        if v and v > datetime.now():
+        if not self.check_in_time and self.timestamp:
+            self.check_in_time = self.timestamp
+            
+        if self.check_in_time and self.check_in_time > datetime.now():
             raise ValueError("Check-in time cannot be in the future")
-        return v
+            
+        return self
 
 
 class AttendanceCheckOutRequestDTO(BaseModel):
@@ -73,23 +74,24 @@ class AttendanceCheckOutRequestDTO(BaseModel):
     location: Optional[str] = Field(None, description="Check-out location")
     hostname: Optional[str] = Field(None, description="Hostname")
     
-    @validator('employee_id', pre=True, always=True)
-    def validate_employee_id(cls, v, values):
+    @model_validator(mode='after')
+    def validate_employee_required(self):
+        """Final validation to ensure either employee_id or emp_id is provided"""
         # Use emp_id if employee_id is not provided
-        if not v:
-            v = values.get('emp_id')
-        if not v or not str(v).strip():
+        if not self.employee_id and self.emp_id:
+            self.employee_id = str(self.emp_id).strip()
+        
+        if not self.employee_id or not str(self.employee_id).strip():
             raise ValueError("Employee ID is required")
-        return str(v).strip()
-    
-    @validator('check_out_time', pre=True, always=True)
-    def validate_check_out_time(cls, v, values):
+            
         # Use timestamp if check_out_time is not provided
-        if not v:
-            v = values.get('timestamp')
-        if v and v > datetime.now():
+        if not self.check_out_time and self.timestamp:
+            self.check_out_time = self.timestamp
+            
+        if self.check_out_time and self.check_out_time > datetime.now():
             raise ValueError("Check-out time cannot be in the future")
-        return v
+            
+        return self
 
 
 class AttendanceBreakRequestDTO(BaseModel):
@@ -101,27 +103,24 @@ class AttendanceBreakRequestDTO(BaseModel):
     break_type: str = Field("start", description="Break type: 'start' or 'end'")
     hostname: Optional[str] = Field(None, description="Hostname")
     
-    @validator('employee_id', pre=True, always=True)
-    def validate_employee_id(cls, v, values):
+    @model_validator(mode='after')
+    def validate_employee_required(self):
+        """Final validation to ensure either employee_id or emp_id is provided"""
         # Use emp_id if employee_id is not provided
-        if not v:
-            v = values.get('emp_id')
-        if not v or not str(v).strip():
+        if not self.employee_id and self.emp_id:
+            self.employee_id = str(self.emp_id).strip()
+        
+        if not self.employee_id or not str(self.employee_id).strip():
             raise ValueError("Employee ID is required")
-        return str(v).strip()
-    
-    @validator('break_time', pre=True, always=True)
-    def validate_break_time(cls, v, values):
+            
         # Use timestamp if break_time is not provided
-        if not v:
-            v = values.get('timestamp')
-        return v
-    
-    @validator('break_type')
-    def validate_break_type(cls, v):
-        if v not in ["start", "end"]:
+        if not self.break_time and self.timestamp:
+            self.break_time = self.timestamp
+            
+        if self.break_type not in ["start", "end"]:
             raise ValueError("Break type must be 'start' or 'end'")
-        return v
+            
+        return self
 
 
 class AttendanceRegularizationRequestDTO(BaseModel):

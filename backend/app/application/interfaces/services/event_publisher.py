@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any, Callable
 from datetime import datetime
 
-from domain.events.base_event import DomainEvent
+from app.domain.events.base_event import DomainEvent
 
 
 class EventPublisher(ABC):

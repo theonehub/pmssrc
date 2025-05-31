@@ -4,21 +4,21 @@ from typing import List, Dict, Optional, Tuple
 from bson import ObjectId
 from fastapi import HTTPException
 
-from database.salary_history_database import get_salary_history_collection
+from app.database.salary_history_database import get_salary_history_collection
 # LEGACY: database.taxation_database has been removed
 # TODO: Replace with SOLID database services when needed
-# from database.taxation_database import get_taxation_collection
-from domain.entities.salary_history import (
+# from app.database.taxation_database import get_taxation_collection
+from app.domain.entities.salary_history import (
     SalaryHistoryCreate, SalaryHistoryInDB, SalaryHistoryUpdate,
     SalaryChangeRequest, SalaryProjection, SalaryChangeReason
 )
-from domain.entities.taxation_models.salary_components import SalaryComponents
+from app.domain.entities.taxation_models.salary_components import SalaryComponents
 # MIGRATION: Replace legacy taxation_service imports with SOLID architecture
-from infrastructure.services.taxation_migration_service import (
+from app.infrastructure.services.taxation_migration_service import (
     TaxationMigrationService,
     LegacyTaxationCalculationRepository
 )
-from application.use_cases.taxation.create_taxation_use_case import CreateTaxationUseCase
+from app.application.use_cases.taxation.create_taxation_use_case import CreateTaxationUseCase
 
 logger = logging.getLogger(__name__)
 

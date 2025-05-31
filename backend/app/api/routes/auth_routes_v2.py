@@ -70,7 +70,7 @@ async def login(
         Login response with token and user info
     """
     try:
-        logger.info(f"Login request for user: {request.username}")
+        logger.info(f"Login request for user: {request.username} @ {request.hostname}")
         
         result = await controller.login(request)
         

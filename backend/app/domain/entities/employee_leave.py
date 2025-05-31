@@ -8,14 +8,14 @@ from typing import Optional, List, Any, Dict
 from datetime import datetime, date
 from uuid import uuid4
 
-from domain.value_objects.employee_id import EmployeeId
-from domain.value_objects.leave_type import LeaveType
-from domain.value_objects.date_range import DateRange
-from domain.events.leave_events import (
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.leave_type import LeaveType
+from app.domain.value_objects.date_range import DateRange
+from app.domain.events.leave_events import (
     EmployeeLeaveApplied, EmployeeLeaveApproved, EmployeeLeaveRejected,
     EmployeeLeaveCancelled, EmployeeLeaveUpdated
 )
-from models.leave_model import LeaveStatus
+from app.models.leave_model import LeaveStatus
 
 
 @dataclass
@@ -128,7 +128,7 @@ class EmployeeLeave:
     ) -> 'EmployeeLeave':
         """Create employee leave from legacy data format"""
         
-        from domain.value_objects.leave_type import LeaveCategory
+        from app.domain.value_objects.leave_type import LeaveCategory
         
         # Convert legacy data to domain objects
         emp_id = EmployeeId(employee_id)

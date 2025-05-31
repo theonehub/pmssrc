@@ -9,9 +9,9 @@ from typing import Optional, List
 from dataclasses import dataclass, field
 from decimal import Decimal
 
-from domain.value_objects.reimbursement_type import ReimbursementType as ReimbursementTypeVO
-from domain.value_objects.reimbursement_amount import ReimbursementAmount
-from domain.events.reimbursement_events import (
+from app.domain.value_objects.reimbursement_type import ReimbursementType as ReimbursementTypeVO
+from app.domain.value_objects.reimbursement_amount import ReimbursementAmount
+from app.domain.events.reimbursement_events import (
     ReimbursementTypeCreated,
     ReimbursementTypeUpdated,
     ReimbursementTypeActivated,

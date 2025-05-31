@@ -7,8 +7,8 @@ import logging
 from typing import Any, List, Dict
 from datetime import datetime
 
-from application.interfaces.services.event_publisher import EventPublisher
-from domain.events.base_event import DomainEvent
+from app.application.interfaces.services.event_publisher import EventPublisher
+from app.domain.events.base_event import DomainEvent
 
 
 logger = logging.getLogger(__name__)

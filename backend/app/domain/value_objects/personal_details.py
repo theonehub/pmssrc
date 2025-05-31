@@ -8,7 +8,7 @@ from typing import Optional
 from datetime import date
 import re
 
-from domain.value_objects.user_credentials import Gender
+from app.domain.value_objects.user_credentials import Gender
 
 
 @dataclass(frozen=True)

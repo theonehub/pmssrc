@@ -16,27 +16,27 @@ def test_basic_imports():
     
     try:
         # Test database connector
-        from infrastructure.database.database_connector import DatabaseConnector
+        from app.infrastructure.database.database_connector import DatabaseConnector
         print("✓ DatabaseConnector imported")
         
         # Test MongoDB connector
-        from infrastructure.database.mongodb_connector import MongoDBConnector
+        from app.infrastructure.database.mongodb_connector import MongoDBConnector
         print("✓ MongoDBConnector imported")
         
         # Test connection factory
-        from infrastructure.database.connection_factory import ConnectionFactory, DatabaseType
+        from app.infrastructure.database.connection_factory import ConnectionFactory, DatabaseType
         print("✓ ConnectionFactory imported")
         
         # Test base repository
-        from infrastructure.repositories.base_repository import BaseRepository
+        from app.infrastructure.repositories.base_repository import BaseRepository
         print("✓ BaseRepository imported")
         
         # Test user repository
-        from infrastructure.repositories.solid_user_repository import SolidUserRepository
+        from app.infrastructure.repositories.solid_user_repository import SolidUserRepository
         print("✓ SolidUserRepository imported")
         
         # Test migration service
-        from infrastructure.services.database_migration_service import DatabaseMigrationService
+        from app.infrastructure.services.database_migration_service import DatabaseMigrationService
         print("✓ DatabaseMigrationService imported")
         
         return True
@@ -50,10 +50,10 @@ def test_object_creation():
     print("\nTesting object creation...")
     
     try:
-        from infrastructure.database.connection_factory import ConnectionFactory, DatabaseType
-        from infrastructure.database.mongodb_connector import MongoDBConnector
-        from infrastructure.repositories.solid_user_repository import SolidUserRepository
-        from infrastructure.services.database_migration_service import DatabaseMigrationService
+        from app.infrastructure.database.connection_factory import ConnectionFactory, DatabaseType
+        from app.infrastructure.database.mongodb_connector import MongoDBConnector
+        from app.infrastructure.repositories.solid_user_repository import SolidUserRepository
+        from app.infrastructure.services.database_migration_service import DatabaseMigrationService
         
         # Test connector creation
         connector = ConnectionFactory.create_connector(
@@ -81,8 +81,8 @@ def test_data_conversion():
     print("\nTesting data conversion...")
     
     try:
-        from infrastructure.database.connection_factory import ConnectionFactory, DatabaseType
-        from infrastructure.repositories.solid_user_repository import SolidUserRepository
+        from app.infrastructure.database.connection_factory import ConnectionFactory, DatabaseType
+        from app.infrastructure.repositories.solid_user_repository import SolidUserRepository
         
         # Create connector and repository
         connector = ConnectionFactory.create_connector(
@@ -154,10 +154,10 @@ def test_solid_principles():
     print("\nTesting SOLID principles...")
     
     try:
-        from infrastructure.database.database_connector import DatabaseConnector
-        from infrastructure.database.mongodb_connector import MongoDBConnector
-        from infrastructure.repositories.base_repository import BaseRepository
-        from infrastructure.repositories.solid_user_repository import SolidUserRepository
+        from app.infrastructure.database.database_connector import DatabaseConnector
+        from app.infrastructure.database.mongodb_connector import MongoDBConnector
+        from app.infrastructure.repositories.base_repository import BaseRepository
+        from app.infrastructure.repositories.solid_user_repository import SolidUserRepository
         
         # Test inheritance (OCP, LSP)
         assert issubclass(MongoDBConnector, DatabaseConnector)

@@ -9,28 +9,28 @@ from typing import List, Dict, Optional, Any
 from datetime import datetime, date
 from io import BytesIO
 
-from application.interfaces.repositories.payout_repository import (
+from app.application.interfaces.repositories.payout_repository import (
     PayoutCommandRepository, PayoutQueryRepository, PayoutAnalyticsRepository
 )
-from application.interfaces.repositories.payslip_repository import (
+from app.application.interfaces.repositories.payslip_repository import (
     PayslipCommandRepository, PayslipQueryRepository, PayslipStorageRepository
 )
-from application.dto.payroll_dto import PayoutSearchFiltersDTO
-from domain.value_objects.payroll_value_objects import PayslipMetadata
-from domain.entities.payout import (
+from app.application.dto.payroll_dto import PayoutSearchFiltersDTO
+from app.domain.value_objects.payroll_value_objects import PayslipMetadata
+from app.domain.entities.payout import (
     PayoutCreate, PayoutUpdate, PayoutInDB, PayoutStatus
 )
 
 # Import dependencies for legacy functionality
 import calendar
-from database.payout_database import PayoutDatabase
-from infrastructure.services.taxation_migration_service import (
+from app.database.payout_database import PayoutDatabase
+from app.infrastructure.services.taxation_migration_service import (
     TaxationMigrationService,
     LegacyTaxationCalculationRepository
 )
-from infrastructure.services.legacy_migration_service import get_user_by_emp_id, get_all_users
-from infrastructure.services.employee_leave_legacy_service import calculate_lwp_for_month
-from domain.entities.payout import (
+from app.infrastructure.services.legacy_migration_service import get_user_by_emp_id, get_all_users
+from app.infrastructure.services.employee_leave_legacy_service import calculate_lwp_for_month
+from app.domain.entities.payout import (
     PayoutCreate, PayoutUpdate, PayoutInDB, PayoutStatus,
     BulkPayoutRequest, BulkPayoutResponse, PayoutSummary,
     PayoutSchedule, PayoutHistory, PayslipData
@@ -566,7 +566,7 @@ def email_payslip_service(payout_id: str, hostname: str, recipient_email: Option
         
         # Get organization details for email
         try:
-            from infrastructure.services.legacy_migration_service import get_organisation_by_hostname_sync as get_organisation_by_hostname
+            from app.infrastructure.services.legacy_migration_service import get_organisation_by_hostname_sync as get_organisation_by_hostname
             organization = get_organisation_by_hostname(hostname)
             company_name = organization.name if organization else "Company"
         except:
@@ -827,7 +827,7 @@ class PayoutCommandRepositoryImpl(PayoutCommandRepository):
         """Create multiple payout records in bulk"""
         try:
             # Convert to legacy bulk request format
-            from domain.entities.payout import BulkPayoutRequest
+            from app.domain.entities.payout import BulkPayoutRequest
             
             if not payouts:
                 return []
@@ -972,7 +972,7 @@ class PayoutQueryRepositoryImpl(PayoutQueryRepository):
                                    pay_period_end: date, hostname: str) -> bool:
         """Check if payout already exists for employee and period"""
         try:
-            from database.payout_database import PayoutDatabase
+            from app.database.payout_database import PayoutDatabase
             payout_db = PayoutDatabase(hostname)
             return payout_db.check_duplicate_payout(employee_id, pay_period_start, pay_period_end)
         except Exception as e:

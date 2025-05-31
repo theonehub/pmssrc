@@ -8,11 +8,11 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field
 
-from domain.value_objects.organization_id import OrganizationId
-from domain.value_objects.organization_details import (
+from app.domain.value_objects.organization_id import OrganizationId
+from app.domain.value_objects.organization_details import (
     ContactInformation, Address, TaxInformation, OrganizationType, OrganizationStatus
 )
-from domain.events.organization_events import (
+from app.domain.events.organization_events import (
     OrganizationCreated, OrganizationUpdated, OrganizationActivated,
     OrganizationDeactivated, OrganizationSuspended, OrganizationContactUpdated,
     OrganizationAddressUpdated, OrganizationTaxInfoUpdated,

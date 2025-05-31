@@ -3,18 +3,18 @@ Dependency Injection Container
 SOLID-compliant dependency container for managing service dependencies
 """
 
-import logging
 from typing import Optional
 
-from infrastructure.repositories.mongodb_user_repository import MongoDBUserRepository
-from infrastructure.services.user_service_impl import UserServiceImpl
-from infrastructure.services.password_service import PasswordService
-from infrastructure.services.notification_service import EmailNotificationService, CompositeNotificationService
-from infrastructure.services.file_upload_service import LocalFileUploadService, FileUploadServiceFactory
-from infrastructure.database.database_connector import DatabaseConnector, MongoDBConnector
+from app.infrastructure.repositories.mongodb_user_repository import MongoDBUserRepository
+from app.infrastructure.services.user_service_impl import UserServiceImpl
+from app.infrastructure.services.password_service import PasswordService
+from app.infrastructure.services.notification_service import EmailNotificationService, CompositeNotificationService
+from app.infrastructure.services.file_upload_service import LocalFileUploadService, FileUploadServiceFactory
+from app.infrastructure.database.database_connector import DatabaseConnector, MongoDBConnector
+from app.utils.logger import get_logger
 # from api.controllers.user_controller import UserController  # Import when needed
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class DependencyContainer:
@@ -121,9 +121,9 @@ class DependencyContainer:
         )
         
         # Organization service
-        from infrastructure.services.organization_service_impl import OrganizationServiceImpl
-        from infrastructure.repositories.mongodb_organization_repository import MongoDBOrganizationRepository
-        from infrastructure.services.event_publisher_impl import EventPublisherImpl
+        from app.infrastructure.services.organization_service_impl import OrganizationServiceImpl
+        from app.infrastructure.repositories.mongodb_organization_repository import MongoDBOrganizationRepository
+        from app.infrastructure.services.event_publisher_impl import EventPublisherImpl
         
         organization_repo = MongoDBOrganizationRepository(self._database_connector)
         event_publisher = EventPublisherImpl()
@@ -180,7 +180,7 @@ class DependencyContainer:
         self.initialize()
         
         # Import here to avoid circular imports
-        from api.controllers.user_controller import UserController
+        from app.api.controllers.user_controller import UserController
         
         if 'user' not in self._controllers:
             self._controllers['user'] = UserController(
@@ -195,7 +195,7 @@ class DependencyContainer:
         self.initialize()
         
         # Import here to avoid circular imports
-        from api.controllers.reimbursement_controller import ReimbursementController
+        from app.api.controllers.reimbursement_controller import ReimbursementController
         
         if 'reimbursement' not in self._controllers:
             self._controllers['reimbursement'] = ReimbursementController(
@@ -213,7 +213,7 @@ class DependencyContainer:
         self.initialize()
         
         # Import here to avoid circular imports
-        from api.controllers.public_holiday_controller import PublicHolidayController
+        from app.api.controllers.public_holiday_controller import PublicHolidayController
         
         if 'public_holiday' not in self._controllers:
             self._controllers['public_holiday'] = PublicHolidayController(
@@ -231,7 +231,7 @@ class DependencyContainer:
         self.initialize()
         
         # Import here to avoid circular imports
-        from api.controllers.company_leave_controller import CompanyLeaveController
+        from app.api.controllers.company_leave_controller import CompanyLeaveController
         
         if 'company_leave' not in self._controllers:
             self._controllers['company_leave'] = CompanyLeaveController(
@@ -249,7 +249,7 @@ class DependencyContainer:
         self.initialize()
         
         # Import here to avoid circular imports
-        from api.controllers.attendance_controller import AttendanceController
+        from app.api.controllers.attendance_controller import AttendanceController
         
         if 'attendance' not in self._controllers:
             self._controllers['attendance'] = AttendanceController(
@@ -264,9 +264,9 @@ class DependencyContainer:
     # Private helper methods for reimbursement use cases
     def _get_create_reimbursement_type_use_case(self):
         """Get create reimbursement type use case"""
-        from application.use_cases.reimbursement.create_reimbursement_type_use_case import CreateReimbursementTypeUseCase
-        from infrastructure.repositories.mongodb_reimbursement_repository import MongoDBReimbursementRepository
-        from infrastructure.services.event_publisher_impl import EventPublisherImpl
+        from app.application.use_cases.reimbursement.create_reimbursement_type_use_case import CreateReimbursementTypeUseCase
+        from app.infrastructure.repositories.mongodb_reimbursement_repository import MongoDBReimbursementRepository
+        from app.infrastructure.services.event_publisher_impl import EventPublisherImpl
         
         reimbursement_repo = MongoDBReimbursementRepository(self._database_connector.get_database())
         event_publisher = EventPublisherImpl()
@@ -280,9 +280,9 @@ class DependencyContainer:
     
     def _get_create_reimbursement_request_use_case(self):
         """Get create reimbursement request use case"""
-        from application.use_cases.reimbursement.create_reimbursement_request_use_case import CreateReimbursementRequestUseCase
-        from infrastructure.repositories.mongodb_reimbursement_repository import MongoDBReimbursementRepository
-        from infrastructure.services.event_publisher_impl import EventPublisherImpl
+        from app.application.use_cases.reimbursement.create_reimbursement_request_use_case import CreateReimbursementRequestUseCase
+        from app.infrastructure.repositories.mongodb_reimbursement_repository import MongoDBReimbursementRepository
+        from app.infrastructure.services.event_publisher_impl import EventPublisherImpl
         
         reimbursement_repo = MongoDBReimbursementRepository(self._database_connector.get_database())
         event_publisher = EventPublisherImpl()
@@ -298,9 +298,9 @@ class DependencyContainer:
     
     def _get_approve_reimbursement_request_use_case(self):
         """Get approve reimbursement request use case"""
-        from application.use_cases.reimbursement.approve_reimbursement_request_use_case import ApproveReimbursementRequestUseCase
-        from infrastructure.repositories.mongodb_reimbursement_repository import MongoDBReimbursementRepository
-        from infrastructure.services.event_publisher_impl import EventPublisherImpl
+        from app.application.use_cases.reimbursement.approve_reimbursement_request_use_case import ApproveReimbursementRequestUseCase
+        from app.infrastructure.repositories.mongodb_reimbursement_repository import MongoDBReimbursementRepository
+        from app.infrastructure.services.event_publisher_impl import EventPublisherImpl
         
         reimbursement_repo = MongoDBReimbursementRepository(self._database_connector.get_database())
         event_publisher = EventPublisherImpl()
@@ -316,8 +316,8 @@ class DependencyContainer:
     
     def _get_get_reimbursement_requests_use_case(self):
         """Get reimbursement requests use case"""
-        from application.use_cases.reimbursement.get_reimbursement_requests_use_case import GetReimbursementRequestsUseCase
-        from infrastructure.repositories.mongodb_reimbursement_repository import MongoDBReimbursementRepository
+        from app.application.use_cases.reimbursement.get_reimbursement_requests_use_case import GetReimbursementRequestsUseCase
+        from app.infrastructure.repositories.mongodb_reimbursement_repository import MongoDBReimbursementRepository
         
         reimbursement_repo = MongoDBReimbursementRepository(self._database_connector.get_database())
         
@@ -329,9 +329,9 @@ class DependencyContainer:
     
     def _get_process_reimbursement_payment_use_case(self):
         """Get process reimbursement payment use case"""
-        from application.use_cases.reimbursement.process_reimbursement_payment_use_case import ProcessReimbursementPaymentUseCase
-        from infrastructure.repositories.mongodb_reimbursement_repository import MongoDBReimbursementRepository
-        from infrastructure.services.event_publisher_impl import EventPublisherImpl
+        from app.application.use_cases.reimbursement.process_reimbursement_payment_use_case import ProcessReimbursementPaymentUseCase
+        from app.infrastructure.repositories.mongodb_reimbursement_repository import MongoDBReimbursementRepository
+        from app.infrastructure.services.event_publisher_impl import EventPublisherImpl
         
         reimbursement_repo = MongoDBReimbursementRepository(self._database_connector.get_database())
         event_publisher = EventPublisherImpl()
@@ -344,6 +344,93 @@ class DependencyContainer:
             event_publisher=event_publisher,
             notification_service=self._notification_service
         )
+    
+    # Attendance use case methods
+    def _get_attendance_checkin_use_case(self):
+        """Get attendance check-in use case"""
+        try:
+            from app.application.use_cases.attendance.check_in_use_case import CheckInUseCase
+            from app.infrastructure.repositories.solid_attendance_repository import SolidAttendanceRepository
+            from app.infrastructure.services.event_publisher_impl import EventPublisherImpl
+            
+            attendance_repo = SolidAttendanceRepository(self._database_connector)
+            event_publisher = EventPublisherImpl()
+            
+            return CheckInUseCase(
+                attendance_command_repository=attendance_repo,
+                attendance_query_repository=attendance_repo,
+                employee_repository=self._repositories['user'],
+                event_publisher=event_publisher,
+                notification_service=self._notification_service
+            )
+        except ImportError as e:
+            logger.warning(f"CheckInUseCase not available, returning None. Import error: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Error creating CheckInUseCase: {e}")
+            return None
+    
+    def _get_attendance_checkout_use_case(self):
+        """Get attendance check-out use case"""
+        try:
+            from app.application.use_cases.attendance.check_in_use_case import CheckInUseCase
+            from app.infrastructure.repositories.solid_attendance_repository import SolidAttendanceRepository
+            from app.infrastructure.services.event_publisher_impl import EventPublisherImpl
+            
+            attendance_repo = SolidAttendanceRepository(self._database_connector)
+            event_publisher = EventPublisherImpl()
+            
+            return CheckInUseCase(
+                attendance_command_repository=attendance_repo,
+                attendance_query_repository=attendance_repo,
+                employee_repository=self._repositories['user'],
+                event_publisher=event_publisher,
+                notification_service=self._notification_service
+            )
+        except ImportError as e:
+            logger.warning(f"CheckInUseCase not available, returning None. Import error: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Error creating CheckInUseCase: {e}")
+            return None
+    
+    def _get_attendance_query_use_case(self):
+        """Get attendance query use case"""
+        try:
+            from app.application.use_cases.attendance.get_attendance_use_case import GetAttendanceUseCase
+            from app.infrastructure.repositories.solid_attendance_repository import SolidAttendanceRepository
+            
+            attendance_repo = SolidAttendanceRepository(self._database_connector)
+            
+            return GetAttendanceUseCase(
+                attendance_query_repository=attendance_repo,
+                employee_repository=self._repositories['user']
+            )
+        except ImportError as e:
+            logger.warning(f"GetAttendanceUseCase not available, returning None. Import error: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Error creating GetAttendanceUseCase: {e}")
+            return None
+    
+    def _get_attendance_analytics_use_case(self):
+        """Get attendance analytics use case"""
+        try:
+            from app.application.use_cases.attendance.get_attendance_analytics_use_case import GetAttendanceAnalyticsUseCase
+            from app.infrastructure.repositories.solid_attendance_repository import SolidAttendanceRepository
+            
+            attendance_repo = SolidAttendanceRepository(self._database_connector)
+            
+            return GetAttendanceAnalyticsUseCase(
+                analytics_repository=attendance_repo,
+                attendance_query_repository=attendance_repo
+            )
+        except ImportError as e:
+            logger.warning(f"GetAttendanceAnalyticsUseCase not available, returning None. Import error: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Error creating GetAttendanceAnalyticsUseCase: {e}")
+            return None
     
     # Infrastructure getters
     def get_database_connector(self) -> DatabaseConnector:
@@ -403,10 +490,10 @@ class DependencyContainer:
 
     def get_project_attributes_controller(self):
         """Get project attributes controller with dependencies"""
-        from api.controllers.project_attributes_controller import ProjectAttributesController
-        from application.use_cases.project_attributes.create_project_attributes_use_case import CreateProjectAttributesUseCase
-        from application.use_cases.project_attributes.get_project_attributes_use_case import GetProjectAttributesUseCase
-        from infrastructure.repositories.project_attributes_repository_impl import ProjectAttributesRepositoryImpl
+        from app.api.controllers.project_attributes_controller import ProjectAttributesController
+        from app.application.use_cases.project_attributes.create_project_attributes_use_case import CreateProjectAttributesUseCase
+        from app.application.use_cases.project_attributes.get_project_attributes_use_case import GetProjectAttributesUseCase
+        from app.infrastructure.repositories.project_attributes_repository_impl import ProjectAttributesRepositoryImpl
         
         repository = ProjectAttributesRepositoryImpl(self.get_database_connector())
         
@@ -424,11 +511,11 @@ class DependencyContainer:
 
     def get_employee_leave_controller(self):
         """Get employee leave controller with dependencies"""
-        from api.controllers.employee_leave_controller import EmployeeLeaveController
-        from application.use_cases.employee_leave.apply_employee_leave_use_case import ApplyEmployeeLeaveUseCase
-        from application.use_cases.employee_leave.approve_employee_leave_use_case import ApproveEmployeeLeaveUseCase
-        from application.use_cases.employee_leave.get_employee_leaves_use_case import GetEmployeeLeavesUseCase
-        from infrastructure.repositories.employee_leave_repository_wrapper import (
+        from app.api.controllers.employee_leave_controller import EmployeeLeaveController
+        from app.application.use_cases.employee_leave.apply_employee_leave_use_case import ApplyEmployeeLeaveUseCase
+        from app.application.use_cases.employee_leave.approve_employee_leave_use_case import ApproveEmployeeLeaveUseCase
+        from app.application.use_cases.employee_leave.get_employee_leaves_use_case import GetEmployeeLeavesUseCase
+        from app.infrastructure.repositories.employee_leave_repository_wrapper import (
             EmployeeLeaveCommandRepositoryWrapper,
             EmployeeLeaveQueryRepositoryWrapper,
             EmployeeLeaveBalanceRepositoryWrapper,
@@ -473,12 +560,12 @@ class DependencyContainer:
 
     def _get_company_leave_query_repository(self):
         """Get company leave query repository"""
-        from infrastructure.repositories.company_leave_repository_impl import CompanyLeaveQueryRepositoryImpl
+        from app.infrastructure.repositories.company_leave_repository_impl import CompanyLeaveQueryRepositoryImpl
         return CompanyLeaveQueryRepositoryImpl(self.get_database_connector())
 
     def get_event_publisher(self):
         """Get event publisher"""
-        from infrastructure.services.event_publisher_impl import EventPublisherImpl
+        from app.infrastructure.services.event_publisher_impl import EventPublisherImpl
         return EventPublisherImpl()
     
     def get_payout_controller(self):
@@ -486,7 +573,7 @@ class DependencyContainer:
         self.initialize()
         
         # Import here to avoid circular imports
-        from api.controllers.payout_controller import PayoutController
+        from app.api.controllers.payout_controller import PayoutController
         
         if 'payout' not in self._controllers:
             self._controllers['payout'] = PayoutController()
@@ -498,7 +585,7 @@ class DependencyContainer:
         self.initialize()
         
         # Import here to avoid circular imports
-        from api.controllers.payslip_controller import PayslipController
+        from app.api.controllers.payslip_controller import PayslipController
         
         if 'payslip' not in self._controllers:
             self._controllers['payslip'] = PayslipController()
@@ -594,6 +681,12 @@ def get_payslip_controller():
     """FastAPI dependency for payslip controller."""
     container = get_dependency_container()
     return container.get_payslip_controller()
+
+
+def get_attendance_controller():
+    """FastAPI dependency for attendance controller."""
+    container = get_dependency_container()
+    return container.get_attendance_controller()
 
 
 # Configuration management

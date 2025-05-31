@@ -8,8 +8,8 @@ from datetime import date, datetime
 from typing import Optional
 from abc import ABC
 
-from domain.value_objects.employee_id import EmployeeId
-from domain.value_objects.money import Money
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.money import Money
 
 
 class DomainEvent(ABC):

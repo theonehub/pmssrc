@@ -3,7 +3,6 @@ SOLID-Compliant Attendance Controller
 Handles attendance-related HTTP operations with proper dependency injection
 """
 
-import logging
 from typing import List, Optional
 from datetime import datetime
 
@@ -17,8 +16,9 @@ from app.application.dto.attendance_dto import (
     AttendanceBusinessRuleError,
     AttendanceNotFoundError
 )
+from app.utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class AttendanceController:

@@ -3,7 +3,6 @@ SOLID-Compliant Auth Controller
 Handles HTTP requests for authentication operations
 """
 
-import logging
 from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
 
@@ -15,9 +14,9 @@ from app.application.dto.auth_dto import (
     SessionInfoResponseDTO, AuthHealthResponseDTO, AuthErrorResponseDTO
 )
 from app.auth.jwt_handler import create_access_token, decode_access_token
+from app.utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger = get_logger(__name__)
 
 
 class AuthController:
@@ -82,7 +81,7 @@ class AuthController:
             Login response with token and user info
         """
         try:
-            logger.info(f"Login attempt for user: {request.username} @ {request.hostname}")
+            logger.debug(f"Login attempt for user: {request.username} @ {request.hostname}")
             
             # Get database connection
             from app.config.mongodb_config import get_mongodb_connection_string, get_mongodb_client_options
@@ -91,7 +90,7 @@ class AuthController:
             
             connector = MongoDBConnector()
             connection_string = get_mongodb_connection_string()
-            logger.info(f"Connection string: {connection_string}")
+            logger.debug(f"Connection string: {connection_string}")
             options = get_mongodb_client_options()
             
             await connector.connect(connection_string, **options)
@@ -148,7 +147,7 @@ class AuthController:
                 "role": user.get("role", "user"),
                 "hostname": request.hostname,
                 "permissions": permissions,
-                "iat": datetime.utcnow().timestamp(),  # Issued at
+                "iat": datetime.now().timestamp(),  # Issued at
                 "type": "access_token"
             }
             

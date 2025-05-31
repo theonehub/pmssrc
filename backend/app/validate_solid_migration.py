@@ -22,18 +22,18 @@ def test_imports():
     
     try:
         # Test database layer imports
-        from infrastructure.database.database_connector import DatabaseConnector
-        from infrastructure.database.mongodb_connector import MongoDBConnector
-        from infrastructure.database.connection_factory import ConnectionFactory, DatabaseType
+        from app.infrastructure.database.database_connector import DatabaseConnector
+        from app.infrastructure.database.mongodb_connector import MongoDBConnector
+        from app.infrastructure.database.connection_factory import ConnectionFactory, DatabaseType
         print("✓ Database layer imports successful")
         
         # Test repository imports
-        from infrastructure.repositories.base_repository import BaseRepository
-        from infrastructure.repositories.solid_user_repository import SolidUserRepository
+        from app.infrastructure.repositories.base_repository import BaseRepository
+        from app.infrastructure.repositories.solid_user_repository import SolidUserRepository
         print("✓ Repository layer imports successful")
         
         # Test service imports
-        from infrastructure.services.database_migration_service import DatabaseMigrationService
+        from app.infrastructure.services.database_migration_service import DatabaseMigrationService
         print("✓ Service layer imports successful")
         
         # Test config import
@@ -52,7 +52,7 @@ def test_basic_functionality():
     
     try:
         # Test connection factory
-        from infrastructure.database.connection_factory import ConnectionFactory, DatabaseType
+        from app.infrastructure.database.connection_factory import ConnectionFactory, DatabaseType
         
         connector = ConnectionFactory.create_connector(
             DatabaseType.MONGODB, 
@@ -61,7 +61,7 @@ def test_basic_functionality():
         print("✓ Connection factory works")
         
         # Test user repository creation
-        from infrastructure.repositories.solid_user_repository import SolidUserRepository
+        from app.infrastructure.repositories.solid_user_repository import SolidUserRepository
         user_repo = SolidUserRepository(connector)
         print("✓ User repository creation works")
         
@@ -128,7 +128,7 @@ async def test_async_functionality():
     print("\nTesting async functionality...")
     
     try:
-        from infrastructure.database.mongodb_connector import MongoDBConnector
+        from app.infrastructure.database.mongodb_connector import MongoDBConnector
         
         # Create connector (don't connect)
         connector = MongoDBConnector()
@@ -140,7 +140,7 @@ async def test_async_functionality():
         print("✓ Async methods exist on connector")
         
         # Test repository async methods
-        from infrastructure.repositories.solid_user_repository import SolidUserRepository
+        from app.infrastructure.repositories.solid_user_repository import SolidUserRepository
         user_repo = SolidUserRepository(connector)
         
         assert hasattr(user_repo, 'save')
@@ -159,10 +159,10 @@ def test_solid_principles():
     print("\nTesting SOLID principles...")
     
     try:
-        from infrastructure.database.database_connector import DatabaseConnector
-        from infrastructure.database.mongodb_connector import MongoDBConnector
-        from infrastructure.repositories.base_repository import BaseRepository
-        from infrastructure.repositories.solid_user_repository import SolidUserRepository
+        from app.infrastructure.database.database_connector import DatabaseConnector
+        from app.infrastructure.database.mongodb_connector import MongoDBConnector
+        from app.infrastructure.repositories.base_repository import BaseRepository
+        from app.infrastructure.repositories.solid_user_repository import SolidUserRepository
         
         # Test SRP: Single Responsibility
         # Each class should have one reason to change

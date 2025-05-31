@@ -4,15 +4,14 @@ Main entity for attendance management following DDD patterns
 """
 
 import uuid
-import logging
 from datetime import datetime, date, time
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field
 
-from domain.value_objects.employee_id import EmployeeId
-from domain.value_objects.attendance_status import AttendanceStatus, AttendanceStatusType, AttendanceMarkingType
-from domain.value_objects.working_hours import WorkingHours, TimeSlot
-from domain.events.attendance_events import (
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.attendance_status import AttendanceStatus, AttendanceStatusType, AttendanceMarkingType
+from app.domain.value_objects.working_hours import WorkingHours, TimeSlot
+from app.domain.events.attendance_events import (
     AttendanceCheckedInEvent,
     AttendanceCheckedOutEvent,
     AttendanceRegularizedEvent,
@@ -21,9 +20,9 @@ from domain.events.attendance_events import (
     BreakStartedEvent,
     BreakEndedEvent
 )
+from app.utils.logger import get_logger
 
-
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass

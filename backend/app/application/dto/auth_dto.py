@@ -40,7 +40,7 @@ class LoginRequestDTO(BaseModel):
             "example": {
                 "username": "EMP001",
                 "password": "securepassword123",
-                "hostname": "company.com",
+                "hostname": "company",
                 "remember_me": False
             }
         }

@@ -1,0 +1,2 @@
+2025-05-30 06:51:58 [INFO] database_operations:68 - demonstrate_custom_logger(): Database connection established
+2025-05-30 06:51:58 [DEBUG] database_operations:69 - demonstrate_custom_logger(): Executing query: SELECT * FROM users

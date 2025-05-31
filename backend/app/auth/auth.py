@@ -1,12 +1,12 @@
-import logging
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from app.config import JWT_SECRET_KEY, JWT_ALGORITHM
+from app.config.settings import SECRET_KEY as JWT_SECRET_KEY, ALGORITHM as JWT_ALGORITHM
 from typing import List
+from app.utils.logger import get_logger
 
 # Set up a logger for this module.
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # OAuth2 scheme to extract token from requests.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")

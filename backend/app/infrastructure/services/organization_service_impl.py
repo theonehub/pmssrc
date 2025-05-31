@@ -7,7 +7,7 @@ import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-from application.interfaces.services.organization_service import (
+from app.application.interfaces.services.organization_service import (
     OrganizationCommandService,
     OrganizationQueryService,
     OrganizationAnalyticsService,
@@ -17,9 +17,9 @@ from application.interfaces.services.organization_service import (
     OrganizationNotificationService,
     OrganizationService
 )
-from application.interfaces.repositories.organization_repository import OrganizationRepository
-from application.interfaces.services.event_publisher import EventPublisher
-from application.dto.organization_dto import (
+from app.application.interfaces.repositories.organization_repository import OrganizationRepository
+from app.application.interfaces.services.event_publisher import EventPublisher
+from app.application.dto.organization_dto import (
     CreateOrganizationRequestDTO,
     UpdateOrganizationRequestDTO,
     OrganizationStatusUpdateRequestDTO,
@@ -37,9 +37,9 @@ from application.dto.organization_dto import (
     OrganizationNotFoundError,
     OrganizationConflictError
 )
-from domain.entities.organization import Organization
-from domain.value_objects.organization_id import OrganizationId
-from domain.value_objects.organization_details import (
+from app.domain.entities.organization import Organization
+from app.domain.value_objects.organization_id import OrganizationId
+from app.domain.value_objects.organization_details import (
     OrganizationType, OrganizationStatus, ContactInformation, 
     Address, TaxInformation
 )

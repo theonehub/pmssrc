@@ -8,6 +8,9 @@ from bson import ObjectId
 import json
 import os
 
+# Import centralized logger
+from app.utils.logger import get_logger
+
 # from app.infrastructure.services.legacy_migration_service import create_default_user
 
 # Simplified default user creation for now
@@ -37,15 +40,11 @@ except ImportError:
     print("Info: Reimbursement routes v2 not available - continuing without them")
 
 try:
-    from app.api.routes.attendance_routes_v2_minimal import router as attendance_routes_v2_router
+    from app.api.routes.attendance_routes_v2 import router as attendance_routes_v2_router
     ATTENDANCE_ROUTES_V2_AVAILABLE = True
-except ImportError:
-    try:
-        from app.api.routes.attendance_routes_v2 import router as attendance_routes_v2_router
-        ATTENDANCE_ROUTES_V2_AVAILABLE = True
-    except ImportError:
-        ATTENDANCE_ROUTES_V2_AVAILABLE = False
-        print("Info: Attendance routes v2 not available - continuing without them")
+except ImportError as e:
+    ATTENDANCE_ROUTES_V2_AVAILABLE = False
+    print(f"Info: Attendance routes v2 not available - {e}")
 
 try:
     from app.api.routes.public_holiday_routes_v2 import router as public_holiday_routes_v2_router
@@ -123,12 +122,8 @@ def mongodb_jsonable_encoder(obj):
     """Mock encoder"""
     return obj
 
-# Configure the root logger.
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s [%(name)s:%(lineno)d]: %(message)s",
-)
-logger = logging.getLogger(__name__)
+# Configure centralized logging
+logger = get_logger(__name__)
 
 # 👇 Define lifespan function
 @asynccontextmanager

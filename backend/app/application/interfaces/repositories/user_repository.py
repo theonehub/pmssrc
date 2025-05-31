@@ -7,10 +7,10 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-from domain.entities.user import User
-from domain.value_objects.employee_id import EmployeeId
-from domain.value_objects.user_credentials import UserRole, UserStatus, Gender
-from application.dto.user_dto import (
+from app.domain.entities.user import User
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.user_credentials import UserRole, UserStatus, Gender
+from app.application.dto.user_dto import (
     UserSearchFiltersDTO, UserStatisticsDTO, 
     UserAnalyticsDTO, UserProfileCompletionDTO
 )

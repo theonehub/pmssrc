@@ -1,14 +1,14 @@
 import logging
 from datetime import datetime, timedelta
 from fastapi import HTTPException
-from models.leave_model import EmployeeLeave, LeaveStatus
-#from database.database_connector import employee_leave_collection, user_collection, public_holidays_collection, attendance_collection
+from app.models.leave_model import EmployeeLeave, LeaveStatus
+#from app.database.database_connector import employee_leave_collection, user_collection, public_holidays_collection, attendance_collection
 from uuid import uuid4
-from infrastructure.services.legacy_migration_service import (
+from app.infrastructure.services.legacy_migration_service import (
     get_user_by_emp_id, update_user_leave_balance, get_users_by_manager_id, is_public_holiday_sync
 )
 # Note: attendance_service functions moved to SOLID architecture - using alternative implementation
-from database.employee_leave_database import(
+from app.database.employee_leave_database import(
      create_employee_leave as create_employee_leave_db,
      get_employee_leave_by_id as get_employee_leave_by_id_db,
      get_employee_leaves_by_emp_id as get_employee_leaves_by_emp_id_db,

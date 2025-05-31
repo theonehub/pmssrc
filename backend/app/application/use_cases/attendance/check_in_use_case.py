@@ -3,15 +3,14 @@ Check-In Use Case
 Handles employee check-in operations with business rules and validation
 """
 
-import logging
 from datetime import datetime, date
 from typing import Optional
 
-from domain.entities.attendance import Attendance
-from domain.value_objects.employee_id import EmployeeId
-from domain.value_objects.attendance_status import AttendanceStatus, AttendanceMarkingType
-from domain.value_objects.working_hours import WorkingHours
-from application.dto.attendance_dto import (
+from app.domain.entities.attendance import Attendance
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.attendance_status import AttendanceStatus, AttendanceMarkingType
+from app.domain.value_objects.working_hours import WorkingHours
+from app.application.dto.attendance_dto import (
     AttendanceCheckInRequestDTO,
     AttendanceResponseDTO,
     AttendanceValidationError,
@@ -19,16 +18,16 @@ from application.dto.attendance_dto import (
     WorkingHoursResponseDTO,
     AttendanceStatusResponseDTO
 )
-from application.interfaces.repositories.attendance_repository import (
+from app.application.interfaces.repositories.attendance_repository import (
     AttendanceCommandRepository,
     AttendanceQueryRepository
 )
-from application.interfaces.repositories.employee_repository import EmployeeQueryRepository
-from application.interfaces.services.event_publisher import EventPublisher
-from application.interfaces.services.notification_service import NotificationService
+from app.application.interfaces.repositories.employee_repository import EmployeeQueryRepository
+from app.application.interfaces.services.event_publisher import EventPublisher
+from app.application.interfaces.services.notification_service import NotificationService
+from app.utils.logger import get_logger
 
-
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class CheckInUseCase:

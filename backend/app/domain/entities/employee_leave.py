@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Optional, List, Any, Dict
 from datetime import datetime, date
 from uuid import uuid4
+from enum import Enum
 
 from app.domain.value_objects.employee_id import EmployeeId
 from app.domain.value_objects.leave_type import LeaveType
@@ -15,7 +16,13 @@ from app.domain.events.leave_events import (
     EmployeeLeaveApplied, EmployeeLeaveApproved, EmployeeLeaveRejected,
     EmployeeLeaveCancelled, EmployeeLeaveUpdated
 )
-from app.models.leave_model import LeaveStatus
+
+# Define LeaveStatus as proper enum
+class LeaveStatus(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved" 
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
 
 
 @dataclass

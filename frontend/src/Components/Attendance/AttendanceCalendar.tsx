@@ -38,14 +38,14 @@ interface LeaveRecord {
 }
 
 interface AttendanceCalendarProps {
-  emp_id: string;
+  employee_id: string;
   show: boolean;
   onHide: () => void;
 }
 
 type AttendanceStatus = 'empty' | 'present' | 'absent' | 'public_holiday' | 'approved' | 'pending' | 'rejected';
 
-const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ emp_id, show, onHide }) => {
+const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ employee_id, show, onHide }) => {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
@@ -58,13 +58,13 @@ const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ emp_id, show, o
       const month = currentDate.getMonth() + 1;
       const year = currentDate.getFullYear();
       
-      const response = await axios.get<AttendanceRecord[]>(`/attendance/user/${emp_id}/${month}/${year}`);
+      const response = await axios.get<AttendanceRecord[]>(`/attendance/user/${employee_id}/${month}/${year}`);
       setAttendanceData(response.data);
       
       const holidayResponse = await axios.get<Holiday[]>(`/public-holidays/month/${month}/${year}`);
       setHolidays(holidayResponse.data);
       
-      const leaveResponse = await axios.get<LeaveRecord[]>(`/leaves/user/${emp_id}/${month}/${year}`);
+      const leaveResponse = await axios.get<LeaveRecord[]>(`/leaves/user/${employee_id}/${month}/${year}`);
       setLeaves(leaveResponse.data);
       
       if (process.env.NODE_ENV === 'development') {
@@ -79,13 +79,13 @@ const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ emp_id, show, o
     } finally {
       setLoading(false);
     }
-  }, [emp_id, currentDate]);
+  }, [employee_id, currentDate]);
 
   useEffect(() => {
-    if (show && emp_id) {
+    if (show && employee_id) {
       fetchAttendanceData();
     }
-  }, [show, emp_id, fetchAttendanceData]);
+  }, [show, employee_id, fetchAttendanceData]);
 
   const getDaysInMonth = (date: Date): (Date | null)[] => {
     const year = date.getFullYear();
@@ -276,7 +276,7 @@ const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ emp_id, show, o
                 } 
               }}
             >
-              Attendance Calendar - {emp_id}
+              Attendance Calendar - {employee_id}
             </Typography>
             <IconButton onClick={onHide} size="small">
               <CloseIcon />

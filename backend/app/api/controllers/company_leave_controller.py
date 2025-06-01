@@ -29,7 +29,7 @@ from app.infrastructure.repositories.mongodb_company_leave_repository import (
     MongoDBCompanyLeaveAnalyticsRepository
 )
 from app.infrastructure.services.mongodb_event_publisher import MongoDBEventPublisher
-from auth.auth import extract_hostname, role_checker
+from app.auth.auth import extract_hostname, role_checker
 
 
 class CompanyLeaveController:

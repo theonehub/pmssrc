@@ -19,9 +19,8 @@ from app.application.interfaces.repositories.employee_leave_repository import (
     EmployeeLeaveAnalyticsRepository,
     EmployeeLeaveBalanceRepository
 )
-from app.domain.entities.employee_leave import EmployeeLeave
+from app.domain.entities.employee_leave import EmployeeLeave, LeaveStatus
 from app.domain.value_objects.employee_id import EmployeeId
-from models.leave_model import LeaveStatus
 
 
 class GetEmployeeLeavesUseCase:

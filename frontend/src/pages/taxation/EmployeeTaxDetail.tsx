@@ -33,7 +33,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 
 // Local interface for taxation data
 interface LocalTaxationData {
-  emp_id: string;
+  employee_id: string;
   employee_name?: string;
   pan_number?: string;
   tax_regime?: string;
@@ -135,7 +135,7 @@ const EmployeeTaxDetail: React.FC = () => {
       const response = await getTaxationByEmpId(empId);
       // Convert the response to our local interface
       const extendedData: LocalTaxationData = {
-        emp_id: response.emp_id,
+        employee_id: response.employee_id,
         employee_name: (response as any).employee_name || 'N/A',
         pan_number: (response as any).pan_number || '',
         tax_regime: (response as any).tax_regime || response.regime,
@@ -331,7 +331,7 @@ const EmployeeTaxDetail: React.FC = () => {
                     Employee ID
                   </Typography>
                   <Typography variant="body1" fontWeight="bold">
-                    {taxationData.emp_id}
+                    {taxationData.employee_id}
                   </Typography>
                 </Box>
                 <Box>

@@ -67,7 +67,7 @@ async def get_project_attributes(
     key: Optional[str] = Query(None, description="Filter by key"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
-    hostname: str = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: ProjectAttributesController = Depends(get_project_attributes_controller)
 ):
     """Get project attributes with optional filters"""
@@ -80,7 +80,7 @@ async def get_project_attributes(
             limit=limit
         )
         
-        response = await controller.get_project_attributes(filters, hostname)
+        response = await controller.get_project_attributes(filters, current_user.hostname)
         
         return response
         
@@ -91,14 +91,14 @@ async def get_project_attributes(
 @router.get("/{key}", response_model=ProjectAttributeResponseDTO)
 async def get_project_attribute(
     key: str = Path(..., description="Project attribute key"),
-    hostname: str = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: ProjectAttributesController = Depends(get_project_attributes_controller)
 ):
     """Get a specific project attribute by key"""
     try:
         logger.info(f"Getting project attribute: {key}")
         
-        response = await controller.get_project_attribute(key, hostname)
+        response = await controller.get_project_attribute(key, current_user.hostname)
         
         if not response:
             raise HTTPException(status_code=404, detail="Project attribute not found")

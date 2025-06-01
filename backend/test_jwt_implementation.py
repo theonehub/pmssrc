@@ -25,7 +25,7 @@ def test_jwt_implementation():
     test_data = {
         "sub": "TEST001",
         "username": "test_user",
-        "emp_id": "TEST001",
+        "employee_id": "TEST001",
         "role": "user",
         "hostname": "company.com",
         "permissions": ["read_profile", "update_profile"],

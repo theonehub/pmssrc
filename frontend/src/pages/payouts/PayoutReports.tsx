@@ -88,13 +88,13 @@ interface Payout {
 }
 
 interface Employee {
-  emp_id: string;
+  employee_id: string;
   name: string;
   email: string;
   department: string;
   designation: string;
   role: string;
-  doj: string;
+  date_of_joining: string;
   payout?: Payout | undefined;
   hasPayslip: boolean;
 }
@@ -207,7 +207,7 @@ const PayoutReports: React.FC = () => {
       
       // Combine user data with payout data
       const employeesWithPayouts: Employee[] = allUsers.map(user => {
-        const userPayouts = payouts.filter(payout => payout.employee_id === user.emp_id);
+        const userPayouts = payouts.filter(payout => payout.employee_id === user.employee_id);
         const latestPayout = userPayouts.length > 0 ? userPayouts[0] : undefined;
         
         return {
@@ -237,7 +237,7 @@ const PayoutReports: React.FC = () => {
 
     const filtered = employees.filter(employee =>
       employee.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employee.emp_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employee.employee_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.department?.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -283,7 +283,7 @@ const PayoutReports: React.FC = () => {
     }
 
     try {
-      setDownloadLoading(employee.emp_id);
+      setDownloadLoading(employee.employee_id);
       await payoutService.downloadPayslip(employee.payout.id);
       setSuccess(`Payslip downloaded for ${employee.name}`);
     } catch (err) {
@@ -304,7 +304,7 @@ const PayoutReports: React.FC = () => {
     }
 
     try {
-      setEmailLoading(employee.emp_id);
+      setEmailLoading(employee.employee_id);
       await payoutService.emailPayslip(employee.payout.id);
       setSuccess(`Payslip emailed to ${employee.name}`);
     } catch (err) {
@@ -564,7 +564,7 @@ const PayoutReports: React.FC = () => {
             variant="contained" 
             startIcon={<DownloadIcon />}
             onClick={() => selectedEmployee && handleDownloadPayslip(selectedEmployee)}
-            disabled={downloadLoading === selectedEmployee?.emp_id}
+            disabled={downloadLoading === selectedEmployee?.employee_id}
           >
             Download
           </Button>
@@ -572,7 +572,7 @@ const PayoutReports: React.FC = () => {
             variant="outlined" 
             startIcon={<EmailIcon />}
             onClick={() => selectedEmployee && handleEmailPayslip(selectedEmployee)}
-            disabled={emailLoading === selectedEmployee?.emp_id}
+            disabled={emailLoading === selectedEmployee?.employee_id}
           >
             Email
           </Button>
@@ -771,7 +771,7 @@ const PayoutReports: React.FC = () => {
                     </TableHead>
                     <TableBody>
                       {displayedEmployees.map((employee) => (
-                        <TableRow key={employee.emp_id} hover>
+                        <TableRow key={employee.employee_id} hover>
                           <TableCell>
                             <Box display="flex" alignItems="center">
                               <Avatar sx={{ bgcolor: theme.palette.primary.main, mr: 2, width: 40, height: 40 }}>
@@ -782,7 +782,7 @@ const PayoutReports: React.FC = () => {
                                   {employee.name}
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary">
-                                  {employee.emp_id}
+                                  {employee.employee_id}
                                 </Typography>
                                 {employee.designation && (
                                   <Typography variant="caption" color="text.secondary">
@@ -838,9 +838,9 @@ const PayoutReports: React.FC = () => {
                                       size="small"
                                       color="secondary"
                                       onClick={() => handleDownloadPayslip(employee)}
-                                      disabled={downloadLoading === employee.emp_id}
+                                      disabled={downloadLoading === employee.employee_id}
                                     >
-                                      {downloadLoading === employee.emp_id ? (
+                                      {downloadLoading === employee.employee_id ? (
                                         <CircularProgress size={20} />
                                       ) : (
                                         <DownloadIcon />
@@ -852,9 +852,9 @@ const PayoutReports: React.FC = () => {
                                       size="small"
                                       color="info"
                                       onClick={() => handleEmailPayslip(employee)}
-                                      disabled={emailLoading === employee.emp_id}
+                                      disabled={emailLoading === employee.employee_id}
                                     >
-                                      {emailLoading === employee.emp_id ? (
+                                      {emailLoading === employee.employee_id ? (
                                         <CircularProgress size={20} />
                                       ) : (
                                         <EmailIcon />

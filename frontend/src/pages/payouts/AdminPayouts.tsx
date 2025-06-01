@@ -52,13 +52,13 @@ import PageLayout from '../../layout/PageLayout';
 
 // Type definitions
 interface User {
-  emp_id: string;
+  employee_id: string;
   name: string;
   email: string;
   department: string;
   designation: string;
   role: string;
-  doj: string;
+  date_of_joining: string;
 }
 
 interface UsersResponse {
@@ -67,7 +67,7 @@ interface UsersResponse {
 }
 
 interface CalculatedPayout {
-  emp_id: string;
+  employee_id: string;
   basic_salary: number;
   da: number;
   hra: number;
@@ -152,7 +152,7 @@ const AdminPayouts: React.FC = () => {
 
     const searchLower = searchTerm.toLowerCase();
     const filtered = users.filter(user => 
-      user.emp_id?.toLowerCase().includes(searchLower) ||
+      user.employee_id?.toLowerCase().includes(searchLower) ||
       user.name?.toLowerCase().includes(searchLower) ||
       user.email?.toLowerCase().includes(searchLower) ||
       user.department?.toLowerCase().includes(searchLower) ||
@@ -196,7 +196,7 @@ const AdminPayouts: React.FC = () => {
     setCalculating(true);
     try {
       const payoutData: CalculatedPayout = await payoutService.calculateMonthlyPayout(
-        selectedEmployee.emp_id,
+        selectedEmployee.employee_id,
         selectedMonth,
         selectedYear
       );
@@ -340,7 +340,7 @@ const AdminPayouts: React.FC = () => {
                 <Box>
                   <Typography variant="h6">{selectedEmployee.name}</Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {selectedEmployee.emp_id} • {selectedEmployee.designation || 'N/A'}
+                    {selectedEmployee.employee_id} • {selectedEmployee.designation || 'N/A'}
                   </Typography>
                 </Box>
               </Box>
@@ -627,7 +627,7 @@ const AdminPayouts: React.FC = () => {
             </TableHead>
             <TableBody>
               {displayedUsers.map((user) => (
-                <TableRow key={user.emp_id} hover>
+                <TableRow key={user.employee_id} hover>
                   <TableCell>
                     <Box display="flex" alignItems="center">
                       <Avatar sx={{ bgcolor: theme.palette.primary.main, mr: 2, width: 40, height: 40 }}>
@@ -638,7 +638,7 @@ const AdminPayouts: React.FC = () => {
                           {user.name}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                          {user.emp_id}
+                          {user.employee_id}
                         </Typography>
                         {user.designation && (
                           <Typography variant="caption" color="text.secondary">
@@ -662,7 +662,7 @@ const AdminPayouts: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2">
-                      {formatDate(user.doj)}
+                      {formatDate(user.date_of_joining)}
                     </Typography>
                   </TableCell>
                   <TableCell align="center">

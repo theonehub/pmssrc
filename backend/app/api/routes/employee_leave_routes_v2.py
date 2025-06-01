@@ -123,10 +123,10 @@ async def apply_employee_leave(
 @router.put("/{leave_id}/approve", response_model=EmployeeLeaveResponseDTO)
 @handle_employee_leave_exceptions
 async def approve_employee_leave(
+    request: EmployeeLeaveApprovalRequestDTO,
     leave_id: str = Path(..., description="Leave application ID"),
-    request: EmployeeLeaveApprovalRequestDTO = ...,
-    current_user: dict = Depends(get_current_user),
-    hostname: str = Depends(get_hostname_from_request),
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("manager")),
     controller: EmployeeLeaveController = Depends(get_employee_leave_controller)
 ):
     """
@@ -139,21 +139,21 @@ async def approve_employee_leave(
     - Rejection requires reason/comments
     """
     
-    logger.info(f"Leave approval request for {leave_id} by: {current_user.get('employee_id')}")
+    logger.info(f"Leave approval request for {leave_id} by: {current_user.employee_id}")
     
-    approver_id = current_user.get("employee_id")
+    approver_id = current_user.employee_id
     if not approver_id:
         raise HTTPException(status_code=400, detail="Approver ID not found in token")
     
     # Check if user has approval permissions
-    user_role = current_user.get("role", "").lower()
+    user_role = getattr(current_user, 'role', '').lower()
     if user_role not in ["manager", "admin", "superadmin"]:
         raise HTTPException(
             status_code=403, 
             detail="Insufficient permissions to approve leaves"
         )
     
-    response = await controller.approve_leave(leave_id, request, approver_id, hostname)
+    response = await controller.approve_leave(leave_id, request, approver_id, current_user.hostname)
     
     return response
 
@@ -164,7 +164,7 @@ async def approve_employee_leave(
 @handle_employee_leave_exceptions
 async def get_employee_leave_by_id(
     leave_id: str = Path(..., description="Leave application ID"),
-    current_user: dict = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: EmployeeLeaveController = Depends(get_employee_leave_controller)
 ):
     """Get employee leave application by ID."""
@@ -177,8 +177,8 @@ async def get_employee_leave_by_id(
         raise HTTPException(status_code=404, detail="Leave application not found")
     
     # Check if user can access this leave (basic authorization)
-    user_role = current_user.get("role", "").lower()
-    employee_id = current_user.get("employee_id")
+    user_role = getattr(current_user, 'role', '').lower()
+    employee_id = current_user.employee_id
     
     if (user_role not in ["admin", "superadmin"] and 
         response.employee_id != employee_id):
@@ -195,7 +195,7 @@ async def get_employee_leaves(
     employee_id: str = Path(..., description="Employee ID"),
     status: Optional[str] = Query(None, description="Filter by status"),
     limit: Optional[int] = Query(50, description="Limit results"),
-    current_user: dict = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: EmployeeLeaveController = Depends(get_employee_leave_controller)
 ):
     """Get employee leaves by employee ID."""
@@ -203,8 +203,8 @@ async def get_employee_leaves(
     logger.info(f"Retrieving leaves for employee: {employee_id}")
     
     # Authorization check
-    user_role = current_user.get("role", "").lower()
-    current_employee_id = current_user.get("employee_id")
+    user_role = getattr(current_user, 'role', '').lower()
+    current_employee_id = current_user.employee_id
     
     if (user_role not in ["admin", "superadmin"] and 
         employee_id != current_employee_id):
@@ -222,7 +222,7 @@ async def get_manager_team_leaves(
     manager_id: str = Path(..., description="Manager ID"),
     status: Optional[str] = Query(None, description="Filter by status"),
     limit: Optional[int] = Query(100, description="Limit results"),
-    current_user: dict = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: EmployeeLeaveController = Depends(get_employee_leave_controller)
 ):
     """Get leaves for all employees under a manager."""
@@ -230,8 +230,8 @@ async def get_manager_team_leaves(
     logger.info(f"Retrieving team leaves for manager: {manager_id}")
     
     # Authorization check
-    user_role = current_user.get("role", "").lower()
-    current_employee_id = current_user.get("employee_id")
+    user_role = getattr(current_user, 'role', '').lower()
+    current_employee_id = current_user.employee_id
     
     if (user_role not in ["admin", "superadmin"] and 
         manager_id != current_employee_id):
@@ -247,7 +247,7 @@ async def get_manager_team_leaves(
 async def get_pending_approvals(
     manager_id: Optional[str] = Query(None, description="Filter by manager"),
     limit: Optional[int] = Query(50, description="Limit results"),
-    current_user: dict = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: EmployeeLeaveController = Depends(get_employee_leave_controller)
 ):
     """Get pending leave approvals."""
@@ -255,13 +255,13 @@ async def get_pending_approvals(
     logger.info(f"Retrieving pending approvals")
     
     # Authorization check
-    user_role = current_user.get("role", "").lower()
+    user_role = getattr(current_user, 'role', '').lower()
     if user_role not in ["manager", "admin", "superadmin"]:
         raise HTTPException(status_code=403, detail="Access denied")
     
     # For managers, filter by their ID
     if user_role == "manager":
-        manager_id = current_user.get("employee_id")
+        manager_id = current_user.employee_id
     
     response = await controller.get_pending_approvals(manager_id, limit)
     
@@ -272,7 +272,7 @@ async def get_pending_approvals(
 @handle_employee_leave_exceptions
 async def search_employee_leaves(
     filters: EmployeeLeaveSearchFiltersDTO,
-    current_user: dict = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: EmployeeLeaveController = Depends(get_employee_leave_controller)
 ):
     """Search employee leaves with filters."""
@@ -280,8 +280,8 @@ async def search_employee_leaves(
     logger.info(f"Searching employee leaves")
     
     # Authorization check and filter adjustment
-    user_role = current_user.get("role", "").lower()
-    current_employee_id = current_user.get("employee_id")
+    user_role = getattr(current_user, 'role', '').lower()
+    current_employee_id = current_user.employee_id
     
     if user_role not in ["admin", "superadmin"]:
         if user_role == "manager":
@@ -303,7 +303,7 @@ async def get_monthly_employee_leaves(
     employee_id: str = Path(..., description="Employee ID"),
     year: int = Path(..., description="Year"),
     month: int = Path(..., description="Month (1-12)"),
-    current_user: dict = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: EmployeeLeaveController = Depends(get_employee_leave_controller)
 ):
     """Get employee leaves for a specific month."""
@@ -311,8 +311,8 @@ async def get_monthly_employee_leaves(
     logger.info(f"Retrieving monthly leaves for {employee_id}: {month}/{year}")
     
     # Authorization check
-    user_role = current_user.get("role", "").lower()
-    current_employee_id = current_user.get("employee_id")
+    user_role = getattr(current_user, 'role', '').lower()
+    current_employee_id = current_user.employee_id
     
     if (user_role not in ["admin", "superadmin"] and 
         employee_id != current_employee_id):
@@ -330,7 +330,7 @@ async def get_monthly_employee_leaves(
 @handle_employee_leave_exceptions
 async def get_employee_leave_balance(
     employee_id: str = Path(..., description="Employee ID"),
-    current_user: dict = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: EmployeeLeaveController = Depends(get_employee_leave_controller)
 ):
     """Get leave balance for an employee."""
@@ -338,8 +338,8 @@ async def get_employee_leave_balance(
     logger.info(f"Retrieving leave balance for: {employee_id}")
     
     # Authorization check
-    user_role = current_user.get("role", "").lower()
-    current_employee_id = current_user.get("employee_id")
+    user_role = getattr(current_user, 'role', '').lower()
+    current_employee_id = current_user.employee_id
     
     if (user_role not in ["admin", "superadmin"] and 
         employee_id != current_employee_id):
@@ -357,7 +357,7 @@ async def get_leave_analytics(
     employee_id: Optional[str] = Query(None, description="Filter by employee"),
     manager_id: Optional[str] = Query(None, description="Filter by manager"),
     year: Optional[int] = Query(None, description="Filter by year"),
-    current_user: dict = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: EmployeeLeaveController = Depends(get_employee_leave_controller)
 ):
     """Get leave analytics and statistics."""
@@ -365,8 +365,8 @@ async def get_leave_analytics(
     logger.info(f"Retrieving leave analytics")
     
     # Authorization check and filter adjustment
-    user_role = current_user.get("role", "").lower()
-    current_employee_id = current_user.get("employee_id")
+    user_role = getattr(current_user, 'role', '').lower()
+    current_employee_id = current_user.employee_id
     
     if user_role not in ["admin", "superadmin"]:
         if user_role == "manager":
@@ -389,7 +389,7 @@ async def calculate_employee_lwp(
     employee_id: str = Path(..., description="Employee ID"),
     year: int = Path(..., description="Year"),
     month: int = Path(..., description="Month (1-12)"),
-    current_user: dict = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: EmployeeLeaveController = Depends(get_employee_leave_controller)
 ):
     """Calculate Leave Without Pay (LWP) for an employee for a specific month."""
@@ -397,7 +397,7 @@ async def calculate_employee_lwp(
     logger.info(f"Calculating LWP for {employee_id}: {month}/{year}")
     
     # Authorization check
-    user_role = current_user.get("role", "").lower()
+    user_role = getattr(current_user, 'role', '').lower()
     if user_role not in ["admin", "superadmin", "manager"]:
         raise HTTPException(status_code=403, detail="Access denied")
     
@@ -412,7 +412,7 @@ async def get_team_leave_summary(
     manager_id: str = Path(..., description="Manager ID"),
     month: Optional[int] = Query(None, description="Filter by month"),
     year: Optional[int] = Query(None, description="Filter by year"),
-    current_user: dict = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: EmployeeLeaveController = Depends(get_employee_leave_controller)
 ):
     """Get team leave summary for a manager."""
@@ -420,8 +420,8 @@ async def get_team_leave_summary(
     logger.info(f"Retrieving team summary for manager: {manager_id}")
     
     # Authorization check
-    user_role = current_user.get("role", "").lower()
-    current_employee_id = current_user.get("employee_id")
+    user_role = getattr(current_user, 'role', '').lower()
+    current_employee_id = current_user.employee_id
     
     if (user_role not in ["admin", "superadmin"] and 
         manager_id != current_employee_id):
@@ -436,7 +436,7 @@ async def get_team_leave_summary(
 @handle_employee_leave_exceptions
 async def count_employee_leaves(
     filters: EmployeeLeaveSearchFiltersDTO,
-    current_user: dict = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: EmployeeLeaveController = Depends(get_employee_leave_controller)
 ):
     """Count employee leaves matching filters."""
@@ -444,8 +444,8 @@ async def count_employee_leaves(
     logger.info(f"Counting employee leaves")
     
     # Authorization check and filter adjustment
-    user_role = current_user.get("role", "").lower()
-    current_employee_id = current_user.get("employee_id")
+    user_role = getattr(current_user, 'role', '').lower()
+    current_employee_id = current_user.employee_id
     
     if user_role not in ["admin", "superadmin"]:
         if user_role == "manager":

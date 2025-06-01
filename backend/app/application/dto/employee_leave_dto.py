@@ -9,7 +9,13 @@ from datetime import datetime, date
 from enum import Enum
 
 from app.domain.entities.employee_leave import EmployeeLeave
-from models.leave_model import LeaveStatus
+
+# Define LeaveStatus as proper enum for Pydantic
+class LeaveStatus(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved" 
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
 
 
 class EmployeeLeaveCreateRequestDTO(BaseModel):

@@ -56,7 +56,7 @@ export const getTaxationByEmpId = async (
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
       // eslint-disable-next-line no-console
-      console.error('Error fetching taxation data by emp_id:', error);
+      console.error('Error fetching taxation data by employee_id:', error);
     }
     throw error;
   }
@@ -72,7 +72,7 @@ export const calculateTax = async (
     const response: AxiosResponse<any> = await apiClient().post(
       '/api/v2/taxation/calculate',
       {
-        emp_id: empId,
+        employee_id: empId,
         tax_year: taxYear,
         regime,
       }
@@ -427,7 +427,7 @@ export const updateTaxPayment = async (
     const response: AxiosResponse<any> = await apiClient().post(
       '/api/v2/taxation/update-tax-payment',
       {
-        emp_id: empId,
+        employee_id: empId,
         amount_paid: amountPaid,
       }
     );
@@ -450,7 +450,7 @@ export const updateFilingStatus = async (
     const response: AxiosResponse<any> = await apiClient().post(
       '/update-filing-status',
       {
-        emp_id: empId,
+        employee_id: empId,
         status,
       }
     );

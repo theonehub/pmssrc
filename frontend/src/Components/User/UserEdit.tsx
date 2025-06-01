@@ -28,11 +28,11 @@ import {
   Email as EmailIcon,
   Phone as PhoneIcon,
   Business as BusinessIcon,
-  CalendarToday as CalendarIcon,
   Badge as BadgeIcon,
   LocationOn as LocationIcon,
   Numbers as NumbersIcon,
-  CloudUpload as CloudUploadIcon
+  CloudUpload as CloudUploadIcon,
+  DateRange as DateRangeIcon
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import dataService from '../../services/dataService';
@@ -40,31 +40,39 @@ import PageLayout from '../../layout/PageLayout';
 
 // Define interfaces
 interface User {
-  emp_id: string;
+  employee_id: string;
   name: string;
   email: string;
-  gender: string;
-  dob?: string;
-  doj?: string;
-  mobile: string;
-  manager_id: string;
-  role: string;
-  pan_number: string;
-  uan_number: string;
-  aadhar_number: string;
-  department: string;
-  designation: string;
-  location: string;
-  esi_number: string;
+  date_of_birth?: string;
+  date_of_joining?: string;
+  gender?: string;
+  mobile?: string;
+  department?: string;
+  designation?: string;
+  role?: string;
+  manager_id?: string;
+  location?: string;
+  address?: string;
+  emergency_contact?: string;
+  blood_group?: string;
+  pan_number?: string;
+  aadhar_number?: string;
+  uan_number?: string;
+  esi_number?: string;
+  bank_details?: any;
+  created_at?: string;
+  updated_at?: string;
+  is_active?: boolean;
+  status?: string;
 }
 
 interface UserFormData {
-  emp_id: string;
+  employee_id: string;
   name: string;
   email: string;
   gender: string;
-  dob: string;
-  doj: string;
+  date_of_birth: string;
+  date_of_joining: string;
   mobile: string;
   manager_id: string;
   role: string;
@@ -100,12 +108,12 @@ const UserEdit: React.FC = () => {
   
   const [user, setUser] = useState<User | null>(null);
   const [formData, setFormData] = useState<UserFormData>({
-    emp_id: '',
+    employee_id: '',
     name: '',
     email: '',
     gender: '',
-    dob: '',
-    doj: '',
+    date_of_birth: '',
+    date_of_joining: '',
     mobile: '',
     manager_id: '',
     role: '',
@@ -155,12 +163,12 @@ const UserEdit: React.FC = () => {
       if (userData) {
         setUser(userData);
         setFormData({
-          emp_id: userData.emp_id || '',
+          employee_id: userData.employee_id || '',
           name: userData.name || '',
           email: userData.email || '',
           gender: userData.gender || '',
-          dob: (userData.dob ? userData.dob.split('T')[0] : '') as string,
-          doj: (userData.doj ? userData.doj.split('T')[0] : '') as string,
+          date_of_birth: (userData.date_of_birth ? userData.date_of_birth.split('T')[0] : '') as string,
+          date_of_joining: (userData.date_of_joining ? userData.date_of_joining.split('T')[0] : '') as string,
           mobile: userData.mobile || '',
           manager_id: userData.manager_id || '',
           role: userData.role || '',
@@ -429,7 +437,7 @@ const UserEdit: React.FC = () => {
                     Edit User: {user.name}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Employee ID: {user.emp_id}
+                    Employee ID: {user.employee_id}
                   </Typography>
                 </Box>
               </Box>
@@ -456,8 +464,8 @@ const UserEdit: React.FC = () => {
                   <TextField
                     fullWidth
                     label="Employee ID"
-                    value={formData.emp_id}
-                    onChange={(e) => handleChange('emp_id', e.target.value)}
+                    value={formData.employee_id}
+                    onChange={(e) => handleChange('employee_id', e.target.value)}
                     disabled
                     InputProps={{
                       startAdornment: (
@@ -537,15 +545,15 @@ const UserEdit: React.FC = () => {
                     fullWidth
                     label="Date of Birth"
                     type="date"
-                    value={formData.dob}
-                    onChange={(e) => handleChange('dob', e.target.value)}
+                    value={formData.date_of_birth}
+                    onChange={(e) => handleChange('date_of_birth', e.target.value)}
                     InputLabelProps={{ shrink: true }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <CalendarIcon color="action" />
+                          <DateRangeIcon color="action" />
                         </InputAdornment>
-                      ),
+                      )
                     }}
                   />
                 </Box>
@@ -570,15 +578,15 @@ const UserEdit: React.FC = () => {
                     fullWidth
                     label="Date of Joining"
                     type="date"
-                    value={formData.doj}
-                    onChange={(e) => handleChange('doj', e.target.value)}
+                    value={formData.date_of_joining}
+                    onChange={(e) => handleChange('date_of_joining', e.target.value)}
                     InputLabelProps={{ shrink: true }}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <CalendarIcon color="action" />
+                          <DateRangeIcon color="action" />
                         </InputAdornment>
-                      ),
+                      )
                     }}
                   />
                   

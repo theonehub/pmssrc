@@ -13,11 +13,9 @@ from app.api.controllers.company_leave_controller import CompanyLeaveController
 from app.application.dto.company_leave_dto import (
     CompanyLeaveCreateRequestDTO,
     CompanyLeaveUpdateRequestDTO,
-    CompanyLeaveSearchFiltersDTO,
     CompanyLeaveResponseDTO,
-    CompanyLeaveValidationError,
-    CompanyLeaveBusinessRuleError,
-    CompanyLeaveNotFoundError
+    CompanyLeaveDTOValidationError,
+    InvalidCompanyLeaveDataError
 )
 from app.auth.auth_dependencies import CurrentUser, get_current_user, require_role
 from app.config.dependency_container import get_dependency_container
@@ -26,6 +24,29 @@ logger = logging.getLogger(__name__)
 
 # Create router
 router = APIRouter(prefix="/api/v2/company-leaves", tags=["Company Leaves V2 (SOLID)"])
+
+# Create simple DTO for search filters
+from pydantic import BaseModel
+
+class CompanyLeaveSearchFiltersDTO(BaseModel):
+    """DTO for company leave search filters"""
+    leave_type: Optional[str] = None
+    active_only: bool = True
+    skip: int = 0
+    limit: int = 100
+
+# Create simple exception classes for business logic
+class CompanyLeaveValidationError(Exception):
+    """Exception for validation errors"""
+    pass
+
+class CompanyLeaveBusinessRuleError(Exception):
+    """Exception for business rule violations"""
+    pass
+
+class CompanyLeaveNotFoundError(Exception):
+    """Exception when company leave is not found"""
+    pass
 
 
 def get_company_leave_controller() -> CompanyLeaveController:
@@ -50,7 +71,7 @@ async def create_company_leave(
 ):
     """Create a new company leave policy"""
     try:
-        logger.info(f"Creating company leave: {request.leave_type} by {current_user.employee_id}")
+        logger.info(f"Creating company leave: {request.leave_type_name} by {current_user.employee_id}")
         
         response = await controller.create_company_leave(
             request, 
@@ -79,7 +100,7 @@ async def get_company_leaves(
     active_only: bool = Query(True, description="Return only active leave policies"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
-    hostname: str = Depends(current_user.hostname),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: CompanyLeaveController = Depends(get_company_leave_controller)
 ):
     """Get company leave policies with optional filters"""
@@ -93,7 +114,7 @@ async def get_company_leaves(
             limit=limit
         )
         
-        response = await controller.get_company_leaves(filters, hostname)
+        response = await controller.get_company_leaves(filters, current_user.hostname)
         
         return response
         
@@ -105,14 +126,14 @@ async def get_company_leaves(
 @router.get("/{leave_id}", response_model=CompanyLeaveResponseDTO)
 async def get_company_leave(
     leave_id: str = Path(..., description="Company leave ID"),
-    hostname: str = Depends(current_user.hostname),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: CompanyLeaveController = Depends(get_company_leave_controller)
 ):
     """Get a specific company leave policy by ID"""
     try:
         logger.info(f"Getting company leave: {leave_id}")
         
-        response = await controller.get_company_leave(leave_id, hostname)
+        response = await controller.get_company_leave(leave_id, current_user.hostname)
         
         if not response:
             raise HTTPException(status_code=404, detail="Company leave policy not found")
@@ -191,14 +212,14 @@ async def delete_company_leave(
 
 @router.get("/types/available", response_model=List[str])
 async def get_available_leave_types(
-    hostname: str = Depends(current_user.hostname),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: CompanyLeaveController = Depends(get_company_leave_controller)
 ):
     """Get all available leave types for the organization"""
     try:
         logger.info("Getting available leave types")
         
-        response = await controller.get_available_leave_types(hostname)
+        response = await controller.get_available_leave_types(current_user.hostname)
         
         return response
         
@@ -210,7 +231,6 @@ async def get_available_leave_types(
 @router.get("/employee/{employee_id}/entitlements", response_model=List[CompanyLeaveResponseDTO])
 async def get_employee_leave_entitlements(
     employee_id: str = Path(..., description="Employee ID"),
-    hostname: str = Depends(current_user.hostname),
     current_user: CurrentUser = Depends(get_current_user),
     role: str = Depends(require_role("admin")),
     controller: CompanyLeaveController = Depends(get_company_leave_controller)
@@ -228,7 +248,7 @@ async def get_employee_leave_entitlements(
             else:
                 raise HTTPException(status_code=403, detail="Access denied")
         
-        response = await controller.get_employee_leave_entitlements(employee_id, hostname)
+        response = await controller.get_employee_leave_entitlements(employee_id, current_user.hostname)
         
         return response
         
@@ -241,7 +261,6 @@ async def get_employee_leave_entitlements(
 
 @router.get("/my/entitlements", response_model=List[CompanyLeaveResponseDTO])
 async def get_my_leave_entitlements(
-    hostname: str = Depends(current_user.hostname),
     current_user: CurrentUser = Depends(get_current_user),
     controller: CompanyLeaveController = Depends(get_company_leave_controller)
 ):
@@ -249,7 +268,7 @@ async def get_my_leave_entitlements(
     try:
         logger.info(f"Getting leave entitlements for current user: {current_user.employee_id}")
         
-        response = await controller.get_employee_leave_entitlements(current_user.employee_id, hostname)
+        response = await controller.get_employee_leave_entitlements(current_user.employee_id, current_user.hostname)
         
         return response
         
@@ -262,7 +281,6 @@ async def get_my_leave_entitlements(
 async def get_leave_usage_analytics(
     year: Optional[int] = Query(None, description="Filter by year"),
     leave_type: Optional[str] = Query(None, description="Filter by leave type"),
-    hostname: str = Depends(current_user.hostname),
     current_user: CurrentUser = Depends(get_current_user),
     role: str = Depends(require_role("admin")),
     controller: CompanyLeaveController = Depends(get_company_leave_controller)
@@ -275,7 +293,7 @@ async def get_leave_usage_analytics(
             year=year,
             leave_type=leave_type,
             manager_id=current_user.employee_id if role == "manager" else None,
-            hostname=hostname
+            hostname=current_user.hostname
         )
         
         return response

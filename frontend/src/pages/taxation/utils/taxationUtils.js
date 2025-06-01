@@ -68,7 +68,7 @@ export const formatCurrency = (amount) => {
  * @returns {Object} Default state object
  */
 export const getDefaultTaxationState = (empId) => ({
-  emp_id: empId,
+  employee_id: empId,
   emp_age: 0,
   regime: 'old',
   tax_year: getCurrentFinancialYear(),

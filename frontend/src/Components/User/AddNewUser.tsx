@@ -36,12 +36,12 @@ import PageLayout from '../../layout/PageLayout';
 
 // Define interfaces
 interface UserFormData {
-  emp_id: string;
+  employee_id: string;
   name: string;
   email: string;
   gender: string;
-  dob: string;
-  doj: string;
+  date_of_birth: string;
+  date_of_joining: string;
   mobile: string;
   manager_id: string;
   password: string;
@@ -77,12 +77,12 @@ interface FormSectionProps {
 }
 
 const EmptyUser: UserFormData = {
-  emp_id: '',
+  employee_id: '',
   name: '',
   email: '',
   gender: '',
-  dob: '',
-  doj: '',
+  date_of_birth: '',
+  date_of_joining: '',
   mobile: '',
   manager_id: '',
   password: '',
@@ -178,7 +178,7 @@ const AddNewUser: React.FC = () => {
     const strValue = typeof value === 'string' ? value.trim() : String(value ?? '').trim();
 
     switch (name) {
-      case 'emp_id':
+      case 'employee_id':
         return !strValue ? 'Employee ID is required' : '';
       case 'name':
         return !strValue ? 'Full name is required' : '';
@@ -190,10 +190,10 @@ const AddNewUser: React.FC = () => {
         return '';
       case 'gender':
         return !strValue ? 'Gender is required' : '';
-      case 'dob':
-        return !strValue ? 'Date of birth is required' : '';
-      case 'doj':
-        return !strValue ? 'Date of joining is required' : '';
+      case 'date_of_birth':
+        return value ? '' : 'Date of birth is required';
+      case 'date_of_joining':
+        return value ? '' : 'Date of joining is required';
       case 'mobile':
         if (!strValue) return 'Mobile number is required';
         if (!/^\d{10}$/.test(value.replace(/\D/g, ''))) {
@@ -400,11 +400,11 @@ const AddNewUser: React.FC = () => {
             <TextField
               fullWidth
               label="Employee ID"
-              name="emp_id"
-              value={formData.emp_id}
+              name="employee_id"
+              value={formData.employee_id}
               onChange={handleChange}
-              error={!!errors.emp_id}
-              helperText={errors.emp_id}
+              error={!!errors.employee_id}
+              helperText={errors.employee_id}
               required
               InputProps={{
                 startAdornment: (
@@ -474,12 +474,12 @@ const AddNewUser: React.FC = () => {
             <TextField
               fullWidth
               label="Date of Birth"
-              name="dob"
+              name="date_of_birth"
               type="date"
-              value={formData.dob}
+              value={formData.date_of_birth}
               onChange={handleChange}
-              error={!!errors.dob}
-              helperText={errors.dob}
+              error={!!errors.date_of_birth}
+              helperText={errors.date_of_birth}
               required
               InputLabelProps={{ shrink: true }}
               InputProps={{
@@ -494,12 +494,12 @@ const AddNewUser: React.FC = () => {
             <TextField
               fullWidth
               label="Date of Joining"
-              name="doj"
+              name="date_of_joining"
               type="date"
-              value={formData.doj}
+              value={formData.date_of_joining}
               onChange={handleChange}
-              error={!!errors.doj}
-              helperText={errors.doj}
+              error={!!errors.date_of_joining}
+              helperText={errors.date_of_joining}
               required
               InputLabelProps={{ shrink: true }}
               InputProps={{

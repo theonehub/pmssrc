@@ -20,8 +20,7 @@ from app.application.interfaces.repositories.employee_leave_repository import (
 )
 from app.application.interfaces.services.event_publisher import EventPublisher
 from app.application.interfaces.services.email_service import EmailService
-from app.domain.entities.employee_leave import EmployeeLeave
-from models.leave_model import LeaveStatus
+from app.domain.entities.employee_leave import EmployeeLeave, LeaveStatus
 from app.infrastructure.services.legacy_migration_service import (
     get_user_by_employee_id, update_user_leave_balance
 )

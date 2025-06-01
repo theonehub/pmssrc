@@ -52,7 +52,7 @@ class TaxationCommandRepository(ABC):
     @abstractmethod
     async def update_taxation(
         self,
-        emp_id: str,
+        employee_id: str,
         request: TaxationUpdateRequestDTO,
         hostname: str
     ) -> TaxationResponseDTO:

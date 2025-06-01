@@ -31,7 +31,7 @@ import Tooltip from '@mui/material/Tooltip';
 interface Leave {
   id: string;
   leave_id: string;
-  emp_id: string;
+  employee_id: string;
   emp_name: string;
   emp_email: string;
   employee_name: string;
@@ -274,7 +274,7 @@ const AllLeaves: React.FC = () => {
                         }
                       }}
                     >
-                      <TableCell>{leave.emp_id}</TableCell>
+                      <TableCell>{leave.employee_id}</TableCell>
                       <TableCell>{leave.employee_name || leave.emp_name}</TableCell>
                       <TableCell>{leave.employee_email || leave.emp_email}</TableCell>
                       <TableCell>{leave.leave_name}</TableCell>

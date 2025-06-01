@@ -161,7 +161,7 @@ async def get_my_directs(
                 "email": direct.email,
                 "department": direct.department,
                 "designation": direct.designation,
-                "doj": direct.date_of_joining.isoformat() if direct.date_of_joining else None,
+                "date_of_joining": direct.date_of_joining.isoformat() if direct.date_of_joining else None,
                 "status": direct.status,
                 "organization": current_user.hostname
             }
@@ -193,7 +193,7 @@ async def get_manager_directs(
                 "department": direct.department,
                 "designation": direct.designation,
                 "manager_id": manager_id,
-                "doj": direct.date_of_joining.isoformat() if direct.date_of_joining else None,
+                "date_of_joining": direct.date_of_joining.isoformat() if direct.date_of_joining else None,
                 "status": direct.status,
                 "organization": current_user.hostname
             }
@@ -434,7 +434,7 @@ async def get_all_users_legacy(
                 "department": user.department,
                 "designation": user.designation,
                 "role": user.role,
-                "doj": user.date_of_joining.isoformat() if user.date_of_joining else None,
+                "date_of_joining": user.date_of_joining.isoformat() if user.date_of_joining else None,
                 "status": user.status,
                 "manager_id": user.manager_id,
                 "phone": user.mobile,
@@ -482,8 +482,8 @@ async def get_user_by_employee_id_legacy(
             "department": user.department,
             "designation": user.designation,
             "role": user.role,
-            "doj": user.date_of_joining.isoformat() if user.date_of_joining else None,
-            "dob": user.date_of_birth.isoformat() if user.date_of_birth else None,
+            "date_of_joining": user.date_of_joining.isoformat() if user.date_of_joining else None,
+            "date_of_birth": user.date_of_birth.isoformat() if user.date_of_birth else None,
             "gender": user.gender,
             "mobile": user.mobile,
             "status": user.status,
@@ -501,7 +501,12 @@ async def get_user_by_employee_id_legacy(
             "photo_path": user.photo_path,
             "organization": hostname,
             "created_at": user.created_at.isoformat() if user.created_at else None,
-            "updated_at": user.updated_at.isoformat() if user.updated_at else None
+            "updated_at": user.updated_at.isoformat() if user.updated_at else None,
+            "bank_details": user.bank_details or {},
+            "date_of_joining": user.date_of_joining.isoformat() if user.date_of_joining else None,
+            "date_of_birth": user.date_of_birth.isoformat() if user.date_of_birth else None,
+            "emergency_contact": user.emergency_contact,
+            "blood_group": user.blood_group
         }
     except HTTPException:
         raise

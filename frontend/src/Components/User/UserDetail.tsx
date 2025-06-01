@@ -35,18 +35,21 @@ import PageLayout from '../../layout/PageLayout';
 
 // Define interfaces
 interface User {
-  emp_id: string;
+  employee_id: string;
   name: string;
   email: string;
-  mobile?: string;
+  date_of_birth?: string;
+  date_of_joining?: string;
   gender?: string;
-  dob?: string;
-  doj?: string;
-  role: string;
-  designation?: string;
+  mobile?: string;
   department?: string;
+  designation?: string;
+  role?: string;
   manager_id?: string;
   location?: string;
+  address?: string;
+  emergency_contact?: string;
+  blood_group?: string;
   pan_number?: string;
   aadhar_number?: string;
   uan_number?: string;
@@ -54,6 +57,11 @@ interface User {
   pan_document_path?: string;
   aadhar_document_path?: string;
   photo_path?: string;
+  bank_details?: any;
+  created_at?: string;
+  updated_at?: string;
+  is_active?: boolean;
+  status?: string;
 }
 
 interface ToastState {
@@ -295,7 +303,7 @@ const UserDetail: React.FC = () => {
                     )}
                   </Box>
                   <Typography variant="body2" color="text.secondary">
-                    Employee ID: {user.emp_id}
+                    Employee ID: {user.employee_id}
                   </Typography>
                 </Box>
               </Box>
@@ -303,7 +311,7 @@ const UserDetail: React.FC = () => {
                 <Button
                   variant="contained"
                   startIcon={<EditIcon />}
-                  onClick={() => navigate(`/users/emp/${user.emp_id}/edit`)}
+                  onClick={() => navigate(`/users/emp/${user.employee_id}/edit`)}
                 >
                   Edit
                 </Button>
@@ -368,7 +376,7 @@ const UserDetail: React.FC = () => {
                       </Typography>
                     </Box>
                     <Typography variant="body1" fontWeight="medium">
-                      {formatDate(user.dob)}
+                      {formatDate(user.date_of_birth)}
                     </Typography>
                   </Box>
                 </Box>
@@ -395,7 +403,7 @@ const UserDetail: React.FC = () => {
                       </Typography>
                     </Box>
                     <Typography variant="body1" fontWeight="medium">
-                      {formatDate(user.doj)}
+                      {formatDate(user.date_of_joining)}
                     </Typography>
                   </Box>
                   

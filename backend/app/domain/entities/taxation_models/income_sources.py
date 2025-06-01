@@ -530,23 +530,22 @@ class Gratuity:
     gratuity_income: float = 0
     #last_drawn_monthly_salary: float = 100000   #Basic + DA
     
-    def compute_service_years(self, doj: datetime.datetime, dol: datetime.datetime) -> float:
+    def compute_service_years(self, date_of_joining: datetime.datetime, date_of_leaving: datetime.datetime) -> float:
         """
-        Compute the number of years of service based on DOJ and DOL.
-        Returns the service period in years with decimal precision.
+        Compute the number of years of service based on date of joining and date of leaving.
         """
-        if not doj or not dol:
-            logger.warning("DOJ or DOL is missing, cannot compute service years")
-            return 0.0
-            
-        # Calculate the difference between DOJ and DOL
-        service_days = (dol - doj).days
-        service_years = service_days / 365.25  # Using 365.25 to account for leap years
+        if not date_of_joining or not date_of_leaving:
+            logger.warning("Date of joining or date of leaving is missing, cannot compute service years")
+            return 0
         
-        logger.info(f"Computed service period: DOJ={doj}, DOL={dol}, days={service_days}, years={service_years:.2f}")
+        # Calculate the difference between date of joining and date of leaving
+        service_days = (date_of_leaving - date_of_joining).days
+        service_years = service_days / 365.25  # Account for leap years
+        
+        logger.info(f"Computed service period: Date of joining={date_of_joining}, Date of leaving={date_of_leaving}, days={service_days}, years={service_years:.2f}")
         return service_years
     
-    def total_taxable_income_per_slab(self, regime: str = 'old', doj: datetime.datetime = None, dol: datetime.datetime = None, last_drawn_monthly_salary: float = 0, is_govt_employee: bool = False) -> float:
+    def total_taxable_income_per_slab(self, regime: str = 'old', date_of_joining: datetime.datetime = None, date_of_leaving: datetime.datetime = None, last_drawn_monthly_salary: float = 0, is_govt_employee: bool = False) -> float:
         """
         Calculate taxable gratuity income based on the tax regime.
         
@@ -562,8 +561,8 @@ class Gratuity:
         logger.info(f"Gratuity income: {self.gratuity_income}")
         logger.info(f"Last drawn monthly salary: {last_drawn_monthly_salary}")
         
-        # Compute service years from DOJ and DOL
-        service_years = self.compute_service_years(doj, dol)
+        # Compute service years from date of joining and date of leaving
+        service_years = self.compute_service_years(date_of_joining, date_of_leaving)
         logger.info(f"Computed service years: {service_years:.2f}")
         
         if regime == 'new':
@@ -621,24 +620,22 @@ class RetrenchmentCompensation:
     retrenchment_amount: float = 0
     is_provided: bool = False
     
-    def compute_service_years(self, doj: datetime.datetime, dol: datetime.datetime) -> float:
+    def compute_service_years(self, date_of_joining: datetime.datetime, date_of_leaving: datetime.datetime) -> float:
         """
-        Compute the number of years of service based on DOJ and DOL.
-        Returns the service period in years with decimal precision.
+        Compute the number of years of service based on date of joining and date of leaving.
         """
-
-        if not doj or not dol:
-            logger.warning("DOJ or DOL is missing, cannot compute service years")
+        if not date_of_joining or not date_of_leaving:
+            logger.warning("Date of joining or date of leaving is missing, cannot compute service years")
             return 0.0
             
-        # Calculate the difference between DOJ and DOL
-        service_days = (dol - doj).days
+        # Calculate the difference between date of joining and date of leaving
+        service_days = (date_of_leaving - date_of_joining).days
         service_years = service_days / 365.25  # Using 365.25 to account for leap years
         
-        logger.info(f"Computed service period: DOJ={doj}, DOL={dol}, days={service_days}, years={service_years:.2f}")
+        logger.info(f"Computed service period: Date of joining={date_of_joining}, Date of leaving={date_of_leaving}, days={service_days}, years={service_years:.2f}")
         return service_years
     
-    def total_taxable_income_per_slab(self, regime: str = 'old', doj: datetime.datetime = None, dol: datetime.datetime = None, last_drawn_monthly_salary: float = 0) -> float:
+    def total_taxable_income_per_slab(self, regime: str = 'old', date_of_joining: datetime.datetime = None, date_of_leaving: datetime.datetime = None, last_drawn_monthly_salary: float = 0) -> float:
         """
         Calculate taxable retrenchment compensation based on the tax regime.
         
@@ -660,8 +657,8 @@ class RetrenchmentCompensation:
         # If not a workman under Industrial Disputes Act, may have different exemption rules
         # But for simplicity, assuming same calculation
         
-        # Compute service years from DOJ and DOL
-        service_years = self.compute_service_years(doj, dol)
+        # Compute service years from date of joining and date of leaving
+        service_years = self.compute_service_years(date_of_joining, date_of_leaving)
         logger.info(f"Computed service years: {service_years:.2f}")
         
         # Calculate exemption

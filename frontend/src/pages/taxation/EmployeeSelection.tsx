@@ -77,7 +77,7 @@ const EmployeeSelection: React.FC = () => {
     } else {
       const searchTermLower = searchTerm.toLowerCase();
       const filtered = employees.filter(emp => 
-        emp.emp_id.toLowerCase().includes(searchTermLower) || 
+        emp.employee_id.toLowerCase().includes(searchTermLower) || 
         (emp.user_name && emp.user_name.toLowerCase().includes(searchTermLower))
       );
       setFilteredEmployees(filtered);
@@ -183,8 +183,8 @@ const EmployeeSelection: React.FC = () => {
                 </TableRow>
               ) : (
                 filteredEmployees.map((employee) => (
-                  <TableRow key={employee.emp_id}>
-                    <TableCell>{employee.emp_id}</TableCell>
+                  <TableRow key={employee.employee_id}>
+                    <TableCell>{employee.employee_id}</TableCell>
                     <TableCell>{employee.user_name || 'Unknown'}</TableCell>
                     <TableCell>{employee.tax_year || 'N/A'}</TableCell>
                     <TableCell>
@@ -207,14 +207,14 @@ const EmployeeSelection: React.FC = () => {
                         <Button 
                           variant="outlined" 
                           size="small" 
-                          onClick={() => handleViewDeclaration(employee.emp_id)}
+                          onClick={() => handleViewDeclaration(employee.employee_id)}
                         >
                           View
                         </Button>
                         <Button 
                           variant="contained" 
                           size="small" 
-                          onClick={() => handleEditDeclaration(employee.emp_id)}
+                          onClick={() => handleEditDeclaration(employee.employee_id)}
                           color="primary"
                         >
                           Edit

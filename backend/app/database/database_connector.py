@@ -1,6 +1,6 @@
 import logging
 from pymongo import MongoClient, ASCENDING
-from config import MONGO_URI
+from app.config import MONGO_URI
 
 logger = logging.getLogger(__name__)
 

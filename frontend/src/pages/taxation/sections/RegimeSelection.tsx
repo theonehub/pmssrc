@@ -329,7 +329,7 @@ const RegimeSelection: React.FC<RegimeSelectionProps> = ({
             })()}
           </Typography>
           <Typography variant="body1">
-            <strong>Employee ID:</strong> {taxationData.emp_id}
+            <strong>Employee ID:</strong> {taxationData.employee_id}
           </Typography>
         </Paper>
       </Box>

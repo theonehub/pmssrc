@@ -33,7 +33,7 @@ import PageLayout from '../../layout/PageLayout';
 // Define interfaces
 interface ReimbursementRequest {
   id: string;
-  emp_id: string;
+  employee_id: string;
   employee_name: string;
   type_name: string;
   amount: number | string;
@@ -204,7 +204,7 @@ const ReimbursementApprovals: React.FC = () => {
                   }
                 }}
               >
-                <TableCell>{req.emp_id}</TableCell>
+                <TableCell>{req.employee_id}</TableCell>
                 <TableCell>{req.employee_name}</TableCell>
                 <TableCell>{req.type_name}</TableCell>
                 <TableCell>₹{parseFloat(String(req.amount)).toLocaleString('en-IN')}</TableCell>

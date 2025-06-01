@@ -30,7 +30,7 @@ class AuthService {
       if (user_info) {
         // Store user info in the expected format for compatibility
         const userForStorage = {
-          emp_id: user_info.emp_id,
+          employee_id: user_info.employee_id,
           name: user_info.name,
           email: user_info.email,
           role: user_info.role,

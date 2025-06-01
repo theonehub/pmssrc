@@ -134,7 +134,7 @@ const UsersList: React.FC = () => {
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filteredUsers = filteredUsers.filter(user => 
-        user.emp_id?.toLowerCase().includes(searchLower) ||
+        user.employee_id?.toLowerCase().includes(searchLower) ||
         user.name?.toLowerCase().includes(searchLower) ||
         user.email?.toLowerCase().includes(searchLower) ||
         user.gender?.toLowerCase().includes(searchLower) ||
@@ -150,7 +150,7 @@ const UsersList: React.FC = () => {
         let bValue: any = b[sortConfig.key!];
 
         // Special handling for dates
-        if (sortConfig.key === 'dob' || sortConfig.key === 'doj') {
+        if (sortConfig.key === 'date_of_birth' || sortConfig.key === 'date_of_joining') {
           aValue = new Date(aValue);
           bValue = new Date(bValue);
         }
@@ -403,9 +403,9 @@ const UsersList: React.FC = () => {
                 }}>
                   <TableCell>
                     <TableSortLabel
-                      active={sortConfig.key === 'emp_id'}
+                      active={sortConfig.key === 'employee_id'}
                       direction={sortConfig.direction}
-                      onClick={() => requestSort('emp_id')}
+                      onClick={() => requestSort('employee_id')}
                       sx={{ color: 'inherit', '&:hover': { color: 'inherit' } }}
                     >
                       Employee ID
@@ -427,9 +427,9 @@ const UsersList: React.FC = () => {
                   <TableCell>Mobile</TableCell>
                   <TableCell>
                     <TableSortLabel
-                      active={sortConfig.key === 'doj'}
+                      active={sortConfig.key === 'date_of_joining'}
                       direction={sortConfig.direction}
-                      onClick={() => requestSort('doj')}
+                      onClick={() => requestSort('date_of_joining')}
                       sx={{ color: 'inherit', '&:hover': { color: 'inherit' } }}
                     >
                       Joining Date
@@ -443,7 +443,7 @@ const UsersList: React.FC = () => {
                   renderTableSkeleton()
                 ) : filteredUsers.length > 0 ? (
                   filteredUsers.map((user) => (
-                    <Fade in key={user.emp_id} timeout={300}>
+                    <Fade in key={user.employee_id} timeout={300}>
                       <TableRow 
                         hover
                         sx={{ 
@@ -454,7 +454,7 @@ const UsersList: React.FC = () => {
                       >
                         <TableCell>
                           <Typography variant="body2" fontWeight="medium">
-                            {user.emp_id}
+                            {user.employee_id}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -506,7 +506,7 @@ const UsersList: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2">
-                            {formatDate(user.doj || '')}
+                            {formatDate(user.date_of_joining || '')}
                           </Typography>
                         </TableCell>
                         <TableCell align="center">
@@ -515,7 +515,7 @@ const UsersList: React.FC = () => {
                               <IconButton
                                 size="small"
                                 color="primary"
-                                onClick={() => navigate(`/users/emp/${user.emp_id}`)}
+                                onClick={() => navigate(`/users/emp/${user.employee_id}`)}
                               >
                                 <VisibilityIcon fontSize="small" />
                               </IconButton>
@@ -524,7 +524,7 @@ const UsersList: React.FC = () => {
                               <IconButton
                                 size="small"
                                 color="primary"
-                                onClick={() => navigate(`/users/emp/${user.emp_id}/edit`)}
+                                onClick={() => navigate(`/users/emp/${user.employee_id}/edit`)}
                               >
                                 <EditIcon fontSize="small" />
                               </IconButton>

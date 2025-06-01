@@ -218,8 +218,8 @@ const TaxationDashboard: React.FC = () => {
           </TableHead>
           <TableBody>
             {taxationData.map((row) => (
-              <TableRow key={row.emp_id + row.tax_year}>
-                <TableCell>{row.emp_id}</TableCell>
+              <TableRow key={row.employee_id + row.tax_year}>
+                <TableCell>{row.employee_id}</TableCell>
                 <TableCell>{row.tax_year}</TableCell>
                 <TableCell>{row.regime === 'old' ? 'Old Regime' : 'New Regime'}</TableCell>
                 <TableCell>{formatCurrency(row.total_tax)}</TableCell>
@@ -240,7 +240,7 @@ const TaxationDashboard: React.FC = () => {
                   <Button 
                     variant="outlined" 
                     size="small" 
-                    onClick={() => handleViewDetails(row.emp_id)}
+                    onClick={() => handleViewDetails(row.employee_id)}
                   >
                     View Details
                   </Button>
@@ -353,7 +353,7 @@ const TaxationDashboard: React.FC = () => {
               gap: 2 
             }}>
               <Typography variant="subtitle1">Employee ID:</Typography>
-              <Typography variant="body1">{userData.emp_id}</Typography>
+              <Typography variant="body1">{userData.employee_id}</Typography>
               
               <Typography variant="subtitle1">Tax Year:</Typography>
               <Typography variant="body1">{userData.tax_year}</Typography>

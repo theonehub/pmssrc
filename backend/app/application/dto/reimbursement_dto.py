@@ -456,12 +456,19 @@ class ReimbursementValidationError(Exception):
 
 
 class ReimbursementBusinessRuleError(Exception):
-    """Custom exception for reimbursement business rule violations"""
-    
-    def __init__(self, message: str, rule: Optional[str] = None):
+    """Exception raised for business rule violations in reimbursement operations"""
+    def __init__(self, message: str, rule_code: str = None):
+        super().__init__(message)
         self.message = message
-        self.rule = rule
-        super().__init__(self.message)
+        self.rule_code = rule_code
+
+
+class ReimbursementNotFoundError(Exception):
+    """Exception raised when reimbursement is not found"""
+    def __init__(self, message: str, request_id: str = None):
+        super().__init__(message)
+        self.message = message
+        self.request_id = request_id
 
 
 # Utility functions

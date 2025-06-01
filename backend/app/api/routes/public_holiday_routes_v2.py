@@ -5,7 +5,7 @@ Clean architecture implementation of public holiday HTTP endpoints
 
 import logging
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body, UploadFile, File
 from fastapi.responses import JSONResponse
 from datetime import date, datetime
 
@@ -15,8 +15,7 @@ from app.application.dto.public_holiday_dto import (
     PublicHolidayUpdateRequestDTO,
     PublicHolidaySearchFiltersDTO,
     PublicHolidayResponseDTO,
-    PublicHolidaySummaryDTO,
-    PublicHolidayAnalyticsDTO,
+    PublicHolidayImportResultDTO,
     PublicHolidayValidationError,
     PublicHolidayBusinessRuleError,
     PublicHolidayNotFoundError
@@ -44,7 +43,7 @@ async def health_check(
     controller: PublicHolidayController = Depends(get_public_holiday_controller)
 ) -> Dict[str, str]:
     """Health check for public holiday service."""
-    return await controller.health_check()
+    return {"status": "healthy", "service": "public_holiday"}
 
 # Public holiday CRUD endpoints
 @router.post("", response_model=PublicHolidayResponseDTO)
@@ -57,7 +56,7 @@ async def create_public_holiday(
     """Create a new public holiday."""
     try:
         logger.info(f"Creating public holiday by {current_user.employee_id}")
-        return await controller.create_public_holiday(request, current_user.hostname)
+        return await controller.create_public_holiday(request, current_user.employee_id, current_user.hostname)
     except Exception as e:
         logger.error(f"Error creating public holiday: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -69,7 +68,7 @@ async def get_public_holidays(
     active_only: bool = Query(True, description="Return only active holidays"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
-    hostname: str = Depends(get_current_user.hostname),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: PublicHolidayController = Depends(get_public_holiday_controller)
 ):
     """Get public holidays with optional filters"""
@@ -84,7 +83,7 @@ async def get_public_holidays(
             limit=limit
         )
         
-        response = await controller.get_public_holidays(filters, hostname)
+        response = await controller.get_public_holidays(filters, current_user.hostname)
         
         return response
         
@@ -95,14 +94,14 @@ async def get_public_holidays(
 @router.get("/{holiday_id}", response_model=PublicHolidayResponseDTO)
 async def get_public_holiday(
     holiday_id: str = Path(..., description="Public holiday ID"),
-    hostname: str = Depends(get_current_user.hostname),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: PublicHolidayController = Depends(get_public_holiday_controller)
 ):
     """Get a specific public holiday by ID"""
     try:
         logger.info(f"Getting public holiday: {holiday_id}")
         
-        response = await controller.get_public_holiday(holiday_id, hostname)
+        response = await controller.get_public_holiday(holiday_id, current_user.hostname)
         
         if not response:
             raise HTTPException(status_code=404, detail="Public holiday not found")
@@ -117,8 +116,8 @@ async def get_public_holiday(
 
 @router.put("/{holiday_id}", response_model=PublicHolidayResponseDTO)
 async def update_public_holiday(
+    request: PublicHolidayUpdateRequestDTO,
     holiday_id: str = Path(..., description="Public holiday ID"),
-    request: PublicHolidayUpdateRequestDTO = None,
     current_user: CurrentUser = Depends(get_current_user),
     role: str = Depends(require_role("admin")),
     controller: PublicHolidayController = Depends(get_public_holiday_controller)
@@ -160,7 +159,7 @@ async def delete_public_holiday(
     try:
         logger.info(f"Deleting public holiday: {holiday_id} by {current_user.employee_id}")
         
-        await controller.delete_public_holiday(holiday_id, current_user.hostname)
+        await controller.delete_public_holiday(holiday_id, current_user.employee_id, current_user.hostname)
         
         return {"message": "Public holiday deleted successfully"}
         
@@ -206,7 +205,7 @@ async def import_public_holidays(
 @router.get("/check/{date}", response_model=dict)
 async def check_public_holiday(
     date: str = Path(..., description="Date in YYYY-MM-DD format"),
-    hostname: str = Depends(get_current_user.hostname),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: PublicHolidayController = Depends(get_public_holiday_controller)
 ):
     """Check if a specific date is a public holiday"""
@@ -219,7 +218,7 @@ async def check_public_holiday(
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
         
-        is_holiday = await controller.is_public_holiday(date, hostname)
+        is_holiday = await controller.is_public_holiday(date, current_user.hostname)
         
         return {
             "date": date,
@@ -237,7 +236,7 @@ async def check_public_holiday(
 async def get_public_holidays_by_month(
     month: int = Path(..., ge=1, le=12, description="Month (1-12)"),
     year: int = Path(..., ge=2000, le=3000, description="Year"),
-    hostname: str = Depends(get_current_user.hostname),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: PublicHolidayController = Depends(get_public_holiday_controller)
 ):
     """Get public holidays for a specific month and year"""
@@ -250,7 +249,7 @@ async def get_public_holidays_by_month(
             active_only=True
         )
         
-        response = await controller.get_public_holidays(filters, hostname)
+        response = await controller.get_public_holidays(filters, current_user.hostname)
         
         return response
         

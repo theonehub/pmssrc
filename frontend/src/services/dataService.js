@@ -1,21 +1,16 @@
 import apiClient from '../utils/apiClient';
 
 // Helper functions for data mapping between frontend and backend v2 formats
-const mapUserFromBackend = (backendUser) => {
-  if (!backendUser) return null;
-  
+const transformBackendToFrontend = (backendUser) => {
   return {
-    // Map backend fields to frontend expected fields
-    emp_id: backendUser.employee_id || backendUser.emp_id || '',
+    employee_id: backendUser.employee_id || '',
     employee_id: backendUser.employee_id || '',
     name: backendUser.name || '',
     email: backendUser.email || '',
     mobile: backendUser.mobile || '',
     gender: backendUser.gender || '',
-    dob: backendUser.date_of_birth || backendUser.dob || '',
-    date_of_birth: backendUser.date_of_birth || '',
-    doj: backendUser.date_of_joining || backendUser.doj || '',
-    date_of_joining: backendUser.date_of_joining || '',
+    date_of_birth: backendUser.date_of_birth || backendUser.dob || '',
+    date_of_joining: backendUser.date_of_joining || backendUser.doj || '',
     role: backendUser.role || '',
     department: backendUser.department || '',
     designation: backendUser.designation || '',
@@ -28,24 +23,21 @@ const mapUserFromBackend = (backendUser) => {
     aadhar_number: backendUser.aadhar_number || '',
     uan_number: backendUser.uan_number || '',
     esi_number: backendUser.esi_number || '',
-    status: backendUser.status || 'active',
-    is_active: (backendUser.status === 'active') || backendUser.is_active || true,
-    password_hash: backendUser.password_hash || '',
+    bank_details: backendUser.bank_details || {},
+    created_at: backendUser.created_at || '',
+    updated_at: backendUser.updated_at || '',
+    is_active: backendUser.is_active !== undefined ? backendUser.is_active : true,
+    status: backendUser.status || (backendUser.is_active ? 'active' : 'inactive'),
     profile_picture_url: backendUser.profile_picture_url || '',
     pan_document_path: backendUser.pan_document_path || '',
     aadhar_document_path: backendUser.aadhar_document_path || '',
-    photo_path: backendUser.photo_path || '',
-    created_at: backendUser.created_at || '',
-    updated_at: backendUser.updated_at || ''
+    photo_path: backendUser.photo_path || ''
   };
 };
 
-const mapUserToBackend = (frontendUser) => {
-  if (!frontendUser) return null;
-  
+const transformFrontendToBackend = (frontendUser) => {
   return {
-    // Map frontend fields to backend expected fields
-    employee_id: frontendUser.emp_id || frontendUser.employee_id,
+    employee_id: frontendUser.employee_id || frontendUser.employee_id,
     name: frontendUser.name,
     email: frontendUser.email,
     mobile: frontendUser.mobile,
@@ -54,8 +46,8 @@ const mapUserToBackend = (frontendUser) => {
     department: frontendUser.department,
     designation: frontendUser.designation,
     manager_id: frontendUser.manager_id,
-    date_of_birth: frontendUser.dob || frontendUser.date_of_birth,
-    date_of_joining: frontendUser.doj || frontendUser.date_of_joining,
+    date_of_birth: frontendUser.date_of_birth || frontendUser.dob,
+    date_of_joining: frontendUser.date_of_joining || frontendUser.doj,
     gender: frontendUser.gender,
     address: frontendUser.address,
     emergency_contact: frontendUser.emergency_contact,
@@ -64,7 +56,8 @@ const mapUserToBackend = (frontendUser) => {
     pan_number: frontendUser.pan_number,
     aadhar_number: frontendUser.aadhar_number,
     uan_number: frontendUser.uan_number,
-    esi_number: frontendUser.esi_number
+    esi_number: frontendUser.esi_number,
+    bank_details: frontendUser.bank_details || {}
   };
 };
 
@@ -83,7 +76,7 @@ const dataService = {
     });
     
     // Map the response to frontend format
-    const mappedUsers = response.data.users?.map(mapUserFromBackend) || [];
+    const mappedUsers = response.data.users?.map(transformBackendToFrontend) || [];
     return {
       total: response.data.total,
       users: mappedUsers,
@@ -94,7 +87,7 @@ const dataService = {
 
   async getUserById(userId) {
     const response = await apiClient.get(`/api/v2/users/${userId}`);
-    const mappedUser = mapUserFromBackend(response.data);
+    const mappedUser = transformBackendToFrontend(response.data);
     if (!mappedUser) {
       throw new Error('User data not found or invalid');
     }
@@ -103,7 +96,7 @@ const dataService = {
 
   async getUserByEmail(email) {
     const response = await apiClient.get(`/api/v2/users/email/${email}`);
-    const mappedUser = mapUserFromBackend(response.data);
+    const mappedUser = transformBackendToFrontend(response.data);
     if (!mappedUser) {
       throw new Error('User data not found or invalid');
     }
@@ -117,30 +110,30 @@ const dataService = {
 
   async getMyDirects() {
     const response = await apiClient.get('/api/v2/users/my/directs');
-    return response.data.map(mapUserFromBackend);
+    return response.data.map(transformBackendToFrontend);
   },
 
   async getManagerDirects(managerId) {
     const response = await apiClient.get('/api/v2/users/manager/directs', {
       params: { manager_id: managerId },
     });
-    return response.data.map(mapUserFromBackend);
+    return response.data.map(transformBackendToFrontend);
   },
 
   async getCurrentUser() {
     const response = await apiClient.get('/api/v2/users/me');
-    return mapUserFromBackend(response.data);
+    return transformBackendToFrontend(response.data);
   },
 
   async createUser(userData) {
-    const backendData = mapUserToBackend(userData);
+    const backendData = transformFrontendToBackend(userData);
     const response = await apiClient.post('/api/v2/users/create', backendData);
-    return mapUserFromBackend(response.data);
+    return transformBackendToFrontend(response.data);
   },
 
   async createUserWithFiles(userData, files = {}) {
     const formData = new FormData();
-    formData.append('user_data', JSON.stringify(mapUserToBackend(userData)));
+    formData.append('user_data', JSON.stringify(transformFrontendToBackend(userData)));
     
     if (files.pan_file) {
       formData.append('pan_file', files.pan_file);
@@ -155,19 +148,19 @@ const dataService = {
     const response = await apiClient.post('/api/v2/users/with-files', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    return mapUserFromBackend(response.data);
+    return transformBackendToFrontend(response.data);
   },
 
   async updateUser(userId, userData) {
-    const backendData = mapUserToBackend(userData);
+    const backendData = transformFrontendToBackend(userData);
     const response = await apiClient.put(`/api/v2/users/${userId}`, backendData);
-    return mapUserFromBackend(response.data);
+    return transformBackendToFrontend(response.data);
   },
 
   async updateUserLegacy(empId, userData) {
-    const backendData = mapUserToBackend(userData);
+    const backendData = transformFrontendToBackend(userData);
     const response = await apiClient.put(`/api/v2/users/${empId}`, backendData);
-    return mapUserFromBackend(response.data);
+    return transformBackendToFrontend(response.data);
   },
 
   async deleteUser(empId) {
@@ -177,17 +170,17 @@ const dataService = {
 
   async changeUserPassword(userId, passwordData) {
     const response = await apiClient.patch(`/api/v2/users/${userId}/password`, passwordData);
-    return mapUserFromBackend(response.data);
+    return transformBackendToFrontend(response.data);
   },
 
   async changeUserRole(userId, roleData) {
     const response = await apiClient.patch(`/api/v2/users/${userId}/role`, roleData);
-    return mapUserFromBackend(response.data);
+    return transformBackendToFrontend(response.data);
   },
 
   async updateUserStatus(userId, statusData) {
     const response = await apiClient.patch(`/api/v2/users/${userId}/status`, statusData);
-    return mapUserFromBackend(response.data);
+    return transformBackendToFrontend(response.data);
   },
 
   async checkUserExists(email = null, mobile = null, pan_number = null, exclude_id = null) {
@@ -199,7 +192,7 @@ const dataService = {
 
   async searchUsers(filters) {
     const response = await apiClient.post('/api/v2/users/search', filters);
-    const mappedUsers = response.data.users?.map(mapUserFromBackend) || [];
+    const mappedUsers = response.data.users?.map(transformBackendToFrontend) || [];
     return {
       ...response.data,
       users: mappedUsers
@@ -226,14 +219,14 @@ const dataService = {
     const response = await apiClient.get('/api/v2/users/legacy/all', {
       params: { hostname }
     });
-    return response.data.map(mapUserFromBackend);
+    return response.data.map(transformBackendToFrontend);
   },
 
   async getUserByEmpIdLegacy(empId, hostname) {
     const response = await apiClient.get(`/api/v2/users/legacy/${empId}`, {
       params: { hostname }
     });
-    const mappedUser = mapUserFromBackend(response.data);
+    const mappedUser = transformBackendToFrontend(response.data);
     if (!mappedUser) {
       throw new Error('User data not found or invalid');
     }

@@ -1,14 +1,11 @@
 // User Types
 export interface User {
-  emp_id: string;
   employee_id?: string; // Backend v2 uses employee_id
   name: string;
   email: string;
   gender: 'Male' | 'Female' | 'Other';
-  dob?: string;
-  date_of_birth?: string; // Backend v2 field
-  doj?: string;
-  date_of_joining?: string; // Backend v2 field
+  date_of_birth?: string;
+  date_of_joining?: string;
   mobile: string;
   manager_id?: string;
   role: UserRole;
@@ -112,7 +109,7 @@ export interface AuthResponse {
   expires_in: number;
   refresh_token?: string;
   user_info: {
-    emp_id: string;
+    employee_id: string;
     name: string;
     email: string;
     role: UserRole;
@@ -125,17 +122,21 @@ export interface AuthResponse {
 }
 
 export interface TokenData {
-  emp_id: string;
+  sub: string; // JWT subject claim (employee_id or username fallback)
+  username: string;
+  employee_id: string;
   role: UserRole;
-  exp: number;
-  iat: number;
-  sub?: string; // JWT subject claim (alternative to emp_id)
+  hostname: string;
+  permissions: string[];
+  iat: number; // Issued at timestamp
+  exp: number; // Expiration timestamp
+  type: string; // Token type (e.g., "access_token")
 }
 
 // Attendance Types
 export interface AttendanceRecord {
   id?: string;
-  emp_id: string;
+  employee_id: string;
   date: string;
   check_in?: string;
   check_out?: string;
@@ -157,7 +158,7 @@ export type AttendanceStatus =
 // Leave Types
 export interface LeaveApplication {
   leave_id?: string;
-  emp_id: string;
+  employee_id: string;
   leave_type: LeaveType;
   start_date: string;
   end_date: string;
@@ -179,7 +180,7 @@ export type LeaveType =
 export type LeaveStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
 export interface LeaveBalance {
-  emp_id: string;
+  employee_id: string;
   casual_leave: number;
   sick_leave: number;
   earned_leave: number;
@@ -192,7 +193,7 @@ export interface LeaveBalance {
 // Reimbursement Types
 export interface ReimbursementRequest {
   id?: string;
-  emp_id: string;
+  employee_id: string;
   type: string;
   amount: number;
   description: string;
@@ -240,7 +241,7 @@ export interface ToastState {
 
 // Taxation Types
 export interface TaxationData {
-  emp_id: string;
+  employee_id: string;
   tax_year: string;
   regime: TaxRegime;
   filing_status: FilingStatus;
@@ -537,7 +538,7 @@ export interface RetrenchmentCompensation {
 
 // Payroll Types
 export interface PayrollData {
-  emp_id: string;
+  employee_id: string;
   month: string;
   year: number;
   basic_salary: number;
@@ -672,7 +673,7 @@ export interface AlertState {
 
 // AttendanceUserList Component Types
 export interface LWPData {
-  [empId: string]: number;
+  [employee_id: string]: number;
 }
 
 export interface AttendanceUserListSortConfig {

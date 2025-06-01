@@ -89,14 +89,14 @@ const AttendanceUserList: React.FC = () => {
       const year = currentDate.getFullYear();
 
       const lwpPromises = users.map(user =>
-        apiGet(`/leaves/lwp/${user.emp_id}/${month}/${year}`)
+        apiGet(`/leaves/lwp/${user.employee_id}/${month}/${year}`)
       );
 
       const lwpResponses = await Promise.all(lwpPromises);
       const lwpMap: LWPData = {};
       
       users.forEach((user, index) => {
-        lwpMap[user.emp_id] = lwpResponses[index]?.data?.lwp_days || 0;
+        lwpMap[user.employee_id || ''] = lwpResponses[index]?.data?.lwp_days || 0;
       });
 
       setLwpData(lwpMap);
@@ -136,7 +136,7 @@ const AttendanceUserList: React.FC = () => {
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filteredUsers = filteredUsers.filter(user => 
-        user.emp_id.toLowerCase().includes(searchLower) ||
+        user.employee_id?.toLowerCase().includes(searchLower) ||
         user.name.toLowerCase().includes(searchLower) ||
         user.email.toLowerCase().includes(searchLower) ||
         user.mobile.includes(searchTerm)
@@ -150,15 +150,15 @@ const AttendanceUserList: React.FC = () => {
         let bValue: any;
 
         if (sortConfig.key === 'lwp') {
-          aValue = lwpData[a.emp_id] || 0;
-          bValue = lwpData[b.emp_id] || 0;
+          aValue = lwpData[a.employee_id || ''] || 0;
+          bValue = lwpData[b.employee_id || ''] || 0;
         } else {
           aValue = a[sortConfig.key!];
           bValue = b[sortConfig.key!];
         }
 
         // Special handling for dates
-        if (sortConfig.key === 'dob' || sortConfig.key === 'doj') {
+        if (sortConfig.key === 'date_of_birth' || sortConfig.key === 'date_of_joining') {
           aValue = new Date(aValue);
           bValue = new Date(bValue);
         }
@@ -287,9 +287,9 @@ const AttendanceUserList: React.FC = () => {
                         padding: '12px 16px'
                       }
                     }}>
-                      <TableCell onClick={() => requestSort('emp_id')} sx={{ cursor: 'pointer' }}>
+                      <TableCell onClick={() => requestSort('employee_id')} sx={{ cursor: 'pointer' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          Employee ID {getSortIcon('emp_id')}
+                          Employee ID {getSortIcon('employee_id')}
                         </Box>
                       </TableCell>
                       <TableCell onClick={() => requestSort('name')} sx={{ cursor: 'pointer' }}>
@@ -302,10 +302,10 @@ const AttendanceUserList: React.FC = () => {
                           Email {getSortIcon('email')}
                         </Box>
                       </TableCell>
-                      <TableCell onClick={() => requestSort('doj')} sx={{ cursor: 'pointer' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          Date of Joining {getSortIcon('doj')}
-                        </Box>
+                      <TableCell onClick={() => requestSort('date_of_joining')} sx={{ cursor: 'pointer' }}>
+                        <Typography variant="subtitle2" fontWeight="bold">
+                          Date of Joining {getSortIcon('date_of_joining')}
+                        </Typography>
                       </TableCell>
                       <TableCell onClick={() => requestSort('mobile')} sx={{ cursor: 'pointer' }}>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -334,7 +334,7 @@ const AttendanceUserList: React.FC = () => {
                   <TableBody>
                     {getSortedAndFilteredUsers().map((user) => (
                       <TableRow 
-                        key={user.emp_id}
+                        key={user.employee_id}
                         sx={{ 
                           '&:hover': { 
                             backgroundColor: 'action.hover',
@@ -342,18 +342,18 @@ const AttendanceUserList: React.FC = () => {
                           }
                         }}
                       >
-                        <TableCell>{user.emp_id}</TableCell>
+                        <TableCell>{user.employee_id}</TableCell>
                         <TableCell>{user.name}</TableCell>
                         <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.doj}</TableCell>
+                        <TableCell>{user.date_of_joining}</TableCell>
                         <TableCell>{user.mobile}</TableCell>
                         <TableCell>
                           <Box sx={{ 
                             display: 'flex', 
                             alignItems: 'center',
-                            color: (lwpData[user.emp_id] || 0) > 0 ? 'error.main' : 'success.main'
+                            color: (lwpData[user.employee_id || ''] || 0) > 0 ? 'error.main' : 'success.main'
                           }}>
-                            {lwpData[user.emp_id] || 0}
+                            {lwpData[user.employee_id || ''] || 0}
                           </Box>
                         </TableCell>
                         <TableCell>
@@ -361,7 +361,7 @@ const AttendanceUserList: React.FC = () => {
                             variant="contained" 
                             color="primary"
                             size="small"
-                            onClick={() => handleViewAttendance(user.emp_id)}
+                            onClick={() => handleViewAttendance(user.employee_id || '')}
                           >
                             View Attendance
                           </Button>
@@ -389,7 +389,7 @@ const AttendanceUserList: React.FC = () => {
           {/* Attendance Calendar Modal */}
           {selectedEmpId && (
             <AttendanceCalendar
-              emp_id={selectedEmpId}
+              employee_id={selectedEmpId}
               show={showCalendar}
               onHide={handleCloseCalendar}
             />

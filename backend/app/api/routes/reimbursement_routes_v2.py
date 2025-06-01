@@ -11,19 +11,27 @@ from datetime import date, datetime
 
 from app.api.controllers.reimbursement_controller import ReimbursementController
 from app.application.dto.reimbursement_dto import (
-    ReimbursementCreateRequestDTO,
-    ReimbursementUpdateRequestDTO,
-    ReimbursementApprovalRequestDTO,
+    ReimbursementRequestCreateDTO,
+    ReimbursementRequestUpdateDTO,
+    ReimbursementApprovalDTO,
     ReimbursementSearchFiltersDTO,
     ReimbursementResponseDTO,
     ReimbursementSummaryDTO,
-    ReimbursementAnalyticsDTO,
+    ReimbursementStatisticsDTO,
     ReimbursementValidationError,
     ReimbursementBusinessRuleError,
-    ReimbursementNotFoundError
+    ReimbursementNotFoundError,
+    ReimbursementTypeCreateRequestDTO,
+    ReimbursementTypeResponseDTO,
+    ReimbursementRejectionDTO,
+    ReimbursementPaymentDTO,
+    ReimbursementReceiptUploadDTO
 )
 from app.config.dependency_container import get_dependency_container
 from app.auth.auth_dependencies import CurrentUser, get_current_user, require_role
+
+# Import auth functions - use the new auth dependencies approach
+from app.auth.auth import extract_employee_id, extract_hostname, role_checker
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +47,11 @@ def get_reimbursement_controller() -> ReimbursementController:
         logger.warning(f"Could not get reimbursement controller from container: {e}")
         return ReimbursementController()
 
+# Alias for consistency with other endpoints
+def get_controller() -> ReimbursementController:
+    """Alias for get_reimbursement_controller"""
+    return get_reimbursement_controller()
+
 # Health check endpoint
 @router.get("/health")
 async def health_check(
@@ -50,7 +63,7 @@ async def health_check(
 # Reimbursement CRUD endpoints
 @router.post("", response_model=ReimbursementResponseDTO)
 async def create_reimbursement(
-    request: ReimbursementCreateRequestDTO,
+    request: ReimbursementRequestCreateDTO,
     current_user: CurrentUser = Depends(get_current_user),
     controller: ReimbursementController = Depends(get_reimbursement_controller)
 ) -> ReimbursementResponseDTO:

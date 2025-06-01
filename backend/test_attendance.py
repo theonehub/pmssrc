@@ -12,14 +12,14 @@ from jose import jwt
 JWT_SECRET_KEY = 'your-jwt-secret-key-here'
 JWT_ALGORITHM = 'HS256'
 
-def create_test_token(emp_id: str = "superadmin", hostname: str = "localhost", role: str = "admin"):
+def create_test_token(employee_id: str = "superadmin", hostname: str = "localhost", role: str = "admin"):
     """Create a test JWT token"""
     # Token expires in 24 hours
     expiration = datetime.utcnow() + timedelta(hours=24)
     
     payload = {
-        "sub": emp_id,  # The auth.py looks for "sub" field
-        "emp_id": emp_id,  # Include both formats for compatibility
+        "sub": employee_id,  # The auth.py looks for "sub" field
+        "employee_id": employee_id,  # Include both formats for compatibility
         "hostname": hostname,
         "role": role,
         "exp": expiration.timestamp()

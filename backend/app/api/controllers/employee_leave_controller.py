@@ -1,11 +1,14 @@
 """
-Employee Leave Controller
-SOLID-compliant controller for employee leave operations
+Employee Leave API Controller
+FastAPI controller for employee leave management endpoints
 """
 
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
+from app.application.use_cases.employee_leave.apply_employee_leave_use_case import ApplyEmployeeLeaveUseCase
+from app.application.use_cases.employee_leave.approve_employee_leave_use_case import ApproveEmployeeLeaveUseCase
+from app.application.use_cases.employee_leave.get_employee_leaves_use_case import GetEmployeeLeavesUseCase
 from app.application.dto.employee_leave_dto import (
     EmployeeLeaveCreateRequestDTO,
     EmployeeLeaveUpdateRequestDTO,
@@ -20,9 +23,7 @@ from app.application.dto.employee_leave_dto import (
     EmployeeLeaveNotFoundError,
     InsufficientLeaveBalanceError
 )
-from app.application.use_cases.employee_leave.apply_employee_leave_use_case import ApplyEmployeeLeaveUseCase
-from app.application.use_cases.employee_leave.approve_employee_leave_use_case import ApproveEmployeeLeaveUseCase
-from app.application.use_cases.employee_leave.get_employee_leaves_use_case import GetEmployeeLeavesUseCase
+from app.domain.entities.employee_leave import LeaveStatus
 
 
 class EmployeeLeaveController:
@@ -173,7 +174,6 @@ class EmployeeLeaveController:
         try:
             self._logger.info(f"Retrieving leaves for employee: {employee_id}")
             
-            from models.leave_model import LeaveStatus
             status = None
             if status_filter:
                 try:
@@ -214,7 +214,6 @@ class EmployeeLeaveController:
         try:
             self._logger.info(f"Retrieving leaves for manager: {manager_id}")
             
-            from models.leave_model import LeaveStatus
             status = None
             if status_filter:
                 try:

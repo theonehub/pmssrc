@@ -19,7 +19,7 @@ from app.application.interfaces.repositories.company_leave_repository import (
 from app.domain.entities.company_leave import CompanyLeave
 from app.domain.value_objects.leave_type import LeaveType, LeaveCategory, AccrualType
 from app.domain.value_objects.leave_policy import LeavePolicy
-from database.database_connector import connect_to_database
+from app.database.database_connector import connect_to_database
 from decimal import Decimal
 
 

@@ -11,7 +11,7 @@ from pymongo import ASCENDING, DESCENDING
 
 from app.application.interfaces.services.event_publisher import EventPublisher
 from app.domain.events.employee_events import DomainEvent
-from database.database_connector import connect_to_database
+from app.database.database_connector import connect_to_database
 
 
 class MongoDBEventPublisher(EventPublisher):

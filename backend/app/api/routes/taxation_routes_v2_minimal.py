@@ -1,31 +1,64 @@
 """
-Minimal Taxation API Routes (SOLID Architecture)
-FastAPI routes for taxation operations - minimal working version
+SOLID-Compliant Taxation Routes v2 (Minimal)
+Clean architecture implementation of minimal taxation HTTP endpoints
 """
 
-from typing import Dict, Any, Optional, List
+import logging
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body
-from fastapi import status as http_status
-from datetime import datetime
+from fastapi.responses import JSONResponse
+from datetime import date, datetime
+
+from app.api.controllers.taxation_controller import TaxationController
+from app.application.dto.taxation_dto import (
+    TaxCalculationRequestDTO,
+    TaxationUpdateRequestDTO,
+    TaxSearchFiltersDTO,
+    TaxationResponseDTO,
+    TaxationValidationError,
+    TaxationBusinessRuleError,
+    TaxationNotFoundError
+)
+from app.config.dependency_container import get_dependency_container
+from app.auth.auth_dependencies import CurrentUser, get_current_user, require_role
+
+logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(prefix="/api/v2/taxation", tags=["Taxation V2"])
+router = APIRouter(prefix="/api/v2/taxation-minimal", tags=["taxation-v2-minimal"])
 
-# Mock dependency for current user
-async def get_current_user():
-    """Mock current user dependency."""
-    return {"sub": "admin", "role": "admin", "hostname": "company.com"}
+def get_taxation_controller() -> TaxationController:
+    """Get taxation controller instance."""
+    try:
+        container = get_dependency_container()
+        return container.get_taxation_controller()
+    except Exception as e:
+        logger.warning(f"Could not get taxation controller from container: {e}")
+        return TaxationController()
 
 # Health check endpoint
 @router.get("/health")
-async def health_check() -> Dict[str, str]:
+async def health_check(
+    controller: TaxationController = Depends(get_taxation_controller)
+) -> Dict[str, str]:
     """Health check for taxation service."""
-    return {
-        "service": "taxation_service",
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "version": "2.0.0-minimal"
-    }
+    return await controller.health_check()
+
+# Taxation calculation endpoints
+@router.post("/calculate", response_model=TaxationResponseDTO)
+async def calculate_taxation(
+    request: TaxCalculationRequestDTO,
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin")),
+    controller: TaxationController = Depends(get_taxation_controller)
+) -> TaxationResponseDTO:
+    """Calculate taxation for an employee."""
+    try:
+        logger.info(f"Calculating taxation for employee {request.employee_id}")
+        return await controller.calculate_taxation(request, current_user.hostname)
+    except Exception as e:
+        logger.error(f"Error calculating taxation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Basic taxation endpoints
 @router.get("/all-taxation")
@@ -95,40 +128,6 @@ async def get_taxation_by_employee_id(
         },
         "last_updated": datetime.now().isoformat()
     }
-
-@router.post("/calculate-tax")
-async def calculate_tax(
-    request: Dict[str, Any] = Body(..., description="Tax calculation request"),
-    current_user: Dict[str, Any] = Depends(get_current_user)
-) -> Dict[str, Any]:
-    """
-    Calculate tax for an employee.
-    Frontend expects this endpoint for taxationService.calculateTax()
-    """
-    employee_id = request.get("employee_id")
-    tax_year = request.get("tax_year", "2024-2025")
-    regime = request.get("regime", "old")
-    
-    # Mock tax calculation
-    mock_calculation = {
-        "employee_id": employee_id,
-        "tax_year": tax_year,
-        "regime": regime,
-        "calculation_details": {
-            "gross_total_income": 800000,
-            "total_deductions": 175000,
-            "taxable_income": 625000,
-            "tax_before_rebate": 62500,
-            "rebate_87a": 12500,
-            "tax_after_rebate": 50000,
-            "education_cess": 2000,
-            "total_tax_liability": 52000
-        },
-        "calculated_at": datetime.now().isoformat(),
-        "calculated_by": current_user.get("sub", "system")
-    }
-    
-    return mock_calculation
 
 @router.post("/taxation")
 async def save_taxation_data(

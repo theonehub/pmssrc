@@ -19,73 +19,93 @@ class PayslipFormatEnum(str, Enum):
 
 class PayslipStatusEnum(str, Enum):
     """Payslip status enumeration"""
+    PENDING = "pending"
+    GENERATING = "generating"
     GENERATED = "generated"
-    EMAILED = "emailed"
-    DOWNLOADED = "downloaded"
     FAILED = "failed"
+    EMAILED = "emailed"
+    EMAIL_FAILED = "email_failed"
+    DOWNLOADED = "downloaded"
+    EXPIRED = "expired"
 
 
 class BulkOperationTypeEnum(str, Enum):
     """Bulk operation type enumeration"""
     GENERATE = "generate"
     EMAIL = "email"
+    DOWNLOAD = "download"
 
 
 class BulkOperationStatusEnum(str, Enum):
     """Bulk operation status enumeration"""
     PENDING = "pending"
-    PROCESSING = "processing"
+    IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
     FAILED = "failed"
-    PARTIALLY_COMPLETED = "partially_completed"
+    CANCELLED = "cancelled"
 
 
 # ==================== REQUEST DTOs ====================
 
 class PayslipGenerationRequestDTO(BaseModel):
     """Request DTO for payslip generation"""
-    payout_id: str = Field(..., min_length=1, max_length=100)
+    payout_id: str
     format: PayslipFormatEnum = PayslipFormatEnum.PDF
-    include_company_logo: bool = True
-    custom_template_id: Optional[str] = None
-    custom_filename: Optional[str] = None
+    template_id: Optional[str] = None
+    auto_email: bool = False
     
     class Config:
         json_schema_extra = {
             "example": {
-                "payout_id": "PAYOUT_123",
+                "payout_id": "PAY123",
                 "format": "pdf",
-                "include_company_logo": True,
-                "custom_template_id": "template_001"
+                "auto_email": True
             }
         }
 
 
 class PayslipEmailRequestDTO(BaseModel):
     """Request DTO for payslip email"""
-    payout_id: str = Field(..., min_length=1, max_length=100)
-    recipient_email: Optional[str] = Field(None, pattern=r'^[^@]+@[^@]+\.[^@]+$')
+    payout_id: str
+    recipient_email: Optional[str] = None
     custom_subject: Optional[str] = Field(None, max_length=200)
     custom_message: Optional[str] = Field(None, max_length=1000)
-    include_attachments: bool = True
     
     class Config:
         json_schema_extra = {
             "example": {
-                "payout_id": "PAYOUT_123",
-                "recipient_email": "employee@company.com",
-                "custom_subject": "Your Salary Slip for March 2024",
-                "custom_message": "Please find your salary slip attached."
+                "payout_id": "PAY123",
+                "recipient_email": "employee@example.com",
+                "custom_subject": "Your Salary Slip for March 2024"
             }
         }
 
 
 class PayslipHistoryRequestDTO(BaseModel):
     """Request DTO for payslip history"""
-    employee_id: str = Field(..., min_length=1, max_length=50)
+    employee_id: str
+    year: int
+    month: Optional[int] = None
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "employee_id": "EMP001",
+                "year": 2024,
+                "month": 3
+            }
+        }
+
+
+class BulkPayslipGenerationRequestDTO(BaseModel):
+    """Request DTO for bulk payslip generation"""
+    month: int = Field(..., ge=1, le=12)
     year: int = Field(..., ge=2020, le=2030)
-    month: Optional[int] = Field(None, ge=1, le=12)
-    status_filter: Optional[PayslipStatusEnum] = None
+    employee_ids: Optional[List[str]] = None
+    department_id: Optional[str] = None
+    format: PayslipFormatEnum = PayslipFormatEnum.PDF
+    auto_email: bool = False
+    template_id: Optional[str] = None
     
     @validator('year')
     def validate_year(cls, v):
@@ -93,213 +113,314 @@ class PayslipHistoryRequestDTO(BaseModel):
         if v > current_year + 1:
             raise ValueError("Year cannot be more than 1 year in the future")
         return v
-
-
-class BulkPayslipGenerationRequestDTO(BaseModel):
-    """Request DTO for bulk payslip generation"""
-    month: int = Field(..., ge=1, le=12)
-    year: int = Field(..., ge=2020, le=2030)
-    employee_ids: Optional[List[str]] = Field(None, description="Specific employees (if None, all employees)")
-    format: PayslipFormatEnum = PayslipFormatEnum.PDF
-    status_filter: Optional[str] = Field(None, description="Filter payouts by status")
-    template_id: Optional[str] = None
-    auto_email: bool = False
     
-    @validator('employee_ids')
-    def validate_employee_ids(cls, v):
-        if v is not None:
-            if len(v) == 0:
-                raise ValueError("Employee IDs list cannot be empty")
-            if len(set(v)) != len(v):
-                raise ValueError("Duplicate employee IDs found")
-        return v
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "month": 3,
+                "year": 2024,
+                "format": "pdf",
+                "auto_email": True
+            }
+        }
 
 
 class BulkPayslipEmailRequestDTO(BaseModel):
     """Request DTO for bulk payslip email"""
     month: int = Field(..., ge=1, le=12)
     year: int = Field(..., ge=2020, le=2030)
-    employee_ids: Optional[List[str]] = Field(None, description="Specific employees (if None, all employees)")
+    employee_ids: Optional[List[str]] = None
+    department_id: Optional[str] = None
     custom_subject: Optional[str] = Field(None, max_length=200)
     custom_message: Optional[str] = Field(None, max_length=1000)
-    send_copy_to_admin: bool = False
+    include_attachments: bool = True
     
-    @validator('employee_ids')
-    def validate_employee_ids(cls, v):
-        if v is not None:
-            if len(v) == 0:
-                raise ValueError("Employee IDs list cannot be empty")
-            if len(set(v)) != len(v):
-                raise ValueError("Duplicate employee IDs found")
+    @validator('year')
+    def validate_year(cls, v):
+        current_year = datetime.now().year
+        if v > current_year + 1:
+            raise ValueError("Year cannot be more than 1 year in the future")
         return v
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "month": 3,
+                "year": 2024,
+                "custom_subject": "Your Salary Slip for March 2024",
+                "include_attachments": True
+            }
+        }
 
 
 class PayslipTemplateRequestDTO(BaseModel):
-    """Request DTO for payslip template operations"""
-    template_name: str = Field(..., min_length=1, max_length=100)
-    template_content: Optional[str] = None
-    is_default: bool = False
-    description: Optional[str] = Field(None, max_length=500)
+    """Request DTO for payslip template"""
+    name: str = Field(..., min_length=1, max_length=100)
+    description: str = Field(..., min_length=1, max_length=500)
+    html_content: str
+    css_content: Optional[str] = None
+    header_html: Optional[str] = None
+    footer_html: Optional[str] = None
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "Standard Template",
+                "description": "Default payslip template",
+                "html_content": "<div>Payslip content here</div>",
+                "css_content": "body { font-family: Arial; }"
+            }
+        }
 
 
 class PayslipScheduleRequestDTO(BaseModel):
-    """Request DTO for payslip schedule operations"""
-    day_of_month: int = Field(..., ge=1, le=28, description="Day of month to generate payslips")
-    auto_email: bool = False
+    """Request DTO for payslip schedule"""
+    month: int = Field(..., ge=1, le=12)
+    year: int = Field(..., ge=2020, le=2030)
+    scheduled_date: datetime
+    auto_email: bool = True
     template_id: Optional[str] = None
-    enabled: bool = True
+    
+    @validator('scheduled_date')
+    def validate_scheduled_date(cls, v):
+        if v < datetime.now():
+            raise ValueError("Scheduled date cannot be in the past")
+        return v
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "month": 3,
+                "year": 2024,
+                "scheduled_date": "2024-03-01T00:00:00Z",
+                "auto_email": True
+            }
+        }
+
+
+class PayslipSearchFiltersDTO(BaseModel):
+    """Request DTO for searching payslips"""
+    employee_id: Optional[str] = None
+    month: Optional[int] = Field(None, ge=1, le=12)
+    year: Optional[int] = None
+    status: Optional[PayslipStatusEnum] = None
+    format: Optional[PayslipFormatEnum] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
+    skip: int = Field(0, ge=0)
+    limit: int = Field(100, ge=1, le=1000)
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "employee_id": "EMP001",
+                "month": 3,
+                "year": 2024,
+                "status": "generated",
+                "format": "pdf",
+                "skip": 0,
+                "limit": 50
+            }
+        }
 
 
 # ==================== RESPONSE DTOs ====================
 
 class PayslipResponseDTO(BaseModel):
-    """Response DTO for payslip data"""
-    payslip_id: str
+    """Response DTO for payslip generation"""
     payout_id: str
     employee_id: str
-    employee_name: Optional[str] = None
-    format: PayslipFormatEnum
     status: PayslipStatusEnum
-    file_path: Optional[str] = None
-    file_size: Optional[int] = None
-    download_url: Optional[str] = None
+    format: PayslipFormatEnum
     generated_at: datetime
-    generated_by: Optional[str] = None
-    email_sent_at: Optional[datetime] = None
-    email_recipient: Optional[str] = None
-    download_count: int = 0
-    last_downloaded_at: Optional[datetime] = None
+    file_url: Optional[str] = None
+    error_message: Optional[str] = None
     
     class Config:
         json_schema_extra = {
             "example": {
-                "payslip_id": "PAYSLIP_123",
-                "payout_id": "PAYOUT_123",
+                "payout_id": "PAY123",
                 "employee_id": "EMP001",
-                "employee_name": "John Doe",
-                "format": "pdf",
                 "status": "generated",
-                "file_size": 102400,
-                "generated_at": "2024-03-15T10:30:00",
-                "download_count": 2
+                "format": "pdf",
+                "generated_at": "2024-03-01T12:00:00Z",
+                "file_url": "https://example.com/payslips/PAY123.pdf"
             }
         }
 
 
 class PayslipEmailResponseDTO(BaseModel):
-    """Response DTO for payslip email operations"""
-    payslip_id: str
+    """Response DTO for payslip email"""
     payout_id: str
     employee_id: str
-    recipient_email: str
-    email_status: str
     sent_at: datetime
-    message: str
-    error_details: Optional[str] = None
+    recipient_email: str
+    status: str
+    error_message: Optional[str] = None
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "payout_id": "PAY123",
+                "employee_id": "EMP001",
+                "sent_at": "2024-03-01T12:00:00Z",
+                "recipient_email": "employee@example.com",
+                "status": "sent"
+            }
+        }
 
 
 class PayslipHistoryResponseDTO(BaseModel):
     """Response DTO for payslip history"""
     employee_id: str
-    employee_name: Optional[str] = None
     year: int
-    month: Optional[int] = None
-    total_payslips: int
+    month: Optional[int]
     payslips: List[PayslipResponseDTO]
-    download_statistics: Dict[str, int]  # {"total_downloads": 10, "unique_months": 5}
-    last_generated: Optional[datetime] = None
+    total_count: int
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "employee_id": "EMP001",
+                "year": 2024,
+                "month": 3,
+                "payslips": [],
+                "total_count": 0
+            }
+        }
 
 
 class BulkPayslipOperationResponseDTO(BaseModel):
     """Response DTO for bulk payslip operations"""
     operation_id: str
     operation_type: BulkOperationTypeEnum
-    status: BulkOperationStatusEnum
-    month: int
-    year: int
-    total_employees: int
-    processed_count: int
-    successful_count: int
-    failed_count: int
-    successful_operations: List[str]  # List of payslip IDs or email addresses
-    failed_operations: List[Dict[str, str]]  # List of {employee_id, error}
+    status: str
     started_at: datetime
     completed_at: Optional[datetime] = None
-    processing_duration: Optional[float] = None
+    total_count: int
+    processed_count: int
+    success_count: int
+    error_count: int
+    error_details: Optional[List[Dict[str, Any]]] = None
     
     class Config:
         json_schema_extra = {
             "example": {
-                "operation_id": "BULK_OP_123",
+                "operation_id": "BULK123",
                 "operation_type": "generate",
                 "status": "completed",
-                "month": 3,
-                "year": 2024,
-                "total_employees": 50,
-                "successful_count": 48,
-                "failed_count": 2,
-                "processing_duration": 125.5
+                "started_at": "2024-03-01T12:00:00Z",
+                "completed_at": "2024-03-01T12:05:00Z",
+                "total_count": 100,
+                "processed_count": 100,
+                "success_count": 98,
+                "error_count": 2
             }
         }
 
 
 class PayslipSummaryResponseDTO(BaseModel):
     """Response DTO for payslip summary"""
-    month: int
     year: int
-    total_employees: int
-    payslips_generated: int
-    payslips_emailed: int
-    payslips_downloaded: int
-    pending_generation: int
-    failed_generation: int
-    generation_rate: float  # percentage
-    email_delivery_rate: float  # percentage
-    download_rate: float  # percentage
-    last_generated_at: Optional[datetime] = None
+    month: int
+    total_payslips: int
+    total_generated: int
+    total_emailed: int
+    total_downloaded: int
+    generation_success_rate: float
+    email_success_rate: float
+    download_rate: float
+    average_generation_time: float
+    error_count: int
+    last_generated: Optional[datetime] = None
     
-    @validator('generation_rate', 'email_delivery_rate', 'download_rate')
-    def validate_rates(cls, v):
-        return round(v, 2)
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "year": 2024,
+                "month": 3,
+                "total_payslips": 100,
+                "total_generated": 98,
+                "total_emailed": 95,
+                "total_downloaded": 80,
+                "generation_success_rate": 98.0,
+                "email_success_rate": 95.0,
+                "download_rate": 80.0,
+                "average_generation_time": 2.5,
+                "error_count": 2,
+                "last_generated": "2024-03-01T12:00:00Z"
+            }
+        }
 
 
 class PayslipTemplateResponseDTO(BaseModel):
-    """Response DTO for payslip templates"""
+    """Response DTO for payslip template"""
     template_id: str
-    template_name: str
-    description: Optional[str] = None
+    name: str
+    description: str
     is_default: bool
-    is_active: bool
     created_at: datetime
-    updated_at: Optional[datetime] = None
-    created_by: Optional[str] = None
-    usage_count: int = 0
+    updated_at: datetime
+    preview_url: Optional[str] = None
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "template_id": "TEMP123",
+                "name": "Standard Template",
+                "description": "Default payslip template",
+                "is_default": True,
+                "created_at": "2024-01-01T00:00:00Z",
+                "updated_at": "2024-01-01T00:00:00Z",
+                "preview_url": "https://example.com/templates/TEMP123/preview.png"
+            }
+        }
 
 
 class PayslipScheduleResponseDTO(BaseModel):
-    """Response DTO for payslip schedules"""
+    """Response DTO for payslip schedule"""
     schedule_id: str
-    day_of_month: int
-    auto_email: bool
-    template_id: Optional[str] = None
-    template_name: Optional[str] = None
-    enabled: bool
+    month: int
+    year: int
+    scheduled_date: datetime
+    status: str
     created_at: datetime
-    updated_at: Optional[datetime] = None
-    last_executed_at: Optional[datetime] = None
-    next_execution_date: Optional[date] = None
+    updated_at: datetime
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "schedule_id": "SCH123",
+                "month": 3,
+                "year": 2024,
+                "scheduled_date": "2024-03-01T00:00:00Z",
+                "status": "scheduled",
+                "created_at": "2024-02-28T12:00:00Z",
+                "updated_at": "2024-02-28T12:00:00Z"
+            }
+        }
 
 
 class PayslipDownloadResponseDTO(BaseModel):
-    """Response DTO for payslip download operations"""
-    payslip_id: str
+    """Response DTO for payslip download info"""
     payout_id: str
     employee_id: str
-    filename: str
-    file_size: int
-    content_type: str
-    download_token: Optional[str] = None
-    expires_at: Optional[datetime] = None
+    download_count: int
+    last_downloaded: Optional[datetime] = None
+    file_url: Optional[str] = None
+    expiry_date: Optional[datetime] = None
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "payout_id": "PAY123",
+                "employee_id": "EMP001",
+                "download_count": 2,
+                "last_downloaded": "2024-03-01T12:00:00Z",
+                "file_url": "https://example.com/payslips/PAY123.pdf",
+                "expiry_date": "2024-04-01T00:00:00Z"
+            }
+        }
 
 
 class PayslipAnalyticsResponseDTO(BaseModel):
@@ -328,3 +449,73 @@ class PayslipErrorResponseDTO(BaseModel):
     payslip_id: Optional[str] = None
     payout_id: Optional[str] = None
     employee_id: Optional[str] = None
+
+
+class PayslipSummaryDTO(BaseModel):
+    """DTO for payslip summary data"""
+    total_payslips: int
+    total_generated: int
+    total_emailed: int
+    total_downloaded: int
+    generation_success_rate: float
+    email_success_rate: float
+    download_rate: float
+    average_generation_time: float
+    error_count: int
+    last_generated: Optional[datetime] = None
+    
+    @validator('generation_success_rate', 'email_success_rate', 'download_rate')
+    def validate_rates(cls, v):
+        return round(v, 2)
+
+
+class PayslipAnalyticsDTO(BaseModel):
+    """DTO for payslip analytics data"""
+    period: str
+    total_payslips: int
+    total_generated: int
+    total_emailed: int
+    total_downloaded: int
+    generation_success_rate: float
+    email_success_rate: float
+    download_rate: float
+    average_generation_time: float
+    error_count: int
+    most_common_errors: List[Dict[str, Any]]
+    monthly_trends: List[Dict[str, Any]]
+    template_usage: Dict[str, int]
+    employee_engagement: Dict[str, float]
+    
+    @validator('generation_success_rate', 'email_success_rate', 'download_rate')
+    def validate_rates(cls, v):
+        return round(v, 2)
+
+
+# ==================== ERROR CLASSES ====================
+
+class PayslipValidationError(Exception):
+    """Exception raised for payslip validation errors"""
+    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+        self.message = message
+        self.details = details or {}
+        super().__init__(self.message)
+
+
+class PayslipBusinessRuleError(Exception):
+    """Exception raised for payslip business rule violations"""
+    def __init__(self, message: str, rule_name: str, details: Optional[Dict[str, Any]] = None):
+        self.message = message
+        self.rule_name = rule_name
+        self.details = details or {}
+        super().__init__(self.message)
+
+
+class PayslipNotFoundError(Exception):
+    """Exception raised when payslip is not found"""
+    def __init__(self, payout_id: str, employee_id: Optional[str] = None):
+        self.payout_id = payout_id
+        self.employee_id = employee_id
+        message = f"Payslip not found for payout {payout_id}"
+        if employee_id:
+            message += f" and employee {employee_id}"
+        super().__init__(message)

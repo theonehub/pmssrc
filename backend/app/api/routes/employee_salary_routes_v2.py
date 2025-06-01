@@ -16,22 +16,8 @@ from app.application.dto.employee_salary_dto import (
     SalaryAssignmentStatusResponseDTO, BulkSalaryAssignmentResponseDTO,
     SalaryCalculationResponseDTO, SalaryFrequencyEnum, SalaryStatusEnum
 )
-# from app.auth.auth import extract_employee_id, extract_hostname, role_checker
-
-# Mock auth dependencies for compilation
-async def extract_employee_id():
-    """Mock extract emp id."""
-    return "admin"
-
-async def extract_hostname():
-    """Mock extract hostname."""
-    return "company.com"
-
-def role_checker(allowed_roles):
-    """Mock role checker."""
-    async def check_role():
-        return "admin"
-    return check_role
+from app.auth.auth_dependencies import CurrentUser, get_current_user, require_role
+from app.config.dependency_container import get_dependency_container
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +27,12 @@ router = APIRouter(prefix="/api/v2/employee-salary", tags=["employee-salary-v2"]
 # Dependency for employee salary controller
 async def get_employee_salary_controller() -> EmployeeSalaryController:
     """Get employee salary controller instance."""
-    return EmployeeSalaryController()
+    try:
+        container = get_dependency_container()
+        return container.get_employee_salary_controller()
+    except Exception as e:
+        logger.warning(f"Could not get employee salary controller from container: {e}")
+        return EmployeeSalaryController()
 
 # Health check endpoint
 @router.get("/health")
@@ -55,18 +46,18 @@ async def health_check(
 @router.post("", response_model=EmployeeSalaryResponseDTO)
 async def create_employee_salary(
     request: EmployeeSalaryCreateRequestDTO,
-    controller: EmployeeSalaryController = Depends(get_employee_salary_controller),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin")),
+    controller: EmployeeSalaryController = Depends(get_employee_salary_controller)
 ) -> EmployeeSalaryResponseDTO:
     """
     Create a single salary component entry for an employee.
     
     Args:
         request: Employee salary creation request
-        controller: Employee salary controller dependency
+        current_user: Current user object
         role: User role (admin, superadmin, manager)
-        hostname: Organization hostname
+        controller: Employee salary controller dependency
         
     Returns:
         Created salary component response
@@ -74,7 +65,7 @@ async def create_employee_salary(
     try:
         logger.info(f"Creating salary component {request.component_id} for employee {request.employee_id}")
         
-        result = await controller.create_employee_salary(request, hostname)
+        result = await controller.create_employee_salary(request, current_user.hostname)
         
         return result
         
@@ -86,9 +77,9 @@ async def create_employee_salary(
 async def get_employee_salary_by_employee_id(
     employee_id: str,
     controller: EmployeeSalaryController = Depends(get_employee_salary_controller),
-    emp_id: str = Depends(extract_employee_id),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager", "user"])),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin")),
+    hostname: str = Depends(require_role("admin"))
 ) -> List[EmployeeSalaryResponseDTO]:
     """
     Get all salary components assigned to a specific employee.
@@ -96,7 +87,7 @@ async def get_employee_salary_by_employee_id(
     Args:
         employee_id: Employee ID to get salary components for
         controller: Employee salary controller dependency
-        employee_id: Current user's employee ID
+        current_user: Current user object
         role: User role
         hostname: Organization hostname
         
@@ -107,7 +98,7 @@ async def get_employee_salary_by_employee_id(
         logger.info(f"Getting salary components for employee {employee_id}")
         
         # Check permissions - admin/manager can access any employee, users only their own
-        if role not in ["admin", "superadmin", "manager"] and employee_id != emp_id:
+        if role not in ["admin", "superadmin", "manager"] and employee_id != current_user.employee_id:
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         
         result = await controller.get_employee_salary_by_id(employee_id, hostname)
@@ -121,29 +112,30 @@ async def get_employee_salary_by_employee_id(
 @router.get("/my/salary", response_model=List[EmployeeSalaryResponseDTO])
 async def get_my_salary_components(
     controller: EmployeeSalaryController = Depends(get_employee_salary_controller),
-    employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user),
+    hostname: str = Depends(require_role("admin"))
 ) -> List[EmployeeSalaryResponseDTO]:
     """
     Get salary components for the current user.
     
     Args:
         controller: Employee salary controller dependency
-        employee_id: Current user's employee ID
+        current_user: Current user object
         hostname: Organization hostname
         
     Returns:
         List of current user's salary components
     """
-    return await controller.get_employee_salary_by_id(employee_id, hostname)
+    return await controller.get_employee_salary_by_id(current_user.employee_id, hostname)
 
 @router.put("/{salary_id}", response_model=EmployeeSalaryResponseDTO)
 async def update_employee_salary(
     salary_id: str,
     request: EmployeeSalaryUpdateRequestDTO,
     controller: EmployeeSalaryController = Depends(get_employee_salary_controller),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin")),
+    hostname: str = Depends(require_role("admin"))
 ) -> EmployeeSalaryResponseDTO:
     """
     Update an employee's salary component details.
@@ -152,6 +144,7 @@ async def update_employee_salary(
         salary_id: Salary component ID to update
         request: Update request data
         controller: Employee salary controller dependency
+        current_user: Current user object
         role: User role (admin, superadmin, manager)
         hostname: Organization hostname
         
@@ -173,8 +166,9 @@ async def update_employee_salary(
 async def delete_employee_salary(
     salary_id: str,
     controller: EmployeeSalaryController = Depends(get_employee_salary_controller),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin")),
+    hostname: str = Depends(require_role("admin"))
 ) -> Dict[str, Any]:
     """
     Delete an employee's salary component entry.
@@ -182,6 +176,7 @@ async def delete_employee_salary(
     Args:
         salary_id: Salary component ID to delete
         controller: Employee salary controller dependency
+        current_user: Current user object
         role: User role (admin, superadmin, manager)
         hostname: Organization hostname
         
@@ -204,9 +199,9 @@ async def delete_employee_salary(
 async def check_salary_assignment_status(
     employee_id: str,
     controller: EmployeeSalaryController = Depends(get_employee_salary_controller),
-    emp_id: str = Depends(extract_employee_id),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager", "user"])),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin")),
+    hostname: str = Depends(require_role("admin"))
 ) -> SalaryAssignmentStatusResponseDTO:
     """
     Check if salary components are already assigned to the employee.
@@ -214,7 +209,7 @@ async def check_salary_assignment_status(
     Args:
         employee_id: Employee ID
         controller: Employee salary controller dependency
-        employee_id: Current user's employee ID
+        current_user: Current user object
         role: User role
         hostname: Organization hostname
         
@@ -225,7 +220,7 @@ async def check_salary_assignment_status(
         logger.info(f"Checking salary assignment status for employee {employee_id}")
         
         # Check permissions - admin/manager can access any employee, users only their own
-        if role not in ["admin", "superadmin", "manager"] and employee_id != emp_id:
+        if role not in ["admin", "superadmin", "manager"] and employee_id != current_user.employee_id:
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         
         result = await controller.check_salary_assignment_status(employee_id, hostname)
@@ -239,29 +234,30 @@ async def check_salary_assignment_status(
 @router.get("/my/status", response_model=SalaryAssignmentStatusResponseDTO)
 async def check_my_salary_assignment_status(
     controller: EmployeeSalaryController = Depends(get_employee_salary_controller),
-    employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user),
+    hostname: str = Depends(require_role("admin"))
 ) -> SalaryAssignmentStatusResponseDTO:
     """
     Check salary assignment status for the current user.
     
     Args:
         controller: Employee salary controller dependency
-        employee_id: Current user's employee ID
+        current_user: Current user object
         hostname: Organization hostname
         
     Returns:
         Current user's salary assignment status
     """
-    return await controller.check_salary_assignment_status(employee_id, hostname)
+    return await controller.check_salary_assignment_status(current_user.employee_id, hostname)
 
 # Bulk Operations
 @router.post("/bulk-assign", response_model=BulkSalaryAssignmentResponseDTO)
 async def bulk_assign_salary_structure(
     request: BulkEmployeeSalaryAssignRequestDTO,
     controller: EmployeeSalaryController = Depends(get_employee_salary_controller),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin")),
+    hostname: str = Depends(require_role("admin"))
 ) -> BulkSalaryAssignmentResponseDTO:
     """
     Bulk assign salary components to an employee (insert or update).
@@ -269,6 +265,7 @@ async def bulk_assign_salary_structure(
     Args:
         request: Bulk salary assignment request
         controller: Employee salary controller dependency
+        current_user: Current user object
         role: User role (admin, superadmin, manager)
         hostname: Organization hostname
         
@@ -291,8 +288,9 @@ async def assign_salary_structure_legacy(
     employee_id: str,
     components: List[EmployeeSalaryCreateRequestDTO] = Body(...),
     controller: EmployeeSalaryController = Depends(get_employee_salary_controller),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin")),
+    hostname: str = Depends(require_role("admin"))
 ) -> Dict[str, Any]:
     """
     Legacy endpoint: Bulk assign salary components to an employee.
@@ -301,6 +299,7 @@ async def assign_salary_structure_legacy(
         employee_id: Employee ID
         components: List of salary components to assign
         controller: Employee salary controller dependency
+        current_user: Current user object
         role: User role (admin, superadmin, manager)
         hostname: Organization hostname
         
@@ -332,9 +331,9 @@ async def get_salary_structure(
     employee_id: str,
     as_of_date: Optional[date] = Query(None, description="Date for structure calculation"),
     controller: EmployeeSalaryController = Depends(get_employee_salary_controller),
-    emp_id: str = Depends(extract_employee_id),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager", "user"])),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin")),
+    hostname: str = Depends(require_role("admin"))
 ) -> SalaryStructureResponseDTO:
     """
     Get full salary structure assigned to an employee.
@@ -343,7 +342,7 @@ async def get_salary_structure(
         employee_id: Employee ID
         as_of_date: Date for structure calculation (optional)
         controller: Employee salary controller dependency
-        employee_id: Current user's employee ID
+        current_user: Current user object
         role: User role
         hostname: Organization hostname
         
@@ -354,7 +353,7 @@ async def get_salary_structure(
         logger.info(f"Getting salary structure for employee {employee_id}")
         
         # Check permissions - admin/manager can access any employee, users only their own
-        if role not in ["admin", "superadmin", "manager"] and employee_id != emp_id:
+        if role not in ["admin", "superadmin", "manager"] and employee_id != current_user.employee_id:
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         
         result = await controller.get_salary_structure(employee_id, hostname, as_of_date)
@@ -369,8 +368,8 @@ async def get_salary_structure(
 async def get_my_salary_structure(
     as_of_date: Optional[date] = Query(None, description="Date for structure calculation"),
     controller: EmployeeSalaryController = Depends(get_employee_salary_controller),
-    employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user),
+    hostname: str = Depends(require_role("admin"))
 ) -> SalaryStructureResponseDTO:
     """
     Get salary structure for the current user.
@@ -378,21 +377,21 @@ async def get_my_salary_structure(
     Args:
         as_of_date: Date for structure calculation (optional)
         controller: Employee salary controller dependency
-        employee_id: Current user's employee ID
+        current_user: Current user object
         hostname: Organization hostname
         
     Returns:
         Current user's salary structure
     """
-    return await controller.get_salary_structure(employee_id, hostname, as_of_date)
+    return await controller.get_salary_structure(current_user.employee_id, hostname, as_of_date)
 
 @router.get("/{employee_id}/salary-structure/view", response_model=List[EmployeeSalaryResponseDTO])
 async def get_salary_structure_for_view(
     employee_id: str,
     controller: EmployeeSalaryController = Depends(get_employee_salary_controller),
-    emp_id: str = Depends(extract_employee_id),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager", "user"])),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin")),
+    hostname: str = Depends(require_role("admin"))
 ) -> List[EmployeeSalaryResponseDTO]:
     """
     View-only endpoint for salary structure (with component names).
@@ -400,7 +399,7 @@ async def get_salary_structure_for_view(
     Args:
         employee_id: Employee ID
         controller: Employee salary controller dependency
-        employee_id: Current user's employee ID
+        current_user: Current user object
         role: User role
         hostname: Organization hostname
         
@@ -411,7 +410,7 @@ async def get_salary_structure_for_view(
         logger.info(f"Getting salary structure view for employee {employee_id}")
         
         # Check permissions - admin/manager can access any employee, users only their own
-        if role not in ["admin", "superadmin", "manager"] and employee_id != emp_id:
+        if role not in ["admin", "superadmin", "manager"] and employee_id != current_user.employee_id:
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         
         result = await controller.get_salary_structure_with_names(employee_id, hostname)
@@ -425,30 +424,30 @@ async def get_salary_structure_for_view(
 @router.get("/my/salary-structure/view", response_model=List[EmployeeSalaryResponseDTO])
 async def get_my_salary_structure_for_view(
     controller: EmployeeSalaryController = Depends(get_employee_salary_controller),
-    employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user),
+    hostname: str = Depends(require_role("admin"))
 ) -> List[EmployeeSalaryResponseDTO]:
     """
     View-only endpoint for current user's salary structure.
     
     Args:
         controller: Employee salary controller dependency
-        employee_id: Current user's employee ID
+        current_user: Current user object
         hostname: Organization hostname
         
     Returns:
         Current user's salary components with names
     """
-    return await controller.get_salary_structure_with_names(employee_id, hostname)
+    return await controller.get_salary_structure_with_names(current_user.employee_id, hostname)
 
 # Calculation Operations
 @router.post("/calculate", response_model=SalaryCalculationResponseDTO)
 async def calculate_salary(
     request: SalaryCalculationRequestDTO,
     controller: EmployeeSalaryController = Depends(get_employee_salary_controller),
-    employee_id: str = Depends(extract_employee_id),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager", "user"])),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin")),
+    hostname: str = Depends(require_role("admin"))
 ) -> SalaryCalculationResponseDTO:
     """
     Calculate salary for an employee on a specific date.
@@ -456,7 +455,7 @@ async def calculate_salary(
     Args:
         request: Salary calculation request
         controller: Employee salary controller dependency
-        employee_id: Current user's employee ID
+        current_user: Current user object
         role: User role
         hostname: Organization hostname
         
@@ -467,7 +466,7 @@ async def calculate_salary(
         logger.info(f"Calculating salary for employee {request.employee_id}")
         
         # Check permissions - admin/manager can calculate for any employee, users only their own
-        if role not in ["admin", "superadmin", "manager"] and employee_id != request.employee_id:
+        if role not in ["admin", "superadmin", "manager"] and request.employee_id != current_user.employee_id:
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         
         result = await controller.calculate_salary(request, hostname)
@@ -483,8 +482,8 @@ async def calculate_my_salary(
     calculation_date: date = Body(...),
     include_variable_components: bool = Body(True),
     controller: EmployeeSalaryController = Depends(get_employee_salary_controller),
-    employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user),
+    hostname: str = Depends(require_role("admin"))
 ) -> SalaryCalculationResponseDTO:
     """
     Calculate salary for the current user.
@@ -493,7 +492,7 @@ async def calculate_my_salary(
         calculation_date: Date for salary calculation
         include_variable_components: Include variable components in calculation
         controller: Employee salary controller dependency
-        employee_id: Current user's employee ID
+        current_user: Current user object
         hostname: Organization hostname
         
     Returns:
@@ -501,7 +500,7 @@ async def calculate_my_salary(
     """
     # Create calculation request
     request = SalaryCalculationRequestDTO(
-        employee_id=employee_id,
+        employee_id=current_user.employee_id,
         calculation_date=calculation_date,
         include_variable_components=include_variable_components
     )

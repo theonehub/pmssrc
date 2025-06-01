@@ -5,8 +5,8 @@ Clean architecture implementation of payslip HTTP endpoints
 
 import logging
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Query, Body, BackgroundTasks
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body, BackgroundTasks
+from fastapi.responses import StreamingResponse, JSONResponse
 from datetime import date, datetime
 from io import BytesIO
 
@@ -17,35 +17,26 @@ from app.application.dto.payslip_dto import (
     PayslipScheduleRequestDTO, PayslipResponseDTO, PayslipEmailResponseDTO,
     PayslipHistoryResponseDTO, BulkPayslipOperationResponseDTO, PayslipSummaryResponseDTO,
     PayslipTemplateResponseDTO, PayslipScheduleResponseDTO, PayslipDownloadResponseDTO,
-    PayslipFormatEnum, PayslipStatusEnum, BulkOperationTypeEnum
+    PayslipFormatEnum, PayslipStatusEnum, BulkOperationTypeEnum,
+    PayslipSearchFiltersDTO, PayslipSummaryDTO, PayslipAnalyticsDTO,
+    PayslipValidationError, PayslipBusinessRuleError, PayslipNotFoundError
 )
-# from app.config.dependency_container import get_payslip_controller
-# from app.auth.auth import extract_employee_id, extract_hostname, role_checker
-
-# Mock dependencies for compilation
-async def get_payslip_controller():
-    """Mock payslip controller."""
-    from app.api.controllers.payslip_controller import PayslipController
-    return PayslipController()
-
-async def extract_employee_id():
-    """Mock extract emp id."""
-    return "admin"
-
-async def extract_hostname():
-    """Mock extract hostname."""
-    return "company.com"
-
-def role_checker(allowed_roles):
-    """Mock role checker."""
-    async def check_role():
-        return "admin"
-    return check_role
+from app.config.dependency_container import get_dependency_container
+from app.auth.auth_dependencies import CurrentUser, get_current_user, require_role
 
 logger = logging.getLogger(__name__)
 
 # Create router
 router = APIRouter(prefix="/api/v2/payslips", tags=["payslips-v2"])
+
+def get_payslip_controller() -> PayslipController:
+    """Get payslip controller instance."""
+    try:
+        container = get_dependency_container()
+        return container.get_payslip_controller()
+    except Exception as e:
+        logger.warning(f"Could not get payslip controller from container: {e}")
+        return PayslipController()
 
 # Health check endpoint
 @router.get("/health")
@@ -60,25 +51,12 @@ async def health_check(
 async def download_payslip_pdf(
     payout_id: str,
     controller: PayslipController = Depends(get_payslip_controller),
-    emp_id: str = Depends(extract_employee_id),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager", "user"])),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin"))
 ):
-    """
-    Download payslip as PDF for a specific payout.
-    
-    Args:
-        payout_id: ID of the payout record
-        controller: Payslip controller dependency
-        employee_id: Current user's employee ID
-        role: User role
-        hostname: Organization hostname
-        
-    Returns:
-        PDF file as streaming response
-    """
+    """Download payslip as PDF for a specific payout."""
     try:
-        logger.info(f"Downloading PDF payslip for payout {payout_id} by employee {employee_id}")
+        logger.info(f"Downloading PDF payslip for payout {payout_id} by employee {current_user.employee_id}")
         
         # Create generation request
         request = PayslipGenerationRequestDTO(
@@ -87,7 +65,7 @@ async def download_payslip_pdf(
         )
         
         # Generate PDF
-        pdf_buffer = await controller.generate_payslip_pdf(request, hostname)
+        pdf_buffer = await controller.generate_payslip_pdf(request, current_user.hostname)
         
         # Create filename
         filename = f"payslip_{payout_id}.pdf"
@@ -106,35 +84,14 @@ async def download_payslip_pdf(
 @router.post("/generate", response_model=PayslipResponseDTO)
 async def generate_payslip(
     request: PayslipGenerationRequestDTO,
-    controller: PayslipController = Depends(get_payslip_controller),
-    employee_id: str = Depends(extract_employee_id),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager", "user"])),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin")),
+    controller: PayslipController = Depends(get_payslip_controller)
 ) -> PayslipResponseDTO:
-    """
-    Generate payslip for a payout.
-    
-    Args:
-        request: Payslip generation request
-        controller: Payslip controller dependency
-        employee_id: Current user's employee ID
-        role: User role
-        hostname: Organization hostname
-        
-    Returns:
-        Generated payslip response
-    """
+    """Generate payslip for an employee."""
     try:
-        # For now, return a placeholder response since we need to integrate with actual service
-        return PayslipResponseDTO(
-            payslip_id=f"PAYSLIP_{request.payout_id}",
-            payout_id=request.payout_id,
-            employee_id=employee_id,
-            format=request.format,
-            status=PayslipStatusEnum.GENERATED,
-            generated_at=datetime.now()
-        )
-        
+        logger.info(f"Generating payslip for employee {request.employee_id}")
+        return await controller.generate_payslip(request, current_user.hostname)
     except Exception as e:
         logger.error(f"Error generating payslip: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -147,9 +104,8 @@ async def email_payslip(
     custom_subject: Optional[str] = Body(None),
     custom_message: Optional[str] = Body(None),
     controller: PayslipController = Depends(get_payslip_controller),
-    employee_id: str = Depends(extract_employee_id),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager", "user"])),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin"))
 ) -> PayslipEmailResponseDTO:
     """
     Email payslip to employee.
@@ -160,15 +116,14 @@ async def email_payslip(
         custom_subject: Custom email subject
         custom_message: Custom email message
         controller: Payslip controller dependency
-        employee_id: Current user's employee ID
+        current_user: Current user's authentication information
         role: User role
-        hostname: Organization hostname
         
     Returns:
         Email status response
     """
     try:
-        logger.info(f"Emailing payslip for payout {payout_id} by employee {employee_id}")
+        logger.info(f"Emailing payslip for payout {payout_id} by employee {current_user.employee_id}")
         
         # Create email request
         request = PayslipEmailRequestDTO(
@@ -179,7 +134,7 @@ async def email_payslip(
         )
         
         # Send email
-        result = await controller.email_payslip(request, hostname)
+        result = await controller.email_payslip(request, current_user.hostname)
         
         return result
         
@@ -194,9 +149,8 @@ async def get_payslip_history(
     year: int = Query(datetime.now().year, description="Year for payslip history"),
     month: Optional[int] = Query(None, ge=1, le=12, description="Month filter (optional)"),
     controller: PayslipController = Depends(get_payslip_controller),
-    emp_id: str = Depends(extract_employee_id),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager", "user"])),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin"))
 ) -> PayslipHistoryResponseDTO:
     """
     Get payslip history for an employee.
@@ -206,9 +160,8 @@ async def get_payslip_history(
         year: Year for history (default: current year)
         month: Month filter (optional)
         controller: Payslip controller dependency
-        employee_id: Current user's employee ID
+        current_user: Current user's authentication information
         role: User role
-        hostname: Organization hostname
         
     Returns:
         Payslip history response
@@ -217,7 +170,7 @@ async def get_payslip_history(
         logger.info(f"Getting payslip history for employee {employee_id} for year {year}")
         
         # Check permissions - admin/manager can access any employee, users only their own
-        if role not in ["admin", "superadmin", "manager"] and employee_id != emp_id:
+        if role not in ["admin", "superadmin", "manager"] and employee_id != current_user.employee_id:
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         
         # Create history request
@@ -228,7 +181,7 @@ async def get_payslip_history(
         )
         
         # Get history
-        history = await controller.get_payslip_history(request, hostname)
+        history = await controller.get_payslip_history(request, current_user.hostname)
         
         return history
         
@@ -241,8 +194,7 @@ async def get_my_payslip_history(
     year: int = Query(datetime.now().year, description="Year for payslip history"),
     month: Optional[int] = Query(None, ge=1, le=12, description="Month filter (optional)"),
     controller: PayslipController = Depends(get_payslip_controller),
-    employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user)
 ) -> PayslipHistoryResponseDTO:
     """
     Get payslip history for the current user.
@@ -251,28 +203,27 @@ async def get_my_payslip_history(
         year: Year for history (default: current year)
         month: Month filter (optional)
         controller: Payslip controller dependency
-        employee_id: Current user's employee ID
-        hostname: Organization hostname
+        current_user: Current user's authentication information
         
     Returns:
         Current user's payslip history
     """
     # Create history request
     request = PayslipHistoryRequestDTO(
-        employee_id=employee_id,
+        employee_id=current_user.employee_id,
         year=year,
         month=month
     )
     
-    return await controller.get_payslip_history(request, hostname)
+    return await controller.get_payslip_history(request, current_user.hostname)
 
 # Bulk Operations
 @router.post("/generate/bulk", response_model=BulkPayslipOperationResponseDTO)
 async def generate_monthly_payslips_bulk(
     request: BulkPayslipGenerationRequestDTO,
     controller: PayslipController = Depends(get_payslip_controller),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
-    hostname: str = Depends(extract_hostname)
+    role: str = Depends(require_role("admin")),
+    current_user: CurrentUser = Depends(get_current_user)
 ) -> BulkPayslipOperationResponseDTO:
     """
     Generate payslips for all employees for a specific month (Admin/Manager only).
@@ -281,7 +232,7 @@ async def generate_monthly_payslips_bulk(
         request: Bulk payslip generation request
         controller: Payslip controller dependency
         role: User role (admin, superadmin, manager)
-        hostname: Organization hostname
+        current_user: Current user's authentication information
         
     Returns:
         Bulk generation results
@@ -289,7 +240,7 @@ async def generate_monthly_payslips_bulk(
     try:
         logger.info(f"Starting bulk payslip generation for {request.month:02d}/{request.year}")
         
-        result = await controller.generate_bulk_payslips(request, hostname)
+        result = await controller.generate_bulk_payslips(request, current_user.hostname)
         
         return result
         
@@ -302,8 +253,8 @@ async def bulk_email_payslips(
     background_tasks: BackgroundTasks,
     request: BulkPayslipEmailRequestDTO,
     controller: PayslipController = Depends(get_payslip_controller),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
-    hostname: str = Depends(extract_hostname)
+    role: str = Depends(require_role("admin")),
+    current_user: CurrentUser = Depends(get_current_user)
 ) -> BulkPayslipOperationResponseDTO:
     """
     Email payslips to all employees for a specific month (Admin/Manager only).
@@ -313,7 +264,7 @@ async def bulk_email_payslips(
         request: Bulk payslip email request
         controller: Payslip controller dependency
         role: User role (admin, superadmin, manager)
-        hostname: Organization hostname
+        current_user: Current user's authentication information
         
     Returns:
         Bulk email initiation status
@@ -322,7 +273,7 @@ async def bulk_email_payslips(
         logger.info(f"Starting bulk payslip email for {request.month:02d}/{request.year}")
         
         # Add bulk email task to background
-        result = await controller.send_bulk_emails(request, hostname)
+        result = await controller.send_bulk_emails(request, current_user.hostname)
         
         return result
         
@@ -334,8 +285,8 @@ async def bulk_email_payslips(
 async def get_bulk_operation_status(
     operation_id: str,
     controller: PayslipController = Depends(get_payslip_controller),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
-    hostname: str = Depends(extract_hostname)
+    role: str = Depends(require_role("admin")),
+    current_user: CurrentUser = Depends(get_current_user)
 ) -> BulkPayslipOperationResponseDTO:
     """
     Get status of a bulk payslip operation.
@@ -344,7 +295,7 @@ async def get_bulk_operation_status(
         operation_id: Bulk operation ID
         controller: Payslip controller dependency
         role: User role (admin, superadmin, manager)
-        hostname: Organization hostname
+        current_user: Current user's authentication information
         
     Returns:
         Bulk operation status
@@ -352,7 +303,7 @@ async def get_bulk_operation_status(
     try:
         logger.info(f"Getting bulk operation status for {operation_id}")
         
-        result = await controller.get_bulk_operation_status(operation_id, hostname)
+        result = await controller.get_bulk_operation_status(operation_id, current_user.hostname)
         
         return result
         
@@ -366,29 +317,13 @@ async def get_monthly_payslip_summary(
     year: int,
     month: int,
     controller: PayslipController = Depends(get_payslip_controller),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
-    hostname: str = Depends(extract_hostname)
+    role: str = Depends(require_role("admin")),
+    current_user: CurrentUser = Depends(get_current_user)
 ) -> PayslipSummaryResponseDTO:
-    """
-    Get payslip summary for a specific month.
-    
-    Args:
-        year: Year
-        month: Month (1-12)
-        controller: Payslip controller dependency
-        role: User role (admin, superadmin, manager)
-        hostname: Organization hostname
-        
-    Returns:
-        Monthly payslip summary
-    """
+    """Get payslip summary for a specific month."""
     try:
         logger.info(f"Getting monthly payslip summary for {month:02d}/{year}")
-        
-        result = await controller.get_monthly_summary(month, year, hostname)
-        
-        return result
-        
+        return await controller.get_monthly_summary(month, year, current_user.hostname)
     except Exception as e:
         logger.error(f"Error getting monthly payslip summary: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -398,8 +333,8 @@ async def get_monthly_payslip_summary(
 async def schedule_monthly_payslip_generation(
     request: PayslipScheduleRequestDTO,
     controller: PayslipController = Depends(get_payslip_controller),
-    role: str = Depends(role_checker(["admin", "superadmin"])),
-    hostname: str = Depends(extract_hostname)
+    role: str = Depends(require_role("admin")),
+    current_user: CurrentUser = Depends(get_current_user)
 ) -> PayslipScheduleResponseDTO:
     """
     Schedule monthly payslip generation.
@@ -408,7 +343,7 @@ async def schedule_monthly_payslip_generation(
         request: Payslip schedule request
         controller: Payslip controller dependency
         role: User role (admin, superadmin)
-        hostname: Organization hostname
+        current_user: Current user's authentication information
         
     Returns:
         Created schedule response
@@ -416,7 +351,7 @@ async def schedule_monthly_payslip_generation(
     try:
         logger.info(f"Creating payslip schedule for day {request.day_of_month}")
         
-        result = await controller.create_schedule(request, hostname)
+        result = await controller.create_schedule(request, current_user.hostname)
         
         return result
         
@@ -428,8 +363,8 @@ async def schedule_monthly_payslip_generation(
 @router.get("/templates", response_model=List[PayslipTemplateResponseDTO])
 async def get_payslip_templates(
     controller: PayslipController = Depends(get_payslip_controller),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
-    hostname: str = Depends(extract_hostname)
+    role: str = Depends(require_role("admin")),
+    current_user: CurrentUser = Depends(get_current_user)
 ) -> List[PayslipTemplateResponseDTO]:
     """
     Get available payslip templates.
@@ -437,7 +372,7 @@ async def get_payslip_templates(
     Args:
         controller: Payslip controller dependency
         role: User role (admin, superadmin, manager)
-        hostname: Organization hostname
+        current_user: Current user's authentication information
         
     Returns:
         List of available templates
@@ -445,7 +380,7 @@ async def get_payslip_templates(
     try:
         logger.info("Getting payslip templates")
         
-        result = await controller.get_templates(hostname)
+        result = await controller.get_templates(current_user.hostname)
         
         return result
         
@@ -457,8 +392,8 @@ async def get_payslip_templates(
 async def set_default_payslip_template(
     template_id: str,
     controller: PayslipController = Depends(get_payslip_controller),
-    role: str = Depends(role_checker(["admin", "superadmin"])),
-    hostname: str = Depends(extract_hostname)
+    role: str = Depends(require_role("admin")),
+    current_user: CurrentUser = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
     Set default payslip template.
@@ -467,7 +402,7 @@ async def set_default_payslip_template(
         template_id: Template ID to set as default
         controller: Payslip controller dependency
         role: User role (admin, superadmin)
-        hostname: Organization hostname
+        current_user: Current user's authentication information
         
     Returns:
         Operation result
@@ -475,7 +410,7 @@ async def set_default_payslip_template(
     try:
         logger.info(f"Setting default payslip template to {template_id}")
         
-        result = await controller.set_default_template(template_id, hostname)
+        result = await controller.set_default_template(template_id, current_user.hostname)
         
         return result
         
@@ -488,9 +423,8 @@ async def set_default_payslip_template(
 async def get_payslip_download_info(
     payout_id: str,
     controller: PayslipController = Depends(get_payslip_controller),
-    employee_id: str = Depends(extract_employee_id),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager", "user"])),
-    hostname: str = Depends(extract_hostname)
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin"))
 ) -> PayslipDownloadResponseDTO:
     """
     Get payslip download information.
@@ -498,9 +432,8 @@ async def get_payslip_download_info(
     Args:
         payout_id: Payout ID
         controller: Payslip controller dependency
-        employee_id: Current user's employee ID
-        role: User role
-        hostname: Organization hostname
+        current_user: Current user's authentication information
+        role: User role 
         
     Returns:
         Payslip download information
@@ -508,7 +441,7 @@ async def get_payslip_download_info(
     try:
         logger.info(f"Getting payslip download info for payout {payout_id}")
         
-        result = await controller.get_payslip_download_info(payout_id, hostname)
+        result = await controller.get_payslip_download_info(payout_id, current_user.hostname)
         
         return result
         

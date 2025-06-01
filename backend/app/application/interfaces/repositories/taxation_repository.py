@@ -52,7 +52,7 @@ class TaxationCommandRepository(ABC):
     @abstractmethod
     async def update_taxation(
         self,
-        employee_id: str,
+        emp_id: str,
         request: TaxationUpdateRequestDTO,
         hostname: str
     ) -> TaxationResponseDTO:
@@ -552,7 +552,7 @@ class TaxationAuditRepository(ABC):
         event_type: str,
         event_data: Dict[str, Any],
         hostname: str,
-        employee_id: str
+        performed_by: str
     ) -> bool:
         """
         Log taxation calculation event for audit.
@@ -563,7 +563,7 @@ class TaxationAuditRepository(ABC):
             event_type: Type of event
             event_data: Event data
             hostname: Organization hostname
-            employee_id: User performing the action
+            performed_by: User performing the action
             
         Returns:
             True if logged successfully

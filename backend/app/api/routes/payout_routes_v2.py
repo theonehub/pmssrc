@@ -5,7 +5,7 @@ Clean architecture implementation of payout HTTP endpoints
 
 import logging
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, Path
 from fastapi.responses import StreamingResponse
 from datetime import date, datetime
 import calendar
@@ -17,13 +17,22 @@ from app.application.dto.payroll_dto import (
     PayoutResponseDTO, PayoutSummaryResponseDTO, PayoutHistoryResponseDTO,
     BulkPayoutResponseDTO, PayslipResponseDTO, PayoutStatusEnum
 )
-from app.config.dependency_container import get_payout_controller
-from app.auth.auth import extract_employee_id, extract_hostname, role_checker
+from app.config.dependency_container import get_dependency_container
+from app.auth.auth_dependencies import CurrentUser, get_current_user, require_role
 
 logger = logging.getLogger(__name__)
 
 # Create router
 router = APIRouter(prefix="/api/v2/payouts", tags=["payouts-v2"])
+
+def get_payout_controller() -> PayoutController:
+    """Get payout controller instance."""
+    try:
+        container = get_dependency_container()
+        return container.get_payout_controller()
+    except Exception as e:
+        logger.warning(f"Could not get payout controller from container: {e}")
+        return PayoutController()
 
 # Health check endpoint
 @router.get("/health")
@@ -37,23 +46,17 @@ async def health_check(
 @router.post("/calculate", response_model=PayoutResponseDTO)
 async def calculate_monthly_payout(
     request: PayoutCalculationRequestDTO,
-    controller: PayoutController = Depends(get_payout_controller),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
-    hostname: str = Depends(extract_hostname),
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin")),
+    controller: PayoutController = Depends(get_payout_controller)
 ) -> PayoutResponseDTO:
-    """
-    Calculate monthly payout for an employee.
-    
-    Args:
-        request: Payout calculation request
-        controller: Payout controller dependency
-        role: User role (admin, superadmin, manager)
-        hostname: Organization hostname
-        
-    Returns:
-        Calculated payout response
-    """
-    return await controller.calculate_payout(request, hostname)
+    """Calculate monthly payout for an employee."""
+    try:
+        logger.info(f"Calculating payout for employee {request.employee_id}")
+        return await controller.calculate_payout(request, current_user.hostname)
+    except Exception as e:
+        logger.error(f"Error calculating payout: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Payout CRUD endpoints
 @router.post("", response_model=PayoutResponseDTO)
@@ -79,34 +82,23 @@ async def create_payout(
 
 @router.get("/employee/{employee_id}", response_model=List[PayoutResponseDTO])
 async def get_employee_payouts(
-    employee_id: str,
+    employee_id: str = Path(..., description="Employee ID"),
     year: Optional[int] = Query(None, ge=2020, le=2050, description="Filter by year"),
     month: Optional[int] = Query(None, ge=1, le=12, description="Filter by month"),
-    controller: PayoutController = Depends(get_payout_controller),
-    employee_id: str = Depends(extract_employee_id),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager", "user"])),
-    hostname: str = Depends(extract_hostname),
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin")),
+    controller: PayoutController = Depends(get_payout_controller)
 ) -> List[PayoutResponseDTO]:
-    """
-    Get payouts for a specific employee.
-    
-    Args:
-        employee_id: Employee ID to get payouts for
-        year: Filter by year (optional)
-        month: Filter by month (optional)
-        controller: Payout controller dependency
-        employee_id: Current user's employee ID
-        role: User role
-        hostname: Organization hostname
+    """Get payouts for a specific employee."""
+    try:
+        # Check permissions - admin/manager can access any employee, users only their own
+        if role not in ["admin", "superadmin", "manager"] and employee_id != current_user.employee_id:
+            raise HTTPException(status_code=403, detail="Insufficient permissions")
         
-    Returns:
-        List of employee payouts
-    """
-    # Check permissions - admin/manager can access any employee, users only their own
-    if role not in ["admin", "superadmin", "manager"] and employee_id != employee_id:
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-    
-    return await controller.get_employee_payouts(employee_id, hostname, year, month)
+        return await controller.get_employee_payouts(employee_id, current_user.hostname, year, month)
+    except Exception as e:
+        logger.error(f"Error getting employee payouts: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/my-payouts", response_model=List[PayoutResponseDTO])
 async def get_my_payouts(
@@ -352,32 +344,22 @@ async def generate_payslip(
 # History endpoints
 @router.get("/history/{employee_id}/{year}", response_model=PayoutHistoryResponseDTO)
 async def get_employee_payout_history(
-    employee_id: str,
-    year: int,
-    controller: PayoutController = Depends(get_payout_controller),
-    employee_id: str = Depends(extract_employee_id),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager", "user"])),
-    hostname: str = Depends(extract_hostname)
+    employee_id: str = Path(..., description="Employee ID"),
+    year: int = Path(..., description="Year"),
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin")),
+    controller: PayoutController = Depends(get_payout_controller)
 ) -> PayoutHistoryResponseDTO:
-    """
-    Get payout history for an employee.
-    
-    Args:
-        employee_id: Employee ID
-        year: Year
-        controller: Payout controller dependency
-        employee_id: Current user's employee ID
-        role: User role
-        hostname: Organization hostname
+    """Get payout history for an employee."""
+    try:
+        # Check permissions - admin/manager can access any employee, users only their own
+        if role not in ["admin", "superadmin", "manager"] and employee_id != current_user.employee_id:
+            raise HTTPException(status_code=403, detail="Insufficient permissions")
         
-    Returns:
-        Employee payout history
-    """
-    # Check permissions - admin/manager can access any employee, users only their own
-    if role not in ["admin", "superadmin", "manager"] and employee_id != employee_id:
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-    
-    return await controller.get_employee_payout_history(employee_id, year, hostname)
+        return await controller.get_employee_payout_history(employee_id, year, current_user.hostname)
+    except Exception as e:
+        logger.error(f"Error getting payout history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/my-history/{year}", response_model=PayoutHistoryResponseDTO)
 async def get_my_payout_history(

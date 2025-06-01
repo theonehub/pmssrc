@@ -1,13 +1,13 @@
 """
-SOLID-Compliant Public Holiday Routes
-Clean API layer following SOLID principles
+SOLID-Compliant Public Holiday Routes v2
+Clean architecture implementation of public holiday HTTP endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Path, UploadFile, File
-from fastapi.responses import JSONResponse
-from typing import List, Optional
 import logging
-from datetime import datetime
+from typing import List, Optional, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body
+from fastapi.responses import JSONResponse
+from datetime import date, datetime
 
 from app.api.controllers.public_holiday_controller import PublicHolidayController
 from app.application.dto.public_holiday_dto import (
@@ -15,61 +15,52 @@ from app.application.dto.public_holiday_dto import (
     PublicHolidayUpdateRequestDTO,
     PublicHolidaySearchFiltersDTO,
     PublicHolidayResponseDTO,
-    PublicHolidayImportResultDTO,
+    PublicHolidaySummaryDTO,
+    PublicHolidayAnalyticsDTO,
     PublicHolidayValidationError,
     PublicHolidayBusinessRuleError,
     PublicHolidayNotFoundError
 )
-from app.auth.auth import extract_employee_id, extract_hostname, role_checker
+from app.config.dependency_container import get_dependency_container
+from app.auth.auth_dependencies import CurrentUser, get_current_user, require_role
 
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(prefix="/api/v2/public-holidays", tags=["Public Holidays V2 (SOLID)"])
-
+router = APIRouter(prefix="/api/v2/public-holidays", tags=["public-holidays-v2"])
 
 def get_public_holiday_controller() -> PublicHolidayController:
-    """Dependency injection for public holiday controller"""
+    """Get public holiday controller instance."""
     try:
-        from app.config.dependency_container import get_dependency_container
         container = get_dependency_container()
         return container.get_public_holiday_controller()
     except Exception as e:
         logger.warning(f"Could not get public holiday controller from container: {e}")
-        # Fallback to direct instantiation
         return PublicHolidayController()
 
+# Health check endpoint
+@router.get("/health")
+async def health_check(
+    controller: PublicHolidayController = Depends(get_public_holiday_controller)
+) -> Dict[str, str]:
+    """Health check for public holiday service."""
+    return await controller.health_check()
 
-# ==================== PUBLIC HOLIDAY ENDPOINTS ====================
-
-@router.post("/", response_model=PublicHolidayResponseDTO)
+# Public holiday CRUD endpoints
+@router.post("", response_model=PublicHolidayResponseDTO)
 async def create_public_holiday(
     request: PublicHolidayCreateRequestDTO,
-    current_employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname),
-    role: str = Depends(role_checker(["admin", "superadmin"])),
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin")),
     controller: PublicHolidayController = Depends(get_public_holiday_controller)
-):
-    """Create a new public holiday"""
+) -> PublicHolidayResponseDTO:
+    """Create a new public holiday."""
     try:
-        logger.info(f"Creating public holiday: {request.name} by {current_employee_id}")
-        
-        response = await controller.create_public_holiday(request, current_employee_id, hostname)
-        
-        return response
-        
-    except PublicHolidayValidationError as e:
-        logger.warning(f"Validation error creating public holiday: {e}")
-        raise HTTPException(status_code=400, detail={"error": "validation_error", "message": str(e)})
-    
-    except PublicHolidayBusinessRuleError as e:
-        logger.warning(f"Business rule error creating public holiday: {e}")
-        raise HTTPException(status_code=422, detail={"error": "business_rule_error", "message": str(e)})
-    
+        logger.info(f"Creating public holiday by {current_user.employee_id}")
+        return await controller.create_public_holiday(request, current_user.hostname)
     except Exception as e:
-        logger.error(f"Unexpected error creating public holiday: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
+        logger.error(f"Error creating public holiday: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/", response_model=List[PublicHolidayResponseDTO])
 async def get_public_holidays(
@@ -78,7 +69,7 @@ async def get_public_holidays(
     active_only: bool = Query(True, description="Return only active holidays"),
     skip: int = Query(0, ge=0, description="Number of records to skip"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
-    hostname: str = Depends(extract_hostname),
+    hostname: str = Depends(get_current_user.hostname),
     controller: PublicHolidayController = Depends(get_public_holiday_controller)
 ):
     """Get public holidays with optional filters"""
@@ -101,11 +92,10 @@ async def get_public_holidays(
         logger.error(f"Error getting public holidays: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @router.get("/{holiday_id}", response_model=PublicHolidayResponseDTO)
 async def get_public_holiday(
     holiday_id: str = Path(..., description="Public holiday ID"),
-    hostname: str = Depends(extract_hostname),
+    hostname: str = Depends(get_current_user.hostname),
     controller: PublicHolidayController = Depends(get_public_holiday_controller)
 ):
     """Get a specific public holiday by ID"""
@@ -125,22 +115,20 @@ async def get_public_holiday(
         logger.error(f"Error getting public holiday {holiday_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @router.put("/{holiday_id}", response_model=PublicHolidayResponseDTO)
 async def update_public_holiday(
     holiday_id: str = Path(..., description="Public holiday ID"),
     request: PublicHolidayUpdateRequestDTO = None,
-    current_employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname),
-    role: str = Depends(role_checker(["admin", "superadmin"])),
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin")),
     controller: PublicHolidayController = Depends(get_public_holiday_controller)
 ):
     """Update an existing public holiday"""
     try:
-        logger.info(f"Updating public holiday: {holiday_id} by {current_employee_id}")
+        logger.info(f"Updating public holiday: {holiday_id} by {current_user.employee_id}")
         
         response = await controller.update_public_holiday(
-            holiday_id, request, current_employee_id, hostname
+            holiday_id, request, current_user.hostname
         )
         
         return response
@@ -161,20 +149,18 @@ async def update_public_holiday(
         logger.error(f"Unexpected error updating public holiday: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @router.delete("/{holiday_id}")
 async def delete_public_holiday(
     holiday_id: str = Path(..., description="Public holiday ID"),
-    current_employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname),
-    role: str = Depends(role_checker(["admin", "superadmin"])),
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin")),
     controller: PublicHolidayController = Depends(get_public_holiday_controller)
 ):
     """Delete (deactivate) a public holiday"""
     try:
-        logger.info(f"Deleting public holiday: {holiday_id} by {current_employee_id}")
+        logger.info(f"Deleting public holiday: {holiday_id} by {current_user.employee_id}")
         
-        await controller.delete_public_holiday(holiday_id, current_employee_id, hostname)
+        await controller.delete_public_holiday(holiday_id, current_user.hostname)
         
         return {"message": "Public holiday deleted successfully"}
         
@@ -190,24 +176,22 @@ async def delete_public_holiday(
         logger.error(f"Unexpected error deleting public holiday: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @router.post("/import", response_model=PublicHolidayImportResultDTO)
 async def import_public_holidays(
     file: UploadFile = File(...),
-    current_employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname),
-    role: str = Depends(role_checker(["admin", "superadmin"])),
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin")),
     controller: PublicHolidayController = Depends(get_public_holiday_controller)
 ):
     """Import public holidays from Excel file"""
     try:
-        logger.info(f"Importing public holidays from file: {file.filename} by {current_employee_id}")
+        logger.info(f"Importing public holidays from file: {file.filename} by {current_user.employee_id}")
         
         # Validate file type
         if not file.filename.endswith(('.xlsx', '.xls')):
             raise HTTPException(status_code=400, detail="Only Excel files (.xlsx, .xls) are supported")
         
-        response = await controller.import_public_holidays(file, current_employee_id, hostname)
+        response = await controller.import_public_holidays(file, current_user.hostname)
         
         return response
         
@@ -219,11 +203,10 @@ async def import_public_holidays(
         logger.error(f"Unexpected error importing public holidays: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @router.get("/check/{date}", response_model=dict)
 async def check_public_holiday(
     date: str = Path(..., description="Date in YYYY-MM-DD format"),
-    hostname: str = Depends(extract_hostname),
+    hostname: str = Depends(get_current_user.hostname),
     controller: PublicHolidayController = Depends(get_public_holiday_controller)
 ):
     """Check if a specific date is a public holiday"""
@@ -250,12 +233,11 @@ async def check_public_holiday(
         logger.error(f"Error checking public holiday for {date}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
-
 @router.get("/month/{month}/year/{year}", response_model=List[PublicHolidayResponseDTO])
 async def get_public_holidays_by_month(
     month: int = Path(..., ge=1, le=12, description="Month (1-12)"),
     year: int = Path(..., ge=2000, le=3000, description="Year"),
-    hostname: str = Depends(extract_hostname),
+    hostname: str = Depends(get_current_user.hostname),
     controller: PublicHolidayController = Depends(get_public_holiday_controller)
 ):
     """Get public holidays for a specific month and year"""
@@ -274,10 +256,4 @@ async def get_public_holidays_by_month(
         
     except Exception as e:
         logger.error(f"Error getting public holidays for {month}/{year}: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    return {"status": "healthy", "service": "public_holidays_v2"} 
+        raise HTTPException(status_code=500, detail="Internal server error") 

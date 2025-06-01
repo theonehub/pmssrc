@@ -9180,3 +9180,416 @@ AttributeError: module 'bcrypt' has no attribute '__about__'
 2025-06-01 14:28:41 [INFO] app.main:136 - lifespan(): Dependency container initialized
 2025-06-01 14:28:41 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
 2025-06-01 14:28:41 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 14:40:25 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 14:40:26 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 14:40:26 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 14:40:26 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 14:40:26 [INFO] uvicorn.error:93 - _serve(): Finished server process [3995]
+2025-06-01 14:40:30 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:40:35 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 14:40:35 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 14:40:36 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 14:40:37 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 14:40:37 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 14:40:37 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 14:40:37 [INFO] uvicorn.error:83 - _serve(): Started server process [4158]
+2025-06-01 14:40:37 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 14:40:37 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 14:40:37 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 14:40:37 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 14:40:37 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 14:43:42 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 14:43:42 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 14:43:42 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 14:43:42 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 14:43:42 [INFO] uvicorn.error:93 - _serve(): Finished server process [4158]
+2025-06-01 14:43:47 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:43:56 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 14:43:56 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 14:43:56 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 14:43:57 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 14:43:57 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 14:43:57 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 14:43:57 [INFO] uvicorn.error:83 - _serve(): Started server process [4192]
+2025-06-01 14:43:57 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 14:43:57 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 14:43:57 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 14:43:57 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 14:43:57 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 14:44:03 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:44:09 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 14:44:09 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 14:44:09 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 14:44:10 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 14:44:10 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 14:44:10 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 14:44:10 [INFO] uvicorn.error:83 - _serve(): Started server process [4214]
+2025-06-01 14:44:10 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 14:44:10 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 14:44:10 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 14:44:10 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 14:44:10 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 14:44:50 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56711 - "OPTIONS /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 14:44:50 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56713 - "OPTIONS /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 14:44:50 [INFO] app.config.dependency_container:61 - initialize(): Initializing dependency container...
+2025-06-01 14:44:50 [INFO] app.config.dependency_container:90 - _setup_infrastructure(): MongoDB connector configured with database: 
+2025-06-01 14:44:50 [INFO] app.config.dependency_container:91 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-01 14:44:50 [INFO] app.config.dependency_container:133 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-01 14:44:50 [WARNING] app.config.dependency_container:162 - _setup_services(): Organization service setup failed: 'MongoDBConnector' object has no attribute 'organizations'
+2025-06-01 14:44:50 [INFO] app.config.dependency_container:165 - _setup_services(): Services initialized
+2025-06-01 14:44:50 [INFO] app.config.dependency_container:170 - _setup_controllers(): Controllers setup deferred
+2025-06-01 14:44:50 [INFO] app.config.dependency_container:70 - initialize(): Dependency container initialized successfully
+2025-06-01 14:44:52 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-01 14:44:52 [INFO] app.infrastructure.repositories.mongodb_user_repository:90 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-01 14:44:53 [INFO] app.infrastructure.repositories.mongodb_user_repository:563 - get_all(): Retrieved 1 users
+2025-06-01 14:44:53 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56711 - "GET /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 14:44:53 [INFO] app.infrastructure.repositories.mongodb_user_repository:563 - get_all(): Retrieved 1 users
+2025-06-01 14:44:53 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56711 - "GET /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 14:44:56 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 14:44:56 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 14:44:56 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 14:44:56 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 14:44:56 [INFO] uvicorn.error:93 - _serve(): Finished server process [4214]
+2025-06-01 14:45:00 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:45:07 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 14:45:07 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 14:45:08 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 14:45:09 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 14:45:09 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 14:45:09 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 14:45:09 [INFO] uvicorn.error:83 - _serve(): Started server process [4237]
+2025-06-01 14:45:09 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 14:45:09 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 14:45:09 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 14:45:09 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 14:45:09 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 14:45:09 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56762 - "OPTIONS /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 14:45:09 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56764 - "OPTIONS /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 14:45:09 [INFO] app.config.dependency_container:61 - initialize(): Initializing dependency container...
+2025-06-01 14:45:09 [INFO] app.config.dependency_container:90 - _setup_infrastructure(): MongoDB connector configured with database: 
+2025-06-01 14:45:09 [INFO] app.config.dependency_container:91 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-01 14:45:09 [INFO] app.config.dependency_container:133 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-01 14:45:09 [WARNING] app.config.dependency_container:162 - _setup_services(): Organization service setup failed: 'MongoDBConnector' object has no attribute 'organizations'
+2025-06-01 14:45:09 [INFO] app.config.dependency_container:165 - _setup_services(): Services initialized
+2025-06-01 14:45:09 [INFO] app.config.dependency_container:170 - _setup_controllers(): Controllers setup deferred
+2025-06-01 14:45:09 [INFO] app.config.dependency_container:70 - initialize(): Dependency container initialized successfully
+2025-06-01 14:45:11 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-01 14:45:11 [INFO] app.infrastructure.repositories.mongodb_user_repository:90 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-01 14:45:11 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56766 - "GET /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 14:45:11 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56766 - "GET /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 14:45:17 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 14:45:17 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 14:45:17 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 14:45:17 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 14:45:17 [INFO] uvicorn.error:93 - _serve(): Finished server process [4237]
+2025-06-01 14:45:21 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:45:25 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 14:45:25 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 14:45:26 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 14:45:26 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 14:45:26 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 14:45:26 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 14:45:26 [INFO] uvicorn.error:83 - _serve(): Started server process [4250]
+2025-06-01 14:45:26 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 14:45:26 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 14:45:26 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 14:45:26 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 14:45:26 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 14:45:28 [INFO] app.config.dependency_container:61 - initialize(): Initializing dependency container...
+2025-06-01 14:45:28 [INFO] app.config.dependency_container:90 - _setup_infrastructure(): MongoDB connector configured with database: 
+2025-06-01 14:45:28 [INFO] app.config.dependency_container:91 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-01 14:45:28 [INFO] app.config.dependency_container:133 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-01 14:45:28 [WARNING] app.config.dependency_container:162 - _setup_services(): Organization service setup failed: 'MongoDBConnector' object has no attribute 'organizations'
+2025-06-01 14:45:28 [INFO] app.config.dependency_container:165 - _setup_services(): Services initialized
+2025-06-01 14:45:28 [INFO] app.config.dependency_container:170 - _setup_controllers(): Controllers setup deferred
+2025-06-01 14:45:28 [INFO] app.config.dependency_container:70 - initialize(): Dependency container initialized successfully
+2025-06-01 14:45:29 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-01 14:45:29 [INFO] app.infrastructure.repositories.mongodb_user_repository:90 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-01 14:45:29 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56842 - "GET /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 14:45:30 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56842 - "GET /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 14:45:37 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 14:45:37 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 14:45:37 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 14:45:37 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 14:45:37 [INFO] uvicorn.error:93 - _serve(): Finished server process [4250]
+2025-06-01 14:45:43 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:45:49 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 14:45:49 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 14:45:50 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 14:45:51 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 14:45:51 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 14:45:51 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 14:45:51 [INFO] uvicorn.error:83 - _serve(): Started server process [4259]
+2025-06-01 14:45:51 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 14:45:51 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 14:45:51 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 14:45:51 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 14:45:51 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 14:45:51 [INFO] app.config.dependency_container:61 - initialize(): Initializing dependency container...
+2025-06-01 14:45:51 [INFO] app.config.dependency_container:90 - _setup_infrastructure(): MongoDB connector configured with database: 
+2025-06-01 14:45:51 [INFO] app.config.dependency_container:91 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-01 14:45:51 [INFO] app.config.dependency_container:133 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-01 14:45:51 [WARNING] app.config.dependency_container:162 - _setup_services(): Organization service setup failed: 'MongoDBConnector' object has no attribute 'organizations'
+2025-06-01 14:45:51 [INFO] app.config.dependency_container:165 - _setup_services(): Services initialized
+2025-06-01 14:45:51 [INFO] app.config.dependency_container:170 - _setup_controllers(): Controllers setup deferred
+2025-06-01 14:45:51 [INFO] app.config.dependency_container:70 - initialize(): Dependency container initialized successfully
+2025-06-01 14:45:52 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-01 14:45:52 [INFO] app.infrastructure.repositories.mongodb_user_repository:90 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-01 14:45:53 [INFO] app.infrastructure.repositories.mongodb_user_repository:563 - get_all(): Retrieved 1 users
+2025-06-01 14:45:53 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56961 - "GET /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 14:45:53 [INFO] app.infrastructure.repositories.mongodb_user_repository:563 - get_all(): Retrieved 1 users
+2025-06-01 14:45:53 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56961 - "GET /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 14:45:55 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 14:45:55 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 14:45:55 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 14:45:55 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 14:45:55 [INFO] uvicorn.error:93 - _serve(): Finished server process [4259]
+2025-06-01 14:46:00 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:46:04 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 14:46:04 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 14:46:05 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 14:46:05 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 14:46:05 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 14:46:06 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 14:46:06 [INFO] uvicorn.error:83 - _serve(): Started server process [4268]
+2025-06-01 14:46:06 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 14:46:06 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 14:46:06 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 14:46:06 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 14:46:06 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 14:46:11 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:46:17 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 14:46:17 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 14:46:18 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 14:46:19 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 14:46:20 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 14:46:20 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 14:46:20 [INFO] uvicorn.error:83 - _serve(): Started server process [4275]
+2025-06-01 14:46:20 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 14:46:20 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 14:46:20 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 14:46:20 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 14:46:20 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 14:46:20 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 14:46:20 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 14:46:20 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 14:46:20 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 14:46:20 [INFO] uvicorn.error:93 - _serve(): Finished server process [4275]
+2025-06-01 14:46:26 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:46:31 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 14:46:31 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 14:46:32 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 14:46:32 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 14:46:32 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 14:46:32 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 14:46:32 [INFO] uvicorn.error:83 - _serve(): Started server process [4298]
+2025-06-01 14:46:32 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 14:46:32 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 14:46:32 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 14:46:32 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 14:46:32 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 14:46:43 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 14:46:43 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 14:46:43 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 14:46:43 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 14:46:43 [INFO] uvicorn.error:93 - _serve(): Finished server process [4298]
+2025-06-01 14:46:49 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:46:54 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 14:46:54 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 14:46:55 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 14:46:55 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 14:46:56 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 14:46:56 [INFO] uvicorn.error:83 - _serve(): Started server process [4311]
+2025-06-01 14:46:56 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 14:46:56 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 14:46:56 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 14:46:56 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 14:46:56 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 14:47:09 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 14:47:09 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 14:47:09 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 14:47:09 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 14:47:09 [INFO] uvicorn.error:93 - _serve(): Finished server process [4311]
+2025-06-01 14:47:15 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:47:40 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:47:52 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:48:06 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:48:30 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:48:46 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:49:02 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:53:28 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:54:36 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:54:59 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:55:06 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 14:55:12 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:05:15 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:05:22 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:05:22 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:05:28 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:05:35 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:05:46 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:05:53 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:06:09 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:06:18 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:06:18 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:06:23 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:06:30 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:06:34 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:06:37 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:06:39 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:06:43 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:06:50 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:06:54 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:06:59 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:07:06 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:07:11 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:07:14 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:07:20 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:07:27 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:07:31 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:07:33 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:07:44 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:07:53 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:08:00 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:08:04 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:08:07 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:08:12 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:08:20 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:08:23 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:08:24 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:08:34 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:08:53 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:08:59 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:09:29 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:09:34 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:09:49 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:09:56 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:10:19 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:10:25 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:10:28 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:10:38 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:10:44 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:10:49 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:10:52 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:11:02 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:11:07 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:11:13 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:11:17 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:11:27 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:11:32 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:11:35 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:11:42 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:11:47 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:14:37 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:14:38 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:14:45 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:40:36 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:40:37 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:40:44 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 15:40:50 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:00:34 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:00:37 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:00:37 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:00:46 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:01:38 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:01:39 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:01:40 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:01:53 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:02:18 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:02:22 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:02:22 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:02:32 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:03:55 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:03:56 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:03:56 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:04:05 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:04:20 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:04:20 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:04:21 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:04:28 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:04:34 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:04:34 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:04:36 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:04:38 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:04:43 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:04:44 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:04:45 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:05:00 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:05:35 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:05:36 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:05:39 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:05:43 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:05:44 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:05:49 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:06:06 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:07:32 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:07:32 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:07:32 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:07:38 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 16:07:38 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 16:07:38 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 16:07:38 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 16:07:38 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 16:07:38 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 16:07:39 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 16:07:39 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 16:07:39 [INFO] uvicorn.error:83 - _serve(): Started server process [6567]
+2025-06-01 16:07:39 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 16:07:39 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 16:07:39 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 16:07:39 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 16:07:39 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 16:07:39 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 16:07:40 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 16:07:40 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 16:07:40 [INFO] uvicorn.error:83 - _serve(): Started server process [6569]
+2025-06-01 16:07:40 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 16:07:40 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 16:07:40 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 16:07:40 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 16:07:40 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 16:07:40 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 16:07:40 [INFO] uvicorn.error:83 - _serve(): Started server process [6568]
+2025-06-01 16:07:40 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 16:07:40 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 16:07:40 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 16:07:40 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 16:07:40 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 16:07:44 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 16:07:57 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 16:07:57 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 16:07:59 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 16:08:00 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 16:08:00 [INFO] uvicorn.error:83 - _serve(): Started server process [6564]
+2025-06-01 16:08:00 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 16:08:00 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 16:08:00 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 16:08:00 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 16:08:00 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 16:08:00 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59750 - "OPTIONS /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 16:08:00 [INFO] app.config.dependency_container:61 - initialize(): Initializing dependency container...
+2025-06-01 16:08:00 [INFO] app.config.dependency_container:90 - _setup_infrastructure(): MongoDB connector configured with database: 
+2025-06-01 16:08:00 [INFO] app.config.dependency_container:91 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-01 16:08:00 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59752 - "OPTIONS /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 16:08:00 [INFO] app.config.dependency_container:133 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-01 16:08:00 [WARNING] app.config.dependency_container:162 - _setup_services(): Organization service setup failed: 'MongoDBConnector' object has no attribute 'organizations'
+2025-06-01 16:08:00 [INFO] app.config.dependency_container:165 - _setup_services(): Services initialized
+2025-06-01 16:08:00 [INFO] app.config.dependency_container:170 - _setup_controllers(): Controllers setup deferred
+2025-06-01 16:08:00 [INFO] app.config.dependency_container:70 - initialize(): Dependency container initialized successfully
+2025-06-01 16:08:03 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-01 16:08:03 [INFO] app.infrastructure.repositories.mongodb_user_repository:90 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-01 16:08:03 [INFO] app.infrastructure.repositories.mongodb_user_repository:563 - get_all(): Retrieved 1 users
+2025-06-01 16:08:11 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59750 - "GET /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 16:08:11 [INFO] app.infrastructure.repositories.mongodb_user_repository:563 - get_all(): Retrieved 1 users
+2025-06-01 16:22:12 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59750 - "GET /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 16:22:20 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59990 - "OPTIONS /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 16:22:20 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59992 - "OPTIONS /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 16:22:21 [INFO] app.infrastructure.repositories.mongodb_user_repository:563 - get_all(): Retrieved 1 users
+2025-06-01 16:22:23 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59994 - "GET /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 16:22:23 [INFO] app.infrastructure.repositories.mongodb_user_repository:563 - get_all(): Retrieved 1 users
+2025-06-01 16:24:13 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59992 - "GET /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 16:35:46 [INFO] uvicorn.access:473 - send(): 127.0.0.1:61590 - "OPTIONS /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 16:35:46 [INFO] uvicorn.access:473 - send(): 127.0.0.1:61592 - "OPTIONS /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 16:35:46 [INFO] app.infrastructure.repositories.mongodb_user_repository:563 - get_all(): Retrieved 1 users
+2025-06-01 16:36:28 [INFO] uvicorn.access:473 - send(): 127.0.0.1:61590 - "GET /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 16:36:28 [INFO] app.infrastructure.repositories.mongodb_user_repository:563 - get_all(): Retrieved 1 users

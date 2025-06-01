@@ -1,29 +1,66 @@
 """
-Taxation API Routes (SOLID Architecture)
-FastAPI routes for taxation operations using clean architecture
+SOLID-Compliant Taxation Routes v2
+Clean architecture implementation of taxation HTTP endpoints
 """
 
-from typing import Dict, Any, Optional, List
+import logging
+from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body
-from fastapi import status as http_status
+from fastapi.responses import JSONResponse
+from datetime import date, datetime
 
 from app.api.controllers.taxation_controller import TaxationController
 from app.application.dto.taxation_dto import (
-    TaxationCreateRequestDTO,
-    TaxationUpdateRequestDTO,
-    TaxationResponseDTO,
-    TaxSearchFiltersDTO,
     TaxCalculationRequestDTO,
-    TaxProjectionDTO,
-    TaxComparisonDTO,
-    TaxStatisticsDTO
+    TaxationUpdateRequestDTO,
+    TaxSearchFiltersDTO,
+    TaxationResponseDTO,
+    TaxationSummaryDTO,
+    TaxationAnalyticsDTO,
+    TaxationValidationError,
+    TaxationBusinessRuleError,
+    TaxationNotFoundError
 )
-from app.auth.dependencies import get_current_user, get_hostname
+from app.config.dependency_container import get_dependency_container
+from app.auth.auth_dependencies import CurrentUser, get_current_user, require_role
 
+logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(prefix="/api/v2/taxation", tags=["Taxation V2"])
+router = APIRouter(prefix="/api/v2/taxation", tags=["taxation-v2"])
 
+def get_taxation_controller() -> TaxationController:
+    """Get taxation controller instance."""
+    try:
+        container = get_dependency_container()
+        return container.get_taxation_controller()
+    except Exception as e:
+        logger.warning(f"Could not get taxation controller from container: {e}")
+        return TaxationController()
+
+# Health check endpoint
+@router.get("/health")
+async def health_check(
+    controller: TaxationController = Depends(get_taxation_controller)
+) -> Dict[str, str]:
+    """Health check for taxation service."""
+    return await controller.health_check()
+
+# Taxation calculation endpoints
+@router.post("/calculate", response_model=TaxationResponseDTO)
+async def calculate_taxation(
+    request: TaxCalculationRequestDTO,
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(require_role("admin")),
+    controller: TaxationController = Depends(get_taxation_controller)
+) -> TaxationResponseDTO:
+    """Calculate taxation for an employee."""
+    try:
+        logger.info(f"Calculating taxation for employee {request.employee_id}")
+        return await controller.calculate_taxation(request, current_user.hostname)
+    except Exception as e:
+        logger.error(f"Error calculating taxation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/", 
              response_model=TaxationResponseDTO,
@@ -69,32 +106,6 @@ async def bulk_create_taxation(
     return await controller.bulk_create_taxation(
         employee_ids, tax_year, hostname, current_user
     )
-
-
-@router.post("/calculate",
-             response_model=TaxationResponseDTO,
-             summary="Calculate Tax",
-             description="Calculate tax for an employee")
-async def calculate_tax(
-    request: TaxCalculationRequestDTO = Body(..., description="Tax calculation request"),
-    hostname: str = Depends(get_hostname),
-    current_user: str = Depends(get_current_user),
-    controller: TaxationController = Depends()
-) -> TaxationResponseDTO:
-    """
-    Calculate tax for an employee.
-    
-    This endpoint performs tax calculation for an employee based on their
-    current salary, deductions, and tax configuration.
-    
-    **Calculation types:**
-    - `quick`: Basic calculation without detailed breakdown
-    - `full`: Complete calculation with all components
-    - `projection`: Future tax projection
-    
-    **Required permissions:** HR_ADMIN, PAYROLL_ADMIN, EMPLOYEE (own record)
-    """
-    return await controller.calculate_tax(request, hostname, current_user)
 
 
 @router.post("/calculate-comprehensive/{employee_id}",
@@ -477,22 +488,4 @@ async def get_deduction_limits(
         "standard_deduction": 50000
     }
     
-    return limits
-
-
-@router.get("/health",
-            response_model=Dict[str, str],
-            summary="Health Check",
-            description="Check taxation service health")
-async def health_check() -> Dict[str, str]:
-    """
-    Health check endpoint for taxation service.
-    
-    Returns the status of the taxation service and its dependencies.
-    """
-    return {
-        "status": "healthy",
-        "service": "taxation",
-        "version": "2.0.0",
-        "timestamp": "2024-01-15T10:00:00Z"
-    } 
+    return limits 

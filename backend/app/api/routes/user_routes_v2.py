@@ -29,18 +29,21 @@ router = APIRouter(prefix="/api/v2/users", tags=["Users V2"])
 # Health check endpoint
 @router.get("/health")
 async def health_check(
+    current_user: CurrentUser = Depends(get_current_user),
     controller: UserController = Depends(get_user_controller)
 ) -> Dict[str, str]:
     """Health check for user service."""
     try:
-        return await controller.health_check()
+        # Pass organization context to controller
+        return await controller.health_check(current_user)
     except Exception:
         # Fallback for minimal implementation
         return {
             "service": "user_service",
             "status": "healthy",
             "timestamp": datetime.now().isoformat(),
-            "version": "2.0.0-complete"
+            "version": "2.0.0-complete",
+            "organization": current_user.hostname
         }
 
 # User creation endpoints
@@ -51,18 +54,7 @@ async def create_user(
     controller: UserController = Depends(get_user_controller),
     db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
 ) -> UserResponseDTO:
-    """
-    Create a new user.
-    
-    Args:
-        request: User creation request
-        current_user: Current authenticated user with organization context
-        controller: User controller dependency
-        db_service: Organization database service
-        
-    Returns:
-        Created user response
-    """
+    """Create a new user."""
     # Pass organization context to controller
     return await controller.create_user(request, current_user)
 
@@ -70,15 +62,11 @@ async def create_user(
 async def create_user_legacy(
     user_data: Dict[str, Any] = Body(..., description="User creation data"),
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
+    controller: UserController = Depends(get_user_controller)
 ) -> Dict[str, Any]:
-    """
-    Create a new user (legacy endpoint).
-    Frontend expects this endpoint for dataService.createUser()
-    """
+    """Create a new user (legacy endpoint)."""
     try:
-        # Convert legacy format to DTO
+        # Convert legacy format to DTO and include organization context
         request = CreateUserRequestDTO(**user_data)
         result = await controller.create_user(request, current_user)
         
@@ -107,21 +95,7 @@ async def create_user_with_files(
     current_user: CurrentUser = Depends(get_current_user),
     controller: UserController = Depends(get_user_controller)
 ) -> UserResponseDTO:
-    """
-    Create a new user with document uploads.
-    
-    Args:
-        user_data: JSON string containing user information
-        pan_file: PAN document file (optional)
-        aadhar_file: Aadhar document file (optional)
-        photo: User photo file (optional)
-        current_user: Current authenticated user with organization context
-        controller: User controller dependency
-        db_service: Organization database service
-        
-    Returns:
-        Created user response
-    """
+    """Create a new user with document uploads."""
     return await controller.create_user_with_files(
         user_data=user_data,
         pan_file=pan_file,
@@ -130,61 +104,22 @@ async def create_user_with_files(
         current_user=current_user
     )
 
-@router.post("/import")
-async def import_users(
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
-) -> Dict[str, Any]:
-    """
-    Import users from file.
-    Frontend expects this endpoint for dataService.importUsers()
-    """
-    try:
-        logger.info(f"User import requested for organization: {current_user.hostname}")
-        
-        # TODO: Get file data from request
-        # For now, return error since file upload is not implemented
-        raise HTTPException(
-            status_code=501,
-            detail="User import functionality is not yet implemented. Please implement file upload first."
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error importing users for organization {current_user.hostname}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
 # Authentication endpoints (no auth required for login)
 @router.post("/auth/login", response_model=UserLoginResponseDTO)
 async def authenticate_user(
     request: UserLoginRequestDTO,
     controller: UserController = Depends(get_user_controller)
 ) -> UserLoginResponseDTO:
-    """
-    Authenticate user and return access tokens.
-    
-    Args:
-        request: Login request with credentials
-        controller: User controller dependency
-        
-    Returns:
-        Login response with tokens and user info
-    """
+    """Authenticate user and return access tokens."""
     return await controller.authenticate_user(request)
 
 # User query endpoints
 @router.get("/me")
 async def get_current_user_profile(
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
+    controller: UserController = Depends(get_user_controller)
 ) -> Dict[str, Any]:
-    """
-    Get current user's profile.
-    Frontend expects this endpoint for dataService.getCurrentUser()
-    """
+    """Get current user's profile."""
     try:
         user = await controller.get_user_by_id(current_user.employee_id, current_user)
         if not user:
@@ -210,20 +145,15 @@ async def get_current_user_profile(
 @router.get("/my/directs")
 async def get_my_directs(
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
+    controller: UserController = Depends(get_user_controller)
 ) -> List[Dict[str, Any]]:
-    """
-    Get direct reports for current user.
-    Frontend expects this endpoint for dataService.getMyDirects()
-    """
+    """Get direct reports for current user."""
     try:
         logger.info(f"Getting direct reports for user {current_user.employee_id} in organization {current_user.hostname}")
         
-        # Get direct reports using controller
+        # Get direct reports using controller with organization context
         directs = await controller.get_users_by_manager(current_user.employee_id, current_user)
         
-        # Convert to expected format
         return [
             {
                 "employee_id": direct.employee_id,
@@ -246,20 +176,15 @@ async def get_my_directs(
 async def get_manager_directs(
     manager_id: str = Query(..., description="Manager ID"),
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
+    controller: UserController = Depends(get_user_controller)
 ) -> List[Dict[str, Any]]:
-    """
-    Get direct reports for a specific manager.
-    Frontend expects this endpoint for dataService.getManagerDirects()
-    """
+    """Get direct reports for a specific manager."""
     try:
         logger.info(f"Getting direct reports for manager {manager_id} in organization {current_user.hostname}")
         
-        # Get direct reports using controller
+        # Get direct reports using controller with organization context
         directs = await controller.get_users_by_manager(manager_id, current_user)
         
-        # Convert to expected format
         return [
             {
                 "employee_id": direct.employee_id,
@@ -282,13 +207,9 @@ async def get_manager_directs(
 @router.get("/stats")
 async def get_user_stats(
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
+    controller: UserController = Depends(get_user_controller)
 ) -> Dict[str, Any]:
-    """
-    Get user statistics.
-    Frontend expects this endpoint for dataService.getUserStats()
-    """
+    """Get user statistics."""
     try:
         stats = await controller.get_user_statistics(current_user)
         return {
@@ -309,42 +230,18 @@ async def get_user_stats(
 async def get_user_by_id(
     employee_id: str,
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
+    controller: UserController = Depends(get_user_controller)
 ) -> UserResponseDTO:
-    """
-    Get user by ID.
-    
-    Args:
-        employee_id: User ID to retrieve
-        current_user: Current authenticated user with organization context
-        controller: User controller dependency
-        db_service: Organization database service
-        
-    Returns:
-        User response
-    """
+    """Get user by ID."""
     return await controller.get_user_by_id(employee_id, current_user)
 
 @router.get("/email/{email}", response_model=UserResponseDTO)
 async def get_user_by_email(
     email: str,
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
+    controller: UserController = Depends(get_user_controller)
 ) -> UserResponseDTO:
-    """
-    Get user by email address.
-    
-    Args:
-        email: Email address to search for
-        current_user: Current authenticated user with organization context
-        controller: User controller dependency
-        db_service: Organization database service
-        
-    Returns:
-        User response
-    """
+    """Get user by email address."""
     return await controller.get_user_by_email(email, current_user)
 
 @router.get("")
@@ -353,15 +250,10 @@ async def get_users(
     limit: int = Query(20, ge=1, le=100, description="Maximum number of records to return"),
     include_inactive: bool = Query(False, description="Include inactive users"),
     include_deleted: bool = Query(False, description="Include deleted users"),
-    organization_id: Optional[str] = Query(None, description="Filter by organization ID"),
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
+    controller: UserController = Depends(get_user_controller)
 ) -> Dict[str, Any]:
-    """
-    Get all users with pagination and filters.
-    Frontend expects this endpoint for dataService.getUsers()
-    """
+    """Get all users with pagination and filters."""
     try:
         result = await controller.get_all_users(
             skip=skip,
@@ -403,21 +295,9 @@ async def get_users(
 async def search_users(
     filters: UserSearchFiltersDTO,
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
+    controller: UserController = Depends(get_user_controller)
 ) -> UserListResponseDTO:
-    """
-    Search users with advanced filters.
-    
-    Args:
-        filters: Search filters and pagination parameters
-        current_user: Current authenticated user with organization context
-        controller: User controller dependency
-        db_service: Organization database service
-        
-    Returns:
-        Filtered list of users
-    """
+    """Search users with advanced filters."""
     return await controller.search_users(filters, current_user)
 
 # User update endpoints
@@ -426,77 +306,19 @@ async def update_user(
     employee_id: str,
     request: UpdateUserRequestDTO,
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
+    controller: UserController = Depends(get_user_controller)
 ) -> UserResponseDTO:
-    """
-    Update user information.
-    
-    Args:
-        employee_id: User ID to update
-        request: Update request with new user data
-        current_user: Current authenticated user with organization context
-        controller: User controller dependency
-        db_service: Organization database service
-        
-    Returns:
-        Updated user response
-    """
+    """Update user information."""
     return await controller.update_user(employee_id, request, current_user)
-
-@router.put("/{employee_id}")
-async def update_user_legacy(
-    employee_id: str,
-    user_data: Dict[str, Any] = Body(..., description="Updated user data"),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
-) -> Dict[str, Any]:
-    """
-    Update user information (legacy endpoint).
-    """
-    try:
-        # Convert legacy format to DTO
-        request = UpdateUserRequestDTO(**user_data)
-        result = await controller.update_user(employee_id, request, current_user)
-        
-        return {
-            "success": True,
-            "message": "User updated successfully",
-            "employee_id": result.employee_id,
-            "updated_fields": list(user_data.keys()),
-            "organization": current_user.hostname,
-            "updated_at": datetime.now().isoformat(),
-            "updated_by": current_user.employee_id
-        }
-    except Exception as e:
-        logger.error(f"Error updating user {employee_id} in organization {current_user.hostname}: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to update user: {str(e)}"
-        )
 
 @router.patch("/{employee_id}/password", response_model=UserResponseDTO)
 async def change_user_password(
     employee_id: str,
     request: ChangeUserPasswordRequestDTO,
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
+    controller: UserController = Depends(get_user_controller)
 ) -> UserResponseDTO:
-    """
-    Change user password.
-    
-    Args:
-        employee_id: User ID
-        request: Password change request
-        current_user: Current authenticated user with organization context
-        controller: User controller dependency
-        db_service: Organization database service
-        
-    Returns:
-        Updated user response
-    """
+    """Change user password."""
     return await controller.change_user_password(employee_id, request, current_user)
 
 @router.patch("/{employee_id}/role", response_model=UserResponseDTO)
@@ -504,22 +326,9 @@ async def change_user_role(
     employee_id: str,
     request: ChangeUserRoleRequestDTO,
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
+    controller: UserController = Depends(get_user_controller)
 ) -> UserResponseDTO:
-    """
-    Change user role.
-    
-    Args:
-        employee_id: User ID
-        request: Role change request
-        current_user: Current authenticated user with organization context
-        controller: User controller dependency
-        db_service: Organization database service
-        
-    Returns:
-        Updated user response
-    """
+    """Change user role."""
     return await controller.change_user_role(employee_id, request, current_user)
 
 @router.patch("/{employee_id}/status", response_model=UserResponseDTO)
@@ -527,36 +336,20 @@ async def update_user_status(
     employee_id: str,
     request: UserStatusUpdateRequestDTO,
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
+    controller: UserController = Depends(get_user_controller)
 ) -> UserResponseDTO:
-    """
-    Update user status (activate, deactivate, suspend, etc.).
-    
-    Args:
-        employee_id: User ID
-        request: Status update request
-        current_user: Current authenticated user with organization context
-        controller: User controller dependency
-        db_service: Organization database service
-        
-    Returns:
-        Updated user response
-    """
+    """Update user status (activate, deactivate, suspend, etc.)."""
     return await controller.update_user_status(employee_id, request, current_user)
 
 @router.delete("/{employee_id}")
 async def delete_user(
     employee_id: str,
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
+    controller: UserController = Depends(get_user_controller)
 ) -> Dict[str, Any]:
-    """
-    Delete/deactivate a user.
-    """
+    """Delete/deactivate a user."""
     try:
-        # Use controller to deactivate user
+        # Use controller to deactivate user with organization context
         request = UserStatusUpdateRequestDTO(status="inactive", reason="Deleted by admin")
         result = await controller.update_user_status(employee_id, request, current_user)
         
@@ -584,13 +377,9 @@ async def check_user_exists(
     pan_number: Optional[str] = Query(None, description="PAN number to check"),
     exclude_id: Optional[str] = Query(None, description="User ID to exclude from check"),
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
+    controller: UserController = Depends(get_user_controller)
 ) -> Dict[str, bool]:
-    """
-    Check if user exists with given email, mobile, or PAN.
-    Frontend expects this endpoint for dataService.checkUserExists()
-    """
+    """Check if user exists with given email, mobile, or PAN."""
     return await controller.check_user_exists(
         email=email,
         mobile=mobile,
@@ -602,13 +391,9 @@ async def check_user_exists(
 @router.get("/analytics/statistics", response_model=UserStatisticsDTO)
 async def get_user_statistics(
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
+    controller: UserController = Depends(get_user_controller)
 ) -> UserStatisticsDTO:
-    """
-    Get comprehensive user analytics and statistics.
-    Frontend expects this endpoint for dataService.getUserStatistics()
-    """
+    """Get comprehensive user analytics and statistics."""
     return await controller.get_user_statistics(current_user)
 
 # Legacy compatibility endpoints
@@ -616,13 +401,9 @@ async def get_user_statistics(
 async def get_all_users_legacy(
     hostname: str = Query(..., description="Organization hostname"),
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
+    controller: UserController = Depends(get_user_controller)
 ) -> List[Dict[str, Any]]:
-    """
-    Get all users for a specific organization (legacy endpoint).
-    Frontend expects this endpoint for dataService.getAllUsersLegacy()
-    """
+    """Get all users for a specific organization (legacy endpoint)."""
     # Validate user can access the specified organization
     if current_user.hostname != hostname and not current_user.has_role("superadmin"):
         raise HTTPException(
@@ -670,13 +451,9 @@ async def get_user_by_employee_id_legacy(
     employee_id: str,
     hostname: str = Query(..., description="Organization hostname"),
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
+    controller: UserController = Depends(get_user_controller)
 ) -> Dict[str, Any]:
-    """
-    Get user by employee ID for specific organization (legacy endpoint).
-    Frontend expects this endpoint for dataService.getUserByEmpIdLegacy()
-    """
+    """Get user by employee ID for specific organization (legacy endpoint)."""
     # Validate user can access the specified organization
     if current_user.hostname != hostname and not current_user.has_role("superadmin"):
         raise HTTPException(

@@ -3,7 +3,7 @@ Employee Leave Routes V2
 SOLID-compliant FastAPI routes for employee leave operations
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Path
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body
 from fastapi.responses import JSONResponse
 from typing import List, Optional, Dict, Any
 import logging
@@ -22,10 +22,9 @@ from app.application.dto.employee_leave_dto import (
     EmployeeLeaveNotFoundError,
     InsufficientLeaveBalanceError
 )
-from api.controllers.employee_leave_controller import EmployeeLeaveController
-from config.dependency_container import get_employee_leave_controller
-from auth.auth_middleware import get_current_user, get_hostname_from_request
-from models.leave_model import LeaveStatus
+from app.api.controllers.employee_leave_controller import EmployeeLeaveController
+from app.config.dependency_container import get_dependency_container
+from app.auth.auth_dependencies import CurrentUser, get_current_user, require_role
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -33,6 +32,14 @@ logger = logging.getLogger(__name__)
 # Create router
 router = APIRouter(prefix="/api/v2/employee-leave", tags=["Employee Leave V2"])
 
+def get_employee_leave_controller() -> EmployeeLeaveController:
+    """Get employee leave controller instance."""
+    try:
+        container = get_dependency_container()
+        return container.get_employee_leave_controller()
+    except Exception as e:
+        logger.warning(f"Could not get employee leave controller from container: {e}")
+        return EmployeeLeaveController()
 
 # Exception handlers
 def handle_employee_leave_exceptions(func):
@@ -85,8 +92,7 @@ def handle_employee_leave_exceptions(func):
 @handle_employee_leave_exceptions
 async def apply_employee_leave(
     request: EmployeeLeaveCreateRequestDTO,
-    current_user: dict = Depends(get_current_user),
-    hostname: str = Depends(get_hostname_from_request),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: EmployeeLeaveController = Depends(get_employee_leave_controller)
 ):
     """
@@ -100,13 +106,13 @@ async def apply_employee_leave(
     - Working days calculated excluding weekends and holidays
     """
     
-    logger.info(f"Employee leave application request from: {current_user.get('employee_id')}")
+    logger.info(f"Employee leave application request from: {current_user.employee_id}")
     
-    employee_id = current_user.get("employee_id")
-    if not employee_id:
-        raise HTTPException(status_code=400, detail="Employee ID not found in token")
-    
-    response = await controller.apply_leave(request, employee_id, hostname)
+    response = await controller.apply_leave(
+        request, 
+        current_user.employee_id, 
+        current_user.hostname
+    )
     
     return JSONResponse(
         status_code=201,

@@ -1,49 +1,66 @@
 """
-SOLID-Compliant Reimbursement Routes
-Clean API layer following SOLID principles
+SOLID-Compliant Reimbursement Routes v2
+Clean architecture implementation of reimbursement HTTP endpoints
 """
 
-from fastapi import APIRouter, Depends, UploadFile, File, Form, Body, HTTPException, Query
-from fastapi.responses import JSONResponse
-from typing import List, Optional
 import logging
+from typing import List, Optional, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body, UploadFile, File, Form
+from fastapi.responses import JSONResponse, StreamingResponse
+from datetime import date, datetime
 
 from app.api.controllers.reimbursement_controller import ReimbursementController
 from app.application.dto.reimbursement_dto import (
-    ReimbursementRequestCreateDTO,
-    ReimbursementTypeCreateRequestDTO,
-    ReimbursementApprovalDTO,
-    ReimbursementPaymentDTO,
+    ReimbursementCreateRequestDTO,
+    ReimbursementUpdateRequestDTO,
+    ReimbursementApprovalRequestDTO,
     ReimbursementSearchFiltersDTO,
     ReimbursementResponseDTO,
-    ReimbursementTypeResponseDTO,
+    ReimbursementSummaryDTO,
+    ReimbursementAnalyticsDTO,
     ReimbursementValidationError,
-    ReimbursementBusinessRuleError
+    ReimbursementBusinessRuleError,
+    ReimbursementNotFoundError
 )
-from app.auth.auth import extract_hostname, extract_employee_id, role_checker
+from app.config.dependency_container import get_dependency_container
+from app.auth.auth_dependencies import CurrentUser, get_current_user, require_role
 
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(prefix="/api/v2/reimbursements", tags=["Reimbursements V2"])
-
+router = APIRouter(prefix="/api/v2/reimbursements", tags=["reimbursements-v2"])
 
 def get_reimbursement_controller() -> ReimbursementController:
-    """Dependency injection for reimbursement controller"""
+    """Get reimbursement controller instance."""
     try:
-        from app.config.dependency_container import get_dependency_container
         container = get_dependency_container()
         return container.get_reimbursement_controller()
     except Exception as e:
         logger.warning(f"Could not get reimbursement controller from container: {e}")
-        # Fallback to direct instantiation
         return ReimbursementController()
 
+# Health check endpoint
+@router.get("/health")
+async def health_check(
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
+) -> Dict[str, str]:
+    """Health check for reimbursement service."""
+    return await controller.health_check()
 
-def get_controller() -> ReimbursementController:
-    """Get reimbursement controller instance"""
-    return get_reimbursement_controller()
-
+# Reimbursement CRUD endpoints
+@router.post("", response_model=ReimbursementResponseDTO)
+async def create_reimbursement(
+    request: ReimbursementCreateRequestDTO,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
+) -> ReimbursementResponseDTO:
+    """Create a new reimbursement request."""
+    try:
+        logger.info(f"Creating reimbursement request for employee {current_user.employee_id}")
+        return await controller.create_reimbursement(request, current_user.employee_id, current_user.hostname)
+    except Exception as e:
+        logger.error(f"Error creating reimbursement: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Reimbursement Request Endpoints
 

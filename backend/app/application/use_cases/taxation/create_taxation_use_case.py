@@ -7,20 +7,20 @@ import logging
 from typing import Optional
 from datetime import datetime, date
 
-from application.dto.taxation_dto import (
+from app.application.dto.taxation_dto import (
     TaxationCreateRequestDTO,
     TaxationResponseDTO,
     TaxationValidationError,
     TaxationBusinessRuleError
 )
-from application.interfaces.repositories.taxation_repository import (
+from app.application.interfaces.repositories.taxation_repository import (
     TaxationCommandRepository,
     TaxationQueryRepository
 )
-from application.interfaces.services.notification_service import NotificationService
-from domain.events.taxation_events import TaxationCalculated
-from domain.value_objects.employee_id import EmployeeId
-from domain.value_objects.money import Money
+from app.application.interfaces.services.notification_service import NotificationService
+from app.domain.events.taxation_events import TaxationCalculated
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.money import Money
 
 
 logger = logging.getLogger(__name__)

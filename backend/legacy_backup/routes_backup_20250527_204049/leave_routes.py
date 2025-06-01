@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Body
 from models.user_model import User
 from models.leave_model import EmployeeLeave, LeaveStatus
-from infrastructure.services.employee_leave_legacy_service import apply_leave, get_user_leaves, get_pending_leaves, update_leave_status, leave_balance, delete_leave_request, get_all_employee_leaves, get_leaves_by_month_for_user, calculate_lwp_for_month
+from app.infrastructure.services.employee_leave_legacy_service import apply_leave, get_user_leaves, get_pending_leaves, update_leave_status, leave_balance, delete_leave_request, get_all_employee_leaves, get_leaves_by_month_for_user, calculate_lwp_for_month
 from auth.auth import extract_emp_id, get_current_user
 from typing import List
 from auth.auth import role_checker, extract_hostname

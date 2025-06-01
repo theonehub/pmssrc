@@ -13,7 +13,7 @@ from bson import ObjectId
 import logging
 
 from models.taxation.legacy_taxation_model import Taxation
-from domain.entities.salary_management import SalaryChange, SalaryProjection
+from app.domain.entities.salary_management import SalaryChange, SalaryProjection
 from events.tax_events import TaxEvent
 from strategies.tax_calculation_strategies import TaxCalculationResult
 

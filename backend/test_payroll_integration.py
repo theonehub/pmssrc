@@ -18,12 +18,12 @@ def test_complete_payout_workflow():
     
     try:
         # Import all components
-        from domain.events.payroll_events import PayoutCalculated
-        from domain.value_objects.payroll_value_objects import (
+        from app.domain.events.payroll_events import PayoutCalculated
+        from app.domain.value_objects.payroll_value_objects import (
             Money, SalaryComponents, DeductionComponents, 
             AttendanceInfo, PayoutSummary
         )
-        from application.dto.payroll_dto import (
+        from app.application.dto.payroll_dto import (
             PayoutCalculationRequestDTO,
             PayoutResponseDTO,
             SalaryComponentsResponseDTO
@@ -122,7 +122,7 @@ def test_dto_serialization():
     print("🔄 Testing DTO Serialization...")
     
     try:
-        from application.dto.payroll_dto import (
+        from app.application.dto.payroll_dto import (
             PayoutCalculationRequestDTO,
             PayoutResponseDTO,
             SalaryComponentsResponseDTO,
@@ -179,7 +179,7 @@ def test_business_logic_validations():
     print("🔄 Testing Business Logic Validations...")
     
     try:
-        from domain.value_objects.payroll_value_objects import (
+        from app.domain.value_objects.payroll_value_objects import (
             Money, AttendanceInfo, PayPeriod
         )
         

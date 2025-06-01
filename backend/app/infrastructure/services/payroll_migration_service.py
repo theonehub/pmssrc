@@ -28,7 +28,7 @@ from app.infrastructure.services.taxation_migration_service import (
     TaxationMigrationService,
     LegacyTaxationCalculationRepository
 )
-from app.infrastructure.services.legacy_migration_service import get_user_by_emp_id, get_all_users
+from app.infrastructure.services.legacy_migration_service import get_user_by_employee_id, get_all_users
 from app.infrastructure.services.employee_leave_legacy_service import calculate_lwp_for_month
 from app.domain.entities.payout import (
     PayoutCreate, PayoutUpdate, PayoutInDB, PayoutStatus,
@@ -74,7 +74,7 @@ async def calculate_monthly_payout_service(
         logger.info(f"Calculating monthly payout for employee {employee_id} for {month}/{year}")
         
         # Get employee information
-        employee = get_user_by_emp_id(employee_id, hostname)
+        employee = get_user_by_employee_id(employee_id, hostname)
         if not employee:
             raise HTTPException(status_code=404, detail=f"Employee {employee_id} not found")
         
@@ -352,7 +352,7 @@ def generate_payslip_data_service(payout_id: str, hostname: str) -> PayslipData:
         if not payout:
             raise HTTPException(status_code=404, detail="Payout not found")
         
-        employee = get_user_by_emp_id(payout.employee_id, hostname)
+        employee = get_user_by_employee_id(payout.employee_id, hostname)
         if not employee:
             raise HTTPException(status_code=404, detail="Employee not found")
         
@@ -378,7 +378,7 @@ def generate_payslip_data_service(payout_id: str, hostname: str) -> PayslipData:
         return PayslipData(
             employee_id=payout.employee_id,
             employee_name=employee.get('name', ''),
-            employee_code=employee.get('emp_id', ''),
+            employee_code=employee.get('employee_id', ''),
             department=employee.get('department', ''),
             designation=employee.get('designation', ''),
             pan_number=employee.get('pan_number', ''),
@@ -552,7 +552,7 @@ def email_payslip_service(payout_id: str, hostname: str, recipient_email: Option
         if not payout:
             raise HTTPException(status_code=404, detail="Payout not found")
         
-        employee = get_user_by_emp_id(payout.employee_id, hostname)
+        employee = get_user_by_employee_id(payout.employee_id, hostname)
         if not employee:
             raise HTTPException(status_code=404, detail="Employee not found")
         

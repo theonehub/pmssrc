@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Body, Depends
-from domain.entities.employee_salary import (
+from app.domain.entities.employee_salary import (
     EmployeeSalaryCreate,
     EmployeeSalaryUpdate,
     EmployeeSalaryInDB,

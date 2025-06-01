@@ -77,7 +77,7 @@ def decode_access_token(token: str):
         logger.warning("Token has expired")
         raise JWTError("Token has expired")
     
-    except jwt.InvalidTokenError as e:
+    except JWTError as e:
         logger.warning("Invalid token: %s", e)
         raise JWTError(f"Invalid token: {str(e)}")
     

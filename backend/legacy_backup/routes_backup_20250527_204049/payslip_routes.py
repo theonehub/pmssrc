@@ -5,7 +5,7 @@ from datetime import datetime
 import logging
 from io import BytesIO
 
-from infrastructure.services.payroll_migration_service import (
+from app.infrastructure.services.payroll_migration_service import (
     generate_payslip_pdf_service,
     generate_monthly_payslips_bulk_service,
     email_payslip_service,
@@ -13,7 +13,7 @@ from infrastructure.services.payroll_migration_service import (
     get_payslip_history_service
 )
 from auth.auth import extract_emp_id, extract_hostname, role_checker
-from domain.entities.payout import PayoutStatus
+from app.domain.entities.payout import PayoutStatus
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

@@ -7,16 +7,16 @@ import logging
 from typing import Optional
 from datetime import datetime, timedelta
 
-from domain.entities.user import User
-from domain.value_objects.user_credentials import UserStatus
-from application.dto.user_dto import (
+from app.domain.entities.user import User
+from app.domain.value_objects.user_credentials import UserStatus
+from app.application.dto.user_dto import (
     UserLoginRequestDTO, UserLoginResponseDTO,
     UserAuthenticationError, UserBusinessRuleError
 )
-from application.interfaces.repositories.user_repository import (
+from app.application.interfaces.repositories.user_repository import (
     UserCommandRepository, UserQueryRepository
 )
-from application.interfaces.services.user_service import (
+from app.application.interfaces.services.user_service import (
     UserNotificationService
 )
 
@@ -238,7 +238,6 @@ class AuthenticateUserUseCase:
             expires_in=tokens["expires_in"],
             
             # User Information
-            user_id=str(user.employee_id),
             employee_id=str(user.employee_id),
             name=user.name,
             email=user.email,

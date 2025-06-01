@@ -7,9 +7,9 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any
 from datetime import datetime, date
 
-from domain.entities.employee_leave import EmployeeLeave
-from domain.value_objects.employee_id import EmployeeId
-from domain.value_objects.date_range import DateRange
+from app.domain.entities.employee_leave import EmployeeLeave
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.date_range import DateRange
 from models.leave_model import LeaveStatus
 
 

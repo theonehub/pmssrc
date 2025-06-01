@@ -10,12 +10,12 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends, Query, Path
 from fastapi.responses import JSONResponse
 
-from application.use_cases.organization.create_organization_use_case import CreateOrganizationUseCase
-from application.use_cases.organization.update_organization_use_case import UpdateOrganizationUseCase
-from application.use_cases.organization.get_organization_use_case import GetOrganizationUseCase
-from application.use_cases.organization.list_organizations_use_case import ListOrganizationsUseCase
-from application.use_cases.organization.delete_organization_use_case import DeleteOrganizationUseCase
-from application.dto.organization_dto import (
+from app.application.use_cases.organization.create_organization_use_case import CreateOrganizationUseCase
+from app.application.use_cases.organization.update_organization_use_case import UpdateOrganizationUseCase
+from app.application.use_cases.organization.get_organization_use_case import GetOrganizationUseCase
+from app.application.use_cases.organization.list_organizations_use_case import ListOrganizationsUseCase
+from app.application.use_cases.organization.delete_organization_use_case import DeleteOrganizationUseCase
+from app.application.dto.organization_dto import (
     CreateOrganizationRequestDTO,
     UpdateOrganizationRequestDTO,
     OrganizationStatusUpdateRequestDTO,
@@ -31,7 +31,7 @@ from application.dto.organization_dto import (
     OrganizationNotFoundError,
     OrganizationConflictError
 )
-from auth.dependencies import get_current_user
+from app.auth.auth_dependencies import get_current_user
 
 
 logger = logging.getLogger(__name__)

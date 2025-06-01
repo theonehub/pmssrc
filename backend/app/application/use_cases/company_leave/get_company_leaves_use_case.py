@@ -6,16 +6,16 @@ Business workflow for retrieving company leave policies
 import logging
 from typing import List, Optional, Dict, Any
 
-from application.dto.company_leave_dto import (
+from app.application.dto.company_leave_dto import (
     CompanyLeaveResponseDTO,
     CompanyLeaveSummaryDTO,
     LeaveTypeOptionsDTO
 )
-from application.interfaces.repositories.company_leave_repository import (
+from app.application.interfaces.repositories.company_leave_repository import (
     CompanyLeaveQueryRepository,
     CompanyLeaveAnalyticsRepository
 )
-from domain.entities.company_leave import CompanyLeave
+from app.domain.entities.company_leave import CompanyLeave
 
 
 class GetCompanyLeavesUseCase:

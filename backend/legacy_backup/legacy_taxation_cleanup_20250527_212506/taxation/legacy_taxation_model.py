@@ -10,7 +10,7 @@ import datetime
 import logging
 from typing import Dict, Any, Optional, List
 
-from domain.entities.taxation_models.income_sources import (
+from app.domain.entities.taxation_models.income_sources import (
     IncomeFromOtherSources,
     IncomeFromHouseProperty,
     CapitalGains,
@@ -20,9 +20,9 @@ from domain.entities.taxation_models.income_sources import (
     RetrenchmentCompensation,
     Pension
 )
-from domain.entities.taxation_models.perquisites import Perquisites
-from domain.entities.taxation_models.salary_components import SalaryComponents  
-from domain.entities.taxation_models.deductions import DeductionComponents
+from app.domain.entities.taxation_models.perquisites import Perquisites
+from app.domain.entities.taxation_models.salary_components import SalaryComponents  
+from app.domain.entities.taxation_models.deductions import DeductionComponents
 
 logger = logging.getLogger(__name__)
 

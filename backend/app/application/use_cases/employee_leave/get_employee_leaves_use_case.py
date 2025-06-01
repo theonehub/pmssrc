@@ -7,20 +7,20 @@ import logging
 from typing import List, Optional, Dict, Any
 from datetime import date
 
-from application.dto.employee_leave_dto import (
+from app.application.dto.employee_leave_dto import (
     EmployeeLeaveSearchFiltersDTO,
     EmployeeLeaveResponseDTO,
     EmployeeLeaveBalanceDTO,
     EmployeeLeaveAnalyticsDTO,
     LWPCalculationDTO
 )
-from application.interfaces.repositories.employee_leave_repository import (
+from app.application.interfaces.repositories.employee_leave_repository import (
     EmployeeLeaveQueryRepository,
     EmployeeLeaveAnalyticsRepository,
     EmployeeLeaveBalanceRepository
 )
-from domain.entities.employee_leave import EmployeeLeave
-from domain.value_objects.employee_id import EmployeeId
+from app.domain.entities.employee_leave import EmployeeLeave
+from app.domain.value_objects.employee_id import EmployeeId
 from models.leave_model import LeaveStatus
 
 
@@ -93,9 +93,9 @@ class GetEmployeeLeavesUseCase:
         try:
             self._logger.info(f"Retrieving leaves for employee: {employee_id}")
             
-            emp_id = EmployeeId(employee_id)
+            employee_id = EmployeeId(employee_id)
             employee_leaves = self._query_repository.get_by_employee_id(
-                emp_id, status_filter, limit
+                employee_id, status_filter, limit
             )
             
             return [
@@ -236,8 +236,8 @@ class GetEmployeeLeavesUseCase:
         try:
             self._logger.info(f"Retrieving leaves for employee {employee_id} in {month}/{year}")
             
-            emp_id = EmployeeId(employee_id)
-            employee_leaves = self._query_repository.get_by_month(emp_id, month, year)
+            employee_id = EmployeeId(employee_id)
+            employee_leaves = self._query_repository.get_by_month(employee_id, month, year)
             
             return [
                 EmployeeLeaveResponseDTO.from_entity(leave)
@@ -265,8 +265,8 @@ class GetEmployeeLeavesUseCase:
             if not self._balance_repository:
                 raise Exception("Balance repository not available")
             
-            emp_id = EmployeeId(employee_id)
-            leave_balances = self._balance_repository.get_leave_balance(emp_id)
+            employee_id = EmployeeId(employee_id)
+            leave_balances = self._balance_repository.get_leave_balance(employee_id)
             
             return EmployeeLeaveBalanceDTO(
                 employee_id=employee_id,
@@ -301,19 +301,19 @@ class GetEmployeeLeavesUseCase:
             if not self._analytics_repository:
                 raise Exception("Analytics repository not available")
             
-            emp_id = EmployeeId(employee_id) if employee_id else None
+            employee_id = EmployeeId(employee_id) if employee_id else None
             
             # Get basic statistics
-            stats = self._analytics_repository.get_leave_statistics(emp_id, manager_id, year)
+            stats = self._analytics_repository.get_leave_statistics(employee_id, manager_id, year)
             
             # Get leave type breakdown
             type_breakdown = self._analytics_repository.get_leave_type_breakdown(
-                emp_id, manager_id, year
+                employee_id, manager_id, year
             )
             
             # Get monthly trends
             monthly_trends = self._analytics_repository.get_monthly_leave_trends(
-                emp_id, manager_id, year
+                employee_id, manager_id, year
             )
             
             return EmployeeLeaveAnalyticsDTO(
@@ -354,8 +354,8 @@ class GetEmployeeLeavesUseCase:
             if not self._analytics_repository:
                 raise Exception("Analytics repository not available")
             
-            emp_id = EmployeeId(employee_id)
-            lwp_days = self._analytics_repository.calculate_lwp_for_employee(emp_id, month, year)
+            employee_id = EmployeeId(employee_id)
+            lwp_days = self._analytics_repository.calculate_lwp_for_employee(employee_id, month, year)
             
             return LWPCalculationDTO(
                 employee_id=employee_id,

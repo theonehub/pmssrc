@@ -68,13 +68,13 @@ class PublicHolidayController:
         if not self._initialized:
             logger.warning("PublicHolidayController initialized without all required use cases")
     
-    async def create_public_holiday(self, request: PublicHolidayCreateRequestDTO, emp_id: str, hostname: str) -> PublicHolidayResponseDTO:
+    async def create_public_holiday(self, request: PublicHolidayCreateRequestDTO, employee_id: str, hostname: str) -> PublicHolidayResponseDTO:
         """Create a new public holiday"""
         try:
             logger.info(f"Creating public holiday: {request.name}")
             
             if self.create_use_case:
-                return await self.create_use_case.execute(request, emp_id, hostname)
+                return await self.create_use_case.execute(request, employee_id, hostname)
             else:
                 # Fallback implementation for development/testing
                 return self._create_mock_response(request)
@@ -113,13 +113,13 @@ class PublicHolidayController:
             logger.error(f"Error getting public holiday: {e}")
             raise PublicHolidayBusinessRuleError(f"Failed to get holiday: {str(e)}")
     
-    async def update_public_holiday(self, holiday_id: str, request: PublicHolidayUpdateRequestDTO, emp_id: str, hostname: str) -> PublicHolidayResponseDTO:
+    async def update_public_holiday(self, holiday_id: str, request: PublicHolidayUpdateRequestDTO, employee_id: str, hostname: str) -> PublicHolidayResponseDTO:
         """Update an existing public holiday"""
         try:
             logger.info(f"Updating public holiday: {holiday_id}")
             
             if self.update_use_case:
-                return await self.update_use_case.execute(holiday_id, request, emp_id, hostname)
+                return await self.update_use_case.execute(holiday_id, request, employee_id, hostname)
             else:
                 # Fallback implementation for development/testing
                 return self._create_mock_updated_response(holiday_id, request)
@@ -128,13 +128,13 @@ class PublicHolidayController:
             logger.error(f"Error updating public holiday: {e}")
             raise PublicHolidayBusinessRuleError(f"Holiday update failed: {str(e)}")
     
-    async def delete_public_holiday(self, holiday_id: str, emp_id: str, hostname: str) -> None:
+    async def delete_public_holiday(self, holiday_id: str, employee_id: str, hostname: str) -> None:
         """Delete (deactivate) a public holiday"""
         try:
             logger.info(f"Deleting public holiday: {holiday_id}")
             
             if self.delete_use_case:
-                await self.delete_use_case.execute(holiday_id, emp_id, hostname)
+                await self.delete_use_case.execute(holiday_id, employee_id, hostname)
             else:
                 # Fallback implementation for development/testing
                 logger.info(f"Mock deletion of public holiday: {holiday_id}")

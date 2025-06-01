@@ -11,8 +11,8 @@ from pymongo.errors import DuplicateKeyError
 
 # Import domain entities
 try:
-    from domain.entities.public_holiday import PublicHoliday
-    from domain.value_objects.holiday_id import HolidayId
+    from app.domain.entities.public_holiday import PublicHoliday
+    from app.domain.value_objects.holiday_id import HolidayId
     from models.public_holiday import PublicHoliday as PublicHolidayModel
 except ImportError:
     # Fallback classes for migration compatibility
@@ -44,7 +44,7 @@ except ImportError:
 
 # Import application interfaces
 try:
-    from application.interfaces.repositories.public_holiday_repository import (
+    from app.application.interfaces.repositories.public_holiday_repository import (
         PublicHolidayCommandRepository, PublicHolidayQueryRepository,
         PublicHolidayAnalyticsRepository, PublicHolidayRepository
     )
@@ -66,7 +66,7 @@ except ImportError:
 
 # Import DTOs
 try:
-    from application.dto.public_holiday_dto import (
+    from app.application.dto.public_holiday_dto import (
         PublicHolidaySearchFiltersDTO, PublicHolidayStatisticsDTO
     )
 except ImportError:
@@ -332,7 +332,7 @@ class SolidPublicHolidayRepository(
             return False
     
     async def bulk_import(self, holiday_data_list: List[Dict[str, Any]], 
-                         emp_id: str, organization_id: str) -> int:
+                         employee_id: str, organization_id: str) -> int:
         """
         Import multiple holidays from processed data.
         
@@ -351,7 +351,7 @@ class SolidPublicHolidayRepository(
                     document = {
                         "name": holiday_data['name'],
                         "description": holiday_data.get('description', ''),
-                        "created_by": emp_id,
+                        "created_by": employee_id,
                         "created_at": datetime.now(),
                         "updated_at": datetime.now(),
                         "is_active": True,
@@ -702,13 +702,13 @@ class SolidPublicHolidayRepository(
             logger.error(f"Error getting all holidays (legacy): {e}")
             return []
     
-    async def create_holiday_legacy(self, holiday: PublicHolidayModel, emp_id: str, hostname: str) -> str:
+    async def create_holiday_legacy(self, holiday: PublicHolidayModel, employee_id: str, hostname: str) -> str:
         """
         Legacy compatibility for create_holiday() function.
         
         Args:
             holiday: PublicHoliday model
-            emp_id: Employee ID creating the holiday
+            employee_id: Employee ID creating the holiday
             hostname: Organization hostname
             
         Returns:
@@ -717,7 +717,7 @@ class SolidPublicHolidayRepository(
         try:
             # Convert model to entity
             holiday_data = holiday.dict(exclude={"id"})
-            holiday_data["created_by"] = emp_id
+            holiday_data["created_by"] = employee_id
             
             # Create entity
             holiday_entity = PublicHoliday(**holiday_data)
@@ -790,13 +790,13 @@ class SolidPublicHolidayRepository(
             return None
     
     async def update_holiday_legacy(self, holiday_id: str, holiday: PublicHolidayModel, 
-                                   emp_id: str, hostname: str) -> bool:
+                                   employee_id: str, hostname: str) -> bool:
         """
         Legacy compatibility for update_holiday() function.
         """
         try:
             update_data = holiday.dict(exclude={"id"})
-            update_data["created_by"] = emp_id
+            update_data["created_by"] = employee_id
             
             return await self.update(holiday_id, update_data, hostname)
             
@@ -805,14 +805,853 @@ class SolidPublicHolidayRepository(
             return False
     
     async def import_holidays_legacy(self, holiday_data_list: List[Dict[str, Any]], 
-                                    emp_id: str, hostname: str) -> int:
+                                    employee_id: str, hostname: str) -> int:
         """
         Legacy compatibility for import_holidays() function.
         """
-        return await self.bulk_import(holiday_data_list, emp_id, hostname)
+        return await self.bulk_import(holiday_data_list, employee_id, hostname)
     
     async def delete_holiday_legacy(self, holiday_id: str, hostname: str) -> bool:
         """
         Legacy compatibility for delete_holiday() function.
         """
-        return await self.delete(holiday_id, hostname) 
+        return await self.delete(holiday_id, hostname)
+
+    # Missing Abstract Methods Implementation
+    
+    # PublicHolidayCommandRepository Methods
+    async def save_batch(self, holidays: List[PublicHoliday]) -> Dict[str, bool]:
+        """Save multiple holidays in batch."""
+        try:
+            results = {}
+            for holiday in holidays:
+                try:
+                    saved_holiday = await self.save(holiday)
+                    holiday_id = getattr(holiday, 'holiday_id', str(getattr(saved_holiday, 'id', '')))
+                    results[holiday_id] = True
+                except Exception as e:
+                    holiday_id = getattr(holiday, 'holiday_id', 'unknown')
+                    logger.error(f"Error saving holiday {holiday_id}: {e}")
+                    results[holiday_id] = False
+            
+            return results
+        except Exception as e:
+            logger.error(f"Error in batch save: {e}")
+            return {}
+
+    # PublicHolidayQueryRepository Methods
+    async def get_all(self, include_inactive: bool = False) -> List[PublicHoliday]:
+        """Get all public holidays."""
+        try:
+            organization_id = "default"
+            filters = {} if include_inactive else {"is_active": True}
+            
+            documents = await self._execute_query(
+                filters=filters,
+                sort_by="date",
+                sort_order=1,
+                organization_id=organization_id
+            )
+            
+            return [self._document_to_entity(doc) for doc in documents]
+        except Exception as e:
+            logger.error(f"Error getting all holidays: {e}")
+            return []
+
+    async def get_by_category(self, category: str, include_inactive: bool = False) -> List[PublicHoliday]:
+        """Get public holidays by category."""
+        try:
+            organization_id = "default"
+            filters = {"category": category}
+            if not include_inactive:
+                filters["is_active"] = True
+            
+            documents = await self._execute_query(
+                filters=filters,
+                sort_by="date",
+                sort_order=1,
+                organization_id=organization_id
+            )
+            
+            return [self._document_to_entity(doc) for doc in documents]
+        except Exception as e:
+            logger.error(f"Error getting holidays by category {category}: {e}")
+            return []
+
+    async def search_holidays(
+        self,
+        search_term: Optional[str] = None,
+        category: Optional[str] = None,
+        observance: Optional[str] = None,
+        year: Optional[int] = None,
+        is_active: Optional[bool] = None
+    ) -> List[PublicHoliday]:
+        """Search holidays with multiple filters."""
+        try:
+            organization_id = "default"
+            filters = {}
+            
+            if search_term:
+                filters["$or"] = [
+                    {"name": {"$regex": search_term, "$options": "i"}},
+                    {"description": {"$regex": search_term, "$options": "i"}}
+                ]
+            
+            if category:
+                filters["category"] = category
+            
+            if observance:
+                filters["observance"] = observance
+            
+            if year:
+                filters["year"] = year
+            
+            if is_active is not None:
+                filters["is_active"] = is_active
+            
+            documents = await self._execute_query(
+                filters=filters,
+                sort_by="date",
+                sort_order=1,
+                organization_id=organization_id
+            )
+            
+            return [self._document_to_entity(doc) for doc in documents]
+        except Exception as e:
+            logger.error(f"Error searching holidays: {e}")
+            return []
+
+    async def exists_on_date(self, holiday_date: date) -> bool:
+        """Check if any active holiday exists on a specific date."""
+        try:
+            organization_id = "default"
+            
+            count = await self._count_documents(
+                filters={"date": holiday_date, "is_active": True},
+                organization_id=organization_id
+            )
+            
+            return count > 0
+        except Exception as e:
+            logger.error(f"Error checking holiday existence on {holiday_date}: {e}")
+            return False
+
+    async def get_conflicts(self, holiday: PublicHoliday) -> List[PublicHoliday]:
+        """Get holidays that conflict with the given holiday."""
+        try:
+            organization_id = "default"
+            holiday_date = getattr(holiday, 'date', None)
+            holiday_id = getattr(holiday, 'holiday_id', None)
+            
+            if not holiday_date:
+                return []
+            
+            filters = {"date": holiday_date, "is_active": True}
+            if holiday_id:
+                filters["holiday_id"] = {"$ne": holiday_id}
+            
+            documents = await self._execute_query(
+                filters=filters,
+                sort_by="created_at",
+                sort_order=1,
+                organization_id=organization_id
+            )
+            
+            return [self._document_to_entity(doc) for doc in documents]
+        except Exception as e:
+            logger.error(f"Error getting conflicts: {e}")
+            return []
+
+    async def count_active(self) -> int:
+        """Count active public holidays."""
+        try:
+            return await self._count_documents(
+                filters={"is_active": True},
+                organization_id="default"
+            )
+        except Exception as e:
+            logger.error(f"Error counting active holidays: {e}")
+            return 0
+
+    async def count_by_category(self, category: str) -> int:
+        """Count holidays by category."""
+        try:
+            return await self._count_documents(
+                filters={"category": category, "is_active": True},
+                organization_id="default"
+            )
+        except Exception as e:
+            logger.error(f"Error counting holidays by category {category}: {e}")
+            return 0
+
+    # PublicHolidayAnalyticsRepository Methods
+    async def get_category_distribution(self, year: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Get distribution of holidays by category."""
+        try:
+            organization_id = "default"
+            collection = self._get_collection(organization_id)
+            
+            match_filter = {"is_active": True}
+            if year:
+                match_filter["year"] = year
+            
+            pipeline = [
+                {"$match": match_filter},
+                {
+                    "$group": {
+                        "_id": "$category",
+                        "count": {"$sum": 1},
+                        "holidays": {"$push": {"name": "$name", "date": "$date"}}
+                    }
+                },
+                {"$sort": {"count": -1}}
+            ]
+            
+            results = await self._aggregate(pipeline, organization_id)
+            
+            return [
+                {
+                    "category": doc["_id"] or "uncategorized",
+                    "count": doc["count"],
+                    "holidays": doc["holidays"]
+                }
+                for doc in results
+            ]
+        except Exception as e:
+            logger.error(f"Error getting category distribution: {e}")
+            return []
+
+    async def get_monthly_distribution(self, year: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Get distribution of holidays by month."""
+        try:
+            organization_id = "default"
+            match_filter = {"is_active": True}
+            if year:
+                match_filter["year"] = year
+            
+            pipeline = [
+                {"$match": match_filter},
+                {
+                    "$group": {
+                        "_id": "$month",
+                        "count": {"$sum": 1},
+                        "holidays": {"$push": {"name": "$name", "date": "$date", "category": "$category"}}
+                    }
+                },
+                {"$sort": {"_id": 1}}
+            ]
+            
+            results = await self._aggregate(pipeline, organization_id)
+            
+            month_names = {
+                1: "January", 2: "February", 3: "March", 4: "April",
+                5: "May", 6: "June", 7: "July", 8: "August",
+                9: "September", 10: "October", 11: "November", 12: "December"
+            }
+            
+            return [
+                {
+                    "month": doc["_id"],
+                    "month_name": month_names.get(doc["_id"], "Unknown"),
+                    "count": doc["count"],
+                    "holidays": doc["holidays"]
+                }
+                for doc in results
+            ]
+        except Exception as e:
+            logger.error(f"Error getting monthly distribution: {e}")
+            return []
+
+    async def get_observance_analysis(self, year: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Get analysis of holiday observance types."""
+        try:
+            organization_id = "default"
+            match_filter = {"is_active": True}
+            if year:
+                match_filter["year"] = year
+            
+            pipeline = [
+                {"$match": match_filter},
+                {
+                    "$group": {
+                        "_id": "$observance",
+                        "count": {"$sum": 1},
+                        "holidays": {"$push": {"name": "$name", "date": "$date", "category": "$category"}}
+                    }
+                },
+                {"$sort": {"count": -1}}
+            ]
+            
+            results = await self._aggregate(pipeline, organization_id)
+            
+            return [
+                {
+                    "observance": doc["_id"] or "standard",
+                    "count": doc["count"],
+                    "holidays": doc["holidays"]
+                }
+                for doc in results
+            ]
+        except Exception as e:
+            logger.error(f"Error getting observance analysis: {e}")
+            return []
+
+    async def get_holiday_trends(self, years: int = 5) -> List[Dict[str, Any]]:
+        """Get holiday trends over multiple years."""
+        try:
+            organization_id = "default"
+            current_year = datetime.now().year
+            start_year = current_year - years + 1
+            
+            pipeline = [
+                {
+                    "$match": {
+                        "is_active": True,
+                        "year": {"$gte": start_year, "$lte": current_year}
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": {
+                            "year": "$year",
+                            "category": "$category"
+                        },
+                        "count": {"$sum": 1}
+                    }
+                },
+                {"$sort": {"_id.year": 1, "_id.category": 1}}
+            ]
+            
+            results = await self._aggregate(pipeline, organization_id)
+            
+            # Group by year
+            yearly_trends = {}
+            for doc in results:
+                year = doc["_id"]["year"]
+                category = doc["_id"]["category"] or "uncategorized"
+                count = doc["count"]
+                
+                if year not in yearly_trends:
+                    yearly_trends[year] = {"year": year, "total": 0, "by_category": {}}
+                
+                yearly_trends[year]["by_category"][category] = count
+                yearly_trends[year]["total"] += count
+            
+            return list(yearly_trends.values())
+        except Exception as e:
+            logger.error(f"Error getting holiday trends: {e}")
+            return []
+
+    async def get_weekend_analysis(self, year: Optional[int] = None) -> Dict[str, Any]:
+        """Get weekend analysis of holidays."""
+        try:
+            organization_id = "default"
+            collection = self._get_collection(organization_id)
+            
+            match_filter = {"is_active": True}
+            if year:
+                match_filter["year"] = year
+            
+            pipeline = [
+                {"$match": match_filter},
+                {
+                    "$addFields": {
+                        "day_of_week": {"$dayOfWeek": "$date"}  # 1=Sunday, 7=Saturday
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": None,
+                        "total_holidays": {"$sum": 1},
+                        "weekend_holidays": {
+                            "$sum": {"$cond": [{"$in": ["$day_of_week", [1, 7]]}, 1, 0]}
+                        },
+                        "weekday_holidays": {
+                            "$sum": {"$cond": [{"$not": {"$in": ["$day_of_week", [1, 7]]}}, 1, 0]}
+                        }
+                    }
+                }
+            ]
+            
+            results = await self._aggregate(pipeline, organization_id)
+            
+            if results:
+                stats = results[0]
+                total = stats.get("total_holidays", 0)
+                weekend = stats.get("weekend_holidays", 0)
+                weekday = stats.get("weekday_holidays", 0)
+                
+                return {
+                    "total_holidays": total,
+                    "weekend_holidays": weekend,
+                    "weekday_holidays": weekday,
+                    "weekend_percentage": round((weekend / total * 100) if total > 0 else 0, 2),
+                    "weekday_percentage": round((weekday / total * 100) if total > 0 else 0, 2)
+                }
+            
+            return {"total_holidays": 0, "weekend_holidays": 0, "weekday_holidays": 0, "weekend_percentage": 0, "weekday_percentage": 0}
+        except Exception as e:
+            logger.error(f"Error getting weekend analysis: {e}")
+            return {}
+
+    async def get_long_weekend_opportunities(self, year: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Get long weekend opportunities."""
+        try:
+            year = year or datetime.now().year
+            holidays = await self.get_by_year(year, "default")
+            
+            long_weekends = []
+            
+            for holiday in holidays:
+                holiday_date = getattr(holiday, 'date', None)
+                if not holiday_date:
+                    continue
+                
+                # Check if holiday is on Friday or Monday
+                day_of_week = holiday_date.weekday()  # 0=Monday, 6=Sunday
+                
+                if day_of_week == 4:  # Friday
+                    long_weekends.append({
+                        "type": "long_weekend",
+                        "holiday_name": getattr(holiday, 'name', ''),
+                        "holiday_date": holiday_date.isoformat(),
+                        "pattern": "Friday holiday + weekend",
+                        "total_days": 3,
+                        "recommendation": "Take Thursday off for 4-day weekend"
+                    })
+                elif day_of_week == 0:  # Monday
+                    long_weekends.append({
+                        "type": "long_weekend",
+                        "holiday_name": getattr(holiday, 'name', ''),
+                        "holiday_date": holiday_date.isoformat(),
+                        "pattern": "Weekend + Monday holiday",
+                        "total_days": 3,
+                        "recommendation": "Take Tuesday off for 4-day weekend"
+                    })
+            
+            return long_weekends
+        except Exception as e:
+            logger.error(f"Error getting long weekend opportunities: {e}")
+            return []
+
+    async def get_holiday_calendar_summary(self, year: int, month: Optional[int] = None) -> Dict[str, Any]:
+        """Get holiday calendar summary."""
+        try:
+            organization_id = "default"
+            filters = {"year": year, "is_active": True}
+            
+            if month:
+                filters["month"] = month
+            
+            holidays = await self._execute_query(
+                filters=filters,
+                sort_by="date",
+                sort_order=1,
+                organization_id=organization_id
+            )
+            
+            # Group by month if year-wide summary
+            if not month:
+                monthly_summary = {}
+                for holiday in holidays:
+                    h_month = holiday.get("month")
+                    if h_month not in monthly_summary:
+                        monthly_summary[h_month] = []
+                    monthly_summary[h_month].append({
+                        "name": holiday.get("name"),
+                        "date": holiday.get("date"),
+                        "category": holiday.get("category"),
+                        "day_of_week": holiday.get("date").strftime("%A") if holiday.get("date") else None
+                    })
+                
+                return {
+                    "year": year,
+                    "total_holidays": len(holidays),
+                    "monthly_breakdown": monthly_summary,
+                    "summary_type": "yearly"
+                }
+            else:
+                return {
+                    "year": year,
+                    "month": month,
+                    "total_holidays": len(holidays),
+                    "holidays": [
+                        {
+                            "name": holiday.get("name"),
+                            "date": holiday.get("date"),
+                            "category": holiday.get("category"),
+                            "day_of_week": holiday.get("date").strftime("%A") if holiday.get("date") else None
+                        }
+                        for holiday in holidays
+                    ],
+                    "summary_type": "monthly"
+                }
+        except Exception as e:
+            logger.error(f"Error getting calendar summary: {e}")
+            return {}
+
+    async def get_compliance_report(self) -> Dict[str, Any]:
+        """Get compliance report."""
+        try:
+            organization_id = "default"
+            
+            # Get all holidays
+            all_holidays = await self.get_all(include_inactive=True)
+            active_holidays = [h for h in all_holidays if getattr(h, 'is_active', True)]
+            
+            # Check for potential issues
+            issues = []
+            warnings = []
+            
+            # Check for holidays without proper categories
+            uncategorized = [h for h in active_holidays if not getattr(h, 'category', None)]
+            if uncategorized:
+                issues.append(f"{len(uncategorized)} holidays without category")
+            
+            # Check for duplicate dates
+            date_counts = {}
+            for holiday in active_holidays:
+                h_date = getattr(holiday, 'date', None)
+                if h_date:
+                    date_key = h_date.isoformat()
+                    date_counts[date_key] = date_counts.get(date_key, 0) + 1
+            
+            duplicates = {date: count for date, count in date_counts.items() if count > 1}
+            if duplicates:
+                warnings.append(f"Duplicate holidays on {len(duplicates)} dates")
+            
+            # Check for holidays without descriptions
+            no_description = [h for h in active_holidays if not getattr(h, 'description', None)]
+            if no_description:
+                warnings.append(f"{len(no_description)} holidays without description")
+            
+            compliance_score = 100
+            if issues:
+                compliance_score -= len(issues) * 20
+            if warnings:
+                compliance_score -= len(warnings) * 10
+            
+            compliance_score = max(0, compliance_score)
+            
+            return {
+                "total_holidays": len(all_holidays),
+                "active_holidays": len(active_holidays),
+                "inactive_holidays": len(all_holidays) - len(active_holidays),
+                "compliance_score": compliance_score,
+                "issues": issues,
+                "warnings": warnings,
+                "recommendations": [
+                    "Add categories to uncategorized holidays",
+                    "Resolve duplicate holiday dates",
+                    "Add descriptions to holidays without them"
+                ] if (issues or warnings) else ["All holidays are compliant"],
+                "checked_at": datetime.now().isoformat()
+            }
+        except Exception as e:
+            logger.error(f"Error getting compliance report: {e}")
+            return {}
+
+    async def get_usage_metrics(
+        self,
+        from_date: Optional[datetime] = None,
+        to_date: Optional[datetime] = None
+    ) -> List[Dict[str, Any]]:
+        """Get usage metrics."""
+        try:
+            # This is a basic implementation - in a real system, you'd track actual usage
+            organization_id = "default"
+            
+            if not from_date:
+                from_date = datetime.now().replace(month=1, day=1)  # Start of year
+            if not to_date:
+                to_date = datetime.now()
+            
+            from_date_only = from_date.date()
+            to_date_only = to_date.date()
+            
+            holidays_in_period = await self.get_by_date_range(from_date_only, to_date_only, "default")
+            
+            metrics = []
+            for holiday in holidays_in_period:
+                h_date = getattr(holiday, 'date', None)
+                if h_date and from_date_only <= h_date <= to_date_only:
+                    # Simulate usage metrics (in real system, this would come from actual usage data)
+                    metrics.append({
+                        "holiday_id": getattr(holiday, 'holiday_id', ''),
+                        "holiday_name": getattr(holiday, 'name', ''),
+                        "date": h_date.isoformat(),
+                        "category": getattr(holiday, 'category', 'general'),
+                        "views": 0,  # Would track actual views
+                        "mentions": 0,  # Would track mentions in other systems
+                        "calendar_exports": 0,  # Would track export usage
+                        "last_accessed": None  # Would track last access
+                    })
+            
+            return metrics
+        except Exception as e:
+            logger.error(f"Error getting usage metrics: {e}")
+            return []
+
+    # PublicHolidayCalendarRepository Methods
+    async def generate_yearly_calendar(
+        self,
+        year: int,
+        include_weekends: bool = True,
+        include_optional: bool = True
+    ) -> Dict[str, Any]:
+        """Generate yearly calendar."""
+        try:
+            holidays = await self.get_by_year(year, "default")
+            
+            # Filter optional holidays if requested
+            if not include_optional:
+                holidays = [h for h in holidays if getattr(h, 'is_optional', False) == False]
+            
+            monthly_calendar = {}
+            
+            for month in range(1, 13):
+                month_holidays = [h for h in holidays if getattr(h, 'date', None) and getattr(h, 'date').month == month]
+                
+                monthly_calendar[month] = {
+                    "month": month,
+                    "month_name": ["", "January", "February", "March", "April", "May", "June",
+                                  "July", "August", "September", "October", "November", "December"][month],
+                    "holiday_count": len(month_holidays),
+                    "holidays": [
+                        {
+                            "name": getattr(h, 'name', ''),
+                            "date": getattr(h, 'date').isoformat() if getattr(h, 'date') else None,
+                            "category": getattr(h, 'category', ''),
+                            "is_optional": getattr(h, 'is_optional', False)
+                        }
+                        for h in month_holidays
+                    ]
+                }
+            
+            return {
+                "year": year,
+                "total_holidays": len(holidays),
+                "include_weekends": include_weekends,
+                "include_optional": include_optional,
+                "monthly_calendar": monthly_calendar,
+                "generated_at": datetime.now().isoformat()
+            }
+        except Exception as e:
+            logger.error(f"Error generating yearly calendar: {e}")
+            return {}
+
+    async def generate_monthly_calendar(
+        self,
+        year: int,
+        month: int,
+        include_weekends: bool = True,
+        include_optional: bool = True
+    ) -> Dict[str, Any]:
+        """Generate monthly calendar."""
+        try:
+            holidays = await self.get_by_month(month, year, "default")
+            
+            # Filter optional holidays if requested
+            if not include_optional:
+                holidays = [h for h in holidays if getattr(h, 'is_optional', False) == False]
+            
+            calendar_data = {
+                "year": year,
+                "month": month,
+                "month_name": ["", "January", "February", "March", "April", "May", "June",
+                              "July", "August", "September", "October", "November", "December"][month],
+                "holiday_count": len(holidays),
+                "include_weekends": include_weekends,
+                "include_optional": include_optional,
+                "holidays": [
+                    {
+                        "name": getattr(h, 'name', ''),
+                        "date": getattr(h, 'date').isoformat() if getattr(h, 'date') else None,
+                        "day": getattr(h, 'date').day if getattr(h, 'date') else None,
+                        "day_of_week": getattr(h, 'date').strftime("%A") if getattr(h, 'date') else None,
+                        "category": getattr(h, 'category', ''),
+                        "description": getattr(h, 'description', ''),
+                        "is_optional": getattr(h, 'is_optional', False)
+                    }
+                    for h in holidays
+                ],
+                "generated_at": datetime.now().isoformat()
+            }
+            
+            return calendar_data
+        except Exception as e:
+            logger.error(f"Error generating monthly calendar: {e}")
+            return {}
+
+    async def get_working_days_count(
+        self,
+        start_date: date,
+        end_date: date,
+        exclude_weekends: bool = True
+    ) -> int:
+        """Get working days count between dates."""
+        try:
+            from datetime import timedelta
+            
+            # Get holidays in the date range
+            holidays = await self.get_by_date_range(start_date, end_date, "default")
+            holiday_dates = {getattr(h, 'date') for h in holidays if getattr(h, 'date')}
+            
+            working_days = 0
+            current_date = start_date
+            
+            while current_date <= end_date:
+                # Skip weekends if requested
+                if exclude_weekends and current_date.weekday() >= 5:  # Saturday=5, Sunday=6
+                    current_date += timedelta(days=1)
+                    continue
+                
+                # Skip holidays
+                if current_date not in holiday_dates:
+                    working_days += 1
+                
+                current_date += timedelta(days=1)
+            
+            return working_days
+        except Exception as e:
+            logger.error(f"Error counting working days: {e}")
+            return 0
+
+    async def get_next_working_day(
+        self,
+        from_date: date,
+        exclude_weekends: bool = True
+    ) -> date:
+        """Get next working day from given date."""
+        try:
+            from datetime import timedelta
+            
+            current_date = from_date + timedelta(days=1)
+            
+            # Get holidays for the next month to check against
+            end_check_date = current_date + timedelta(days=60)  # Check next 60 days
+            holidays = await self.get_by_date_range(current_date, end_check_date, "default")
+            holiday_dates = {getattr(h, 'date') for h in holidays if getattr(h, 'date')}
+            
+            while True:
+                # Skip weekends if requested
+                if exclude_weekends and current_date.weekday() >= 5:  # Saturday=5, Sunday=6
+                    current_date += timedelta(days=1)
+                    continue
+                
+                # Skip holidays
+                if current_date not in holiday_dates:
+                    return current_date
+                
+                current_date += timedelta(days=1)
+                
+                # Safety check to avoid infinite loop
+                if current_date > from_date + timedelta(days=365):
+                    break
+            
+            return current_date
+        except Exception as e:
+            logger.error(f"Error getting next working day: {e}")
+            return from_date
+
+    async def get_previous_working_day(
+        self,
+        from_date: date,
+        exclude_weekends: bool = True
+    ) -> date:
+        """Get previous working day from given date."""
+        try:
+            from datetime import timedelta
+            
+            current_date = from_date - timedelta(days=1)
+            
+            # Get holidays for the previous month to check against
+            start_check_date = current_date - timedelta(days=60)  # Check previous 60 days
+            holidays = await self.get_by_date_range(start_check_date, current_date, "default")
+            holiday_dates = {getattr(h, 'date') for h in holidays if getattr(h, 'date')}
+            
+            while True:
+                # Skip weekends if requested
+                if exclude_weekends and current_date.weekday() >= 5:  # Saturday=5, Sunday=6
+                    current_date -= timedelta(days=1)
+                    continue
+                
+                # Skip holidays
+                if current_date not in holiday_dates:
+                    return current_date
+                
+                current_date -= timedelta(days=1)
+                
+                # Safety check to avoid infinite loop
+                if current_date < from_date - timedelta(days=365):
+                    break
+            
+            return current_date
+        except Exception as e:
+            logger.error(f"Error getting previous working day: {e}")
+            return from_date
+
+    async def is_working_day(
+        self,
+        check_date: date,
+        exclude_weekends: bool = True
+    ) -> bool:
+        """Check if given date is a working day."""
+        try:
+            # Check weekend
+            if exclude_weekends and check_date.weekday() >= 5:  # Saturday=5, Sunday=6
+                return False
+            
+            # Check if it's a holiday
+            is_holiday = await self.exists_on_date(check_date)
+            return not is_holiday
+        except Exception as e:
+            logger.error(f"Error checking if working day: {e}")
+            return True  # Default to working day on error
+
+    async def get_holiday_bridges(self, year: int) -> List[Dict[str, Any]]:
+        """Get holiday bridges (opportunities for extended weekends)."""
+        try:
+            from datetime import timedelta
+            
+            holidays = await self.get_by_year(year, "default")
+            bridges = []
+            
+            for holiday in holidays:
+                h_date = getattr(holiday, 'date', None)
+                if not h_date:
+                    continue
+                
+                day_of_week = h_date.weekday()  # 0=Monday, 6=Sunday
+                
+                # Check for bridge opportunities
+                if day_of_week == 1:  # Tuesday
+                    # Monday is a bridge day
+                    bridge_date = h_date - timedelta(days=1)
+                    if not await self.exists_on_date(bridge_date):
+                        bridges.append({
+                            "holiday_name": getattr(holiday, 'name', ''),
+                            "holiday_date": h_date.isoformat(),
+                            "bridge_date": bridge_date.isoformat(),
+                            "bridge_type": "Monday bridge",
+                            "total_days_off": 4,  # Sat, Sun, Mon(bridge), Tue(holiday)
+                            "recommendation": "Take Monday off for 4-day weekend"
+                        })
+                
+                elif day_of_week == 3:  # Thursday
+                    # Friday is a bridge day
+                    bridge_date = h_date + timedelta(days=1)
+                    if not await self.exists_on_date(bridge_date):
+                        bridges.append({
+                            "holiday_name": getattr(holiday, 'name', ''),
+                            "holiday_date": h_date.isoformat(),
+                            "bridge_date": bridge_date.isoformat(),
+                            "bridge_type": "Friday bridge",
+                            "total_days_off": 4,  # Thu(holiday), Fri(bridge), Sat, Sun
+                            "recommendation": "Take Friday off for 4-day weekend"
+                        })
+            
+            return bridges
+        except Exception as e:
+            logger.error(f"Error getting holiday bridges: {e}")
+            return [] 

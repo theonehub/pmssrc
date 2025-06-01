@@ -18,7 +18,7 @@ from app.application.dto.payroll_dto import (
     BulkPayoutResponseDTO, PayslipResponseDTO, PayoutStatusEnum
 )
 from app.config.dependency_container import get_payout_controller
-from app.auth.auth import extract_emp_id, extract_hostname, role_checker
+from app.auth.auth import extract_employee_id, extract_hostname, role_checker
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ async def get_employee_payouts(
     year: Optional[int] = Query(None, ge=2020, le=2050, description="Filter by year"),
     month: Optional[int] = Query(None, ge=1, le=12, description="Filter by month"),
     controller: PayoutController = Depends(get_payout_controller),
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     role: str = Depends(role_checker(["admin", "superadmin", "manager", "user"])),
     hostname: str = Depends(extract_hostname),
 ) -> List[PayoutResponseDTO]:
@@ -95,7 +95,7 @@ async def get_employee_payouts(
         year: Filter by year (optional)
         month: Filter by month (optional)
         controller: Payout controller dependency
-        emp_id: Current user's employee ID
+        employee_id: Current user's employee ID
         role: User role
         hostname: Organization hostname
         
@@ -103,7 +103,7 @@ async def get_employee_payouts(
         List of employee payouts
     """
     # Check permissions - admin/manager can access any employee, users only their own
-    if role not in ["admin", "superadmin", "manager"] and emp_id != employee_id:
+    if role not in ["admin", "superadmin", "manager"] and employee_id != employee_id:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     return await controller.get_employee_payouts(employee_id, hostname, year, month)
@@ -113,7 +113,7 @@ async def get_my_payouts(
     year: Optional[int] = Query(None, ge=2020, le=2050, description="Filter by year"),
     month: Optional[int] = Query(None, ge=1, le=12, description="Filter by month"),
     controller: PayoutController = Depends(get_payout_controller),
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
 ) -> List[PayoutResponseDTO]:
     """
@@ -123,19 +123,19 @@ async def get_my_payouts(
         year: Filter by year (optional)
         month: Filter by month (optional)
         controller: Payout controller dependency
-        emp_id: Current user's employee ID
+        employee_id: Current user's employee ID
         hostname: Organization hostname
         
     Returns:
         List of current user's payouts
     """
-    return await controller.get_employee_payouts(emp_id, hostname, year, month)
+    return await controller.get_employee_payouts(employee_id, hostname, year, month)
 
 @router.get("/{payout_id}", response_model=PayoutResponseDTO)
 async def get_payout_by_id(
     payout_id: str,
     controller: PayoutController = Depends(get_payout_controller),
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     role: str = Depends(role_checker(["admin", "superadmin", "manager", "user"])),
     hostname: str = Depends(extract_hostname),
 ) -> PayoutResponseDTO:
@@ -145,7 +145,7 @@ async def get_payout_by_id(
     Args:
         payout_id: Payout ID
         controller: Payout controller dependency
-        emp_id: Current user's employee ID
+        employee_id: Current user's employee ID
         role: User role
         hostname: Organization hostname
         
@@ -156,7 +156,7 @@ async def get_payout_by_id(
     payout = await controller.get_payout_by_id(payout_id, hostname)
     
     # Check permissions - admin/manager can access any payout, users only their own
-    if role not in ["admin", "superadmin", "manager"] and emp_id != payout.employee_id:
+    if role not in ["admin", "superadmin", "manager"] and employee_id != payout.employee_id:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     return payout
@@ -189,7 +189,7 @@ async def update_payout_status(
     payout_id: str,
     status: PayoutStatusEnum = Body(..., description="New payout status"),
     controller: PayoutController = Depends(get_payout_controller),
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
     hostname: str = Depends(extract_hostname),
 ) -> Dict[str, Any]:
@@ -200,14 +200,14 @@ async def update_payout_status(
         payout_id: Payout ID
         status: New status
         controller: Payout controller dependency
-        emp_id: Current user's employee ID
+        employee_id: Current user's employee ID
         role: User role (admin, superadmin, manager)
         hostname: Organization hostname
         
     Returns:
         Status update response
     """
-    return await controller.update_payout_status(payout_id, status.value, emp_id, hostname)
+    return await controller.update_payout_status(payout_id, status.value, employee_id, hostname)
 
 # Bulk operations
 @router.post("/bulk-process", response_model=BulkPayoutResponseDTO)
@@ -286,7 +286,7 @@ async def get_monthly_payout_summary(
 async def get_payslip_data(
     payout_id: str,
     controller: PayoutController = Depends(get_payout_controller),
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     role: str = Depends(role_checker(["admin", "superadmin", "manager", "user"])),
     hostname: str = Depends(extract_hostname)
 ) -> PayslipResponseDTO:
@@ -296,7 +296,7 @@ async def get_payslip_data(
     Args:
         payout_id: Payout ID
         controller: Payout controller dependency
-        emp_id: Current user's employee ID
+        employee_id: Current user's employee ID
         role: User role
         hostname: Organization hostname
         
@@ -307,7 +307,7 @@ async def get_payslip_data(
     payout = await controller.get_payout_by_id(payout_id, hostname)
     
     # Check permissions - admin/manager can access any payslip, users only their own
-    if role not in ["admin", "superadmin", "manager"] and emp_id != payout.employee_id:
+    if role not in ["admin", "superadmin", "manager"] and employee_id != payout.employee_id:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     # Generate payslip request
@@ -319,7 +319,7 @@ async def generate_payslip(
     payout_id: str,
     request: PayslipGenerationRequestDTO,
     controller: PayoutController = Depends(get_payout_controller),
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     role: str = Depends(role_checker(["admin", "superadmin", "manager", "user"])),
     hostname: str = Depends(extract_hostname)
 ) -> PayslipResponseDTO:
@@ -330,7 +330,7 @@ async def generate_payslip(
         payout_id: Payout ID
         request: Payslip generation request
         controller: Payout controller dependency
-        emp_id: Current user's employee ID
+        employee_id: Current user's employee ID
         role: User role
         hostname: Organization hostname
         
@@ -341,7 +341,7 @@ async def generate_payslip(
     payout = await controller.get_payout_by_id(payout_id, hostname)
     
     # Check permissions - admin/manager can access any payslip, users only their own
-    if role not in ["admin", "superadmin", "manager"] and emp_id != payout.employee_id:
+    if role not in ["admin", "superadmin", "manager"] and employee_id != payout.employee_id:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     # Ensure payout_id in request matches path parameter
@@ -355,7 +355,7 @@ async def get_employee_payout_history(
     employee_id: str,
     year: int,
     controller: PayoutController = Depends(get_payout_controller),
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     role: str = Depends(role_checker(["admin", "superadmin", "manager", "user"])),
     hostname: str = Depends(extract_hostname)
 ) -> PayoutHistoryResponseDTO:
@@ -366,7 +366,7 @@ async def get_employee_payout_history(
         employee_id: Employee ID
         year: Year
         controller: Payout controller dependency
-        emp_id: Current user's employee ID
+        employee_id: Current user's employee ID
         role: User role
         hostname: Organization hostname
         
@@ -374,7 +374,7 @@ async def get_employee_payout_history(
         Employee payout history
     """
     # Check permissions - admin/manager can access any employee, users only their own
-    if role not in ["admin", "superadmin", "manager"] and emp_id != employee_id:
+    if role not in ["admin", "superadmin", "manager"] and employee_id != employee_id:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     
     return await controller.get_employee_payout_history(employee_id, year, hostname)
@@ -383,7 +383,7 @@ async def get_employee_payout_history(
 async def get_my_payout_history(
     year: int,
     controller: PayoutController = Depends(get_payout_controller),
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname)
 ) -> PayoutHistoryResponseDTO:
     """
@@ -392,13 +392,13 @@ async def get_my_payout_history(
     Args:
         year: Year
         controller: Payout controller dependency
-        emp_id: Current user's employee ID
+        employee_id: Current user's employee ID
         hostname: Organization hostname
         
     Returns:
         Current user's payout history
     """
-    return await controller.get_employee_payout_history(emp_id, year, hostname)
+    return await controller.get_employee_payout_history(employee_id, year, hostname)
 
 # Auto-generation endpoint
 @router.post("/auto-generate/{employee_id}", response_model=PayoutResponseDTO)

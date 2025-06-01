@@ -9,7 +9,7 @@ from typing import List, Optional
 import logging
 
 from api.controllers.project_attributes_controller import ProjectAttributesController
-from application.dto.project_attributes_dto import (
+from app.application.dto.project_attributes_dto import (
     ProjectAttributeCreateRequestDTO,
     ProjectAttributeUpdateRequestDTO,
     ProjectAttributeSearchFiltersDTO,
@@ -18,7 +18,7 @@ from application.dto.project_attributes_dto import (
     ProjectAttributeBusinessRuleError,
     ProjectAttributeNotFoundError
 )
-from auth.auth import extract_emp_id, extract_hostname, role_checker
+from auth.auth import extract_employee_id, extract_hostname, role_checker
 
 logger = logging.getLogger(__name__)
 
@@ -38,16 +38,16 @@ def get_project_attributes_controller() -> ProjectAttributesController:
 @router.post("/", response_model=ProjectAttributeResponseDTO)
 async def create_project_attribute(
     request: ProjectAttributeCreateRequestDTO,
-    current_emp_id: str = Depends(extract_emp_id),
+    current_employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["admin", "superadmin"])),
     controller: ProjectAttributesController = Depends(get_project_attributes_controller)
 ):
     """Create a new project attribute"""
     try:
-        logger.info(f"Creating project attribute: {request.key} by {current_emp_id}")
+        logger.info(f"Creating project attribute: {request.key} by {current_employee_id}")
         
-        response = await controller.create_project_attribute(request, current_emp_id, hostname)
+        response = await controller.create_project_attribute(request, current_employee_id, hostname)
         
         return response
         
@@ -119,17 +119,17 @@ async def get_project_attribute(
 async def update_project_attribute(
     request: ProjectAttributeUpdateRequestDTO,
     key: str = Path(..., description="Project attribute key"),
-    current_emp_id: str = Depends(extract_emp_id),
+    current_employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["admin", "superadmin"])),
     controller: ProjectAttributesController = Depends(get_project_attributes_controller)
 ):
     """Update an existing project attribute"""
     try:
-        logger.info(f"Updating project attribute: {key} by {current_emp_id}")
+        logger.info(f"Updating project attribute: {key} by {current_employee_id}")
         
         response = await controller.update_project_attribute(
-            key, request, current_emp_id, hostname
+            key, request, current_employee_id, hostname
         )
         
         return response
@@ -154,16 +154,16 @@ async def update_project_attribute(
 @router.delete("/{key}")
 async def delete_project_attribute(
     key: str = Path(..., description="Project attribute key"),
-    current_emp_id: str = Depends(extract_emp_id),
+    current_employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["admin", "superadmin"])),
     controller: ProjectAttributesController = Depends(get_project_attributes_controller)
 ):
     """Delete a project attribute"""
     try:
-        logger.info(f"Deleting project attribute: {key} by {current_emp_id}")
+        logger.info(f"Deleting project attribute: {key} by {current_employee_id}")
         
-        await controller.delete_project_attribute(key, current_emp_id, hostname)
+        await controller.delete_project_attribute(key, current_employee_id, hostname)
         
         return {"message": "Project attribute deleted successfully"}
         

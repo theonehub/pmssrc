@@ -14,11 +14,11 @@ def create_reimbursement(data: dict, hostname: str):
     collection = get_reimbursement_collection(hostname)
     return collection.insert_one(data)
 
-def get_reimbursement_requests(emp_id: str, hostname: str):
+def get_reimbursement_requests(employee_id: str, hostname: str):
     try:
         collection = get_reimbursement_collection(hostname)
         pipeline = [
-            {"$match": {"emp_id": emp_id}},
+            {"$match": {"employee_id": employee_id}},
             {"$lookup": {
                 "from": "reimbursement_types",
                 "localField": "reimbursement_type_id",
@@ -43,7 +43,7 @@ def get_reimbursement_requests(emp_id: str, hostname: str):
             {"$sort": {"created_at": -1}}
         ]
         results = list(collection.aggregate(pipeline))
-        logger.info(f"Found {len(results)} reimbursement requests for emp_id: {emp_id}")
+        logger.info(f"Found {len(results)} reimbursement requests for employee_id: {employee_id}")
         return results
     except Exception as e:
         logger.error(f"Error fetching reimbursement requests: {str(e)}")
@@ -82,7 +82,7 @@ def get_pending_reimbursements(hostname: str, manager_id: str = None):
             {"$match": {"status": "PENDING"}},
             {"$lookup": {
                 "from": "users",
-                "localField": "emp_id",
+                "localField": "employee_id",
                 "foreignField": "employee_id",
                 "as": "employee_info"
             }},
@@ -103,7 +103,7 @@ def get_pending_reimbursements(hostname: str, manager_id: str = None):
             {"$project": {
                 "_id": 0,
                 "id": {"$toString": "$_id"},
-                "emp_id": 1,
+                "employee_id": 1,
                 "employee_name": {"$concat": ["$employee_info.first_name", " ", "$employee_info.last_name"]},
                 "type_name": "$type_info.reimbursement_type_name",
                 "reimbursement_type_id": 1,
@@ -167,7 +167,7 @@ def get_approved_reimbursements(hostname: str, manager_id: str = None):
             {"$match": {"status": "APPROVED"}},
             {"$lookup": {
                 "from": "users",
-                "localField": "emp_id",
+                "localField": "employee_id",
                 "foreignField": "employee_id",
                 "as": "employee_info"
             }},
@@ -188,7 +188,7 @@ def get_approved_reimbursements(hostname: str, manager_id: str = None):
             {"$project": {
                 "_id": 0,
                 "id": {"$toString": "$_id"},
-                "emp_id": 1,
+                "employee_id": 1,
                 "employee_name": {"$concat": ["$employee_info.first_name", " ", "$employee_info.last_name"]},
                 "type_name": "$type_info.reimbursement_type_name",
                 "reimbursement_type_id": 1,

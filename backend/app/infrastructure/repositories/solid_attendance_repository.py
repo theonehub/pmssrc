@@ -13,10 +13,10 @@ from pymongo.errors import DuplicateKeyError
 
 # Import domain entities
 try:
-    from domain.entities.attendance import Attendance
-    from domain.value_objects.employee_id import EmployeeId
-    from domain.value_objects.attendance_status import AttendanceStatus, AttendanceStatusType
-    from domain.value_objects.working_hours import WorkingHours
+    from app.domain.entities.attendance import Attendance
+    from app.domain.value_objects.employee_id import EmployeeId
+    from app.domain.value_objects.attendance_status import AttendanceStatus, AttendanceStatusType
+    from app.domain.value_objects.working_hours import WorkingHours
 except ImportError:
     # Fallback classes for migration compatibility
     class Attendance:
@@ -52,7 +52,7 @@ except ImportError:
 
 # Import application interfaces
 try:
-    from application.interfaces.repositories.attendance_repository import (
+    from app.application.interfaces.repositories.attendance_repository import (
         AttendanceCommandRepository, AttendanceQueryRepository, 
         AttendanceAnalyticsRepository, AttendanceReportsRepository,
         AttendanceBulkOperationsRepository, AttendanceRepository
@@ -81,7 +81,7 @@ except ImportError:
 
 # Import DTOs
 try:
-    from application.dto.attendance_dto import (
+    from app.application.dto.attendance_dto import (
         AttendanceSearchFiltersDTO, AttendanceSummaryDTO, 
         AttendanceStatisticsDTO, DepartmentAttendanceDTO, AttendanceTrendDTO
     )
@@ -120,11 +120,6 @@ logger = logging.getLogger(__name__)
 
 class SolidAttendanceRepository(
     BaseRepository[Attendance],
-    AttendanceCommandRepository,
-    AttendanceQueryRepository,
-    AttendanceAnalyticsRepository,
-    AttendanceReportsRepository,
-    AttendanceBulkOperationsRepository,
     AttendanceRepository
 ):
     """
@@ -172,12 +167,12 @@ class SolidAttendanceRepository(
         if 'attendance_id' not in document and hasattr(attendance, 'attendance_id'):
             document['attendance_id'] = getattr(attendance, 'attendance_id')
         
-        if 'emp_id' not in document and hasattr(attendance, 'employee_id'):
-            emp_id = getattr(attendance, 'employee_id')
-            if hasattr(emp_id, 'value'):
-                document['emp_id'] = emp_id.value
+        if 'employee_id' not in document and hasattr(attendance, 'employee_id'):
+            employee_id = getattr(attendance, 'employee_id')
+            if hasattr(employee_id, 'value'):
+                document['employee_id'] = employee_id.value
             else:
-                document['emp_id'] = str(emp_id)
+                document['employee_id'] = str(employee_id)
         
         if 'date' not in document and hasattr(attendance, 'attendance_date'):
             document['date'] = getattr(attendance, 'attendance_date')
@@ -208,8 +203,8 @@ class SolidAttendanceRepository(
             del document['_id']
         
         # Map legacy fields to new structure
-        if 'emp_id' in document and 'employee_id' not in document:
-            document['employee_id'] = document['emp_id']
+        if 'employee_id' in document and 'employee_id' not in document:
+            document['employee_id'] = document['employee_id']
         
         if 'date' in document and 'attendance_date' not in document:
             document['attendance_date'] = document['date']
@@ -225,11 +220,11 @@ class SolidAttendanceRepository(
     async def _ensure_indexes(self, organization_id: str) -> None:
         """Ensure necessary indexes for optimal query performance."""
         try:
-            collection = self._get_collection(organization_id)
+            collection = await self._get_collection(organization_id)
             
             # Index for employee and date queries
             await collection.create_index([
-                ("emp_id", 1),
+                ("employee_id", 1),
                 ("date", -1)
             ])
             
@@ -246,7 +241,7 @@ class SolidAttendanceRepository(
             
             # Unique index for employee and date combination
             await collection.create_index([
-                ("emp_id", 1),
+                ("employee_id", 1),
                 ("date", 1)
             ], unique=True)
             
@@ -283,13 +278,13 @@ class SolidAttendanceRepository(
             
             # Check for existing record
             existing = await self.get_by_employee_and_date(
-                document['emp_id'], 
+                document['employee_id'], 
                 document['date'].date() if isinstance(document['date'], datetime) else document['date']
             )
             
             if existing:
                 # Update existing record
-                filters = {"emp_id": document['emp_id'], "date": document['date']}
+                filters = {"employee_id": document['employee_id'], "date": document['date']}
                 success = await self._update_document(
                     filters=filters,
                     update_data=document,
@@ -297,7 +292,7 @@ class SolidAttendanceRepository(
                 )
                 if success:
                     return await self.get_by_employee_and_date(
-                        document['emp_id'], 
+                        document['employee_id'], 
                         document['date'].date() if isinstance(document['date'], datetime) else document['date']
                     )
                 else:
@@ -348,7 +343,7 @@ class SolidAttendanceRepository(
     async def delete_by_employee_and_date(self, employee_id: str, attendance_date: date) -> bool:
         """Delete attendance record by employee and date."""
         try:
-            filters = {"emp_id": employee_id, "date": attendance_date}
+            filters = {"employee_id": employee_id, "date": attendance_date}
             return await self._delete_document(
                 filters=filters,
                 organization_id="default",
@@ -386,11 +381,11 @@ class SolidAttendanceRepository(
                 start_date = datetime.combine(attendance_date, datetime.min.time())
                 end_date = start_date + timedelta(days=1)
                 filters = {
-                    "emp_id": employee_id,
+                    "employee_id": employee_id,
                     "date": {"$gte": start_date, "$lt": end_date}
                 }
             else:
-                filters = {"emp_id": employee_id, "date": attendance_date}
+                filters = {"employee_id": employee_id, "date": attendance_date}
             
             documents = await self._execute_query(
                 filters=filters,
@@ -420,7 +415,7 @@ class SolidAttendanceRepository(
         Replaces: get_employee_attendance_by_month(), get_employee_attendance_by_year()
         """
         try:
-            filters = {"emp_id": employee_id}
+            filters = {"employee_id": employee_id}
             
             if start_date or end_date:
                 date_filter = {}
@@ -460,11 +455,11 @@ class SolidAttendanceRepository(
             }
             
             if employee_ids:
-                filters["emp_id"] = {"$in": employee_ids}
+                filters["employee_id"] = {"$in": employee_ids}
             
             documents = await self._execute_query(
                 filters=filters,
-                sort_by="emp_id",
+                sort_by="employee_id",
                 sort_order=1,
                 limit=1000,
                 organization_id="default"
@@ -494,7 +489,7 @@ class SolidAttendanceRepository(
             }
             
             if employee_ids:
-                filters["emp_id"] = {"$in": employee_ids}
+                filters["employee_id"] = {"$in": employee_ids}
             
             documents = await self._execute_query(
                 filters=filters,
@@ -517,7 +512,7 @@ class SolidAttendanceRepository(
             query_filters = {}
             
             if hasattr(filters, 'employee_ids') and filters.employee_ids:
-                query_filters["emp_id"] = {"$in": filters.employee_ids}
+                query_filters["employee_id"] = {"$in": filters.employee_ids}
             
             if hasattr(filters, 'start_date') and filters.start_date:
                 query_filters["date"] = {"$gte": datetime.combine(filters.start_date, datetime.min.time())}
@@ -557,7 +552,7 @@ class SolidAttendanceRepository(
             query_filters = {}
             
             if hasattr(filters, 'employee_ids') and filters.employee_ids:
-                query_filters["emp_id"] = {"$in": filters.employee_ids}
+                query_filters["employee_id"] = {"$in": filters.employee_ids}
             
             if hasattr(filters, 'start_date') and filters.start_date:
                 query_filters["date"] = {"$gte": datetime.combine(filters.start_date, datetime.min.time())}
@@ -614,7 +609,7 @@ class SolidAttendanceRepository(
             filters = {"is_regularized": True}
             
             if employee_ids:
-                filters["emp_id"] = {"$in": employee_ids}
+                filters["employee_id"] = {"$in": employee_ids}
             
             if start_date or end_date:
                 date_filter = {}
@@ -773,7 +768,7 @@ class SolidAttendanceRepository(
             late_count = sum(1 for a in attendances if getattr(a, 'status', '') == 'late')
             
             # Calculate unique employees
-            unique_employees = len(set(getattr(a, 'emp_id', '') for a in attendances))
+            unique_employees = len(set(getattr(a, 'employee_id', '') for a in attendances))
             
             return AttendanceStatisticsDTO(
                 start_date=start_date,
@@ -849,12 +844,12 @@ class SolidAttendanceRepository(
             return []
     
     # Legacy compatibility methods
-    async def create_attendance_legacy(self, emp_id: str, hostname: str, check_in: bool = True) -> str:
+    async def create_attendance_legacy(self, employee_id: str, hostname: str, check_in: bool = True) -> str:
         """
         Legacy compatibility for create_attendance() function.
         
         Args:
-            emp_id: Employee ID
+            employee_id: Employee ID
             hostname: Organization hostname
             check_in: Whether this is a check-in (True) or check-out (False)
             
@@ -868,7 +863,7 @@ class SolidAttendanceRepository(
             # Create simple attendance object
             attendance_data = {
                 "attendance_id": attendance_id,
-                "emp_id": emp_id,
+                "employee_id": employee_id,
                 "date": now,
                 "checkin_time": now if check_in else None,
                 "checkout_time": None if check_in else now,
@@ -887,7 +882,7 @@ class SolidAttendanceRepository(
             logger.error(f"Error creating attendance (legacy): {e}")
             raise
     
-    async def get_employee_attendance_by_month_legacy(self, emp_id: str, month: int, year: int, hostname: str) -> List[Dict[str, Any]]:
+    async def get_employee_attendance_by_month_legacy(self, employee_id: str, month: int, year: int, hostname: str) -> List[Dict[str, Any]]:
         """
         Legacy compatibility for get_employee_attendance_by_month() function.
         
@@ -900,7 +895,7 @@ class SolidAttendanceRepository(
             else:
                 end_date = date(year, month + 1, 1) - timedelta(days=1)
             
-            attendances = await self.get_by_employee(emp_id, start_date, end_date)
+            attendances = await self.get_by_employee(employee_id, start_date, end_date)
             
             # Convert to legacy format
             legacy_attendances = []
@@ -910,7 +905,7 @@ class SolidAttendanceRepository(
                 else:
                     legacy_attendances.append({
                         "attendance_id": getattr(attendance, 'attendance_id', ''),
-                        "emp_id": getattr(attendance, 'emp_id', emp_id),
+                        "employee_id": getattr(attendance, 'employee_id', employee_id),
                         "date": getattr(attendance, 'date', None),
                         "checkin_time": getattr(attendance, 'checkin_time', None),
                         "checkout_time": getattr(attendance, 'checkout_time', None),
@@ -1005,7 +1000,7 @@ class SolidAttendanceRepository(
         """Get absent employees for a date."""
         try:
             attendances = await self.get_by_date(date)
-            return [getattr(a, 'emp_id', '') for a in attendances if getattr(a, 'status', '') == 'absent']
+            return [getattr(a, 'employee_id', '') for a in attendances if getattr(a, 'status', '') == 'absent']
         except Exception as e:
             logger.error(f"Error getting absent employees: {e}")
             return []
@@ -1030,9 +1025,9 @@ class SolidAttendanceRepository(
         try:
             if employee_ids:
                 percentages = {}
-                for emp_id in employee_ids:
-                    summary = await self.get_employee_summary(emp_id, start_date, end_date)
-                    percentages[emp_id] = getattr(summary, 'attendance_percentage', 0.0)
+                for employee_id in employee_ids:
+                    summary = await self.get_employee_summary(employee_id, start_date, end_date)
+                    percentages[employee_id] = getattr(summary, 'attendance_percentage', 0.0)
                 return percentages
             return {}
         except Exception as e:
@@ -1192,4 +1187,33 @@ class SolidAttendanceRepository(
     ) -> int:
         """Auto mark holidays."""
         # Placeholder - requires holiday marking implementation
-        return 0 
+        return 0
+    
+    # ==================== FACTORY METHODS IMPLEMENTATION ====================
+    # These methods are required by the repository interfaces but are not used
+    # in the current dependency injection architecture. They return self since
+    # this repository implements all attendance repository interfaces.
+    
+    def create_command_repository(self) -> AttendanceCommandRepository:
+        """Create command repository instance."""
+        return self
+    
+    def create_query_repository(self) -> AttendanceQueryRepository:
+        """Create query repository instance."""
+        return self
+    
+    def create_analytics_repository(self) -> AttendanceAnalyticsRepository:
+        """Create analytics repository instance."""
+        return self
+    
+    def create_reports_repository(self) -> AttendanceReportsRepository:
+        """Create reports repository instance."""
+        return self
+    
+    def create_bulk_operations_repository(self) -> AttendanceBulkOperationsRepository:
+        """Create bulk operations repository instance."""
+        return self
+    
+    def create_composite_repository(self) -> AttendanceRepository:
+        """Create composite repository instance."""
+        return self 

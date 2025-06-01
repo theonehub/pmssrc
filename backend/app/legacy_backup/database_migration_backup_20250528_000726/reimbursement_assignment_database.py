@@ -19,12 +19,12 @@ def get_reimbursement_types_collection(company_id: str):
 
 def create_assignment(data: ReimbursementAssignmentCreate, hostname: str):
     collection = get_reimbursement_assignments_collection(hostname)
-    emp_id = data["emp_id"]
-    existing = collection.find_one({"emp_id": emp_id})
+    employee_id = data["employee_id"]
+    existing = collection.find_one({"employee_id": employee_id})
 
     if existing:
         collection.update_one(
-            {"emp_id": emp_id},
+            {"employee_id": employee_id},
             {
                 "$set": {
                     "reimbursement_type_ids": data["reimbursement_type_ids"],
@@ -34,7 +34,7 @@ def create_assignment(data: ReimbursementAssignmentCreate, hostname: str):
         )
     else:
         new_data = {
-            "emp_id": emp_id,
+            "employee_id": employee_id,
             "reimbursement_type_ids": data["reimbursement_type_ids"],
             "created_at": datetime.now(),
             "updated_at": datetime.now()
@@ -42,9 +42,9 @@ def create_assignment(data: ReimbursementAssignmentCreate, hostname: str):
         collection.insert_one(new_data)
     return True
 
-def get_user_assignments(emp_id: str, hostname: str):
+def get_user_assignments(employee_id: str, hostname: str):
     collection = get_reimbursement_assignments_collection(hostname)
-    assignments = collection.find_one({"emp_id": emp_id})
+    assignments = collection.find_one({"employee_id": employee_id})
     return assignments
 
 def get_all_assignments(skip: int = 0, limit: int = 10, search: str = None, hostname: str = None):
@@ -70,13 +70,13 @@ def get_all_assignments(skip: int = 0, limit: int = 10, search: str = None, host
     types = reimbursement_types_collection.find().to_list(length=None)
 
     type_lookup = {str(rt["_id"]): rt for rt in types}
-    assignment_lookup = {str(a["emp_id"]): a["reimbursement_type_ids"] for a in assignments}
+    assignment_lookup = {str(a["employee_id"]): a["reimbursement_type_ids"] for a in assignments}
 
     response = []
 
     for user in users:
-        emp_id = str(user["emp_id"])
-        assigned_ids = assignment_lookup.get(emp_id, [])
+        employee_id = str(user["employee_id"])
+        assigned_ids = assignment_lookup.get(employee_id, [])
         assigned_types = [
             {
                 "reimbursement_type_id": tid,
@@ -89,7 +89,7 @@ def get_all_assignments(skip: int = 0, limit: int = 10, search: str = None, host
         ]
 
         response.append({
-            "emp_id": emp_id,
+            "employee_id": employee_id,
             "name": user["name"],
             "email": user.get("email", ""),
             "assigned_reimbursements": assigned_types

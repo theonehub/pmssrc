@@ -21,7 +21,7 @@ def test_core_imports():
     try:
         # Test domain events
         print("✓ Testing domain events...")
-        from domain.events.taxation_events import (
+        from app.domain.events.taxation_events import (
             TaxationCalculated,
             TaxationUpdated,
             TaxRegimeChanged,
@@ -31,7 +31,7 @@ def test_core_imports():
         
         # Test DTOs
         print("✓ Testing DTOs...")
-        from application.dto.taxation_dto import (
+        from app.application.dto.taxation_dto import (
             TaxationCreateRequestDTO,
             TaxationUpdateRequestDTO,
             TaxationResponseDTO,
@@ -48,7 +48,7 @@ def test_core_imports():
         
         # Test repository interfaces
         print("✓ Testing repository interfaces...")
-        from application.interfaces.repositories.taxation_repository import (
+        from app.application.interfaces.repositories.taxation_repository import (
             TaxationCommandRepository,
             TaxationQueryRepository,
             TaxationCalculationRepository,
@@ -59,7 +59,7 @@ def test_core_imports():
         
         # Test use cases (without legacy dependencies)
         print("✓ Testing use cases...")
-        from application.use_cases.taxation.create_taxation_use_case import (
+        from app.application.use_cases.taxation.create_taxation_use_case import (
             CreateTaxationUseCase,
             BulkCreateTaxationUseCase
         )
@@ -81,7 +81,7 @@ def test_dto_creation():
     print("\nTesting DTO Creation and Validation...")
     
     try:
-        from application.dto.taxation_dto import (
+        from app.application.dto.taxation_dto import (
             TaxationCreateRequestDTO,
             SalaryComponentsDTO,
             DeductionComponentsDTO,
@@ -153,9 +153,9 @@ def test_domain_events():
     print("\nTesting Domain Events Creation...")
     
     try:
-        from domain.events.taxation_events import TaxationCalculated
-        from domain.value_objects.employee_id import EmployeeId
-        from domain.value_objects.money import Money
+        from app.domain.events.taxation_events import TaxationCalculated
+        from app.domain.value_objects.employee_id import EmployeeId
+        from app.domain.value_objects.money import Money
         
         # Create a taxation calculated event
         event = TaxationCalculated(
@@ -188,7 +188,7 @@ def test_repository_interfaces():
     print("\nTesting Repository Interface Definitions...")
     
     try:
-        from application.interfaces.repositories.taxation_repository import (
+        from app.application.interfaces.repositories.taxation_repository import (
             TaxationCommandRepository,
             TaxationQueryRepository,
             TaxationCalculationRepository,
@@ -241,7 +241,7 @@ async def test_use_case_instantiation():
     print("\nTesting Use Case Instantiation...")
     
     try:
-        from application.use_cases.taxation.create_taxation_use_case import CreateTaxationUseCase
+        from app.application.use_cases.taxation.create_taxation_use_case import CreateTaxationUseCase
         
         # Create mock repositories
         class MockTaxationQueryRepository:
@@ -250,7 +250,7 @@ async def test_use_case_instantiation():
         
         class MockTaxationCommandRepository:
             async def create_taxation(self, request, hostname):
-                from application.dto.taxation_dto import TaxationResponseDTO
+                from app.application.dto.taxation_dto import TaxationResponseDTO
                 return TaxationResponseDTO(
                     taxation_id="TAX001",
                     employee_id=request.employee_id,
@@ -302,7 +302,7 @@ def test_data_flow():
     print("\nTesting Complete Data Flow...")
     
     try:
-        from application.dto.taxation_dto import (
+        from app.application.dto.taxation_dto import (
             TaxationCreateRequestDTO,
             TaxationResponseDTO,
             SalaryComponentsDTO,

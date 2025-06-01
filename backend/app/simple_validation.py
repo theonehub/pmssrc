@@ -99,7 +99,7 @@ def test_data_conversion():
         
         user = TestUser(
             employee_id="TEST001",
-            emp_id="TEST001",
+            employee_id="TEST001",
             name="Test User",
             email="test@example.com",
             role="Employee"
@@ -107,14 +107,14 @@ def test_data_conversion():
         
         # Test entity to document conversion
         document = user_repo._entity_to_document(user)
-        assert document["emp_id"] == "TEST001"
+        assert document["employee_id"] == "TEST001"
         assert document["name"] == "Test User"
         assert document["email"] == "test@example.com"
         print("✓ Entity to document conversion works")
         
         # Test document to entity conversion
         entity = user_repo._document_to_entity(document)
-        assert entity.emp_id == "TEST001"
+        assert entity.employee_id == "TEST001"
         assert entity.name == "Test User"
         assert entity.email == "test@example.com"
         print("✓ Document to entity conversion works")

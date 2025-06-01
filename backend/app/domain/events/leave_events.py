@@ -8,11 +8,11 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 from abc import ABC
 
-from domain.value_objects.leave_type import LeaveType
-from domain.value_objects.leave_policy import LeavePolicy
-from domain.value_objects.employee_id import EmployeeId
-from domain.value_objects.date_range import DateRange
-from domain.events.employee_events import DomainEvent
+from app.domain.value_objects.leave_type import LeaveType
+from app.domain.value_objects.leave_policy import LeavePolicy
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.date_range import DateRange
+from app.domain.events.employee_events import DomainEvent
 
 
 # Company Leave Events

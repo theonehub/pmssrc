@@ -9,7 +9,7 @@ import logging
 from dataclasses import dataclass
 from typing import Dict, Any, Optional
 
-from domain.entities.taxation_models.perquisites import Perquisites
+from app.domain.entities.taxation_models.perquisites import Perquisites
 
 logger = logging.getLogger(__name__)
 

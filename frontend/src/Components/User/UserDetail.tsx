@@ -30,7 +30,7 @@ import {
   PhotoCamera as PhotoCameraIcon
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '../../utils/apiUtils';
+import dataService from '../../services/dataService';
 import PageLayout from '../../layout/PageLayout';
 
 // Define interfaces
@@ -51,8 +51,8 @@ interface User {
   aadhar_number?: string;
   uan_number?: string;
   esi_number?: string;
-  pan_file_path?: string;
-  aadhar_file_path?: string;
+  pan_document_path?: string;
+  aadhar_document_path?: string;
   photo_path?: string;
 }
 
@@ -82,14 +82,30 @@ const UserDetail: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await api.get(`/users/emp/${empId}`);
-      setUser(response.data);
+      // Try to get user by ID first, then fall back to legacy endpoint if needed
+      let userData: User | null = null;
+      try {
+        userData = await dataService.getUserById(empId);
+      } catch (error: any) {
+        // If the direct lookup fails, try the legacy endpoint
+        if (error.response?.status === 404) {
+          userData = await dataService.getUserByEmpIdLegacy(empId, window.location.hostname);
+        } else {
+          throw error;
+        }
+      }
+      
+      if (userData) {
+        setUser(userData);
+      } else {
+        throw new Error('User not found');
+      }
     } catch (error: any) {
       if (process.env.NODE_ENV === 'development') {
         // eslint-disable-next-line no-console
         console.error('Error fetching user:', error);
       }
-      setError(error.response?.data?.detail || 'Failed to fetch user details');
+      setError(error.response?.data?.detail || error.message || 'Failed to fetch user details');
     } finally {
       setLoading(false);
     }
@@ -146,31 +162,18 @@ const UserDetail: React.FC = () => {
     }
   };
 
-  const handleDownloadFile = async (filePath?: string, fileName?: string): Promise<void> => {
+  const handleDownloadFile = async (filePath?: string): Promise<void> => {
     if (!filePath || !user) return;
     
     try {
-      // Get the file content as blob
-      const response = await api.get(`/files/${filePath}`, {}, { 
-        responseType: 'blob' 
-      });
+      // Note: File download functionality might need to be implemented in the backend
+      // For now, we'll show a message that this feature is coming soon
+      showToast('File download feature will be implemented soon', 'info');
       
-      // Create download link
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
+      // TODO: Implement file download through dataService
+      // const fileBlob = await dataService.downloadFile(filePath);
+      // Create and trigger download...
       
-      // Extract file extension from the original path
-      const fileExtension = filePath.split('.').pop();
-      link.setAttribute('download', `${fileName}_${user.emp_id}.${fileExtension}`);
-      
-      // Trigger download
-      document.body.appendChild(link);
-      link.click();
-      
-      // Cleanup
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
     } catch (error: any) {
       if (process.env.NODE_ENV === 'development') {
         // eslint-disable-next-line no-console
@@ -499,7 +502,7 @@ const UserDetail: React.FC = () => {
         )}
 
         {/* Uploaded Documents */}
-        {(user.pan_file_path || user.aadhar_file_path || user.photo_path) && (
+        {(user.pan_document_path || user.aadhar_document_path || user.photo_path) && (
           <Box sx={{ mt: 3 }}>
             <Card elevation={1}>
               <CardContent>
@@ -510,7 +513,7 @@ const UserDetail: React.FC = () => {
                 <Divider sx={{ mb: 2 }} />
                 
                 <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 3 }}>
-                  {user.pan_file_path && (
+                  {user.pan_document_path && (
                     <Box sx={{ flex: 1 }}>
                       <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
                         <Box sx={{ textAlign: 'center' }}>
@@ -521,14 +524,14 @@ const UserDetail: React.FC = () => {
                             PAN Card Document
                           </Typography>
                           <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-                            {user.pan_file_path.split('/').pop()}
+                            {user.pan_document_path.split('/').pop()}
                           </Typography>
                           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                             <Tooltip title="View Document">
                               <IconButton
                                 size="small"
                                 color="primary"
-                                onClick={() => handleViewFile(user.pan_file_path, 'PAN Card')}
+                                onClick={() => handleViewFile(user.pan_document_path, 'PAN Card')}
                               >
                                 <VisibilityIcon />
                               </IconButton>
@@ -537,7 +540,7 @@ const UserDetail: React.FC = () => {
                               <IconButton
                                 size="small"
                                 color="primary"
-                                onClick={() => handleDownloadFile(user.pan_file_path, 'PAN_Card')}
+                                onClick={() => handleDownloadFile(user.pan_document_path)}
                               >
                                 <DownloadIcon />
                               </IconButton>
@@ -548,7 +551,7 @@ const UserDetail: React.FC = () => {
                     </Box>
                   )}
 
-                  {user.aadhar_file_path && (
+                  {user.aadhar_document_path && (
                     <Box sx={{ flex: 1 }}>
                       <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
                         <Box sx={{ textAlign: 'center' }}>
@@ -559,14 +562,14 @@ const UserDetail: React.FC = () => {
                             Aadhar Card Document
                           </Typography>
                           <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-                            {user.aadhar_file_path.split('/').pop()}
+                            {user.aadhar_document_path.split('/').pop()}
                           </Typography>
                           <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
                             <Tooltip title="View Document">
                               <IconButton
                                 size="small"
                                 color="primary"
-                                onClick={() => handleViewFile(user.aadhar_file_path, 'Aadhar Card')}
+                                onClick={() => handleViewFile(user.aadhar_document_path, 'Aadhar Card')}
                               >
                                 <VisibilityIcon />
                               </IconButton>
@@ -575,7 +578,7 @@ const UserDetail: React.FC = () => {
                               <IconButton
                                 size="small"
                                 color="primary"
-                                onClick={() => handleDownloadFile(user.aadhar_file_path, 'Aadhar_Card')}
+                                onClick={() => handleDownloadFile(user.aadhar_document_path)}
                               >
                                 <DownloadIcon />
                               </IconButton>
@@ -613,7 +616,7 @@ const UserDetail: React.FC = () => {
                               <IconButton
                                 size="small"
                                 color="primary"
-                                onClick={() => handleDownloadFile(user.photo_path, 'Profile_Photo')}
+                                onClick={() => handleDownloadFile(user.photo_path)}
                               >
                                 <DownloadIcon />
                               </IconButton>

@@ -10,7 +10,9 @@ from app.infrastructure.services.user_service_impl import UserServiceImpl
 from app.infrastructure.services.password_service import PasswordService
 from app.infrastructure.services.notification_service import EmailNotificationService, CompositeNotificationService
 from app.infrastructure.services.file_upload_service import LocalFileUploadService, FileUploadServiceFactory
-from app.infrastructure.database.database_connector import DatabaseConnector, MongoDBConnector
+from app.infrastructure.database.database_connector import DatabaseConnector
+from app.infrastructure.database.mongodb_connector import MongoDBConnector
+from app.config.mongodb_config import get_mongodb_connection_string, get_mongodb_client_options, mongodb_settings
 from app.utils.logger import get_logger
 # from api.controllers.user_controller import UserController  # Import when needed
 
@@ -73,10 +75,20 @@ class DependencyContainer:
     
     def _setup_infrastructure(self):
         """Setup infrastructure components."""
-        # Database connector
-        self._database_connector = MongoDBConnector(
-            connection_string=self.config["database"]["connection_string"]
-        )
+        # Database connector with proper MongoDB configuration
+        self._database_connector = MongoDBConnector()
+        
+        # Get MongoDB configuration from mongodb_config.py
+        connection_string = get_mongodb_connection_string()
+        client_options = get_mongodb_client_options()
+        
+        # Store connection parameters for lazy connection establishment
+        self._mongodb_connection_string = connection_string
+        self._mongodb_client_options = client_options
+        
+        # NOTE: Do NOT establish connection here! Let FastAPI's event loop handle it
+        logger.info(f"MongoDB connector configured with database: {mongodb_settings.database_name}")
+        logger.info("MongoDB connection will be established lazily when first needed")
         
         # Password service
         self._password_service = PasswordService()
@@ -105,10 +117,24 @@ class DependencyContainer:
     
     def _setup_repositories(self):
         """Setup repository implementations."""
-        # User repository
-        self._repositories['user'] = MongoDBUserRepository(self._database_connector)
-        
-        logger.info("Repositories initialized")
+        # Setup repositories with configured database connector
+        try:
+            # Create user repository with database connector and connection parameters
+            user_repository = MongoDBUserRepository(self._database_connector)
+            
+            # Pass the MongoDB configuration to the repository
+            user_repository.set_connection_config(
+                self._mongodb_connection_string,
+                self._mongodb_client_options
+            )
+            
+            self._repositories['user'] = user_repository
+            
+            logger.info("Repositories initialized with MongoDB configuration")
+            
+        except Exception as e:
+            logger.error(f"Error setting up repositories: {e}")
+            raise
     
     def _setup_services(self):
         """Setup service implementations."""
@@ -121,17 +147,20 @@ class DependencyContainer:
         )
         
         # Organization service
-        from app.infrastructure.services.organization_service_impl import OrganizationServiceImpl
-        from app.infrastructure.repositories.mongodb_organization_repository import MongoDBOrganizationRepository
-        from app.infrastructure.services.event_publisher_impl import EventPublisherImpl
-        
-        organization_repo = MongoDBOrganizationRepository(self._database_connector)
-        event_publisher = EventPublisherImpl()
-        
-        self._services['organization'] = OrganizationServiceImpl(
-            repository=organization_repo,
-            event_publisher=event_publisher
-        )
+        try:
+            from app.infrastructure.services.organization_service_impl import OrganizationServiceImpl
+            from app.infrastructure.repositories.mongodb_organization_repository import MongoDBOrganizationRepository
+            
+            organization_repository = MongoDBOrganizationRepository(self._database_connector)
+            self._services['organization'] = OrganizationServiceImpl(
+                organization_repository=organization_repository,
+                user_repository=self._repositories['user'],
+                notification_service=self._notification_service,
+                file_upload_service=self._file_upload_service
+            )
+        except Exception as e:
+            logger.warning(f"Organization service setup failed: {e}")
+            self._services['organization'] = None
         
         logger.info("Services initialized")
     
@@ -145,8 +174,6 @@ class DependencyContainer:
         """Get user repository instance."""
         self.initialize()
         return self._repositories['user']
-    
-
     
     # Service getters
     def get_user_service(self) -> UserServiceImpl:
@@ -345,6 +372,29 @@ class DependencyContainer:
             notification_service=self._notification_service
         )
     
+    # Private helper method to configure repository connection
+    def _configure_repository_connection(self, repository):
+        """
+        Configure MongoDB connection for any repository that uses DatabaseConnector.
+        
+        Args:
+            repository: Repository instance that may need connection configuration
+        """
+        # Check if repository has a set_connection_config method (like MongoDBUserRepository)
+        if hasattr(repository, 'set_connection_config'):
+            repository.set_connection_config(
+                self._mongodb_connection_string,
+                self._mongodb_client_options
+            )
+        # Check if repository has _db_connector (like BaseRepository-based repositories)
+        elif hasattr(repository, '_db_connector'):
+            # Store connection parameters on the database connector for later use
+            if hasattr(repository._db_connector, '_connection_string'):
+                repository._db_connector._connection_string = self._mongodb_connection_string
+                repository._db_connector._connection_params = self._mongodb_client_options
+        
+        logger.debug(f"Configured MongoDB connection for repository: {type(repository).__name__}")
+
     # Attendance use case methods
     def _get_attendance_checkin_use_case(self):
         """Get attendance check-in use case"""
@@ -354,44 +404,41 @@ class DependencyContainer:
             from app.infrastructure.services.event_publisher_impl import EventPublisherImpl
             
             attendance_repo = SolidAttendanceRepository(self._database_connector)
+            self._configure_repository_connection(attendance_repo)
             event_publisher = EventPublisherImpl()
             
             return CheckInUseCase(
                 attendance_command_repository=attendance_repo,
                 attendance_query_repository=attendance_repo,
                 employee_repository=self._repositories['user'],
-                event_publisher=event_publisher,
-                notification_service=self._notification_service
+                event_publisher=event_publisher
             )
-        except ImportError as e:
-            logger.warning(f"CheckInUseCase not available, returning None. Import error: {e}")
-            return None
         except Exception as e:
-            logger.error(f"Error creating CheckInUseCase: {e}")
-            return None
+            logger.error(f"Failed to create check-in use case: {e}")
+            raise
     
     def _get_attendance_checkout_use_case(self):
         """Get attendance check-out use case"""
         try:
-            from app.application.use_cases.attendance.check_in_use_case import CheckInUseCase
+            from app.application.use_cases.attendance.check_out_use_case import CheckOutUseCase
             from app.infrastructure.repositories.solid_attendance_repository import SolidAttendanceRepository
             from app.infrastructure.services.event_publisher_impl import EventPublisherImpl
             
             attendance_repo = SolidAttendanceRepository(self._database_connector)
+            self._configure_repository_connection(attendance_repo)
             event_publisher = EventPublisherImpl()
             
-            return CheckInUseCase(
+            return CheckOutUseCase(
                 attendance_command_repository=attendance_repo,
                 attendance_query_repository=attendance_repo,
-                employee_repository=self._repositories['user'],
-                event_publisher=event_publisher,
-                notification_service=self._notification_service
+                employee_repository=self._repositories['user'],  # Use proper user repository
+                event_publisher=event_publisher
             )
         except ImportError as e:
-            logger.warning(f"CheckInUseCase not available, returning None. Import error: {e}")
+            logger.warning(f"CheckOutUseCase not available: {e}")
             return None
         except Exception as e:
-            logger.error(f"Error creating CheckInUseCase: {e}")
+            logger.error(f"Failed to create check-out use case: {e}")
             return None
     
     def _get_attendance_query_use_case(self):
@@ -401,10 +448,11 @@ class DependencyContainer:
             from app.infrastructure.repositories.solid_attendance_repository import SolidAttendanceRepository
             
             attendance_repo = SolidAttendanceRepository(self._database_connector)
+            self._configure_repository_connection(attendance_repo)
             
             return GetAttendanceUseCase(
                 attendance_query_repository=attendance_repo,
-                employee_repository=self._repositories['user']
+                employee_repository=self._repositories.get('user')
             )
         except ImportError as e:
             logger.warning(f"GetAttendanceUseCase not available, returning None. Import error: {e}")
@@ -420,6 +468,7 @@ class DependencyContainer:
             from app.infrastructure.repositories.solid_attendance_repository import SolidAttendanceRepository
             
             attendance_repo = SolidAttendanceRepository(self._database_connector)
+            self._configure_repository_connection(attendance_repo)
             
             return GetAttendanceAnalyticsUseCase(
                 analytics_repository=attendance_repo,

@@ -294,7 +294,7 @@ class PayrollAuditEvent(DomainEvent):
     operation: str
     entity_type: str  # payout, payslip, schedule
     entity_id: str
-    user_id: str
+    employee_id: str
     ip_address: Optional[str] = None
     user_agent: Optional[str] = None
     additional_data: Optional[Dict[str, Any]] = None

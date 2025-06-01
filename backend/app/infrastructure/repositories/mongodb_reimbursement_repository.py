@@ -12,12 +12,12 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from pymongo import ASCENDING, DESCENDING
 from bson import ObjectId
 
-from domain.entities.reimbursement import Reimbursement, ReimbursementStatus, PaymentMethod
-from domain.entities.reimbursement_type_entity import ReimbursementTypeEntity
-from domain.value_objects.employee_id import EmployeeId
-from domain.value_objects.reimbursement_type import ReimbursementType
-from domain.value_objects.reimbursement_amount import ReimbursementAmount
-from application.interfaces.repositories.reimbursement_repository import (
+from app.domain.entities.reimbursement import Reimbursement, ReimbursementStatus, PaymentMethod
+from app.domain.entities.reimbursement_type_entity import ReimbursementTypeEntity
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.reimbursement_type import ReimbursementType
+from app.domain.value_objects.reimbursement_amount import ReimbursementAmount
+from app.application.interfaces.repositories.reimbursement_repository import (
     ReimbursementCommandRepository,
     ReimbursementQueryRepository,
     ReimbursementTypeCommandRepository,
@@ -26,7 +26,7 @@ from application.interfaces.repositories.reimbursement_repository import (
     ReimbursementReportRepository,
     ReimbursementRepository
 )
-from application.dto.reimbursement_dto import (
+from app.application.dto.reimbursement_dto import (
     ReimbursementSearchFiltersDTO,
     ReimbursementStatisticsDTO
 )
@@ -143,39 +143,39 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
         """Upload receipt for a reimbursement request"""
         return await self.update(reimbursement)
     
-    async def bulk_approve(self, reimbursement_ids: List[str], approved_by: str) -> List[Reimbursement]:
+    async def bulk_approve(
+        self,
+        request_ids: List[str],
+        approved_by: str,
+        approval_criteria: str
+    ) -> Dict[str, bool]:
         """Bulk approve multiple reimbursement requests"""
         try:
-            approved_reimbursements = []
+            results = {}
             
-            for request_id in reimbursement_ids:
-                reimbursement = await self.get_by_id(request_id)
-                if reimbursement and reimbursement.is_pending_approval():
-                    # This would need the actual approval logic from the use case
-                    # For now, we'll just update the status
-                    await self.reimbursements_collection.update_one(
-                        {"request_id": request_id},
-                        {
-                            "$set": {
-                                "status": "approved",
-                                "approval.approved_by": approved_by,
-                                "approval.approved_at": datetime.utcnow(),
-                                "updated_at": datetime.utcnow()
-                            }
-                        }
+            for request_id in request_ids:
+                try:
+                    # Use the approve_request method we implemented
+                    success = await self.approve_request(
+                        request_id=request_id,
+                        approved_by=approved_by,
+                        approval_level="manager",
+                        comments=f"Bulk approval: {approval_criteria}"
                     )
+                    results[request_id] = success
                     
-                    # Reload the updated reimbursement
-                    updated_reimbursement = await self.get_by_id(request_id)
-                    if updated_reimbursement:
-                        approved_reimbursements.append(updated_reimbursement)
+                except Exception as e:
+                    logger.error(f"Error approving request {request_id}: {e}")
+                    results[request_id] = False
             
-            logger.info(f"Bulk approved {len(approved_reimbursements)} reimbursements")
-            return approved_reimbursements
+            approved_count = sum(1 for success in results.values() if success)
+            logger.info(f"Bulk approved {approved_count}/{len(request_ids)} reimbursements")
+            return results
             
         except Exception as e:
             logger.error(f"Error in bulk approve: {e}")
-            raise
+            # Return False for all request IDs on error
+            return {request_id: False for request_id in request_ids}
     
     # ==================== REIMBURSEMENT QUERY OPERATIONS ====================
     
@@ -656,4 +656,1168 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
             
         except Exception as e:
             logger.error(f"Error converting document to reimbursement type: {e}")
-            return None 
+            return None
+
+    # Missing Abstract Methods Implementation
+    
+    # ReimbursementTypeCommandRepository Methods
+    async def activate(self, type_id: str, updated_by: str) -> bool:
+        """Activate a reimbursement type."""
+        try:
+            result = await self.reimbursement_types_collection.update_one(
+                {"type_id": type_id},
+                {
+                    "$set": {
+                        "is_active": True,
+                        "updated_by": updated_by,
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
+            
+            success = result.modified_count > 0
+            if success:
+                logger.info(f"Activated reimbursement type: {type_id}")
+            return success
+            
+        except Exception as e:
+            logger.error(f"Error activating reimbursement type {type_id}: {e}")
+            return False
+
+    async def deactivate(self, type_id: str, updated_by: str, reason: Optional[str] = None) -> bool:
+        """Deactivate a reimbursement type."""
+        try:
+            update_data = {
+                "is_active": False,
+                "updated_by": updated_by,
+                "updated_at": datetime.utcnow()
+            }
+            
+            if reason:
+                update_data["deactivation_reason"] = reason
+            
+            result = await self.reimbursement_types_collection.update_one(
+                {"type_id": type_id},
+                {"$set": update_data}
+            )
+            
+            success = result.modified_count > 0
+            if success:
+                logger.info(f"Deactivated reimbursement type: {type_id}")
+            return success
+            
+        except Exception as e:
+            logger.error(f"Error deactivating reimbursement type {type_id}: {e}")
+            return False
+
+    # ReimbursementTypeQueryRepository Methods
+    async def get_by_code(self, code: str) -> Optional[ReimbursementTypeEntity]:
+        """Get reimbursement type by code."""
+        try:
+            document = await self.reimbursement_types_collection.find_one(
+                {"reimbursement_type.code": code}
+            )
+            
+            if document:
+                return self._document_to_reimbursement_type(document)
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting reimbursement type by code {code}: {e}")
+            return None
+
+    async def get_active(self) -> List[ReimbursementTypeEntity]:
+        """Get all active reimbursement types."""
+        try:
+            cursor = self.reimbursement_types_collection.find({"is_active": True})
+            documents = await cursor.to_list(length=None)
+            
+            types = []
+            for doc in documents:
+                reimbursement_type = self._document_to_reimbursement_type(doc)
+                if reimbursement_type:
+                    types.append(reimbursement_type)
+            
+            return types
+            
+        except Exception as e:
+            logger.error(f"Error getting active reimbursement types: {e}")
+            return []
+
+    async def get_by_category(self, category: str) -> List[ReimbursementTypeEntity]:
+        """Get reimbursement types by category."""
+        try:
+            cursor = self.reimbursement_types_collection.find(
+                {"reimbursement_type.category": category}
+            )
+            documents = await cursor.to_list(length=None)
+            
+            types = []
+            for doc in documents:
+                reimbursement_type = self._document_to_reimbursement_type(doc)
+                if reimbursement_type:
+                    types.append(reimbursement_type)
+            
+            return types
+            
+        except Exception as e:
+            logger.error(f"Error getting reimbursement types by category {category}: {e}")
+            return []
+
+    async def exists_by_code(self, code: str, exclude_id: Optional[str] = None) -> bool:
+        """Check if reimbursement type exists by code."""
+        try:
+            query = {"reimbursement_type.code": code}
+            
+            if exclude_id:
+                query["type_id"] = {"$ne": exclude_id}
+            
+            count = await self.reimbursement_types_collection.count_documents(query)
+            return count > 0
+            
+        except Exception as e:
+            logger.error(f"Error checking reimbursement type code existence {code}: {e}")
+            return False
+
+    # ReimbursementCommandRepository Methods
+    async def delete(self, request_id: str) -> bool:
+        """Delete a reimbursement request (soft delete)."""
+        try:
+            result = await self.reimbursements_collection.update_one(
+                {"request_id": request_id},
+                {
+                    "$set": {
+                        "is_deleted": True,
+                        "deleted_at": datetime.utcnow(),
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
+            
+            success = result.modified_count > 0
+            if success:
+                logger.info(f"Soft deleted reimbursement: {request_id}")
+            return success
+            
+        except Exception as e:
+            logger.error(f"Error deleting reimbursement {request_id}: {e}")
+            return False
+
+    async def submit_request(self, request_id: str, submitted_by: str) -> bool:
+        """Submit a reimbursement request."""
+        try:
+            result = await self.reimbursements_collection.update_one(
+                {"request_id": request_id},
+                {
+                    "$set": {
+                        "status": "submitted",
+                        "submitted_by": submitted_by,
+                        "submitted_at": datetime.utcnow(),
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
+            
+            success = result.modified_count > 0
+            if success:
+                logger.info(f"Submitted reimbursement request: {request_id}")
+            return success
+            
+        except Exception as e:
+            logger.error(f"Error submitting reimbursement request {request_id}: {e}")
+            return False
+
+    async def approve_request(
+        self,
+        request_id: str,
+        approved_by: str,
+        approved_amount: Optional[Decimal] = None,
+        approval_level: str = "manager",
+        comments: Optional[str] = None
+    ) -> bool:
+        """Approve a reimbursement request."""
+        try:
+            update_data = {
+                "status": "approved",
+                "approval.approved_by": approved_by,
+                "approval.approved_at": datetime.utcnow(),
+                "approval.approval_level": approval_level,
+                "updated_at": datetime.utcnow()
+            }
+            
+            if approved_amount is not None:
+                update_data["approval.approved_amount"] = float(approved_amount)
+            
+            if comments:
+                update_data["approval.comments"] = comments
+            
+            result = await self.reimbursements_collection.update_one(
+                {"request_id": request_id},
+                {"$set": update_data}
+            )
+            
+            success = result.modified_count > 0
+            if success:
+                logger.info(f"Approved reimbursement request: {request_id}")
+            return success
+            
+        except Exception as e:
+            logger.error(f"Error approving reimbursement request {request_id}: {e}")
+            return False
+
+    async def reject_request(
+        self,
+        request_id: str,
+        rejected_by: str,
+        rejection_reason: str
+    ) -> bool:
+        """Reject a reimbursement request."""
+        try:
+            result = await self.reimbursements_collection.update_one(
+                {"request_id": request_id},
+                {
+                    "$set": {
+                        "status": "rejected",
+                        "rejection.rejected_by": rejected_by,
+                        "rejection.rejected_at": datetime.utcnow(),
+                        "rejection.reason": rejection_reason,
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
+            
+            success = result.modified_count > 0
+            if success:
+                logger.info(f"Rejected reimbursement request: {request_id}")
+            return success
+            
+        except Exception as e:
+            logger.error(f"Error rejecting reimbursement request {request_id}: {e}")
+            return False
+
+    async def cancel_request(
+        self,
+        request_id: str,
+        cancelled_by: str,
+        cancellation_reason: Optional[str] = None
+    ) -> bool:
+        """Cancel a reimbursement request."""
+        try:
+            update_data = {
+                "status": "cancelled",
+                "cancellation.cancelled_by": cancelled_by,
+                "cancellation.cancelled_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            }
+            
+            if cancellation_reason:
+                update_data["cancellation.reason"] = cancellation_reason
+            
+            result = await self.reimbursements_collection.update_one(
+                {"request_id": request_id},
+                {"$set": update_data}
+            )
+            
+            success = result.modified_count > 0
+            if success:
+                logger.info(f"Cancelled reimbursement request: {request_id}")
+            return success
+            
+        except Exception as e:
+            logger.error(f"Error cancelling reimbursement request {request_id}: {e}")
+            return False
+
+    async def process_payment(
+        self,
+        request_id: str,
+        paid_by: str,
+        payment_method: str,
+        payment_reference: Optional[str] = None,
+        bank_details: Optional[str] = None
+    ) -> bool:
+        """Process payment for a reimbursement request."""
+        try:
+            update_data = {
+                "status": "paid",
+                "payment.paid_by": paid_by,
+                "payment.paid_at": datetime.utcnow(),
+                "payment.method": payment_method,
+                "updated_at": datetime.utcnow()
+            }
+            
+            if payment_reference:
+                update_data["payment.reference"] = payment_reference
+            
+            if bank_details:
+                update_data["payment.bank_details"] = bank_details
+            
+            result = await self.reimbursements_collection.update_one(
+                {"request_id": request_id},
+                {"$set": update_data}
+            )
+            
+            success = result.modified_count > 0
+            if success:
+                logger.info(f"Processed payment for reimbursement: {request_id}")
+            return success
+            
+        except Exception as e:
+            logger.error(f"Error processing payment for reimbursement {request_id}: {e}")
+            return False
+
+    async def upload_receipt(
+        self,
+        request_id: str,
+        file_path: str,
+        file_name: str,
+        file_size: int,
+        uploaded_by: str
+    ) -> bool:
+        """Upload receipt for a reimbursement request."""
+        try:
+            receipt_data = {
+                "file_path": file_path,
+                "file_name": file_name,
+                "file_size": file_size,
+                "uploaded_by": uploaded_by,
+                "uploaded_at": datetime.utcnow()
+            }
+            
+            result = await self.reimbursements_collection.update_one(
+                {"request_id": request_id},
+                {
+                    "$push": {"receipts": receipt_data},
+                    "$set": {"updated_at": datetime.utcnow()}
+                }
+            )
+            
+            success = result.modified_count > 0
+            if success:
+                logger.info(f"Uploaded receipt for reimbursement: {request_id}")
+            return success
+            
+        except Exception as e:
+            logger.error(f"Error uploading receipt for reimbursement {request_id}: {e}")
+            return False
+
+    # ReimbursementQueryRepository Methods
+    async def get_approved(self) -> List[Reimbursement]:
+        """Get all approved reimbursements."""
+        try:
+            cursor = self.reimbursements_collection.find(
+                {"status": "approved"}
+            ).sort("approval.approved_at", DESCENDING)
+            
+            documents = await cursor.to_list(length=None)
+            
+            reimbursements = []
+            for doc in documents:
+                reimbursement = self._document_to_reimbursement(doc)
+                if reimbursement:
+                    reimbursements.append(reimbursement)
+            
+            return reimbursements
+            
+        except Exception as e:
+            logger.error(f"Error getting approved reimbursements: {e}")
+            return []
+
+    async def get_paid(self) -> List[Reimbursement]:
+        """Get all paid reimbursements."""
+        try:
+            cursor = self.reimbursements_collection.find(
+                {"status": "paid"}
+            ).sort("payment.paid_at", DESCENDING)
+            
+            documents = await cursor.to_list(length=None)
+            
+            reimbursements = []
+            for doc in documents:
+                reimbursement = self._document_to_reimbursement(doc)
+                if reimbursement:
+                    reimbursements.append(reimbursement)
+            
+            return reimbursements
+            
+        except Exception as e:
+            logger.error(f"Error getting paid reimbursements: {e}")
+            return []
+
+    async def get_by_reimbursement_type(self, type_id: str) -> List[Reimbursement]:
+        """Get reimbursements by type."""
+        try:
+            cursor = self.reimbursements_collection.find(
+                {"reimbursement_type.type_id": type_id}
+            ).sort("created_at", DESCENDING)
+            
+            documents = await cursor.to_list(length=None)
+            
+            reimbursements = []
+            for doc in documents:
+                reimbursement = self._document_to_reimbursement(doc)
+                if reimbursement:
+                    reimbursements.append(reimbursement)
+            
+            return reimbursements
+            
+        except Exception as e:
+            logger.error(f"Error getting reimbursements by type {type_id}: {e}")
+            return []
+
+    async def get_employee_reimbursements_by_period(
+        self,
+        employee_id: str,
+        start_date: datetime,
+        end_date: datetime,
+        reimbursement_type_id: Optional[str] = None
+    ) -> List[Reimbursement]:
+        """Get employee reimbursements for a specific period."""
+        try:
+            query = {
+                "employee_id": employee_id,
+                "created_at": {"$gte": start_date, "$lte": end_date}
+            }
+            
+            if reimbursement_type_id:
+                query["reimbursement_type.type_id"] = reimbursement_type_id
+            
+            cursor = self.reimbursements_collection.find(query).sort("created_at", DESCENDING)
+            documents = await cursor.to_list(length=None)
+            
+            reimbursements = []
+            for doc in documents:
+                reimbursement = self._document_to_reimbursement(doc)
+                if reimbursement:
+                    reimbursements.append(reimbursement)
+            
+            return reimbursements
+            
+        except Exception as e:
+            logger.error(f"Error getting employee reimbursements by period: {e}")
+            return []
+
+    # ReimbursementAnalyticsRepository Methods
+    async def get_employee_statistics(
+        self,
+        employee_id: str,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None
+    ) -> Dict[str, Any]:
+        """Get statistics for specific employee."""
+        try:
+            query = {"employee_id": employee_id}
+            
+            if start_date and end_date:
+                query["created_at"] = {"$gte": start_date, "$lte": end_date}
+            
+            pipeline = [
+                {"$match": query},
+                {
+                    "$group": {
+                        "_id": None,
+                        "total_requests": {"$sum": 1},
+                        "total_amount": {"$sum": "$amount.value"},
+                        "approved_requests": {
+                            "$sum": {"$cond": [{"$eq": ["$status", "approved"]}, 1, 0]}
+                        },
+                        "approved_amount": {
+                            "$sum": {"$cond": [{"$eq": ["$status", "approved"]}, "$amount.value", 0]}
+                        },
+                        "paid_amount": {
+                            "$sum": {"$cond": [{"$eq": ["$status", "paid"]}, "$amount.value", 0]}
+                        },
+                        "pending_amount": {
+                            "$sum": {"$cond": [{"$in": ["$status", ["submitted", "pending"]]}, "$amount.value", 0]}
+                        },
+                        "rejected_amount": {
+                            "$sum": {"$cond": [{"$eq": ["$status", "rejected"]}, "$amount.value", 0]}
+                        }
+                    }
+                }
+            ]
+            
+            cursor = self.reimbursements_collection.aggregate(pipeline)
+            results = await cursor.to_list(length=1)
+            
+            if results:
+                return results[0]
+            
+            return {
+                "total_requests": 0,
+                "total_amount": 0,
+                "approved_requests": 0,
+                "approved_amount": 0,
+                "paid_amount": 0,
+                "pending_amount": 0,
+                "rejected_amount": 0
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting employee statistics: {e}")
+            return {}
+
+    async def get_category_wise_spending(
+        self,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None
+    ) -> Dict[str, Decimal]:
+        """Get spending breakdown by category."""
+        try:
+            query = {"status": {"$in": ["approved", "paid"]}}
+            
+            if start_date and end_date:
+                query["created_at"] = {"$gte": start_date, "$lte": end_date}
+            
+            pipeline = [
+                {"$match": query},
+                {
+                    "$group": {
+                        "_id": "$reimbursement_type.category",
+                        "total_amount": {"$sum": "$amount.value"}
+                    }
+                }
+            ]
+            
+            cursor = self.reimbursements_collection.aggregate(pipeline)
+            results = await cursor.to_list(length=None)
+            
+            category_spending = {}
+            for result in results:
+                category = result["_id"] or "uncategorized"
+                amount = Decimal(str(result["total_amount"]))
+                category_spending[category] = amount
+            
+            return category_spending
+            
+        except Exception as e:
+            logger.error(f"Error getting category wise spending: {e}")
+            return {}
+
+    async def get_monthly_trends(self, months: int = 12) -> Dict[str, Dict[str, Any]]:
+        """Get monthly spending trends."""
+        try:
+            end_date = datetime.utcnow()
+            start_date = end_date.replace(month=end_date.month-months) if end_date.month > months else end_date.replace(year=end_date.year-1, month=12+end_date.month-months)
+            
+            pipeline = [
+                {
+                    "$match": {
+                        "created_at": {"$gte": start_date, "$lte": end_date}
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": {
+                            "year": {"$year": "$created_at"},
+                            "month": {"$month": "$created_at"}
+                        },
+                        "total_amount": {"$sum": "$amount.value"},
+                        "total_requests": {"$sum": 1},
+                        "approved_amount": {
+                            "$sum": {"$cond": [{"$eq": ["$status", "approved"]}, "$amount.value", 0]}
+                        },
+                        "approved_requests": {
+                            "$sum": {"$cond": [{"$eq": ["$status", "approved"]}, 1, 0]}
+                        }
+                    }
+                },
+                {"$sort": {"_id.year": 1, "_id.month": 1}}
+            ]
+            
+            cursor = self.reimbursements_collection.aggregate(pipeline)
+            results = await cursor.to_list(length=None)
+            
+            trends = {}
+            for result in results:
+                month_key = f"{result['_id']['year']}-{result['_id']['month']:02d}"
+                trends[month_key] = {
+                    "total_amount": result["total_amount"],
+                    "total_requests": result["total_requests"],
+                    "approved_amount": result["approved_amount"],
+                    "approved_requests": result["approved_requests"]
+                }
+            
+            return trends
+            
+        except Exception as e:
+            logger.error(f"Error getting monthly trends: {e}")
+            return {}
+
+    async def get_approval_metrics(
+        self,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None
+    ) -> Dict[str, Any]:
+        """Get approval metrics and turnaround times."""
+        try:
+            query = {}
+            
+            if start_date and end_date:
+                query["created_at"] = {"$gte": start_date, "$lte": end_date}
+            
+            pipeline = [
+                {"$match": query},
+                {
+                    "$project": {
+                        "status": 1,
+                        "created_at": 1,
+                        "approved_at": "$approval.approved_at",
+                        "rejected_at": "$rejection.rejected_at",
+                        "turnaround_time": {
+                            "$cond": [
+                                {"$ne": ["$approval.approved_at", None]},
+                                {"$subtract": ["$approval.approved_at", "$created_at"]},
+                                {"$cond": [
+                                    {"$ne": ["$rejection.rejected_at", None]},
+                                    {"$subtract": ["$rejection.rejected_at", "$created_at"]},
+                                    None
+                                ]}
+                            ]
+                        }
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": None,
+                        "total_requests": {"$sum": 1},
+                        "approved_requests": {
+                            "$sum": {"$cond": [{"$eq": ["$status", "approved"]}, 1, 0]}
+                        },
+                        "rejected_requests": {
+                            "$sum": {"$cond": [{"$eq": ["$status", "rejected"]}, 1, 0]}
+                        },
+                        "avg_turnaround_ms": {"$avg": "$turnaround_time"}
+                    }
+                }
+            ]
+            
+            cursor = self.reimbursements_collection.aggregate(pipeline)
+            results = await cursor.to_list(length=1)
+            
+            if results:
+                stats = results[0]
+                avg_turnaround_ms = stats.get("avg_turnaround_ms", 0)
+                avg_turnaround_days = (avg_turnaround_ms / (1000 * 60 * 60 * 24)) if avg_turnaround_ms else 0
+                
+                return {
+                    "total_requests": stats.get("total_requests", 0),
+                    "approved_requests": stats.get("approved_requests", 0),
+                    "rejected_requests": stats.get("rejected_requests", 0),
+                    "approval_rate": (stats.get("approved_requests", 0) / max(stats.get("total_requests", 1), 1)) * 100,
+                    "rejection_rate": (stats.get("rejected_requests", 0) / max(stats.get("total_requests", 1), 1)) * 100,
+                    "average_turnaround_days": round(avg_turnaround_days, 2)
+                }
+            
+            return {
+                "total_requests": 0,
+                "approved_requests": 0,
+                "rejected_requests": 0,
+                "approval_rate": 0,
+                "rejection_rate": 0,
+                "average_turnaround_days": 0
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting approval metrics: {e}")
+            return {}
+
+    async def get_top_spenders(
+        self,
+        limit: int = 10,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None
+    ) -> List[Dict[str, Any]]:
+        """Get top spending employees."""
+        try:
+            query = {"status": {"$in": ["approved", "paid"]}}
+            
+            if start_date and end_date:
+                query["created_at"] = {"$gte": start_date, "$lte": end_date}
+            
+            pipeline = [
+                {"$match": query},
+                {
+                    "$group": {
+                        "_id": "$employee_id",
+                        "total_amount": {"$sum": "$amount.value"},
+                        "total_requests": {"$sum": 1}
+                    }
+                },
+                {"$sort": {"total_amount": -1}},
+                {"$limit": limit}
+            ]
+            
+            cursor = self.reimbursements_collection.aggregate(pipeline)
+            results = await cursor.to_list(length=limit)
+            
+            top_spenders = []
+            for result in results:
+                top_spenders.append({
+                    "employee_id": result["_id"],
+                    "total_amount": result["total_amount"],
+                    "total_requests": result["total_requests"]
+                })
+            
+            return top_spenders
+            
+        except Exception as e:
+            logger.error(f"Error getting top spenders: {e}")
+            return []
+
+    async def get_compliance_report(
+        self,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None
+    ) -> Dict[str, Any]:
+        """Get compliance report with policy violations."""
+        try:
+            query = {}
+            
+            if start_date and end_date:
+                query["created_at"] = {"$gte": start_date, "$lte": end_date}
+            
+            pipeline = [
+                {"$match": query},
+                {
+                    "$group": {
+                        "_id": None,
+                        "total_requests": {"$sum": 1},
+                        "requests_without_receipts": {
+                            "$sum": {"$cond": [{"$eq": [{"$size": {"$ifNull": ["$receipts", []]}}, 0]}, 1, 0]}
+                        },
+                        "high_value_requests": {
+                            "$sum": {"$cond": [{"$gt": ["$amount.value", 10000]}, 1, 0]}
+                        },
+                        "requests_over_limit": {
+                            "$sum": {"$cond": [{"$gt": ["$amount.value", 50000]}, 1, 0]}
+                        }
+                    }
+                }
+            ]
+            
+            cursor = self.reimbursements_collection.aggregate(pipeline)
+            results = await cursor.to_list(length=1)
+            
+            if results:
+                stats = results[0]
+                total = stats.get("total_requests", 1)
+                compliance_rate = ((total - stats.get("requests_without_receipts", 0) - stats.get("requests_over_limit", 0)) / total) * 100
+                
+                return {
+                    "total_requests": total,
+                    "requests_without_receipts": stats.get("requests_without_receipts", 0),
+                    "high_value_requests": stats.get("high_value_requests", 0),
+                    "requests_over_limit": stats.get("requests_over_limit", 0),
+                    "compliance_rate": round(compliance_rate, 2)
+                }
+            
+            return {
+                "total_requests": 0,
+                "requests_without_receipts": 0,
+                "high_value_requests": 0,
+                "requests_over_limit": 0,
+                "compliance_rate": 100
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting compliance report: {e}")
+            return {}
+
+    async def get_payment_analytics(
+        self,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None
+    ) -> Dict[str, Any]:
+        """Get payment method analytics."""
+        try:
+            query = {"status": "paid"}
+            
+            if start_date and end_date:
+                query["payment.paid_at"] = {"$gte": start_date, "$lte": end_date}
+            
+            pipeline = [
+                {"$match": query},
+                {
+                    "$group": {
+                        "_id": "$payment.method",
+                        "count": {"$sum": 1},
+                        "total_amount": {"$sum": "$amount.value"}
+                    }
+                }
+            ]
+            
+            cursor = self.reimbursements_collection.aggregate(pipeline)
+            results = await cursor.to_list(length=None)
+            
+            payment_methods = {}
+            total_paid_requests = 0
+            total_paid_amount = 0
+            
+            for result in results:
+                method = result["_id"] or "unknown"
+                count = result["count"]
+                amount = result["total_amount"]
+                
+                payment_methods[method] = {
+                    "count": count,
+                    "total_amount": amount
+                }
+                
+                total_paid_requests += count
+                total_paid_amount += amount
+            
+            return {
+                "payment_methods": payment_methods,
+                "total_paid_requests": total_paid_requests,
+                "total_paid_amount": total_paid_amount
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting payment analytics: {e}")
+            return {}
+
+    # ReimbursementReportRepository Methods
+    async def generate_employee_report(
+        self,
+        employee_id: str,
+        start_date: datetime,
+        end_date: datetime
+    ) -> Dict[str, Any]:
+        """Generate detailed employee reimbursement report."""
+        try:
+            reimbursements = await self.get_employee_reimbursements_by_period(
+                employee_id, start_date, end_date
+            )
+            stats = await self.get_employee_statistics(employee_id, start_date, end_date)
+            
+            return {
+                "employee_id": employee_id,
+                "period": {
+                    "start_date": start_date.isoformat(),
+                    "end_date": end_date.isoformat()
+                },
+                "statistics": stats,
+                "reimbursements": [
+                    self._reimbursement_to_document(r) for r in reimbursements
+                ],
+                "generated_at": datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error generating employee report: {e}")
+            return {}
+
+    async def generate_department_report(
+        self,
+        department: str,
+        start_date: datetime,
+        end_date: datetime
+    ) -> Dict[str, Any]:
+        """Generate department-wise reimbursement report."""
+        try:
+            pipeline = [
+                {
+                    "$match": {
+                        "department": department,
+                        "created_at": {"$gte": start_date, "$lte": end_date}
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": "$employee_id",
+                        "total_amount": {"$sum": "$amount.value"},
+                        "total_requests": {"$sum": 1},
+                        "approved_amount": {
+                            "$sum": {"$cond": [{"$eq": ["$status", "approved"]}, "$amount.value", 0]}
+                        }
+                    }
+                }
+            ]
+            
+            cursor = self.reimbursements_collection.aggregate(pipeline)
+            employee_stats = await cursor.to_list(length=None)
+            
+            total_department_amount = sum(emp["total_amount"] for emp in employee_stats)
+            total_department_requests = sum(emp["total_requests"] for emp in employee_stats)
+            
+            return {
+                "department": department,
+                "period": {
+                    "start_date": start_date.isoformat(),
+                    "end_date": end_date.isoformat()
+                },
+                "total_amount": total_department_amount,
+                "total_requests": total_department_requests,
+                "employee_breakdown": employee_stats,
+                "generated_at": datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error generating department report: {e}")
+            return {}
+
+    async def generate_tax_report(
+        self,
+        start_date: datetime,
+        end_date: datetime
+    ) -> Dict[str, Any]:
+        """Generate tax-related reimbursement report."""
+        try:
+            pipeline = [
+                {
+                    "$match": {
+                        "created_at": {"$gte": start_date, "$lte": end_date},
+                        "status": {"$in": ["approved", "paid"]}
+                    }
+                },
+                {
+                    "$group": {
+                        "_id": "$reimbursement_type.type_id",
+                        "total_amount": {"$sum": "$amount.value"},
+                        "count": {"$sum": 1}
+                    }
+                }
+            ]
+            
+            cursor = self.reimbursements_collection.aggregate(pipeline)
+            type_breakdown = await cursor.to_list(length=None)
+            
+            return {
+                "period": {
+                    "start_date": start_date.isoformat(),
+                    "end_date": end_date.isoformat()
+                },
+                "type_breakdown": type_breakdown,
+                "total_taxable_amount": sum(item["total_amount"] for item in type_breakdown),
+                "generated_at": datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error generating tax report: {e}")
+            return {}
+
+    async def generate_audit_trail(self, request_id: str) -> List[Dict[str, Any]]:
+        """Generate audit trail for a reimbursement request."""
+        try:
+            reimbursement = await self.get_by_id(request_id)
+            
+            if not reimbursement:
+                return []
+            
+            reimbursement_doc = self._reimbursement_to_document(reimbursement)
+            audit_trail = []
+            
+            # Creation event
+            audit_trail.append({
+                "timestamp": reimbursement_doc.get("created_at"),
+                "event": "created",
+                "user": reimbursement_doc.get("employee_id"),
+                "details": {
+                    "amount": reimbursement_doc.get("amount", {}).get("value"),
+                    "type": reimbursement_doc.get("reimbursement_type", {}).get("type_id")
+                }
+            })
+            
+            # Submission event
+            if reimbursement_doc.get("submitted_at"):
+                audit_trail.append({
+                    "timestamp": reimbursement_doc.get("submitted_at"),
+                    "event": "submitted",
+                    "user": reimbursement_doc.get("submitted_by"),
+                    "details": {}
+                })
+            
+            # Approval event
+            approval = reimbursement_doc.get("approval", {})
+            if approval.get("approved_at"):
+                audit_trail.append({
+                    "timestamp": approval.get("approved_at"),
+                    "event": "approved",
+                    "user": approval.get("approved_by"),
+                    "details": {
+                        "approved_amount": approval.get("approved_amount"),
+                        "comments": approval.get("comments")
+                    }
+                })
+            
+            # Rejection event
+            rejection = reimbursement_doc.get("rejection", {})
+            if rejection.get("rejected_at"):
+                audit_trail.append({
+                    "timestamp": rejection.get("rejected_at"),
+                    "event": "rejected",
+                    "user": rejection.get("rejected_by"),
+                    "details": {"reason": rejection.get("reason")}
+                })
+            
+            # Payment event
+            payment = reimbursement_doc.get("payment", {})
+            if payment.get("paid_at"):
+                audit_trail.append({
+                    "timestamp": payment.get("paid_at"),
+                    "event": "paid",
+                    "user": payment.get("paid_by"),
+                    "details": {
+                        "payment_method": payment.get("method"),
+                        "payment_reference": payment.get("reference")
+                    }
+                })
+            
+            # Sort by timestamp
+            audit_trail.sort(key=lambda x: x["timestamp"] or datetime.min)
+            
+            return audit_trail
+            
+        except Exception as e:
+            logger.error(f"Error generating audit trail: {e}")
+            return []
+
+    async def export_to_excel(
+        self,
+        filters: ReimbursementSearchFiltersDTO,
+        file_path: str
+    ) -> str:
+        """Export reimbursement data to Excel."""
+        try:
+            import pandas as pd
+            
+            # Get reimbursements based on filters
+            reimbursements = await self.search(filters)
+            
+            if not reimbursements:
+                return "No data to export"
+            
+            # Convert to DataFrame
+            data = []
+            for reimbursement in reimbursements:
+                reimbursement_doc = self._reimbursement_to_document(reimbursement)
+                # Flatten the document for Excel export
+                flat_data = {
+                    "request_id": reimbursement_doc.get("request_id"),
+                    "employee_id": reimbursement_doc.get("employee_id"),
+                    "amount": reimbursement_doc.get("amount", {}).get("value"),
+                    "currency": reimbursement_doc.get("amount", {}).get("currency"),
+                    "status": reimbursement_doc.get("status"),
+                    "type": reimbursement_doc.get("reimbursement_type", {}).get("name"),
+                    "description": reimbursement_doc.get("description"),
+                    "created_at": reimbursement_doc.get("created_at"),
+                    "submitted_at": reimbursement_doc.get("submitted_at"),
+                    "approved_at": reimbursement_doc.get("approval", {}).get("approved_at"),
+                    "paid_at": reimbursement_doc.get("payment", {}).get("paid_at")
+                }
+                data.append(flat_data)
+            
+            df = pd.DataFrame(data)
+            df.to_excel(file_path, index=False)
+            
+            return f"Data exported successfully to {file_path}"
+            
+        except Exception as e:
+            logger.error(f"Error exporting to Excel: {e}")
+            return f"Export failed: {str(e)}"
+
+    # ReimbursementTypeAnalyticsRepository Methods
+    async def get_usage_statistics(self) -> Dict[str, Any]:
+        """Get reimbursement type usage statistics."""
+        try:
+            pipeline = [
+                {
+                    "$group": {
+                        "_id": "$reimbursement_type.type_id",
+                        "count": {"$sum": 1},
+                        "total_amount": {"$sum": "$amount.value"}
+                    }
+                },
+                {"$sort": {"count": -1}}
+            ]
+            
+            cursor = self.reimbursements_collection.aggregate(pipeline)
+            results = await cursor.to_list(length=None)
+            
+            return {
+                "type_usage": results,
+                "total_types": len(results)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting usage statistics: {e}")
+            return {}
+
+    async def get_category_breakdown(self) -> Dict[str, int]:
+        """Get breakdown by category."""
+        try:
+            pipeline = [
+                {
+                    "$group": {
+                        "_id": "$reimbursement_type.category",
+                        "count": {"$sum": 1}
+                    }
+                }
+            ]
+            
+            cursor = self.reimbursement_types_collection.aggregate(pipeline)
+            results = await cursor.to_list(length=None)
+            
+            return {
+                result["_id"] or "uncategorized": result["count"]
+                for result in results
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting category breakdown: {e}")
+            return {}
+
+    async def get_approval_level_distribution(self) -> Dict[str, int]:
+        """Get approval level distribution."""
+        try:
+            pipeline = [
+                {
+                    "$group": {
+                        "_id": "$approval_level",
+                        "count": {"$sum": 1}
+                    }
+                }
+            ]
+            
+            cursor = self.reimbursement_types_collection.aggregate(pipeline)
+            results = await cursor.to_list(length=None)
+            
+            return {
+                result["_id"] or "manager": result["count"]
+                for result in results
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting approval level distribution: {e}")
+            return {}
+
+    # Composite Repository Properties Implementation
+    @property
+    def reimbursement_types(self) -> 'ReimbursementTypeQueryRepository':
+        """Get reimbursement type query repository"""
+        return self
+
+    @property
+    def reimbursement_type_commands(self) -> 'ReimbursementTypeCommandRepository':
+        """Get reimbursement type command repository"""
+        return self
+
+    @property
+    def reimbursements(self) -> 'ReimbursementQueryRepository':
+        """Get reimbursement query repository"""
+        return self
+
+    @property
+    def reimbursement_commands(self) -> 'ReimbursementCommandRepository':
+        """Get reimbursement command repository"""
+        return self
+
+    @property
+    def analytics(self) -> 'ReimbursementAnalyticsRepository':
+        """Get analytics repository"""
+        return self
+
+    @property
+    def reports(self) -> 'ReimbursementReportRepository':
+        """Get reports repository"""
+        return self 

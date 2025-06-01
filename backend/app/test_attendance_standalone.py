@@ -214,11 +214,11 @@ def test_attendance_repository_standalone():
                         start_date = datetime.combine(attendance_date, datetime.min.time())
                         end_date = datetime.combine(attendance_date, datetime.max.time())
                         filters = {
-                            "emp_id": employee_id,
+                            "employee_id": employee_id,
                             "date": {"$gte": start_date, "$lt": end_date}
                         }
                     else:
-                        filters = {"emp_id": employee_id, "date": attendance_date}
+                        filters = {"employee_id": employee_id, "date": attendance_date}
                     
                     document = await collection.find_one(filters)
                     
@@ -271,14 +271,14 @@ def test_attendance_repository_standalone():
                         attendance_percentage=0
                     )
             
-            async def create_attendance_legacy(self, emp_id, hostname, check_in=True):
+            async def create_attendance_legacy(self, employee_id, hostname, check_in=True):
                 try:
                     now = datetime.now()
-                    attendance_id = f"att_{emp_id}_{int(now.timestamp())}"
+                    attendance_id = f"att_{employee_id}_{int(now.timestamp())}"
                     
                     attendance_data = {
                         "attendance_id": attendance_id,
-                        "emp_id": emp_id,
+                        "employee_id": employee_id,
                         "date": now,
                         "checkin_time": now if check_in else None,
                         "checkout_time": None if check_in else now,
@@ -309,7 +309,7 @@ def test_attendance_repository_standalone():
             # Test 1: Create attendance
             attendance = SimpleAttendance(
                 attendance_id="test_001",
-                emp_id="EMP001",
+                employee_id="EMP001",
                 date=datetime.now(),
                 status="present",
                 checkin_time=datetime.now()

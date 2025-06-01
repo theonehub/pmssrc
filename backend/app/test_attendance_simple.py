@@ -15,11 +15,11 @@ def test_attendance_repository_simple():
         print("Testing basic imports...")
         
         # Test database connector
-        from infrastructure.database.database_connector import DatabaseConnector
+        from app.infrastructure.database.database_connector import DatabaseConnector
         print("✓ DatabaseConnector imported successfully")
         
         # Test base repository
-        from infrastructure.repositories.base_repository import BaseRepository
+        from app.infrastructure.repositories.base_repository import BaseRepository
         print("✓ BaseRepository imported successfully")
         
         # Test the attendance repository directly

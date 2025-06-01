@@ -203,13 +203,13 @@ def test_reimbursement_repository():
                     print(f"Error getting reimbursement by ID: {e}")
                     return None
             
-            async def get_by_employee_id(self, emp_id, organization_id="default"):
+            async def get_by_employee_id(self, employee_id, organization_id="default"):
                 try:
                     # Simple mock - return basic structure
                     return [
                         {
                             "id": "reimbursement_001",
-                            "emp_id": emp_id,
+                            "employee_id": employee_id,
                             "type_name": "Travel",
                             "reimbursement_type_id": "travel_001",
                             "amount": 500.0,
@@ -230,7 +230,7 @@ def test_reimbursement_repository():
                     return [
                         {
                             "id": "reimbursement_002",
-                            "emp_id": "EMP001",
+                            "employee_id": "EMP001",
                             "employee_name": "John Doe",
                             "type_name": "Medical",
                             "reimbursement_type_id": "medical_001",
@@ -308,7 +308,7 @@ def test_reimbursement_repository():
             # Test 1: Create reimbursement
             reimbursement = SimpleReimbursement(
                 reimbursement_id="reimb_001",
-                emp_id="EMP001",
+                employee_id="EMP001",
                 reimbursement_type_id="travel_001",
                 amount=750.0,
                 note="Conference travel",
@@ -356,7 +356,7 @@ def test_reimbursement_repository():
             
             # Test 7: Legacy create
             legacy_data = {
-                "emp_id": "EMP002",
+                "employee_id": "EMP002",
                 "reimbursement_type_id": "medical_001",
                 "amount": 200.0,
                 "note": "Medical checkup",

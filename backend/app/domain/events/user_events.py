@@ -25,7 +25,7 @@ class UserCreated(DomainEvent):
     - Integration with external systems
     """
     
-    user_id: EmployeeId
+    employee_id: EmployeeId
     name: str
     email: str
     role: UserRole
@@ -35,7 +35,7 @@ class UserCreated(DomainEvent):
         return "user.created"
     
     def get_aggregate_id(self) -> str:
-        return str(self.user_id)
+        return str(self.employee_id)
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -43,7 +43,7 @@ class UserCreated(DomainEvent):
             "event_type": self.get_event_type(),
             "aggregate_id": self.get_aggregate_id(),
             "occurred_at": self.occurred_at.isoformat(),
-            "user_id": str(self.user_id),
+            "employee_id": str(self.employee_id),
             "name": self.name,
             "email": self.email,
             "role": self.role.value,
@@ -55,7 +55,7 @@ class UserCreated(DomainEvent):
         return cls(
             aggregate_id=data["aggregate_id"],
             occurred_at=datetime.fromisoformat(data["occurred_at"]),
-            user_id=EmployeeId.from_string(data["user_id"]),
+            employee_id=EmployeeId.from_string(data["employee_id"]),
             name=data["name"],
             email=data["email"],
             role=UserRole(data["role"]),
@@ -75,7 +75,7 @@ class UserUpdated(DomainEvent):
     - Audit trail updates
     """
     
-    user_id: EmployeeId
+    employee_id: EmployeeId
     updated_fields: Dict[str, Any]
     previous_values: Dict[str, Any]
     updated_by: str
@@ -84,7 +84,7 @@ class UserUpdated(DomainEvent):
         return "user.updated"
     
     def get_aggregate_id(self) -> str:
-        return str(self.user_id)
+        return str(self.employee_id)
     
     def get_changed_fields(self) -> list:
         """Get list of changed field names"""
@@ -101,7 +101,7 @@ class UserUpdated(DomainEvent):
             "event_type": self.get_event_type(),
             "aggregate_id": self.get_aggregate_id(),
             "occurred_at": self.occurred_at.isoformat(),
-            "user_id": str(self.user_id),
+            "employee_id": str(self.employee_id),
             "updated_fields": self.updated_fields,
             "previous_values": self.previous_values,
             "updated_by": self.updated_by
@@ -112,7 +112,7 @@ class UserUpdated(DomainEvent):
         return cls(
             aggregate_id=data["aggregate_id"],
             occurred_at=datetime.fromisoformat(data["occurred_at"]),
-            user_id=EmployeeId.from_string(data["user_id"]),
+            employee_id=EmployeeId.from_string(data["employee_id"]),
             updated_fields=data["updated_fields"],
             previous_values=data["previous_values"],
             updated_by=data["updated_by"]
@@ -131,7 +131,7 @@ class UserStatusChanged(DomainEvent):
     - Compliance reporting
     """
     
-    user_id: EmployeeId
+    employee_id: EmployeeId
     old_status: UserStatus
     new_status: UserStatus
     reason: str
@@ -141,7 +141,7 @@ class UserStatusChanged(DomainEvent):
         return "user.status_changed"
     
     def get_aggregate_id(self) -> str:
-        return str(self.user_id)
+        return str(self.employee_id)
     
     def is_activation(self) -> bool:
         """Check if this is a user activation"""
@@ -163,7 +163,7 @@ class UserStatusChanged(DomainEvent):
             "event_type": self.get_event_type(),
             "aggregate_id": self.get_aggregate_id(),
             "occurred_at": self.occurred_at.isoformat(),
-            "user_id": str(self.user_id),
+            "employee_id": str(self.employee_id),
             "old_status": self.old_status.value,
             "new_status": self.new_status.value,
             "reason": self.reason,
@@ -175,7 +175,7 @@ class UserStatusChanged(DomainEvent):
         return cls(
             aggregate_id=data["aggregate_id"],
             occurred_at=datetime.fromisoformat(data["occurred_at"]),
-            user_id=EmployeeId.from_string(data["user_id"]),
+            employee_id=EmployeeId.from_string(data["employee_id"]),
             old_status=UserStatus(data["old_status"]),
             new_status=UserStatus(data["new_status"]),
             reason=data["reason"],
@@ -195,7 +195,7 @@ class UserRoleChanged(DomainEvent):
     - Security audit logging
     """
     
-    user_id: EmployeeId
+    employee_id: EmployeeId
     old_role: UserRole
     new_role: UserRole
     reason: str
@@ -205,7 +205,7 @@ class UserRoleChanged(DomainEvent):
         return "user.role_changed"
     
     def get_aggregate_id(self) -> str:
-        return str(self.user_id)
+        return str(self.employee_id)
     
     def is_privilege_escalation(self) -> bool:
         """Check if this is a privilege escalation"""
@@ -247,7 +247,7 @@ class UserRoleChanged(DomainEvent):
             "event_type": self.get_event_type(),
             "aggregate_id": self.get_aggregate_id(),
             "occurred_at": self.occurred_at.isoformat(),
-            "user_id": str(self.user_id),
+            "employee_id": str(self.employee_id),
             "old_role": self.old_role.value,
             "new_role": self.new_role.value,
             "reason": self.reason,
@@ -259,7 +259,7 @@ class UserRoleChanged(DomainEvent):
         return cls(
             aggregate_id=data["aggregate_id"],
             occurred_at=datetime.fromisoformat(data["occurred_at"]),
-            user_id=EmployeeId.from_string(data["user_id"]),
+            employee_id=EmployeeId.from_string(data["employee_id"]),
             old_role=UserRole(data["old_role"]),
             new_role=UserRole(data["new_role"]),
             reason=data["reason"],
@@ -279,7 +279,7 @@ class UserPasswordChanged(DomainEvent):
     - Password policy compliance checks
     """
     
-    user_id: EmployeeId
+    employee_id: EmployeeId
     changed_by: str
     is_self_change: bool
     password_strength_score: int
@@ -288,7 +288,7 @@ class UserPasswordChanged(DomainEvent):
         return "user.password_changed"
     
     def get_aggregate_id(self) -> str:
-        return str(self.user_id)
+        return str(self.employee_id)
     
     def is_admin_reset(self) -> bool:
         """Check if this was an admin password reset"""
@@ -304,7 +304,7 @@ class UserPasswordChanged(DomainEvent):
             "event_type": self.get_event_type(),
             "aggregate_id": self.get_aggregate_id(),
             "occurred_at": self.occurred_at.isoformat(),
-            "user_id": str(self.user_id),
+            "employee_id": str(self.employee_id),
             "changed_by": self.changed_by,
             "is_self_change": self.is_self_change,
             "password_strength_score": self.password_strength_score
@@ -315,7 +315,7 @@ class UserPasswordChanged(DomainEvent):
         return cls(
             aggregate_id=data["aggregate_id"],
             occurred_at=datetime.fromisoformat(data["occurred_at"]),
-            user_id=EmployeeId.from_string(data["user_id"]),
+            employee_id=EmployeeId.from_string(data["employee_id"]),
             changed_by=data["changed_by"],
             is_self_change=data["is_self_change"],
             password_strength_score=data["password_strength_score"]
@@ -334,7 +334,7 @@ class UserLoggedIn(DomainEvent):
     - Last login updates
     """
     
-    user_id: EmployeeId
+    employee_id: EmployeeId
     ip_address: Optional[str]
     user_agent: Optional[str]
     login_method: str  # "password", "sso", "token", etc.
@@ -343,7 +343,7 @@ class UserLoggedIn(DomainEvent):
         return "user.logged_in"
     
     def get_aggregate_id(self) -> str:
-        return str(self.user_id)
+        return str(self.employee_id)
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -351,7 +351,7 @@ class UserLoggedIn(DomainEvent):
             "event_type": self.get_event_type(),
             "aggregate_id": self.get_aggregate_id(),
             "occurred_at": self.occurred_at.isoformat(),
-            "user_id": str(self.user_id),
+            "employee_id": str(self.employee_id),
             "ip_address": self.ip_address,
             "user_agent": self.user_agent,
             "login_method": self.login_method
@@ -362,7 +362,7 @@ class UserLoggedIn(DomainEvent):
         return cls(
             aggregate_id=data["aggregate_id"],
             occurred_at=datetime.fromisoformat(data["occurred_at"]),
-            user_id=EmployeeId.from_string(data["user_id"]),
+            employee_id=EmployeeId.from_string(data["employee_id"]),
             ip_address=data.get("ip_address"),
             user_agent=data.get("user_agent"),
             login_method=data["login_method"]
@@ -380,7 +380,7 @@ class UserLoggedOut(DomainEvent):
     - Security monitoring
     """
     
-    user_id: EmployeeId
+    employee_id: EmployeeId
     session_duration_minutes: Optional[int]
     logout_method: str  # "manual", "timeout", "forced", etc.
     
@@ -388,7 +388,7 @@ class UserLoggedOut(DomainEvent):
         return "user.logged_out"
     
     def get_aggregate_id(self) -> str:
-        return str(self.user_id)
+        return str(self.employee_id)
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -396,7 +396,7 @@ class UserLoggedOut(DomainEvent):
             "event_type": self.get_event_type(),
             "aggregate_id": self.get_aggregate_id(),
             "occurred_at": self.occurred_at.isoformat(),
-            "user_id": str(self.user_id),
+            "employee_id": str(self.employee_id),
             "session_duration_minutes": self.session_duration_minutes,
             "logout_method": self.logout_method
         }
@@ -406,7 +406,7 @@ class UserLoggedOut(DomainEvent):
         return cls(
             aggregate_id=data["aggregate_id"],
             occurred_at=datetime.fromisoformat(data["occurred_at"]),
-            user_id=EmployeeId.from_string(data["user_id"]),
+            employee_id=EmployeeId.from_string(data["employee_id"]),
             session_duration_minutes=data.get("session_duration_minutes"),
             logout_method=data["logout_method"]
         )
@@ -424,7 +424,7 @@ class UserDocumentsUpdated(DomainEvent):
     - Profile completion tracking
     """
     
-    user_id: EmployeeId
+    employee_id: EmployeeId
     updated_documents: list  # List of document types updated
     completion_percentage: float
     updated_by: str
@@ -433,7 +433,7 @@ class UserDocumentsUpdated(DomainEvent):
         return "user.documents_updated"
     
     def get_aggregate_id(self) -> str:
-        return str(self.user_id)
+        return str(self.employee_id)
     
     def is_profile_complete(self) -> bool:
         """Check if user profile is now complete"""
@@ -445,7 +445,7 @@ class UserDocumentsUpdated(DomainEvent):
             "event_type": self.get_event_type(),
             "aggregate_id": self.get_aggregate_id(),
             "occurred_at": self.occurred_at.isoformat(),
-            "user_id": str(self.user_id),
+            "employee_id": str(self.employee_id),
             "updated_documents": self.updated_documents,
             "completion_percentage": self.completion_percentage,
             "updated_by": self.updated_by
@@ -456,7 +456,7 @@ class UserDocumentsUpdated(DomainEvent):
         return cls(
             aggregate_id=data["aggregate_id"],
             occurred_at=datetime.fromisoformat(data["occurred_at"]),
-            user_id=EmployeeId.from_string(data["user_id"]),
+            employee_id=EmployeeId.from_string(data["employee_id"]),
             updated_documents=data["updated_documents"],
             completion_percentage=data["completion_percentage"],
             updated_by=data["updated_by"]
@@ -475,7 +475,7 @@ class UserDeleted(DomainEvent):
     - Notification to administrators
     """
     
-    user_id: EmployeeId
+    employee_id: EmployeeId
     user_name: str
     user_email: str
     deletion_reason: str
@@ -486,7 +486,7 @@ class UserDeleted(DomainEvent):
         return "user.deleted"
     
     def get_aggregate_id(self) -> str:
-        return str(self.user_id)
+        return str(self.employee_id)
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -494,7 +494,7 @@ class UserDeleted(DomainEvent):
             "event_type": self.get_event_type(),
             "aggregate_id": self.get_aggregate_id(),
             "occurred_at": self.occurred_at.isoformat(),
-            "user_id": str(self.user_id),
+            "employee_id": str(self.employee_id),
             "user_name": self.user_name,
             "user_email": self.user_email,
             "deletion_reason": self.deletion_reason,
@@ -507,7 +507,7 @@ class UserDeleted(DomainEvent):
         return cls(
             aggregate_id=data["aggregate_id"],
             occurred_at=datetime.fromisoformat(data["occurred_at"]),
-            user_id=EmployeeId.from_string(data["user_id"]),
+            employee_id=EmployeeId.from_string(data["employee_id"]),
             user_name=data["user_name"],
             user_email=data["user_email"],
             deletion_reason=data["deletion_reason"],

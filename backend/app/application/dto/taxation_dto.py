@@ -8,8 +8,8 @@ from typing import Dict, List, Optional, Any, Union
 from datetime import datetime, date
 from decimal import Decimal
 
-from domain.value_objects.money import Money
-from domain.value_objects.tax_regime import TaxRegime
+from app.domain.value_objects.money import Money
+from app.domain.value_objects.tax_regime import TaxRegime
 
 
 @dataclass
@@ -320,8 +320,8 @@ class TaxationResponseDTO:
     def from_entity(cls, taxation) -> 'TaxationResponseDTO':
         """Create DTO from Taxation entity"""
         return cls(
-            taxation_id=str(taxation.taxation_id) if hasattr(taxation, 'taxation_id') else taxation.emp_id,
-            employee_id=taxation.emp_id,
+            taxation_id=str(taxation.taxation_id) if hasattr(taxation, 'taxation_id') else taxation.employee_id,
+            employee_id=taxation.employee_id,
             emp_age=taxation.emp_age,
             tax_year=taxation.tax_year,
             regime=taxation.regime,

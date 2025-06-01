@@ -9,8 +9,8 @@ from typing import List, Dict, Any
 import logging
 
 from api.routes.company_leave_routes_v2 import get_company_leave_controller
-from application.dto.company_leave_dto import CompanyLeaveCreateRequestDTO, CompanyLeaveUpdateRequestDTO, CompanyLeaveSearchFiltersDTO
-from auth.auth import extract_emp_id, extract_hostname, role_checker
+from app.application.dto.company_leave_dto import CompanyLeaveCreateRequestDTO, CompanyLeaveUpdateRequestDTO, CompanyLeaveSearchFiltersDTO
+from auth.auth import extract_employee_id, extract_hostname, role_checker
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ async def get_company_leaves_legacy(
 @router.post("/", response_model=Dict[str, Any])
 async def create_company_leave_legacy(
     request_data: Dict[str, Any],
-    current_emp_id: str = Depends(extract_emp_id),
+    current_employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["admin", "superadmin"])),
     controller = Depends(get_company_leave_controller)
@@ -66,7 +66,7 @@ async def create_company_leave_legacy(
             leave_type_name=leave_name,
             leave_category='casual',  # Default category
             annual_allocation=int(request_data.get('count', 0)),
-            created_by=current_emp_id,
+            created_by=current_employee_id,
             description=f"Legacy leave policy: {leave_name}",
             accrual_type='annually',
             requires_approval=request_data.get('requires_approval', True),
@@ -76,7 +76,7 @@ async def create_company_leave_legacy(
         )
         
         # Call V2 API
-        v2_response = await controller.create_company_leave(v2_request, current_emp_id, hostname)
+        v2_response = await controller.create_company_leave(v2_request, current_employee_id, hostname)
         
         # Transform response to legacy format
         legacy_response = {
@@ -97,7 +97,7 @@ async def create_company_leave_legacy(
 async def update_company_leave_legacy(
     leave_id: str,
     request_data: Dict[str, Any],
-    current_emp_id: str = Depends(extract_emp_id),
+    current_employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["admin", "superadmin"])),
     controller = Depends(get_company_leave_controller)
@@ -106,14 +106,14 @@ async def update_company_leave_legacy(
     try:
         # Transform legacy format to V2 format
         v2_request = CompanyLeaveUpdateRequestDTO(
-            updated_by=current_emp_id,
+            updated_by=current_employee_id,
             leave_type_name=request_data.get('name'),
             annual_allocation=int(request_data.get('count', 0)) if request_data.get('count') is not None else None,
             is_active=request_data.get('is_active')
         )
         
         # Call V2 API
-        v2_response = await controller.update_company_leave(leave_id, v2_request, current_emp_id, hostname)
+        v2_response = await controller.update_company_leave(leave_id, v2_request, current_employee_id, hostname)
         
         # Transform response to legacy format
         legacy_response = {
@@ -133,7 +133,7 @@ async def update_company_leave_legacy(
 @router.delete("/{leave_id}")
 async def delete_company_leave_legacy(
     leave_id: str,
-    current_emp_id: str = Depends(extract_emp_id),
+    current_employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["admin", "superadmin"])),
     controller = Depends(get_company_leave_controller)
@@ -141,7 +141,7 @@ async def delete_company_leave_legacy(
     """Delete company leave in legacy format"""
     try:
         # Call V2 API
-        await controller.delete_company_leave(leave_id, current_emp_id, hostname)
+        await controller.delete_company_leave(leave_id, current_employee_id, hostname)
         
         return {"message": "Company leave deleted successfully"}
         

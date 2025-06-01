@@ -124,7 +124,7 @@ class AuthController:
             
             # Create user info
             user_info = {
-                "emp_id": user.get("emp_id", user["username"]),
+                "employee_id": user.get("employee_id", user["username"]),
                 "name": user.get("name", "User"),
                 "email": user.get("email", user["username"]+"@"+request.hostname+".com"),
                 "role": user.get("role", "user"),
@@ -141,9 +141,9 @@ class AuthController:
             
             # Prepare token data
             token_data = {
-                "sub": user.get("emp_id", user["username"]),  # Subject (user identifier)
+                "sub": user.get("employee_id", user["username"]),  # Subject (user identifier)
                 "username": user["username"],
-                "emp_id": user.get("emp_id", user["username"]),
+                "employee_id": user.get("employee_id", user["username"]),
                 "role": user.get("role", "user"),
                 "hostname": request.hostname,
                 "permissions": permissions,
@@ -234,7 +234,7 @@ class AuthController:
                 new_token_data = {
                     "sub": payload.get("sub"),
                     "username": payload.get("username"),
-                    "emp_id": payload.get("emp_id"),
+                    "employee_id": payload.get("employee_id"),
                     "role": payload.get("role"),
                     "hostname": payload.get("hostname"),
                     "permissions": payload.get("permissions", []),
@@ -285,7 +285,7 @@ class AuthController:
                 
                 # Extract user information from token
                 user_info = {
-                    "emp_id": payload.get("emp_id"),
+                    "employee_id": payload.get("employee_id"),
                     "username": payload.get("username"),
                     "role": payload.get("role"),
                     "hostname": payload.get("hostname")
@@ -422,7 +422,7 @@ class AuthController:
             permissions = self._get_user_permissions(current_user.get("role", "user"))
             
             return UserProfileResponseDTO(
-                emp_id=current_user.get("sub", "unknown"),
+                employee_id=current_user.get("sub", "unknown"),
                 username=current_user.get("sub", "unknown"),
                 email="user@company.com",
                 full_name="User Name",
@@ -458,7 +458,7 @@ class AuthController:
             logger.info(f"Session info request for user: {current_user.get('sub')}")
             
             user_info = {
-                "emp_id": current_user.get("sub"),
+                "employee_id": current_user.get("sub"),
                 "role": current_user.get("role"),
                 "hostname": current_user.get("hostname")
             }

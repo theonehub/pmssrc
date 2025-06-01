@@ -7,13 +7,13 @@ import logging
 import math
 from typing import List
 
-from domain.entities.organization import Organization
-from domain.value_objects.organization_details import OrganizationType, OrganizationStatus
-from application.dto.organization_dto import (
+from app.domain.entities.organization import Organization
+from app.domain.value_objects.organization_details import OrganizationType, OrganizationStatus
+from app.application.dto.organization_dto import (
     OrganizationSearchFiltersDTO, OrganizationListResponseDTO,
     OrganizationSummaryDTO, OrganizationValidationError
 )
-from application.interfaces.repositories.organization_repository import OrganizationQueryRepository
+from app.application.interfaces.repositories.organization_repository import OrganizationQueryRepository
 
 
 logger = logging.getLogger(__name__)

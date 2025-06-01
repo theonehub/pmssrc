@@ -93,7 +93,7 @@ class CheckInUseCase:
             employee = await self._verify_employee(request.employee_id)
             
             # Step 3: Check business rules
-            check_in_time = request.check_in_time or datetime.utcnow()
+            check_in_time = request.check_in_time or datetime.now()
             attendance_date = check_in_time.date()
             
             await self._validate_business_rules(request.employee_id, attendance_date, check_in_time)
@@ -146,7 +146,7 @@ class CheckInUseCase:
                 "MISSING_EMPLOYEE_ID"
             )
         
-        if request.check_in_time and request.check_in_time > datetime.utcnow():
+        if request.check_in_time and request.check_in_time > datetime.now():
             raise AttendanceValidationError(
                 "Check-in time cannot be in the future",
                 "INVALID_CHECK_IN_TIME"

@@ -11,7 +11,7 @@ from pymongo.errors import DuplicateKeyError
 
 # Import domain entities
 try:
-    from domain.entities.payout import (
+    from app.domain.entities.payout import (
         PayoutCreate, PayoutUpdate, PayoutInDB, PayoutStatus, 
         PayoutSummary, PayoutSchedule, PayoutHistory, PayslipData,
         BulkPayoutRequest, BulkPayoutResponse
@@ -64,7 +64,7 @@ except ImportError:
 
 # Import application interfaces
 try:
-    from application.interfaces.repositories.payout_repository import (
+    from app.application.interfaces.repositories.payout_repository import (
         PayoutCommandRepository, PayoutQueryRepository, PayoutAnalyticsRepository,
         PayoutScheduleRepository, PayoutAuditRepository
     )
@@ -89,7 +89,7 @@ except ImportError:
 
 # Import DTOs
 try:
-    from application.dto.payroll_dto import PayoutSearchFiltersDTO
+    from app.application.dto.payroll_dto import PayoutSearchFiltersDTO
 except ImportError:
     class PayoutSearchFiltersDTO:
         def __init__(self, **kwargs):
@@ -1142,17 +1142,17 @@ class SolidPayoutRepository(
             logger.error(f"Error getting payout audit trail: {e}")
             return []
     
-    async def get_user_audit_trail(self, user_id: str, hostname: str,
+    async def get_user_audit_trail(self, employee_id: str, hostname: str,
                                  start_date: Optional[datetime] = None,
                                  end_date: Optional[datetime] = None) -> List[Dict[str, Any]]:
         """Get audit trail for a user."""
         try:
             filters = {
                 "$or": [
-                    {"updated_by": user_id},
-                    {"created_by": user_id},
-                    {"processed_by": user_id},
-                    {"approved_by": user_id}
+                    {"updated_by": employee_id},
+                    {"created_by": employee_id},
+                    {"processed_by": employee_id},
+                    {"approved_by": employee_id}
                 ]
             }
             

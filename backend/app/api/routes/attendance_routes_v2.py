@@ -23,7 +23,7 @@ from app.application.dto.attendance_dto import (
     AttendanceBusinessRuleError,
     AttendanceNotFoundError
 )
-from app.auth.auth import extract_emp_id, extract_hostname, role_checker
+from app.auth.auth import extract_employee_id, extract_hostname, role_checker
 
 # Create router
 router = APIRouter(prefix="/api/v2/attendance", tags=["Attendance V2 (SOLID)"])
@@ -48,16 +48,16 @@ def get_attendance_controller() -> AttendanceController:
 
 @router.post("/checkin", response_model=AttendanceResponseDTO)
 async def checkin(
-    current_emp_id: str = Depends(extract_emp_id),
+    current_employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     controller: AttendanceController = Depends(get_attendance_controller)
 ):
     """Record employee check-in"""
     try:
-        logger.info(f"Check-in request for employee: {current_emp_id}")
+        logger.info(f"Check-in request for employee: {current_employee_id}")
         
         request = AttendanceCheckInRequestDTO(
-            emp_id=current_emp_id,
+            employee_id=current_employee_id,
             hostname=hostname,
             timestamp=datetime.now()
         )
@@ -81,16 +81,16 @@ async def checkin(
 
 @router.post("/checkout", response_model=AttendanceResponseDTO)
 async def checkout(
-    current_emp_id: str = Depends(extract_emp_id),
+    current_employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     controller: AttendanceController = Depends(get_attendance_controller)
 ):
     """Record employee check-out"""
     try:
-        logger.info(f"Check-out request for employee: {current_emp_id}")
+        logger.info(f"Check-out request for employee: {current_employee_id}")
         
         request = AttendanceCheckOutRequestDTO(
-            emp_id=current_emp_id,
+            employee_id=current_employee_id,
             hostname=hostname,
             timestamp=datetime.now()
         )
@@ -112,22 +112,22 @@ async def checkout(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/employee/{emp_id}/month/{month}/year/{year}", response_model=List[AttendanceResponseDTO])
+@router.get("/employee/{employee_id}/month/{month}/year/{year}", response_model=List[AttendanceResponseDTO])
 async def get_employee_attendance_by_month(
-    emp_id: str = Path(..., description="Employee ID"),
+    employee_id: str = Path(..., description="Employee ID"),
     month: int = Path(..., ge=1, le=12, description="Month (1-12)"),
     year: int = Path(..., ge=2000, le=3000, description="Year"),
     hostname: str = Depends(extract_hostname),
-    current_emp_id: str = Depends(extract_emp_id),
+    current_employee_id: str = Depends(extract_employee_id),
     role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
     controller: AttendanceController = Depends(get_attendance_controller)
 ):
     """Get employee attendance records for a specific month"""
     try:
-        logger.info(f"Getting attendance for employee {emp_id} for {month}/{year}")
+        logger.info(f"Getting attendance for employee {employee_id} for {month}/{year}")
         
         filters = AttendanceSearchFiltersDTO(
-            emp_id=emp_id,
+            employee_id=employee_id,
             month=month,
             year=year,
             hostname=hostname
@@ -146,21 +146,21 @@ async def get_employee_attendance_by_month(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/employee/{emp_id}/year/{year}", response_model=List[AttendanceResponseDTO])
+@router.get("/employee/{employee_id}/year/{year}", response_model=List[AttendanceResponseDTO])
 async def get_employee_attendance_by_year(
-    emp_id: str = Path(..., description="Employee ID"),
+    employee_id: str = Path(..., description="Employee ID"),
     year: int = Path(..., ge=2000, le=3000, description="Year"),
     hostname: str = Depends(extract_hostname),
-    current_emp_id: str = Depends(extract_emp_id),
+    current_employee_id: str = Depends(extract_employee_id),
     role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
     controller: AttendanceController = Depends(get_attendance_controller)
 ):
     """Get employee attendance records for a specific year"""
     try:
-        logger.info(f"Getting attendance for employee {emp_id} for year {year}")
+        logger.info(f"Getting attendance for employee {employee_id} for year {year}")
         
         filters = AttendanceSearchFiltersDTO(
-            emp_id=emp_id,
+            employee_id=employee_id,
             year=year,
             hostname=hostname
         )
@@ -184,7 +184,7 @@ async def get_team_attendance_by_date(
     month: int = Path(..., ge=1, le=12, description="Month (1-12)"),
     year: int = Path(..., ge=2000, le=3000, description="Year"),
     hostname: str = Depends(extract_hostname),
-    current_emp_id: str = Depends(extract_emp_id),
+    current_employee_id: str = Depends(extract_employee_id),
     role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
     controller: AttendanceController = Depends(get_attendance_controller)
 ):
@@ -193,7 +193,7 @@ async def get_team_attendance_by_date(
         logger.info(f"Getting team attendance for {date}/{month}/{year}")
         
         filters = AttendanceSearchFiltersDTO(
-            manager_id=current_emp_id,
+            manager_id=current_employee_id,
             date=date,
             month=month,
             year=year,
@@ -218,7 +218,7 @@ async def get_team_attendance_by_month(
     month: int = Path(..., ge=1, le=12, description="Month (1-12)"),
     year: int = Path(..., ge=2000, le=3000, description="Year"),
     hostname: str = Depends(extract_hostname),
-    current_emp_id: str = Depends(extract_emp_id),
+    current_employee_id: str = Depends(extract_employee_id),
     role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
     controller: AttendanceController = Depends(get_attendance_controller)
 ):
@@ -227,7 +227,7 @@ async def get_team_attendance_by_month(
         logger.info(f"Getting team attendance for {month}/{year}")
         
         filters = AttendanceSearchFiltersDTO(
-            manager_id=current_emp_id,
+            manager_id=current_employee_id,
             month=month,
             year=year,
             hostname=hostname
@@ -250,7 +250,7 @@ async def get_team_attendance_by_month(
 async def get_team_attendance_by_year(
     year: int = Path(..., ge=2000, le=3000, description="Year"),
     hostname: str = Depends(extract_hostname),
-    current_emp_id: str = Depends(extract_emp_id),
+    current_employee_id: str = Depends(extract_employee_id),
     role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
     controller: AttendanceController = Depends(get_attendance_controller)
 ):
@@ -259,7 +259,7 @@ async def get_team_attendance_by_year(
         logger.info(f"Getting team attendance for year {year}")
         
         filters = AttendanceSearchFiltersDTO(
-            manager_id=current_emp_id,
+            manager_id=current_employee_id,
             year=year,
             hostname=hostname
         )
@@ -280,7 +280,7 @@ async def get_team_attendance_by_year(
 @router.get("/stats/today", response_model=AttendanceStatisticsDTO)
 async def get_todays_attendance_stats(
     hostname: str = Depends(extract_hostname),
-    current_emp_id: str = Depends(extract_emp_id),
+    current_employee_id: str = Depends(extract_employee_id),
     role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
     controller: AttendanceController = Depends(get_attendance_controller)
 ):
@@ -302,7 +302,7 @@ async def get_my_attendance_by_month(
     month: int = Path(..., ge=1, le=12, description="Month (1-12)"),
     year: int = Path(..., ge=2000, le=3000, description="Year"),
     hostname: str = Depends(extract_hostname),
-    current_emp_id: str = Depends(extract_emp_id),
+    current_employee_id: str = Depends(extract_employee_id),
     controller: AttendanceController = Depends(get_attendance_controller)
 ):
     """Get my attendance records for a specific month"""
@@ -310,7 +310,7 @@ async def get_my_attendance_by_month(
         logger.info(f"Getting my attendance for {month}/{year}")
         
         filters = AttendanceSearchFiltersDTO(
-            emp_id=current_emp_id,
+            employee_id=current_employee_id,
             month=month,
             year=year,
             hostname=hostname
@@ -333,7 +333,7 @@ async def get_my_attendance_by_month(
 async def get_my_attendance_by_year(
     year: int = Path(..., ge=2000, le=3000, description="Year"),
     hostname: str = Depends(extract_hostname),
-    current_emp_id: str = Depends(extract_emp_id),
+    current_employee_id: str = Depends(extract_employee_id),
     controller: AttendanceController = Depends(get_attendance_controller)
 ):
     """Get my attendance records for a specific year"""
@@ -341,7 +341,7 @@ async def get_my_attendance_by_year(
         logger.info(f"Getting my attendance for year {year}")
         
         filters = AttendanceSearchFiltersDTO(
-            emp_id=current_emp_id,
+            employee_id=current_employee_id,
             year=year,
             hostname=hostname
         )

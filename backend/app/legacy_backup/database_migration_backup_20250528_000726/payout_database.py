@@ -4,7 +4,7 @@ from datetime import datetime, date, timedelta
 from bson import ObjectId
 from pymongo import DESCENDING, ASCENDING
 from database.database_connector import connect_to_database
-from domain.entities.payout import (
+from app.domain.entities.payout import (
     PayoutCreate, PayoutUpdate, PayoutInDB, PayoutStatus, 
     BulkPayoutRequest, BulkPayoutResponse, PayoutSummary,
     PayoutSchedule, PayoutHistory, PayslipData

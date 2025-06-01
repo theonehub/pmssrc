@@ -7,8 +7,8 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
-from domain.value_objects.leave_type import LeaveType, LeaveCategory
-from domain.value_objects.leave_policy import LeavePolicy, AccrualType
+from app.domain.value_objects.leave_type import LeaveType, LeaveCategory
+from app.domain.value_objects.leave_policy import LeavePolicy, AccrualType
 
 
 @dataclass

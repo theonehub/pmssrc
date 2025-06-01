@@ -32,7 +32,7 @@ class FileUploadService(ABC):
         self, 
         file: UploadFile, 
         document_type: str,
-        user_id: Optional[str] = None
+        employee_id: Optional[str] = None
     ) -> str:
         """Upload a document and return the file path."""
         pass
@@ -98,7 +98,7 @@ class LocalFileUploadService(FileUploadService):
         self, 
         file: UploadFile, 
         document_type: str,
-        user_id: Optional[str] = None
+        employee_id: Optional[str] = None
     ) -> str:
         """
         Upload a document to local file system.
@@ -106,7 +106,7 @@ class LocalFileUploadService(FileUploadService):
         Args:
             file: File to upload
             document_type: Type of document (photo, pan, aadhar, etc.)
-            user_id: Optional user ID for organizing files
+            employee_id: Optional user ID for organizing files
             
         Returns:
             Relative file path of uploaded file
@@ -135,12 +135,12 @@ class LocalFileUploadService(FileUploadService):
             file_extension = Path(file.filename).suffix.lower()
             unique_filename = f"{uuid.uuid4()}{file_extension}"
             
-            # Add user_id to path if provided
-            if user_id:
-                user_dir = upload_dir / user_id
+            # Add employee_id to path if provided
+            if employee_id:
+                user_dir = upload_dir / employee_id
                 user_dir.mkdir(parents=True, exist_ok=True)
                 file_path = user_dir / unique_filename
-                relative_path = f"{subfolder}/{user_id}/{unique_filename}"
+                relative_path = f"{subfolder}/{employee_id}/{unique_filename}"
             else:
                 file_path = upload_dir / unique_filename
                 relative_path = f"{subfolder}/{unique_filename}"
@@ -340,13 +340,13 @@ class S3FileUploadService(FileUploadService):
         self, 
         file: UploadFile, 
         document_type: str,
-        user_id: Optional[str] = None
+        employee_id: Optional[str] = None
     ) -> str:
         """Upload document to S3."""
         # Implementation would use boto3 to upload to S3
         # For now, return a mock path
         unique_filename = f"{uuid.uuid4()}_{file.filename}"
-        s3_key = f"{document_type}/{user_id}/{unique_filename}" if user_id else f"{document_type}/{unique_filename}"
+        s3_key = f"{document_type}/{employee_id}/{unique_filename}" if employee_id else f"{document_type}/{unique_filename}"
         
         # Mock S3 upload
         logger.info(f"Mock S3 upload: {s3_key}")

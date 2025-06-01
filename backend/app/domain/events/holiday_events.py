@@ -7,9 +7,9 @@ from datetime import datetime
 from typing import Optional
 from dataclasses import dataclass
 
-from domain.events.employee_events import DomainEvent
-from domain.value_objects.holiday_type import HolidayType
-from domain.value_objects.holiday_date_range import HolidayDateRange
+from app.domain.events.employee_events import DomainEvent
+from app.domain.value_objects.holiday_type import HolidayType
+from app.domain.value_objects.holiday_date_range import HolidayDateRange
 
 
 @dataclass

@@ -11,9 +11,9 @@ from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
-from domain.entities.taxation_models.salary_components import SalaryComponents
-from domain.entities.taxation_models.income_sources import IncomeFromOtherSources, CapitalGains
-from domain.entities.taxation_models.constants import (
+from app.domain.entities.taxation_models.salary_components import SalaryComponents
+from app.domain.entities.taxation_models.income_sources import IncomeFromOtherSources, CapitalGains
+from app.domain.entities.taxation_models.constants import (
     section_80g_100_wo_ql_heads,
     section_80g_50_wo_ql_heads,
     section_80g_100_ql_heads,

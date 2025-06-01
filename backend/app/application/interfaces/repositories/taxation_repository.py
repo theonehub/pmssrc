@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any
 from datetime import datetime, date
 
-from application.dto.taxation_dto import (
+from app.application.dto.taxation_dto import (
     TaxationCreateRequestDTO,
     TaxationUpdateRequestDTO,
     TaxationResponseDTO,
@@ -552,7 +552,7 @@ class TaxationAuditRepository(ABC):
         event_type: str,
         event_data: Dict[str, Any],
         hostname: str,
-        user_id: str
+        employee_id: str
     ) -> bool:
         """
         Log taxation calculation event for audit.
@@ -563,7 +563,7 @@ class TaxationAuditRepository(ABC):
             event_type: Type of event
             event_data: Event data
             hostname: Organization hostname
-            user_id: User performing the action
+            employee_id: User performing the action
             
         Returns:
             True if logged successfully

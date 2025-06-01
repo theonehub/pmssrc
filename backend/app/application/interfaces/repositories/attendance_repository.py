@@ -8,8 +8,8 @@ from datetime import date, datetime
 from typing import List, Optional, Dict, Any
 from decimal import Decimal
 
-from domain.entities.attendance import Attendance
-from application.dto.attendance_dto import (
+from app.domain.entities.attendance import Attendance
+from app.application.dto.attendance_dto import (
     AttendanceSearchFiltersDTO,
     AttendanceSummaryDTO,
     AttendanceStatisticsDTO,

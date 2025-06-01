@@ -8,10 +8,10 @@ from typing import Dict, Optional, List, Any
 from datetime import date, datetime
 from decimal import Decimal
 
-from domain.value_objects.employee_id import EmployeeId
-from domain.value_objects.money import Money
-from domain.value_objects.tax_regime import TaxRegime
-from domain.events.taxation_events import (
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.money import Money
+from app.domain.value_objects.tax_regime import TaxRegime
+from app.domain.events.taxation_events import (
     TaxCalculated, TaxRegimeChanged, DeductionAdded, DeductionRemoved
 )
 

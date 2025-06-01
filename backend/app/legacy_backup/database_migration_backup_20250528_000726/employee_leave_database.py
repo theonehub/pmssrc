@@ -20,7 +20,7 @@ def create_employee_leave(leave: EmployeeLeave, hostname: str):
     collection = get_employee_leave_collection(hostname)
     leave_dict = leave.model_dump()
     leave_dict["created_at"] = datetime.now()
-    leave_dict["created_by"] = leave.emp_id
+    leave_dict["created_by"] = leave.employee_id
     result = collection.insert_one(leave_dict)
     return str(result.inserted_id)
 
@@ -32,12 +32,12 @@ def get_employee_leave_by_id(leave_id: str, hostname: str):
     leave = collection.find_one({"leave_id": leave_id})
     return EmployeeLeave(**leave) if leave else None
 
-def get_employee_leaves_by_emp_id(emp_id: str, hostname: str):
+def get_employee_leaves_by_employee_id(employee_id: str, hostname: str):
     """
     Retrieves all employee leaves for a specific employee.
     """
     collection = get_employee_leave_collection(hostname)
-    leaves = collection.find({"emp_id": emp_id}).to_list(length=None)
+    leaves = collection.find({"employee_id": employee_id}).to_list(length=None)
     return [EmployeeLeave(**leave) for leave in leaves]
 
 def update_employee_leave(leave_id: str, update_data: dict, hostname: str):
@@ -62,13 +62,13 @@ def delete_employee_leave(leave_id: str, hostname: str):
     collection = get_employee_leave_collection(hostname)
     collection.delete_one({"leave_id": leave_id}) 
 
-def get_all_employee_leaves(hostname: str, emp_ids: list = None):
+def get_all_employee_leaves(hostname: str, employee_ids: list = None):
     """
     Retrieves all employee leaves from the employee leave collection.
     """
     collection = get_employee_leave_collection(hostname)
-    if emp_ids:
-        leaves = collection.find({"emp_id": {"$in": emp_ids}}).to_list(length=None)
+    if employee_ids:
+        leaves = collection.find({"employee_id": {"$in": employee_ids}}).to_list(length=None)
     else:
         leaves = collection.find().to_list(length=None)
     return [EmployeeLeave(**leave) for leave in leaves]
@@ -82,7 +82,7 @@ def get_employee_leaves_by_manager_id(manager_id: str, hostname: str):
     return [EmployeeLeave(**leave) for leave in leaves]
 
 
-def get_employee_leaves_by_month_for_emp_id(emp_id: str, year: int, month: int, month_start: datetime, month_end: datetime, hostname: str):
+def get_employee_leaves_by_month_for_employee_id(employee_id: str, year: int, month: int, month_start: datetime, month_end: datetime, hostname: str):
     """
     Retrieves all employee leaves for a specific employee in a specific month.
     """
@@ -91,7 +91,7 @@ def get_employee_leaves_by_month_for_emp_id(emp_id: str, year: int, month: int, 
     month_start_str = month_start.strftime("%Y-%m-%d")
     month_end_str = month_end.strftime("%Y-%m-%d")
     leaves = list(collection.find({
-        "emp_id": emp_id,
+        "employee_id": employee_id,
         "$or": [
             # Leave starts in this month
             {"start_date": {"$gte": month_start_str, "$lte": month_end_str}},

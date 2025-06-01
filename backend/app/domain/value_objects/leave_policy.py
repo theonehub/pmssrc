@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Optional, Dict, List
 from decimal import Decimal
 
-from domain.value_objects.leave_type import LeaveType, AccrualType
+from app.domain.value_objects.leave_type import LeaveType, AccrualType
 
 
 @dataclass(frozen=True)

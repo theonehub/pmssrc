@@ -7,14 +7,14 @@ import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
-from application.dto.taxation_dto import (
+from app.application.dto.taxation_dto import (
     TaxationResponseDTO,
     TaxProjectionDTO,
     TaxComparisonDTO,
     TaxStatisticsDTO,
     TaxBreakdownDTO
 )
-from application.interfaces.repositories.taxation_repository import (
+from app.application.interfaces.repositories.taxation_repository import (
     TaxationCalculationRepository,
     TaxationAnalyticsRepository
 )
@@ -57,8 +57,8 @@ class TaxationMigrationService:
         try:
             logger.info(f"Getting taxation data using legacy service for {employee_id}")
             
-            # Use legacy get_or_create_taxation_by_emp_id function
-            taxation_data = get_or_create_taxation_by_emp_id(employee_id, hostname)
+            # Use legacy get_or_create_taxation_by_employee_id function
+            taxation_data = get_or_create_taxation_by_employee_id(employee_id, hostname)
             
             logger.info(f"Retrieved taxation data for {employee_id}")
             return taxation_data
@@ -93,7 +93,7 @@ class TaxationMigrationService:
             total_tax = calculate_total_tax(employee_id, hostname)
             
             # Get taxation data
-            taxation_data = get_or_create_taxation_by_emp_id(employee_id, hostname)
+            taxation_data = get_or_create_taxation_by_employee_id(employee_id, hostname)
             
             # Extract calculation details from taxation data
             tax_breakdown = taxation_data.get("tax_breakup", {})
@@ -137,7 +137,7 @@ class TaxationMigrationService:
             logger.info(f"Calculating tax projection using legacy service for {employee_id}")
             
             # Get current taxation data
-            taxation_data = get_or_create_taxation_by_emp_id(employee_id, hostname)
+            taxation_data = get_or_create_taxation_by_employee_id(employee_id, hostname)
             
             # Calculate current tax
             current_tax = calculate_total_tax(employee_id, hostname)
@@ -198,7 +198,7 @@ class TaxationMigrationService:
             logger.info(f"Calculating tax comparison using legacy service for {employee_id}")
             
             # Get taxation data
-            taxation_data = get_or_create_taxation_by_emp_id(employee_id, hostname)
+            taxation_data = get_or_create_taxation_by_employee_id(employee_id, hostname)
             
             # Get employee age and income
             emp_age = taxation_data.get("emp_age", 0)
@@ -342,7 +342,7 @@ class TaxationMigrationService:
         try:
             # This would integrate with salary history service if available
             # For now, return basic projection from taxation data
-            taxation_data = get_or_create_taxation_by_emp_id(employee_id, hostname)
+            taxation_data = get_or_create_taxation_by_employee_id(employee_id, hostname)
             
             if not taxation_data:
                 return None

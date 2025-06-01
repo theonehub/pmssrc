@@ -17,15 +17,15 @@ from datetime import datetime, date
 from typing import List, Optional, Dict, Any
 from bson import ObjectId
 
-from infrastructure.database.database_connector import DatabaseConnector
-from infrastructure.repositories.base_repository import BaseRepository
-from application.interfaces.repositories.salary_history_repository_interface import (
+from app.infrastructure.database.database_connector import DatabaseConnector
+from app.infrastructure.repositories.base_repository import BaseRepository
+from app.application.interfaces.repositories.salary_history_repository_interface import (
     SalaryHistoryCommandRepository,
     SalaryHistoryQueryRepository,
     SalaryHistoryAnalyticsRepository
 )
-from domain.entities.salary_history import SalaryHistoryInDB
-from application.dto.salary_history_dto import (
+from app.domain.entities.salary_history import SalaryHistoryInDB
+from app.application.dto.salary_history_dto import (
     SalaryHistoryCreateDTO,
     SalaryHistoryUpdateDTO,
     SalaryHistoryResponseDTO

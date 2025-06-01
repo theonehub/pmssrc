@@ -290,7 +290,7 @@ def test_public_holiday_repository():
                     print(f"Error deleting public holiday: {e}")
                     return False
             
-            async def bulk_import(self, holiday_data_list, emp_id, organization_id):
+            async def bulk_import(self, holiday_data_list, employee_id, organization_id):
                 try:
                     collection = self._get_collection(organization_id)
                     inserted_count = 0
@@ -300,7 +300,7 @@ def test_public_holiday_repository():
                             document = {
                                 "name": holiday_data['name'],
                                 "description": holiday_data.get('description', ''),
-                                "created_by": emp_id,
+                                "created_by": employee_id,
                                 "created_at": datetime.now(),
                                 "updated_at": datetime.now(),
                                 "is_active": True,

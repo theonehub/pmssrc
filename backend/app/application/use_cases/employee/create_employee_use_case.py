@@ -7,17 +7,17 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Optional
 
-from domain.entities.employee import Employee, EmployeeType
-from domain.value_objects.employee_id import EmployeeId
-from domain.value_objects.money import Money
-from application.interfaces.repositories.employee_repository import (
+from app.domain.entities.employee import Employee, EmployeeType
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.money import Money
+from app.application.interfaces.repositories.employee_repository import (
     EmployeeRepository, 
     EmployeeQueryRepository,
     EmployeeAlreadyExistsError
 )
-from application.dto.employee_dto import CreateEmployeeRequest, CreateEmployeeResponse
-from application.interfaces.services.email_service import EmailService
-from application.interfaces.services.event_publisher import EventPublisher
+from app.application.dto.employee_dto import CreateEmployeeRequest, CreateEmployeeResponse
+from app.application.interfaces.services.email_service import EmailService
+from app.application.interfaces.services.event_publisher import EventPublisher
 
 
 @dataclass

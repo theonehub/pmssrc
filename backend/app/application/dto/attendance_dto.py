@@ -9,7 +9,6 @@ from decimal import Decimal
 from pydantic import BaseModel, Field, validator, model_validator
 from enum import Enum
 
-
 # ==================== ENUMS ====================
 
 class AttendanceStatusEnum(str, Enum):
@@ -39,7 +38,7 @@ class AttendanceMarkingTypeEnum(str, Enum):
 class AttendanceCheckInRequestDTO(BaseModel):
     """DTO for check-in requests"""
     employee_id: Optional[str] = Field(None, description="Employee ID")
-    emp_id: Optional[str] = Field(None, description="Employee ID (alternate field name)")
+    employee_id: Optional[str] = Field(None, description="Employee ID (alternate field name)")
     check_in_time: Optional[datetime] = Field(None, description="Check-in time (defaults to current time)")
     timestamp: Optional[datetime] = Field(None, description="Timestamp (alternate field name)")
     location: Optional[str] = Field(None, description="Check-in location")
@@ -47,18 +46,19 @@ class AttendanceCheckInRequestDTO(BaseModel):
     
     @model_validator(mode='after')
     def validate_employee_required(self):
-        """Final validation to ensure either employee_id or emp_id is provided"""
-        # Use emp_id if employee_id is not provided
-        if not self.employee_id and self.emp_id:
-            self.employee_id = str(self.emp_id).strip()
+        """Final validation to ensure either employee_id or employee_id is provided"""
+        # Use employee_id if employee_id is not provided
+        if not self.employee_id and self.employee_id:
+            self.employee_id = str(self.employee_id).strip()
         
         if not self.employee_id or not str(self.employee_id).strip():
             raise ValueError("Employee ID is required")
             
+            
         # Use timestamp if check_in_time is not provided
         if not self.check_in_time and self.timestamp:
             self.check_in_time = self.timestamp
-            
+        
         if self.check_in_time and self.check_in_time > datetime.now():
             raise ValueError("Check-in time cannot be in the future")
             
@@ -68,7 +68,7 @@ class AttendanceCheckInRequestDTO(BaseModel):
 class AttendanceCheckOutRequestDTO(BaseModel):
     """DTO for check-out requests"""
     employee_id: Optional[str] = Field(None, description="Employee ID")
-    emp_id: Optional[str] = Field(None, description="Employee ID (alternate field name)")
+    employee_id: Optional[str] = Field(None, description="Employee ID (alternate field name)")
     check_out_time: Optional[datetime] = Field(None, description="Check-out time (defaults to current time)")
     timestamp: Optional[datetime] = Field(None, description="Timestamp (alternate field name)")
     location: Optional[str] = Field(None, description="Check-out location")
@@ -76,10 +76,10 @@ class AttendanceCheckOutRequestDTO(BaseModel):
     
     @model_validator(mode='after')
     def validate_employee_required(self):
-        """Final validation to ensure either employee_id or emp_id is provided"""
-        # Use emp_id if employee_id is not provided
-        if not self.employee_id and self.emp_id:
-            self.employee_id = str(self.emp_id).strip()
+        """Final validation to ensure either employee_id or employee_id is provided"""
+        # Use employee_id if employee_id is not provided
+        if not self.employee_id and self.employee_id:
+            self.employee_id = str(self.employee_id).strip()
         
         if not self.employee_id or not str(self.employee_id).strip():
             raise ValueError("Employee ID is required")
@@ -97,7 +97,7 @@ class AttendanceCheckOutRequestDTO(BaseModel):
 class AttendanceBreakRequestDTO(BaseModel):
     """DTO for break start/end requests"""
     employee_id: Optional[str] = Field(None, description="Employee ID")
-    emp_id: Optional[str] = Field(None, description="Employee ID (alternate field name)")
+    employee_id: Optional[str] = Field(None, description="Employee ID (alternate field name)")
     break_time: Optional[datetime] = Field(None, description="Break time (defaults to current time)")
     timestamp: Optional[datetime] = Field(None, description="Timestamp (alternate field name)")
     break_type: str = Field("start", description="Break type: 'start' or 'end'")
@@ -105,10 +105,10 @@ class AttendanceBreakRequestDTO(BaseModel):
     
     @model_validator(mode='after')
     def validate_employee_required(self):
-        """Final validation to ensure either employee_id or emp_id is provided"""
-        # Use emp_id if employee_id is not provided
-        if not self.employee_id and self.emp_id:
-            self.employee_id = str(self.emp_id).strip()
+        """Final validation to ensure either employee_id or employee_id is provided"""
+        # Use employee_id if employee_id is not provided
+        if not self.employee_id and self.employee_id:
+            self.employee_id = str(self.employee_id).strip()
         
         if not self.employee_id or not str(self.employee_id).strip():
             raise ValueError("Employee ID is required")
@@ -193,7 +193,7 @@ class AttendanceCommentRequestDTO(BaseModel):
 class AttendanceSearchFiltersDTO(BaseModel):
     """DTO for attendance search filters"""
     employee_id: Optional[str] = Field(None, description="Filter by employee ID")
-    emp_id: Optional[str] = Field(None, description="Filter by employee ID (alternate field name)")
+    employee_id: Optional[str] = Field(None, description="Filter by employee ID (alternate field name)")
     employee_ids: Optional[List[str]] = Field(None, description="Filter by multiple employee IDs")
     manager_id: Optional[str] = Field(None, description="Filter by manager ID for team queries")
     status: Optional[AttendanceStatusEnum] = Field(None, description="Filter by status")

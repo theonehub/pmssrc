@@ -20,7 +20,7 @@ from app.application.dto.reimbursement_dto import (
     ReimbursementValidationError,
     ReimbursementBusinessRuleError
 )
-from app.auth.auth import extract_hostname, extract_emp_id, role_checker
+from app.auth.auth import extract_hostname, extract_employee_id, role_checker
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ def get_controller() -> ReimbursementController:
 @router.post("/requests", response_model=ReimbursementResponseDTO)
 async def create_reimbursement_request(
     request_data: ReimbursementRequestCreateDTO,
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     controller: ReimbursementController = Depends(get_controller)
 ):
@@ -64,7 +64,7 @@ async def create_reimbursement_request(
     """
     try:
         # Set employee ID from authentication
-        request_data.employee_id = emp_id
+        request_data.employee_id = employee_id
         
         result = await controller.create_reimbursement_request(request_data, hostname)
         return result
@@ -84,7 +84,7 @@ async def create_reimbursement_request_with_file(
     amount: float = Form(...),
     description: str = Form(""),
     file: UploadFile = File(...),
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     controller: ReimbursementController = Depends(get_controller)
 ):
@@ -99,7 +99,7 @@ async def create_reimbursement_request_with_file(
     try:
         # Create DTO from form data
         request_data = ReimbursementRequestCreateDTO(
-            employee_id=emp_id,
+            employee_id=employee_id,
             reimbursement_type_id=reimbursement_type_id,
             amount=amount,
             description=description
@@ -124,7 +124,7 @@ async def get_my_reimbursement_requests(
     status: Optional[str] = Query(None, description="Filter by status"),
     limit: int = Query(50, ge=1, le=100, description="Number of requests to return"),
     offset: int = Query(0, ge=0, description="Number of requests to skip"),
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     controller: ReimbursementController = Depends(get_controller)
 ):
@@ -137,7 +137,7 @@ async def get_my_reimbursement_requests(
     """
     try:
         filters = ReimbursementSearchFiltersDTO(
-            employee_id=emp_id,
+            employee_id=employee_id,
             status=status,
             limit=limit,
             offset=offset
@@ -155,7 +155,7 @@ async def get_my_reimbursement_requests(
 async def get_pending_reimbursement_requests(
     limit: int = Query(50, ge=1, le=100, description="Number of requests to return"),
     offset: int = Query(0, ge=0, description="Number of requests to skip"),
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["manager", "admin", "superadmin"])),
     controller: ReimbursementController = Depends(get_controller)
@@ -172,7 +172,7 @@ async def get_pending_reimbursement_requests(
     try:
         # For managers, filter by their managed employees
         # For admin/superadmin, show all pending requests
-        manager_id = emp_id if role == "manager" else None
+        manager_id = employee_id if role == "manager" else None
         
         filters = ReimbursementSearchFiltersDTO(
             status="pending",
@@ -193,7 +193,7 @@ async def get_pending_reimbursement_requests(
 async def get_approved_reimbursement_requests(
     limit: int = Query(50, ge=1, le=100, description="Number of requests to return"),
     offset: int = Query(0, ge=0, description="Number of requests to skip"),
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["manager", "admin", "superadmin"])),
     controller: ReimbursementController = Depends(get_controller)
@@ -210,7 +210,7 @@ async def get_approved_reimbursement_requests(
     try:
         # For managers, filter by their managed employees
         # For admin/superadmin, show all approved requests
-        manager_id = emp_id if role == "manager" else None
+        manager_id = employee_id if role == "manager" else None
         
         filters = ReimbursementSearchFiltersDTO(
             status="approved",
@@ -230,7 +230,7 @@ async def get_approved_reimbursement_requests(
 @router.get("/requests/{request_id}", response_model=ReimbursementResponseDTO)
 async def get_reimbursement_request(
     request_id: str,
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     controller: ReimbursementController = Depends(get_controller)
 ):
@@ -240,7 +240,7 @@ async def get_reimbursement_request(
     - **request_id**: ID of the reimbursement request
     """
     try:
-        result = await controller.get_reimbursement_request(request_id, emp_id, hostname)
+        result = await controller.get_reimbursement_request(request_id, employee_id, hostname)
         return result
         
     except Exception as e:
@@ -252,7 +252,7 @@ async def get_reimbursement_request(
 async def update_reimbursement_request(
     request_id: str,
     request_data: ReimbursementRequestCreateDTO,
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     controller: ReimbursementController = Depends(get_controller)
 ):
@@ -264,10 +264,10 @@ async def update_reimbursement_request(
     """
     try:
         # Set employee ID from authentication
-        request_data.employee_id = emp_id
+        request_data.employee_id = employee_id
         
         result = await controller.update_reimbursement_request(
-            request_id, request_data, emp_id, hostname
+            request_id, request_data, employee_id, hostname
         )
         return result
         
@@ -280,7 +280,7 @@ async def update_reimbursement_request(
 async def approve_reimbursement_request(
     request_id: str,
     approval_data: ReimbursementApprovalDTO,
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["manager", "admin", "superadmin"])),
     controller: ReimbursementController = Depends(get_controller)
@@ -293,7 +293,7 @@ async def approve_reimbursement_request(
     """
     try:
         # Set approver ID from authentication
-        approval_data.approved_by = emp_id
+        approval_data.approved_by = employee_id
         
         result = await controller.approve_reimbursement_request(
             request_id, approval_data, hostname
@@ -309,7 +309,7 @@ async def approve_reimbursement_request(
 async def reject_reimbursement_request(
     request_id: str,
     rejection_reason: str = Body(..., embed=True),
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["manager", "admin", "superadmin"])),
     controller: ReimbursementController = Depends(get_controller)
@@ -322,7 +322,7 @@ async def reject_reimbursement_request(
     """
     try:
         result = await controller.reject_reimbursement_request(
-            request_id, rejection_reason, emp_id, hostname
+            request_id, rejection_reason, employee_id, hostname
         )
         return result
         
@@ -334,7 +334,7 @@ async def reject_reimbursement_request(
 @router.delete("/requests/{request_id}")
 async def delete_reimbursement_request(
     request_id: str,
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     controller: ReimbursementController = Depends(get_controller)
 ):
@@ -344,7 +344,7 @@ async def delete_reimbursement_request(
     - **request_id**: ID of the reimbursement request
     """
     try:
-        await controller.delete_reimbursement_request(request_id, emp_id, hostname)
+        await controller.delete_reimbursement_request(request_id, employee_id, hostname)
         return {"message": "Reimbursement request deleted successfully"}
         
     except Exception as e:
@@ -357,7 +357,7 @@ async def delete_reimbursement_request(
 @router.post("/types", response_model=ReimbursementTypeResponseDTO)
 async def create_reimbursement_type(
     type_data: ReimbursementTypeCreateRequestDTO,
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["admin", "superadmin"])),
     controller: ReimbursementController = Depends(get_controller)
@@ -371,7 +371,7 @@ async def create_reimbursement_type(
     - **description**: Optional description
     """
     try:
-        result = await controller.create_reimbursement_type(type_data, emp_id, hostname)
+        result = await controller.create_reimbursement_type(type_data, employee_id, hostname)
         return result
         
     except ReimbursementValidationError as e:
@@ -425,7 +425,7 @@ async def get_reimbursement_type(
 async def update_reimbursement_type(
     type_id: str,
     type_data: ReimbursementTypeCreateRequestDTO,
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["admin", "superadmin"])),
     controller: ReimbursementController = Depends(get_controller)
@@ -438,7 +438,7 @@ async def update_reimbursement_type(
     """
     try:
         result = await controller.update_reimbursement_type(
-            type_id, type_data, emp_id, hostname
+            type_id, type_data, employee_id, hostname
         )
         return result
         
@@ -450,7 +450,7 @@ async def update_reimbursement_type(
 @router.delete("/types/{type_id}")
 async def delete_reimbursement_type(
     type_id: str,
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["admin", "superadmin"])),
     controller: ReimbursementController = Depends(get_controller)
@@ -461,7 +461,7 @@ async def delete_reimbursement_type(
     - **type_id**: ID of the reimbursement type
     """
     try:
-        await controller.delete_reimbursement_type(type_id, emp_id, hostname)
+        await controller.delete_reimbursement_type(type_id, employee_id, hostname)
         return {"message": "Reimbursement type deleted successfully"}
         
     except Exception as e:
@@ -475,7 +475,7 @@ async def delete_reimbursement_type(
 async def get_reimbursement_analytics(
     start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
-    emp_id: str = Depends(extract_emp_id),
+    employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["manager", "admin", "superadmin"])),
     controller: ReimbursementController = Depends(get_controller)
@@ -491,7 +491,7 @@ async def get_reimbursement_analytics(
     """
     try:
         # For managers, filter by their managed employees
-        manager_id = emp_id if role == "manager" else None
+        manager_id = employee_id if role == "manager" else None
         
         result = await controller.get_reimbursement_analytics(
             start_date, end_date, manager_id, hostname

@@ -6,14 +6,14 @@ Handles the business logic for retrieving user information
 import logging
 from typing import Optional
 
-from domain.entities.user import User
-from domain.value_objects.employee_id import EmployeeId
-from domain.value_objects.user_documents import UserDocuments
-from application.dto.user_dto import (
+from app.domain.entities.user import User
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.user_documents import UserDocuments
+from app.application.dto.user_dto import (
     UserResponseDTO, UserNotFoundError, UserAuthorizationError
 )
-from application.interfaces.repositories.user_repository import UserQueryRepository
-from application.interfaces.services.user_service import UserAuthorizationService
+from app.application.interfaces.repositories.user_repository import UserQueryRepository
+from app.application.interfaces.services.user_service import UserAuthorizationService
 
 
 logger = logging.getLogger(__name__)
@@ -47,15 +47,15 @@ class GetUserUseCase:
     
     async def execute(
         self, 
-        user_id: str, 
-        requesting_user_id: Optional[str] = None
+        employee_id: str, 
+        requesting_employee_id: Optional[str] = None
     ) -> UserResponseDTO:
         """
         Execute the get user use case.
         
         Args:
-            user_id: ID of user to retrieve
-            requesting_user_id: ID of user making the request
+            employee_id: ID of user to retrieve
+            requesting_employee_id: ID of user making the request
             
         Returns:
             User response DTO
@@ -64,28 +64,28 @@ class GetUserUseCase:
             UserNotFoundError: If user not found
             UserAuthorizationError: If requesting user lacks permission
         """
-        logger.info(f"Retrieving user: {user_id}")
+        logger.info(f"Retrieving user: {employee_id}")
         
         # Step 1: Get user by ID
-        user = await self._get_user_by_id(user_id)
+        user = await self._get_user_by_id(employee_id)
         
         # Step 2: Check authorization
-        await self._check_authorization(user_id, requesting_user_id)
+        await self._check_authorization(employee_id, requesting_employee_id)
         
         # Step 3: Convert to response DTO with appropriate filtering
-        response = self._convert_to_response_dto(user, requesting_user_id)
+        response = self._convert_to_response_dto(user, requesting_employee_id)
         
-        logger.info(f"User retrieved successfully: {user_id}")
+        logger.info(f"User retrieved successfully: {employee_id}")
         return response
     
-    async def _get_user_by_id(self, user_id: str) -> User:
+    async def _get_user_by_id(self, employee_id: str) -> User:
         """Get user by ID"""
-        employee_id = EmployeeId(user_id)
+        employee_id = EmployeeId(employee_id)
         user = await self.query_repository.get_by_id(employee_id)
         
         if not user:
             raise UserNotFoundError(
-                f"User not found: {user_id}",
+                f"User not found: {employee_id}",
                 "user_not_found"
             )
         
@@ -93,17 +93,17 @@ class GetUserUseCase:
     
     async def _check_authorization(
         self, 
-        target_user_id: str, 
-        requesting_user_id: Optional[str]
+        target_employee_id: str, 
+        requesting_employee_id: Optional[str]
     ) -> None:
         """Check if requesting user can access target user's data"""
-        if not requesting_user_id:
+        if not requesting_employee_id:
             # System access or public API - allow basic info only
             return
         
         # Check if user can access the target user's data
         can_access = await self.authorization_service.can_access_user_data(
-            requesting_user_id, target_user_id
+            requesting_employee_id, target_employee_id
         )
         
         if not can_access:
@@ -115,16 +115,15 @@ class GetUserUseCase:
     def _convert_to_response_dto(
         self, 
         user: User, 
-        requesting_user_id: Optional[str]
+        requesting_employee_id: Optional[str]
     ) -> UserResponseDTO:
         """Convert user entity to response DTO with appropriate filtering"""
         
         # Determine what level of detail to include based on permissions
-        include_sensitive = self._should_include_sensitive_data(user, requesting_user_id)
-        include_personal = self._should_include_personal_data(user, requesting_user_id)
+        include_sensitive = self._should_include_sensitive_data(user, requesting_employee_id)
+        include_personal = self._should_include_personal_data(user, requesting_employee_id)
         
         response = UserResponseDTO(
-            user_id=str(user.employee_id),
             employee_id=str(user.employee_id),
             name=user.name,
             email=user.email,
@@ -176,14 +175,14 @@ class GetUserUseCase:
     def _should_include_sensitive_data(
         self, 
         user: User, 
-        requesting_user_id: Optional[str]
+        requesting_employee_id: Optional[str]
     ) -> bool:
         """Determine if sensitive data should be included"""
-        if not requesting_user_id:
+        if not requesting_employee_id:
             return False
         
         # User can always see their own sensitive data
-        if str(user.employee_id) == requesting_user_id:
+        if str(user.employee_id) == requesting_employee_id:
             return True
         
         # This would typically check if requesting user has admin/HR permissions
@@ -193,14 +192,14 @@ class GetUserUseCase:
     def _should_include_personal_data(
         self, 
         user: User, 
-        requesting_user_id: Optional[str]
+        requesting_employee_id: Optional[str]
     ) -> bool:
         """Determine if personal data should be included"""
-        if not requesting_user_id:
+        if not requesting_employee_id:
             return False
         
         # User can always see their own personal data
-        if str(user.employee_id) == requesting_user_id:
+        if str(user.employee_id) == requesting_employee_id:
             return True
         
         # This would typically check if requesting user has appropriate permissions

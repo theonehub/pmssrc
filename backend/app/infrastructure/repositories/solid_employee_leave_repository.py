@@ -11,10 +11,10 @@ from pymongo.errors import DuplicateKeyError
 
 # Import domain entities
 try:
-    from domain.entities.employee_leave import EmployeeLeave
-    from domain.value_objects.employee_id import EmployeeId
-    from domain.value_objects.leave_type import LeaveType
-    from domain.value_objects.date_range import DateRange
+    from app.domain.entities.employee_leave import EmployeeLeave
+    from app.domain.value_objects.employee_id import EmployeeId
+    from app.domain.value_objects.leave_type import LeaveType
+    from app.domain.value_objects.date_range import DateRange
     from models.leave_model import LeaveStatus
 except ImportError:
     # Fallback classes for migration compatibility
@@ -51,7 +51,7 @@ except ImportError:
 
 # Import application interfaces
 try:
-    from application.interfaces.repositories.employee_leave_repository import (
+    from app.application.interfaces.repositories.employee_leave_repository import (
         EmployeeLeaveCommandRepository, EmployeeLeaveQueryRepository,
         EmployeeLeaveAnalyticsRepository, EmployeeLeaveRepository
     )
@@ -73,7 +73,7 @@ except ImportError:
 
 # Import DTOs
 try:
-    from application.dto.employee_leave_dto import (
+    from app.application.dto.employee_leave_dto import (
         EmployeeLeaveSearchFiltersDTO, EmployeeLeaveSummaryDTO,
         EmployeeLeaveStatisticsDTO
     )
@@ -152,12 +152,12 @@ class SolidEmployeeLeaveRepository(
         if 'leave_id' not in document and hasattr(leave, 'leave_id'):
             document['leave_id'] = getattr(leave, 'leave_id')
         
-        if 'emp_id' not in document and hasattr(leave, 'employee_id'):
-            emp_id = getattr(leave, 'employee_id')
-            if hasattr(emp_id, 'value'):
-                document['emp_id'] = emp_id.value
+        if 'employee_id' not in document and hasattr(leave, 'employee_id'):
+            employee_id = getattr(leave, 'employee_id')
+            if hasattr(employee_id, 'value'):
+                document['employee_id'] = employee_id.value
             else:
-                document['emp_id'] = str(emp_id)
+                document['employee_id'] = str(employee_id)
         
         # Handle date range
         date_range = getattr(leave, 'date_range', None)
@@ -199,8 +199,8 @@ class SolidEmployeeLeaveRepository(
             del document['_id']
         
         # Map legacy fields to new structure
-        if 'emp_id' in document and 'employee_id' not in document:
-            document['employee_id'] = document['emp_id']
+        if 'employee_id' in document and 'employee_id' not in document:
+            document['employee_id'] = document['employee_id']
         
         if 'leave_name' in document and 'leave_type' not in document:
             document['leave_type'] = document['leave_name']
@@ -223,7 +223,7 @@ class SolidEmployeeLeaveRepository(
             
             # Index for employee queries
             await collection.create_index([
-                ("emp_id", 1),
+                ("employee_id", 1),
                 ("start_date", -1)
             ])
             
@@ -279,7 +279,7 @@ class SolidEmployeeLeaveRepository(
             
             # Set created_by if not present
             if not document.get('created_by'):
-                document['created_by'] = document.get('emp_id')
+                document['created_by'] = document.get('employee_id')
             
             # Check for existing record by leave_id
             existing = await self.get_by_id(document.get('leave_id'), organization_id)
@@ -376,14 +376,14 @@ class SolidEmployeeLeaveRepository(
             logger.error(f"Error retrieving employee leave {leave_id}: {e}")
             return None
     
-    async def get_by_employee_id(self, emp_id: str, organization_id: str = "default") -> List[EmployeeLeave]:
+    async def get_by_employee_id(self, employee_id: str, organization_id: str = "default") -> List[EmployeeLeave]:
         """
         Get all employee leaves for a specific employee.
         
-        Replaces: get_employee_leaves_by_emp_id() function
+        Replaces: get_employee_leaves_by_employee_id() function
         """
         try:
-            filters = {"emp_id": emp_id}
+            filters = {"employee_id": employee_id}
             
             documents = await self._execute_query(
                 filters=filters,
@@ -396,11 +396,11 @@ class SolidEmployeeLeaveRepository(
             return [self._document_to_entity(doc) for doc in documents]
             
         except Exception as e:
-            logger.error(f"Error retrieving employee leaves for {emp_id}: {e}")
+            logger.error(f"Error retrieving employee leaves for {employee_id}: {e}")
             return []
     
     async def get_all(self, organization_id: str = "default", 
-                     emp_ids: Optional[List[str]] = None) -> List[EmployeeLeave]:
+                     employee_ids: Optional[List[str]] = None) -> List[EmployeeLeave]:
         """
         Get all employee leaves.
         
@@ -409,8 +409,8 @@ class SolidEmployeeLeaveRepository(
         try:
             filters = {}
             
-            if emp_ids:
-                filters["emp_id"] = {"$in": emp_ids}
+            if employee_ids:
+                filters["employee_id"] = {"$in": employee_ids}
             
             documents = await self._execute_query(
                 filters=filters,
@@ -450,12 +450,12 @@ class SolidEmployeeLeaveRepository(
             logger.error(f"Error retrieving employee leaves for manager {manager_id}: {e}")
             return []
     
-    async def get_by_employee_and_month(self, emp_id: str, year: int, month: int,
+    async def get_by_employee_and_month(self, employee_id: str, year: int, month: int,
                                        organization_id: str = "default") -> List[EmployeeLeave]:
         """
         Get employee leaves for a specific month.
         
-        Replaces: get_employee_leaves_by_month_for_emp_id() function
+        Replaces: get_employee_leaves_by_month_for_employee_id() function
         """
         try:
             # Calculate month boundaries
@@ -470,7 +470,7 @@ class SolidEmployeeLeaveRepository(
             
             # Build query for leaves that overlap with the month
             filters = {
-                "emp_id": emp_id,
+                "employee_id": employee_id,
                 "$or": [
                     # Leave starts in this month
                     {"start_date": {"$gte": month_start_str, "$lte": month_end_str}},
@@ -495,12 +495,12 @@ class SolidEmployeeLeaveRepository(
             return [self._document_to_entity(doc) for doc in documents]
             
         except Exception as e:
-            logger.error(f"Error retrieving employee leaves for {emp_id} in {year}-{month}: {e}")
+            logger.error(f"Error retrieving employee leaves for {employee_id} in {year}-{month}: {e}")
             return []
     
     async def get_by_date_range(self, start_date: date, end_date: date,
                                organization_id: str = "default",
-                               emp_ids: Optional[List[str]] = None) -> List[EmployeeLeave]:
+                               employee_ids: Optional[List[str]] = None) -> List[EmployeeLeave]:
         """Get employee leaves within a date range."""
         try:
             start_str = start_date.strftime("%Y-%m-%d")
@@ -520,8 +520,8 @@ class SolidEmployeeLeaveRepository(
                 ]
             }
             
-            if emp_ids:
-                filters["emp_id"] = {"$in": emp_ids}
+            if employee_ids:
+                filters["employee_id"] = {"$in": employee_ids}
             
             documents = await self._execute_query(
                 filters=filters,
@@ -564,10 +564,10 @@ class SolidEmployeeLeaveRepository(
             query_filters = {}
             
             if hasattr(filters, 'employee_id') and filters.employee_id:
-                query_filters["emp_id"] = filters.employee_id
+                query_filters["employee_id"] = filters.employee_id
             
             if hasattr(filters, 'employee_ids') and filters.employee_ids:
-                query_filters["emp_id"] = {"$in": filters.employee_ids}
+                query_filters["employee_id"] = {"$in": filters.employee_ids}
             
             if hasattr(filters, 'status') and filters.status:
                 query_filters["status"] = filters.status
@@ -613,7 +613,7 @@ class SolidEmployeeLeaveRepository(
             query_filters = {}
             
             if hasattr(filters, 'employee_id') and filters.employee_id:
-                query_filters["emp_id"] = filters.employee_id
+                query_filters["employee_id"] = filters.employee_id
             
             if hasattr(filters, 'status') and filters.status:
                 query_filters["status"] = filters.status
@@ -690,7 +690,7 @@ class SolidEmployeeLeaveRepository(
             logger.error(f"Error getting leave statistics: {e}")
             return {}
     
-    async def get_employee_leave_summary(self, emp_id: str, year: int,
+    async def get_employee_leave_summary(self, employee_id: str, year: int,
                                         organization_id: str = "default") -> Dict[str, Any]:
         """Get leave summary for an employee."""
         try:
@@ -698,7 +698,7 @@ class SolidEmployeeLeaveRepository(
             end_date = f"{year}-12-31"
             
             filters = {
-                "emp_id": emp_id,
+                "employee_id": employee_id,
                 "$or": [
                     {"start_date": {"$gte": start_date, "$lte": end_date}},
                     {"end_date": {"$gte": start_date, "$lte": end_date}},
@@ -730,7 +730,7 @@ class SolidEmployeeLeaveRepository(
                 leave_types[leave_type]["days"] += leave.get('leave_count', 0)
             
             return {
-                "employee_id": emp_id,
+                "employee_id": employee_id,
                 "year": year,
                 "total_leaves": total_leaves,
                 "approved_leaves": approved_leaves,
@@ -768,11 +768,11 @@ class SolidEmployeeLeaveRepository(
         """
         return await self.get_by_id(leave_id, hostname)
     
-    async def get_employee_leaves_by_emp_id_legacy(self, emp_id: str, hostname: str) -> List[EmployeeLeave]:
+    async def get_employee_leaves_by_employee_id_legacy(self, employee_id: str, hostname: str) -> List[EmployeeLeave]:
         """
-        Legacy compatibility for get_employee_leaves_by_emp_id() function.
+        Legacy compatibility for get_employee_leaves_by_employee_id() function.
         """
-        return await self.get_by_employee_id(emp_id, hostname)
+        return await self.get_by_employee_id(employee_id, hostname)
     
     async def update_employee_leave_legacy(self, leave_id: str, update_data: dict, hostname: str):
         """
@@ -786,11 +786,11 @@ class SolidEmployeeLeaveRepository(
         """
         return await self.delete(leave_id, hostname)
     
-    async def get_all_employee_leaves_legacy(self, hostname: str, emp_ids: list = None) -> List[EmployeeLeave]:
+    async def get_all_employee_leaves_legacy(self, hostname: str, employee_ids: list = None) -> List[EmployeeLeave]:
         """
         Legacy compatibility for get_all_employee_leaves() function.
         """
-        return await self.get_all(hostname, emp_ids)
+        return await self.get_all(hostname, employee_ids)
     
     async def get_employee_leaves_by_manager_id_legacy(self, manager_id: str, hostname: str) -> List[EmployeeLeave]:
         """
@@ -798,11 +798,452 @@ class SolidEmployeeLeaveRepository(
         """
         return await self.get_by_manager_id(manager_id, hostname)
     
-    async def get_employee_leaves_by_month_for_emp_id_legacy(
-        self, emp_id: str, year: int, month: int, 
+    async def get_employee_leaves_by_month_for_employee_id_legacy(
+        self, employee_id: str, year: int, month: int, 
         month_start: datetime, month_end: datetime, hostname: str
     ) -> List[EmployeeLeave]:
-        """
-        Legacy compatibility for get_employee_leaves_by_month_for_emp_id() function.
-        """
-        return await self.get_by_employee_and_month(emp_id, year, month, hostname) 
+        """Legacy method for getting employee leaves by month"""
+        return await self.get_by_employee_and_month(employee_id, year, month, hostname)
+
+    # ==================== MISSING ABSTRACT METHODS IMPLEMENTATION ====================
+    
+    # EmployeeLeaveQueryRepository Missing Methods
+    
+    async def get_by_month(
+        self, 
+        employee_id: EmployeeId,
+        month: int,
+        year: int
+    ) -> List[EmployeeLeave]:
+        """Get employee leaves for a specific month."""
+        try:
+            # Convert EmployeeId to string
+            employee_id = employee_id.value if hasattr(employee_id, 'value') else str(employee_id)
+            
+            # Use existing method
+            return await self.get_by_employee_and_month(employee_id, year, month)
+            
+        except Exception as e:
+            logger.error(f"Error getting leaves by month for employee {employee_id}: {e}")
+            return []
+    
+    async def get_overlapping_leaves(
+        self, 
+        employee_id: EmployeeId,
+        date_range: DateRange,
+        exclude_leave_id: Optional[str] = None
+    ) -> List[EmployeeLeave]:
+        """Get leaves that overlap with the given date range."""
+        try:
+            employee_id = employee_id.value if hasattr(employee_id, 'value') else str(employee_id)
+            organization_id = "default"  # Using default organization
+            
+            collection = await self._get_collection(organization_id)
+            
+            # Build query for overlapping dates
+            query = {
+                "employee_id": employee_id,
+                "$or": [
+                    {
+                        "start_date": {
+                            "$lte": date_range.end_date.strftime("%Y-%m-%d")
+                        },
+                        "end_date": {
+                            "$gte": date_range.start_date.strftime("%Y-%m-%d")
+                        }
+                    }
+                ]
+            }
+            
+            # Exclude specific leave if provided
+            if exclude_leave_id:
+                query["leave_id"] = {"$ne": exclude_leave_id}
+            
+            documents = await collection.find(query).to_list(length=None)
+            
+            leaves = []
+            for doc in documents:
+                leave = self._document_to_entity(doc)
+                if leave:
+                    leaves.append(leave)
+            
+            return leaves
+            
+        except Exception as e:
+            logger.error(f"Error getting overlapping leaves: {e}")
+            return []
+    
+    async def get_pending_approvals(
+        self, 
+        manager_id: Optional[str] = None,
+        limit: Optional[int] = None
+    ) -> List[EmployeeLeave]:
+        """Get leaves pending approval."""
+        try:
+            organization_id = "default"
+            
+            if manager_id:
+                # Get leaves for team members under this manager
+                return await self.get_by_manager_id(manager_id, organization_id)
+            else:
+                # Get all pending leaves
+                return await self.get_by_status("pending", organization_id, limit)
+                
+        except Exception as e:
+            logger.error(f"Error getting pending approvals: {e}")
+            return []
+    
+    async def update_status(
+        self, 
+        leave_id: str, 
+        status: LeaveStatus, 
+        approved_by: str,
+        comments: Optional[str] = None
+    ) -> bool:
+        """Update leave application status."""
+        try:
+            organization_id = "default"
+            
+            update_data = {
+                "status": status.value if hasattr(status, 'value') else str(status),
+                "approved_by": approved_by,
+                "approved_date": datetime.now().strftime("%Y-%m-%d")
+            }
+            
+            if comments:
+                update_data["comments"] = comments
+            
+            return await self.update(leave_id, update_data, organization_id)
+            
+        except Exception as e:
+            logger.error(f"Error updating leave status: {e}")
+            return False
+    
+    # EmployeeLeaveAnalyticsRepository Missing Methods
+    
+    async def get_leave_type_breakdown(
+        self,
+        employee_id: Optional[EmployeeId] = None,
+        manager_id: Optional[str] = None,
+        year: Optional[int] = None
+    ) -> Dict[str, int]:
+        """Get leave type breakdown."""
+        try:
+            organization_id = "default"
+            collection = await self._get_collection(organization_id)
+            
+            # Build query
+            query = {}
+            
+            if employee_id:
+                employee_id = employee_id.value if hasattr(employee_id, 'value') else str(employee_id)
+                query["employee_id"] = employee_id
+            
+            if manager_id:
+                # Get team members under manager (simplified)
+                query["manager_id"] = manager_id
+            
+            if year:
+                query["$or"] = [
+                    {"start_date": {"$regex": f"^{year}"}},
+                    {"end_date": {"$regex": f"^{year}"}}
+                ]
+            
+            # Aggregate by leave type
+            pipeline = [
+                {"$match": query},
+                {
+                    "$group": {
+                        "_id": "$leave_name",
+                        "count": {"$sum": 1}
+                    }
+                }
+            ]
+            
+            result = await collection.aggregate(pipeline).to_list(length=None)
+            
+            breakdown = {}
+            for item in result:
+                leave_type = item["_id"] or "Unknown"
+                breakdown[leave_type] = item["count"]
+            
+            return breakdown
+            
+        except Exception as e:
+            logger.error(f"Error getting leave type breakdown: {e}")
+            return {}
+    
+    async def get_monthly_leave_trends(
+        self,
+        employee_id: Optional[EmployeeId] = None,
+        manager_id: Optional[str] = None,
+        year: Optional[int] = None
+    ) -> Dict[str, int]:
+        """Get monthly leave trends."""
+        try:
+            organization_id = "default"
+            collection = await self._get_collection(organization_id)
+            
+            # Build query
+            query = {}
+            
+            if employee_id:
+                employee_id = employee_id.value if hasattr(employee_id, 'value') else str(employee_id)
+                query["employee_id"] = employee_id
+            
+            if manager_id:
+                query["manager_id"] = manager_id
+            
+            if year:
+                query["$or"] = [
+                    {"start_date": {"$regex": f"^{year}"}},
+                    {"end_date": {"$regex": f"^{year}"}}
+                ]
+            
+            documents = await collection.find(query).to_list(length=None)
+            
+            monthly_trends = {}
+            
+            for doc in documents:
+                start_date_str = doc.get("start_date", "")
+                if start_date_str and len(start_date_str) >= 7:
+                    month_key = start_date_str[:7]  # YYYY-MM format
+                    monthly_trends[month_key] = monthly_trends.get(month_key, 0) + 1
+            
+            return monthly_trends
+            
+        except Exception as e:
+            logger.error(f"Error getting monthly leave trends: {e}")
+            return {}
+    
+    async def get_team_leave_summary(
+        self,
+        manager_id: str,
+        month: Optional[int] = None,
+        year: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
+        """Get team leave summary for a manager."""
+        try:
+            organization_id = "default"
+            
+            # Get all leaves for team members
+            team_leaves = await self.get_by_manager_id(manager_id, organization_id)
+            
+            # Filter by month/year if provided
+            if month or year:
+                filtered_leaves = []
+                for leave in team_leaves:
+                    start_date_str = getattr(leave, 'start_date', '')
+                    if start_date_str:
+                        try:
+                            start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+                            if year and start_date.year != year:
+                                continue
+                            if month and start_date.month != month:
+                                continue
+                            filtered_leaves.append(leave)
+                        except ValueError:
+                            continue
+                team_leaves = filtered_leaves
+            
+            # Group by employee
+            summary = {}
+            for leave in team_leaves:
+                employee_id = getattr(leave, 'employee_id', 'Unknown')
+                if employee_id not in summary:
+                    summary[employee_id] = {
+                        "employee_id": employee_id,
+                        "total_leaves": 0,
+                        "approved_leaves": 0,
+                        "pending_leaves": 0,
+                        "rejected_leaves": 0
+                    }
+                
+                summary[employee_id]["total_leaves"] += 1
+                status = getattr(leave, 'status', '').lower()
+                if status == 'approved':
+                    summary[employee_id]["approved_leaves"] += 1
+                elif status == 'pending':
+                    summary[employee_id]["pending_leaves"] += 1
+                elif status == 'rejected':
+                    summary[employee_id]["rejected_leaves"] += 1
+            
+            return list(summary.values())
+            
+        except Exception as e:
+            logger.error(f"Error getting team leave summary: {e}")
+            return []
+    
+    async def calculate_lwp_for_employee(
+        self,
+        employee_id: EmployeeId,
+        month: int,
+        year: int
+    ) -> int:
+        """Calculate Leave Without Pay (LWP) for an employee."""
+        try:
+            employee_id = employee_id.value if hasattr(employee_id, 'value') else str(employee_id)
+            
+            # Get all leaves for the employee in the specified month
+            leaves = await self.get_by_employee_and_month(employee_id, year, month)
+            
+            lwp_days = 0
+            
+            for leave in leaves:
+                # Check if this is an LWP leave
+                leave_name = getattr(leave, 'leave_name', '').lower()
+                status = getattr(leave, 'status', '').lower()
+                
+                if 'lwp' in leave_name or 'without pay' in leave_name:
+                    if status == 'approved':
+                        # Calculate days between start and end date
+                        start_date_str = getattr(leave, 'start_date', '')
+                        end_date_str = getattr(leave, 'end_date', '')
+                        
+                        if start_date_str and end_date_str:
+                            try:
+                                start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+                                end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+                                days = (end_date - start_date).days + 1
+                                lwp_days += days
+                            except ValueError:
+                                logger.warning(f"Invalid date format in leave record")
+            
+            return lwp_days
+            
+        except Exception as e:
+            logger.error(f"Error calculating LWP: {e}")
+            return 0
+    
+    # EmployeeLeaveBalanceRepository Missing Methods
+    
+    async def get_leave_balance(self, employee_id: EmployeeId) -> Dict[str, int]:
+        """Get leave balance for an employee."""
+        try:
+            employee_id = employee_id.value if hasattr(employee_id, 'value') else str(employee_id)
+            organization_id = "default"
+            
+            # Check if we have a separate balances collection
+            balances_collection = self.db_connector.get_database().get_collection(f"{organization_id}_employee_leave_balances")
+            
+            balance_doc = await balances_collection.find_one({"employee_id": employee_id})
+            
+            if balance_doc:
+                # Remove MongoDB _id field
+                balance_doc.pop("_id", None)
+                balance_doc.pop("employee_id", None)
+                return balance_doc
+            else:
+                # Return default balances if not found
+                return {
+                    "annual_leave": 21,
+                    "sick_leave": 12,
+                    "casual_leave": 7,
+                    "maternity_leave": 84,
+                    "paternity_leave": 15,
+                    "lwp": 0
+                }
+                
+        except Exception as e:
+            logger.error(f"Error getting leave balance: {e}")
+            return {}
+    
+    async def update_leave_balance(
+        self, 
+        employee_id: EmployeeId, 
+        leave_type: str, 
+        balance_change: int
+    ) -> bool:
+        """Update leave balance for an employee."""
+        try:
+            employee_id = employee_id.value if hasattr(employee_id, 'value') else str(employee_id)
+            organization_id = "default"
+            
+            balances_collection = self.db_connector.get_database().get_collection(f"{organization_id}_employee_leave_balances")
+            
+            # Update the specific leave type balance
+            result = await balances_collection.update_one(
+                {"employee_id": employee_id},
+                {
+                    "$inc": {leave_type: balance_change},
+                    "$set": {"updated_at": datetime.utcnow()}
+                },
+                upsert=True
+            )
+            
+            return result.acknowledged
+            
+        except Exception as e:
+            logger.error(f"Error updating leave balance: {e}")
+            return False
+    
+    async def set_leave_balance(
+        self, 
+        employee_id: EmployeeId, 
+        leave_balances: Dict[str, int]
+    ) -> bool:
+        """Set leave balances for an employee."""
+        try:
+            employee_id = employee_id.value if hasattr(employee_id, 'value') else str(employee_id)
+            organization_id = "default"
+            
+            balances_collection = self.db_connector.get_database().get_collection(f"{organization_id}_employee_leave_balances")
+            
+            # Set all leave balances
+            balance_doc = {
+                "employee_id": employee_id,
+                "updated_at": datetime.utcnow(),
+                **leave_balances
+            }
+            
+            result = await balances_collection.replace_one(
+                {"employee_id": employee_id},
+                balance_doc,
+                upsert=True
+            )
+            
+            return result.acknowledged
+            
+        except Exception as e:
+            logger.error(f"Error setting leave balance: {e}")
+            return False
+    
+    async def get_team_leave_balances(self, manager_id: str) -> List[Dict[str, Any]]:
+        """Get leave balances for all team members under a manager."""
+        try:
+            organization_id = "default"
+            
+            # First, get all team members under this manager
+            # This is simplified - in a real system, you'd have an employee-manager relationship
+            collection = await self._get_collection(organization_id)
+            
+            # Get unique employee IDs who have had leaves under this manager
+            pipeline = [
+                {"$match": {"manager_id": manager_id}},
+                {"$group": {"_id": "$employee_id"}},
+                {"$limit": 100}  # Reasonable limit
+            ]
+            
+            result = await collection.aggregate(pipeline).to_list(length=None)
+            employee_ids = [item["_id"] for item in result]
+            
+            # Get balances for each employee
+            team_balances = []
+            for employee_id in employee_ids:
+                try:
+                    employee_id = EmployeeId(employee_id)
+                    balances = await self.get_leave_balance(employee_id)
+                    
+                    team_balances.append({
+                        "employee_id": employee_id,
+                        "balances": balances
+                    })
+                except Exception as emp_error:
+                    logger.warning(f"Error getting balance for employee {employee_id}: {emp_error}")
+                    continue
+            
+            return team_balances
+            
+        except Exception as e:
+            logger.error(f"Error getting team leave balances: {e}")
+            return [] 

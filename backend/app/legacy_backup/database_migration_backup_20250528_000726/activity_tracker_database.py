@@ -17,9 +17,9 @@ def get_activity_tracker(hostname: str, activity_tracker_id: str):
     collection = get_activity_tracker_collection(hostname)
     return collection.find_one({"_id": activity_tracker_id})
 
-def get_activity_tracker_by_emp_id(hostname: str, emp_id: str):
+def get_activity_tracker_by_employee_id(hostname: str, employee_id: str):
     collection = get_activity_tracker_collection(hostname)
-    return collection.find_one({"emp_id": emp_id})
+    return collection.find_one({"employee_id": employee_id})
 
 def get_activity_tracker_by_date(hostname: str, date: datetime):  
     collection = get_activity_tracker_collection(hostname)
@@ -29,17 +29,17 @@ def get_activity_tracker_by_date_range(hostname: str, start_date: datetime, end_
     collection = get_activity_tracker_collection(hostname)
     return collection.find_one({"date": {"$gte": start_date, "$lte": end_date}})
 
-def get_activity_tracker_by_emp_id_and_date(hostname: str, emp_id: str, date: datetime):
+def get_activity_tracker_by_employee_id_and_date(hostname: str, employee_id: str, date: datetime):
     collection = get_activity_tracker_collection(hostname)
-    return collection.find_one({"emp_id": emp_id, "date": date})
+    return collection.find_one({"employee_id": employee_id, "date": date})
 
-def get_activity_tracker_by_emp_id_and_date_range(hostname: str, emp_id: str, start_date: datetime, end_date: datetime):
+def get_activity_tracker_by_employee_id_and_date_range(hostname: str, employee_id: str, start_date: datetime, end_date: datetime):
     collection = get_activity_tracker_collection(hostname)
-    return collection.find_one({"emp_id": emp_id, "date": {"$gte": start_date, "$lte": end_date}})
+    return collection.find_one({"employee_id": employee_id, "date": {"$gte": start_date, "$lte": end_date}})
 
-def get_activity_tracker_by_emp_id_and_date_range_and_activity(hostname: str, emp_id: str, start_date: datetime, end_date: datetime, activity: str):
+def get_activity_tracker_by_employee_id_and_date_range_and_activity(hostname: str, employee_id: str, start_date: datetime, end_date: datetime, activity: str):
     collection = get_activity_tracker_collection(hostname)
-    return collection.find_one({"emp_id": emp_id, "date": {"$gte": start_date, "$lte": end_date}, "activity": activity})
+    return collection.find_one({"employee_id": employee_id, "date": {"$gte": start_date, "$lte": end_date}, "activity": activity})
 
 def delete_activity_tracker(hostname: str, activity_tracker_id: str):
     collection = get_activity_tracker_collection(hostname)

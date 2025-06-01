@@ -8,9 +8,9 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 from decimal import Decimal
 
-from domain.entities.reimbursement_type_entity import ReimbursementTypeEntity
-from domain.entities.reimbursement import Reimbursement
-from application.dto.reimbursement_dto import (
+from app.domain.entities.reimbursement_type_entity import ReimbursementTypeEntity
+from app.domain.entities.reimbursement import Reimbursement
+from app.application.dto.reimbursement_dto import (
     ReimbursementSearchFiltersDTO,
     ReimbursementStatisticsDTO
 )

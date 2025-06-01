@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any
 from datetime import datetime, date
 
-from domain.entities.public_holiday import PublicHoliday
+from app.domain.entities.public_holiday import PublicHoliday
 
 
 class PublicHolidayCommandRepository(ABC):

@@ -17,15 +17,15 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from bson import ObjectId
 
-from infrastructure.database.database_connector import DatabaseConnector
-from infrastructure.repositories.base_repository import BaseRepository
-from application.interfaces.repositories.reimbursement_types_repository_interface import (
+from app.infrastructure.database.database_connector import DatabaseConnector
+from app.infrastructure.repositories.base_repository import BaseRepository
+from app.application.interfaces.repositories.reimbursement_types_repository_interface import (
     ReimbursementTypesCommandRepository,
     ReimbursementTypesQueryRepository,
     ReimbursementTypesAnalyticsRepository
 )
-from domain.entities.reimbursement_type import ReimbursementType
-from application.dto.reimbursement_type_dto import (
+from app.domain.entities.reimbursement_type import ReimbursementType
+from app.application.dto.reimbursement_type_dto import (
     ReimbursementTypeCreateDTO,
     ReimbursementTypeUpdateDTO,
     ReimbursementTypeResponseDTO

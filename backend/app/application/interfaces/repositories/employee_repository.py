@@ -7,8 +7,8 @@ from abc import ABC, abstractmethod
 from typing import Optional, List, Dict, Any
 from datetime import date
 
-from domain.entities.employee import Employee, EmployeeStatus, EmployeeType
-from domain.value_objects.employee_id import EmployeeId
+from app.domain.entities.employee import Employee, EmployeeStatus, EmployeeType
+from app.domain.value_objects.employee_id import EmployeeId
 
 
 class EmployeeRepository(ABC):

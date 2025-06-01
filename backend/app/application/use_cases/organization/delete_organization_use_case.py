@@ -6,15 +6,15 @@ Handles the business logic for deleting an organization
 import logging
 from typing import Optional
 
-from domain.entities.organization import Organization
-from domain.value_objects.organization_id import OrganizationId
-from application.dto.organization_dto import (
+from app.domain.entities.organization import Organization
+from app.domain.value_objects.organization_id import OrganizationId
+from app.application.dto.organization_dto import (
     OrganizationNotFoundError, OrganizationBusinessRuleError
 )
-from application.interfaces.repositories.organization_repository import (
+from app.application.interfaces.repositories.organization_repository import (
     OrganizationCommandRepository, OrganizationQueryRepository
 )
-from application.interfaces.services.organization_service import OrganizationNotificationService
+from app.application.interfaces.services.organization_service import OrganizationNotificationService
 
 
 logger = logging.getLogger(__name__)

@@ -38,7 +38,7 @@ class SOLIDMigrationTester:
     async def setup(self):
         """Setup test environment."""
         try:
-            from infrastructure.services.database_migration_service import get_migration_service
+            from app.infrastructure.services.database_migration_service import get_migration_service
             from config import MONGO_URI
             
             logger.info("Setting up test environment...")
@@ -54,7 +54,7 @@ class SOLIDMigrationTester:
         """Cleanup test environment."""
         try:
             if self.migration_service:
-                from infrastructure.services.database_migration_service import cleanup_migration_service
+                from app.infrastructure.services.database_migration_service import cleanup_migration_service
                 await cleanup_migration_service()
             logger.info("Test environment cleaned up")
         except Exception as e:
@@ -102,11 +102,11 @@ class SOLIDMigrationTester:
     
     async def test_legacy_compatibility_functions(self):
         """Test legacy compatibility wrapper functions."""
-        from infrastructure.services.database_migration_service import (
+        from app.infrastructure.services.database_migration_service import (
             create_user_solid,
             get_all_users_solid,
             get_users_stats_solid,
-            get_user_by_emp_id_solid,
+            get_user_by_employee_id_solid,
             update_user_leave_balance_solid
         )
         
@@ -114,7 +114,7 @@ class SOLIDMigrationTester:
         
         # Test create user
         user_data = {
-            "emp_id": "TEST001",
+            "employee_id": "TEST001",
             "name": "Test User",
             "email": "test@example.com",
             "role": "Employee",
@@ -134,9 +134,9 @@ class SOLIDMigrationTester:
         assert isinstance(stats, dict), "Get user stats should return dict"
         
         # Test get user by ID
-        user = await get_user_by_emp_id_solid("TEST001", hostname)
+        user = await get_user_by_employee_id_solid("TEST001", hostname)
         if user:
-            assert user.get("emp_id") == "TEST001", "Retrieved user ID mismatch"
+            assert user.get("employee_id") == "TEST001", "Retrieved user ID mismatch"
         
         # Test update leave balance
         leave_result = await update_user_leave_balance_solid(
@@ -156,7 +156,7 @@ class SOLIDMigrationTester:
         
         test_user = TestUser(
             employee_id="TEST002",
-            emp_id="TEST002",
+            employee_id="TEST002",
             name="SOLID Test User",
             email="solid@example.com",
             role="Manager",
@@ -200,7 +200,7 @@ class SOLIDMigrationTester:
         batch_users = [
             TestUser(
                 employee_id=f"BATCH{i:03d}",
-                emp_id=f"BATCH{i:03d}",
+                employee_id=f"BATCH{i:03d}",
                 name=f"Batch User {i}",
                 email=f"batch{i}@example.com",
                 role="Employee",
@@ -252,7 +252,7 @@ class SOLIDMigrationTester:
     
     async def test_connection_factory(self):
         """Test connection factory functionality."""
-        from infrastructure.database.connection_factory import (
+        from app.infrastructure.database.connection_factory import (
             ConnectionFactory, DatabaseType, DatabaseConnectionManager
         )
         

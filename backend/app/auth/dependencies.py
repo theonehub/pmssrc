@@ -2,7 +2,7 @@ import logging
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from auth.jwt_handler import SECRET_KEY, ALGORITHM
+from app.auth.jwt_handler import SECRET_KEY, ALGORITHM
 
 # Set up logger for this module.
 logger = logging.getLogger(__name__)
@@ -19,14 +19,14 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         role: str = payload.get("role")
-        emp_id: str = payload.get("emp_id")
+        employee_id: str = payload.get("employee_id")
         if username is None or role is None:
             logger.warning("Token payload is missing username or role.")
             raise HTTPException(status_code=401, detail="Invalid token payload")
         return {
             "username": username,
             "role": role,
-            "emp_id": emp_id
+            "employee_id": employee_id
         }
     except JWTError as e:
         logger.error("Failed to decode token: %s", e)

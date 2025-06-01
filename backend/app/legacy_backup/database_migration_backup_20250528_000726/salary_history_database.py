@@ -5,7 +5,7 @@ from bson import ObjectId
 from pymongo import ASCENDING, DESCENDING
 
 from database.database_connector import connect_to_database
-from domain.entities.salary_history import SalaryHistoryInDB
+from app.domain.entities.salary_history import SalaryHistoryInDB
 
 logger = logging.getLogger(__name__)
 

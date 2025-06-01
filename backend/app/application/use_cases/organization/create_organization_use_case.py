@@ -6,20 +6,20 @@ Handles the business logic for creating a new organization
 import logging
 from typing import List
 
-from domain.entities.organization import Organization
-from domain.value_objects.organization_id import OrganizationId
-from domain.value_objects.organization_details import (
+from app.domain.entities.organization import Organization
+from app.domain.value_objects.organization_id import OrganizationId
+from app.domain.value_objects.organization_details import (
     ContactInformation, Address, TaxInformation, OrganizationType
 )
-from application.dto.organization_dto import (
+from app.application.dto.organization_dto import (
     CreateOrganizationRequestDTO, OrganizationResponseDTO,
     OrganizationValidationError, OrganizationConflictError,
     OrganizationBusinessRuleError
 )
-from application.interfaces.repositories.organization_repository import (
+from app.application.interfaces.repositories.organization_repository import (
     OrganizationCommandRepository, OrganizationQueryRepository
 )
-from application.interfaces.services.organization_service import (
+from app.application.interfaces.services.organization_service import (
     OrganizationValidationService, OrganizationNotificationService
 )
 
@@ -225,7 +225,7 @@ class CreateOrganizationUseCase:
         if not contact_info:
             return None
         
-        from application.dto.organization_dto import ContactInformationResponseDTO
+        from app.application.dto.organization_dto import ContactInformationResponseDTO
         return ContactInformationResponseDTO(
             email=contact_info.email,
             phone=contact_info.phone,
@@ -240,7 +240,7 @@ class CreateOrganizationUseCase:
         if not address:
             return None
         
-        from application.dto.organization_dto import AddressResponseDTO
+        from app.application.dto.organization_dto import AddressResponseDTO
         return AddressResponseDTO(
             street_address=address.street_address,
             city=address.city,
@@ -258,7 +258,7 @@ class CreateOrganizationUseCase:
         if not tax_info:
             return None
         
-        from application.dto.organization_dto import TaxInformationResponseDTO
+        from app.application.dto.organization_dto import TaxInformationResponseDTO
         return TaxInformationResponseDTO(
             pan_number=tax_info.pan_number,
             gst_number=tax_info.gst_number,

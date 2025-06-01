@@ -190,7 +190,7 @@ class LoginResponseDTO(BaseModel):
                 "token_type": "bearer",
                 "expires_in": 3600,
                 "user_info": {
-                    "emp_id": "EMP001",
+                    "employee_id": "EMP001",
                     "name": "John Doe",
                     "email": "john.doe@company.com",
                     "role": "user",
@@ -267,7 +267,7 @@ class TokenValidationResponseDTO(BaseModel):
             "example": {
                 "is_valid": True,
                 "user_info": {
-                    "emp_id": "EMP001",
+                    "employee_id": "EMP001",
                     "role": "user",
                     "hostname": "company.com"
                 },
@@ -280,7 +280,7 @@ class TokenValidationResponseDTO(BaseModel):
 
 class UserProfileResponseDTO(BaseModel):
     """Response DTO for user profile information"""
-    emp_id: str
+    employee_id: str
     username: Optional[str] = None
     email: Optional[str] = None
     full_name: Optional[str] = None
@@ -295,7 +295,7 @@ class UserProfileResponseDTO(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "emp_id": "EMP001",
+                "employee_id": "EMP001",
                 "username": "john.doe",
                 "email": "john.doe@company.com",
                 "full_name": "John Doe",
@@ -325,7 +325,7 @@ class SessionInfoResponseDTO(BaseModel):
             "example": {
                 "session_id": "sess_123456789",
                 "user_info": {
-                    "emp_id": "EMP001",
+                    "employee_id": "EMP001",
                     "role": "user"
                 },
                 "login_time": "2024-01-01T12:00:00",

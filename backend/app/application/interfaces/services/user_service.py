@@ -4,7 +4,7 @@ Following Interface Segregation Principle for user business operations
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, TYPE_CHECKING
 from datetime import datetime
 
 from app.domain.entities.user import User
@@ -18,6 +18,9 @@ from app.application.dto.user_dto import (
     UserProfileCompletionDTO, BulkUserUpdateDTO, BulkUserUpdateResultDTO
 )
 
+# Import CurrentUser for organization context
+if TYPE_CHECKING:
+    from app.auth.auth_dependencies import CurrentUser
 
 class UserCommandService(ABC):
     """
@@ -32,12 +35,13 @@ class UserCommandService(ABC):
     """
     
     @abstractmethod
-    async def create_user(self, request: CreateUserRequestDTO) -> UserResponseDTO:
+    async def create_user(self, request: CreateUserRequestDTO, current_user: "CurrentUser") -> UserResponseDTO:
         """
         Create a new user.
         
         Args:
             request: User creation request DTO
+            current_user: Current authenticated user with organization context
             
         Returns:
             Created user response DTO
@@ -52,15 +56,17 @@ class UserCommandService(ABC):
     @abstractmethod
     async def update_user(
         self, 
-        user_id: str, 
-        request: UpdateUserRequestDTO
+        employee_id: str, 
+        request: UpdateUserRequestDTO,
+        current_user: "CurrentUser"
     ) -> UserResponseDTO:
         """
         Update an existing user.
         
         Args:
-            user_id: ID of user to update
+            employee_id: ID of user to update
             request: User update request DTO
+            current_user: Current authenticated user with organization context
             
         Returns:
             Updated user response DTO
@@ -75,15 +81,17 @@ class UserCommandService(ABC):
     @abstractmethod
     async def update_user_documents(
         self, 
-        user_id: str, 
-        request: UpdateUserDocumentsRequestDTO
+        employee_id: str, 
+        request: UpdateUserDocumentsRequestDTO,
+        current_user: "CurrentUser"
     ) -> UserResponseDTO:
         """
         Update user documents.
         
         Args:
-            user_id: ID of user to update
+            employee_id: ID of user to update
             request: Documents update request DTO
+            current_user: Current authenticated user with organization context
             
         Returns:
             Updated user response DTO
@@ -97,15 +105,17 @@ class UserCommandService(ABC):
     @abstractmethod
     async def change_user_password(
         self, 
-        user_id: str, 
-        request: ChangeUserPasswordRequestDTO
+        employee_id: str, 
+        request: ChangeUserPasswordRequestDTO,
+        current_user: "CurrentUser"
     ) -> UserResponseDTO:
         """
         Change user password.
         
         Args:
-            user_id: ID of user to update
+            employee_id: ID of user to update
             request: Password change request DTO
+            current_user: Current authenticated user with organization context
             
         Returns:
             Updated user response DTO
@@ -121,15 +131,17 @@ class UserCommandService(ABC):
     @abstractmethod
     async def change_user_role(
         self, 
-        user_id: str, 
-        request: ChangeUserRoleRequestDTO
+        employee_id: str, 
+        request: ChangeUserRoleRequestDTO,
+        current_user: "CurrentUser"
     ) -> UserResponseDTO:
         """
         Change user role.
         
         Args:
-            user_id: ID of user to update
+            employee_id: ID of user to update
             request: Role change request DTO
+            current_user: Current authenticated user with organization context
             
         Returns:
             Updated user response DTO
@@ -145,15 +157,17 @@ class UserCommandService(ABC):
     @abstractmethod
     async def update_user_status(
         self, 
-        user_id: str, 
-        request: UserStatusUpdateRequestDTO
+        employee_id: str, 
+        request: UserStatusUpdateRequestDTO,
+        current_user: "CurrentUser"
     ) -> UserResponseDTO:
         """
         Update user status (activate, deactivate, suspend, unlock).
         
         Args:
-            user_id: ID of user to update
+            employee_id: ID of user to update
             request: Status update request DTO
+            current_user: Current authenticated user with organization context
             
         Returns:
             Updated user response DTO
@@ -168,7 +182,7 @@ class UserCommandService(ABC):
     @abstractmethod
     async def assign_manager(
         self, 
-        user_id: str, 
+        employee_id: str, 
         manager_id: str,
         assigned_by: str
     ) -> UserResponseDTO:
@@ -176,7 +190,7 @@ class UserCommandService(ABC):
         Assign manager to user.
         
         Args:
-            user_id: ID of user
+            employee_id: ID of user
             manager_id: ID of manager to assign
             assigned_by: User performing the assignment
             
@@ -192,7 +206,7 @@ class UserCommandService(ABC):
     @abstractmethod
     async def delete_user(
         self, 
-        user_id: str, 
+        employee_id: str, 
         deletion_reason: str,
         deleted_by: Optional[str] = None,
         soft_delete: bool = True
@@ -201,7 +215,7 @@ class UserCommandService(ABC):
         Delete a user.
         
         Args:
-            user_id: ID of user to delete
+            employee_id: ID of user to delete
             deletion_reason: Reason for deletion
             deleted_by: User performing the deletion
             soft_delete: Whether to perform soft delete
@@ -229,12 +243,13 @@ class UserQueryService(ABC):
     """
     
     @abstractmethod
-    async def get_user_by_id(self, user_id: str) -> Optional[UserResponseDTO]:
+    async def get_user_by_id(self, employee_id: str, current_user: "CurrentUser") -> Optional[UserResponseDTO]:
         """
         Get user by ID.
         
         Args:
-            user_id: User ID to search for
+            employee_id: User ID to search for
+            current_user: Current authenticated user with organization context
             
         Returns:
             User response DTO if found, None otherwise
@@ -242,12 +257,13 @@ class UserQueryService(ABC):
         pass
     
     @abstractmethod
-    async def get_user_by_email(self, email: str) -> Optional[UserResponseDTO]:
+    async def get_user_by_email(self, email: str, current_user: "CurrentUser") -> Optional[UserResponseDTO]:
         """
         Get user by email.
         
         Args:
             email: Email to search for
+            current_user: Current authenticated user with organization context
             
         Returns:
             User response DTO if found, None otherwise
@@ -255,12 +271,13 @@ class UserQueryService(ABC):
         pass
     
     @abstractmethod
-    async def get_user_by_mobile(self, mobile: str) -> Optional[UserResponseDTO]:
+    async def get_user_by_mobile(self, mobile: str, current_user: "CurrentUser") -> Optional[UserResponseDTO]:
         """
         Get user by mobile number.
         
         Args:
             mobile: Mobile number to search for
+            current_user: Current authenticated user with organization context
             
         Returns:
             User response DTO if found, None otherwise
@@ -273,7 +290,8 @@ class UserQueryService(ABC):
         skip: int = 0, 
         limit: int = 20,
         include_inactive: bool = False,
-        include_deleted: bool = False
+        include_deleted: bool = False,
+        current_user: "CurrentUser" = None
     ) -> UserListResponseDTO:
         """
         Get all users with pagination.
@@ -283,6 +301,7 @@ class UserQueryService(ABC):
             limit: Maximum number of records to return
             include_inactive: Whether to include inactive users
             include_deleted: Whether to include deleted users
+            current_user: Current authenticated user with organization context
             
         Returns:
             Paginated list of user summary DTOs
@@ -290,12 +309,13 @@ class UserQueryService(ABC):
         pass
     
     @abstractmethod
-    async def search_users(self, filters: UserSearchFiltersDTO) -> UserListResponseDTO:
+    async def search_users(self, filters: UserSearchFiltersDTO, current_user: "CurrentUser") -> UserListResponseDTO:
         """
         Search users with filters.
         
         Args:
             filters: Search filters and pagination parameters
+            current_user: Current authenticated user with organization context
             
         Returns:
             Paginated list of user summary DTOs matching filters
@@ -360,7 +380,8 @@ class UserQueryService(ABC):
         email: Optional[str] = None,
         mobile: Optional[str] = None,
         pan_number: Optional[str] = None,
-        exclude_id: Optional[str] = None
+        exclude_id: Optional[str] = None,
+        current_user: "CurrentUser" = None
     ) -> Dict[str, bool]:
         """
         Check if user exists by various identifiers.
@@ -370,6 +391,7 @@ class UserQueryService(ABC):
             mobile: Mobile number to check
             pan_number: PAN number to check
             exclude_id: User ID to exclude from check
+            current_user: Current authenticated user with organization context
             
         Returns:
             Dictionary indicating existence for each checked field
@@ -404,7 +426,7 @@ class UserAuthenticationService(ABC):
     @abstractmethod
     async def logout_user(
         self, 
-        user_id: str, 
+        employee_id: str, 
         session_token: str,
         logout_method: str = "manual"
     ) -> bool:
@@ -412,7 +434,7 @@ class UserAuthenticationService(ABC):
         Logout user and invalidate session.
         
         Args:
-            user_id: User ID
+            employee_id: User ID
             session_token: Session token to invalidate
             logout_method: Method of logout (manual, timeout, forced)
             
@@ -440,7 +462,7 @@ class UserAuthenticationService(ABC):
     @abstractmethod
     async def reset_password(
         self, 
-        user_id: str, 
+        employee_id: str, 
         reset_by: str,
         send_email: bool = True
     ) -> str:
@@ -448,7 +470,7 @@ class UserAuthenticationService(ABC):
         Reset user password.
         
         Args:
-            user_id: User ID
+            employee_id: User ID
             reset_by: User performing the reset
             send_email: Whether to send reset email
             
@@ -475,12 +497,12 @@ class UserAuthenticationService(ABC):
         pass
     
     @abstractmethod
-    async def get_active_sessions(self, user_id: str) -> List[Dict[str, Any]]:
+    async def get_active_sessions(self, employee_id: str) -> List[Dict[str, Any]]:
         """
         Get active sessions for a user.
         
         Args:
-            user_id: User ID
+            employee_id: User ID
             
         Returns:
             List of active session information
@@ -488,12 +510,12 @@ class UserAuthenticationService(ABC):
         pass
     
     @abstractmethod
-    async def terminate_all_sessions(self, user_id: str, terminated_by: str) -> int:
+    async def terminate_all_sessions(self, employee_id: str, terminated_by: str) -> int:
         """
         Terminate all active sessions for a user.
         
         Args:
-            user_id: User ID
+            employee_id: User ID
             terminated_by: User performing the termination
             
         Returns:
@@ -512,14 +534,14 @@ class UserAuthorizationService(ABC):
     @abstractmethod
     async def check_permission(
         self, 
-        user_id: str, 
+        employee_id: str, 
         permission: str
     ) -> bool:
         """
         Check if user has specific permission.
         
         Args:
-            user_id: User ID
+            employee_id: User ID
             permission: Permission to check
             
         Returns:
@@ -530,7 +552,7 @@ class UserAuthorizationService(ABC):
     @abstractmethod
     async def check_resource_permission(
         self, 
-        user_id: str, 
+        employee_id: str, 
         resource: str, 
         action: str
     ) -> bool:
@@ -538,7 +560,7 @@ class UserAuthorizationService(ABC):
         Check if user has permission for specific resource action.
         
         Args:
-            user_id: User ID
+            employee_id: User ID
             resource: Resource name
             action: Action to perform
             
@@ -548,12 +570,12 @@ class UserAuthorizationService(ABC):
         pass
     
     @abstractmethod
-    async def get_user_permissions(self, user_id: str) -> List[str]:
+    async def get_user_permissions(self, employee_id: str) -> List[str]:
         """
         Get all permissions for a user.
         
         Args:
-            user_id: User ID
+            employee_id: User ID
             
         Returns:
             List of user permissions
@@ -563,7 +585,7 @@ class UserAuthorizationService(ABC):
     @abstractmethod
     async def add_custom_permission(
         self, 
-        user_id: str, 
+        employee_id: str, 
         permission: str,
         granted_by: str
     ) -> UserResponseDTO:
@@ -571,7 +593,7 @@ class UserAuthorizationService(ABC):
         Add custom permission to user.
         
         Args:
-            user_id: User ID
+            employee_id: User ID
             permission: Permission to add
             granted_by: User granting the permission
             
@@ -583,7 +605,7 @@ class UserAuthorizationService(ABC):
     @abstractmethod
     async def remove_custom_permission(
         self, 
-        user_id: str, 
+        employee_id: str, 
         permission: str,
         removed_by: str
     ) -> UserResponseDTO:
@@ -591,7 +613,7 @@ class UserAuthorizationService(ABC):
         Remove custom permission from user.
         
         Args:
-            user_id: User ID
+            employee_id: User ID
             permission: Permission to remove
             removed_by: User removing the permission
             
@@ -603,15 +625,15 @@ class UserAuthorizationService(ABC):
     @abstractmethod
     async def can_access_user_data(
         self, 
-        requesting_user_id: str, 
-        target_user_id: str
+        requesting_employee_id: str, 
+        target_employee_id: str
     ) -> bool:
         """
         Check if requesting user can access target user's data.
         
         Args:
-            requesting_user_id: ID of user making the request
-            target_user_id: ID of user whose data is being accessed
+            requesting_employee_id: ID of user making the request
+            target_employee_id: ID of user whose data is being accessed
             
         Returns:
             True if access is allowed, False otherwise
@@ -628,9 +650,12 @@ class UserAnalyticsService(ABC):
     """
     
     @abstractmethod
-    async def get_user_statistics(self) -> UserStatisticsDTO:
+    async def get_user_statistics(self, current_user: "CurrentUser") -> UserStatisticsDTO:
         """
         Get comprehensive user statistics.
+        
+        Args:
+            current_user: Current authenticated user with organization context
         
         Returns:
             User statistics including counts, distributions, and trends
@@ -723,12 +748,12 @@ class UserProfileService(ABC):
     """
     
     @abstractmethod
-    async def get_profile_completion(self, user_id: str) -> UserProfileCompletionDTO:
+    async def get_profile_completion(self, employee_id: str) -> UserProfileCompletionDTO:
         """
         Get profile completion status for a user.
         
         Args:
-            user_id: User ID
+            employee_id: User ID
             
         Returns:
             Profile completion details and recommendations
@@ -751,7 +776,7 @@ class UserProfileService(ABC):
     @abstractmethod
     async def upload_document(
         self, 
-        user_id: str, 
+        employee_id: str, 
         document_type: str,
         file_path: str,
         uploaded_by: str
@@ -760,7 +785,7 @@ class UserProfileService(ABC):
         Upload user document.
         
         Args:
-            user_id: User ID
+            employee_id: User ID
             document_type: Type of document (photo, pan, aadhar)
             file_path: Path to uploaded file
             uploaded_by: User uploading the document
@@ -773,7 +798,7 @@ class UserProfileService(ABC):
     @abstractmethod
     async def delete_document(
         self, 
-        user_id: str, 
+        employee_id: str, 
         document_type: str,
         deleted_by: str
     ) -> UserResponseDTO:
@@ -781,7 +806,7 @@ class UserProfileService(ABC):
         Delete user document.
         
         Args:
-            user_id: User ID
+            employee_id: User ID
             document_type: Type of document to delete
             deleted_by: User deleting the document
             
@@ -791,12 +816,12 @@ class UserProfileService(ABC):
         pass
     
     @abstractmethod
-    async def generate_profile_recommendations(self, user_id: str) -> List[str]:
+    async def generate_profile_recommendations(self, employee_id: str) -> List[str]:
         """
         Generate profile completion recommendations.
         
         Args:
-            user_id: User ID
+            employee_id: User ID
             
         Returns:
             List of recommendations for profile completion
@@ -831,7 +856,7 @@ class UserBulkOperationsService(ABC):
     @abstractmethod
     async def bulk_update_status(
         self, 
-        user_ids: List[str], 
+        employee_ids: List[str], 
         status: str,
         reason: Optional[str] = None,
         updated_by: Optional[str] = None
@@ -840,7 +865,7 @@ class UserBulkOperationsService(ABC):
         Bulk update user status.
         
         Args:
-            user_ids: List of user IDs to update
+            employee_ids: List of user IDs to update
             status: New status to set
             reason: Reason for status change
             updated_by: User performing the update
@@ -853,7 +878,7 @@ class UserBulkOperationsService(ABC):
     @abstractmethod
     async def bulk_update_role(
         self, 
-        user_ids: List[str], 
+        employee_ids: List[str], 
         role: str,
         reason: str,
         updated_by: str
@@ -862,7 +887,7 @@ class UserBulkOperationsService(ABC):
         Bulk update user role.
         
         Args:
-            user_ids: List of user IDs to update
+            employee_ids: List of user IDs to update
             role: New role to set
             reason: Reason for role change
             updated_by: User performing the update
@@ -875,7 +900,7 @@ class UserBulkOperationsService(ABC):
     @abstractmethod
     async def bulk_password_reset(
         self, 
-        user_ids: List[str],
+        employee_ids: List[str],
         reset_by: str,
         send_email: bool = True
     ) -> BulkUserUpdateResultDTO:
@@ -883,7 +908,7 @@ class UserBulkOperationsService(ABC):
         Bulk password reset for users.
         
         Args:
-            user_ids: List of user IDs to reset passwords
+            employee_ids: List of user IDs to reset passwords
             reset_by: User performing the reset
             send_email: Whether to send reset emails
             
@@ -895,7 +920,7 @@ class UserBulkOperationsService(ABC):
     @abstractmethod
     async def bulk_export_users(
         self, 
-        user_ids: Optional[List[str]] = None,
+        employee_ids: Optional[List[str]] = None,
         format: str = "csv",
         include_sensitive: bool = False
     ) -> bytes:
@@ -903,7 +928,7 @@ class UserBulkOperationsService(ABC):
         Bulk export user data.
         
         Args:
-            user_ids: List of user IDs to export (None for all)
+            employee_ids: List of user IDs to export (None for all)
             format: Export format (csv, xlsx, json)
             include_sensitive: Whether to include sensitive data
             
@@ -959,14 +984,14 @@ class UserValidationService(ABC):
     @abstractmethod
     async def validate_user_update(
         self, 
-        user_id: str, 
+        employee_id: str, 
         request: UpdateUserRequestDTO
     ) -> List[str]:
         """
         Validate user update data.
         
         Args:
-            user_id: User ID being updated
+            employee_id: User ID being updated
             request: User update request DTO
             
         Returns:
@@ -993,8 +1018,9 @@ class UserValidationService(ABC):
         email: Optional[str] = None,
         mobile: Optional[str] = None,
         pan_number: Optional[str] = None,
-        exclude_id: Optional[str] = None
-    ) -> List[str]:
+        exclude_id: Optional[str] = None,
+        current_user: "CurrentUser" = None
+    ) -> Dict[str, bool]:
         """
         Validate uniqueness constraints.
         
@@ -1003,9 +1029,10 @@ class UserValidationService(ABC):
             mobile: Mobile number to check
             pan_number: PAN number to check
             exclude_id: User ID to exclude from check
+            current_user: Current authenticated user with organization context
             
         Returns:
-            List of uniqueness violations (empty if valid)
+            Dictionary indicating existence for each checked field
         """
         pass
     

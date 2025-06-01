@@ -291,10 +291,10 @@ def test_remaining_repositories():
                     print(f"Error creating activity tracker: {e}")
                     raise
             
-            async def get_activity_tracker_by_emp_id(self, emp_id, company_id):
+            async def get_activity_tracker_by_employee_id(self, employee_id, company_id):
                 try:
                     collection = await self._get_collection(company_id)
-                    cursor = collection.find({"emp_id": emp_id})
+                    cursor = collection.find({"employee_id": employee_id})
                     documents = await cursor.to_list(length=None)
                     
                     return [SimpleActivityTracker(**doc) for doc in documents]
@@ -487,7 +487,7 @@ def test_remaining_repositories():
             
             # Test 5: Create activity tracker
             activity = SimpleActivityTracker(
-                emp_id="EMP001",
+                employee_id="EMP001",
                 date=date.today(),
                 activity="Development",
                 duration=480,
@@ -498,7 +498,7 @@ def test_remaining_repositories():
             print("✓ Create activity tracker test passed")
             
             # Test 6: Get by employee ID
-            emp_activities = await activity_tracker_repo.get_activity_tracker_by_emp_id("EMP001", "default")
+            emp_activities = await activity_tracker_repo.get_activity_tracker_by_employee_id("EMP001", "default")
             if isinstance(emp_activities, list):
                 print("✓ Get activity tracker by employee ID test passed")
             else:

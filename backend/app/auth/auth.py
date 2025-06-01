@@ -17,21 +17,21 @@ credentials_exception = HTTPException(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-def extract_emp_id(token: str = Depends(oauth2_scheme)):
+def extract_employee_id(token: str = Depends(oauth2_scheme)):
     """
-    Extracts the emp_id from the JWT token.
+    Extracts the employee_id from the JWT token.
     """
     try:
         # Decode the token using the secret key and algorithm.
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
-        emp_id: str = payload.get("sub")
-        if emp_id is None:
-            logger.warning("Token payload does not contain emp_id.")
+        employee_id: str = payload.get("sub")
+        if employee_id is None:
+            logger.warning("Token payload does not contain employee_id.")
             raise credentials_exception
     except JWTError as e:
         logger.error("JWT decode error: %s", e)
         raise credentials_exception
-    return emp_id
+    return employee_id
 
 
 def extract_hostname(token: str = Depends(oauth2_scheme)):
@@ -61,21 +61,21 @@ def  extract_role(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     return role
 
-async def get_current_user(emp_id: str = Depends(extract_emp_id), hostname: str = Depends(extract_hostname)):
+async def get_current_user(employee_id: str = Depends(extract_employee_id), hostname: str = Depends(extract_hostname)):
     """
     Dependency to get the current authenticated user from the JWT token.
     Raises HTTP 401 if token is invalid or user is not found.
     """
-    # Retrieve the user info from the database based on emp_id.
-    user = await get_user_by_emp_id(emp_id, hostname)
+    # Retrieve the user info from the database based on employee_id.
+    user = await get_user_by_employee_id(employee_id, hostname)
     if not user:
-        user = await get_user_by_emp_id(emp_id, "global_database")
+        user = await get_user_by_employee_id(employee_id, "global_database")
     if user is None:
-        logger.warning("User not found for emp_id: %s", emp_id)
+        logger.warning("User not found for employee_id: %s", employee_id)
         raise credentials_exception
 
-    logger.info("Current user '%s' retrieved successfully.", emp_id)
-    return User(emp_id=user["emp_id"], role=user["role"])
+    logger.info("Current user '%s' retrieved successfully.", employee_id)
+    return User(employee_id=user["employee_id"], role=user["role"])
 
 
 def role_checker(roles: List[str]):
@@ -88,15 +88,15 @@ def role_checker(roles: List[str]):
 
 # Simple User class for authentication
 class User:
-    def __init__(self, emp_id: str, role: str):
-        self.emp_id = emp_id
+    def __init__(self, employee_id: str, role: str):
+        self.employee_id = employee_id
         self.role = role
 
 # Simple stub for user lookup
-async def get_user_by_emp_id(emp_id: str, hostname: str = None):
+async def get_user_by_employee_id(employee_id: str, hostname: str = None):
     """Simple stub for user lookup - replace with actual implementation"""
     # For now, return a mock user for testing
     return {
-        "emp_id": emp_id,
+        "employee_id": employee_id,
         "role": "employee"  # Default role
     }

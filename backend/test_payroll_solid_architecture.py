@@ -17,7 +17,7 @@ def test_payroll_domain_events():
     print("🔄 Testing Payroll Domain Events...")
     
     try:
-        from domain.events.payroll_events import (
+        from app.domain.events.payroll_events import (
             PayoutCalculated,
             PayoutStatusChanged,
             PayslipGenerated,
@@ -59,7 +59,7 @@ def test_payroll_value_objects():
     print("🔄 Testing Payroll Value Objects...")
     
     try:
-        from domain.value_objects.payroll_value_objects import (
+        from app.domain.value_objects.payroll_value_objects import (
             Money, SalaryComponents, DeductionComponents, AttendanceInfo
         )
         
@@ -97,7 +97,7 @@ def test_payroll_dtos():
     print("🔄 Testing Payroll DTOs...")
     
     try:
-        from application.dto.payroll_dto import (
+        from app.application.dto.payroll_dto import (
             PayoutCalculationRequestDTO,
             PayoutCreateRequestDTO
         )
@@ -127,11 +127,11 @@ def test_repository_interfaces():
     print("🔄 Testing Repository Interfaces...")
     
     try:
-        from application.interfaces.repositories.payout_repository import (
+        from app.application.interfaces.repositories.payout_repository import (
             PayoutCommandRepository,
             PayoutQueryRepository
         )
-        from application.interfaces.repositories.payslip_repository import (
+        from app.application.interfaces.repositories.payslip_repository import (
             PayslipCommandRepository,
             PayslipQueryRepository
         )

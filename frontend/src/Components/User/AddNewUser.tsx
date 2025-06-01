@@ -31,7 +31,7 @@ import {
   ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import api from '../../utils/apiUtils';
+import dataService from '../../services/dataService';
 import PageLayout from '../../layout/PageLayout';
 
 // Define interfaces
@@ -307,17 +307,16 @@ const AddNewUser: React.FC = () => {
       
       if (hasFiles) {
         // Use the with-files endpoint
-        const fileData: Record<string, File> = {};
-        if (files.panFile) fileData.pan_file = files.panFile;
-        if (files.aadharFile) fileData.aadhar_file = files.aadharFile;
-        if (files.photo) fileData.photo = files.photo;
+        const fileData = {
+          pan_file: files.panFile,
+          aadhar_file: files.aadharFile,
+          photo: files.photo
+        };
         
-        await api.uploadMultiple('/users/with-files', fileData, {
-          user_data: JSON.stringify(formData)
-        });
+        await dataService.createUserWithFiles(formData, fileData);
       } else {
         // Use the regular endpoint
-        await api.post('/users', formData);
+        await dataService.createUser(formData);
       }
       
       showToast('User created successfully!', 'success');

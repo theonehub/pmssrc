@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from database.user_database import get_emp_ids_by_manager_id
+from database.user_database import get_employee_ids_by_manager_id
 from models.attendance import Attendance
 from database.database_connector import connect_to_database
 import uuid
@@ -14,7 +14,7 @@ def get_attendance_collection(hostname: str):
     db = connect_to_database(hostname)
     return db["attendance"]
 
-def create_attendance(emp_id: str, hostname: str, check_in: bool = True):
+def create_attendance(employee_id: str, hostname: str, check_in: bool = True):
     """
     Creates a new attendance record.
     """
@@ -25,7 +25,7 @@ def create_attendance(emp_id: str, hostname: str, check_in: bool = True):
     
     attendance_dict = {
         "attendance_id": attendance_id,
-        "emp_id": emp_id,
+        "employee_id": employee_id,
         "date": now,
         "checkin_time": now if check_in else None,
         "checkout_time": None if check_in else now
@@ -34,7 +34,7 @@ def create_attendance(emp_id: str, hostname: str, check_in: bool = True):
     result = collection.insert_one(attendance_dict)
     return attendance_id
 
-def get_employee_attendance_by_month(emp_id: str, month: int, year: int, hostname: str):
+def get_employee_attendance_by_month(employee_id: str, month: int, year: int, hostname: str):
     """
     Retrieves attendance records for a specific employee in a given month and year.
     """
@@ -47,7 +47,7 @@ def get_employee_attendance_by_month(emp_id: str, month: int, year: int, hostnam
     
     attendances = []
     cursor = collection.find({
-        "emp_id": emp_id,
+        "employee_id": employee_id,
         "date": {"$gte": start_date, "$lt": end_date}
     })
     for doc in cursor:
@@ -59,7 +59,7 @@ def get_employee_attendance_by_month(emp_id: str, month: int, year: int, hostnam
         
     return attendances
 
-def get_employee_attendance_by_year(emp_id: str, year: int, hostname: str):
+def get_employee_attendance_by_year(employee_id: str, year: int, hostname: str):
     """
     Retrieves attendance records for a specific employee in a given year.
     """
@@ -69,7 +69,7 @@ def get_employee_attendance_by_year(emp_id: str, year: int, hostname: str):
     
     attendances = []
     cursor = collection.find({
-        "emp_id": emp_id,
+        "employee_id": employee_id,
         "date": {"$gte": start_date, "$lt": end_date}
     })
     for doc in cursor:
@@ -81,13 +81,13 @@ def get_team_attendance_by_date(manager_id: str, date: int, month: int, year: in
     Retrieves attendance records for all team members on a specific date.
     """
     collection = get_attendance_collection(hostname)
-    emp_ids = get_emp_ids_by_manager_id(manager_id, hostname)
+    employee_ids = get_employee_ids_by_manager_id(manager_id, hostname)
     target_date = datetime(year, month, date)
     next_date = target_date + timedelta(days=1)
     
     attendances = []
     cursor = collection.find({
-        "emp_id": {"$in": emp_ids},
+        "employee_id": {"$in": employee_ids},
         "date": {"$gte": target_date, "$lt": next_date}
     })
     for doc in cursor:
@@ -99,7 +99,7 @@ def get_team_attendance_by_month(manager_id: str, month: int, year: int, hostnam
     Retrieves attendance records for all team members in a given month.
     """
     collection = get_attendance_collection(hostname)
-    emp_ids = get_emp_ids_by_manager_id(manager_id, hostname)
+    employee_ids = get_employee_ids_by_manager_id(manager_id, hostname)
     start_date = datetime(year, month, 1)
     if month == 12:
         end_date = datetime(year + 1, 1, 1)
@@ -108,7 +108,7 @@ def get_team_attendance_by_month(manager_id: str, month: int, year: int, hostnam
     
     attendances = []
     cursor = collection.find({
-        "emp_id": {"$in": emp_ids},
+        "employee_id": {"$in": employee_ids},
         "date": {"$gte": start_date, "$lt": end_date}
     })
     for doc in cursor:
@@ -120,13 +120,13 @@ def get_team_attendance_by_year(manager_id: str, year: int, hostname: str):
     Retrieves attendance records for all team members in a given year.
     """
     collection = get_attendance_collection(hostname)
-    emp_ids = get_emp_ids_by_manager_id(manager_id, hostname)
+    employee_ids = get_employee_ids_by_manager_id(manager_id, hostname)
     start_date = datetime(year, 1, 1)
     end_date = datetime(year + 1, 1, 1)
     
     attendances = []
     cursor = collection.find({
-        "emp_id": {"$in": emp_ids},
+        "employee_id": {"$in": employee_ids},
         "date": {"$gte": start_date, "$lt": end_date}
     })
     for doc in cursor:

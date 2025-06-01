@@ -131,7 +131,7 @@ class EmployeeLeave:
         from app.domain.value_objects.leave_type import LeaveCategory
         
         # Convert legacy data to domain objects
-        emp_id = EmployeeId(employee_id)
+        employee_id = EmployeeId(employee_id)
         leave_type = LeaveType(
             code=leave_type_code,
             name=leave_type_code,  # In legacy, code and name might be same
@@ -150,7 +150,7 @@ class EmployeeLeave:
         
         return cls(
             leave_id=leave_id,
-            employee_id=emp_id,
+            employee_id=employee_id,
             leave_type=leave_type,
             date_range=date_range,
             working_days_count=working_days_count,
@@ -400,7 +400,7 @@ class EmployeeLeave:
         """Convert to legacy dictionary format for backward compatibility"""
         return {
             "leave_id": self.leave_id,
-            "emp_id": str(self.employee_id),
+            "employee_id": str(self.employee_id),
             "emp_name": self.employee_name,
             "emp_email": self.employee_email,
             "leave_name": self.leave_type.code,

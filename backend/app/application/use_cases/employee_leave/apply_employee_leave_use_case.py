@@ -7,27 +7,27 @@ import logging
 from typing import Optional
 from datetime import datetime, date
 
-from application.dto.employee_leave_dto import (
+from app.application.dto.employee_leave_dto import (
     EmployeeLeaveCreateRequestDTO, 
     EmployeeLeaveResponseDTO,
     EmployeeLeaveValidationError,
     EmployeeLeaveBusinessRuleError,
     InsufficientLeaveBalanceError
 )
-from application.interfaces.repositories.employee_leave_repository import (
+from app.application.interfaces.repositories.employee_leave_repository import (
     EmployeeLeaveCommandRepository,
     EmployeeLeaveQueryRepository,
     EmployeeLeaveBalanceRepository
 )
-from application.interfaces.repositories.company_leave_repository import CompanyLeaveQueryRepository
-from application.interfaces.services.event_publisher import EventPublisher
-from application.interfaces.services.email_service import EmailService
-from domain.entities.employee_leave import EmployeeLeave
-from domain.value_objects.employee_id import EmployeeId
-from domain.value_objects.leave_type import LeaveType, LeaveCategory
-from domain.value_objects.date_range import DateRange
-from infrastructure.services.legacy_migration_service import (
-    get_user_by_emp_id, is_public_holiday_sync
+from app.application.interfaces.repositories.company_leave_repository import CompanyLeaveQueryRepository
+from app.application.interfaces.services.event_publisher import EventPublisher
+from app.application.interfaces.services.email_service import EmailService
+from app.domain.entities.employee_leave import EmployeeLeave
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.leave_type import LeaveType, LeaveCategory
+from app.domain.value_objects.date_range import DateRange
+from app.infrastructure.services.legacy_migration_service import (
+    get_user_by_employee_id, is_public_holiday_sync
 )
 
 
@@ -106,7 +106,7 @@ class ApplyEmployeeLeaveUseCase:
             company_leave = await self._validate_leave_type(request.leave_type, hostname)
             
             # Step 4: Create domain objects
-            emp_id = EmployeeId(employee_id)
+            employee_id = EmployeeId(employee_id)
             leave_type = LeaveType(
                 code=request.leave_type,
                 name=company_leave.leave_type.name if company_leave else request.leave_type,
@@ -125,15 +125,15 @@ class ApplyEmployeeLeaveUseCase:
             
             # Step 6: Validate business rules
             await self._validate_business_rules(
-                emp_id, leave_type, date_range, working_days, hostname
+                employee_id, leave_type, date_range, working_days, hostname
             )
             
             # Step 7: Check leave balance
-            await self._validate_leave_balance(emp_id, request.leave_type, working_days)
+            await self._validate_leave_balance(employee_id, request.leave_type, working_days)
             
             # Step 8: Create employee leave entity
             employee_leave = EmployeeLeave.create_new_leave_application(
-                employee_id=emp_id,
+                employee_id=employee_id,
                 leave_type=leave_type,
                 date_range=date_range,
                 working_days_count=working_days,
@@ -176,7 +176,7 @@ class ApplyEmployeeLeaveUseCase:
     async def _validate_employee(self, employee_id: str, hostname: str) -> dict:
         """Validate employee exists and is active"""
         
-        employee = await get_user_by_emp_id(employee_id, hostname)
+        employee = await get_user_by_employee_id(employee_id, hostname)
         if not employee:
             raise EmployeeLeaveBusinessRuleError(f"Employee not found: {employee_id}")
         

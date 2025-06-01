@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Any, Tuple
 import logging
 from decimal import Decimal
 
-from domain.entities.salary_management import (
+from app.domain.entities.salary_management import (
     SalaryChangeRecord, SalaryProjection, LWPAdjustment,
     SalaryChangeReason, SalaryChangeStatus
 )
@@ -20,7 +20,7 @@ from domain.entities.salary_management import (
 # )
 from events.tax_events import TaxEventProcessor, EventFactory
 # MIGRATION: Replace legacy taxation_service imports with SOLID architecture
-from infrastructure.services.taxation_migration_service import (
+from app.infrastructure.services.taxation_migration_service import (
     TaxationMigrationService,
     LegacyTaxationCalculationRepository
 )

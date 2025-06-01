@@ -7,7 +7,7 @@ import logging
 from typing import Dict, Any, Optional
 from abc import ABC, abstractmethod
 
-from domain.entities.user import User
+from app.domain.entities.user import User
 
 logger = logging.getLogger(__name__)
 

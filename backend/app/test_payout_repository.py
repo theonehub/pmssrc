@@ -12,7 +12,7 @@ def test_payout_repository():
     
     try:
         # Test import
-        from infrastructure.repositories.solid_payout_repository import SolidPayoutRepository
+        from app.infrastructure.repositories.solid_payout_repository import SolidPayoutRepository
         print("✓ SolidPayoutRepository imported successfully")
         
         # Test that it has the expected methods

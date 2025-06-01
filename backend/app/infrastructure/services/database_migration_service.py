@@ -144,7 +144,7 @@ class DatabaseMigrationService:
             user_repo = self.get_user_repository()
             result = await user_repo.create_user_legacy(user_data, hostname)
             
-            logger.info(f"Created user (legacy): {user_data.get('emp_id')}")
+            logger.info(f"Created user (legacy): {user_data.get('employee_id')}")
             return result
             
         except Exception as e:
@@ -193,12 +193,12 @@ class DatabaseMigrationService:
             logger.error(f"Error getting user stats (legacy): {e}")
             raise
     
-    async def get_user_by_emp_id_legacy(self, emp_id: str, hostname: str) -> Optional[Dict[str, Any]]:
+    async def get_user_by_employee_id_legacy(self, employee_id: str, hostname: str) -> Optional[Dict[str, Any]]:
         """
-        Legacy compatibility for get_user_by_emp_id() function.
+        Legacy compatibility for get_user_by_employee_id() function.
         
         Args:
-            emp_id: Employee ID
+            employee_id: Employee ID
             hostname: Organization hostname
             
         Returns:
@@ -209,7 +209,7 @@ class DatabaseMigrationService:
             
             # Use the new SOLID method but return raw document for compatibility
             try:
-                from domain.value_objects.employee_id import EmployeeId
+                from app.domain.value_objects.employee_id import EmployeeId
             except ImportError:
                 # Create a simple EmployeeId class if not available
                 class EmployeeId:
@@ -218,12 +218,12 @@ class DatabaseMigrationService:
                     def __str__(self):
                         return self.value
             
-            user = await user_repo.get_by_id(EmployeeId(emp_id))
+            user = await user_repo.get_by_id(EmployeeId(employee_id))
             
             if user:
                 # Convert back to document format for legacy compatibility
                 return {
-                    "emp_id": getattr(user, 'employee_id', getattr(user, 'emp_id', emp_id)),
+                    "employee_id": getattr(user, 'employee_id', getattr(user, 'employee_id', employee_id)),
                     "email": getattr(user, 'email', ''),
                     "name": getattr(user, 'name', ''),
                     "gender": getattr(user, 'gender', ''),
@@ -254,12 +254,12 @@ class DatabaseMigrationService:
             return None
             
         except Exception as e:
-            logger.error(f"Error getting user by emp_id (legacy): {e}")
+            logger.error(f"Error getting user by employee_id (legacy): {e}")
             raise
     
     async def update_user_leave_balance_legacy(
         self, 
-        emp_id: str, 
+        employee_id: str, 
         leave_name: str, 
         leave_count: int, 
         hostname: str
@@ -268,7 +268,7 @@ class DatabaseMigrationService:
         Legacy compatibility for update_user_leave_balance() function.
         
         Args:
-            emp_id: Employee ID
+            employee_id: Employee ID
             leave_name: Name of leave type
             leave_count: Leave count to add/subtract
             hostname: Organization hostname
@@ -280,7 +280,7 @@ class DatabaseMigrationService:
             user_repo = self.get_user_repository()
             
             try:
-                from domain.value_objects.employee_id import EmployeeId
+                from app.domain.value_objects.employee_id import EmployeeId
             except ImportError:
                 # Create a simple EmployeeId class if not available
                 class EmployeeId:
@@ -290,11 +290,11 @@ class DatabaseMigrationService:
                         return self.value
             
             result = await user_repo.update_leave_balance(
-                EmployeeId(emp_id), leave_name, leave_count, hostname
+                EmployeeId(employee_id), leave_name, leave_count, hostname
             )
             
             if result:
-                logger.info(f"Updated leave balance (legacy): {emp_id}")
+                logger.info(f"Updated leave balance (legacy): {employee_id}")
                 return {"msg": "Leave balance updated successfully"}
             else:
                 return {"msg": "User not found or no changes made"}
@@ -351,9 +351,9 @@ class DatabaseMigrationService:
             # Define indexes for users collection
             user_indexes = [
                 {
-                    "keys": [("emp_id", 1)],
+                    "keys": [("employee_id", 1)],
                     "unique": True,
-                    "name": "emp_id_unique"
+                    "name": "employee_id_unique"
                 },
                 {
                     "keys": [("email", 1)],
@@ -493,9 +493,9 @@ async def get_users_stats_solid(hostname: str) -> Dict[str, int]:
     return await migration_service.get_users_stats_legacy(hostname)
 
 
-async def get_user_by_emp_id_solid(emp_id: str, hostname: str) -> Optional[Dict[str, Any]]:
+async def get_user_by_employee_id_solid(employee_id: str, hostname: str) -> Optional[Dict[str, Any]]:
     """
-    SOLID-compliant wrapper for get_user_by_emp_id() function.
+    SOLID-compliant wrapper for get_user_by_employee_id() function.
     
     This function provides backward compatibility while using the new SOLID architecture.
     """
@@ -506,11 +506,11 @@ async def get_user_by_emp_id_solid(emp_id: str, hostname: str) -> Optional[Dict[
         MONGO_URI = os.getenv('MONGO_URI', 'mongodb://localhost:27017')
     
     migration_service = await get_migration_service(MONGO_URI)
-    return await migration_service.get_user_by_emp_id_legacy(emp_id, hostname)
+    return await migration_service.get_user_by_employee_id_legacy(employee_id, hostname)
 
 
 async def update_user_leave_balance_solid(
-    emp_id: str, 
+    employee_id: str, 
     leave_name: str, 
     leave_count: int, 
     hostname: str
@@ -528,5 +528,5 @@ async def update_user_leave_balance_solid(
     
     migration_service = await get_migration_service(MONGO_URI)
     return await migration_service.update_user_leave_balance_legacy(
-        emp_id, leave_name, leave_count, hostname
+        employee_id, leave_name, leave_count, hostname
     ) 

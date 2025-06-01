@@ -1,11 +1,14 @@
 // User Types
 export interface User {
   emp_id: string;
+  employee_id?: string; // Backend v2 uses employee_id
   name: string;
   email: string;
   gender: 'Male' | 'Female' | 'Other';
-  dob: string;
-  doj: string;
+  dob?: string;
+  date_of_birth?: string; // Backend v2 field
+  doj?: string;
+  date_of_joining?: string; // Backend v2 field
   mobile: string;
   manager_id?: string;
   role: UserRole;
@@ -15,13 +18,86 @@ export interface User {
   department?: string;
   designation?: string;
   location?: string;
+  address?: string; // Backend v2 field
+  emergency_contact?: string; // Backend v2 field
+  blood_group?: string; // Backend v2 field
   esi_number?: string;
+  status?: string; // Backend v2 uses status instead of is_active
   is_active?: boolean;
+  password_hash?: string; // Backend v2 field
+  profile_picture_url?: string; // Backend v2 field
+  pan_document_path?: string;
+  aadhar_document_path?: string;
+  photo_path?: string;
   created_at?: string;
   updated_at?: string;
 }
 
 export type UserRole = 'user' | 'manager' | 'hr' | 'admin' | 'superadmin';
+
+// User Management DTOs (to match backend v2 DTOs)
+export interface CreateUserRequest {
+  employee_id: string;
+  name: string;
+  email: string;
+  mobile: string;
+  password: string;
+  role: UserRole;
+  department?: string;
+  designation?: string;
+  manager_id?: string;
+  date_of_birth?: string;
+  date_of_joining?: string;
+  gender?: string;
+  address?: string;
+  emergency_contact?: string;
+  blood_group?: string;
+  pan_number?: string;
+  aadhar_number?: string;
+  uan_number?: string;
+  esi_number?: string;
+  location?: string;
+}
+
+export interface UpdateUserRequest {
+  name?: string;
+  email?: string;
+  mobile?: string;
+  department?: string;
+  designation?: string;
+  manager_id?: string;
+  date_of_birth?: string;
+  date_of_joining?: string;
+  gender?: string;
+  address?: string;
+  emergency_contact?: string;
+  blood_group?: string;
+  pan_number?: string;
+  aadhar_number?: string;
+  uan_number?: string;
+  esi_number?: string;
+  location?: string;
+}
+
+export interface UserSearchFilters {
+  search_term?: string;
+  department?: string;
+  role?: UserRole;
+  status?: string;
+  manager_id?: string;
+  skip?: number;
+  limit?: number;
+}
+
+export interface UserStatistics {
+  total_users: number;
+  active_users: number;
+  inactive_users: number;
+  department_distribution: Record<string, number>;
+  role_distribution: Record<string, number>;
+  recent_joiners_count: number;
+  generated_at: string;
+}
 
 // Authentication Types
 export interface LoginCredentials {

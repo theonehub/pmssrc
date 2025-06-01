@@ -26,7 +26,7 @@ from app.api.routes.payslip_routes_v2 import router as payslip_routes_v2_router
 # CRITICAL MISSING ROUTES - Add minimal working versions
 from app.api.routes.taxation_routes_v2_minimal import router as taxation_routes_v2_router
 from app.api.routes.payout_routes_v2_minimal import router as payout_routes_v2_router
-from app.api.routes.user_routes_v2_minimal import router as user_routes_v2_router
+from app.api.routes.user_routes_v2 import router as user_routes_v2_router
 
 # Set these as available since we have minimal versions
 USER_ROUTES_V2_AVAILABLE = True

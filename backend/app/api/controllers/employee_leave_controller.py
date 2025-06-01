@@ -6,7 +6,7 @@ SOLID-compliant controller for employee leave operations
 import logging
 from typing import List, Optional
 
-from application.dto.employee_leave_dto import (
+from app.application.dto.employee_leave_dto import (
     EmployeeLeaveCreateRequestDTO,
     EmployeeLeaveUpdateRequestDTO,
     EmployeeLeaveApprovalRequestDTO,
@@ -20,9 +20,9 @@ from application.dto.employee_leave_dto import (
     EmployeeLeaveNotFoundError,
     InsufficientLeaveBalanceError
 )
-from application.use_cases.employee_leave.apply_employee_leave_use_case import ApplyEmployeeLeaveUseCase
-from application.use_cases.employee_leave.approve_employee_leave_use_case import ApproveEmployeeLeaveUseCase
-from application.use_cases.employee_leave.get_employee_leaves_use_case import GetEmployeeLeavesUseCase
+from app.application.use_cases.employee_leave.apply_employee_leave_use_case import ApplyEmployeeLeaveUseCase
+from app.application.use_cases.employee_leave.approve_employee_leave_use_case import ApproveEmployeeLeaveUseCase
+from app.application.use_cases.employee_leave.get_employee_leaves_use_case import GetEmployeeLeavesUseCase
 
 
 class EmployeeLeaveController:

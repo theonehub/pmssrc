@@ -7,7 +7,7 @@ import logging
 from datetime import datetime, date
 from typing import List, Optional, Dict, Any
 
-from application.dto.public_holiday_dto import (
+from app.application.dto.public_holiday_dto import (
     PublicHolidayResponseDTO,
     PublicHolidaySummaryDTO,
     HolidayCalendarDTO,
@@ -15,12 +15,12 @@ from application.dto.public_holiday_dto import (
     get_holiday_observance_options,
     get_holiday_recurrence_options
 )
-from application.interfaces.repositories.public_holiday_repository import (
+from app.application.interfaces.repositories.public_holiday_repository import (
     PublicHolidayQueryRepository,
     PublicHolidayAnalyticsRepository,
     PublicHolidayCalendarRepository
 )
-from domain.entities.public_holiday import PublicHoliday
+from app.domain.entities.public_holiday import PublicHoliday
 
 
 logger = logging.getLogger(__name__)

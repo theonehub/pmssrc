@@ -8,7 +8,7 @@ from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
 from enum import Enum
 
-from domain.value_objects.organization_details import OrganizationType, OrganizationStatus
+from app.domain.value_objects.organization_details import OrganizationType, OrganizationStatus
 
 
 # ==================== REQUEST DTOs ====================
@@ -17,36 +17,42 @@ from domain.value_objects.organization_details import OrganizationType, Organiza
 class CreateOrganizationRequestDTO:
     """DTO for creating a new organization"""
     
-    # Basic Information
+    # Required Basic Information
     name: str
-    description: Optional[str] = None
-    organization_type: str = OrganizationType.PRIVATE_LIMITED.value
-    
-    # Contact Information
     email: str
     phone: str
-    website: Optional[str] = None
-    fax: Optional[str] = None
     
-    # Address Information
+    # Required Address Information
     street_address: str
     city: str
     state: str
     country: str
     pin_code: str
+    
+    # Required Tax Information
+    pan_number: str
+    
+    # Optional Basic Information
+    description: Optional[str] = None
+    organization_type: str = OrganizationType.PRIVATE_LIMITED.value
+    
+    # Optional Contact Information
+    website: Optional[str] = None
+    fax: Optional[str] = None
+    
+    # Optional Address Information
     landmark: Optional[str] = None
     
-    # Tax Information
-    pan_number: str
+    # Optional Tax Information
     gst_number: Optional[str] = None
     tan_number: Optional[str] = None
     cin_number: Optional[str] = None
     
-    # Configuration
+    # Optional Configuration
     employee_strength: int = 10
     hostname: Optional[str] = None
     
-    # Audit
+    # Optional Audit
     created_by: Optional[str] = None
     
     def validate(self) -> List[str]:
@@ -286,39 +292,39 @@ class TaxInformationResponseDTO:
 class OrganizationResponseDTO:
     """DTO for organization response"""
     
-    # Identity
+    # Required Identity
     organization_id: str
-    
-    # Basic Information
     name: str
+    
+    # Optional Basic Information
     description: Optional[str] = None
     organization_type: str = None
     status: str = None
     
-    # Contact and Location
+    # Optional Contact and Location
     contact_info: Optional[ContactInformationResponseDTO] = None
     address: Optional[AddressResponseDTO] = None
     
-    # Tax Information
+    # Optional Tax Information
     tax_info: Optional[TaxInformationResponseDTO] = None
     
-    # Employee Management
+    # Employee Management with defaults
     employee_strength: int = 0
     used_employee_strength: int = 0
     available_capacity: int = 0
     utilization_percentage: float = 0.0
     
-    # System Configuration
+    # Optional System Configuration
     hostname: Optional[str] = None
     logo_path: Optional[str] = None
     
-    # System Fields
+    # Optional System Fields
     created_at: str = None
     updated_at: str = None
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
     
-    # Computed fields
+    # Optional Computed fields
     is_active: bool = False
     is_government: bool = False
     has_available_capacity: bool = False
@@ -329,10 +335,13 @@ class OrganizationResponseDTO:
 class OrganizationSummaryDTO:
     """DTO for organization summary (list view)"""
     
+    # Required fields
     organization_id: str
     name: str
     organization_type: str
     status: str
+    
+    # Optional fields
     city: Optional[str] = None
     state: Optional[str] = None
     employee_strength: int = 0

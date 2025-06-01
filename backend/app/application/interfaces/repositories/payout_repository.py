@@ -7,8 +7,8 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any
 from datetime import date, datetime
 
-from domain.entities.payout import PayoutCreate, PayoutUpdate, PayoutInDB, PayoutStatus
-from application.dto.payroll_dto import PayoutSearchFiltersDTO
+from app.domain.entities.payout import PayoutCreate, PayoutUpdate, PayoutInDB, PayoutStatus
+from app.application.dto.payroll_dto import PayoutSearchFiltersDTO
 
 
 class PayoutCommandRepository(ABC):
@@ -485,14 +485,14 @@ class PayoutAuditRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_user_audit_trail(self, user_id: str, hostname: str,
+    async def get_user_audit_trail(self, employee_id: str, hostname: str,
                                  start_date: Optional[datetime] = None,
                                  end_date: Optional[datetime] = None) -> List[Dict[str, Any]]:
         """
         Get audit trail for a user
         
         Args:
-            user_id: User ID
+            employee_id: User ID
             hostname: Organization hostname
             start_date: Optional start date filter
             end_date: Optional end date filter

@@ -8,7 +8,7 @@ from io import BytesIO
 import logging
 
 from auth.auth import extract_emp_id, extract_hostname, role_checker
-from infrastructure.services.payroll_migration_service import (
+from app.infrastructure.services.payroll_migration_service import (
     calculate_monthly_payout_service,
     create_payout_service,
     get_employee_payouts_service,
@@ -21,7 +21,7 @@ from infrastructure.services.payroll_migration_service import (
     generate_payslip_data_service,
     get_employee_payout_history_service
 )
-from domain.entities.payout import (
+from app.domain.entities.payout import (
     PayoutCreate, PayoutUpdate, PayoutInDB, PayoutStatus,
     BulkPayoutRequest, BulkPayoutResponse, PayoutSummary,
     PayoutSchedule, PayoutHistory, PayslipData

@@ -8,9 +8,9 @@ from typing import Optional
 from dataclasses import dataclass
 from decimal import Decimal
 
-from domain.events.employee_events import DomainEvent
-from domain.value_objects.reimbursement_type import ReimbursementType as ReimbursementTypeVO
-from domain.value_objects.reimbursement_amount import ReimbursementAmount
+from app.domain.events.employee_events import DomainEvent
+from app.domain.value_objects.reimbursement_type import ReimbursementType as ReimbursementTypeVO
+from app.domain.value_objects.reimbursement_amount import ReimbursementAmount
 
 
 # Reimbursement Type Events

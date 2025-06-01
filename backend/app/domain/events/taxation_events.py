@@ -8,9 +8,9 @@ from datetime import date, datetime
 from typing import Optional, Dict, Any
 from decimal import Decimal
 
-from domain.value_objects.employee_id import EmployeeId
-from domain.value_objects.money import Money
-from domain.events.employee_events import DomainEvent
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.money import Money
+from app.domain.events.employee_events import DomainEvent
 
 
 @dataclass

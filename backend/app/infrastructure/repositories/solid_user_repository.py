@@ -29,7 +29,7 @@ class UserStatisticsDTO:
 
 # Try to import from existing modules, fall back to simplified versions
 try:
-    from domain.entities.user import User
+    from app.domain.entities.user import User
 except ImportError:
     class User:
         def __init__(self, **kwargs):
@@ -37,26 +37,26 @@ except ImportError:
                 setattr(self, key, value)
 
 try:
-    from domain.value_objects.employee_id import EmployeeId as DomainEmployeeId
+    from app.domain.value_objects.employee_id import EmployeeId as DomainEmployeeId
     EmployeeId = DomainEmployeeId
 except ImportError:
     pass
 
 try:
-    from application.dto.user_dto import UserSearchFiltersDTO as AppUserSearchFiltersDTO
+    from app.application.dto.user_dto import UserSearchFiltersDTO as AppUserSearchFiltersDTO
     UserSearchFiltersDTO = AppUserSearchFiltersDTO
 except ImportError:
     pass
 
 try:
-    from application.dto.user_dto import UserStatisticsDTO as AppUserStatisticsDTO
+    from app.application.dto.user_dto import UserStatisticsDTO as AppUserStatisticsDTO
     UserStatisticsDTO = AppUserStatisticsDTO
 except ImportError:
     pass
 
 from .base_repository import BaseRepository
 from ..database.database_connector import DatabaseConnector
-# from domain.events.user_events import UserCreated, UserUpdated, UserDeleted
+# from app.domain.events.user_events import UserCreated, UserUpdated, UserDeleted
 
 logger = logging.getLogger(__name__)
 
@@ -92,41 +92,104 @@ class SolidUserRepository(BaseRepository[User]):
         Returns:
             Database document representation
         """
+        # Get the actual employee_id value
+        employee_id = getattr(user, 'employee_id', None)
+        if employee_id:
+            employee_id = str(employee_id)
+        else:
+            employee_id = getattr(user, 'employee_id', getattr(user, 'employee_id', ''))
+        
+        # Handle password - convert Password object to string
+        password_value = getattr(user, 'password', '')
+        if hasattr(password_value, 'hashed_value'):
+            password_value = password_value.hashed_value
+        elif hasattr(password_value, 'value'):
+            password_value = password_value.value
+        
+        # Handle role - convert enum to string value
+        role_value = getattr(user, 'role', '')
+        if hasattr(role_value, 'value'):
+            role_value = role_value.value
+        elif hasattr(user, 'permissions') and hasattr(user.permissions, 'role'):
+            if hasattr(user.permissions.role, 'value'):
+                role_value = user.permissions.role.value
+        
+        # Handle status - convert enum to string value  
+        status_value = getattr(user, 'status', 'active')
+        if hasattr(status_value, 'value'):
+            status_value = status_value.value
+        
+        # Handle personal details
+        personal_details = getattr(user, 'personal_details', None)
+        gender_value = ''
+        mobile_value = ''
+        pan_number_value = ''
+        aadhar_number_value = ''
+        date_of_birth_value = None
+        
+        if personal_details:
+            gender_value = getattr(personal_details, 'gender', '')
+            if hasattr(gender_value, 'value'):
+                gender_value = gender_value.value
+            
+            mobile_value = getattr(personal_details, 'mobile', '')
+            pan_number_value = getattr(personal_details, 'pan_number', '')
+            aadhar_number_value = getattr(personal_details, 'aadhar_number', '')
+            date_of_birth_value = getattr(personal_details, 'date_of_birth', None)
+            
+            # Convert date to datetime for MongoDB compatibility
+            if date_of_birth_value and hasattr(date_of_birth_value, 'year'):
+                from datetime import datetime as dt
+                if isinstance(date_of_birth_value, dt):
+                    date_of_birth_value = date_of_birth_value
+                else:  # datetime.date
+                    date_of_birth_value = dt.combine(date_of_birth_value, dt.min.time())
+        
+        # Handle documents
+        documents = getattr(user, 'documents', None)
+        photo_path_value = ''
+        pan_document_path_value = ''
+        aadhar_document_path_value = ''
+        
+        if documents:
+            photo_path_value = getattr(documents, 'photo_path', '')
+            pan_document_path_value = getattr(documents, 'pan_document_path', '') 
+            aadhar_document_path_value = getattr(documents, 'aadhar_document_path', '')
+        
         return {
-            "emp_id": str(getattr(user, 'employee_id', getattr(user, 'emp_id', ''))),
-            "username": getattr(user, 'username', str(getattr(user, 'employee_id', getattr(user, 'emp_id', '')))),
+            "employee_id": employee_id,
+            "username": getattr(user, 'username', employee_id),
             "email": getattr(user, 'email', ''),
             "name": getattr(user, 'name', ''),
-            "gender": getattr(user, 'gender', ''),
-            "date_of_birth": getattr(user, 'date_of_birth', None),
+            "gender": gender_value,
+            "date_of_birth": date_of_birth_value,
             "date_of_joining": getattr(user, 'date_of_joining', None),
             "date_of_leaving": getattr(user, 'date_of_leaving', None),
-            "mobile": getattr(user, 'mobile', ''),
-            "password": getattr(user, 'password', getattr(user, 'password_hash', '')),
-            "role": getattr(user, 'role', ''),
-            "status": getattr(user, 'status', 'active'),
+            "mobile": mobile_value,
+            "password": password_value,
+            "role": role_value,
+            "status": status_value,
             "department": getattr(user, 'department', ''),
             "designation": getattr(user, 'designation', ''),
             "location": getattr(user, 'location', ''),
-            "manager_id": getattr(user, 'manager_id', None),
+            "manager_id": str(getattr(user, 'manager_id', '')) if getattr(user, 'manager_id') else None,
             "salary": getattr(user, 'salary', None),
-            "pan_number": getattr(user, 'pan_number', ''),
-            "aadhar_number": getattr(user, 'aadhar_number', ''),
+            "pan_number": pan_number_value,
+            "aadhar_number": aadhar_number_value,
             "bank_account_number": getattr(user, 'bank_account_number', ''),
             "ifsc_code": getattr(user, 'ifsc_code', ''),
-            "photo_path": getattr(user, 'photo_path', ''),
-            "pan_document_path": getattr(user, 'pan_document_path', ''),
-            "aadhar_document_path": getattr(user, 'aadhar_document_path', ''),
+            "photo_path": photo_path_value,
+            "pan_document_path": pan_document_path_value,
+            "aadhar_document_path": aadhar_document_path_value,
             "leave_balance": getattr(user, 'leave_balance', {}),
-            "is_active": getattr(user, 'is_active', True),
+            "is_active": user.is_active() if hasattr(user, 'is_active') and callable(getattr(user, 'is_active')) else True,
             "created_at": getattr(user, 'created_at', datetime.utcnow()),
             "updated_at": getattr(user, 'updated_at', datetime.utcnow()),
             "created_by": getattr(user, 'created_by', 'system'),
             "updated_by": getattr(user, 'updated_by', 'system'),
-            "organization_id": getattr(user, 'organization_id', None),
-            "last_login": getattr(user, 'last_login', None),
+            "last_login": getattr(user, 'last_login_at', None),
             "login_count": getattr(user, 'login_count', 0),
-            "failed_login_attempts": getattr(user, 'failed_login_attempts', 0),
+            "failed_login_attempts": getattr(user, 'login_attempts', 0),
             "locked_until": getattr(user, 'locked_until', None),
             "password_changed_at": getattr(user, 'password_changed_at', None),
             "custom_permissions": getattr(user, 'custom_permissions', []),
@@ -151,9 +214,8 @@ class SolidUserRepository(BaseRepository[User]):
                     setattr(self, key, value)
         
         return SimpleUser(
-            employee_id=document.get("emp_id"),
-            emp_id=document.get("emp_id"),  # For backward compatibility
-            username=document.get("username", document.get("emp_id")),  # Default to emp_id if username not present
+            employee_id=document.get("employee_id"),
+            username=document.get("username", document.get("employee_id")),  # Default to employee_id if username not present
             email=document.get("email"),
             name=document.get("name"),
             gender=document.get("gender"),
@@ -182,7 +244,6 @@ class SolidUserRepository(BaseRepository[User]):
             updated_at=document.get("updated_at"),
             created_by=document.get("created_by"),
             updated_by=document.get("updated_by"),
-            organization_id=document.get("organization_id"),
             last_login=document.get("last_login"),
             login_count=document.get("login_count", 0),
             failed_login_attempts=document.get("failed_login_attempts", 0),
@@ -194,7 +255,7 @@ class SolidUserRepository(BaseRepository[User]):
         )
     
     # Command Repository Implementation
-    async def save(self, user: User) -> User:
+    async def save(self, user: User, hostname: str) -> User:
         """
         Save a user (create or update).
         
@@ -202,26 +263,30 @@ class SolidUserRepository(BaseRepository[User]):
         """
         try:
             document = self._entity_to_document(user)
-            organization_id = getattr(user, 'organization_id', None)
             
             # Use upsert to handle both create and update
-            emp_id = str(getattr(user, 'employee_id', getattr(user, 'emp_id', '')))
-            filters = {"emp_id": emp_id}
+            employee_id = getattr(user, 'employee_id', None)
+            if employee_id:
+                employee_id = str(employee_id)
+            else:
+                employee_id = str(getattr(user, 'employee_id', getattr(user, 'employee_id', '')))
+            
+            filters = {"employee_id": employee_id}
             await self._update_document(
                 filters=filters,
                 update_data=document,
-                organization_id=organization_id,
+                organization_id=hostname,
                 upsert=True
             )
             
-            logger.info(f"User saved: {emp_id}")
+            logger.info(f"User saved: {employee_id}")
             return user
             
         except DuplicateKeyError as e:
-            logger.error(f"Duplicate key error saving user {emp_id}: {e}")
+            logger.error(f"Duplicate key error saving user {employee_id}: {e}")
             raise
         except Exception as e:
-            logger.error(f"Error saving user {emp_id}: {e}")
+            logger.error(f"Error saving user {employee_id}: {e}")
             raise
     
     async def save_batch(self, users: List[User]) -> List[User]:
@@ -243,41 +308,41 @@ class SolidUserRepository(BaseRepository[User]):
             logger.error(f"Error in batch save: {e}")
             raise
     
-    async def delete(self, user_id: Union[EmployeeId, str], soft_delete: bool = True) -> bool:
+    async def delete(self, employee_id: Union[EmployeeId, str], soft_delete: bool = True) -> bool:
         """
         Delete a user by ID.
         
         Provides delete functionality not available in original procedural code.
         """
         try:
-            emp_id = str(user_id) if isinstance(user_id, str) else str(user_id.value if hasattr(user_id, 'value') else user_id)
-            filters = {"emp_id": emp_id}
+            employee_id = str(employee_id) if isinstance(employee_id, str) else str(employee_id.value if hasattr(employee_id, 'value') else employee_id)
+            filters = {"employee_id": employee_id}
             result = await self._delete_document(
                 filters=filters,
                 soft_delete=soft_delete
             )
             
             if result:
-                logger.info(f"User deleted: {emp_id}")
+                logger.info(f"User deleted: {employee_id}")
             else:
-                logger.warning(f"User not found for deletion: {emp_id}")
+                logger.warning(f"User not found for deletion: {employee_id}")
             
             return result
             
         except Exception as e:
-            logger.error(f"Error deleting user {user_id}: {e}")
+            logger.error(f"Error deleting user {employee_id}: {e}")
             raise
     
     # Query Repository Implementation
-    async def get_by_id(self, user_id: Union[EmployeeId, str]) -> Optional[User]:
+    async def get_by_id(self, employee_id: Union[EmployeeId, str]) -> Optional[User]:
         """
         Get user by ID.
         
-        Replaces: get_user_by_emp_id() function
+        Replaces: get_user_by_employee_id() function
         """
         try:
-            emp_id = str(user_id) if isinstance(user_id, str) else str(user_id.value if hasattr(user_id, 'value') else user_id)
-            filters = {"emp_id": emp_id}
+            employee_id = str(employee_id) if isinstance(employee_id, str) else str(employee_id.value if hasattr(employee_id, 'value') else employee_id)
+            filters = {"employee_id": employee_id}
             documents = await self._execute_query(filters=filters, limit=1)
             
             if documents:
@@ -285,7 +350,7 @@ class SolidUserRepository(BaseRepository[User]):
             return None
             
         except Exception as e:
-            logger.error(f"Error getting user by ID {user_id}: {e}")
+            logger.error(f"Error getting user by ID {employee_id}: {e}")
             raise
     
     async def get_by_email(self, email: str) -> Optional[User]:
@@ -313,8 +378,8 @@ class SolidUserRepository(BaseRepository[User]):
             User entity if found, None otherwise
         """
         try:
-            # First try by username field, then fall back to emp_id for backward compatibility
-            filter_query = {"$or": [{"username": username}, {"emp_id": username}]}
+            # First try by username field, then fall back to employee_id for backward compatibility
+            filter_query = {"$or": [{"username": username}, {"employee_id": username}]}
             document = await self.find_one(filter_query)
             return self._document_to_entity(document) if document else None
         except Exception as e:
@@ -398,7 +463,7 @@ class SolidUserRepository(BaseRepository[User]):
         """
         Get users by manager ID.
         
-        Replaces: get_users_by_manager_id() and get_emp_ids_by_manager_id() functions
+        Replaces: get_users_by_manager_id() and get_employee_ids_by_manager_id() functions
         """
         try:
             mgr_id = str(manager_id) if isinstance(manager_id, str) else str(manager_id.value if hasattr(manager_id, 'value') else manager_id)
@@ -418,7 +483,7 @@ class SolidUserRepository(BaseRepository[User]):
     
     async def update_leave_balance(
         self, 
-        user_id: Union[EmployeeId, str], 
+        employee_id: Union[EmployeeId, str], 
         leave_name: str, 
         leave_count: int, 
         organization_id: Optional[str] = None
@@ -429,11 +494,11 @@ class SolidUserRepository(BaseRepository[User]):
         Replaces: update_user_leave_balance() function
         """
         try:
-            emp_id = str(user_id) if isinstance(user_id, str) else str(user_id.value if hasattr(user_id, 'value') else user_id)
+            employee_id = str(employee_id) if isinstance(employee_id, str) else str(employee_id.value if hasattr(employee_id, 'value') else employee_id)
             collection = self._get_collection(organization_id)
             
             result = await collection.update_one(
-                {"emp_id": emp_id},
+                {"employee_id": employee_id},
                 {
                     "$inc": {f"leave_balance.{leave_name}": leave_count},
                     "$set": {"updated_at": datetime.utcnow()}
@@ -441,14 +506,14 @@ class SolidUserRepository(BaseRepository[User]):
             )
             
             if result.modified_count > 0:
-                logger.info(f"Updated leave balance for {emp_id}: {leave_name} += {leave_count}")
+                logger.info(f"Updated leave balance for {employee_id}: {leave_name} += {leave_count}")
                 return True
             else:
-                logger.warning(f"No user found to update leave balance: {emp_id}")
+                logger.warning(f"No user found to update leave balance: {employee_id}")
                 return False
                 
         except Exception as e:
-            logger.error(f"Error updating leave balance for {user_id}: {e}")
+            logger.error(f"Error updating leave balance for {employee_id}: {e}")
             raise
     
     # Analytics Repository Implementation
@@ -504,7 +569,7 @@ class SolidUserRepository(BaseRepository[User]):
             document = user_data.copy()
             document_id = await self._insert_document(document, organization_id)
             
-            logger.info(f"User created (legacy): {user_data.get('emp_id')}")
+            logger.info(f"User created (legacy): {user_data.get('employee_id')}")
             return {
                 "msg": "User created successfully",
                 "inserted_id": document_id

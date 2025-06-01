@@ -7,9 +7,9 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 from decimal import Decimal
 
-from domain.value_objects.money import Money
-from domain.value_objects.tax_regime import TaxRegime, RegimeType
-from domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.money import Money
+from app.domain.value_objects.tax_regime import TaxRegime, RegimeType
+from app.domain.value_objects.employee_id import EmployeeId
 
 
 class TaxCalculator(ABC):

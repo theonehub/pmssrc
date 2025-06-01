@@ -106,7 +106,7 @@ class MongoDBConnector(DatabaseConnector):
             RuntimeError: If not connected to MongoDB
         """
         if not self._client:
-            raise RuntimeError("Not connected to MongoDB. Call connect() first.")
+            raise RuntimeError(f"Not connected to MongoDB. Call connect() first. Connection string: {self._connection_string} and database_name: {database_name}")
             
         if database_name not in self._databases:
             self._databases[database_name] = self._client[database_name]

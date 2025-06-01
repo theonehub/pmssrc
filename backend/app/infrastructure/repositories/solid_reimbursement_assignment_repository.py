@@ -11,8 +11,8 @@ from pymongo.errors import DuplicateKeyError
 
 # Import domain entities
 try:
-    from domain.entities.reimbursement_assignment import ReimbursementAssignment
-    from domain.value_objects.employee_id import EmployeeId
+    from app.domain.entities.reimbursement_assignment import ReimbursementAssignment
+    from app.domain.value_objects.employee_id import EmployeeId
     from models.reimbursement_assignment import ReimbursementAssignmentCreate
 except ImportError:
     # Fallback classes for migration compatibility
@@ -38,7 +38,7 @@ except ImportError:
 
 # Import application interfaces
 try:
-    from application.interfaces.repositories.reimbursement_assignment_repository import (
+    from app.application.interfaces.repositories.reimbursement_assignment_repository import (
         ReimbursementAssignmentCommandRepository, ReimbursementAssignmentQueryRepository,
         ReimbursementAssignmentAnalyticsRepository, ReimbursementAssignmentRepository
     )
@@ -60,7 +60,7 @@ except ImportError:
 
 # Import DTOs
 try:
-    from application.dto.reimbursement_assignment_dto import (
+    from app.application.dto.reimbursement_assignment_dto import (
         ReimbursementAssignmentSearchFiltersDTO, ReimbursementAssignmentStatisticsDTO
     )
 except ImportError:
@@ -130,12 +130,12 @@ class SolidReimbursementAssignmentRepository(
             del document['id']
         
         # Ensure proper field mapping for legacy compatibility
-        if 'emp_id' not in document and hasattr(assignment, 'employee_id'):
-            emp_id = getattr(assignment, 'employee_id')
-            if hasattr(emp_id, 'value'):
-                document['emp_id'] = emp_id.value
+        if 'employee_id' not in document and hasattr(assignment, 'employee_id'):
+            employee_id = getattr(assignment, 'employee_id')
+            if hasattr(employee_id, 'value'):
+                document['employee_id'] = employee_id.value
             else:
-                document['emp_id'] = str(emp_id)
+                document['employee_id'] = str(employee_id)
         
         return document
     
@@ -161,9 +161,9 @@ class SolidReimbursementAssignmentRepository(
         try:
             collection = self._get_collection(organization_id)
             
-            # Index for emp_id queries
+            # Index for employee_id queries
             await collection.create_index([
-                ("emp_id", 1)
+                ("employee_id", 1)
             ], unique=True)
             
             # Index for reimbursement_type_ids queries
@@ -203,21 +203,21 @@ class SolidReimbursementAssignmentRepository(
                 document['created_at'] = datetime.now()
             document['updated_at'] = datetime.now()
             
-            # Check for existing record by emp_id
+            # Check for existing record by employee_id
             existing = None
-            if document.get('emp_id'):
-                existing = await self.get_by_employee_id(document['emp_id'], organization_id)
+            if document.get('employee_id'):
+                existing = await self.get_by_employee_id(document['employee_id'], organization_id)
             
             if existing:
                 # Update existing record
-                filters = {"emp_id": document['emp_id']}
+                filters = {"employee_id": document['employee_id']}
                 success = await self._update_document(
                     filters=filters,
                     update_data=document,
                     organization_id=organization_id
                 )
                 if success:
-                    return await self.get_by_employee_id(document['emp_id'], organization_id)
+                    return await self.get_by_employee_id(document['employee_id'], organization_id)
                 else:
                     raise ValueError("Failed to update reimbursement assignment record")
             else:
@@ -231,7 +231,7 @@ class SolidReimbursementAssignmentRepository(
             logger.error(f"Error saving reimbursement assignment: {e}")
             raise
     
-    async def update(self, emp_id: str, update_data: Dict[str, Any], 
+    async def update(self, employee_id: str, update_data: Dict[str, Any], 
                     organization_id: str) -> bool:
         """
         Update reimbursement assignment record.
@@ -240,7 +240,7 @@ class SolidReimbursementAssignmentRepository(
             # Add updated timestamp
             update_data['updated_at'] = datetime.now()
             
-            filters = {"emp_id": emp_id}
+            filters = {"employee_id": employee_id}
             
             success = await self._update_document(
                 filters=filters,
@@ -251,15 +251,15 @@ class SolidReimbursementAssignmentRepository(
             return success
             
         except Exception as e:
-            logger.error(f"Error updating reimbursement assignment {emp_id}: {e}")
+            logger.error(f"Error updating reimbursement assignment {employee_id}: {e}")
             return False
     
-    async def delete(self, emp_id: str, organization_id: str) -> bool:
+    async def delete(self, employee_id: str, organization_id: str) -> bool:
         """
         Delete reimbursement assignment record.
         """
         try:
-            filters = {"emp_id": emp_id}
+            filters = {"employee_id": employee_id}
             
             return await self._delete_document(
                 filters=filters,
@@ -268,18 +268,18 @@ class SolidReimbursementAssignmentRepository(
             )
             
         except Exception as e:
-            logger.error(f"Error deleting reimbursement assignment {emp_id}: {e}")
+            logger.error(f"Error deleting reimbursement assignment {employee_id}: {e}")
             return False
     
     # Query Repository Implementation
-    async def get_by_employee_id(self, emp_id: str, organization_id: str = "default") -> Optional[ReimbursementAssignment]:
+    async def get_by_employee_id(self, employee_id: str, organization_id: str = "default") -> Optional[ReimbursementAssignment]:
         """
         Get reimbursement assignment by employee ID.
         
         Replaces: get_user_assignments() function
         """
         try:
-            filters = {"emp_id": emp_id}
+            filters = {"employee_id": employee_id}
             
             documents = await self._execute_query(
                 filters=filters,
@@ -292,7 +292,7 @@ class SolidReimbursementAssignmentRepository(
             return None
             
         except Exception as e:
-            logger.error(f"Error retrieving reimbursement assignment for {emp_id}: {e}")
+            logger.error(f"Error retrieving reimbursement assignment for {employee_id}: {e}")
             return None
     
     async def get_all_with_details(self, skip: int = 0, limit: int = 10, 
@@ -334,13 +334,13 @@ class SolidReimbursementAssignmentRepository(
             
             # Create lookup dictionaries
             type_lookup = {str(rt["_id"]): rt for rt in types}
-            assignment_lookup = {str(a["emp_id"]): a["reimbursement_type_ids"] for a in assignments}
+            assignment_lookup = {str(a["employee_id"]): a["reimbursement_type_ids"] for a in assignments}
             
             # Build response
             response = []
             for user in users:
-                emp_id = str(user["emp_id"])
-                assigned_ids = assignment_lookup.get(emp_id, [])
+                employee_id = str(user["employee_id"])
+                assigned_ids = assignment_lookup.get(employee_id, [])
                 assigned_types = []
                 
                 for tid in assigned_ids:
@@ -355,7 +355,7 @@ class SolidReimbursementAssignmentRepository(
                         })
                 
                 response.append({
-                    "emp_id": emp_id,
+                    "employee_id": employee_id,
                     "name": user["name"],
                     "email": user.get("email", ""),
                     "assigned_reimbursements": assigned_types
@@ -420,8 +420,8 @@ class SolidReimbursementAssignmentRepository(
         try:
             query_filters = {}
             
-            if hasattr(filters, 'emp_id') and filters.emp_id:
-                query_filters["emp_id"] = filters.emp_id
+            if hasattr(filters, 'employee_id') and filters.employee_id:
+                query_filters["employee_id"] = filters.employee_id
             
             if hasattr(filters, 'reimbursement_type_id') and filters.reimbursement_type_id:
                 query_filters["reimbursement_type_ids"] = filters.reimbursement_type_id
@@ -452,8 +452,8 @@ class SolidReimbursementAssignmentRepository(
         try:
             query_filters = {}
             
-            if hasattr(filters, 'emp_id') and filters.emp_id:
-                query_filters["emp_id"] = filters.emp_id
+            if hasattr(filters, 'employee_id') and filters.employee_id:
+                query_filters["employee_id"] = filters.employee_id
             
             if hasattr(filters, 'reimbursement_type_id') and filters.reimbursement_type_id:
                 query_filters["reimbursement_type_ids"] = filters.reimbursement_type_id
@@ -570,16 +570,16 @@ class SolidReimbursementAssignmentRepository(
             logger.error(f"Error creating assignment (legacy): {e}")
             return False
     
-    async def get_user_assignments_legacy(self, emp_id: str, hostname: str) -> Optional[Dict[str, Any]]:
+    async def get_user_assignments_legacy(self, employee_id: str, hostname: str) -> Optional[Dict[str, Any]]:
         """
         Legacy compatibility for get_user_assignments() function.
         """
         try:
-            assignment = await self.get_by_employee_id(emp_id, hostname)
+            assignment = await self.get_by_employee_id(employee_id, hostname)
             
             if assignment:
                 return {
-                    "emp_id": getattr(assignment, 'emp_id', ''),
+                    "employee_id": getattr(assignment, 'employee_id', ''),
                     "reimbursement_type_ids": getattr(assignment, 'reimbursement_type_ids', []),
                     "created_at": getattr(assignment, 'created_at', None),
                     "updated_at": getattr(assignment, 'updated_at', None)

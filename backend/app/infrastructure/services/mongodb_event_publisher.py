@@ -9,8 +9,8 @@ from datetime import datetime
 from pymongo.collection import Collection
 from pymongo import ASCENDING, DESCENDING
 
-from application.interfaces.services.event_publisher import EventPublisher
-from domain.events.employee_events import DomainEvent
+from app.application.interfaces.services.event_publisher import EventPublisher
+from app.domain.events.employee_events import DomainEvent
 from database.database_connector import connect_to_database
 
 
@@ -204,7 +204,7 @@ class MongoDBEventPublisher(EventPublisher):
             
             # You would use your event registry here to reconstruct the proper event type
             # For example:
-            # from domain.events.leave_events import get_leave_event_class
+            # from app.domain.events.leave_events import get_leave_event_class
             # event_class = get_leave_event_class(event_type)
             # if event_class:
             #     return event_class(**event_data)

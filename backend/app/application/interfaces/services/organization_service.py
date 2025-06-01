@@ -7,10 +7,10 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-from domain.entities.organization import Organization
-from domain.value_objects.organization_id import OrganizationId
-from domain.value_objects.organization_details import OrganizationType, OrganizationStatus
-from application.dto.organization_dto import (
+from app.domain.entities.organization import Organization
+from app.domain.value_objects.organization_id import OrganizationId
+from app.domain.value_objects.organization_details import OrganizationType, OrganizationStatus
+from app.application.dto.organization_dto import (
     CreateOrganizationRequestDTO, UpdateOrganizationRequestDTO,
     OrganizationStatusUpdateRequestDTO, OrganizationSearchFiltersDTO,
     OrganizationResponseDTO, OrganizationSummaryDTO, OrganizationListResponseDTO,

@@ -33,11 +33,11 @@ async def example_legacy_compatibility():
     print("\n=== Legacy Compatibility Example ===")
     
     try:
-        from infrastructure.services.database_migration_service import (
+        from app.infrastructure.services.database_migration_service import (
             create_user_solid,
             get_all_users_solid,
             get_users_stats_solid,
-            get_user_by_emp_id_solid,
+            get_user_by_employee_id_solid,
             update_user_leave_balance_solid
         )
         
@@ -45,7 +45,7 @@ async def example_legacy_compatibility():
         
         # Create a user (legacy style)
         user_data = {
-            "emp_id": "EMP001",
+            "employee_id": "EMP001",
             "name": "John Doe",
             "email": "john.doe@example.com",
             "mobile": "1234567890",
@@ -72,7 +72,7 @@ async def example_legacy_compatibility():
         
         # Get specific user (legacy style)
         print("\nGetting specific user...")
-        user = await get_user_by_emp_id_solid("EMP001", hostname)
+        user = await get_user_by_employee_id_solid("EMP001", hostname)
         if user:
             print(f"Found user: {user.get('name', 'Unknown')}")
         
@@ -96,7 +96,7 @@ async def example_solid_repository():
     print("\n=== SOLID Repository Example ===")
     
     try:
-        from infrastructure.services.database_migration_service import get_migration_service
+        from app.infrastructure.services.database_migration_service import get_migration_service
         
         # Initialize migration service
         print("Initializing migration service...")
@@ -114,7 +114,7 @@ async def example_solid_repository():
         
         user = SimpleUser(
             employee_id="EMP002",
-            emp_id="EMP002",  # For backward compatibility
+            employee_id="EMP002",  # For backward compatibility
             name="Jane Smith",
             email="jane.smith@example.com",
             mobile="0987654321",
@@ -129,7 +129,7 @@ async def example_solid_repository():
         # Save user using repository
         print("Saving user with repository...")
         saved_user = await user_repo.save(user)
-        print(f"Saved user: {getattr(saved_user, 'employee_id', getattr(saved_user, 'emp_id', 'Unknown'))}")
+        print(f"Saved user: {getattr(saved_user, 'employee_id', getattr(saved_user, 'employee_id', 'Unknown'))}")
         
         # Get user by ID
         print("\nGetting user by ID...")
@@ -177,7 +177,7 @@ async def example_advanced_features():
     print("\n=== Advanced Features Example ===")
     
     try:
-        from infrastructure.services.database_migration_service import get_migration_service
+        from app.infrastructure.services.database_migration_service import get_migration_service
         
         # Get migration service and repository
         MONGO_URI = get_mongo_uri()
@@ -195,7 +195,7 @@ async def example_advanced_features():
         users = [
             SimpleUser(
                 employee_id=f"EMP00{i}",
-                emp_id=f"EMP00{i}",
+                employee_id=f"EMP00{i}",
                 name=f"User {i}",
                 email=f"user{i}@example.com",
                 role="Employee",
@@ -236,7 +236,7 @@ async def example_error_handling():
     print("\n=== Error Handling Example ===")
     
     try:
-        from infrastructure.services.database_migration_service import get_migration_service
+        from app.infrastructure.services.database_migration_service import get_migration_service
         
         MONGO_URI = get_mongo_uri()
         migration_service = await get_migration_service(MONGO_URI)
@@ -259,7 +259,7 @@ async def example_error_handling():
         try:
             user = SimpleUser(
                 employee_id="EMP001",  # Might already exist
-                emp_id="EMP001",
+                employee_id="EMP001",
                 name="Duplicate User",
                 email="duplicate@example.com",
                 organization_id="example_company"
@@ -280,7 +280,7 @@ async def example_performance_monitoring():
     print("\n=== Performance Monitoring Example ===")
     
     try:
-        from infrastructure.services.database_migration_service import get_migration_service
+        from app.infrastructure.services.database_migration_service import get_migration_service
         import time
         
         MONGO_URI = get_mongo_uri()
@@ -335,7 +335,7 @@ async def main():
     finally:
         # Clean up
         try:
-            from infrastructure.services.database_migration_service import cleanup_migration_service
+            from app.infrastructure.services.database_migration_service import cleanup_migration_service
             await cleanup_migration_service()
             print("\nCleaned up migration service")
         except Exception as e:

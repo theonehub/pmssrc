@@ -14,9 +14,9 @@ from auth.password_handler import hash_password
 from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 import services.user_service as us
 from bson import ObjectId
-from infrastructure.services.legacy_migration_service import increment_used_employee_strength, user_creation_allowed
+from app.infrastructure.services.legacy_migration_service import increment_used_employee_strength, user_creation_allowed
 from io import BytesIO
-from infrastructure.services.activity_tracker_service import track_activity
+from app.infrastructure.services.activity_tracker_service import track_activity
 import json
 from utils.file_handler import validate_file, save_file
 from utils.json_encoder import mongodb_jsonable_encoder
@@ -137,13 +137,13 @@ async def create_user_with_files(
             is_valid, error = validate_file(pan_file, allowed_types=["image/jpeg", "image/png", "application/pdf"], max_size=5*1024*1024)
             if not is_valid:
                 raise HTTPException(status_code=400, detail=f"Invalid PAN file: {error}")
-            user_info.pan_file_path = await save_file(pan_file, "pan")
+            user_info.pan_document_path = await save_file(pan_file, "pan")
             
         if aadhar_file:
             is_valid, error = validate_file(aadhar_file, allowed_types=["image/jpeg", "image/png", "application/pdf"], max_size=5*1024*1024)
             if not is_valid:
                 raise HTTPException(status_code=400, detail=f"Invalid Aadhar file: {error}")
-            user_info.aadhar_file_path = await save_file(aadhar_file, "aadhar")
+            user_info.aadhar_document_path = await save_file(aadhar_file, "aadhar")
 
         result = us.create_user(user_info, hostname)
         logger.info(result)
@@ -398,13 +398,13 @@ async def update_user_with_files(
             is_valid, error = validate_file(pan_file, allowed_types=["image/jpeg", "image/png", "application/pdf"], max_size=5*1024*1024)
             if not is_valid:
                 raise HTTPException(status_code=400, detail=f"Invalid PAN file: {error}")
-            user_info.pan_file_path = await save_file(pan_file, "pan")
+            user_info.pan_document_path = await save_file(pan_file, "pan")
             
         if aadhar_file:
             is_valid, error = validate_file(aadhar_file, allowed_types=["image/jpeg", "image/png", "application/pdf"], max_size=5*1024*1024)
             if not is_valid:
                 raise HTTPException(status_code=400, detail=f"Invalid Aadhar file: {error}")
-            user_info.aadhar_file_path = await save_file(aadhar_file, "aadhar")
+            user_info.aadhar_document_path = await save_file(aadhar_file, "aadhar")
 
         result = us.update_user(emp_id, user_info, hostname)
         

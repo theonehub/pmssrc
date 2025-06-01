@@ -5,7 +5,7 @@ Encapsulates user authorization and permissions following DDD principles
 
 from dataclasses import dataclass, field
 from typing import List, Dict, Optional
-from domain.value_objects.user_credentials import UserRole
+from app.domain.value_objects.user_credentials import UserRole
 
 
 @dataclass(frozen=True)

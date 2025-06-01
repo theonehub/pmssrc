@@ -4,7 +4,7 @@ SOLID-compliant implementation of all user service interfaces
 """
 
 import logging
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, TYPE_CHECKING
 from datetime import datetime, timedelta
 
 from app.application.interfaces.services.user_service import (
@@ -30,6 +30,10 @@ from app.domain.value_objects.user_credentials import UserRole, UserStatus
 from app.infrastructure.services.password_service import PasswordService
 from app.infrastructure.services.notification_service import NotificationService
 from app.infrastructure.services.file_upload_service import FileUploadService
+
+# Import CurrentUser for organization context
+if TYPE_CHECKING:
+    from app.auth.auth_dependencies import CurrentUser
 
 logger = logging.getLogger(__name__)
 
@@ -79,28 +83,30 @@ class UserServiceImpl(UserService):
         )
     
     # Command Service Implementation
-    async def create_user(self, request: CreateUserRequestDTO) -> UserResponseDTO:
+    async def create_user(self, request: CreateUserRequestDTO, current_user: "CurrentUser") -> UserResponseDTO:
         """Create a new user."""
         try:
-            logger.info(f"Creating user: {request.employee_id}")
-            return await self._create_user_use_case.execute(request)
+            logger.info(f"Creating user: {request.employee_id} in organization: {current_user.hostname}")
+            # Pass current_user to use case for organization context
+            return await self._create_user_use_case.execute(request, current_user)
         except Exception as e:
-            logger.error(f"Error creating user {request.employee_id}: {e}")
+            logger.error(f"Error creating user {request.employee_id} in organization {current_user.hostname}: {e}")
             raise
     
     async def update_user(
         self, 
-        user_id: str, 
-        request: UpdateUserRequestDTO
+        employee_id: str, 
+        request: UpdateUserRequestDTO,
+        current_user: "CurrentUser"
     ) -> UserResponseDTO:
         """Update an existing user."""
         try:
-            logger.info(f"Updating user: {user_id}")
+            logger.info(f"Updating user: {employee_id} in organization: {current_user.hostname}")
             
-            # Get existing user
-            user = await self.user_repository.get_by_id(EmployeeId(user_id))
+            # Get existing user (repository will handle organization context via database service)
+            user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
             if not user:
-                raise ValueError(f"User not found: {user_id}")
+                raise ValueError(f"User not found: {employee_id}")
             
             # Update user fields
             if request.name is not None:
@@ -121,7 +127,7 @@ class UserServiceImpl(UserService):
                 user.assign_manager(EmployeeId(request.manager_id))
             
             # Save updated user
-            updated_user = await self.user_repository.save(user)
+            updated_user = await self.user_repository.save(user, current_user.hostname)
             
             # Send notification
             await self.send_user_updated_notification(updated_user)
@@ -129,22 +135,22 @@ class UserServiceImpl(UserService):
             return UserResponseDTO.from_entity(updated_user)
             
         except Exception as e:
-            logger.error(f"Error updating user {user_id}: {e}")
+            logger.error(f"Error updating user {employee_id} in organization {current_user.hostname}: {e}")
             raise
     
     async def update_user_documents(
         self, 
-        user_id: str, 
+        employee_id: str, 
         request: UpdateUserDocumentsRequestDTO
     ) -> UserResponseDTO:
         """Update user documents."""
         try:
-            logger.info(f"Updating documents for user: {user_id}")
+            logger.info(f"Updating documents for user: {employee_id}")
             
             # Get existing user
-            user = await self.user_repository.get_by_id(EmployeeId(user_id))
+            user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
             if not user:
-                raise ValueError(f"User not found: {user_id}")
+                raise ValueError(f"User not found: {employee_id}")
             
             # Update document paths
             if request.photo_path:
@@ -155,27 +161,28 @@ class UserServiceImpl(UserService):
                 user.update_aadhar_document_path(request.aadhar_document_path)
             
             # Save updated user
-            updated_user = await self.user_repository.save(user)
+            updated_user = await self.user_repository.save(user, current_user.hostname)
             
             return UserResponseDTO.from_entity(updated_user)
             
         except Exception as e:
-            logger.error(f"Error updating documents for user {user_id}: {e}")
+            logger.error(f"Error updating documents for user {employee_id}: {e}")
             raise
     
     async def change_user_password(
         self, 
-        user_id: str, 
-        request: ChangeUserPasswordRequestDTO
+        employee_id: str, 
+        request: ChangeUserPasswordRequestDTO,
+        current_user: "CurrentUser"
     ) -> UserResponseDTO:
         """Change user password."""
         try:
-            logger.info(f"Changing password for user: {user_id}")
+            logger.info(f"Changing password for user: {employee_id} in organization: {current_user.hostname}")
             
             # Get existing user
-            user = await self.user_repository.get_by_id(EmployeeId(user_id))
+            user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
             if not user:
-                raise ValueError(f"User not found: {user_id}")
+                raise ValueError(f"User not found: {employee_id}")
             
             # Verify current password if provided
             if request.current_password:
@@ -192,39 +199,40 @@ class UserServiceImpl(UserService):
             user.change_password(new_password_hash, request.changed_by)
             
             # Save updated user
-            updated_user = await self.user_repository.save(user)
+            updated_user = await self.user_repository.save(user, current_user.hostname)
             
             # Send notification
-            is_self_change = request.changed_by == user_id
+            is_self_change = request.changed_by == employee_id
             await self.send_password_changed_notification(updated_user, is_self_change)
             
             return UserResponseDTO.from_entity(updated_user)
             
         except Exception as e:
-            logger.error(f"Error changing password for user {user_id}: {e}")
+            logger.error(f"Error changing password for user {employee_id} in organization {current_user.hostname}: {e}")
             raise
     
     async def change_user_role(
         self, 
-        user_id: str, 
-        request: ChangeUserRoleRequestDTO
+        employee_id: str, 
+        request: ChangeUserRoleRequestDTO,
+        current_user: "CurrentUser"
     ) -> UserResponseDTO:
         """Change user role."""
         try:
-            logger.info(f"Changing role for user: {user_id}")
+            logger.info(f"Changing role for user: {employee_id} in organization: {current_user.hostname}")
             
             # Get existing user
-            user = await self.user_repository.get_by_id(EmployeeId(user_id))
+            user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
             if not user:
-                raise ValueError(f"User not found: {user_id}")
+                raise ValueError(f"User not found: {employee_id}")
             
             old_role = user.credentials.role.value
             
             # Update role
-            user.change_role(UserRole(request.new_role), request.changed_by, request.reason)
+            user.change_role(UserRole(request.new_role.lower()), request.changed_by, request.reason)
             
             # Save updated user
-            updated_user = await self.user_repository.save(user)
+            updated_user = await self.user_repository.save(user, current_user.hostname)
             
             # Send notification
             await self.send_role_changed_notification(
@@ -234,30 +242,31 @@ class UserServiceImpl(UserService):
             return UserResponseDTO.from_entity(updated_user)
             
         except Exception as e:
-            logger.error(f"Error changing role for user {user_id}: {e}")
+            logger.error(f"Error changing role for user {employee_id} in organization {current_user.hostname}: {e}")
             raise
     
     async def update_user_status(
         self, 
-        user_id: str, 
-        request: UserStatusUpdateRequestDTO
+        employee_id: str, 
+        request: UserStatusUpdateRequestDTO,
+        current_user: "CurrentUser"
     ) -> UserResponseDTO:
         """Update user status."""
         try:
-            logger.info(f"Updating status for user: {user_id}")
+            logger.info(f"Updating status for user: {employee_id} in organization: {current_user.hostname}")
             
             # Get existing user
-            user = await self.user_repository.get_by_id(EmployeeId(user_id))
+            user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
             if not user:
-                raise ValueError(f"User not found: {user_id}")
+                raise ValueError(f"User not found: {employee_id}")
             
             old_status = user.credentials.status.value
             
             # Update status
-            user.update_status(UserStatus(request.new_status), request.updated_by, request.reason)
+            user.update_status(UserStatus(request.new_status.lower()), request.updated_by, request.reason)
             
             # Save updated user
-            updated_user = await self.user_repository.save(user)
+            updated_user = await self.user_repository.save(user, current_user.hostname)
             
             # Send notification
             await self.send_status_change_notification(
@@ -267,26 +276,26 @@ class UserServiceImpl(UserService):
             return UserResponseDTO.from_entity(updated_user)
             
         except Exception as e:
-            logger.error(f"Error updating status for user {user_id}: {e}")
+            logger.error(f"Error updating status for user {employee_id} in organization {current_user.hostname}: {e}")
             raise
     
     async def assign_manager(
         self, 
-        user_id: str, 
+        employee_id: str, 
         manager_id: str,
         assigned_by: str
     ) -> UserResponseDTO:
         """Assign manager to user."""
         try:
-            logger.info(f"Assigning manager {manager_id} to user: {user_id}")
+            logger.info(f"Assigning manager {manager_id} to user: {employee_id}")
             
             # Get existing user
-            user = await self.user_repository.get_by_id(EmployeeId(user_id))
+            user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
             if not user:
-                raise ValueError(f"User not found: {user_id}")
+                raise ValueError(f"User not found: {employee_id}")
             
             # Verify manager exists
-            manager = await self.user_repository.get_by_id(EmployeeId(manager_id))
+            manager = await self.user_repository.get_by_id(EmployeeId(manager_id), current_user.hostname)
             if not manager:
                 raise ValueError(f"Manager not found: {manager_id}")
             
@@ -295,63 +304,67 @@ class UserServiceImpl(UserService):
             user.update_updated_by(assigned_by)
             
             # Save updated user
-            updated_user = await self.user_repository.save(user)
+            updated_user = await self.user_repository.save(user, current_user.hostname)
             
             return UserResponseDTO.from_entity(updated_user)
             
         except Exception as e:
-            logger.error(f"Error assigning manager to user {user_id}: {e}")
+            logger.error(f"Error assigning manager to user {employee_id}: {e}")
             raise
     
     async def delete_user(
         self, 
-        user_id: str, 
+        employee_id: str, 
         deletion_reason: str,
+        current_user: "CurrentUser",
         deleted_by: Optional[str] = None,
         soft_delete: bool = True
     ) -> bool:
         """Delete a user."""
         try:
-            logger.info(f"Deleting user: {user_id} (soft: {soft_delete})")
+            logger.info(f"Deleting user: {employee_id} (soft: {soft_delete})")
             
             # Perform deletion
-            result = await self.user_repository.delete(EmployeeId(user_id), soft_delete)
+            result = await self.user_repository.delete(EmployeeId(employee_id), soft_delete, current_user.hostname)
             
             if result:
-                logger.info(f"User deleted successfully: {user_id}")
+                logger.info(f"User deleted successfully: {employee_id}")
             
             return result
             
         except Exception as e:
-            logger.error(f"Error deleting user {user_id}: {e}")
+            logger.error(f"Error deleting user {employee_id}: {e}")
             raise
     
     # Query Service Implementation
-    async def get_user_by_id(self, user_id: str) -> Optional[UserResponseDTO]:
+    async def get_user_by_id(self, employee_id: str, current_user: "CurrentUser") -> Optional[UserResponseDTO]:
         """Get user by ID."""
         try:
-            user = await self.user_repository.get_by_id(EmployeeId(user_id))
+            logger.debug(f"Getting user {employee_id} from organization {current_user.hostname}")
+            user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
             return UserResponseDTO.from_entity(user) if user else None
         except Exception as e:
-            logger.error(f"Error getting user by ID {user_id}: {e}")
+            logger.error(f"Error getting user by ID {employee_id} in organization {current_user.hostname}: {e}")
             raise
     
-    async def get_user_by_email(self, email: str) -> Optional[UserResponseDTO]:
+    async def get_user_by_email(self, email: str, current_user: "CurrentUser") -> Optional[UserResponseDTO]:
         """Get user by email."""
         try:
-            user = await self.user_repository.get_by_email(email)
+            logger.debug(f"Getting user by email {email} from organization {current_user.hostname}")
+            user = await self.user_repository.get_by_email(email, current_user.hostname)
             return UserResponseDTO.from_entity(user) if user else None
         except Exception as e:
-            logger.error(f"Error getting user by email {email}: {e}")
+            logger.error(f"Error getting user by email {email} in organization {current_user.hostname}: {e}")
             raise
     
-    async def get_user_by_mobile(self, mobile: str) -> Optional[UserResponseDTO]:
+    async def get_user_by_mobile(self, mobile: str, current_user: "CurrentUser") -> Optional[UserResponseDTO]:
         """Get user by mobile."""
         try:
-            user = await self.user_repository.get_by_mobile(mobile)
+            logger.debug(f"Getting user by mobile {mobile} from organization {current_user.hostname}")
+            user = await self.user_repository.get_by_mobile(mobile, current_user.hostname)
             return UserResponseDTO.from_entity(user) if user else None
         except Exception as e:
-            logger.error(f"Error getting user by mobile {mobile}: {e}")
+            logger.error(f"Error getting user by mobile {mobile} in organization {current_user.hostname}: {e}")
             raise
     
     async def get_all_users(
@@ -360,84 +373,104 @@ class UserServiceImpl(UserService):
         limit: int = 20,
         include_inactive: bool = False,
         include_deleted: bool = False,
-        organization_id: Optional[str] = None
+        current_user: "CurrentUser" = None
     ) -> UserListResponseDTO:
         """Get all users with pagination."""
         try:
+            logger.debug(f"Getting all users from organization {current_user.hostname if current_user else 'global'}")
             users = await self.user_repository.get_all(
                 skip=skip, 
                 limit=limit,
                 include_inactive=include_inactive,
                 include_deleted=include_deleted,
-                organization_id=organization_id
+                organization_id=current_user.hostname if current_user else None
             )
             
             total_count = await self.user_repository.count_total(
                 include_deleted=include_deleted,
-                organization_id=organization_id
+                organization_id=current_user.hostname if current_user else None
             )
             
             user_summaries = [UserSummaryDTO.from_entity(user) for user in users]
+            
+            # Calculate pagination info
+            page = (skip // limit) + 1 if limit > 0 else 1
+            total_pages = (total_count + limit - 1) // limit if limit > 0 else 1
+            has_next = skip + limit < total_count
+            has_previous = skip > 0
             
             return UserListResponseDTO(
                 users=user_summaries,
                 total_count=total_count,
-                skip=skip,
-                limit=limit
+                page=page,
+                page_size=limit,
+                total_pages=total_pages,
+                has_next=has_next,
+                has_previous=has_previous
             )
             
         except Exception as e:
-            logger.error(f"Error getting all users: {e}")
+            logger.error(f"Error getting all users in organization {current_user.hostname if current_user else 'unknown'}: {e}")
             raise
     
-    async def search_users(self, filters: UserSearchFiltersDTO) -> UserListResponseDTO:
+    async def search_users(self, filters: UserSearchFiltersDTO, current_user: "CurrentUser") -> UserListResponseDTO:
         """Search users with filters."""
         try:
-            users = await self.user_repository.search(filters)
+            logger.debug(f"Searching users in organization {current_user.hostname}")
+            users = await self.user_repository.search(filters, current_user.hostname)
             user_summaries = [UserSummaryDTO.from_entity(user) for user in users]
+            
+            # Calculate pagination info
+            total_count = len(user_summaries)  # TODO: Implement proper count
+            has_next = filters.page * filters.page_size < total_count
+            has_previous = filters.page > 1
+            total_pages = (total_count + filters.page_size - 1) // filters.page_size if filters.page_size > 0 else 1
             
             return UserListResponseDTO(
                 users=user_summaries,
-                total_count=len(user_summaries),  # TODO: Implement proper count
-                skip=filters.skip,
-                limit=filters.limit
+                total_count=total_count,
+                page=filters.page,
+                page_size=filters.page_size,
+                total_pages=total_pages,
+                has_next=has_next,
+                has_previous=has_previous
             )
             
         except Exception as e:
-            logger.error(f"Error searching users: {e}")
+            logger.error(f"Error searching users in organization {current_user.hostname}: {e}")
             raise
     
-    async def get_users_by_role(self, role: str) -> List[UserSummaryDTO]:
+    async def get_users_by_role(self, role: str, current_user: "CurrentUser") -> List[UserSummaryDTO]:
         """Get users by role."""
         try:
-            users = await self.user_repository.get_by_role(UserRole(role))
+            users = await self.user_repository.get_by_role(UserRole(role.lower()), current_user.hostname)
             return [UserSummaryDTO.from_entity(user) for user in users]
         except Exception as e:
             logger.error(f"Error getting users by role {role}: {e}")
             raise
     
-    async def get_users_by_status(self, status: str) -> List[UserSummaryDTO]:
+    async def get_users_by_status(self, status: str, current_user: "CurrentUser") -> List[UserSummaryDTO]:
         """Get users by status."""
         try:
-            users = await self.user_repository.get_by_status(UserStatus(status))
+            users = await self.user_repository.get_by_status(UserStatus(status.lower()), current_user.hostname)
             return [UserSummaryDTO.from_entity(user) for user in users]
         except Exception as e:
             logger.error(f"Error getting users by status {status}: {e}")
             raise
     
-    async def get_users_by_department(self, department: str) -> List[UserSummaryDTO]:
+    async def get_users_by_department(self, department: str, current_user: "CurrentUser") -> List[UserSummaryDTO]:
         """Get users by department."""
         try:
-            users = await self.user_repository.get_by_department(department)
+            users = await self.user_repository.get_by_department(department, current_user.hostname)
             return [UserSummaryDTO.from_entity(user) for user in users]
         except Exception as e:
             logger.error(f"Error getting users by department {department}: {e}")
             raise
     
-    async def get_users_by_manager(self, manager_id: str) -> List[UserSummaryDTO]:
+    async def get_users_by_manager(self, manager_id: str, current_user: "CurrentUser") -> List[UserSummaryDTO]:
         """Get users by manager."""
         try:
-            users = await self.user_repository.get_by_manager(EmployeeId(manager_id))
+            users = await self.user_repository.get_by_manager(EmployeeId(manager_id), current_user.hostname)
             return [UserSummaryDTO.from_entity(user) for user in users]
         except Exception as e:
             logger.error(f"Error getting users by manager {manager_id}: {e}")
@@ -448,32 +481,37 @@ class UserServiceImpl(UserService):
         email: Optional[str] = None,
         mobile: Optional[str] = None,
         pan_number: Optional[str] = None,
-        exclude_id: Optional[str] = None
+        exclude_id: Optional[str] = None,
+        current_user: "CurrentUser" = None
     ) -> Dict[str, bool]:
         """Check if user exists by various identifiers."""
         try:
+            organization_context = f" in organization {current_user.hostname}" if current_user else ""
+            logger.debug(f"Checking user existence{organization_context}")
+            
             result = {}
             exclude_employee_id = EmployeeId(exclude_id) if exclude_id else None
+            organization_id = current_user.hostname if current_user else None
             
             if email:
                 result["email"] = await self.user_repository.exists_by_email(
-                    email, exclude_employee_id
+                    email, exclude_employee_id, organization_id
                 )
             
             if mobile:
                 result["mobile"] = await self.user_repository.exists_by_mobile(
-                    mobile, exclude_employee_id
+                    mobile, exclude_employee_id, organization_id
                 )
             
             if pan_number:
                 result["pan_number"] = await self.user_repository.exists_by_pan_number(
-                    pan_number, exclude_employee_id
+                    pan_number, exclude_employee_id, organization_id
                 )
             
             return result
             
         except Exception as e:
-            logger.error(f"Error checking user existence: {e}")
+            logger.error(f"Error checking user existence in organization {current_user.hostname if current_user else 'unknown'}: {e}")
             raise
     
     # Authentication Service Implementation
@@ -488,17 +526,17 @@ class UserServiceImpl(UserService):
     
     async def logout_user(
         self, 
-        user_id: str, 
+        employee_id: str, 
         session_token: str,
         logout_method: str = "manual"
     ) -> bool:
         """Logout user and invalidate session."""
         try:
-            logger.info(f"Logging out user: {user_id}")
+            logger.info(f"Logging out user: {employee_id}")
             # TODO: Implement session management
             return True
         except Exception as e:
-            logger.error(f"Error logging out user {user_id}: {e}")
+            logger.error(f"Error logging out user {employee_id}: {e}")
             raise
     
     async def refresh_token(self, refresh_token: str) -> UserLoginResponseDTO:
@@ -512,18 +550,19 @@ class UserServiceImpl(UserService):
     
     async def reset_password(
         self, 
-        user_id: str, 
+        employee_id: str, 
         reset_by: str,
+        current_user: "CurrentUser",
         send_email: bool = True
     ) -> str:
         """Reset user password."""
         try:
-            logger.info(f"Resetting password for user: {user_id}")
+            logger.info(f"Resetting password for user: {employee_id}")
             
             # Get user
-            user = await self.user_repository.get_by_id(EmployeeId(user_id))
+            user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
             if not user:
-                raise ValueError(f"User not found: {user_id}")
+                raise ValueError(f"User not found: {employee_id}")
             
             # Generate temporary password
             temp_password = self.password_service.generate_temporary_password()
@@ -531,7 +570,7 @@ class UserServiceImpl(UserService):
             
             # Update user password
             user.change_password(temp_password_hash, reset_by)
-            await self.user_repository.save(user)
+            await self.user_repository.save(user, current_user.hostname)
             
             # Send email if requested
             if send_email:
@@ -542,7 +581,7 @@ class UserServiceImpl(UserService):
             return temp_password
             
         except Exception as e:
-            logger.error(f"Error resetting password for user {user_id}: {e}")
+            logger.error(f"Error resetting password for user {employee_id}: {e}")
             raise
     
     async def validate_session(self, session_token: str) -> Optional[UserResponseDTO]:
@@ -554,29 +593,29 @@ class UserServiceImpl(UserService):
             logger.error(f"Error validating session: {e}")
             raise
     
-    async def get_active_sessions(self, user_id: str) -> List[Dict[str, Any]]:
+    async def get_active_sessions(self, employee_id: str) -> List[Dict[str, Any]]:
         """Get active sessions for user."""
         try:
             # TODO: Implement session management
             return []
         except Exception as e:
-            logger.error(f"Error getting active sessions for user {user_id}: {e}")
+            logger.error(f"Error getting active sessions for user {employee_id}: {e}")
             raise
     
-    async def terminate_all_sessions(self, user_id: str, terminated_by: str) -> int:
+    async def terminate_all_sessions(self, employee_id: str, terminated_by: str) -> int:
         """Terminate all sessions for user."""
         try:
             # TODO: Implement session termination
             return 0
         except Exception as e:
-            logger.error(f"Error terminating sessions for user {user_id}: {e}")
+            logger.error(f"Error terminating sessions for user {employee_id}: {e}")
             raise
     
     # Authorization Service Implementation
-    async def check_permission(self, user_id: str, permission: str) -> bool:
+    async def check_permission(self, employee_id: str, permission: str, current_user: "CurrentUser") -> bool:
         """Check if user has permission."""
         try:
-            user = await self.user_repository.get_by_id(EmployeeId(user_id))
+            user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
             if not user:
                 return False
             
@@ -589,27 +628,27 @@ class UserServiceImpl(UserService):
             return permission in user.custom_permissions
             
         except Exception as e:
-            logger.error(f"Error checking permission {permission} for user {user_id}: {e}")
+            logger.error(f"Error checking permission {permission} for user {employee_id}: {e}")
             return False
     
     async def check_resource_permission(
         self, 
-        user_id: str, 
+        employee_id: str, 
         resource: str, 
         action: str
     ) -> bool:
         """Check resource-specific permission."""
         try:
             permission = f"{resource}:{action}"
-            return await self.check_permission(user_id, permission)
+            return await self.check_permission(employee_id, permission, current_user)
         except Exception as e:
-            logger.error(f"Error checking resource permission for user {user_id}: {e}")
+            logger.error(f"Error checking resource permission for user {employee_id}: {e}")
             return False
     
-    async def get_user_permissions(self, user_id: str) -> List[str]:
+    async def get_user_permissions(self, employee_id: str, current_user: "CurrentUser") -> List[str]:
         """Get all permissions for user."""
         try:
-            user = await self.user_repository.get_by_id(EmployeeId(user_id))
+            user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
             if not user:
                 return []
             
@@ -621,7 +660,7 @@ class UserServiceImpl(UserService):
             return list(all_permissions)
             
         except Exception as e:
-            logger.error(f"Error getting permissions for user {user_id}: {e}")
+            logger.error(f"Error getting permissions for user {employee_id}: {e}")
             return []
     
     def _get_role_permissions(self, role: UserRole) -> List[str]:
@@ -651,82 +690,87 @@ class UserServiceImpl(UserService):
     
     async def add_custom_permission(
         self, 
-        user_id: str, 
+        employee_id: str, 
         permission: str,
-        granted_by: str
+        granted_by: str,
+        current_user: "CurrentUser"
     ) -> UserResponseDTO:
         """Add custom permission to user."""
         try:
-            user = await self.user_repository.get_by_id(EmployeeId(user_id))
+            user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
             if not user:
-                raise ValueError(f"User not found: {user_id}")
+                raise ValueError(f"User not found: {employee_id}")
             
             user.add_custom_permission(permission)
             user.update_updated_by(granted_by)
             
-            updated_user = await self.user_repository.save(user)
+            updated_user = await self.user_repository.save(user, current_user.hostname)
             return UserResponseDTO.from_entity(updated_user)
             
         except Exception as e:
-            logger.error(f"Error adding permission {permission} to user {user_id}: {e}")
+            logger.error(f"Error adding permission {permission} to user {employee_id}: {e}")
             raise
     
     async def remove_custom_permission(
         self, 
-        user_id: str, 
+        employee_id: str, 
         permission: str,
-        removed_by: str
+        removed_by: str,
+        current_user: "CurrentUser"
     ) -> UserResponseDTO:
         """Remove custom permission from user."""
         try:
-            user = await self.user_repository.get_by_id(EmployeeId(user_id))
+            user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
             if not user:
-                raise ValueError(f"User not found: {user_id}")
+                raise ValueError(f"User not found: {employee_id}")
             
             user.remove_custom_permission(permission)
             user.update_updated_by(removed_by)
             
-            updated_user = await self.user_repository.save(user)
+            updated_user = await self.user_repository.save(user, current_user.hostname)
             return UserResponseDTO.from_entity(updated_user)
             
         except Exception as e:
-            logger.error(f"Error removing permission {permission} from user {user_id}: {e}")
+            logger.error(f"Error removing permission {permission} from user {employee_id}: {e}")
             raise
     
     async def can_access_user_data(
         self, 
-        requesting_user_id: str, 
-        target_user_id: str
+        requesting_employee_id: str, 
+        target_employee_id: str,
+        current_user: "CurrentUser"
     ) -> bool:
         """Check if user can access another user's data."""
         try:
             # Same user can always access own data
-            if requesting_user_id == target_user_id:
+            if requesting_employee_id == target_employee_id:
                 return True
             
             # Check if requesting user has admin permissions
-            if await self.check_permission(requesting_user_id, "user:read"):
+            if await self.check_permission(requesting_employee_id, "user:read", current_user):
                 return True
             
             # Check if requesting user is manager of target user
-            target_user = await self.user_repository.get_by_id(EmployeeId(target_user_id))
+            target_user = await self.user_repository.get_by_id(EmployeeId(target_employee_id), current_user.hostname)
             if target_user and target_user.manager_id:
-                if str(target_user.manager_id) == requesting_user_id:
+                if str(target_user.manager_id) == requesting_employee_id:
                     return True
             
             return False
             
         except Exception as e:
-            logger.error(f"Error checking data access for users {requesting_user_id}, {target_user_id}: {e}")
+            logger.error(f"Error checking data access for users {requesting_employee_id}, {target_employee_id}: {e}")
             return False
     
     # Analytics Service Implementation
-    async def get_user_statistics(self) -> UserStatisticsDTO:
+    async def get_user_statistics(self, current_user: "CurrentUser") -> UserStatisticsDTO:
         """Get user statistics."""
         try:
-            return await self.user_repository.get_statistics()
+            logger.debug(f"Getting user statistics for organization {current_user.hostname}")
+            organization_id = current_user.hostname if current_user else None
+            return await self.user_repository.get_statistics(organization_id)
         except Exception as e:
-            logger.error(f"Error getting user statistics: {e}")
+            logger.error(f"Error getting user statistics for organization {current_user.hostname}: {e}")
             raise
     
     async def get_user_analytics(self) -> UserAnalyticsDTO:
@@ -815,9 +859,15 @@ class UserServiceImpl(UserService):
             return False
     
     async def send_profile_completion_reminder(self, user: User) -> bool:
-        """Send profile completion reminder."""
+        """Send profile completion reminder notification."""
         try:
-            return await self.notification_service.send_profile_completion_reminder(user)
+            await self.notification_service.send_notification(
+                employee_id=str(user.employee_id),
+                title="Complete Your Profile",
+                message=f"Your profile is {user.profile_completion_percentage}% complete. Please update missing information.",
+                notification_type="reminder"
+            )
+            return True
         except Exception as e:
             logger.error(f"Error sending profile completion reminder: {e}")
             return False
@@ -825,3 +875,546 @@ class UserServiceImpl(UserService):
     # Additional service methods would be implemented here...
     # Profile Service, Bulk Operations Service, Validation Service implementations
     # Following the same pattern of delegating to appropriate services/repositories 
+
+    # Missing Analytics Service Methods
+    async def get_login_activity_report(self, days: int = 30) -> Dict[str, Any]:
+        """Get login activity report."""
+        try:
+            return await self.user_repository.get_login_activity_stats(days)
+        except Exception as e:
+            logger.error(f"Error getting login activity report: {e}")
+            return {}
+
+    async def get_role_distribution_report(self) -> Dict[str, Any]:
+        """Get role distribution report."""
+        try:
+            return await self.user_repository.get_users_by_role_count()
+        except Exception as e:
+            logger.error(f"Error getting role distribution report: {e}")
+            return {}
+
+    async def get_department_distribution_report(self) -> Dict[str, Any]:
+        """Get department distribution report."""
+        try:
+            return await self.user_repository.get_users_by_department_count()
+        except Exception as e:
+            logger.error(f"Error getting department distribution report: {e}")
+            return {}
+
+    async def get_profile_completion_report(self) -> Dict[str, Any]:
+        """Get profile completion report."""
+        try:
+            return await self.user_repository.get_profile_completion_stats()
+        except Exception as e:
+            logger.error(f"Error getting profile completion report: {e}")
+            return {}
+
+    async def get_security_metrics_report(self) -> Dict[str, Any]:
+        """Get security metrics report."""
+        try:
+            return await self.user_repository.get_password_security_metrics()
+        except Exception as e:
+            logger.error(f"Error getting security metrics report: {e}")
+            return {}
+
+    async def get_user_growth_trends(self, months: int = 12) -> Dict[str, Any]:
+        """Get user growth trends."""
+        try:
+            # Calculate growth over specified months
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=months * 30)
+            
+            users_in_period = await self.user_repository.get_users_created_in_period(start_date, end_date)
+            
+            # Group by month
+            monthly_growth = {}
+            for user in users_in_period:
+                if user.created_at:
+                    month_key = user.created_at.strftime("%Y-%m")
+                    monthly_growth[month_key] = monthly_growth.get(month_key, 0) + 1
+            
+            return {
+                "period_months": months,
+                "total_new_users": len(users_in_period),
+                "monthly_breakdown": monthly_growth,
+                "average_monthly_growth": len(users_in_period) / months if months > 0 else 0
+            }
+        except Exception as e:
+            logger.error(f"Error getting user growth trends: {e}")
+            return {}
+
+    # Missing Profile Service Methods
+    async def get_profile_completion(self, employee_id: str, current_user: "CurrentUser") -> UserProfileCompletionDTO:
+        """Get profile completion for a user."""
+        try:
+            return await self.user_repository.get_profile_completion(EmployeeId(employee_id), current_user.hostname)
+        except Exception as e:
+            logger.error(f"Error getting profile completion for {employee_id}: {e}")
+            return UserProfileCompletionDTO(
+                employee_id=EmployeeId(employee_id),
+                completion_percentage=0.0,
+                missing_fields=[],
+                completed_fields=[]
+            )
+
+    async def get_incomplete_profiles(self, current_user: "CurrentUser", threshold: float = 80.0) -> List[UserProfileCompletionDTO]:
+        """Get users with incomplete profiles."""
+        try:
+            return await self.user_repository.get_incomplete_profiles(threshold, current_user.hostname)
+        except Exception as e:
+            logger.error(f"Error getting incomplete profiles: {e}")
+            return []
+
+    async def upload_document(
+        self, 
+        employee_id: str, 
+        document_type: str,
+        file_data: bytes,
+        filename: str,
+        uploaded_by: str,
+        current_user: "CurrentUser"
+    ) -> str:
+        """Upload a document for a user."""
+        try:
+            # Use file upload service to store the document
+            file_path = await self.file_upload_service.upload_file(
+                file_data=file_data,
+                filename=filename,
+                directory=f"users/{employee_id}/{document_type}"
+            )
+            
+            # Update user with document path
+            user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
+            if not user:
+                raise ValueError(f"User not found: {employee_id}")
+            
+            # Update appropriate document path based on type
+            if document_type == "photo":
+                user.update_photo_path(file_path)
+            elif document_type == "pan":
+                user.update_pan_document_path(file_path)
+            elif document_type == "aadhar":
+                user.update_aadhar_document_path(file_path)
+            else:
+                raise ValueError(f"Unsupported document type: {document_type}")
+            
+            # Save updated user
+            await self.user_repository.save(user, current_user.hostname)
+            
+            logger.info(f"Document uploaded for user {employee_id}: {file_path}")
+            return file_path
+            
+        except Exception as e:
+            logger.error(f"Error uploading document for user {employee_id}: {e}")
+            raise
+
+    async def delete_document(
+        self, 
+        employee_id: str, 
+        document_type: str,
+        deleted_by: str,
+        current_user: "CurrentUser"
+    ) -> bool:
+        """Delete a document for a user."""
+        try:
+            # Get user
+            user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
+            if not user:
+                raise ValueError(f"User not found: {employee_id}")
+            
+            # Get current document path
+            file_path = None
+            if document_type == "photo":
+                file_path = user.photo_path
+                user.update_photo_path(None)
+            elif document_type == "pan":
+                file_path = user.pan_document_path
+                user.update_pan_document_path(None)
+            elif document_type == "aadhar":
+                file_path = user.aadhar_document_path
+                user.update_aadhar_document_path(None)
+            else:
+                raise ValueError(f"Unsupported document type: {document_type}")
+            
+            # Delete file if it exists
+            if file_path:
+                await self.file_upload_service.delete_file(file_path)
+            
+            # Save updated user
+            await self.user_repository.save(user, current_user.hostname)
+            
+            logger.info(f"Document deleted for user {employee_id}: {file_path}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error deleting document for user {employee_id}: {e}")
+            return False
+
+    async def generate_profile_recommendations(self, employee_id: str) -> List[str]:
+        """Generate profile improvement recommendations."""
+        try:
+            completion = await self.get_profile_completion(employee_id)
+            recommendations = []
+            
+            # Generate recommendations based on missing fields
+            for field in completion.missing_fields:
+                if field == "mobile":
+                    recommendations.append("Add your mobile number for better communication")
+                elif field == "department":
+                    recommendations.append("Update your department information")
+                elif field == "designation":
+                    recommendations.append("Add your job designation")
+                elif field == "photo":
+                    recommendations.append("Upload a profile photo")
+                elif field == "pan_number":
+                    recommendations.append("Add your PAN number for tax calculations")
+                elif field == "aadhar_number":
+                    recommendations.append("Add your Aadhar number for identity verification")
+                elif field == "bank_account_number":
+                    recommendations.append("Add bank account details for salary processing")
+            
+            # Add general recommendations
+            if completion.completion_percentage < 50:
+                recommendations.append("Complete your basic profile information")
+            elif completion.completion_percentage < 80:
+                recommendations.append("Add remaining details to complete your profile")
+            
+            return recommendations
+            
+        except Exception as e:
+            logger.error(f"Error generating profile recommendations for {employee_id}: {e}")
+            return []
+
+    # Missing Bulk Operations Service Methods
+    async def bulk_update_users(
+        self, 
+        updates: List[BulkUserUpdateDTO],
+        updated_by: str
+    ) -> BulkUserUpdateResultDTO:
+        """Bulk update multiple users."""
+        try:
+            results = []
+            successful_updates = 0
+            failed_updates = 0
+            
+            for update in updates:
+                try:
+                    # Create update request
+                    request = UpdateUserRequestDTO(
+                        name=update.name,
+                        email=update.email,
+                        mobile=update.mobile,
+                        department=update.department,
+                        designation=update.designation,
+                        location=update.location,
+                        salary=update.salary,
+                        manager_id=update.manager_id,
+                        updated_by=updated_by
+                    )
+                    
+                    # Update user
+                    result = await self.update_user(update.employee_id, request)
+                    results.append({
+                        "employee_id": update.employee_id,
+                        "status": "success",
+                        "result": result
+                    })
+                    successful_updates += 1
+                    
+                except Exception as e:
+                    results.append({
+                        "employee_id": update.employee_id,
+                        "status": "failed",
+                        "error": str(e)
+                    })
+                    failed_updates += 1
+            
+            return BulkUserUpdateResultDTO(
+                total_requested=len(updates),
+                successful_updates=successful_updates,
+                failed_updates=failed_updates,
+                results=results
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in bulk user update: {e}")
+            raise
+
+    async def bulk_update_status(
+        self, 
+        employee_ids: List[str], 
+        status: str,
+        reason: Optional[str],
+        updated_by: str
+    ) -> Dict[str, Any]:
+        """Bulk update user status."""
+        try:
+            employee_ids = [EmployeeId(uid) for uid in employee_ids]
+            user_status = UserStatus(status.lower())
+            
+            return await self.user_repository.bulk_update_status(
+                employee_ids, user_status, updated_by, reason
+            )
+        except Exception as e:
+            logger.error(f"Error in bulk status update: {e}")
+            return {"error": str(e), "status": "failed"}
+
+    async def bulk_update_role(
+        self, 
+        employee_ids: List[str], 
+        role: str,
+        reason: str,
+        updated_by: str
+    ) -> Dict[str, Any]:
+        """Bulk update user role."""
+        try:
+            employee_ids = [EmployeeId(uid) for uid in employee_ids]
+            user_role = UserRole(role.lower())
+            
+            return await self.user_repository.bulk_update_role(
+                employee_ids, user_role, updated_by, reason
+            )
+        except Exception as e:
+            logger.error(f"Error in bulk role update: {e}")
+            return {"error": str(e), "status": "failed"}
+
+    async def bulk_password_reset(
+        self, 
+        employee_ids: List[str],
+        reset_by: str,
+        send_email: bool = True
+    ) -> Dict[str, Any]:
+        """Bulk password reset for users."""
+        try:
+            employee_ids = [EmployeeId(uid) for uid in employee_ids]
+            
+            return await self.user_repository.bulk_password_reset(
+                employee_ids, reset_by, send_email
+            )
+        except Exception as e:
+            logger.error(f"Error in bulk password reset: {e}")
+            return {"error": str(e), "status": "failed"}
+
+    async def bulk_export_users(
+        self, 
+        employee_ids: Optional[List[str]] = None,
+        format: str = "csv",
+        include_sensitive: bool = False
+    ) -> bytes:
+        """Bulk export user data."""
+        try:
+            employee_ids = [EmployeeId(uid) for uid in employee_ids] if employee_ids else None
+            
+            return await self.user_repository.bulk_export(
+                employee_ids, format, include_sensitive
+            )
+        except Exception as e:
+            logger.error(f"Error in bulk export: {e}")
+            return b""
+
+    async def bulk_import_users(
+        self, 
+        data: bytes, 
+        format: str = "csv",
+        created_by: str = "system",
+        validate_only: bool = False
+    ) -> Dict[str, Any]:
+        """Bulk import user data."""
+        try:
+            return await self.user_repository.bulk_import(
+                data, format, created_by, validate_only
+            )
+        except Exception as e:
+            logger.error(f"Error in bulk import: {e}")
+            return {"error": str(e), "status": "failed"}
+
+    # Missing Validation Service Methods
+    async def validate_user_data(self, request: CreateUserRequestDTO) -> List[str]:
+        """Validate user data for creation."""
+        try:
+            errors = []
+            
+            # Validate required fields
+            if not request.employee_id or not request.employee_id.strip():
+                errors.append("Employee ID is required")
+            
+            if not request.name or not request.name.strip():
+                errors.append("Name is required")
+            
+            if not request.email or not request.email.strip():
+                errors.append("Email is required")
+            
+            # Validate email format
+            import re
+            email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+            if request.email and not re.match(email_pattern, request.email):
+                errors.append("Invalid email format")
+            
+            # Validate mobile format
+            if request.mobile:
+                mobile_pattern = r'^\+?[1-9]\d{1,14}$'
+                if not re.match(mobile_pattern, request.mobile):
+                    errors.append("Invalid mobile number format")
+            
+            # Validate PAN format
+            if request.pan_number:
+                pan_pattern = r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$'
+                if not re.match(pan_pattern, request.pan_number):
+                    errors.append("Invalid PAN number format")
+            
+            # Validate Aadhar format
+            if request.aadhar_number:
+                aadhar_pattern = r'^\d{12}$'
+                if not re.match(aadhar_pattern, request.aadhar_number):
+                    errors.append("Invalid Aadhar number format (should be 12 digits)")
+            
+            return errors
+            
+        except Exception as e:
+            logger.error(f"Error validating user data: {e}")
+            return [f"Validation error: {str(e)}"]
+
+    async def validate_user_update(
+        self, 
+        employee_id: str, 
+        request: UpdateUserRequestDTO,
+        current_user: "CurrentUser"
+    ) -> List[str]:
+        """Validate user data for update."""
+        try:
+            errors = []
+            
+            # Check if user exists
+            user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
+            if not user:
+                errors.append(f"User not found: {employee_id}")
+                return errors
+            
+            # Validate email format if provided
+            if request.email:
+                import re
+                email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+                if not re.match(email_pattern, request.email):
+                    errors.append("Invalid email format")
+                
+                # Check email uniqueness
+                existing_user = await self.user_repository.get_by_email(request.email, current_user.hostname)
+                if existing_user and str(getattr(existing_user, 'employee_id', getattr(existing_user, 'employee_id', ''))) != str(getattr(user, 'employee_id', getattr(user, 'employee_id', ''))):
+                    errors.append("Email already in use by another user")
+            
+            # Validate mobile format if provided
+            if request.mobile:
+                import re
+                mobile_pattern = r'^\+?[1-9]\d{1,14}$'
+                if not re.match(mobile_pattern, request.mobile):
+                    errors.append("Invalid mobile number format")
+                
+                # Check mobile uniqueness
+                existing_user = await self.user_repository.get_by_mobile(request.mobile, current_user.hostname)
+                if existing_user and str(getattr(existing_user, 'employee_id', getattr(existing_user, 'employee_id', ''))) != str(getattr(user, 'employee_id', getattr(user, 'employee_id', ''))):
+                    errors.append("Mobile number already in use by another user")
+            
+            # Validate manager exists if provided
+            if request.manager_id:
+                manager = await self.user_repository.get_by_id(EmployeeId(request.manager_id), current_user.hostname)
+                if not manager:
+                    errors.append(f"Manager not found: {request.manager_id}")
+                elif request.manager_id == employee_id:
+                    errors.append("User cannot be their own manager")
+            
+            return errors
+            
+        except Exception as e:
+            logger.error(f"Error validating user update: {e}")
+            return [f"Validation error: {str(e)}"]
+
+    async def validate_business_rules(self, user: User) -> List[str]:
+        """Validate business rules for user."""
+        try:
+            errors = []
+            
+            # Check if user is trying to be their own manager
+            if user.manager_id and user.manager_id == user.employee_id:
+                errors.append("User cannot be their own manager")
+            
+            # Check if user has required permissions for their role
+            if hasattr(user, 'permissions') and hasattr(user.permissions, 'role'):
+                role = user.permissions.role
+                if hasattr(role, 'value'):
+                    role_value = role.value
+                elif hasattr(role, 'name'):
+                    role_value = role.name
+                else:
+                    role_value = str(role)
+                
+                if role_value.upper() == "ADMIN":
+                    # Admins should have specific permissions
+                    pass
+                elif role_value.upper() == "MANAGER":
+                    # Managers should have team management permissions
+                    pass
+            
+            # Check profile completion for active users
+            if hasattr(user, 'is_active') and callable(user.is_active) and user.is_active():
+                if hasattr(user, 'get_profile_completion_percentage'):
+                    completion = user.get_profile_completion_percentage()
+                    if completion < 50:
+                        errors.append("Active users must have at least 50% profile completion")
+            
+            # Check required documents for employees (simplified validation)
+            if hasattr(user, 'personal_details') and hasattr(user.personal_details, 'pan_number'):
+                if not user.personal_details.pan_number:
+                    errors.append("PAN number is required for employees")
+            
+            return errors
+            
+        except Exception as e:
+            logger.error(f"Error validating business rules: {e}")
+            return [f"Business rule validation error: {str(e)}"]
+
+    async def validate_uniqueness_constraints(
+        self, 
+        email: Optional[str] = None,
+        mobile: Optional[str] = None,
+        pan_number: Optional[str] = None,
+        exclude_employee_id: Optional[str] = None,
+        current_user: "CurrentUser" = None
+    ) -> Dict[str, bool]:
+        """Validate uniqueness constraints."""
+        try:
+            result = {}
+            exclude_id = EmployeeId(exclude_employee_id) if exclude_employee_id else None
+            organization_id = current_user.hostname if current_user else None
+            
+            if email:
+                result["email_exists"] = await self.user_repository.exists_by_email(
+                    email, exclude_id, organization_id
+                )
+            
+            if mobile:
+                result["mobile_exists"] = await self.user_repository.exists_by_mobile(
+                    mobile, exclude_id, organization_id
+                )
+            
+            if pan_number:
+                result["pan_exists"] = await self.user_repository.exists_by_pan_number(
+                    pan_number, exclude_id, organization_id
+                )
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error validating uniqueness constraints: {e}")
+            return {"error": str(e)}
+
+    async def validate_password_strength(self, password: str) -> Dict[str, Any]:
+        """Validate password strength."""
+        try:
+            return self.password_service.validate_password_strength(password)
+        except Exception as e:
+            logger.error(f"Error validating password strength: {e}")
+            return {
+                "is_strong": False,
+                "score": 0,
+                "issues": [f"Validation error: {str(e)}"]
+            } 

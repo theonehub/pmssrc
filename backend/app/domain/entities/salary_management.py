@@ -9,7 +9,7 @@ from typing import List, Dict, Optional, Any
 from enum import Enum
 import uuid
 
-from domain.entities.taxation_models.salary_components import SalaryComponents
+from app.domain.entities.taxation_models.salary_components import SalaryComponents
 
 
 class SalaryChangeReason(Enum):

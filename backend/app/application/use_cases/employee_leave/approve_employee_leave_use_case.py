@@ -6,24 +6,24 @@ Business workflow for approving/rejecting employee leave requests
 import logging
 from typing import Optional
 
-from application.dto.employee_leave_dto import (
+from app.application.dto.employee_leave_dto import (
     EmployeeLeaveApprovalRequestDTO, 
     EmployeeLeaveResponseDTO,
     EmployeeLeaveValidationError,
     EmployeeLeaveBusinessRuleError,
     EmployeeLeaveNotFoundError
 )
-from application.interfaces.repositories.employee_leave_repository import (
+from app.application.interfaces.repositories.employee_leave_repository import (
     EmployeeLeaveCommandRepository,
     EmployeeLeaveQueryRepository,
     EmployeeLeaveBalanceRepository
 )
-from application.interfaces.services.event_publisher import EventPublisher
-from application.interfaces.services.email_service import EmailService
-from domain.entities.employee_leave import EmployeeLeave
+from app.application.interfaces.services.event_publisher import EventPublisher
+from app.application.interfaces.services.email_service import EmailService
+from app.domain.entities.employee_leave import EmployeeLeave
 from models.leave_model import LeaveStatus
-from infrastructure.services.legacy_migration_service import (
-    get_user_by_emp_id, update_user_leave_balance
+from app.infrastructure.services.legacy_migration_service import (
+    get_user_by_employee_id, update_user_leave_balance
 )
 
 
@@ -166,7 +166,7 @@ class ApproveEmployeeLeaveUseCase:
             )
         
         # Check if approver has permission (basic check - can be enhanced)
-        approver = await get_user_by_emp_id(approver_id, hostname)
+        approver = await get_user_by_employee_id(approver_id, hostname)
         if not approver:
             raise EmployeeLeaveBusinessRuleError(f"Approver not found: {approver_id}")
         
@@ -179,7 +179,7 @@ class ApproveEmployeeLeaveUseCase:
         
         # For managers, check if they manage the employee (simplified check)
         if approver_role == "manager":
-            employee = await get_user_by_emp_id(str(employee_leave.employee_id), hostname)
+            employee = await get_user_by_employee_id(str(employee_leave.employee_id), hostname)
             if employee and employee.get("manager_id") != approver_id:
                 raise EmployeeLeaveBusinessRuleError(
                     f"Manager can only approve leaves for their team members"
@@ -264,7 +264,7 @@ class ApproveEmployeeLeaveUseCase:
         try:
             if self._email_service:
                 # Get employee details
-                employee = await get_user_by_emp_id(str(employee_leave.employee_id), hostname)
+                employee = await get_user_by_employee_id(str(employee_leave.employee_id), hostname)
                 if not employee:
                     return
                 

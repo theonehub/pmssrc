@@ -73,25 +73,25 @@ class LegacyMigrationService:
             logger.error(f"Error creating default user: {e}")
             raise
     
-    async def get_user_by_emp_id(self, emp_id: str, hostname: str = None) -> Optional[Dict[str, Any]]:
+    async def get_user_by_employee_id(self, employee_id: str, hostname: str = None) -> Optional[Dict[str, Any]]:
         """
         Get user by employee ID (legacy compatibility).
         
         Args:
-            emp_id: Employee ID
+            employee_id: Employee ID
             hostname: Organization hostname (for legacy compatibility)
             
         Returns:
             User data in legacy format or None
         """
         try:
-            user = await self.user_service.get_user_by_id(emp_id)
+            user = await self.user_service.get_user_by_id(employee_id)
             if not user:
                 return None
             
             # Convert to legacy format
             return {
-                "emp_id": user.employee_id,
+                "employee_id": user.employee_id,
                 "name": user.name,
                 "email": user.email,
                 "mobile": user.mobile,
@@ -116,7 +116,7 @@ class LegacyMigrationService:
             }
             
         except Exception as e:
-            logger.error(f"Error getting user by emp_id {emp_id}: {e}")
+            logger.error(f"Error getting user by employee_id {employee_id}: {e}")
             return None
     
     async def get_all_users(self, hostname: str = None) -> List[Dict[str, Any]]:
@@ -140,7 +140,7 @@ class LegacyMigrationService:
             legacy_users = []
             for user in result.users:
                 legacy_user = {
-                    "emp_id": user.employee_id,
+                    "employee_id": user.employee_id,
                     "name": user.name,
                     "email": user.email,
                     "mobile": user.mobile,
@@ -217,7 +217,7 @@ class LegacyMigrationService:
             legacy_users = []
             for user in users:
                 legacy_user = {
-                    "emp_id": user.employee_id,
+                    "employee_id": user.employee_id,
                     "name": user.name,
                     "email": user.email,
                     "mobile": user.mobile,
@@ -237,7 +237,7 @@ class LegacyMigrationService:
     
     async def update_user_leave_balance(
         self, 
-        emp_id: str, 
+        employee_id: str, 
         leave_balance: Dict[str, Any], 
         hostname: str = None
     ) -> bool:
@@ -245,7 +245,7 @@ class LegacyMigrationService:
         Update user leave balance (legacy compatibility).
         
         Args:
-            emp_id: Employee ID
+            employee_id: Employee ID
             leave_balance: Leave balance data
             hostname: Organization hostname (for legacy compatibility)
             
@@ -255,7 +255,7 @@ class LegacyMigrationService:
         try:
             # This would need to be implemented based on how leave balance
             # is handled in the new architecture
-            logger.info(f"Updating leave balance for user {emp_id}")
+            logger.info(f"Updating leave balance for user {employee_id}")
             
             # For now, return True as placeholder
             # In real implementation, this would update the user's leave balance
@@ -263,7 +263,7 @@ class LegacyMigrationService:
             return True
             
         except Exception as e:
-            logger.error(f"Error updating leave balance for user {emp_id}: {e}")
+            logger.error(f"Error updating leave balance for user {employee_id}: {e}")
             return False
 
 
@@ -288,10 +288,10 @@ async def create_default_user() -> str:
     return await service.create_default_user()
 
 
-async def get_user_by_emp_id(emp_id: str, hostname: str = None) -> Optional[Dict[str, Any]]:
+async def get_user_by_employee_id(employee_id: str, hostname: str = None) -> Optional[Dict[str, Any]]:
     """Legacy function wrapper."""
     service = get_legacy_migration_service()
-    return await service.get_user_by_emp_id(emp_id, hostname)
+    return await service.get_user_by_employee_id(employee_id, hostname)
 
 
 async def get_all_users(hostname: str = None) -> List[Dict[str, Any]]:
@@ -313,13 +313,13 @@ async def get_users_by_manager_id(manager_id: str, hostname: str = None) -> List
 
 
 async def update_user_leave_balance(
-    emp_id: str, 
+    employee_id: str, 
     leave_balance: Dict[str, Any], 
     hostname: str = None
 ) -> bool:
     """Legacy function wrapper."""
     service = get_legacy_migration_service()
-    return await service.update_user_leave_balance(emp_id, leave_balance, hostname)
+    return await service.update_user_leave_balance(employee_id, leave_balance, hostname)
 
 
 # Organisation service migration functions

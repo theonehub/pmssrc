@@ -106,7 +106,7 @@ class PayoutController:
             logger.info(f"Creating payout for employee {request.employee_id}")
             
             # Convert request to domain model
-            from domain.entities.payout import PayoutCreate
+            from app.domain.entities.payout import PayoutCreate
             payout_create = PayoutCreate(**request.dict())
             
             # Call the service layer
@@ -200,7 +200,7 @@ class PayoutController:
             logger.info(f"Updating payout {payout_id}")
             
             # Convert request to domain model
-            from domain.entities.payout import PayoutUpdate
+            from app.domain.entities.payout import PayoutUpdate
             payout_update = PayoutUpdate(**request.dict())
             
             # Call the service layer
@@ -236,7 +236,7 @@ class PayoutController:
             logger.info(f"Updating payout {payout_id} status to {status}")
             
             # Call the service layer
-            from domain.entities.payout import PayoutStatus
+            from app.domain.entities.payout import PayoutStatus
             payout_status = PayoutStatus(status)
             
             result = update_payout_status_service(payout_id, payout_status, updated_by, hostname)
@@ -266,7 +266,7 @@ class PayoutController:
             logger.info(f"Processing bulk payouts for {len(request.employee_ids)} employees")
             
             # Convert request to domain model
-            from domain.entities.payout import BulkPayoutRequest
+            from app.domain.entities.payout import BulkPayoutRequest
             bulk_request = BulkPayoutRequest(**request.dict())
             
             # Call the service layer
@@ -302,7 +302,7 @@ class PayoutController:
             logger.info(f"Getting monthly payouts for {month}/{year}")
             
             # Call the service layer
-            from domain.entities.payout import PayoutStatus
+            from app.domain.entities.payout import PayoutStatus
             status_enum = PayoutStatus(status) if status else None
             
             payouts = get_monthly_payouts_service(month, year, hostname, status_enum)

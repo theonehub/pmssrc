@@ -195,10 +195,10 @@ def test_employee_leave_repository():
                     print(f"Error getting employee leave by ID: {e}")
                     return None
             
-            async def get_by_employee_id(self, emp_id, organization_id="default"):
+            async def get_by_employee_id(self, employee_id, organization_id="default"):
                 try:
                     collection = self._get_collection(organization_id)
-                    cursor = collection.find({"emp_id": emp_id})
+                    cursor = collection.find({"employee_id": employee_id})
                     documents = await cursor.to_list(length=None)
                     
                     return [SimpleEmployeeLeave(**doc) for doc in documents]
@@ -207,12 +207,12 @@ def test_employee_leave_repository():
                     print(f"Error getting employee leaves by employee ID: {e}")
                     return []
             
-            async def get_by_employee_and_month(self, emp_id, year, month, organization_id="default"):
+            async def get_by_employee_and_month(self, employee_id, year, month, organization_id="default"):
                 try:
                     collection = self._get_collection(organization_id)
                     
                     # Simple month filter for testing
-                    cursor = collection.find({"emp_id": emp_id})
+                    cursor = collection.find({"employee_id": employee_id})
                     documents = await cursor.to_list(length=None)
                     
                     return [SimpleEmployeeLeave(**doc) for doc in documents]
@@ -258,7 +258,7 @@ def test_employee_leave_repository():
             # Test 1: Create employee leave
             leave = SimpleEmployeeLeave(
                 leave_id="leave_001",
-                emp_id="EMP001",
+                employee_id="EMP001",
                 leave_name="Annual Leave",
                 start_date="2024-01-15",
                 end_date="2024-01-20",

@@ -8,7 +8,7 @@ from typing import Dict, Any, Optional
 from datetime import datetime, date
 from decimal import Decimal
 
-from application.dto.payroll_dto import (
+from app.application.dto.payroll_dto import (
     PayoutCalculationRequestDTO,
     PayoutResponseDTO,
     SalaryComponentsResponseDTO,
@@ -16,19 +16,19 @@ from application.dto.payroll_dto import (
     AttendanceInfoResponseDTO,
     TaxInfoResponseDTO
 )
-from application.interfaces.repositories.payout_repository import (
+from app.application.interfaces.repositories.payout_repository import (
     PayoutQueryRepository,
     PayoutCommandRepository
 )
-from domain.events.payroll_events import PayoutCalculated, PayoutStatusChanged
-from domain.value_objects.payroll_value_objects import (
+from app.domain.events.payroll_events import PayoutCalculated, PayoutStatusChanged
+from app.domain.value_objects.payroll_value_objects import (
     Money, SalaryComponents, DeductionComponents, 
     AttendanceInfo, TaxInfo, PayPeriod, PayoutSummary
 )
-from infrastructure.services.taxation_migration_service import TaxationMigrationService
+from app.infrastructure.services.taxation_migration_service import TaxationMigrationService
 # Note: Legacy attendance service has been migrated to SOLID architecture
 # Using placeholder function until proper attendance repository is available
-from domain.entities.payout import PayoutCreate, PayoutStatus
+from app.domain.entities.payout import PayoutCreate, PayoutStatus
 
 logger = logging.getLogger(__name__)
 

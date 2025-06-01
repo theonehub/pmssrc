@@ -7,24 +7,29 @@ import logging
 from typing import List
 from datetime import datetime
 
-from domain.entities.user import User
-from domain.value_objects.employee_id import EmployeeId
-from domain.value_objects.user_credentials import (
-    Password, UserPermissions, UserRole, UserStatus, Gender
+from app.domain.entities.user import User
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.user_credentials import (
+    UserRole, UserStatus, Gender
 )
-from domain.value_objects.personal_details import PersonalDetails
-from domain.value_objects.user_documents import UserDocuments
-from application.dto.user_dto import (
+from app.domain.value_objects.user_permissions import UserPermissions
+from app.domain.value_objects.personal_details import PersonalDetails
+from app.domain.value_objects.user_documents import UserDocuments
+from app.application.dto.user_dto import (
     CreateUserRequestDTO, UserResponseDTO,
     UserValidationError, UserConflictError,
-    UserBusinessRuleError
+    UserBusinessRuleError,
+    PersonalDetailsResponseDTO,
+    UserPermissionsResponseDTO,
+    UserDocumentsResponseDTO
 )
-from application.interfaces.repositories.user_repository import (
+from app.application.interfaces.repositories.user_repository import (
     UserCommandRepository, UserQueryRepository
 )
-from application.interfaces.services.user_service import (
+from app.application.interfaces.services.user_service import (
     UserValidationService, UserNotificationService
 )
+from app.auth.auth_dependencies import CurrentUser
 
 
 logger = logging.getLogger(__name__)
@@ -65,13 +70,13 @@ class CreateUserUseCase:
         self.validation_service = validation_service
         self.notification_service = notification_service
     
-    async def execute(self, request: CreateUserRequestDTO) -> UserResponseDTO:
+    async def execute(self, request: CreateUserRequestDTO, current_user: CurrentUser) -> UserResponseDTO:
         """
         Execute the create user use case.
         
         Args:
             request: User creation request DTO
-            
+            current_user: Current authenticated user with organization context
         Returns:
             Created user response DTO
             
@@ -80,43 +85,47 @@ class CreateUserUseCase:
             UserConflictError: If user already exists
             UserBusinessRuleError: If business rules are violated
         """
-        logger.info(f"Creating user: {request.email}")
+        logger.info(f"Creating user: {request.email} in organization: {current_user.hostname}")
         
         # Step 1: Validate request data
         await self._validate_request(request)
         
         # Step 2: Check uniqueness constraints
-        await self._check_uniqueness_constraints(request)
+        await self._check_uniqueness_constraints(request, current_user)
         
         # Step 3: Create value objects
         employee_id = EmployeeId(request.employee_id)
-        password = self._create_password(request.password)
         personal_details = self._create_personal_details(request)
         documents = self._create_user_documents(request)
-        permissions = UserPermissions.from_role(UserRole(request.role))
+        
+        # Step 3.5: Calculate initial leave balance based on company policies
+        initial_leave_balance = await self._calculate_initial_leave_balance(
+            UserRole(request.role.lower()), current_user
+        )
         
         # Step 4: Create user entity
         user = User.create_new_user(
             employee_id=employee_id,
             name=request.name,
             email=request.email,
-            password=password,
-            role=UserRole(request.role),
+            password=request.password,
+            role=UserRole(request.role.lower()),
             personal_details=personal_details,
-            documents=documents,
-            permissions=permissions,
             department=request.department,
             designation=request.designation,
             manager_id=EmployeeId(request.manager_id) if request.manager_id else None,
-            leave_balance=request.leave_balance or 0.0,
             created_by=request.created_by
         )
+        
+        # Step 4.5: Set documents and leave balance after user creation
+        user.update_documents(documents, user.created_by or "system")
+        user.update_leave_balance("annual", int(initial_leave_balance))
         
         # Step 5: Validate business rules
         await self._validate_business_rules(user)
         
         # Step 6: Save user
-        saved_user = await self.command_repository.save(user)
+        saved_user = await self.command_repository.save(user, current_user.hostname)
         
         # Step 7: Send notifications (non-blocking)
         try:
@@ -140,32 +149,26 @@ class CreateUserUseCase:
                 validation_errors
             )
     
-    async def _check_uniqueness_constraints(self, request: CreateUserRequestDTO) -> None:
+    async def _check_uniqueness_constraints(self, request: CreateUserRequestDTO, current_user: CurrentUser) -> None:
         """Check uniqueness constraints"""
-        uniqueness_errors = await self.validation_service.validate_uniqueness_constraints(
+        uniqueness_result = await self.validation_service.validate_uniqueness_constraints(
             email=request.email,
             mobile=request.mobile,
-            pan_number=request.pan_number
+            pan_number=request.pan_number,  
+            current_user=current_user
         )
         
-        if uniqueness_errors:
+        if uniqueness_result.get("email_exists") or uniqueness_result.get("mobile_exists") or uniqueness_result.get("pan_exists"):
             raise UserConflictError(
                 "User conflicts with existing data",
                 "uniqueness"
             )
     
-    def _create_password(self, plain_password: str) -> Password:
-        """Create password value object"""
-        try:
-            return Password.from_plain_text(plain_password)
-        except ValueError as e:
-            raise UserValidationError(f"Invalid password: {e}")
-    
     def _create_personal_details(self, request: CreateUserRequestDTO) -> PersonalDetails:
         """Create personal details value object"""
         try:
             return PersonalDetails(
-                gender=Gender(request.gender),
+                gender=Gender(request.gender.lower()),
                 date_of_birth=datetime.fromisoformat(request.date_of_birth).date(),
                 mobile=request.mobile,
                 pan_number=request.pan_number,
@@ -197,53 +200,112 @@ class CreateUserUseCase:
                 "business_rules"
             )
     
+    async def _calculate_initial_leave_balance(self, role: UserRole, current_user: CurrentUser) -> float:
+        """
+        Calculate initial leave balance based on company leave policies.
+        
+        Args:
+            role: User role
+            current_user: Current authenticated user with organization context
+            
+        Returns:
+            Initial leave balance in days
+        """
+        try:
+            # TODO: Implement proper leave balance calculation based on:
+            # - Company leave policies for the organization
+            # - User role and designation
+            # - Joining date and pro-rata calculation
+            # - Leave type allocations (annual, sick, casual, etc.)
+            
+            # For now, set default leave balance based on role
+            default_leave_balances = {
+                UserRole.SUPERADMIN: 30.0,
+                UserRole.ADMIN: 25.0,
+                UserRole.MANAGER: 25.0,
+                UserRole.HR: 25.0,
+                UserRole.FINANCE: 25.0,
+                UserRole.USER: 20.0,
+                UserRole.READONLY: 15.0
+            }
+            
+            initial_balance = default_leave_balances.get(role, 20.0)
+            
+            logger.info(f"Calculated initial leave balance for role {role.value} in organization {current_user.hostname}: {initial_balance} days")
+            return initial_balance
+            
+        except Exception as e:
+            logger.warning(f"Error calculating initial leave balance, using default: {e}")
+            return 20.0  # Default fallback
+    
     def _convert_to_response_dto(self, user: User) -> UserResponseDTO:
         """Convert user entity to response DTO"""
         return UserResponseDTO(
-            user_id=str(user.employee_id),
             employee_id=str(user.employee_id),
             name=user.name,
             email=user.email,
-            role=user.role.value,
             status=user.status.value,
             
             # Personal Details
-            gender=user.personal_details.gender.value,
-            date_of_birth=user.personal_details.date_of_birth.isoformat(),
-            mobile=user.personal_details.mobile,
-            pan_number=user.personal_details.pan_number,
-            aadhar_number=user.personal_details.masked_aadhar,
-            uan_number=user.personal_details.uan_number,
-            esi_number=user.personal_details.esi_number,
+            personal_details=PersonalDetailsResponseDTO(
+                gender=user.personal_details.gender.value,
+                date_of_birth=user.personal_details.date_of_birth.isoformat(),
+                mobile=user.personal_details.mobile,
+                pan_number=user.personal_details.pan_number,
+                aadhar_number=user.personal_details.get_masked_aadhar(),
+                uan_number=user.personal_details.uan_number,
+                esi_number=user.personal_details.esi_number,
+            ),
             
-            # Work Details
+            # Employment Information
             department=user.department,
             designation=user.designation,
+            location=user.location,
             manager_id=str(user.manager_id) if user.manager_id else None,
-            leave_balance=user.leave_balance,
+            date_of_joining=user.date_of_joining,
+            date_of_leaving=user.date_of_leaving,
+            
+            # Authorization
+            permissions=UserPermissionsResponseDTO(
+                role=user.permissions.role.value,
+                custom_permissions=user.permissions.custom_permissions,
+                resource_permissions=user.permissions.resource_permissions,
+                can_manage_users=user.permissions.can_manage_users(),
+                can_view_reports=user.permissions.can_view_reports(),
+                can_approve_requests=user.permissions.can_approve_requests(),
+                is_admin=user.permissions.is_admin(),
+                is_superadmin=user.permissions.is_superadmin(),
+            ),
             
             # Documents
             documents=self._convert_documents_to_dto(user.documents),
             
-            # Permissions
-            permissions=user.permissions.get_all_permissions(),
+            # Leave Balance
+            leave_balance=user.leave_balance,
             
-            # Metadata
-            is_active=user.is_active(),
-            is_locked=user.is_locked(),
-            profile_completion_percentage=user.calculate_profile_completion(),
-            last_login=user.last_login.isoformat() if user.last_login else None,
+            # System Fields
             created_at=user.created_at.isoformat(),
             updated_at=user.updated_at.isoformat(),
-            created_by=user.created_by
+            created_by=user.created_by,
+            updated_by=user.updated_by,
+            last_login_at=user.last_login_at.isoformat() if user.last_login_at else None,
+            
+            # Computed fields
+            is_active=user.is_active(),
+            is_locked=user.is_locked(),
+            can_login=user.can_login(),
+            profile_completion_percentage=user.get_profile_completion_percentage(),
+            display_name=user.get_display_name(),
+            role_display=user.get_role_display(),
+            status_display=user.get_status_display(),
         )
     
-    def _convert_documents_to_dto(self, documents: UserDocuments) -> dict:
+    def _convert_documents_to_dto(self, documents: UserDocuments) -> UserDocumentsResponseDTO:
         """Convert user documents to DTO format"""
-        return {
-            "photo_path": documents.photo_path,
-            "pan_document_path": documents.pan_document_path,
-            "aadhar_document_path": documents.aadhar_document_path,
-            "completion_percentage": documents.calculate_completion_percentage(),
-            "missing_documents": documents.get_missing_documents()
-        } 
+        return UserDocumentsResponseDTO(
+            photo_path=documents.photo_path,
+            pan_document_path=documents.pan_document_path,
+            aadhar_document_path=documents.aadhar_document_path,
+            completion_percentage=documents.get_document_completion_percentage(),
+            missing_documents=documents.get_missing_documents()
+        ) 

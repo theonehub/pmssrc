@@ -8,7 +8,7 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime, date
 from enum import Enum
 
-from domain.entities.employee_leave import EmployeeLeave
+from app.domain.entities.employee_leave import EmployeeLeave
 from models.leave_model import LeaveStatus
 
 
@@ -127,7 +127,7 @@ class EmployeeLeaveResponseDTO(BaseModel):
     
     @classmethod
     def from_entity(cls, entity: EmployeeLeave) -> 'EmployeeLeaveResponseDTO':
-        """Create DTO from domain entity"""
+        """Create DTO from app.domain entity"""
         return cls(
             leave_id=entity.leave_id,
             employee_id=entity.employee_id.value,

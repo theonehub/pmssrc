@@ -7,7 +7,7 @@ from database.database_connector import (
     employee_salary_collection,
     user_collection,
 )
-from domain.entities.employee_salary import (
+from app.domain.entities.employee_salary import (
     EmployeeSalaryCreate,
     EmployeeSalaryUpdate,
     EmployeeSalaryInDB,

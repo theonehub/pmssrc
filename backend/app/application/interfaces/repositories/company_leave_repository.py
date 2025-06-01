@@ -7,8 +7,8 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-from domain.entities.company_leave import CompanyLeave
-from domain.value_objects.leave_type import LeaveType
+from app.domain.entities.company_leave import CompanyLeave
+from app.domain.value_objects.leave_type import LeaveType
 
 
 class CompanyLeaveCommandRepository(ABC):

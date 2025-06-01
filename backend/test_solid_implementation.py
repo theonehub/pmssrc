@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 async def test_dependency_container():
     """Test that the dependency container is working correctly."""
     try:
-        from config.dependency_container import get_dependency_container
+        from app.config.dependency_container import get_dependency_container
         
         logger.info("Testing dependency container...")
         container = get_dependency_container()
@@ -45,8 +45,8 @@ async def test_user_service():
     """Test that the user service is working correctly."""
     try:
         from config.dependency_container import get_dependency_container
-        from application.dto.user_dto import CreateUserRequestDTO
-        from domain.value_objects.user_credentials import UserRole, Gender
+        from app.application.dto.user_dto import CreateUserRequestDTO
+        from app.domain.value_objects.user_credentials import UserRole, Gender
         
         logger.info("Testing user service...")
         container = get_dependency_container()

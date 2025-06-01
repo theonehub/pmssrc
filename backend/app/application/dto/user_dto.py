@@ -8,7 +8,7 @@ from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
 from enum import Enum
 
-from domain.value_objects.user_credentials import UserRole, UserStatus, Gender
+from app.domain.value_objects.user_credentials import UserRole, UserStatus, Gender
 
 
 # ==================== REQUEST DTOs ====================
@@ -46,8 +46,8 @@ class CreateUserRequestDTO:
     
     # Documents
     photo_path: Optional[str] = None
-    pan_file_path: Optional[str] = None
-    aadhar_file_path: Optional[str] = None
+    pan_document_path: Optional[str] = None
+    aadhar_document_path: Optional[str] = None
     
     # Audit
     created_by: Optional[str] = None
@@ -151,8 +151,8 @@ class UpdateUserDocumentsRequestDTO:
     """DTO for updating user documents"""
     
     photo_path: Optional[str] = None
-    pan_file_path: Optional[str] = None
-    aadhar_file_path: Optional[str] = None
+    pan_document_path: Optional[str] = None
+    aadhar_document_path: Optional[str] = None
     updated_by: Optional[str] = None
     
     def validate(self) -> List[str]:
@@ -160,7 +160,7 @@ class UpdateUserDocumentsRequestDTO:
         errors = []
         
         # At least one document should be provided
-        if not any([self.photo_path, self.pan_file_path, self.aadhar_file_path]):
+        if not any([self.photo_path, self.pan_document_path, self.aadhar_document_path]):
             errors.append("At least one document must be provided")
         
         return errors
@@ -371,8 +371,8 @@ class UserDocumentsResponseDTO:
     """DTO for user documents response"""
     
     photo_path: Optional[str] = None
-    pan_file_path: Optional[str] = None
-    aadhar_file_path: Optional[str] = None
+    pan_document_path: Optional[str] = None
+    aadhar_document_path: Optional[str] = None
     
     # Computed fields
     has_photo: bool = False
@@ -403,7 +403,7 @@ class UserResponseDTO:
     """DTO for user response"""
     
     # Identity
-    user_id: str
+    employee_id: str
     
     # Basic Information
     name: str
@@ -428,7 +428,7 @@ class UserResponseDTO:
     documents: Optional[UserDocumentsResponseDTO] = None
     
     # Leave Balance
-    leave_balance: Dict[str, int] = None
+    leave_balance: Optional[Dict[str, int]] = None
     
     # System Fields
     created_at: str = None
@@ -446,16 +446,110 @@ class UserResponseDTO:
     role_display: str = None
     status_display: str = None
 
+    @classmethod
+    def from_entity(cls, user) -> 'UserResponseDTO':
+        """Create UserResponseDTO from User entity"""
+        
+        # Safe attribute extraction
+        def safe_get_attr(obj, attr, default=None):
+            try:
+                return getattr(obj, attr, default)
+            except (AttributeError, TypeError):
+                return default
+        
+        # Safe enum value extraction
+        def safe_enum_value(enum_obj):
+            if hasattr(enum_obj, 'value'):
+                return enum_obj.value
+            return str(enum_obj) if enum_obj is not None else None
+        
+        # Safe date formatting
+        def format_datetime(dt):
+            if dt is None:
+                return None
+            if hasattr(dt, 'isoformat'):
+                return dt.isoformat()
+            return str(dt)
+        
+        # Safe boolean evaluation (handle methods)
+        def safe_bool_value(obj, attr, default=False):
+            try:
+                value = getattr(obj, attr, default)
+                if callable(value):
+                    return value()
+                return bool(value) if value is not None else default
+            except (AttributeError, TypeError):
+                return default
+        
+        # Create personal details if available
+        personal_details = None
+        if hasattr(user, 'gender') or hasattr(user, 'date_of_birth') or hasattr(user, 'mobile'):
+            personal_details = PersonalDetailsResponseDTO(
+                gender=safe_enum_value(safe_get_attr(user, 'gender')) or 'male',
+                date_of_birth=format_datetime(safe_get_attr(user, 'date_of_birth')),
+                mobile=safe_get_attr(user, 'mobile', ''),
+                pan_number=safe_get_attr(user, 'pan_number'),
+                aadhar_number=safe_get_attr(user, 'aadhar_number'),
+                uan_number=safe_get_attr(user, 'uan_number'),
+                esi_number=safe_get_attr(user, 'esi_number')
+            )
+        
+        # Create permissions
+        permissions = UserPermissionsResponseDTO(
+            role=safe_enum_value(safe_get_attr(user, 'role')) or 'employee',
+            custom_permissions=safe_get_attr(user, 'custom_permissions', [])
+        )
+        
+        # Create documents
+        documents = UserDocumentsResponseDTO(
+            photo_path=safe_get_attr(user, 'photo_path'),
+            pan_document_path=safe_get_attr(user, 'pan_document_path'),
+            aadhar_document_path=safe_get_attr(user, 'aadhar_document_path')
+        )
+        
+        return cls(
+            employee_id=str(safe_get_attr(user, 'employee_id', '')),
+            name=safe_get_attr(user, 'name', ''),
+            email=safe_get_attr(user, 'email', ''),
+            status=safe_enum_value(safe_get_attr(user, 'status')) or 'active',
+            personal_details=personal_details,
+            department=safe_get_attr(user, 'department'),
+            designation=safe_get_attr(user, 'designation'),
+            location=safe_get_attr(user, 'location'),
+            manager_id=str(safe_get_attr(user, 'manager_id')) if safe_get_attr(user, 'manager_id') else None,
+            date_of_joining=format_datetime(safe_get_attr(user, 'date_of_joining')),
+            date_of_leaving=format_datetime(safe_get_attr(user, 'date_of_leaving')),
+            permissions=permissions,
+            documents=documents,
+            leave_balance=safe_get_attr(user, 'leave_balance', {}),
+            created_at=format_datetime(safe_get_attr(user, 'created_at')),
+            updated_at=format_datetime(safe_get_attr(user, 'updated_at')),
+            created_by=safe_get_attr(user, 'created_by'),
+            updated_by=safe_get_attr(user, 'updated_by'),
+            last_login_at=format_datetime(safe_get_attr(user, 'last_login')),
+            is_active=safe_bool_value(user, 'is_active', True),
+            is_locked=safe_bool_value(user, 'is_locked', False),
+            can_login=safe_bool_value(user, 'is_active', True) and not safe_bool_value(user, 'is_locked', False),
+            profile_completion_percentage=safe_get_attr(user, 'profile_completion_percentage', 0.0),
+            display_name=safe_get_attr(user, 'name', ''),
+            role_display=safe_enum_value(safe_get_attr(user, 'role')) or 'Employee',
+            status_display=safe_enum_value(safe_get_attr(user, 'status')) or 'Active'
+        )
+
 
 @dataclass
 class UserSummaryDTO:
     """DTO for user summary (list view)"""
     
-    user_id: str
+    # Required fields (no defaults)
+    employee_id: str
     name: str
     email: str
     role: str
     status: str
+    
+    # Optional fields (with defaults)
+    mobile: Optional[str] = None
     department: Optional[str] = None
     designation: Optional[str] = None
     last_login_at: Optional[str] = None
@@ -463,6 +557,57 @@ class UserSummaryDTO:
     is_active: bool = False
     is_locked: bool = False
     profile_completion_percentage: float = 0.0
+
+    @classmethod
+    def from_entity(cls, user) -> 'UserSummaryDTO':
+        """Create UserSummaryDTO from User entity"""
+        
+        # Safe attribute extraction
+        def safe_get_attr(obj, attr, default=None):
+            try:
+                return getattr(obj, attr, default)
+            except (AttributeError, TypeError):
+                return default
+        
+        # Safe enum value extraction
+        def safe_enum_value(enum_obj):
+            if hasattr(enum_obj, 'value'):
+                return enum_obj.value
+            return str(enum_obj) if enum_obj is not None else None
+        
+        # Safe date formatting
+        def format_datetime(dt):
+            if dt is None:
+                return None
+            if hasattr(dt, 'isoformat'):
+                return dt.isoformat()
+            return str(dt)
+        
+        # Safe boolean evaluation (handle methods)
+        def safe_bool_value(obj, attr, default=False):
+            try:
+                value = getattr(obj, attr, default)
+                if callable(value):
+                    return value()
+                return bool(value) if value is not None else default
+            except (AttributeError, TypeError):
+                return default
+        
+        return cls(
+            employee_id=str(safe_get_attr(user, 'employee_id', '')),
+            name=safe_get_attr(user, 'name', ''),
+            email=safe_get_attr(user, 'email', ''),
+            role=safe_enum_value(safe_get_attr(user, 'role')) or 'employee',
+            status=safe_enum_value(safe_get_attr(user, 'status')) or 'active',
+            mobile=safe_get_attr(user, 'mobile', ''),
+            department=safe_get_attr(user, 'department'),
+            designation=safe_get_attr(user, 'designation'),
+            last_login_at=format_datetime(safe_get_attr(user, 'last_login')),
+            created_at=format_datetime(safe_get_attr(user, 'created_at')),
+            is_active=safe_bool_value(user, 'is_active', True),
+            is_locked=safe_bool_value(user, 'is_locked', False),
+            profile_completion_percentage=safe_get_attr(user, 'profile_completion_percentage', 0.0)
+        )
 
 
 @dataclass
@@ -542,7 +687,7 @@ class UserAnalyticsDTO:
 class UserLoginResponseDTO:
     """DTO for user login response"""
     
-    user_id: str
+    employee_id: str
     name: str
     email: str
     role: str
@@ -557,7 +702,7 @@ class UserLoginResponseDTO:
 class UserProfileCompletionDTO:
     """DTO for user profile completion status"""
     
-    user_id: str
+    employee_id: str
     completion_percentage: float
     completed_sections: List[str]
     missing_sections: List[str]
@@ -571,7 +716,7 @@ class UserProfileCompletionDTO:
 class BulkUserUpdateDTO:
     """DTO for bulk user updates"""
     
-    user_ids: List[str]
+    employee_ids: List[str]
     update_data: Dict[str, Any]
     updated_by: Optional[str] = None
     
@@ -579,7 +724,7 @@ class BulkUserUpdateDTO:
         """Validate bulk update request"""
         errors = []
         
-        if not self.user_ids:
+        if not self.employee_ids:
             errors.append("User IDs list cannot be empty")
         
         if not self.update_data:
@@ -595,15 +740,15 @@ class BulkUserUpdateResultDTO:
     total_requested: int
     successful_updates: int
     failed_updates: int
-    errors: List[Dict[str, str]]  # {user_id: error_message}
-    updated_user_ids: List[str]
+    errors: List[Dict[str, str]]  # {employee_id: error_message}
+    updated_employee_ids: List[str]
 
 
 @dataclass
 class UserAuditLogDTO:
     """DTO for user audit log"""
     
-    user_id: str
+    employee_id: str
     action: str
     details: Dict[str, Any]
     performed_by: str
@@ -633,9 +778,9 @@ class UserBusinessRuleError(Exception):
 class UserNotFoundError(Exception):
     """Raised when user is not found"""
     
-    def __init__(self, user_id: str):
-        super().__init__(f"User not found: {user_id}")
-        self.user_id = user_id
+    def __init__(self, employee_id: str):
+        super().__init__(f"User not found: {employee_id}")
+        self.employee_id = employee_id
 
 
 class UserConflictError(Exception):

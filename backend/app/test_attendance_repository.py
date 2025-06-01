@@ -12,7 +12,7 @@ def test_attendance_repository():
     
     try:
         # Test import
-        from infrastructure.repositories.solid_attendance_repository import SolidAttendanceRepository
+        from app.infrastructure.repositories.solid_attendance_repository import SolidAttendanceRepository
         print("✓ SolidAttendanceRepository imported successfully")
         
         # Test that it has the expected methods

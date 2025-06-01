@@ -6,24 +6,24 @@ Business logic for processing reimbursement payments
 import logging
 from typing import Optional
 
-from domain.entities.reimbursement import Reimbursement, PaymentMethod
-from domain.entities.reimbursement_type_entity import ReimbursementTypeEntity
-from application.dto.reimbursement_dto import (
+from app.domain.entities.reimbursement import Reimbursement, PaymentMethod
+from app.domain.entities.reimbursement_type_entity import ReimbursementTypeEntity
+from app.application.dto.reimbursement_dto import (
     ReimbursementPaymentDTO,
     ReimbursementResponseDTO,
     create_reimbursement_response_from_entity,
     ReimbursementValidationError,
     ReimbursementBusinessRuleError
 )
-from application.interfaces.repositories.reimbursement_repository import (
+from app.application.interfaces.repositories.reimbursement_repository import (
     ReimbursementCommandRepository,
     ReimbursementQueryRepository,
     ReimbursementTypeQueryRepository
 )
-from application.interfaces.repositories.employee_repository import EmployeeQueryRepository
-from application.interfaces.services.event_publisher import EventPublisher
-from application.interfaces.services.notification_service import NotificationService
-from application.interfaces.services.payment_service import PaymentService
+from app.application.interfaces.repositories.employee_repository import EmployeeQueryRepository
+from app.application.interfaces.services.event_publisher import EventPublisher
+from app.application.interfaces.services.notification_service import NotificationService
+from app.application.interfaces.services.payment_service import PaymentService
 
 
 logger = logging.getLogger(__name__)

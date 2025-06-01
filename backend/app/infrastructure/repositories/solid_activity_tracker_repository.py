@@ -17,15 +17,15 @@ from datetime import datetime, date
 from typing import List, Optional, Dict, Any
 from bson import ObjectId
 
-from infrastructure.database.database_connector import DatabaseConnector
-from infrastructure.repositories.base_repository import BaseRepository
-from application.interfaces.repositories.activity_tracker_repository_interface import (
+from app.infrastructure.database.database_connector import DatabaseConnector
+from app.infrastructure.repositories.base_repository import BaseRepository
+from app.application.interfaces.repositories.activity_tracker_repository_interface import (
     ActivityTrackerCommandRepository,
     ActivityTrackerQueryRepository,
     ActivityTrackerAnalyticsRepository
 )
-from domain.entities.activity_tracker import ActivityTracker
-from application.dto.activity_tracker_dto import (
+from app.domain.entities.activity_tracker import ActivityTracker
+from app.application.dto.activity_tracker_dto import (
     ActivityTrackerCreateDTO,
     ActivityTrackerUpdateDTO,
     ActivityTrackerResponseDTO
@@ -81,22 +81,22 @@ class SolidActivityTrackerRepository(
             RuntimeError: If creation fails
         """
         try:
-            self.logger.info(f"Creating activity tracker for employee {activity_data.emp_id}")
+            self.logger.info(f"Creating activity tracker for employee {activity_data.employee_id}")
             
             # Validate required fields
-            if not activity_data.emp_id:
+            if not activity_data.employee_id:
                 raise ValueError("Employee ID is required")
             if not activity_data.date:
                 raise ValueError("Date is required")
             
             # Check for duplicate entry
-            existing = await self.get_activity_tracker_by_emp_id_and_date(
-                activity_data.emp_id, 
+            existing = await self.get_activity_tracker_by_employee_id_and_date(
+                activity_data.employee_id, 
                 activity_data.date, 
                 company_id
             )
             if existing:
-                raise ValueError(f"Activity tracker already exists for employee {activity_data.emp_id} on {activity_data.date}")
+                raise ValueError(f"Activity tracker already exists for employee {activity_data.employee_id} on {activity_data.date}")
             
             # Prepare document
             doc = activity_data.model_dump()
@@ -233,16 +233,16 @@ class SolidActivityTrackerRepository(
             self.logger.error(f"Error getting activity tracker by ID: {str(e)}")
             raise RuntimeError(f"Failed to get activity tracker: {str(e)}")
     
-    async def get_activity_tracker_by_emp_id(
+    async def get_activity_tracker_by_employee_id(
         self, 
-        emp_id: str, 
+        employee_id: str, 
         company_id: str
     ) -> List[ActivityTrackerResponseDTO]:
         """
         Get all activity trackers for an employee.
         
         Args:
-            emp_id: Employee identifier
+            employee_id: Employee identifier
             company_id: Company identifier
             
         Returns:
@@ -250,7 +250,7 @@ class SolidActivityTrackerRepository(
         """
         try:
             collection = await self._get_collection(company_id)
-            cursor = collection.find({"emp_id": emp_id}).sort("date", -1)
+            cursor = collection.find({"employee_id": employee_id}).sort("date", -1)
             
             trackers = []
             async for doc in cursor:
@@ -279,7 +279,7 @@ class SolidActivityTrackerRepository(
         """
         try:
             collection = await self._get_collection(company_id)
-            cursor = collection.find({"date": target_date}).sort("emp_id", 1)
+            cursor = collection.find({"date": target_date}).sort("employee_id", 1)
             
             trackers = []
             async for doc in cursor:
@@ -312,7 +312,7 @@ class SolidActivityTrackerRepository(
             collection = await self._get_collection(company_id)
             cursor = collection.find({
                 "date": {"$gte": start_date, "$lte": end_date}
-            }).sort([("date", -1), ("emp_id", 1)])
+            }).sort([("date", -1), ("employee_id", 1)])
             
             trackers = []
             async for doc in cursor:
@@ -324,9 +324,9 @@ class SolidActivityTrackerRepository(
             self.logger.error(f"Error getting activity trackers by date range: {str(e)}")
             raise RuntimeError(f"Failed to get activity trackers: {str(e)}")
     
-    async def get_activity_tracker_by_emp_id_and_date(
+    async def get_activity_tracker_by_employee_id_and_date(
         self, 
-        emp_id: str, 
+        employee_id: str, 
         target_date: date, 
         company_id: str
     ) -> Optional[ActivityTrackerResponseDTO]:
@@ -334,7 +334,7 @@ class SolidActivityTrackerRepository(
         Get activity tracker for specific employee and date.
         
         Args:
-            emp_id: Employee identifier
+            employee_id: Employee identifier
             target_date: Target date
             company_id: Company identifier
             
@@ -344,7 +344,7 @@ class SolidActivityTrackerRepository(
         try:
             collection = await self._get_collection(company_id)
             doc = await collection.find_one({
-                "emp_id": emp_id,
+                "employee_id": employee_id,
                 "date": target_date
             })
             
@@ -356,9 +356,9 @@ class SolidActivityTrackerRepository(
             self.logger.error(f"Error getting activity tracker by employee and date: {str(e)}")
             raise RuntimeError(f"Failed to get activity tracker: {str(e)}")
     
-    async def get_activity_tracker_by_emp_id_and_date_range(
+    async def get_activity_tracker_by_employee_id_and_date_range(
         self, 
-        emp_id: str, 
+        employee_id: str, 
         start_date: date, 
         end_date: date, 
         company_id: str
@@ -367,7 +367,7 @@ class SolidActivityTrackerRepository(
         Get activity trackers for employee within date range.
         
         Args:
-            emp_id: Employee identifier
+            employee_id: Employee identifier
             start_date: Start date
             end_date: End date
             company_id: Company identifier
@@ -378,7 +378,7 @@ class SolidActivityTrackerRepository(
         try:
             collection = await self._get_collection(company_id)
             cursor = collection.find({
-                "emp_id": emp_id,
+                "employee_id": employee_id,
                 "date": {"$gte": start_date, "$lte": end_date}
             }).sort("date", -1)
             
@@ -418,7 +418,7 @@ class SolidActivityTrackerRepository(
             if start_date and end_date:
                 query["date"] = {"$gte": start_date, "$lte": end_date}
             
-            cursor = collection.find(query).sort([("date", -1), ("emp_id", 1)])
+            cursor = collection.find(query).sort([("date", -1), ("employee_id", 1)])
             
             trackers = []
             async for doc in cursor:
@@ -465,7 +465,7 @@ class SolidActivityTrackerRepository(
                     "$group": {
                         "_id": None,
                         "total_activities": {"$sum": 1},
-                        "unique_employees": {"$addToSet": "$emp_id"},
+                        "unique_employees": {"$addToSet": "$employee_id"},
                         "activity_types": {"$addToSet": "$activity"},
                         "avg_duration": {"$avg": "$duration"},
                         "total_duration": {"$sum": "$duration"}
@@ -502,7 +502,7 @@ class SolidActivityTrackerRepository(
     
     async def get_employee_activity_summary(
         self, 
-        emp_id: str, 
+        employee_id: str, 
         company_id: str,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None
@@ -511,7 +511,7 @@ class SolidActivityTrackerRepository(
         Get activity summary for a specific employee.
         
         Args:
-            emp_id: Employee identifier
+            employee_id: Employee identifier
             company_id: Company identifier
             start_date: Optional start date filter
             end_date: Optional end date filter
@@ -522,7 +522,7 @@ class SolidActivityTrackerRepository(
         try:
             collection = await self._get_collection(company_id)
             
-            match_stage = {"emp_id": emp_id}
+            match_stage = {"employee_id": employee_id}
             if start_date and end_date:
                 match_stage["date"] = {"$gte": start_date, "$lte": end_date}
             
@@ -568,7 +568,7 @@ class SolidActivityTrackerRepository(
             total_result = await collection.aggregate(total_pipeline).to_list(1)
             
             summary = {
-                "employee_id": emp_id,
+                "employee_id": employee_id,
                 "activity_breakdown": result,
                 "total_activities": total_result[0]["total_activities"] if total_result else 0,
                 "total_duration": total_result[0]["total_duration"] if total_result else 0,
@@ -611,7 +611,7 @@ class SolidActivityTrackerRepository(
                     "$group": {
                         "_id": "$date",
                         "total_activities": {"$sum": 1},
-                        "unique_employees": {"$addToSet": "$emp_id"},
+                        "unique_employees": {"$addToSet": "$employee_id"},
                         "total_duration": {"$sum": "$duration"},
                         "activity_types": {"$addToSet": "$activity"}
                     }
@@ -662,7 +662,7 @@ class SolidActivityTrackerRepository(
             count = await collection.count_documents({})
             
             # Test index performance
-            explain_result = await collection.find({"emp_id": "test"}).explain()
+            explain_result = await collection.find({"employee_id": "test"}).explain()
             
             return {
                 "status": "healthy",

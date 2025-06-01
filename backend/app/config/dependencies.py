@@ -7,13 +7,13 @@ import logging
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import Optional
 
-from infrastructure.repositories.mongodb_organization_repository import MongoDBOrganizationRepository
-from infrastructure.services.organization_service_impl import OrganizationServiceImpl
-from application.use_cases.organization.create_organization_use_case import CreateOrganizationUseCase
-from application.use_cases.organization.update_organization_use_case import UpdateOrganizationUseCase
-from application.use_cases.organization.get_organization_use_case import GetOrganizationUseCase
-from application.use_cases.organization.list_organizations_use_case import ListOrganizationsUseCase
-from application.use_cases.organization.delete_organization_use_case import DeleteOrganizationUseCase
+from app.infrastructure.repositories.mongodb_organization_repository import MongoDBOrganizationRepository
+from app.infrastructure.services.organization_service_impl import OrganizationServiceImpl
+from app.application.use_cases.organization.create_organization_use_case import CreateOrganizationUseCase
+from app.application.use_cases.organization.update_organization_use_case import UpdateOrganizationUseCase
+from app.application.use_cases.organization.get_organization_use_case import GetOrganizationUseCase
+from app.application.use_cases.organization.list_organizations_use_case import ListOrganizationsUseCase
+from app.application.use_cases.organization.delete_organization_use_case import DeleteOrganizationUseCase
 from api.controllers.organization_controller import OrganizationController
 from database.database_connector import connect_to_database
 
@@ -58,7 +58,7 @@ class OrganizationDependencyContainer:
         if self._service is None:
             repository = self.get_repository()
             # For now, we'll use a simple event publisher
-            from infrastructure.services.simple_event_publisher import SimpleEventPublisher
+            from app.infrastructure.services.simple_event_publisher import SimpleEventPublisher
             event_publisher = SimpleEventPublisher()
             self._service = OrganizationServiceImpl(repository, event_publisher)
         return self._service

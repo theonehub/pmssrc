@@ -8,8 +8,8 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 from io import BytesIO
 
-from domain.value_objects.payroll_value_objects import PayslipMetadata
-from application.dto.payroll_dto import PayslipFormatEnum
+from app.domain.value_objects.payroll_value_objects import PayslipMetadata
+from app.application.dto.payroll_dto import PayslipFormatEnum
 
 
 class PayslipCommandRepository(ABC):

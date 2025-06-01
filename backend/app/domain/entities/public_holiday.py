@@ -8,9 +8,9 @@ from datetime import datetime, date
 from typing import Optional, List
 from dataclasses import dataclass, field
 
-from domain.value_objects.holiday_type import HolidayType, HolidayCategory, HolidayObservance, HolidayRecurrence
-from domain.value_objects.holiday_date_range import HolidayDateRange
-from domain.events.holiday_events import (
+from app.domain.value_objects.holiday_type import HolidayType, HolidayCategory, HolidayObservance, HolidayRecurrence
+from app.domain.value_objects.holiday_date_range import HolidayDateRange
+from app.domain.events.holiday_events import (
     PublicHolidayCreated,
     PublicHolidayUpdated,
     PublicHolidayActivated,

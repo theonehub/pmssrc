@@ -20,11 +20,11 @@ def demonstrate_basic_logging():
 
 def demonstrate_logging_with_data():
     """Demonstrate logging with structured data."""
-    user_id = "12345"
+    employee_id = "12345"
     operation = "user_login"
     
     logger.info(f"User operation: {operation}", extra={
-        'user_id': user_id,
+        'employee_id': employee_id,
         'operation': operation,
         'component': 'auth'
     })

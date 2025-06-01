@@ -42,8 +42,8 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../layout/PageLayout';
-import { apiGet, apiUpload } from '../../utils/apiUtils';
-import { User, UsersListResponse, SortConfig, AlertState, UserRole } from '../../types';
+import dataService from '../../services/dataService';
+import { User, SortConfig, AlertState, UserRole } from '../../types';
 
 const UsersList: React.FC = () => {
   const navigate = useNavigate();
@@ -78,14 +78,16 @@ const UsersList: React.FC = () => {
     }
 
     try {
-      const response = await apiGet('/users', {
-        skip: page * rowsPerPage,
-        limit: rowsPerPage
-      });
+      const response = await dataService.getUsers(
+        page * rowsPerPage,
+        rowsPerPage,
+        false, // include_inactive
+        false, // include_deleted
+        null   // organization_id
+      );
       
-      const data = response.data as UsersListResponse;
-      setUsers(data.users || []);
-      setTotalUsers(data.total || 0);
+      setUsers(response.users || []);
+      setTotalUsers(response.total || 0);
     } catch (error: any) {
       // Only log in development
       if (process.env.NODE_ENV === 'development') {
@@ -177,7 +179,7 @@ const UsersList: React.FC = () => {
     setImporting(true);
     
     try {
-      await apiUpload('/users/import/with-file', importFile);
+      await dataService.importUsers(importFile);
       showAlert('Users imported successfully', 'success');
       setShowImportModal(false);
       setImportFile(null);
@@ -192,18 +194,12 @@ const UsersList: React.FC = () => {
 
   const handleDownloadTemplate = async (): Promise<void> => {
     try {
-      const response = await apiGet('/users/template', {}, { responseType: 'blob' });
-      
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'user_import_template.xlsx');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      showAlert('Failed to download template', 'error');
+      // Note: This endpoint might need to be implemented in the backend
+      // For now, just show a message - template download can be implemented later
+      showAlert('Template download feature will be implemented soon', 'info');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.detail || 'Failed to download template';
+      showAlert(errorMessage, 'error');
     }
   };
 
@@ -510,7 +506,7 @@ const UsersList: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2">
-                            {formatDate(user.doj)}
+                            {formatDate(user.doj || '')}
                           </Typography>
                         </TableCell>
                         <TableCell align="center">

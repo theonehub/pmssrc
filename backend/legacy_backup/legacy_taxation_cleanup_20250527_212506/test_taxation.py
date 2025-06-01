@@ -7,15 +7,15 @@ This script tests all components of the taxation system to ensure they are corre
 import logging
 import datetime
 from models.taxation.legacy_taxation_model import Taxation
-from domain.entities.taxation_models.salary_components import SalaryComponents
-from domain.entities.taxation_models.perquisites import Perquisites
-from domain.entities.taxation_models.income_sources import (
+from app.domain.entities.taxation_models.salary_components import SalaryComponents
+from app.domain.entities.taxation_models.perquisites import Perquisites
+from app.domain.entities.taxation_models.income_sources import (
     IncomeFromOtherSources,
     IncomeFromHouseProperty,
     CapitalGains,
     LeaveEncashment
 )
-from domain.entities.taxation_models.deductions import DeductionComponents
+from app.domain.entities.taxation_models.deductions import DeductionComponents
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 

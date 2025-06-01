@@ -7,26 +7,26 @@ import logging
 from typing import Optional
 from decimal import Decimal
 
-from domain.entities.reimbursement_type_entity import ReimbursementTypeEntity
-from domain.value_objects.reimbursement_type import (
+from app.domain.entities.reimbursement_type_entity import ReimbursementTypeEntity
+from app.domain.value_objects.reimbursement_type import (
     ReimbursementType as ReimbursementTypeVO,
     ReimbursementCategory,
     ReimbursementFrequency,
     ReimbursementApprovalLevel
 )
-from application.dto.reimbursement_dto import (
+from app.application.dto.reimbursement_dto import (
     ReimbursementTypeCreateRequestDTO,
     ReimbursementTypeResponseDTO,
     create_reimbursement_type_response_from_entity,
     ReimbursementValidationError,
     ReimbursementBusinessRuleError
 )
-from application.interfaces.repositories.reimbursement_repository import (
+from app.application.interfaces.repositories.reimbursement_repository import (
     ReimbursementTypeCommandRepository,
     ReimbursementTypeQueryRepository
 )
-from application.interfaces.services.event_publisher import EventPublisher
-from application.interfaces.services.notification_service import NotificationService
+from app.application.interfaces.services.event_publisher import EventPublisher
+from app.application.interfaces.services.notification_service import NotificationService
 
 
 logger = logging.getLogger(__name__)

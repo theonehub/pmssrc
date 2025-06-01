@@ -30,7 +30,7 @@ async def example_payout_operations():
     print("\n=== SOLID Payout Repository Example ===")
     
     try:
-        from infrastructure.services.database_migration_service import get_migration_service
+        from app.infrastructure.services.database_migration_service import get_migration_service
         
         # Initialize migration service
         print("Initializing migration service...")
@@ -140,7 +140,7 @@ async def example_payout_analytics():
     print("\n=== Payout Analytics Example ===")
     
     try:
-        from infrastructure.services.database_migration_service import get_migration_service
+        from app.infrastructure.services.database_migration_service import get_migration_service
         
         MONGO_URI = get_mongo_uri()
         migration_service = await get_migration_service(MONGO_URI)
@@ -200,7 +200,7 @@ async def example_payout_schedules():
     print("\n=== Payout Schedule Example ===")
     
     try:
-        from infrastructure.services.database_migration_service import get_migration_service
+        from app.infrastructure.services.database_migration_service import get_migration_service
         
         MONGO_URI = get_mongo_uri()
         migration_service = await get_migration_service(MONGO_URI)
@@ -255,7 +255,7 @@ async def example_payout_audit():
     print("\n=== Payout Audit Example ===")
     
     try:
-        from infrastructure.services.database_migration_service import get_migration_service
+        from app.infrastructure.services.database_migration_service import get_migration_service
         
         MONGO_URI = get_mongo_uri()
         migration_service = await get_migration_service(MONGO_URI)
@@ -268,7 +268,7 @@ async def example_payout_audit():
         audit_data = {
             "payout_id": "test_payout_id",
             "action": "manual_test",
-            "user_id": "admin",
+            "employee_id": "admin",
             "details": "Testing audit functionality"
         }
         
@@ -298,7 +298,7 @@ async def example_repository_health():
     print("\n=== Repository Health Example ===")
     
     try:
-        from infrastructure.services.database_migration_service import get_migration_service
+        from app.infrastructure.services.database_migration_service import get_migration_service
         
         MONGO_URI = get_mongo_uri()
         migration_service = await get_migration_service(MONGO_URI)
@@ -349,7 +349,7 @@ async def main():
     finally:
         # Clean up
         try:
-            from infrastructure.services.database_migration_service import cleanup_migration_service
+            from app.infrastructure.services.database_migration_service import cleanup_migration_service
             await cleanup_migration_service()
             print("\nCleaned up migration service")
         except Exception as e:

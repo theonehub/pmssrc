@@ -21,7 +21,7 @@ def get_all_holidays(hostname: str):
         holidays.append(PublicHoliday(**doc))
     return holidays
 
-def create_holiday(holiday: PublicHoliday, emp_id: str, hostname: str):
+def create_holiday(holiday: PublicHoliday, employee_id: str, hostname: str):
     """
     Creates a new public holiday in the database.
     """
@@ -33,7 +33,7 @@ def create_holiday(holiday: PublicHoliday, emp_id: str, hostname: str):
     holiday_dict["month"] = holiday.date.month
     holiday_dict["year"] = holiday.date.year
     holiday_dict["created_at"] = datetime.now()
-    holiday_dict["created_by"] = emp_id
+    holiday_dict["created_by"] = employee_id
     
     result = collection.insert_one(holiday_dict)
     return holiday_dict["holiday_id"]
@@ -57,7 +57,7 @@ def get_holiday_by_date_str(date_str: str, hostname: str):
     holiday = collection.find_one({"date": date_str})
     return PublicHoliday(**holiday) if holiday else None
 
-def update_holiday(holiday_id: str, holiday: PublicHoliday, emp_id: str, hostname: str):
+def update_holiday(holiday_id: str, holiday: PublicHoliday, employee_id: str, hostname: str):
     """
     Updates an existing public holiday.
     Returns True if a document was updated, False otherwise.
@@ -65,7 +65,7 @@ def update_holiday(holiday_id: str, holiday: PublicHoliday, emp_id: str, hostnam
     collection = get_holiday_collection(hostname)
     
     holiday_dict = holiday.dict(exclude={"id"})
-    holiday_dict["created_by"] = emp_id
+    holiday_dict["created_by"] = employee_id
     
     result = collection.update_one(
         {"holiday_id": holiday_id},
@@ -74,7 +74,7 @@ def update_holiday(holiday_id: str, holiday: PublicHoliday, emp_id: str, hostnam
     
     return result.matched_count > 0
 
-def import_holidays(holiday_data_list: list, emp_id: str, hostname: str):
+def import_holidays(holiday_data_list: list, employee_id: str, hostname: str):
     """
     Imports multiple holidays from processed data.
     Returns the number of successfully imported holidays.
@@ -87,7 +87,7 @@ def import_holidays(holiday_data_list: list, emp_id: str, hostname: str):
             "name": holiday_data['name'],
             "date": datetime.strptime(holiday_data['date'], '%Y-%m-%d') if isinstance(holiday_data['date'], str) else holiday_data['date'],
             "description": holiday_data.get('description', ''),
-            "created_by": emp_id,
+            "created_by": employee_id,
             "created_at": datetime.now(),
             "is_active": True,
             "holiday_id": holiday_data.get('holiday_id', f"HOL-{datetime.now().timestamp()}")

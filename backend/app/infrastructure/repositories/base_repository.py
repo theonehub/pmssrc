@@ -42,9 +42,11 @@ class BaseRepository(ABC, Generic[T]):
         self._db_connector = database_connector
         self._collection_name = collection_name
         
-    def _get_collection(self, organization_id: Optional[str] = None):
+    async def _get_collection(self, organization_id: Optional[str] = None):
         """
         Get collection for specific organization or global.
+        
+        Ensures database connection is established in the correct event loop.
         
         Args:
             organization_id: Organization ID for multi-tenant support
@@ -52,8 +54,46 @@ class BaseRepository(ABC, Generic[T]):
         Returns:
             Collection instance
         """
-        db_name = f"pms_{organization_id}" if organization_id else "global_database"
-        return self._db_connector.get_collection(db_name, self._collection_name)
+        # Ensure database is connected in the current event loop
+        if not self._db_connector.is_connected:
+            logger.debug("Database not connected, establishing connection...")
+            
+            try:
+                # Check if connection parameters are available from DI container
+                if hasattr(self._db_connector, '_connection_string') and self._db_connector._connection_string:
+                    logger.debug("Using stored connection parameters from dependency injection")
+                    await self._db_connector.connect(
+                        self._db_connector._connection_string,
+                        **getattr(self._db_connector, '_connection_params', {})
+                    )
+                else:
+                    # Fallback: load from mongodb_config
+                    logger.debug("Loading connection parameters from mongodb_config")
+                    from app.config.mongodb_config import get_mongodb_connection_string, get_mongodb_client_options
+                    connection_string = get_mongodb_connection_string()
+                    client_options = get_mongodb_client_options()
+                    await self._db_connector.connect(connection_string, **client_options)
+                
+                logger.info("MongoDB connection established successfully in current event loop")
+                
+            except Exception as e:
+                logger.error(f"Failed to establish database connection: {e}")
+                raise RuntimeError(f"Database connection failed: {e}")
+        
+        # Verify connection is still active
+        try:
+            # This will raise an exception if connection is invalid
+            db_name = f"pms_{organization_id}" if organization_id else "global_database"
+            collection = self._db_connector.get_collection(db_name, self._collection_name)
+            logger.debug(f"Successfully retrieved collection: {self._collection_name} from database: {db_name}")
+            return collection
+            
+        except Exception as e:
+            logger.error(f"Failed to get collection {self._collection_name}: {e}")
+            # Reset connection state to force reconnection on next call
+            if hasattr(self._db_connector, '_client'):
+                self._db_connector._client = None
+            raise RuntimeError(f"Collection access failed: {e}")
     
     @abstractmethod
     def _entity_to_document(self, entity: T) -> Dict[str, Any]:
@@ -145,7 +185,7 @@ class BaseRepository(ABC, Generic[T]):
             List of database documents
         """
         try:
-            collection = self._get_collection(organization_id)
+            collection = await self._get_collection(organization_id)
             db_filter = self._prepare_filter(filters)
             sort_params = self._prepare_sort(sort_by, sort_order)
             
@@ -175,7 +215,7 @@ class BaseRepository(ABC, Generic[T]):
             Number of matching documents
         """
         try:
-            collection = self._get_collection(organization_id)
+            collection = await self._get_collection(organization_id)
             db_filter = self._prepare_filter(filters)
             
             count = await collection.count_documents(db_filter)
@@ -202,7 +242,7 @@ class BaseRepository(ABC, Generic[T]):
             Inserted document ID
         """
         try:
-            collection = self._get_collection(organization_id)
+            collection = await self._get_collection(organization_id)
             
             # Add timestamps
             now = datetime.utcnow()
@@ -237,7 +277,7 @@ class BaseRepository(ABC, Generic[T]):
             True if documents were modified, False otherwise
         """
         try:
-            collection = self._get_collection(organization_id)
+            collection = await self._get_collection(organization_id)
             db_filter = self._prepare_filter(filters)
             
             # Add updated timestamp
@@ -274,7 +314,7 @@ class BaseRepository(ABC, Generic[T]):
             True if documents were deleted, False otherwise
         """
         try:
-            collection = self._get_collection(organization_id)
+            collection = await self._get_collection(organization_id)
             db_filter = self._prepare_filter(filters)
             
             if soft_delete:
@@ -316,7 +356,7 @@ class BaseRepository(ABC, Generic[T]):
             Aggregation results
         """
         try:
-            collection = self._get_collection(organization_id)
+            collection = await self._get_collection(organization_id)
             cursor = collection.aggregate(pipeline)
             results = await cursor.to_list(length=None)
             
@@ -338,7 +378,7 @@ class BaseRepository(ABC, Generic[T]):
             Health status information
         """
         try:
-            collection = self._get_collection(organization_id)
+            collection = await self._get_collection(organization_id)
             
             # Simple ping to check collection accessibility
             count = await collection.count_documents({})

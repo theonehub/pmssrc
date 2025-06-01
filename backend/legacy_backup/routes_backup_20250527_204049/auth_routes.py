@@ -4,8 +4,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from models.user_model import Token
 from auth.password_handler import verify_password
 from auth.jwt_handler import create_access_token
-from infrastructure.services.legacy_migration_service import get_user_by_emp_id
-from infrastructure.auth.oauth2_forms import OAuth2PasswordRequestFormWithHost
+from app.infrastructure.services.legacy_migration_service import get_user_by_emp_id
+from app.infrastructure.auth.oauth2_forms import OAuth2PasswordRequestFormWithHost
 logger = logging.getLogger(__name__)
 router = APIRouter()
 

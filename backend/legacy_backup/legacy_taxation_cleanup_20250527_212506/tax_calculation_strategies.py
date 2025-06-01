@@ -10,10 +10,10 @@ from datetime import date, datetime
 import logging
 
 from models.taxation.legacy_taxation_model import Taxation
-from domain.entities.taxation_models.salary_components import SalaryComponents
-from domain.entities.taxation_models.income_sources import IncomeFromOtherSources
-from domain.entities.taxation_models.deductions import DeductionComponents
-from domain.entities.salary_management import SalaryProjection, LWPAdjustment
+from app.domain.entities.taxation_models.salary_components import SalaryComponents
+from app.domain.entities.taxation_models.income_sources import IncomeFromOtherSources
+from app.domain.entities.taxation_models.deductions import DeductionComponents
+from app.domain.entities.salary_management import SalaryProjection, LWPAdjustment
 
 logger = logging.getLogger(__name__)
 

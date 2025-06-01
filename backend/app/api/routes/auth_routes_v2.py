@@ -389,7 +389,7 @@ async def get_current_user_permissions(
         permissions = controller._get_user_permissions(current_user.get("role", ""))
         
         return {
-            "user_id": current_user.get("sub"),
+            "employee_id": current_user.get("sub"),
             "role": current_user.get("role"),
             "permissions": permissions,
             "retrieved_at": datetime.now().isoformat()
@@ -413,7 +413,7 @@ async def whoami(
         Basic user info
     """
     return {
-        "emp_id": current_user.get("sub"),
+        "employee_id": current_user.get("sub"),
         "role": current_user.get("role"),
         "hostname": current_user.get("hostname"),
         "authenticated": True,

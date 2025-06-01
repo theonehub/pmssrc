@@ -76,10 +76,11 @@ class AttendanceController:
             AttendanceBusinessRuleError: If business rules are violated
         """
         try:
-            logger.info(f"Processing check-in for employee: {request.emp_id}")
+            logger.info(f"Processing check-in for employee: {request.employee_id}")
             
             if self.checkin_use_case:
-                return await self.checkin_use_case.execute(request, request.emp_id)
+                logger.info(f"Executing check-in use case for employee: {request}")  
+                return await self.checkin_use_case.execute(request, request.employee_id)
             else:
                 # Fallback implementation for development/testing
                 return self._create_mock_checkin_response(request)
@@ -103,10 +104,10 @@ class AttendanceController:
             AttendanceBusinessRuleError: If business rules are violated
         """
         try:
-            logger.info(f"Processing check-out for employee: {request.emp_id}")
+            logger.info(f"Processing check-out for employee: {request.employee_id}")
             
             if self.checkout_use_case:
-                return await self.checkout_use_case.execute(request, request.emp_id)
+                return await self.checkout_use_case.execute(request, request.employee_id)
             else:
                 # Fallback implementation for development/testing
                 return self._create_mock_checkout_response(request)
@@ -132,7 +133,7 @@ class AttendanceController:
             AttendanceNotFoundError: If no records found
         """
         try:
-            logger.info(f"Getting attendance for employee {filters.emp_id} for {filters.month}/{filters.year}")
+            logger.info(f"Getting attendance for employee {filters.employee_id} for {filters.month}/{filters.year}")
             
             if self.query_use_case:
                 return await self.query_use_case.get_employee_attendance_by_month(filters)
@@ -158,7 +159,7 @@ class AttendanceController:
             List[AttendanceResponseDTO]: Employee attendance records
         """
         try:
-            logger.info(f"Getting attendance for employee {filters.emp_id} for year {filters.year}")
+            logger.info(f"Getting attendance for employee {filters.employee_id} for year {filters.year}")
             
             if self.query_use_case:
                 return await self.query_use_case.get_employee_attendance_by_year(filters)
@@ -305,8 +306,8 @@ class AttendanceController:
         )
         
         return AttendanceResponseDTO(
-            attendance_id=f"att_{request.emp_id}_{current_time.strftime('%Y%m%d')}",
-            employee_id=request.emp_id,
+            attendance_id=f"att_{request.employee_id}_{current_time.strftime('%Y%m%d')}",
+            employee_id=request.employee_id,
             attendance_date=current_time.date(),
             status=status,
             working_hours=working_hours,
@@ -315,9 +316,9 @@ class AttendanceController:
             comments=None,
             admin_notes=None,
             created_at=current_time,
-            created_by=request.emp_id,
+            created_by=request.employee_id,
             updated_at=current_time,
-            updated_by=request.emp_id
+            updated_by=request.employee_id
         )
     
     def _create_mock_checkout_response(self, request: AttendanceCheckOutRequestDTO) -> AttendanceResponseDTO:
@@ -354,8 +355,8 @@ class AttendanceController:
         )
         
         return AttendanceResponseDTO(
-            attendance_id=f"att_{request.emp_id}_{current_time.strftime('%Y%m%d')}",
-            employee_id=request.emp_id,
+            attendance_id=f"att_{request.employee_id}_{current_time.strftime('%Y%m%d')}",
+            employee_id=request.employee_id,
             attendance_date=current_time.date(),
             status=status,
             working_hours=working_hours,
@@ -364,9 +365,9 @@ class AttendanceController:
             comments=None,
             admin_notes=None,
             created_at=current_time,
-            created_by=request.emp_id,
+            created_by=request.employee_id,
             updated_at=current_time,
-            updated_by=request.emp_id
+            updated_by=request.employee_id
         )
     
     def _create_mock_attendance_list(self, filters: AttendanceSearchFiltersDTO) -> List[AttendanceResponseDTO]:

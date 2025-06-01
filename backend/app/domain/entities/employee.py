@@ -8,9 +8,9 @@ from typing import List, Optional, Dict, Any
 from datetime import date, datetime
 from enum import Enum
 
-from domain.value_objects.employee_id import EmployeeId
-from domain.value_objects.money import Money
-from domain.events.employee_events import (
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.money import Money
+from app.domain.events.employee_events import (
     EmployeeCreated, SalaryChanged, EmployeeActivated, 
     EmployeeDeactivated, EmployeePromoted
 )

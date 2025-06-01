@@ -7,7 +7,7 @@ import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime, date
 
-from application.dto.employee_leave_dto import (
+from app.application.dto.employee_leave_dto import (
     EmployeeLeaveCreateRequestDTO,
     EmployeeLeaveApprovalRequestDTO,
     EmployeeLeaveSearchFiltersDTO,
@@ -18,7 +18,7 @@ from application.dto.employee_leave_dto import (
 from api.controllers.employee_leave_controller import EmployeeLeaveController
 from config.dependency_container import get_employee_leave_controller
 from models.leave_model import EmployeeLeave as LegacyEmployeeLeave, LeaveStatus
-from infrastructure.services.employee_leave_legacy_service import (
+from app.infrastructure.services.employee_leave_legacy_service import (
     apply_leave as legacy_apply_leave,
     leave_balance as legacy_leave_balance,
     get_user_leaves as legacy_get_user_leaves,
@@ -60,29 +60,29 @@ class EmployeeLeaveServiceMigration:
             # Fallback to legacy implementation
             return legacy_apply_leave(leave, hostname)
     
-    def get_leave_balance_legacy(self, emp_id: str, hostname: str) -> Dict[str, Any]:
+    def get_leave_balance_legacy(self, employee_id: str, hostname: str) -> Dict[str, Any]:
         """Legacy get leave balance method"""
         try:
             if self._use_solid_architecture:
-                return self._get_leave_balance_solid(emp_id, hostname)
+                return self._get_leave_balance_solid(employee_id, hostname)
             else:
-                return legacy_leave_balance(emp_id, hostname)
+                return legacy_leave_balance(employee_id, hostname)
         except Exception as e:
             self._logger.error(f"Error in get_leave_balance_legacy: {e}")
             # Fallback to legacy implementation
-            return legacy_leave_balance(emp_id, hostname)
+            return legacy_leave_balance(employee_id, hostname)
     
-    def get_user_leaves_legacy(self, emp_id: str, hostname: str) -> List[Dict[str, Any]]:
+    def get_user_leaves_legacy(self, employee_id: str, hostname: str) -> List[Dict[str, Any]]:
         """Legacy get user leaves method"""
         try:
             if self._use_solid_architecture:
-                return self._get_user_leaves_solid(emp_id, hostname)
+                return self._get_user_leaves_solid(employee_id, hostname)
             else:
-                return legacy_get_user_leaves(emp_id, hostname)
+                return legacy_get_user_leaves(employee_id, hostname)
         except Exception as e:
             self._logger.error(f"Error in get_user_leaves_legacy: {e}")
             # Fallback to legacy implementation
-            return legacy_get_user_leaves(emp_id, hostname)
+            return legacy_get_user_leaves(employee_id, hostname)
     
     def get_pending_leaves_legacy(self, manager_id: str, hostname: str) -> List[Dict[str, Any]]:
         """Legacy get pending leaves method"""
@@ -132,7 +132,7 @@ class EmployeeLeaveServiceMigration:
     
     def get_leaves_by_month_for_user_legacy(
         self, 
-        emp_id: str, 
+        employee_id: str, 
         month: int, 
         year: int, 
         hostname: str
@@ -140,17 +140,17 @@ class EmployeeLeaveServiceMigration:
         """Legacy get leaves by month method"""
         try:
             if self._use_solid_architecture:
-                return self._get_leaves_by_month_solid(emp_id, month, year, hostname)
+                return self._get_leaves_by_month_solid(employee_id, month, year, hostname)
             else:
-                return legacy_get_leaves_by_month_for_user(emp_id, month, year, hostname)
+                return legacy_get_leaves_by_month_for_user(employee_id, month, year, hostname)
         except Exception as e:
             self._logger.error(f"Error in get_leaves_by_month_for_user_legacy: {e}")
             # Fallback to legacy implementation
-            return legacy_get_leaves_by_month_for_user(emp_id, month, year, hostname)
+            return legacy_get_leaves_by_month_for_user(employee_id, month, year, hostname)
     
     def calculate_lwp_for_month_legacy(
         self, 
-        emp_id: str, 
+        employee_id: str, 
         month: int, 
         year: int, 
         hostname: str
@@ -158,13 +158,13 @@ class EmployeeLeaveServiceMigration:
         """Legacy calculate LWP method"""
         try:
             if self._use_solid_architecture:
-                return self._calculate_lwp_solid(emp_id, month, year, hostname)
+                return self._calculate_lwp_solid(employee_id, month, year, hostname)
             else:
-                return legacy_calculate_lwp_for_month(emp_id, month, year, hostname)
+                return legacy_calculate_lwp_for_month(employee_id, month, year, hostname)
         except Exception as e:
             self._logger.error(f"Error in calculate_lwp_for_month_legacy: {e}")
             # Fallback to legacy implementation
-            return legacy_calculate_lwp_for_month(emp_id, month, year, hostname)
+            return legacy_calculate_lwp_for_month(employee_id, month, year, hostname)
     
     # SOLID implementation methods
     
@@ -182,7 +182,7 @@ class EmployeeLeaveServiceMigration:
             )
             
             # Apply leave
-            response = await controller.apply_leave(request, leave.emp_id, hostname)
+            response = await controller.apply_leave(request, leave.employee_id, hostname)
             
             return {
                 "msg": "Leave application submitted successfully",
@@ -193,12 +193,12 @@ class EmployeeLeaveServiceMigration:
             self._logger.error(f"Error in SOLID apply leave: {e}")
             raise
     
-    async def _get_leave_balance_solid(self, emp_id: str, hostname: str) -> Dict[str, Any]:
+    async def _get_leave_balance_solid(self, employee_id: str, hostname: str) -> Dict[str, Any]:
         """Get leave balance using SOLID architecture"""
         try:
             controller = self._get_controller()
             
-            response = await controller.get_leave_balance(emp_id)
+            response = await controller.get_leave_balance(employee_id)
             
             return response.leave_balances
             
@@ -206,12 +206,12 @@ class EmployeeLeaveServiceMigration:
             self._logger.error(f"Error in SOLID get leave balance: {e}")
             raise
     
-    async def _get_user_leaves_solid(self, emp_id: str, hostname: str) -> List[Dict[str, Any]]:
+    async def _get_user_leaves_solid(self, employee_id: str, hostname: str) -> List[Dict[str, Any]]:
         """Get user leaves using SOLID architecture"""
         try:
             controller = self._get_controller()
             
-            responses = await controller.get_employee_leaves(emp_id)
+            responses = await controller.get_employee_leaves(employee_id)
             
             return [response.to_dict() for response in responses]
             
@@ -281,7 +281,7 @@ class EmployeeLeaveServiceMigration:
     
     async def _get_leaves_by_month_solid(
         self, 
-        emp_id: str, 
+        employee_id: str, 
         month: int, 
         year: int, 
         hostname: str
@@ -290,7 +290,7 @@ class EmployeeLeaveServiceMigration:
         try:
             controller = self._get_controller()
             
-            responses = await controller.get_monthly_leaves(emp_id, month, year)
+            responses = await controller.get_monthly_leaves(employee_id, month, year)
             
             return [response.to_dict() for response in responses]
             
@@ -300,7 +300,7 @@ class EmployeeLeaveServiceMigration:
     
     async def _calculate_lwp_solid(
         self, 
-        emp_id: str, 
+        employee_id: str, 
         month: int, 
         year: int, 
         hostname: str
@@ -309,7 +309,7 @@ class EmployeeLeaveServiceMigration:
         try:
             controller = self._get_controller()
             
-            response = await controller.calculate_lwp(emp_id, month, year)
+            response = await controller.calculate_lwp(employee_id, month, year)
             
             return response.lwp_days
             
@@ -353,16 +353,16 @@ def apply_leave_migrated(leave: LegacyEmployeeLeave, hostname: str) -> Dict[str,
     return service.apply_leave_legacy(leave, hostname)
 
 
-def leave_balance_migrated(emp_id: str, hostname: str) -> Dict[str, Any]:
+def leave_balance_migrated(employee_id: str, hostname: str) -> Dict[str, Any]:
     """Migrated leave balance function"""
     service = get_employee_leave_migration_service()
-    return service.get_leave_balance_legacy(emp_id, hostname)
+    return service.get_leave_balance_legacy(employee_id, hostname)
 
 
-def get_user_leaves_migrated(emp_id: str, hostname: str) -> List[Dict[str, Any]]:
+def get_user_leaves_migrated(employee_id: str, hostname: str) -> List[Dict[str, Any]]:
     """Migrated get user leaves function"""
     service = get_employee_leave_migration_service()
-    return service.get_user_leaves_legacy(emp_id, hostname)
+    return service.get_user_leaves_legacy(employee_id, hostname)
 
 
 def get_pending_leaves_migrated(manager_id: str, hostname: str) -> List[Dict[str, Any]]:
@@ -392,22 +392,22 @@ def get_all_employee_leaves_migrated(
 
 
 def get_leaves_by_month_for_user_migrated(
-    emp_id: str, 
+    employee_id: str, 
     month: int, 
     year: int, 
     hostname: str
 ) -> List[Dict[str, Any]]:
     """Migrated get leaves by month function"""
     service = get_employee_leave_migration_service()
-    return service.get_leaves_by_month_for_user_legacy(emp_id, month, year, hostname)
+    return service.get_leaves_by_month_for_user_legacy(employee_id, month, year, hostname)
 
 
 def calculate_lwp_for_month_migrated(
-    emp_id: str, 
+    employee_id: str, 
     month: int, 
     year: int, 
     hostname: str
 ) -> int:
     """Migrated calculate LWP function"""
     service = get_employee_leave_migration_service()
-    return service.calculate_lwp_for_month_legacy(emp_id, month, year, hostname) 
+    return service.calculate_lwp_for_month_legacy(employee_id, month, year, hostname) 

@@ -8,9 +8,9 @@ from typing import Dict, Optional, List, Any
 from datetime import datetime
 from uuid import uuid4
 
-from domain.value_objects.leave_type import LeaveType
-from domain.value_objects.leave_policy import LeavePolicy
-from domain.events.leave_events import (
+from app.domain.value_objects.leave_type import LeaveType
+from app.domain.value_objects.leave_policy import LeavePolicy
+from app.domain.events.leave_events import (
     CompanyLeaveCreated, CompanyLeaveUpdated, CompanyLeaveDeactivated,
     CompanyLeavePolicyChanged
 )

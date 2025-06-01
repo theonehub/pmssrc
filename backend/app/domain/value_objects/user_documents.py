@@ -22,8 +22,8 @@ class UserDocuments:
     """
     
     photo_path: Optional[str] = None
-    pan_file_path: Optional[str] = None
-    aadhar_file_path: Optional[str] = None
+    pan_document_path: Optional[str] = None
+    aadhar_document_path: Optional[str] = None
     
     def __post_init__(self):
         """Validate document paths after initialization"""
@@ -31,7 +31,7 @@ class UserDocuments:
     
     def _validate_document_paths(self) -> None:
         """Validate document file paths"""
-        paths = [self.photo_path, self.pan_file_path, self.aadhar_file_path]
+        paths = [self.photo_path, self.pan_document_path, self.aadhar_document_path]
         
         for path in paths:
             if path is not None and not isinstance(path, str):
@@ -46,11 +46,11 @@ class UserDocuments:
     
     def has_pan_document(self) -> bool:
         """Check if user has uploaded PAN document"""
-        return bool(self.pan_file_path and self.pan_file_path.strip())
+        return bool(self.pan_document_path and self.pan_document_path.strip())
     
     def has_aadhar_document(self) -> bool:
         """Check if user has uploaded Aadhar document"""
-        return bool(self.aadhar_file_path and self.aadhar_file_path.strip())
+        return bool(self.aadhar_document_path and self.aadhar_document_path.strip())
     
     def get_document_completion_percentage(self) -> float:
         """Get document completion percentage"""
@@ -122,9 +122,9 @@ class UserDocuments:
         if document_type == "photo":
             return self.photo_path
         elif document_type == "pan":
-            return self.pan_file_path
+            return self.pan_document_path
         elif document_type == "aadhar":
-            return self.aadhar_file_path
+            return self.aadhar_document_path
         else:
             raise ValueError(f"Unknown document type: {document_type}")
     
@@ -194,56 +194,56 @@ class UserDocuments:
         """Create new instance with updated photo path"""
         return UserDocuments(
             photo_path=photo_path,
-            pan_file_path=self.pan_file_path,
-            aadhar_file_path=self.aadhar_file_path
+            pan_document_path=self.pan_document_path,
+            aadhar_document_path=self.aadhar_document_path
         )
     
-    def with_pan_document(self, pan_file_path: str) -> 'UserDocuments':
+    def with_pan_document(self, pan_document_path: str) -> 'UserDocuments':
         """Create new instance with updated PAN document path"""
         return UserDocuments(
             photo_path=self.photo_path,
-            pan_file_path=pan_file_path,
-            aadhar_file_path=self.aadhar_file_path
+            pan_document_path=pan_document_path,
+            aadhar_document_path=self.aadhar_document_path
         )
     
-    def with_aadhar_document(self, aadhar_file_path: str) -> 'UserDocuments':
+    def with_aadhar_document(self, aadhar_document_path: str) -> 'UserDocuments':
         """Create new instance with updated Aadhar document path"""
         return UserDocuments(
             photo_path=self.photo_path,
-            pan_file_path=self.pan_file_path,
-            aadhar_file_path=aadhar_file_path
+            pan_document_path=self.pan_document_path,
+            aadhar_document_path=aadhar_document_path
         )
     
     def without_photo(self) -> 'UserDocuments':
         """Create new instance without photo"""
         return UserDocuments(
             photo_path=None,
-            pan_file_path=self.pan_file_path,
-            aadhar_file_path=self.aadhar_file_path
+            pan_document_path=self.pan_document_path,
+            aadhar_document_path=self.aadhar_document_path
         )
     
     def without_pan_document(self) -> 'UserDocuments':
         """Create new instance without PAN document"""
         return UserDocuments(
             photo_path=self.photo_path,
-            pan_file_path=None,
-            aadhar_file_path=self.aadhar_file_path
+            pan_document_path=None,
+            aadhar_document_path=self.aadhar_document_path
         )
     
     def without_aadhar_document(self) -> 'UserDocuments':
         """Create new instance without Aadhar document"""
         return UserDocuments(
             photo_path=self.photo_path,
-            pan_file_path=self.pan_file_path,
-            aadhar_file_path=None
+            pan_document_path=self.pan_document_path,
+            aadhar_document_path=None
         )
     
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization"""
         return {
             "photo_path": self.photo_path,
-            "pan_file_path": self.pan_file_path,
-            "aadhar_file_path": self.aadhar_file_path,
+            "pan_document_path": self.pan_document_path,
+            "aadhar_document_path": self.aadhar_document_path,
             "has_photo": self.has_photo(),
             "has_pan_document": self.has_pan_document(),
             "has_aadhar_document": self.has_aadhar_document(),
@@ -260,8 +260,8 @@ class UserDocuments:
         """Create from dictionary"""
         return cls(
             photo_path=data.get("photo_path"),
-            pan_file_path=data.get("pan_file_path"),
-            aadhar_file_path=data.get("aadhar_file_path")
+            pan_document_path=data.get("pan_document_path"),
+            aadhar_document_path=data.get("aadhar_document_path")
         )
     
     @classmethod
@@ -275,4 +275,4 @@ class UserDocuments:
     
     def __repr__(self) -> str:
         """Developer representation"""
-        return f"UserDocuments(photo={bool(self.photo_path)}, pan={bool(self.pan_file_path)}, aadhar={bool(self.aadhar_file_path)})" 
+        return f"UserDocuments(photo={bool(self.photo_path)}, pan={bool(self.pan_document_path)}, aadhar={bool(self.aadhar_document_path)})" 

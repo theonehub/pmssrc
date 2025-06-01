@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from typing import List, Optional, Dict, Any
 import logging
 
-from application.dto.employee_leave_dto import (
+from app.application.dto.employee_leave_dto import (
     EmployeeLeaveCreateRequestDTO,
     EmployeeLeaveUpdateRequestDTO,
     EmployeeLeaveApprovalRequestDTO,
@@ -100,9 +100,9 @@ async def apply_employee_leave(
     - Working days calculated excluding weekends and holidays
     """
     
-    logger.info(f"Employee leave application request from: {current_user.get('emp_id')}")
+    logger.info(f"Employee leave application request from: {current_user.get('employee_id')}")
     
-    employee_id = current_user.get("emp_id")
+    employee_id = current_user.get("employee_id")
     if not employee_id:
         raise HTTPException(status_code=400, detail="Employee ID not found in token")
     
@@ -133,9 +133,9 @@ async def approve_employee_leave(
     - Rejection requires reason/comments
     """
     
-    logger.info(f"Leave approval request for {leave_id} by: {current_user.get('emp_id')}")
+    logger.info(f"Leave approval request for {leave_id} by: {current_user.get('employee_id')}")
     
-    approver_id = current_user.get("emp_id")
+    approver_id = current_user.get("employee_id")
     if not approver_id:
         raise HTTPException(status_code=400, detail="Approver ID not found in token")
     
@@ -172,7 +172,7 @@ async def get_employee_leave_by_id(
     
     # Check if user can access this leave (basic authorization)
     user_role = current_user.get("role", "").lower()
-    employee_id = current_user.get("emp_id")
+    employee_id = current_user.get("employee_id")
     
     if (user_role not in ["admin", "superadmin"] and 
         response.employee_id != employee_id):
@@ -198,7 +198,7 @@ async def get_employee_leaves(
     
     # Authorization check
     user_role = current_user.get("role", "").lower()
-    current_employee_id = current_user.get("emp_id")
+    current_employee_id = current_user.get("employee_id")
     
     if (user_role not in ["admin", "superadmin"] and 
         employee_id != current_employee_id):
@@ -225,7 +225,7 @@ async def get_manager_team_leaves(
     
     # Authorization check
     user_role = current_user.get("role", "").lower()
-    current_employee_id = current_user.get("emp_id")
+    current_employee_id = current_user.get("employee_id")
     
     if (user_role not in ["admin", "superadmin"] and 
         manager_id != current_employee_id):
@@ -255,7 +255,7 @@ async def get_pending_approvals(
     
     # For managers, filter by their ID
     if user_role == "manager":
-        manager_id = current_user.get("emp_id")
+        manager_id = current_user.get("employee_id")
     
     response = await controller.get_pending_approvals(manager_id, limit)
     
@@ -275,7 +275,7 @@ async def search_employee_leaves(
     
     # Authorization check and filter adjustment
     user_role = current_user.get("role", "").lower()
-    current_employee_id = current_user.get("emp_id")
+    current_employee_id = current_user.get("employee_id")
     
     if user_role not in ["admin", "superadmin"]:
         if user_role == "manager":
@@ -306,7 +306,7 @@ async def get_monthly_employee_leaves(
     
     # Authorization check
     user_role = current_user.get("role", "").lower()
-    current_employee_id = current_user.get("emp_id")
+    current_employee_id = current_user.get("employee_id")
     
     if (user_role not in ["admin", "superadmin"] and 
         employee_id != current_employee_id):
@@ -333,7 +333,7 @@ async def get_employee_leave_balance(
     
     # Authorization check
     user_role = current_user.get("role", "").lower()
-    current_employee_id = current_user.get("emp_id")
+    current_employee_id = current_user.get("employee_id")
     
     if (user_role not in ["admin", "superadmin"] and 
         employee_id != current_employee_id):
@@ -360,7 +360,7 @@ async def get_leave_analytics(
     
     # Authorization check and filter adjustment
     user_role = current_user.get("role", "").lower()
-    current_employee_id = current_user.get("emp_id")
+    current_employee_id = current_user.get("employee_id")
     
     if user_role not in ["admin", "superadmin"]:
         if user_role == "manager":
@@ -415,7 +415,7 @@ async def get_team_leave_summary(
     
     # Authorization check
     user_role = current_user.get("role", "").lower()
-    current_employee_id = current_user.get("emp_id")
+    current_employee_id = current_user.get("employee_id")
     
     if (user_role not in ["admin", "superadmin"] and 
         manager_id != current_employee_id):
@@ -439,7 +439,7 @@ async def count_employee_leaves(
     
     # Authorization check and filter adjustment
     user_role = current_user.get("role", "").lower()
-    current_employee_id = current_user.get("emp_id")
+    current_employee_id = current_user.get("employee_id")
     
     if user_role not in ["admin", "superadmin"]:
         if user_role == "manager":

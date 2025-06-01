@@ -43,7 +43,7 @@ async def calculate_monthly_payout(
     
     # Mock payout calculation
     mock_payout = {
-        "emp_id": employee_id,
+        "employee_id": employee_id,
         "month": month,
         "year": year,
         "basic_salary": 50000,
@@ -89,7 +89,7 @@ async def create_payout(
         "success": True,
         "message": "Payout created successfully",
         "payout_id": f"PAYOUT_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-        "emp_id": payout_data.get("emp_id"),
+        "employee_id": payout_data.get("employee_id"),
         "month": payout_data.get("month"),
         "year": payout_data.get("year"),
         "net_salary": payout_data.get("net_salary", 0),
@@ -112,7 +112,7 @@ async def get_employee_payouts(
     mock_payouts = [
         {
             "payout_id": f"PAYOUT_{employee_id}_202401",
-            "emp_id": employee_id,
+            "employee_id": employee_id,
             "employee_name": "John Doe",
             "month": 1,
             "year": 2024,
@@ -125,7 +125,7 @@ async def get_employee_payouts(
         },
         {
             "payout_id": f"PAYOUT_{employee_id}_202402",
-            "emp_id": employee_id,
+            "employee_id": employee_id,
             "employee_name": "John Doe",
             "month": 2,
             "year": 2024,
@@ -156,13 +156,13 @@ async def get_my_payouts(
     Get payouts for the current user.
     Frontend expects this endpoint for payoutService.getMyPayouts()
     """
-    emp_id = current_user.get("sub", "EMP001")
+    employee_id = current_user.get("sub", "EMP001")
     
     # Mock current user's payouts
     mock_payouts = [
         {
-            "payout_id": f"PAYOUT_{emp_id}_202401",
-            "emp_id": emp_id,
+            "payout_id": f"PAYOUT_{employee_id}_202401",
+            "employee_id": employee_id,
             "employee_name": "Current User",
             "month": 1,
             "year": 2024,
@@ -194,7 +194,7 @@ async def get_payout_by_id(
     # Mock payout detail
     return {
         "payout_id": payout_id,
-        "emp_id": "EMP001",
+        "employee_id": "EMP001",
         "employee_name": "John Doe",
         "month": 1,
         "year": 2024,
@@ -273,7 +273,7 @@ async def auto_generate_current_month_payout(
         "success": True,
         "message": "Payout auto-generated successfully",
         "payout_id": f"PAYOUT_{employee_id}_{current_year}{current_month:02d}",
-        "emp_id": employee_id,
+        "employee_id": employee_id,
         "month": current_month,
         "year": current_year,
         "gross_salary": 85000,
@@ -307,10 +307,10 @@ async def bulk_process_payouts(
         "processed_by": current_user.get("sub", "system"),
         "results": [
             {
-                "emp_id": emp_id,
+                "employee_id": employee_id,
                 "status": "success",
-                "payout_id": f"PAYOUT_{emp_id}_{year}{month:02d}"
-            } for emp_id in employee_ids
+                "payout_id": f"PAYOUT_{employee_id}_{year}{month:02d}"
+            } for employee_id in employee_ids
         ]
     }
 
@@ -329,7 +329,7 @@ async def get_monthly_payouts(
     mock_payouts = [
         {
             "payout_id": f"PAYOUT_EMP001_{year}{month:02d}",
-            "emp_id": "EMP001",
+            "employee_id": "EMP001",
             "employee_name": "John Doe",
             "department": "Engineering",
             "gross_salary": 88000,
@@ -338,7 +338,7 @@ async def get_monthly_payouts(
         },
         {
             "payout_id": f"PAYOUT_EMP002_{year}{month:02d}",
-            "emp_id": "EMP002",
+            "employee_id": "EMP002",
             "employee_name": "Jane Smith",
             "department": "HR",
             "gross_salary": 95000,

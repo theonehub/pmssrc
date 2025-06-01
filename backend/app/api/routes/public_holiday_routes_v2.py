@@ -20,7 +20,7 @@ from app.application.dto.public_holiday_dto import (
     PublicHolidayBusinessRuleError,
     PublicHolidayNotFoundError
 )
-from app.auth.auth import extract_emp_id, extract_hostname, role_checker
+from app.auth.auth import extract_employee_id, extract_hostname, role_checker
 
 logger = logging.getLogger(__name__)
 
@@ -45,16 +45,16 @@ def get_public_holiday_controller() -> PublicHolidayController:
 @router.post("/", response_model=PublicHolidayResponseDTO)
 async def create_public_holiday(
     request: PublicHolidayCreateRequestDTO,
-    current_emp_id: str = Depends(extract_emp_id),
+    current_employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["admin", "superadmin"])),
     controller: PublicHolidayController = Depends(get_public_holiday_controller)
 ):
     """Create a new public holiday"""
     try:
-        logger.info(f"Creating public holiday: {request.name} by {current_emp_id}")
+        logger.info(f"Creating public holiday: {request.name} by {current_employee_id}")
         
-        response = await controller.create_public_holiday(request, current_emp_id, hostname)
+        response = await controller.create_public_holiday(request, current_employee_id, hostname)
         
         return response
         
@@ -130,17 +130,17 @@ async def get_public_holiday(
 async def update_public_holiday(
     holiday_id: str = Path(..., description="Public holiday ID"),
     request: PublicHolidayUpdateRequestDTO = None,
-    current_emp_id: str = Depends(extract_emp_id),
+    current_employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["admin", "superadmin"])),
     controller: PublicHolidayController = Depends(get_public_holiday_controller)
 ):
     """Update an existing public holiday"""
     try:
-        logger.info(f"Updating public holiday: {holiday_id} by {current_emp_id}")
+        logger.info(f"Updating public holiday: {holiday_id} by {current_employee_id}")
         
         response = await controller.update_public_holiday(
-            holiday_id, request, current_emp_id, hostname
+            holiday_id, request, current_employee_id, hostname
         )
         
         return response
@@ -165,16 +165,16 @@ async def update_public_holiday(
 @router.delete("/{holiday_id}")
 async def delete_public_holiday(
     holiday_id: str = Path(..., description="Public holiday ID"),
-    current_emp_id: str = Depends(extract_emp_id),
+    current_employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["admin", "superadmin"])),
     controller: PublicHolidayController = Depends(get_public_holiday_controller)
 ):
     """Delete (deactivate) a public holiday"""
     try:
-        logger.info(f"Deleting public holiday: {holiday_id} by {current_emp_id}")
+        logger.info(f"Deleting public holiday: {holiday_id} by {current_employee_id}")
         
-        await controller.delete_public_holiday(holiday_id, current_emp_id, hostname)
+        await controller.delete_public_holiday(holiday_id, current_employee_id, hostname)
         
         return {"message": "Public holiday deleted successfully"}
         
@@ -194,20 +194,20 @@ async def delete_public_holiday(
 @router.post("/import", response_model=PublicHolidayImportResultDTO)
 async def import_public_holidays(
     file: UploadFile = File(...),
-    current_emp_id: str = Depends(extract_emp_id),
+    current_employee_id: str = Depends(extract_employee_id),
     hostname: str = Depends(extract_hostname),
     role: str = Depends(role_checker(["admin", "superadmin"])),
     controller: PublicHolidayController = Depends(get_public_holiday_controller)
 ):
     """Import public holidays from Excel file"""
     try:
-        logger.info(f"Importing public holidays from file: {file.filename} by {current_emp_id}")
+        logger.info(f"Importing public holidays from file: {file.filename} by {current_employee_id}")
         
         # Validate file type
         if not file.filename.endswith(('.xlsx', '.xls')):
             raise HTTPException(status_code=400, detail="Only Excel files (.xlsx, .xls) are supported")
         
-        response = await controller.import_public_holidays(file, current_emp_id, hostname)
+        response = await controller.import_public_holidays(file, current_employee_id, hostname)
         
         return response
         

@@ -41,7 +41,7 @@ async def get_all_taxation(
     # Mock response matching frontend expectations
     return [
         {
-            "emp_id": "EMP001",
+            "employee_id": "EMP001",
             "employee_name": "John Doe",
             "tax_year": "2024-2025",
             "filing_status": "pending",
@@ -60,9 +60,9 @@ async def get_all_taxation(
         }
     ]
 
-@router.get("/taxation/{emp_id}")
-async def get_taxation_by_emp_id(
-    emp_id: str = Path(..., description="Employee ID"),
+@router.get("/taxation/{employee_id}")
+async def get_taxation_by_employee_id(
+    employee_id: str = Path(..., description="Employee ID"),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
@@ -71,7 +71,7 @@ async def get_taxation_by_emp_id(
     """
     # Mock response matching frontend expectations
     return {
-        "emp_id": emp_id,
+        "employee_id": employee_id,
         "employee_name": "John Doe",
         "tax_year": "2024-2025",
         "filing_status": "pending",
@@ -105,13 +105,13 @@ async def calculate_tax(
     Calculate tax for an employee.
     Frontend expects this endpoint for taxationService.calculateTax()
     """
-    emp_id = request.get("emp_id")
+    employee_id = request.get("employee_id")
     tax_year = request.get("tax_year", "2024-2025")
     regime = request.get("regime", "old")
     
     # Mock tax calculation
     mock_calculation = {
-        "emp_id": emp_id,
+        "employee_id": employee_id,
         "tax_year": tax_year,
         "regime": regime,
         "calculation_details": {
@@ -143,15 +143,15 @@ async def save_taxation_data(
     return {
         "success": True,
         "message": "Taxation data saved successfully",
-        "emp_id": taxation_data.get("emp_id"),
+        "employee_id": taxation_data.get("employee_id"),
         "tax_year": taxation_data.get("tax_year", "2024-2025"),
         "updated_at": datetime.now().isoformat(),
         "updated_by": current_user.get("sub", "system")
     }
 
-@router.put("/taxation/{emp_id}")
+@router.put("/taxation/{employee_id}")
 async def update_taxation(
-    emp_id: str = Path(..., description="Employee ID"),
+    employee_id: str = Path(..., description="Employee ID"),
     taxation_data: Dict[str, Any] = Body(..., description="Updated taxation data"),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -162,14 +162,14 @@ async def update_taxation(
     return {
         "success": True,
         "message": "Taxation data updated successfully",
-        "emp_id": emp_id,
+        "employee_id": employee_id,
         "updated_at": datetime.now().isoformat(),
         "updated_by": current_user.get("sub", "system")
     }
 
-@router.delete("/taxation/{emp_id}")
+@router.delete("/taxation/{employee_id}")
 async def delete_taxation(
-    emp_id: str = Path(..., description="Employee ID"),
+    employee_id: str = Path(..., description="Employee ID"),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
@@ -180,7 +180,7 @@ async def delete_taxation(
     return {
         "success": True,
         "message": "Taxation data deleted successfully",
-        "emp_id": emp_id,
+        "employee_id": employee_id,
         "deleted_at": datetime.now().isoformat(),
         "deleted_by": current_user.get("sub", "system")
     }
@@ -193,11 +193,11 @@ async def get_my_taxation(
     Get taxation data for the current user.
     Frontend expects this endpoint for taxationService.getMyTaxation()
     """
-    emp_id = current_user.get("sub", "EMP001")
+    employee_id = current_user.get("sub", "EMP001")
     
     # Mock response for current user
     return {
-        "emp_id": emp_id,
+        "employee_id": employee_id,
         "employee_name": "Current User",
         "tax_year": "2024-2025",
         "filing_status": "pending",
@@ -217,9 +217,9 @@ async def get_my_taxation(
         "last_updated": datetime.now().isoformat()
     }
 
-@router.post("/update-tax-payment/{emp_id}")
+@router.post("/update-tax-payment/{employee_id}")
 async def update_tax_payment(
-    emp_id: str = Path(..., description="Employee ID"),
+    employee_id: str = Path(..., description="Employee ID"),
     request: Dict[str, Any] = Body(..., description="Tax payment update"),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -232,14 +232,14 @@ async def update_tax_payment(
     return {
         "success": True,
         "message": "Tax payment updated successfully",
-        "emp_id": emp_id,
+        "employee_id": employee_id,
         "amount_paid": amount_paid,
         "updated_at": datetime.now().isoformat()
     }
 
-@router.post("/update-filing-status/{emp_id}")
+@router.post("/update-filing-status/{employee_id}")
 async def update_filing_status(
-    emp_id: str = Path(..., description="Employee ID"),
+    employee_id: str = Path(..., description="Employee ID"),
     request: Dict[str, Any] = Body(..., description="Filing status update"),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
@@ -252,7 +252,7 @@ async def update_filing_status(
     return {
         "success": True,
         "message": "Filing status updated successfully",
-        "emp_id": emp_id,
+        "employee_id": employee_id,
         "filing_status": status,
         "updated_at": datetime.now().isoformat()
     }
@@ -270,15 +270,15 @@ async def save_taxation_data_alt(
     return {
         "success": True,
         "message": "Taxation data saved successfully",
-        "emp_id": taxation_data.get("emp_id"),
+        "employee_id": taxation_data.get("employee_id"),
         "tax_year": taxation_data.get("tax_year", "2024-2025"),
         "updated_at": datetime.now().isoformat(),
         "updated_by": current_user.get("sub", "system")
     }
 
-@router.post("/compute-vrs-value/{emp_id}")
+@router.post("/compute-vrs-value/{employee_id}")
 async def compute_vrs_value(
-    emp_id: str = Path(..., description="Employee ID"),
+    employee_id: str = Path(..., description="Employee ID"),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ) -> Dict[str, Any]:
     """
@@ -289,7 +289,7 @@ async def compute_vrs_value(
     vrs_value = 125000  # Mock value
     
     return {
-        "emp_id": emp_id,
+        "employee_id": employee_id,
         "vrs_value": vrs_value,
         "calculated_at": datetime.now().isoformat()
     } 

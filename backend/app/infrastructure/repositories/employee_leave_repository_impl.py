@@ -11,20 +11,20 @@ from pymongo.database import Database
 from pymongo import ASCENDING, DESCENDING
 from bson import ObjectId
 
-from application.interfaces.repositories.employee_leave_repository import (
+from app.application.interfaces.repositories.employee_leave_repository import (
     EmployeeLeaveCommandRepository,
     EmployeeLeaveQueryRepository,
     EmployeeLeaveAnalyticsRepository,
     EmployeeLeaveBalanceRepository
 )
-from domain.entities.employee_leave import EmployeeLeave
-from domain.value_objects.employee_id import EmployeeId
-from domain.value_objects.leave_type import LeaveType, LeaveCategory
-from domain.value_objects.date_range import DateRange
+from app.domain.entities.employee_leave import EmployeeLeave
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.leave_type import LeaveType, LeaveCategory
+from app.domain.value_objects.date_range import DateRange
 from models.leave_model import LeaveStatus
 from database.database_connector import connect_to_database
-from infrastructure.services.legacy_migration_service import (
-    get_user_by_emp_id, get_users_by_manager_id, is_public_holiday_sync
+from app.infrastructure.services.legacy_migration_service import (
+    get_user_by_employee_id, get_users_by_manager_id, is_public_holiday_sync
 )
 from services.attendance_service import get_employee_attendance_by_month
 
@@ -158,7 +158,7 @@ class EmployeeLeaveCommandRepositoryImpl(EmployeeLeaveCommandRepository):
         """Convert EmployeeLeave entity to MongoDB document"""
         return {
             "leave_id": employee_leave.leave_id,
-            "emp_id": str(employee_leave.employee_id),
+            "employee_id": str(employee_leave.employee_id),
             "emp_name": employee_leave.employee_name,
             "emp_email": employee_leave.employee_email,
             "leave_name": employee_leave.leave_type.code,
@@ -219,7 +219,7 @@ class EmployeeLeaveQueryRepositoryImpl(EmployeeLeaveQueryRepository):
         try:
             collection = self._get_collection(hostname)
             
-            query = {"emp_id": str(employee_id)}
+            query = {"employee_id": str(employee_id)}
             if status_filter:
                 query["status"] = status_filter.value
             
@@ -246,14 +246,14 @@ class EmployeeLeaveQueryRepositoryImpl(EmployeeLeaveQueryRepository):
         try:
             # Get employees under this manager
             users = get_users_by_manager_id(manager_id, hostname)
-            emp_ids = [user["emp_id"] for user in users]
+            employee_ids = [user["employee_id"] for user in users]
             
-            if not emp_ids:
+            if not employee_ids:
                 return []
             
             collection = self._get_collection(hostname)
             
-            query = {"emp_id": {"$in": emp_ids}}
+            query = {"employee_id": {"$in": employee_ids}}
             if status_filter:
                 query["status"] = status_filter.value
             
@@ -266,7 +266,7 @@ class EmployeeLeaveQueryRepositoryImpl(EmployeeLeaveQueryRepository):
             leaves = [self._document_to_entity(doc) for doc in documents]
             
             # Add employee details
-            user_map = {user["emp_id"]: user for user in users}
+            user_map = {user["employee_id"]: user for user in users}
             for leave in leaves:
                 user = user_map.get(str(leave.employee_id))
                 if user:
@@ -305,7 +305,7 @@ class EmployeeLeaveQueryRepositoryImpl(EmployeeLeaveQueryRepository):
             }
             
             if employee_id:
-                query["emp_id"] = str(employee_id)
+                query["employee_id"] = str(employee_id)
             
             if status_filter:
                 query["status"] = status_filter.value
@@ -339,7 +339,7 @@ class EmployeeLeaveQueryRepositoryImpl(EmployeeLeaveQueryRepository):
             month_end_str = month_end.strftime("%Y-%m-%d")
             
             query = {
-                "emp_id": str(employee_id),
+                "employee_id": str(employee_id),
                 "$or": [
                     {"start_date": {"$gte": month_start_str, "$lte": month_end_str}},
                     {"end_date": {"$gte": month_start_str, "$lte": month_end_str}},
@@ -372,7 +372,7 @@ class EmployeeLeaveQueryRepositoryImpl(EmployeeLeaveQueryRepository):
             end_str = date_range.end_date.strftime("%Y-%m-%d")
             
             query = {
-                "emp_id": str(employee_id),
+                "employee_id": str(employee_id),
                 "status": {"$in": [LeaveStatus.PENDING.value, LeaveStatus.APPROVED.value]},
                 "$or": [
                     {"start_date": {"$gte": start_str, "$lte": end_str}},
@@ -409,9 +409,9 @@ class EmployeeLeaveQueryRepositoryImpl(EmployeeLeaveQueryRepository):
             if manager_id:
                 # Get employees under this manager
                 users = get_users_by_manager_id(manager_id, hostname)
-                emp_ids = [user["emp_id"] for user in users]
-                if emp_ids:
-                    query["emp_id"] = {"$in": emp_ids}
+                employee_ids = [user["employee_id"] for user in users]
+                if employee_ids:
+                    query["employee_id"] = {"$in": employee_ids}
                 else:
                     return []
             
@@ -449,14 +449,14 @@ class EmployeeLeaveQueryRepositoryImpl(EmployeeLeaveQueryRepository):
             
             # Employee filter
             if employee_id:
-                query["emp_id"] = str(employee_id)
+                query["employee_id"] = str(employee_id)
             
             # Manager filter
             if manager_id:
                 users = get_users_by_manager_id(manager_id, hostname)
-                emp_ids = [user["emp_id"] for user in users]
-                if emp_ids:
-                    query["emp_id"] = {"$in": emp_ids}
+                employee_ids = [user["employee_id"] for user in users]
+                if employee_ids:
+                    query["employee_id"] = {"$in": employee_ids}
                 else:
                     return []
             
@@ -530,13 +530,13 @@ class EmployeeLeaveQueryRepositoryImpl(EmployeeLeaveQueryRepository):
             
             # Apply same filters as search method
             if employee_id:
-                query["emp_id"] = str(employee_id)
+                query["employee_id"] = str(employee_id)
             
             if manager_id:
                 users = get_users_by_manager_id(manager_id, hostname)
-                emp_ids = [user["emp_id"] for user in users]
-                if emp_ids:
-                    query["emp_id"] = {"$in": emp_ids}
+                employee_ids = [user["employee_id"] for user in users]
+                if employee_ids:
+                    query["employee_id"] = {"$in": employee_ids}
                 else:
                     return 0
             
@@ -587,7 +587,7 @@ class EmployeeLeaveQueryRepositoryImpl(EmployeeLeaveQueryRepository):
         """Convert MongoDB document to EmployeeLeave entity"""
         try:
             # Create value objects
-            employee_id = EmployeeId(document["emp_id"])
+            employee_id = EmployeeId(document["employee_id"])
             
             leave_type = LeaveType(
                 code=document["leave_name"],
@@ -660,13 +660,13 @@ class EmployeeLeaveAnalyticsRepositoryImpl(EmployeeLeaveAnalyticsRepository):
             match_query = {}
             
             if employee_id:
-                match_query["emp_id"] = str(employee_id)
+                match_query["employee_id"] = str(employee_id)
             
             if manager_id:
                 users = get_users_by_manager_id(manager_id, hostname)
-                emp_ids = [user["emp_id"] for user in users]
-                if emp_ids:
-                    match_query["emp_id"] = {"$in": emp_ids}
+                employee_ids = [user["employee_id"] for user in users]
+                if employee_ids:
+                    match_query["employee_id"] = {"$in": employee_ids}
                 else:
                     return self._empty_statistics()
             
@@ -732,13 +732,13 @@ class EmployeeLeaveAnalyticsRepositoryImpl(EmployeeLeaveAnalyticsRepository):
             match_query = {}
             
             if employee_id:
-                match_query["emp_id"] = str(employee_id)
+                match_query["employee_id"] = str(employee_id)
             
             if manager_id:
                 users = get_users_by_manager_id(manager_id, hostname)
-                emp_ids = [user["emp_id"] for user in users]
-                if emp_ids:
-                    match_query["emp_id"] = {"$in": emp_ids}
+                employee_ids = [user["employee_id"] for user in users]
+                if employee_ids:
+                    match_query["employee_id"] = {"$in": employee_ids}
                 else:
                     return {}
             
@@ -785,13 +785,13 @@ class EmployeeLeaveAnalyticsRepositoryImpl(EmployeeLeaveAnalyticsRepository):
             match_query = {}
             
             if employee_id:
-                match_query["emp_id"] = str(employee_id)
+                match_query["employee_id"] = str(employee_id)
             
             if manager_id:
                 users = get_users_by_manager_id(manager_id, hostname)
-                emp_ids = [user["emp_id"] for user in users]
-                if emp_ids:
-                    match_query["emp_id"] = {"$in": emp_ids}
+                employee_ids = [user["employee_id"] for user in users]
+                if employee_ids:
+                    match_query["employee_id"] = {"$in": employee_ids}
                 else:
                     return {}
             
@@ -881,10 +881,10 @@ class EmployeeLeaveAnalyticsRepositoryImpl(EmployeeLeaveAnalyticsRepository):
             team_summary = []
             
             for user in users:
-                emp_id = user["emp_id"]
+                employee_id = user["employee_id"]
                 
                 # Build query for this employee
-                query = {"emp_id": emp_id}
+                query = {"employee_id": employee_id}
                 if date_filter:
                     query.update(date_filter)
                 
@@ -913,7 +913,7 @@ class EmployeeLeaveAnalyticsRepositoryImpl(EmployeeLeaveAnalyticsRepository):
                 if results:
                     stats = results[0]
                     team_summary.append({
-                        "employee_id": emp_id,
+                        "employee_id": employee_id,
                         "employee_name": user.get("name", ""),
                         "employee_email": user.get("email", ""),
                         "total_leaves": stats.get("total_leaves", 0),
@@ -923,7 +923,7 @@ class EmployeeLeaveAnalyticsRepositoryImpl(EmployeeLeaveAnalyticsRepository):
                     })
                 else:
                     team_summary.append({
-                        "employee_id": emp_id,
+                        "employee_id": employee_id,
                         "employee_name": user.get("name", ""),
                         "employee_email": user.get("email", ""),
                         "total_leaves": 0,
@@ -1037,7 +1037,7 @@ class EmployeeLeaveBalanceRepositoryImpl(EmployeeLeaveBalanceRepository):
     def get_leave_balance(self, employee_id: EmployeeId, hostname: str = "default") -> Dict[str, int]:
         """Get leave balance for an employee"""
         try:
-            user = get_user_by_emp_id(str(employee_id), hostname)
+            user = get_user_by_employee_id(str(employee_id), hostname)
             if user:
                 return user.get("leave_balance", {})
             return {}
@@ -1058,7 +1058,7 @@ class EmployeeLeaveBalanceRepositoryImpl(EmployeeLeaveBalanceRepository):
             collection = self._get_user_collection(hostname)
             
             result = collection.update_one(
-                {"emp_id": str(employee_id)},
+                {"employee_id": str(employee_id)},
                 {"$inc": {f"leave_balance.{leave_type}": balance_change}}
             )
             
@@ -1083,7 +1083,7 @@ class EmployeeLeaveBalanceRepositoryImpl(EmployeeLeaveBalanceRepository):
             collection = self._get_user_collection(hostname)
             
             result = collection.update_one(
-                {"emp_id": str(employee_id)},
+                {"employee_id": str(employee_id)},
                 {"$set": {"leave_balance": leave_balances}}
             )
             
@@ -1105,7 +1105,7 @@ class EmployeeLeaveBalanceRepositoryImpl(EmployeeLeaveBalanceRepository):
             team_balances = []
             for user in users:
                 team_balances.append({
-                    "employee_id": user["emp_id"],
+                    "employee_id": user["employee_id"],
                     "employee_name": user.get("name", ""),
                     "employee_email": user.get("email", ""),
                     "leave_balances": user.get("leave_balance", {})

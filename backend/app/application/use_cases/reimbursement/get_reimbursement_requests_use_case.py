@@ -7,19 +7,19 @@ import logging
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-from application.dto.reimbursement_dto import (
+from app.application.dto.reimbursement_dto import (
     ReimbursementResponseDTO,
     ReimbursementSummaryDTO,
     ReimbursementStatisticsDTO,
     ReimbursementSearchFiltersDTO,
     create_reimbursement_response_from_entity
 )
-from application.interfaces.repositories.reimbursement_repository import (
+from app.application.interfaces.repositories.reimbursement_repository import (
     ReimbursementQueryRepository,
     ReimbursementTypeQueryRepository,
     ReimbursementAnalyticsRepository
 )
-from domain.entities.reimbursement import Reimbursement
+from app.domain.entities.reimbursement import Reimbursement
 
 
 logger = logging.getLogger(__name__)

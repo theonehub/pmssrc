@@ -119,11 +119,11 @@ COLLECTION_NAMES = {
 # Index definitions for MongoDB collections
 INDEX_DEFINITIONS = {
     "taxation": [
-        [("emp_id", 1)],
+        [("employee_id", 1)],
         [("hostname", 1)],
         [("tax_year", 1)],
         [("regime", 1)],
-        [("emp_id", 1), ("hostname", 1)],  # Compound index
+        [("employee_id", 1), ("hostname", 1)],  # Compound index
         [("tax_year", 1), ("regime", 1)]   # Compound index
     ],
     "tax_events": [
@@ -161,9 +161,9 @@ VALIDATION_SCHEMAS = {
     "taxation": {
         "$jsonSchema": {
             "bsonType": "object",
-            "required": ["emp_id", "hostname", "tax_year", "regime"],
+            "required": ["employee_id", "hostname", "tax_year", "regime"],
             "properties": {
-                "emp_id": {"bsonType": "string"},
+                "employee_id": {"bsonType": "string"},
                 "hostname": {"bsonType": "string"},
                 "tax_year": {"bsonType": "string"},
                 "regime": {"bsonType": "string", "enum": ["old", "new"]},

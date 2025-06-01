@@ -226,14 +226,78 @@ async def get_user_stats(
         logger.error(f"Error getting user stats for organization {current_user.hostname}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/{employee_id}", response_model=UserResponseDTO)
+@router.get("/{employee_id}")
 async def get_user_by_id(
     employee_id: str,
     current_user: CurrentUser = Depends(get_current_user),
     controller: UserController = Depends(get_user_controller)
-) -> UserResponseDTO:
-    """Get user by ID."""
-    return await controller.get_user_by_id(employee_id, current_user)
+) -> Dict[str, Any]:
+    """Get user by ID with complete details."""
+    try:
+        user = await controller.get_user_by_id(employee_id, current_user)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        logger.info(f"Retrieved user {employee_id} for organization {current_user.hostname}")
+        
+        # Safe attribute access with proper defaults
+        def safe_get(obj, attr, default=None):
+            try:
+                value = getattr(obj, attr, default)
+                return value if value is not None else default
+            except (AttributeError, TypeError):
+                return default
+        
+        def format_date(date_value):
+            if date_value is None:
+                return None
+            if hasattr(date_value, 'isoformat'):
+                return date_value.isoformat()
+            return str(date_value)
+        
+        # Return flattened structure for better frontend compatibility
+        user_data = {
+            "employee_id": str(safe_get(user, 'employee_id', '')),
+            "name": safe_get(user, 'name', ''),
+            "email": safe_get(user, 'email', ''),
+            "department": safe_get(user, 'department', ''),
+            "designation": safe_get(user, 'designation', ''),
+            "role": safe_get(user.permissions, 'role', 'user') if hasattr(user, 'permissions') and user.permissions else safe_get(user, 'role', 'user'),
+            "date_of_joining": format_date(safe_get(user, 'date_of_joining')),
+            "date_of_birth": format_date(safe_get(user.personal_details, 'date_of_birth') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'date_of_birth')),
+            "gender": safe_get(user.personal_details, 'gender') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'gender'),
+            "mobile": safe_get(user.personal_details, 'mobile') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'mobile'),
+            "status": safe_get(user, 'status', 'active'),
+            "manager_id": str(safe_get(user, 'manager_id', '')) if safe_get(user, 'manager_id') else '',
+            "address": safe_get(user, 'address', ''),
+            "emergency_contact": safe_get(user, 'emergency_contact', ''),
+            "blood_group": safe_get(user, 'blood_group', ''),
+            "location": safe_get(user, 'location', ''),
+            "pan_number": safe_get(user.personal_details, 'pan_number') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'pan_number'),
+            "aadhar_number": safe_get(user.personal_details, 'aadhar_number') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'aadhar_number'),
+            "uan_number": safe_get(user.personal_details, 'uan_number') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'uan_number'),
+            "esi_number": safe_get(user.personal_details, 'esi_number') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'esi_number'),
+            "pan_document_path": safe_get(user.documents, 'pan_document_path') if hasattr(user, 'documents') and user.documents else safe_get(user, 'pan_document_path'),
+            "aadhar_document_path": safe_get(user.documents, 'aadhar_document_path') if hasattr(user, 'documents') and user.documents else safe_get(user, 'aadhar_document_path'),
+            "photo_path": safe_get(user.documents, 'photo_path') if hasattr(user, 'documents') and user.documents else safe_get(user, 'photo_path'),
+            "organization": current_user.hostname,
+            "created_at": format_date(safe_get(user, 'created_at')),
+            "updated_at": format_date(safe_get(user, 'updated_at')),
+            "is_active": safe_get(user, 'is_active', True),
+            "last_login_at": format_date(safe_get(user, 'last_login_at'))
+        }
+        
+        logger.info(f"Returning user data with fields: {list(user_data.keys())}")
+        return user_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting user {employee_id} for organization {current_user.hostname}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get user: {str(e)}"
+        )
 
 @router.get("/email/{email}", response_model=UserResponseDTO)
 async def get_user_by_email(
@@ -301,15 +365,75 @@ async def search_users(
     return await controller.search_users(filters, current_user)
 
 # User update endpoints
-@router.put("/{employee_id}", response_model=UserResponseDTO)
+@router.put("/{employee_id}")
 async def update_user(
     employee_id: str,
     request: UpdateUserRequestDTO,
     current_user: CurrentUser = Depends(get_current_user),
     controller: UserController = Depends(get_user_controller)
-) -> UserResponseDTO:
+) -> Dict[str, Any]:
     """Update user information."""
-    return await controller.update_user(employee_id, request, current_user)
+    try:
+        result = await controller.update_user(employee_id, request, current_user)
+        
+        logger.info(f"Updated user {employee_id} for organization {current_user.hostname}")
+        
+        # Return flattened structure consistent with get_user_by_id
+        def safe_get(obj, attr, default=None):
+            try:
+                value = getattr(obj, attr, default)
+                return value if value is not None else default
+            except (AttributeError, TypeError):
+                return default
+        
+        def format_date(date_value):
+            if date_value is None:
+                return None
+            if hasattr(date_value, 'isoformat'):
+                return date_value.isoformat()
+            return str(date_value)
+        
+        user_data = {
+            "employee_id": str(safe_get(result, 'employee_id', '')),
+            "name": safe_get(result, 'name', ''),
+            "email": safe_get(result, 'email', ''),
+            "department": safe_get(result, 'department', ''),
+            "designation": safe_get(result, 'designation', ''),
+            "role": safe_get(result.permissions, 'role', 'user') if hasattr(result, 'permissions') and result.permissions else safe_get(result, 'role', 'user'),
+            "date_of_joining": format_date(safe_get(result, 'date_of_joining')),
+            "date_of_birth": format_date(safe_get(result.personal_details, 'date_of_birth') if hasattr(result, 'personal_details') and result.personal_details else safe_get(result, 'date_of_birth')),
+            "gender": safe_get(result.personal_details, 'gender') if hasattr(result, 'personal_details') and result.personal_details else safe_get(result, 'gender'),
+            "mobile": safe_get(result.personal_details, 'mobile') if hasattr(result, 'personal_details') and result.personal_details else safe_get(result, 'mobile'),
+            "status": safe_get(result, 'status', 'active'),
+            "manager_id": str(safe_get(result, 'manager_id', '')) if safe_get(result, 'manager_id') else '',
+            "address": safe_get(result, 'address', ''),
+            "emergency_contact": safe_get(result, 'emergency_contact', ''),
+            "blood_group": safe_get(result, 'blood_group', ''),
+            "location": safe_get(result, 'location', ''),
+            "pan_number": safe_get(result.personal_details, 'pan_number') if hasattr(result, 'personal_details') and result.personal_details else safe_get(result, 'pan_number'),
+            "aadhar_number": safe_get(result.personal_details, 'aadhar_number') if hasattr(result, 'personal_details') and result.personal_details else safe_get(result, 'aadhar_number'),
+            "uan_number": safe_get(result.personal_details, 'uan_number') if hasattr(result, 'personal_details') and result.personal_details else safe_get(result, 'uan_number'),
+            "esi_number": safe_get(result.personal_details, 'esi_number') if hasattr(result, 'personal_details') and result.personal_details else safe_get(result, 'esi_number'),
+            "pan_document_path": safe_get(result.documents, 'pan_document_path') if hasattr(result, 'documents') and result.documents else safe_get(result, 'pan_document_path'),
+            "aadhar_document_path": safe_get(result.documents, 'aadhar_document_path') if hasattr(result, 'documents') and result.documents else safe_get(result, 'aadhar_document_path'),
+            "photo_path": safe_get(result.documents, 'photo_path') if hasattr(result, 'documents') and result.documents else safe_get(result, 'photo_path'),
+            "organization": current_user.hostname,
+            "created_at": format_date(safe_get(result, 'created_at')),
+            "updated_at": format_date(safe_get(result, 'updated_at')),
+            "is_active": safe_get(result, 'is_active', True),
+            "last_login_at": format_date(safe_get(result, 'last_login_at'))
+        }
+        
+        return user_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating user {employee_id} for organization {current_user.hostname}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update user: {str(e)}"
+        )
 
 @router.patch("/{employee_id}/password", response_model=UserResponseDTO)
 async def change_user_password(
@@ -446,76 +570,76 @@ async def get_all_users_legacy(
         logger.error(f"Error getting legacy users for organization {hostname}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/legacy/{employee_id}")
-async def get_user_by_employee_id_legacy(
-    employee_id: str,
-    hostname: str = Query(..., description="Organization hostname"),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller)
-) -> Dict[str, Any]:
-    """Get user by employee ID for specific organization (legacy endpoint)."""
-    # Validate user can access the specified organization
-    if current_user.hostname != hostname and not current_user.has_role("superadmin"):
-        raise HTTPException(
-            status_code=403,
-            detail="Access denied: cannot access different organization"
-        )
+# @router.get("/legacy/{employee_id}")
+# async def get_user_by_employee_id_legacy(
+#     employee_id: str,
+#     hostname: str = Query(..., description="Organization hostname"),
+#     current_user: CurrentUser = Depends(get_current_user),
+#     controller: UserController = Depends(get_user_controller)
+# ) -> Dict[str, Any]:
+#     """Get user by employee ID for specific organization (legacy endpoint)."""
+#     # Validate user can access the specified organization
+#     if current_user.hostname != hostname and not current_user.has_role("superadmin"):
+#         raise HTTPException(
+#             status_code=403,
+#             detail="Access denied: cannot access different organization"
+#         )
     
-    try:
-        # Create a temporary current user context for the requested hostname
-        temp_user_data = current_user.token_payload.copy()
-        temp_user_data["hostname"] = hostname
-        temp_current_user = CurrentUser(temp_user_data)
+#     try:
+#         # Create a temporary current user context for the requested hostname
+#         temp_user_data = current_user.token_payload.copy()
+#         temp_user_data["hostname"] = hostname
+#         temp_current_user = CurrentUser(temp_user_data)
         
-        user = await controller.get_user_by_id(employee_id, temp_current_user)
-        if not user:
-            raise HTTPException(
-                status_code=404,
-                detail=f"User {employee_id} not found in organization {hostname}"
-            )
+#         user = await controller.get_user_by_id(employee_id, temp_current_user)
+#         if not user:
+#             raise HTTPException(
+#                 status_code=404,
+#                 detail=f"User {employee_id} not found in organization {hostname}"
+#             )
         
-        # Convert to legacy format
-        return {
-            "employee_id": user.employee_id,
-            "name": user.name,
-            "email": user.email,
-            "department": user.department,
-            "designation": user.designation,
-            "role": user.role,
-            "date_of_joining": user.date_of_joining.isoformat() if user.date_of_joining else None,
-            "date_of_birth": user.date_of_birth.isoformat() if user.date_of_birth else None,
-            "gender": user.gender,
-            "mobile": user.mobile,
-            "status": user.status,
-            "manager_id": user.manager_id,
-            "address": user.address,
-            "emergency_contact": user.emergency_contact,
-            "blood_group": user.blood_group,
-            "location": user.location,
-            "pan_number": user.pan_number,
-            "aadhar_number": user.aadhar_number,
-            "uan_number": user.uan_number,
-            "esi_number": user.esi_number,
-            "pan_document_path": user.pan_document_path,
-            "aadhar_document_path": user.aadhar_document_path,
-            "photo_path": user.photo_path,
-            "organization": hostname,
-            "created_at": user.created_at.isoformat() if user.created_at else None,
-            "updated_at": user.updated_at.isoformat() if user.updated_at else None,
-            "bank_details": user.bank_details or {},
-            "date_of_joining": user.date_of_joining.isoformat() if user.date_of_joining else None,
-            "date_of_birth": user.date_of_birth.isoformat() if user.date_of_birth else None,
-            "emergency_contact": user.emergency_contact,
-            "blood_group": user.blood_group
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error getting legacy user {employee_id} for organization {hostname}: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to get user: {str(e)}"
-        )
+#         # Convert to legacy format
+#         return {
+#             "employee_id": user.employee_id,
+#             "name": user.name,
+#             "email": user.email,
+#             "department": user.department,
+#             "designation": user.designation,
+#             "role": user.role,
+#             "date_of_joining": user.date_of_joining.isoformat() if user.date_of_joining else None,
+#             "date_of_birth": user.date_of_birth.isoformat() if user.date_of_birth else None,
+#             "gender": user.gender,
+#             "mobile": user.mobile,
+#             "status": user.status,
+#             "manager_id": user.manager_id,
+#             "address": user.address,
+#             "emergency_contact": user.emergency_contact,
+#             "blood_group": user.blood_group,
+#             "location": user.location,
+#             "pan_number": user.pan_number,
+#             "aadhar_number": user.aadhar_number,
+#             "uan_number": user.uan_number,
+#             "esi_number": user.esi_number,
+#             "pan_document_path": user.pan_document_path,
+#             "aadhar_document_path": user.aadhar_document_path,
+#             "photo_path": user.photo_path,
+#             "organization": hostname,
+#             "created_at": user.created_at.isoformat() if user.created_at else None,
+#             "updated_at": user.updated_at.isoformat() if user.updated_at else None,
+#             "bank_details": user.bank_details or {},
+#             "date_of_joining": user.date_of_joining.isoformat() if user.date_of_joining else None,
+#             "date_of_birth": user.date_of_birth.isoformat() if user.date_of_birth else None,
+#             "emergency_contact": user.emergency_contact,
+#             "blood_group": user.blood_group
+#         }
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         logger.error(f"Error getting legacy user {employee_id} for organization {hostname}: {e}")
+#         raise HTTPException(
+#             status_code=500,
+#             detail=f"Failed to get user: {str(e)}"
+#         )
 
 # # Error Handlers
 # @router.exception_handler(ValueError)

@@ -338,6 +338,7 @@ class PersonalDetails:
     
     gender: Gender
     date_of_birth: str  # ISO format date string
+    date_of_joining: str  # ISO format date string
     mobile: str
     pan_number: Optional[str] = None
     aadhar_number: Optional[str] = None
@@ -361,6 +362,10 @@ class PersonalDetails:
         # Validate date of birth
         if not self._is_valid_date(self.date_of_birth):
             raise ValueError("Invalid date of birth format")
+        
+        # Validate date of joining
+        if not self._is_valid_date(self.date_of_joining):
+            raise ValueError("Invalid date of joining format")
     
     def _is_valid_mobile(self, mobile: str) -> bool:
         """Validate mobile number format"""
@@ -427,6 +432,7 @@ class PersonalDetails:
         return {
             "gender": self.gender.value,
             "date_of_birth": self.date_of_birth,
+            "date_of_joining": self.date_of_joining,
             "mobile": self.mobile,
             "pan_number": self.pan_number,
             "aadhar_number": self.aadhar_number,
@@ -440,6 +446,7 @@ class PersonalDetails:
         return cls(
             gender=Gender(data["gender"]),
             date_of_birth=data["date_of_birth"],
+            date_of_joining=data["date_of_joining"],
             mobile=data["mobile"],
             pan_number=data.get("pan_number"),
             aadhar_number=data.get("aadhar_number"),

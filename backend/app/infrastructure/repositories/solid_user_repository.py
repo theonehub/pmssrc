@@ -126,6 +126,7 @@ class SolidUserRepository(BaseRepository[User]):
         pan_number_value = ''
         aadhar_number_value = ''
         date_of_birth_value = None
+        date_of_joining_value = None
         
         if personal_details:
             gender_value = getattr(personal_details, 'gender', '')
@@ -136,6 +137,7 @@ class SolidUserRepository(BaseRepository[User]):
             pan_number_value = getattr(personal_details, 'pan_number', '')
             aadhar_number_value = getattr(personal_details, 'aadhar_number', '')
             date_of_birth_value = getattr(personal_details, 'date_of_birth', None)
+            date_of_joining_value = getattr(personal_details, 'date_of_joining', None)
             
             # Convert date to datetime for MongoDB compatibility
             if date_of_birth_value and hasattr(date_of_birth_value, 'year'):
@@ -144,6 +146,13 @@ class SolidUserRepository(BaseRepository[User]):
                     date_of_birth_value = date_of_birth_value
                 else:  # datetime.date
                     date_of_birth_value = dt.combine(date_of_birth_value, dt.min.time())
+
+            if date_of_joining_value and hasattr(date_of_joining_value, 'year'):
+                from datetime import datetime as dt
+                if isinstance(date_of_joining_value, dt):
+                    date_of_joining_value = date_of_joining_value
+                else:  # datetime.date
+                    date_of_joining_value = dt.combine(date_of_joining_value, dt.min.time())
         
         # Handle documents
         documents = getattr(user, 'documents', None)
@@ -163,7 +172,7 @@ class SolidUserRepository(BaseRepository[User]):
             "name": getattr(user, 'name', ''),
             "gender": gender_value,
             "date_of_birth": date_of_birth_value,
-            "date_of_joining": getattr(user, 'date_of_joining', None),
+            "date_of_joining": date_of_joining_value,
             "date_of_leaving": getattr(user, 'date_of_leaving', None),
             "mobile": mobile_value,
             "password": password_value,

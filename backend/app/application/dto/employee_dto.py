@@ -199,12 +199,14 @@ class EmployeeResponse:
     phone: Optional[str]
     date_of_joining: date
     date_of_birth: date
+    date_of_joining: date
     age: int
     years_of_service: int
     employee_type: str
     status: str
     department: Optional[str]
     designation: Optional[str]
+    location: Optional[str]
     manager_id: Optional[str]
     current_salary: float
     address: Optional[Dict[str, str]]

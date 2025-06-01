@@ -2,16 +2,23 @@ import apiClient from '../utils/apiClient';
 
 // Helper functions for data mapping between frontend and backend v2 formats
 const transformBackendToFrontend = (backendUser) => {
-  return {
-    employee_id: backendUser.employee_id || '',
-    employee_id: backendUser.employee_id || '',
+  if (!backendUser) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('No backend user data provided');
+    }
+    return null;
+  }
+  
+  const transformed = {
+    employee_id: backendUser.employee_id || backendUser.emp_id || '',
     name: backendUser.name || '',
     email: backendUser.email || '',
-    mobile: backendUser.mobile || '',
-    gender: backendUser.gender || '',
-    date_of_birth: backendUser.date_of_birth || backendUser.dob || '',
+    // Handle both nested (UserResponseDTO) and flat (legacy) structures
+    mobile: backendUser.personal_details?.mobile || backendUser.mobile || '',
+    gender: backendUser.personal_details?.gender || backendUser.gender || '',
+    date_of_birth: backendUser.personal_details?.date_of_birth || backendUser.date_of_birth || backendUser.dob || '',
     date_of_joining: backendUser.date_of_joining || backendUser.doj || '',
-    role: backendUser.role || '',
+    role: backendUser.permissions?.role || backendUser.role || '',
     department: backendUser.department || '',
     designation: backendUser.designation || '',
     manager_id: backendUser.manager_id || '',
@@ -19,25 +26,26 @@ const transformBackendToFrontend = (backendUser) => {
     emergency_contact: backendUser.emergency_contact || '',
     blood_group: backendUser.blood_group || '',
     location: backendUser.location || '',
-    pan_number: backendUser.pan_number || '',
-    aadhar_number: backendUser.aadhar_number || '',
-    uan_number: backendUser.uan_number || '',
-    esi_number: backendUser.esi_number || '',
-    bank_details: backendUser.bank_details || {},
+    pan_number: backendUser.personal_details?.pan_number || backendUser.pan_number || '',
+    aadhar_number: backendUser.personal_details?.aadhar_number || backendUser.aadhar_number || '',
+    uan_number: backendUser.personal_details?.uan_number || backendUser.uan_number || '',
+    esi_number: backendUser.personal_details?.esi_number || backendUser.esi_number || '',
     created_at: backendUser.created_at || '',
     updated_at: backendUser.updated_at || '',
     is_active: backendUser.is_active !== undefined ? backendUser.is_active : true,
     status: backendUser.status || (backendUser.is_active ? 'active' : 'inactive'),
     profile_picture_url: backendUser.profile_picture_url || '',
-    pan_document_path: backendUser.pan_document_path || '',
-    aadhar_document_path: backendUser.aadhar_document_path || '',
-    photo_path: backendUser.photo_path || ''
+    pan_document_path: backendUser.documents?.pan_document_path || backendUser.pan_document_path || '',
+    aadhar_document_path: backendUser.documents?.aadhar_document_path || backendUser.aadhar_document_path || '',
+    photo_path: backendUser.documents?.photo_path || backendUser.photo_path || ''
   };
+  
+  return transformed;
 };
 
 const transformFrontendToBackend = (frontendUser) => {
   return {
-    employee_id: frontendUser.employee_id || frontendUser.employee_id,
+    employee_id: frontendUser.employee_id || frontendUser.emp_id,
     name: frontendUser.name,
     email: frontendUser.email,
     mobile: frontendUser.mobile,
@@ -57,7 +65,6 @@ const transformFrontendToBackend = (frontendUser) => {
     aadhar_number: frontendUser.aadhar_number,
     uan_number: frontendUser.uan_number,
     esi_number: frontendUser.esi_number,
-    bank_details: frontendUser.bank_details || {}
   };
 };
 
@@ -88,6 +95,7 @@ const dataService = {
   async getUserById(userId) {
     const response = await apiClient.get(`/api/v2/users/${userId}`);
     const mappedUser = transformBackendToFrontend(response.data);
+    
     if (!mappedUser) {
       throw new Error('User data not found or invalid');
     }

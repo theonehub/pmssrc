@@ -137,7 +137,8 @@ class CreateEmployeeUseCase:
             initial_salary=initial_salary,
             employee_type=employee_type,
             department=request.department,
-            designation=request.designation
+            designation=request.designation,
+            location=request.location
         )
         
         # Set optional fields

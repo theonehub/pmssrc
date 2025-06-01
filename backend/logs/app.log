@@ -1922,3 +1922,791 @@ AttributeError: module 'bcrypt' has no attribute '__about__'
 2025-06-01 21:44:08 [INFO] app.infrastructure.repositories.mongodb_user_repository:90 - _get_collection(): MongoDB connection established successfully in current event loop
 2025-06-01 21:44:08 [INFO] app.infrastructure.repositories.mongodb_user_repository:563 - get_all(): Retrieved 1 users
 2025-06-01 21:44:09 [INFO] uvicorn.access:473 - send(): 127.0.0.1:55048 - "GET /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 22:11:10 [ERROR] pymongo.client:104 - _log_client_error(): MongoClient background task encountered an error:
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/synchronous/mongo_client.py", line 2206, in _process_periodic_tasks
+    self._topology.update_pool()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/synchronous/topology.py", line 689, in update_pool
+    server.pool.remove_stale_sockets(generation)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/synchronous/pool.py", line 957, in remove_stale_sockets
+    conn = self.connect()
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/synchronous/pool.py", line 1051, in connect
+    conn.authenticate()
+    ~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/synchronous/pool.py", line 522, in authenticate
+    auth.authenticate(creds, self, reauthenticate=reauthenticate)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/synchronous/auth.py", line 450, in authenticate
+    auth_func(credentials, conn)
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/synchronous/auth.py", line 355, in _authenticate_default
+    return _authenticate_scram(credentials, conn, "SCRAM-SHA-1")
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/synchronous/auth.py", line 96, in _authenticate_scram
+    res = conn.command(source, cmd)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/synchronous/helpers.py", line 47, in inner
+    return func(*args, **kwargs)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/synchronous/pool.py", line 438, in command
+    self._raise_connection_failure(error)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/synchronous/pool.py", line 410, in command
+    return command(
+        self,
+    ...<20 lines>...
+        write_concern=write_concern,
+    )
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/synchronous/network.py", line 198, in command
+    reply = receive_message(conn, request_id)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/network_layer.py", line 755, in receive_message
+    length, _, response_to, op_code = _UNPACK_HEADER(receive_data(conn, 16, deadline))
+                                                     ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/network_layer.py", line 363, in receive_data
+    raise _OperationCancelled("operation cancelled") from None
+pymongo.errors._OperationCancelled: operation cancelled
+2025-06-01 22:15:26 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60387 - "OPTIONS /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 22:15:26 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60389 - "OPTIONS /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 22:15:28 [INFO] app.infrastructure.repositories.mongodb_user_repository:563 - get_all(): Retrieved 1 users
+2025-06-01 22:15:29 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60387 - "GET /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 22:15:29 [INFO] app.infrastructure.repositories.mongodb_user_repository:563 - get_all(): Retrieved 1 users
+2025-06-01 22:15:30 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60389 - "GET /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 22:15:34 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60389 - "OPTIONS /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 22:15:34 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60391 - "OPTIONS /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 22:15:34 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60389 - "GET /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 22:15:34 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60389 - "GET /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 22:18:07 [INFO] uvicorn.access:473 - send(): 127.0.0.1:61595 - "GET /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 22:18:18 [INFO] uvicorn.access:473 - send(): 127.0.0.1:61674 - "GET /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 22:18:42 [INFO] uvicorn.access:473 - send(): 127.0.0.1:61858 - "GET /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 22:19:05 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 22:19:05 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 22:19:06 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 22:19:06 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 22:19:06 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 22:19:06 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 22:19:06 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 22:19:06 [INFO] uvicorn.error:93 - _serve(): Finished server process [12268]
+2025-06-01 22:19:06 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 22:19:06 [INFO] uvicorn.error:93 - _serve(): Finished server process [12257]
+2025-06-01 22:19:09 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 22:19:11 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 22:19:11 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 22:19:11 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 22:19:11 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 22:19:11 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 22:19:11 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 22:19:11 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 22:19:11 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 22:19:12 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 22:19:12 [INFO] uvicorn.error:83 - _serve(): Started server process [12847]
+2025-06-01 22:19:12 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 22:19:12 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 22:19:12 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 22:19:12 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 22:19:12 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 22:19:14 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 22:19:21 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 22:19:21 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 22:19:23 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 22:19:24 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 22:19:24 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 22:19:24 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 22:19:24 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 22:19:24 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 22:19:24 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 22:19:24 [INFO] uvicorn.error:83 - _serve(): Started server process [12848]
+2025-06-01 22:19:24 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 22:19:24 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 22:19:24 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 22:19:24 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 22:19:24 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 22:31:55 [INFO] uvicorn.access:473 - send(): 127.0.0.1:65361 - "OPTIONS /api/v2/users/emp001 HTTP/1.1" 200
+2025-06-01 22:31:55 [INFO] uvicorn.access:473 - send(): 127.0.0.1:65363 - "OPTIONS /api/v2/users/emp001 HTTP/1.1" 200
+2025-06-01 22:31:55 [INFO] app.config.dependency_container:61 - initialize(): Initializing dependency container...
+2025-06-01 22:31:55 [INFO] app.config.dependency_container:90 - _setup_infrastructure(): MongoDB connector configured with database: 
+2025-06-01 22:31:55 [INFO] app.config.dependency_container:91 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-01 22:31:56 [INFO] app.config.dependency_container:133 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-01 22:31:56 [WARNING] app.config.dependency_container:162 - _setup_services(): Organization service setup failed: 'MongoDBConnector' object has no attribute 'organizations'
+2025-06-01 22:31:56 [INFO] app.config.dependency_container:165 - _setup_services(): Services initialized
+2025-06-01 22:31:56 [INFO] app.config.dependency_container:170 - _setup_controllers(): Controllers setup deferred
+2025-06-01 22:31:56 [INFO] app.config.dependency_container:70 - initialize(): Dependency container initialized successfully
+2025-06-01 22:31:59 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-01 22:31:59 [INFO] app.infrastructure.repositories.mongodb_user_repository:90 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-01 22:31:59 [INFO] uvicorn.access:473 - send(): 127.0.0.1:65361 - "GET /api/v2/users/emp001 HTTP/1.1" 200
+2025-06-01 22:32:00 [INFO] uvicorn.access:473 - send(): 127.0.0.1:65361 - "GET /api/v2/users/emp001 HTTP/1.1" 200
+2025-06-01 22:32:08 [INFO] uvicorn.access:473 - send(): 127.0.0.1:65467 - "GET /files/pan/localhost/37cfc835-4229-4669-a607-a283a289e7dd.png HTTP/1.1" 200
+2025-06-01 22:32:08 [INFO] uvicorn.access:473 - send(): 127.0.0.1:65467 - "GET /favicon.ico HTTP/1.1" 404
+2025-06-01 22:32:12 [INFO] uvicorn.access:473 - send(): 127.0.0.1:65467 - "GET /files/aadhar/localhost/9cdda186-2c9f-4f4e-a9a6-012b52a89080.png HTTP/1.1" 200
+2025-06-01 22:32:17 [INFO] uvicorn.access:473 - send(): 127.0.0.1:65467 - "GET /files/photos/localhost/defbea46-6464-4135-aa3c-2190574de98c.png HTTP/1.1" 200
+2025-06-01 22:33:04 [INFO] uvicorn.access:473 - send(): 127.0.0.1:49408 - "OPTIONS /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 22:33:04 [INFO] uvicorn.access:473 - send(): 127.0.0.1:49409 - "OPTIONS /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 22:33:05 [INFO] uvicorn.access:473 - send(): 127.0.0.1:49408 - "GET /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 22:33:05 [INFO] uvicorn.access:473 - send(): 127.0.0.1:49409 - "GET /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 22:40:27 [INFO] uvicorn.access:473 - send(): 127.0.0.1:52298 - "GET /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 22:40:41 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 22:40:41 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 22:40:41 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 22:40:41 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 22:40:41 [INFO] uvicorn.error:93 - _serve(): Finished server process [12847]
+2025-06-01 22:40:41 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 22:40:41 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 22:40:41 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 22:40:41 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 22:40:41 [INFO] uvicorn.error:93 - _serve(): Finished server process [12848]
+2025-06-01 22:40:43 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 22:40:45 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 22:40:45 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 22:40:45 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 22:40:46 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 22:40:46 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 22:40:46 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 22:40:46 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 22:40:46 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 22:40:46 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 22:40:46 [INFO] uvicorn.error:83 - _serve(): Started server process [67251]
+2025-06-01 22:40:46 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 22:40:46 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 22:40:46 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 22:40:46 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 22:40:46 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 22:40:48 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 22:40:56 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 22:40:56 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 22:40:59 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 22:41:01 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 22:41:01 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 22:41:01 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 22:41:02 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 22:41:02 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 22:41:02 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 22:41:02 [INFO] uvicorn.error:83 - _serve(): Started server process [67252]
+2025-06-01 22:41:02 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 22:41:02 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 22:41:02 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 22:41:02 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 22:41:02 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 22:41:04 [INFO] app.config.dependency_container:61 - initialize(): Initializing dependency container...
+2025-06-01 22:41:04 [INFO] app.config.dependency_container:90 - _setup_infrastructure(): MongoDB connector configured with database: 
+2025-06-01 22:41:04 [INFO] app.config.dependency_container:91 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-01 22:41:04 [INFO] app.config.dependency_container:133 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-01 22:41:04 [WARNING] app.config.dependency_container:162 - _setup_services(): Organization service setup failed: 'MongoDBConnector' object has no attribute 'organizations'
+2025-06-01 22:41:04 [INFO] app.config.dependency_container:165 - _setup_services(): Services initialized
+2025-06-01 22:41:04 [INFO] app.config.dependency_container:170 - _setup_controllers(): Controllers setup deferred
+2025-06-01 22:41:04 [INFO] app.config.dependency_container:70 - initialize(): Dependency container initialized successfully
+2025-06-01 22:41:06 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-01 22:41:06 [INFO] app.infrastructure.repositories.mongodb_user_repository:90 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-01 22:41:06 [INFO] app.api.routes.user_routes_v2:241 - get_user_by_id(): Retrieved user EMP001 for organization localhost
+2025-06-01 22:41:06 [INFO] app.api.routes.user_routes_v2:291 - get_user_by_id(): Returning user data with fields: ['employee_id', 'name', 'email', 'department', 'designation', 'role', 'date_of_joining', 'date_of_birth', 'gender', 'mobile', 'status', 'manager_id', 'address', 'emergency_contact', 'blood_group', 'location', 'pan_number', 'aadhar_number', 'uan_number', 'esi_number', 'pan_document_path', 'aadhar_document_path', 'photo_path', 'organization', 'created_at', 'updated_at', 'bank_details', 'is_active', 'last_login_at']
+2025-06-01 22:41:06 [INFO] uvicorn.access:473 - send(): 127.0.0.1:52513 - "GET /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 22:41:21 [INFO] app.api.routes.user_routes_v2:241 - get_user_by_id(): Retrieved user EMP001 for organization localhost
+2025-06-01 22:41:21 [INFO] app.api.routes.user_routes_v2:291 - get_user_by_id(): Returning user data with fields: ['employee_id', 'name', 'email', 'department', 'designation', 'role', 'date_of_joining', 'date_of_birth', 'gender', 'mobile', 'status', 'manager_id', 'address', 'emergency_contact', 'blood_group', 'location', 'pan_number', 'aadhar_number', 'uan_number', 'esi_number', 'pan_document_path', 'aadhar_document_path', 'photo_path', 'organization', 'created_at', 'updated_at', 'bank_details', 'is_active', 'last_login_at']
+2025-06-01 22:41:21 [INFO] uvicorn.access:473 - send(): 127.0.0.1:52686 - "GET /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 22:41:24 [INFO] uvicorn.access:473 - send(): 127.0.0.1:52708 - "GET /api/v2/users/health HTTP/1.1" 403
+2025-06-01 22:42:05 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 22:42:06 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 22:42:06 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 22:42:06 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 22:42:06 [INFO] uvicorn.error:93 - _serve(): Finished server process [67251]
+2025-06-01 22:42:06 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 22:42:06 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 22:42:06 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 22:42:06 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 22:42:06 [INFO] uvicorn.error:93 - _serve(): Finished server process [67252]
+2025-06-01 22:42:09 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 22:42:13 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 22:42:13 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 22:42:14 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 22:42:14 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 22:42:14 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 22:42:14 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 22:42:15 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 22:42:15 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 22:42:15 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 22:42:15 [INFO] uvicorn.error:83 - _serve(): Started server process [67438]
+2025-06-01 22:42:15 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 22:42:15 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 22:42:15 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 22:42:15 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 22:42:15 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 22:42:17 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 22:42:26 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 22:42:26 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 22:42:27 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 22:42:28 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 22:42:28 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 22:42:28 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 22:42:29 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 22:42:29 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 22:42:29 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 22:42:29 [INFO] uvicorn.error:83 - _serve(): Started server process [67439]
+2025-06-01 22:42:29 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 22:42:29 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 22:42:29 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 22:42:29 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 22:42:29 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 22:42:42 [INFO] app.config.dependency_container:61 - initialize(): Initializing dependency container...
+2025-06-01 22:42:42 [INFO] app.config.dependency_container:90 - _setup_infrastructure(): MongoDB connector configured with database: 
+2025-06-01 22:42:42 [INFO] app.config.dependency_container:91 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-01 22:42:42 [INFO] app.config.dependency_container:133 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-01 22:42:42 [WARNING] app.config.dependency_container:162 - _setup_services(): Organization service setup failed: 'MongoDBConnector' object has no attribute 'organizations'
+2025-06-01 22:42:42 [INFO] app.config.dependency_container:165 - _setup_services(): Services initialized
+2025-06-01 22:42:42 [INFO] app.config.dependency_container:170 - _setup_controllers(): Controllers setup deferred
+2025-06-01 22:42:42 [INFO] app.config.dependency_container:70 - initialize(): Dependency container initialized successfully
+2025-06-01 22:42:44 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-01 22:42:44 [INFO] app.infrastructure.repositories.mongodb_user_repository:90 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-01 22:42:44 [INFO] app.api.routes.user_routes_v2:241 - get_user_by_id(): Retrieved user EMP001 for organization localhost
+2025-06-01 22:42:44 [INFO] app.api.routes.user_routes_v2:291 - get_user_by_id(): Returning user data with fields: ['employee_id', 'name', 'email', 'department', 'designation', 'role', 'date_of_joining', 'date_of_birth', 'gender', 'mobile', 'status', 'manager_id', 'address', 'emergency_contact', 'blood_group', 'location', 'pan_number', 'aadhar_number', 'uan_number', 'esi_number', 'pan_document_path', 'aadhar_document_path', 'photo_path', 'organization', 'created_at', 'updated_at', 'bank_details', 'is_active', 'last_login_at']
+2025-06-01 22:42:44 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53158 - "GET /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 22:42:54 [INFO] app.api.routes.user_routes_v2:241 - get_user_by_id(): Retrieved user EMP001 for organization localhost
+2025-06-01 22:42:54 [INFO] app.api.routes.user_routes_v2:291 - get_user_by_id(): Returning user data with fields: ['employee_id', 'name', 'email', 'department', 'designation', 'role', 'date_of_joining', 'date_of_birth', 'gender', 'mobile', 'status', 'manager_id', 'address', 'emergency_contact', 'blood_group', 'location', 'pan_number', 'aadhar_number', 'uan_number', 'esi_number', 'pan_document_path', 'aadhar_document_path', 'photo_path', 'organization', 'created_at', 'updated_at', 'bank_details', 'is_active', 'last_login_at']
+2025-06-01 22:42:54 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53300 - "GET /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 22:43:13 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53398 - "OPTIONS /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 22:43:13 [INFO] app.api.routes.user_routes_v2:241 - get_user_by_id(): Retrieved user EMP001 for organization localhost
+2025-06-01 22:43:13 [INFO] app.api.routes.user_routes_v2:291 - get_user_by_id(): Returning user data with fields: ['employee_id', 'name', 'email', 'department', 'designation', 'role', 'date_of_joining', 'date_of_birth', 'gender', 'mobile', 'status', 'manager_id', 'address', 'emergency_contact', 'blood_group', 'location', 'pan_number', 'aadhar_number', 'uan_number', 'esi_number', 'pan_document_path', 'aadhar_document_path', 'photo_path', 'organization', 'created_at', 'updated_at', 'bank_details', 'is_active', 'last_login_at']
+2025-06-01 22:43:13 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53398 - "GET /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 22:52:37 [INFO] app.api.routes.user_routes_v2:241 - get_user_by_id(): Retrieved user EMP001 for organization localhost
+2025-06-01 22:52:37 [INFO] app.api.routes.user_routes_v2:291 - get_user_by_id(): Returning user data with fields: ['employee_id', 'name', 'email', 'department', 'designation', 'role', 'date_of_joining', 'date_of_birth', 'gender', 'mobile', 'status', 'manager_id', 'address', 'emergency_contact', 'blood_group', 'location', 'pan_number', 'aadhar_number', 'uan_number', 'esi_number', 'pan_document_path', 'aadhar_document_path', 'photo_path', 'organization', 'created_at', 'updated_at', 'bank_details', 'is_active', 'last_login_at']
+2025-06-01 22:52:37 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56954 - "GET /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 22:52:49 [INFO] app.api.routes.user_routes_v2:241 - get_user_by_id(): Retrieved user EMP001 for organization localhost
+2025-06-01 22:52:49 [INFO] app.api.routes.user_routes_v2:291 - get_user_by_id(): Returning user data with fields: ['employee_id', 'name', 'email', 'department', 'designation', 'role', 'date_of_joining', 'date_of_birth', 'gender', 'mobile', 'status', 'manager_id', 'address', 'emergency_contact', 'blood_group', 'location', 'pan_number', 'aadhar_number', 'uan_number', 'esi_number', 'pan_document_path', 'aadhar_document_path', 'photo_path', 'organization', 'created_at', 'updated_at', 'bank_details', 'is_active', 'last_login_at']
+2025-06-01 22:52:49 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57036 - "GET /api/v2/users/EMP001 HTTP/1.1" 200
+2025-06-01 22:53:02 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 22:53:04 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 22:53:04 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 22:53:05 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 22:53:05 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 22:53:05 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 22:53:05 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 22:53:05 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 22:53:05 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 22:53:05 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 22:53:05 [INFO] uvicorn.error:83 - _serve(): Started server process [67753]
+2025-06-01 22:53:05 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 22:53:05 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 22:53:05 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 22:53:05 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 22:53:05 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 22:53:06 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57122 - "GET /docs HTTP/1.1" 200
+2025-06-01 23:14:21 [INFO] uvicorn.access:473 - send(): 127.0.0.1:62604 - "OPTIONS /api/v2/users/emp001 HTTP/1.1" 200
+2025-06-01 23:14:21 [INFO] uvicorn.access:473 - send(): 127.0.0.1:62606 - "OPTIONS /api/v2/users/emp001 HTTP/1.1" 200
+2025-06-01 23:14:21 [INFO] app.config.dependency_container:61 - initialize(): Initializing dependency container...
+2025-06-01 23:14:21 [INFO] app.config.dependency_container:90 - _setup_infrastructure(): MongoDB connector configured with database: 
+2025-06-01 23:14:21 [INFO] app.config.dependency_container:91 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-01 23:14:21 [INFO] app.config.dependency_container:133 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-01 23:14:21 [WARNING] app.config.dependency_container:162 - _setup_services(): Organization service setup failed: 'MongoDBConnector' object has no attribute 'organizations'
+2025-06-01 23:14:21 [INFO] app.config.dependency_container:165 - _setup_services(): Services initialized
+2025-06-01 23:14:21 [INFO] app.config.dependency_container:170 - _setup_controllers(): Controllers setup deferred
+2025-06-01 23:14:21 [INFO] app.config.dependency_container:70 - initialize(): Dependency container initialized successfully
+2025-06-01 23:14:23 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-01 23:14:23 [INFO] app.infrastructure.repositories.mongodb_user_repository:90 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-01 23:14:23 [INFO] app.api.routes.user_routes_v2:241 - get_user_by_id(): Retrieved user emp001 for organization localhost
+2025-06-01 23:14:23 [INFO] app.api.routes.user_routes_v2:291 - get_user_by_id(): Returning user data with fields: ['employee_id', 'name', 'email', 'department', 'designation', 'role', 'date_of_joining', 'date_of_birth', 'gender', 'mobile', 'status', 'manager_id', 'address', 'emergency_contact', 'blood_group', 'location', 'pan_number', 'aadhar_number', 'uan_number', 'esi_number', 'pan_document_path', 'aadhar_document_path', 'photo_path', 'organization', 'created_at', 'updated_at', 'bank_details', 'is_active', 'last_login_at']
+2025-06-01 23:14:23 [INFO] uvicorn.access:473 - send(): 127.0.0.1:62606 - "GET /api/v2/users/emp001 HTTP/1.1" 200
+2025-06-01 23:14:23 [INFO] app.api.routes.user_routes_v2:241 - get_user_by_id(): Retrieved user emp001 for organization localhost
+2025-06-01 23:14:23 [INFO] app.api.routes.user_routes_v2:291 - get_user_by_id(): Returning user data with fields: ['employee_id', 'name', 'email', 'department', 'designation', 'role', 'date_of_joining', 'date_of_birth', 'gender', 'mobile', 'status', 'manager_id', 'address', 'emergency_contact', 'blood_group', 'location', 'pan_number', 'aadhar_number', 'uan_number', 'esi_number', 'pan_document_path', 'aadhar_document_path', 'photo_path', 'organization', 'created_at', 'updated_at', 'bank_details', 'is_active', 'last_login_at']
+2025-06-01 23:14:23 [INFO] uvicorn.access:473 - send(): 127.0.0.1:62606 - "GET /api/v2/users/emp001 HTTP/1.1" 200
+2025-06-01 23:14:50 [INFO] app.api.routes.user_routes_v2:241 - get_user_by_id(): Retrieved user emp001 for organization localhost
+2025-06-01 23:14:50 [INFO] app.api.routes.user_routes_v2:291 - get_user_by_id(): Returning user data with fields: ['employee_id', 'name', 'email', 'department', 'designation', 'role', 'date_of_joining', 'date_of_birth', 'gender', 'mobile', 'status', 'manager_id', 'address', 'emergency_contact', 'blood_group', 'location', 'pan_number', 'aadhar_number', 'uan_number', 'esi_number', 'pan_document_path', 'aadhar_document_path', 'photo_path', 'organization', 'created_at', 'updated_at', 'bank_details', 'is_active', 'last_login_at']
+2025-06-01 23:14:50 [INFO] uvicorn.access:473 - send(): 127.0.0.1:62764 - "GET /api/v2/users/emp001 HTTP/1.1" 200
+2025-06-01 23:14:50 [INFO] app.api.routes.user_routes_v2:241 - get_user_by_id(): Retrieved user emp001 for organization localhost
+2025-06-01 23:14:50 [INFO] app.api.routes.user_routes_v2:291 - get_user_by_id(): Returning user data with fields: ['employee_id', 'name', 'email', 'department', 'designation', 'role', 'date_of_joining', 'date_of_birth', 'gender', 'mobile', 'status', 'manager_id', 'address', 'emergency_contact', 'blood_group', 'location', 'pan_number', 'aadhar_number', 'uan_number', 'esi_number', 'pan_document_path', 'aadhar_document_path', 'photo_path', 'organization', 'created_at', 'updated_at', 'bank_details', 'is_active', 'last_login_at']
+2025-06-01 23:14:50 [INFO] uvicorn.access:473 - send(): 127.0.0.1:62766 - "GET /api/v2/users/emp001 HTTP/1.1" 200
+2025-06-01 23:14:53 [INFO] uvicorn.access:473 - send(): 127.0.0.1:62766 - "OPTIONS /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 23:14:53 [INFO] uvicorn.access:473 - send(): 127.0.0.1:62764 - "OPTIONS /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 23:14:53 [INFO] app.infrastructure.repositories.mongodb_user_repository:563 - get_all(): Retrieved 1 users
+2025-06-01 23:14:53 [INFO] uvicorn.access:473 - send(): 127.0.0.1:62764 - "GET /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 23:14:53 [INFO] app.infrastructure.repositories.mongodb_user_repository:563 - get_all(): Retrieved 1 users
+2025-06-01 23:14:53 [INFO] uvicorn.access:473 - send(): 127.0.0.1:62766 - "GET /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 23:17:46 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:17:50 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:17:50 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:17:50 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:17:51 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:17:51 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:17:51 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:17:51 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:17:51 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:17:51 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:17:51 [INFO] uvicorn.error:83 - _serve(): Started server process [68076]
+2025-06-01 23:17:51 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 23:17:51 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 23:17:51 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 23:17:51 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 23:17:51 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 23:18:06 [INFO] uvicorn.access:473 - send(): 127.0.0.1:63163 - "OPTIONS /api/v2/users/create HTTP/1.1" 200
+2025-06-01 23:18:06 [INFO] app.config.dependency_container:61 - initialize(): Initializing dependency container...
+2025-06-01 23:18:06 [INFO] app.config.dependency_container:90 - _setup_infrastructure(): MongoDB connector configured with database: 
+2025-06-01 23:18:06 [INFO] app.config.dependency_container:91 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-01 23:18:06 [INFO] app.config.dependency_container:133 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-01 23:18:06 [WARNING] app.config.dependency_container:162 - _setup_services(): Organization service setup failed: 'MongoDBConnector' object has no attribute 'organizations'
+2025-06-01 23:18:06 [INFO] app.config.dependency_container:165 - _setup_services(): Services initialized
+2025-06-01 23:18:06 [INFO] app.config.dependency_container:170 - _setup_controllers(): Controllers setup deferred
+2025-06-01 23:18:06 [INFO] app.config.dependency_container:70 - initialize(): Dependency container initialized successfully
+2025-06-01 23:18:06 [ERROR] app.api.routes.user_routes_v2:86 - create_user_legacy(): Error creating user in organization localhost: CreateUserRequestDTO.__init__() got an unexpected keyword argument 'bank_details'
+2025-06-01 23:18:06 [INFO] uvicorn.access:473 - send(): 127.0.0.1:63163 - "POST /api/v2/users/create HTTP/1.1" 500
+2025-06-01 23:19:31 [ERROR] app.api.routes.user_routes_v2:86 - create_user_legacy(): Error creating user in organization localhost: CreateUserRequestDTO.__init__() got an unexpected keyword argument 'bank_details'
+2025-06-01 23:19:31 [INFO] uvicorn.access:473 - send(): 127.0.0.1:63218 - "POST /api/v2/users/create HTTP/1.1" 500
+2025-06-01 23:20:47 [ERROR] app.api.routes.user_routes_v2:86 - create_user_legacy(): Error creating user in organization localhost: CreateUserRequestDTO.__init__() got an unexpected keyword argument 'bank_details'
+2025-06-01 23:20:47 [INFO] uvicorn.access:473 - send(): 127.0.0.1:63271 - "POST /api/v2/users/create HTTP/1.1" 500
+2025-06-01 23:21:53 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 23:21:53 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 23:21:53 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 23:21:53 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 23:21:53 [INFO] uvicorn.error:93 - _serve(): Finished server process [68076]
+2025-06-01 23:21:59 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:22:04 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:22:04 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:22:05 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:22:06 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:22:06 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:22:06 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:22:06 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:22:06 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:22:06 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:22:06 [INFO] uvicorn.error:83 - _serve(): Started server process [68166]
+2025-06-01 23:22:06 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 23:22:06 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 23:22:06 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 23:22:06 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 23:22:06 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 23:22:13 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 23:22:13 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 23:22:13 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 23:22:13 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 23:22:13 [INFO] uvicorn.error:93 - _serve(): Finished server process [68166]
+2025-06-01 23:22:19 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:22:23 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:22:24 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:22:24 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:22:25 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:22:25 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:22:25 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:22:25 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:22:25 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:22:25 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:22:25 [INFO] uvicorn.error:83 - _serve(): Started server process [68192]
+2025-06-01 23:22:25 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 23:22:25 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 23:22:25 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 23:22:25 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 23:22:25 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 23:22:31 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:22:53 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:22:53 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:22:57 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:22:58 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:22:59 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:22:59 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:22:59 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:23:00 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:23:00 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:23:00 [INFO] uvicorn.error:83 - _serve(): Started server process [68209]
+2025-06-01 23:23:00 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 23:23:00 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 23:23:00 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 23:23:00 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 23:23:00 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 23:24:29 [INFO] app.config.dependency_container:61 - initialize(): Initializing dependency container...
+2025-06-01 23:24:29 [INFO] app.config.dependency_container:90 - _setup_infrastructure(): MongoDB connector configured with database: 
+2025-06-01 23:24:29 [INFO] app.config.dependency_container:91 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-01 23:24:29 [INFO] app.config.dependency_container:133 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-01 23:24:29 [WARNING] app.config.dependency_container:162 - _setup_services(): Organization service setup failed: 'MongoDBConnector' object has no attribute 'organizations'
+2025-06-01 23:24:29 [INFO] app.config.dependency_container:165 - _setup_services(): Services initialized
+2025-06-01 23:24:29 [INFO] app.config.dependency_container:170 - _setup_controllers(): Controllers setup deferred
+2025-06-01 23:24:29 [INFO] app.config.dependency_container:70 - initialize(): Dependency container initialized successfully
+2025-06-01 23:24:29 [INFO] app.api.controllers.user_controller:57 - create_user(): Creating user: emp002 in organization: localhost
+2025-06-01 23:24:29 [INFO] app.infrastructure.services.user_service_impl:89 - create_user(): Creating user: emp002 in organization: localhost
+2025-06-01 23:24:29 [INFO] app.application.use_cases.user.create_user_use_case:88 - execute(): Creating user: ishagarg1011@outlook.com in organization: localhost
+2025-06-01 23:24:32 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-01 23:24:32 [INFO] app.infrastructure.repositories.mongodb_user_repository:90 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-01 23:24:33 [ERROR] app.infrastructure.services.user_service_impl:93 - create_user(): Error creating user emp002 in organization localhost: User conflicts with existing data
+2025-06-01 23:24:33 [ERROR] app.api.controllers.user_controller:60 - create_user(): Error creating user emp002 in organization localhost: User conflicts with existing data
+2025-06-01 23:24:33 [ERROR] app.api.routes.user_routes_v2:86 - create_user_legacy(): Error creating user in organization localhost: 400: User conflicts with existing data
+2025-06-01 23:24:33 [INFO] uvicorn.access:473 - send(): 127.0.0.1:63358 - "POST /api/v2/users/create HTTP/1.1" 500
+2025-06-01 23:27:52 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 23:27:52 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 23:27:52 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 23:27:52 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 23:27:52 [INFO] uvicorn.error:93 - _serve(): Finished server process [68209]
+2025-06-01 23:27:57 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:28:02 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:28:02 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:28:03 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:28:03 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:28:04 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:28:04 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:28:04 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:28:04 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:28:04 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:28:04 [INFO] uvicorn.error:83 - _serve(): Started server process [68398]
+2025-06-01 23:28:04 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 23:28:04 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 23:28:04 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 23:28:04 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 23:28:04 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 23:28:53 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 23:28:54 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 23:28:54 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 23:28:54 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 23:28:54 [INFO] uvicorn.error:93 - _serve(): Finished server process [68398]
+2025-06-01 23:28:59 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:29:05 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:29:05 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:29:05 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:29:06 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:29:06 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:29:06 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:29:06 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:29:06 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:29:06 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:29:06 [INFO] uvicorn.error:83 - _serve(): Started server process [68422]
+2025-06-01 23:29:06 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 23:29:06 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 23:29:06 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 23:29:06 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 23:29:06 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 23:29:10 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:29:15 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:29:15 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:29:15 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:29:16 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:29:16 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:29:16 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:29:16 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:29:16 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:29:16 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:29:16 [INFO] uvicorn.error:83 - _serve(): Started server process [68459]
+2025-06-01 23:29:16 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 23:29:16 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 23:29:16 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 23:29:16 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 23:29:16 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 23:29:26 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 23:29:26 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 23:29:26 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 23:29:26 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 23:29:26 [INFO] uvicorn.error:93 - _serve(): Finished server process [68459]
+2025-06-01 23:29:33 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:29:37 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:29:37 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:29:37 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:29:38 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:29:38 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:29:38 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:29:39 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:29:39 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:29:39 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:29:39 [INFO] uvicorn.error:83 - _serve(): Started server process [68473]
+2025-06-01 23:29:39 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 23:29:39 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 23:29:39 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 23:29:39 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 23:29:39 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 23:29:45 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:29:48 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:29:48 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:29:49 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:29:49 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:29:49 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:29:49 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:29:49 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:29:49 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:29:50 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:29:50 [INFO] uvicorn.error:83 - _serve(): Started server process [68503]
+2025-06-01 23:29:50 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 23:29:50 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 23:29:50 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 23:29:50 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 23:29:50 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 23:29:54 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:29:57 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:29:57 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:29:58 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:29:58 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:29:58 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:29:58 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:29:59 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:29:59 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:29:59 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:29:59 [INFO] uvicorn.error:83 - _serve(): Started server process [68520]
+2025-06-01 23:29:59 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 23:29:59 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 23:29:59 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 23:29:59 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 23:29:59 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 23:30:14 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 23:30:15 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 23:30:15 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 23:30:15 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 23:30:15 [INFO] uvicorn.error:93 - _serve(): Finished server process [68520]
+2025-06-01 23:30:19 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:30:23 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:30:23 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:30:24 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:30:25 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:30:25 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:30:25 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:30:25 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:30:25 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:30:25 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:30:25 [INFO] uvicorn.error:83 - _serve(): Started server process [68536]
+2025-06-01 23:30:25 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 23:30:25 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 23:30:25 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 23:30:25 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 23:30:25 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 23:31:36 [INFO] uvicorn.access:473 - send(): 127.0.0.1:64054 - "OPTIONS /api/v2/users/create HTTP/1.1" 200
+2025-06-01 23:31:36 [INFO] app.config.dependency_container:61 - initialize(): Initializing dependency container...
+2025-06-01 23:31:36 [INFO] app.config.dependency_container:90 - _setup_infrastructure(): MongoDB connector configured with database: 
+2025-06-01 23:31:36 [INFO] app.config.dependency_container:91 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-01 23:31:36 [INFO] app.config.dependency_container:133 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-01 23:31:36 [WARNING] app.config.dependency_container:162 - _setup_services(): Organization service setup failed: 'MongoDBConnector' object has no attribute 'organizations'
+2025-06-01 23:31:36 [INFO] app.config.dependency_container:165 - _setup_services(): Services initialized
+2025-06-01 23:31:36 [INFO] app.config.dependency_container:170 - _setup_controllers(): Controllers setup deferred
+2025-06-01 23:31:36 [INFO] app.config.dependency_container:70 - initialize(): Dependency container initialized successfully
+2025-06-01 23:31:36 [INFO] app.api.controllers.user_controller:57 - create_user(): Creating user: emp002 in organization: localhost
+2025-06-01 23:31:36 [INFO] app.infrastructure.services.user_service_impl:89 - create_user(): Creating user: emp002 in organization: localhost
+2025-06-01 23:31:40 [INFO] app.application.use_cases.user.create_user_use_case:88 - execute(): Creating user: ishagarg1011@outlook.com in organization: localhost
+2025-06-01 23:31:44 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-01 23:31:44 [INFO] app.infrastructure.repositories.mongodb_user_repository:90 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-01 23:31:44 [ERROR] app.infrastructure.services.user_service_impl:93 - create_user(): Error creating user emp002 in organization localhost: User conflicts with existing data
+2025-06-01 23:31:44 [ERROR] app.api.controllers.user_controller:60 - create_user(): Error creating user emp002 in organization localhost: User conflicts with existing data
+2025-06-01 23:31:44 [ERROR] app.api.routes.user_routes_v2:86 - create_user_legacy(): Error creating user in organization localhost: 400: User conflicts with existing data
+2025-06-01 23:31:45 [INFO] uvicorn.access:473 - send(): 127.0.0.1:64054 - "POST /api/v2/users/create HTTP/1.1" 500
+2025-06-01 23:32:29 [INFO] app.api.controllers.user_controller:57 - create_user(): Creating user: emp002 in organization: localhost
+2025-06-01 23:32:29 [INFO] app.infrastructure.services.user_service_impl:89 - create_user(): Creating user: emp002 in organization: localhost
+2025-06-01 23:32:32 [INFO] app.application.use_cases.user.create_user_use_case:88 - execute(): Creating user: ishagarg1011@outlook.com in organization: localhost
+2025-06-01 23:32:33 [INFO] app.application.use_cases.user.create_user_use_case:236 - _calculate_initial_leave_balance(): Calculated initial leave balance for role user in organization localhost: 20.0 days
+2025-06-01 23:32:33 [WARNING] passlib.handlers.bcrypt:622 - _load_backend_mixin(): (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-06-01 23:32:33 [INFO] app.infrastructure.repositories.mongodb_user_repository:349 - save(): User saved: EMP002
+2025-06-01 23:32:33 [ERROR] app.infrastructure.services.notification_service:148 - send_user_created_notification(): Error sending user created notification: 'str' object has no attribute 'value'
+2025-06-01 23:32:33 [INFO] app.application.use_cases.user.create_user_use_case:140 - execute(): User created successfully: EMP002
+2025-06-01 23:32:33 [INFO] uvicorn.access:473 - send(): 127.0.0.1:64056 - "POST /api/v2/users/create HTTP/1.1" 200
+2025-06-01 23:32:35 [INFO] uvicorn.access:473 - send(): 127.0.0.1:64056 - "OPTIONS /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 23:32:35 [INFO] uvicorn.access:473 - send(): 127.0.0.1:64203 - "OPTIONS /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 23:32:35 [INFO] app.infrastructure.repositories.mongodb_user_repository:563 - get_all(): Retrieved 2 users
+2025-06-01 23:32:35 [INFO] uvicorn.access:473 - send(): 127.0.0.1:64056 - "GET /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 23:32:35 [INFO] app.infrastructure.repositories.mongodb_user_repository:563 - get_all(): Retrieved 2 users
+2025-06-01 23:32:36 [INFO] uvicorn.access:473 - send(): 127.0.0.1:64056 - "GET /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-01 23:33:29 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 23:33:30 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 23:33:30 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 23:33:30 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 23:33:30 [INFO] uvicorn.error:93 - _serve(): Finished server process [68536]
+2025-06-01 23:33:34 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:33:39 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:33:39 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:33:40 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:33:40 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:33:40 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:33:40 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:33:41 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:33:41 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:33:41 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:33:41 [INFO] uvicorn.error:83 - _serve(): Started server process [68594]
+2025-06-01 23:33:41 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 23:33:41 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 23:33:41 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 23:33:41 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 23:33:41 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 23:33:46 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:33:50 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:33:50 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:33:51 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:33:52 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:33:52 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:33:52 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:33:52 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:33:52 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:33:52 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:33:52 [INFO] uvicorn.error:83 - _serve(): Started server process [68613]
+2025-06-01 23:33:52 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 23:33:52 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 23:33:52 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 23:33:52 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 23:33:52 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 23:33:58 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:34:05 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:34:21 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:34:32 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:34:37 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:34:47 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:34:58 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:35:05 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:35:19 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:36:10 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:36:16 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:36:22 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:36:41 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:36:52 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:37:43 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:37:49 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:38:19 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:38:26 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:38:40 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:38:53 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:39:00 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:39:30 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:39:36 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:39:43 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:39:59 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:40:06 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:40:12 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:42:16 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:47:35 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:47:39 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:47:42 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:47:42 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:47:42 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:47:42 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:47:42 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:47:42 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:47:42 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:47:42 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:47:42 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:47:42 [INFO] uvicorn.error:83 - _serve(): Started server process [69337]
+2025-06-01 23:47:42 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 23:47:42 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 23:47:42 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 23:47:42 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 23:47:42 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 23:47:43 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:47:43 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:47:44 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:47:45 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:47:45 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:47:45 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:47:45 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:47:46 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:47:46 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:47:46 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:47:46 [INFO] uvicorn.error:83 - _serve(): Started server process [69187]
+2025-06-01 23:47:46 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 23:47:46 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 23:47:46 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 23:47:46 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 23:47:46 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 23:47:47 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:47:47 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:47:48 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:47:48 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:47:48 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:47:48 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:47:48 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:47:48 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:47:48 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:48:00 [INFO] uvicorn.access:473 - send(): 127.0.0.1:65175 - "GET /docs HTTP/1.1" 200
+2025-06-01 23:48:20 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 23:48:20 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 23:48:20 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 23:48:20 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 23:48:20 [INFO] uvicorn.error:93 - _serve(): Finished server process [69187]
+2025-06-01 23:48:21 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 23:48:21 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 23:48:21 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 23:48:21 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 23:48:21 [INFO] uvicorn.error:93 - _serve(): Finished server process [69337]
+2025-06-01 23:48:23 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:48:27 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:48:27 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:48:27 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:48:27 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:48:27 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:48:27 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:48:27 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:48:27 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:48:27 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:48:27 [INFO] uvicorn.error:83 - _serve(): Started server process [69497]
+2025-06-01 23:48:27 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 23:48:27 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 23:48:27 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 23:48:27 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 23:48:27 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 23:48:28 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:48:29 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:48:29 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:48:29 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:48:30 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:48:30 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:48:30 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:48:30 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:48:30 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:48:30 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:48:30 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:48:30 [INFO] uvicorn.error:83 - _serve(): Started server process [69515]
+2025-06-01 23:48:30 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 23:48:30 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 23:48:30 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 23:48:30 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 23:48:30 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 23:48:34 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:48:34 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:48:34 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:48:35 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:48:35 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:48:35 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:48:35 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:48:35 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:48:35 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:48:35 [INFO] uvicorn.error:83 - _serve(): Started server process [69492]
+2025-06-01 23:48:35 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 23:48:35 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 23:48:35 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 23:48:35 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 23:48:35 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 23:48:37 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:48:40 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:48:40 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:48:40 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:48:40 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:48:41 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:48:41 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:48:41 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:48:41 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:48:41 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:48:43 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:48:47 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:48:47 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:48:48 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:48:49 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:48:49 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:48:49 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:48:49 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:48:49 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:48:49 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:48:49 [INFO] uvicorn.error:83 - _serve(): Started server process [69533]
+2025-06-01 23:48:49 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 23:48:49 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 23:48:49 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 23:48:49 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 23:48:49 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 23:52:33 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 23:52:33 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 23:52:33 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 23:52:33 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 23:52:33 [INFO] uvicorn.error:93 - _serve(): Finished server process [69533]
+2025-06-01 23:52:39 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-01 23:52:44 [INFO] app.main:180 - <module>(): Registering SOLID v2 routes...
+2025-06-01 23:52:44 [INFO] app.main:211 - <module>(): ✅ Legacy auth compatibility route registered
+2025-06-01 23:52:45 [INFO] app.main:220 - <module>(): ✅ Critical routes registered: taxation, payout, user management
+2025-06-01 23:52:45 [INFO] app.main:225 - <module>(): ✅ Reimbursement routes v2 registered
+2025-06-01 23:52:45 [INFO] app.main:229 - <module>(): ✅ Attendance routes v2 registered
+2025-06-01 23:52:45 [INFO] app.main:233 - <module>(): ✅ Public holiday routes v2 registered
+2025-06-01 23:52:45 [INFO] app.main:237 - <module>(): ✅ Company leave routes v2 registered
+2025-06-01 23:52:45 [INFO] app.main:245 - <module>(): ✅ Project attributes routes v2 registered
+2025-06-01 23:52:45 [INFO] app.main:254 - <module>(): ✅ Company leave v1 controller registered
+2025-06-01 23:52:45 [INFO] uvicorn.error:83 - _serve(): Started server process [69589]
+2025-06-01 23:52:45 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-01 23:52:45 [INFO] app.main:131 - lifespan(): Running startup tasks...
+2025-06-01 23:52:45 [INFO] app.main:136 - lifespan(): Dependency container initialized
+2025-06-01 23:52:45 [INFO] app.main:143 - lifespan(): Organization system initialized successfully
+2025-06-01 23:52:45 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-01 23:53:21 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-01 23:53:21 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-01 23:53:21 [INFO] app.main:149 - lifespan(): Running shutdown tasks...
+2025-06-01 23:53:21 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-01 23:53:21 [INFO] uvicorn.error:93 - _serve(): Finished server process [69589]

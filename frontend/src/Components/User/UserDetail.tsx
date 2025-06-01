@@ -57,7 +57,6 @@ interface User {
   pan_document_path?: string;
   aadhar_document_path?: string;
   photo_path?: string;
-  bank_details?: any;
   created_at?: string;
   updated_at?: string;
   is_active?: boolean;

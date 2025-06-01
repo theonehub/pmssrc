@@ -26,6 +26,7 @@ class PersonalDetails:
     
     gender: Gender
     date_of_birth: date
+    date_of_joining: date
     mobile: str
     pan_number: Optional[str] = None
     aadhar_number: Optional[str] = None
@@ -159,6 +160,7 @@ class PersonalDetails:
         return {
             "gender": self.gender.value,
             "date_of_birth": self.date_of_birth.isoformat(),
+            "date_of_joining": self.date_of_joining.isoformat(),
             "mobile": self.mobile,
             "pan_number": self.pan_number,
             "aadhar_number": self.aadhar_number,
@@ -180,6 +182,7 @@ class PersonalDetails:
         return cls(
             gender=Gender(data["gender"]),
             date_of_birth=date.fromisoformat(data["date_of_birth"]),
+            date_of_joining=date.fromisoformat(data["date_of_joining"]),
             mobile=data["mobile"],
             pan_number=data.get("pan_number"),
             aadhar_number=data.get("aadhar_number"),

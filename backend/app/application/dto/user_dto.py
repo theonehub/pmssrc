@@ -17,10 +17,10 @@ from app.domain.value_objects.user_credentials import UserRole, UserStatus, Gend
 class CreateUserRequestDTO:
     """DTO for creating a new user"""
     
-    # Identity
+    # Identity (required)
     employee_id: str
     
-    # Basic Information
+    # Basic Information (required)
     name: str
     email: str
     password: str
@@ -28,28 +28,28 @@ class CreateUserRequestDTO:
     # Personal Details (required)
     gender: str
     date_of_birth: str  # ISO format
+    date_of_joining: str  # ISO format
     mobile: str
     
-    # Role (with default)
+    # Optional fields with defaults
     role: str = UserRole.USER.value
     pan_number: Optional[str] = None
     aadhar_number: Optional[str] = None
     uan_number: Optional[str] = None
     esi_number: Optional[str] = None
     
-    # Employment Information
+    # Employment Information (optional)
     department: Optional[str] = None
     designation: Optional[str] = None
     location: Optional[str] = None
     manager_id: Optional[str] = None
-    date_of_joining: Optional[str] = None  # ISO format
     
-    # Documents
+    # Documents (optional)
     photo_path: Optional[str] = None
     pan_document_path: Optional[str] = None
     aadhar_document_path: Optional[str] = None
     
-    # Audit
+    # Audit (optional)
     created_by: Optional[str] = None
     
     def validate(self) -> List[str]:
@@ -77,6 +77,9 @@ class CreateUserRequestDTO:
         if not self.date_of_birth:
             errors.append("Date of birth is required")
         
+        if not self.date_of_joining:
+            errors.append("Date of joining is required")
+        
         # Validate enums
         try:
             UserRole(self.role)
@@ -102,6 +105,7 @@ class UpdateUserRequestDTO:
     # Personal Details
     gender: Optional[str] = None
     date_of_birth: Optional[str] = None
+    date_of_joining: Optional[str] = None
     mobile: Optional[str] = None
     pan_number: Optional[str] = None
     aadhar_number: Optional[str] = None
@@ -113,7 +117,6 @@ class UpdateUserRequestDTO:
     designation: Optional[str] = None
     location: Optional[str] = None
     manager_id: Optional[str] = None
-    date_of_joining: Optional[str] = None
     date_of_leaving: Optional[str] = None
     
     # Audit
@@ -354,6 +357,7 @@ class PersonalDetailsResponseDTO:
     
     gender: str
     date_of_birth: str
+    date_of_joining: str
     mobile: str
     pan_number: Optional[str] = None
     aadhar_number: Optional[str] = None
@@ -487,6 +491,7 @@ class UserResponseDTO:
             personal_details = PersonalDetailsResponseDTO(
                 gender=safe_enum_value(safe_get_attr(user, 'gender')) or 'male',
                 date_of_birth=format_datetime(safe_get_attr(user, 'date_of_birth')),
+                date_of_joining=format_datetime(safe_get_attr(user, 'date_of_joining')),
                 mobile=safe_get_attr(user, 'mobile', ''),
                 pan_number=safe_get_attr(user, 'pan_number'),
                 aadhar_number=safe_get_attr(user, 'aadhar_number'),

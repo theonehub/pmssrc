@@ -59,7 +59,6 @@ interface User {
   aadhar_number?: string;
   uan_number?: string;
   esi_number?: string;
-  bank_details?: any;
   created_at?: string;
   updated_at?: string;
   is_active?: boolean;
@@ -162,13 +161,56 @@ const UserEdit: React.FC = () => {
       
       if (userData) {
         setUser(userData);
-        setFormData({
+        
+        // Helper function to format dates for input[type="date"]
+        const formatDateForInput = (dateString?: string): string => {
+          if (!dateString) return '';
+          
+          try {
+            // Handle different date formats
+            let date: Date;
+            
+            if (dateString.includes('T')) {
+              // ISO format with time: "2023-12-25T00:00:00Z"
+              date = new Date(dateString);
+            } else if (dateString.includes('-')) {
+              // Already in YYYY-MM-DD format: "2023-12-25"
+              if (dateString.length === 10) {
+                return dateString;
+              }
+              date = new Date(dateString);
+            } else {
+              // Other formats, let Date constructor handle it
+              date = new Date(dateString);
+            }
+            
+            // Check if date is valid
+            if (isNaN(date.getTime())) {
+              if (process.env.NODE_ENV === 'development') {
+                console.warn('Invalid date:', dateString);
+              }
+              return '';
+            }
+            
+            // Format to YYYY-MM-DD for input[type="date"]
+            const isoString = date.toISOString();
+            const parts = isoString.split('T');
+            return parts.length > 0 && parts[0] ? parts[0] : '';
+          } catch (error) {
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('Error formatting date:', dateString, error);
+            }
+            return '';
+          }
+        };
+        
+        const newFormData = {
           employee_id: userData.employee_id || '',
           name: userData.name || '',
           email: userData.email || '',
           gender: userData.gender || '',
-          date_of_birth: (userData.date_of_birth ? userData.date_of_birth.split('T')[0] : '') as string,
-          date_of_joining: (userData.date_of_joining ? userData.date_of_joining.split('T')[0] : '') as string,
+          date_of_birth: formatDateForInput(userData.date_of_birth),
+          date_of_joining: formatDateForInput(userData.date_of_joining),
           mobile: userData.mobile || '',
           manager_id: userData.manager_id || '',
           role: userData.role || '',
@@ -180,7 +222,9 @@ const UserEdit: React.FC = () => {
           location: userData.location || '',
           esi_number: userData.esi_number || '',
           password: ''  // Empty password for updates
-        });
+        };
+        
+        setFormData(newFormData);
       } else {
         throw new Error('User not found');
       }

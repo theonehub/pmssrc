@@ -113,6 +113,7 @@ class CreateUserUseCase:
             personal_details=personal_details,
             department=request.department,
             designation=request.designation,
+            location=request.location,
             manager_id=EmployeeId(request.manager_id) if request.manager_id else None,
             created_by=request.created_by
         )
@@ -170,6 +171,7 @@ class CreateUserUseCase:
             return PersonalDetails(
                 gender=Gender(request.gender.lower()),
                 date_of_birth=datetime.fromisoformat(request.date_of_birth).date(),
+                date_of_joining=datetime.fromisoformat(request.date_of_joining).date(),
                 mobile=request.mobile,
                 pan_number=request.pan_number,
                 aadhar_number=request.aadhar_number,
@@ -250,6 +252,7 @@ class CreateUserUseCase:
             personal_details=PersonalDetailsResponseDTO(
                 gender=user.personal_details.gender.value,
                 date_of_birth=user.personal_details.date_of_birth.isoformat(),
+                date_of_joining=user.personal_details.date_of_joining.isoformat(),
                 mobile=user.personal_details.mobile,
                 pan_number=user.personal_details.pan_number,
                 aadhar_number=user.personal_details.get_masked_aadhar(),

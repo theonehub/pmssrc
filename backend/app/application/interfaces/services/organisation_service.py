@@ -9,13 +9,12 @@ from datetime import datetime
 
 from app.domain.entities.organisation import Organisation
 from app.domain.value_objects.organisation_id import OrganisationId
-from app.domain.value_objects.organisation_details import OrganisationType, OrganisationStatus
+from app.domain.value_objects.organisation_details import OrganisationType
 from app.application.dto.organisation_dto import (
     CreateOrganisationRequestDTO, UpdateOrganisationRequestDTO,
-    OrganisationStatusUpdateRequestDTO, OrganisationSearchFiltersDTO,
-    OrganisationResponseDTO, OrganisationSummaryDTO, OrganisationListResponseDTO,
-    OrganisationStatisticsDTO, OrganisationAnalyticsDTO, OrganisationHealthCheckDTO,
-    BulkOrganisationUpdateDTO, BulkOrganisationUpdateResultDTO
+    OrganisationSearchFiltersDTO, OrganisationResponseDTO, OrganisationSummaryDTO, 
+    OrganisationListResponseDTO, OrganisationStatisticsDTO, OrganisationAnalyticsDTO, 
+    OrganisationHealthCheckDTO, BulkOrganisationUpdateResultDTO
 )
 
 
@@ -69,53 +68,6 @@ class OrganisationCommandService(ABC):
             OrganisationNotFoundError: If organisation not found
             OrganisationValidationError: If request data is invalid
             OrganisationBusinessRuleError: If business rules are violated
-        """
-        pass
-    
-    @abstractmethod
-    async def update_organisation_status(
-        self, 
-        organisation_id: str, 
-        request: OrganisationStatusUpdateRequestDTO
-    ) -> OrganisationResponseDTO:
-        """
-        Update organisation status (activate, deactivate, suspend).
-        
-        Args:
-            organisation_id: ID of organisation to update
-            request: Status update request DTO
-            
-        Returns:
-            Updated organisation response DTO
-            
-        Raises:
-            OrganisationNotFoundError: If organisation not found
-            OrganisationValidationError: If request data is invalid
-            OrganisationBusinessRuleError: If status change is not allowed
-        """
-        pass
-    
-    @abstractmethod
-    async def delete_organisation(
-        self, 
-        organisation_id: str, 
-        deletion_reason: str,
-        deleted_by: Optional[str] = None
-    ) -> bool:
-        """
-        Delete an organisation.
-        
-        Args:
-            organisation_id: ID of organisation to delete
-            deletion_reason: Reason for deletion
-            deleted_by: User performing the deletion
-            
-        Returns:
-            True if deleted successfully
-            
-        Raises:
-            OrganisationNotFoundError: If organisation not found
-            OrganisationBusinessRuleError: If deletion is not allowed
         """
         pass
     

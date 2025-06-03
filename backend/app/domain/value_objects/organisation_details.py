@@ -22,15 +22,6 @@ class OrganisationType(Enum):
     SOCIETY = "society"
 
 
-class OrganisationStatus(Enum):
-    """Organisation status enumeration"""
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    SUSPENDED = "suspended"
-    UNDER_REVIEW = "under_review"
-    TERMINATED = "terminated"
-
-
 @dataclass(frozen=True)
 class ContactInformation:
     """

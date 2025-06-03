@@ -410,7 +410,7 @@ class DependencyContainer:
         """Get attendance check-in use case"""
         try:
             from app.application.use_cases.attendance.check_in_use_case import CheckInUseCase
-            from app.infrastructure.repositories.solid_attendance_repository import SolidAttendanceRepository
+            from backend.app.infrastructure.repositories.mongodb_attendance_repository import SolidAttendanceRepository
             from app.infrastructure.services.event_publisher_impl import EventPublisherImpl
             
             attendance_repo = SolidAttendanceRepository(self._database_connector)
@@ -431,7 +431,7 @@ class DependencyContainer:
         """Get attendance check-out use case"""
         try:
             from app.application.use_cases.attendance.check_out_use_case import CheckOutUseCase
-            from app.infrastructure.repositories.solid_attendance_repository import SolidAttendanceRepository
+            from backend.app.infrastructure.repositories.mongodb_attendance_repository import SolidAttendanceRepository
             from app.infrastructure.services.event_publisher_impl import EventPublisherImpl
             
             attendance_repo = SolidAttendanceRepository(self._database_connector)
@@ -455,7 +455,7 @@ class DependencyContainer:
         """Get attendance query use case"""
         try:
             from app.application.use_cases.attendance.get_attendance_use_case import GetAttendanceUseCase
-            from app.infrastructure.repositories.solid_attendance_repository import SolidAttendanceRepository
+            from backend.app.infrastructure.repositories.mongodb_attendance_repository import SolidAttendanceRepository
             
             attendance_repo = SolidAttendanceRepository(self._database_connector)
             self._configure_repository_connection(attendance_repo)
@@ -475,7 +475,7 @@ class DependencyContainer:
         """Get attendance analytics use case"""
         try:
             from app.application.use_cases.attendance.get_attendance_analytics_use_case import GetAttendanceAnalyticsUseCase
-            from app.infrastructure.repositories.solid_attendance_repository import SolidAttendanceRepository
+            from backend.app.infrastructure.repositories.mongodb_attendance_repository import SolidAttendanceRepository
             
             attendance_repo = SolidAttendanceRepository(self._database_connector)
             self._configure_repository_connection(attendance_repo)

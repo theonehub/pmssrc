@@ -10,11 +10,10 @@ from dataclasses import dataclass, field
 
 from app.domain.value_objects.organisation_id import OrganisationId
 from app.domain.value_objects.organisation_details import (
-    ContactInformation, Address, TaxInformation, OrganisationType, OrganisationStatus
+    ContactInformation, Address, TaxInformation, OrganisationType
 )
 from app.domain.events.organisation_events import (
-    OrganisationCreated, OrganisationUpdated, OrganisationActivated,
-    OrganisationDeactivated, OrganisationSuspended, OrganisationContactUpdated,
+    OrganisationCreated, OrganisationUpdated, OrganisationContactUpdated,
     OrganisationAddressUpdated, OrganisationTaxInfoUpdated,
     OrganisationEmployeeStrengthUpdated, OrganisationDeleted
 )
@@ -55,7 +54,6 @@ class Organisation:
     name: str
     description: Optional[str] = None
     organisation_type: OrganisationType = OrganisationType.PRIVATE_LIMITED
-    status: OrganisationStatus = OrganisationStatus.ACTIVE
     
     # Contact and Location
     contact_info: ContactInformation = None
@@ -152,9 +150,6 @@ class Organisation:
         
         if 'organisation_type' in kwargs and isinstance(kwargs['organisation_type'], str):
             kwargs['organisation_type'] = OrganisationType(kwargs['organisation_type'])
-        
-        if 'status' in kwargs and isinstance(kwargs['status'], str):
-            kwargs['status'] = OrganisationStatus(kwargs['status'])
         
         organisation = cls(**kwargs)
         organisation._is_existing_organisation = True
@@ -347,106 +342,6 @@ class Organisation:
         
         logger.info(f"Organisation {self.organisation_id} employee strength updated to {new_employee_strength}")
     
-    def activate(self, activated_by: Optional[str] = None, reason: Optional[str] = None) -> None:
-        """
-        Activate the organisation.
-        
-        Business Rules:
-        1. Can only activate inactive or suspended organisations
-        2. Cannot activate terminated organisations
-        """
-        if self.status == OrganisationStatus.ACTIVE:
-            raise ValueError("Organisation is already active")
-        
-        if self.status == OrganisationStatus.TERMINATED:
-            raise ValueError("Cannot activate terminated organisation")
-        
-        previous_status = self.status
-        self.status = OrganisationStatus.ACTIVE
-        self.updated_at = datetime.utcnow()
-        self.updated_by = activated_by
-        
-        # Publish domain event
-        self._add_domain_event(OrganisationActivated(
-            organisation_id=self.organisation_id,
-            activated_by=activated_by or "system",
-            previous_status=previous_status,
-            reason=reason,
-            occurred_at=datetime.utcnow()
-        ))
-        
-        logger.info(f"Organisation {self.organisation_id} activated")
-    
-    def deactivate(self, reason: str, deactivated_by: Optional[str] = None) -> None:
-        """
-        Deactivate the organisation.
-        
-        Business Rules:
-        1. Can only deactivate active organisations
-        2. Must provide reason for deactivation
-        """
-        if self.status != OrganisationStatus.ACTIVE:
-            raise ValueError("Can only deactivate active organisations")
-        
-        if not reason or not reason.strip():
-            raise ValueError("Deactivation reason is required")
-        
-        previous_status = self.status
-        self.status = OrganisationStatus.INACTIVE
-        self.updated_at = datetime.utcnow()
-        self.updated_by = deactivated_by
-        
-        # Publish domain event
-        self._add_domain_event(OrganisationDeactivated(
-            organisation_id=self.organisation_id,
-            deactivated_by=deactivated_by or "system",
-            reason=reason,
-            previous_status=previous_status,
-            occurred_at=datetime.utcnow()
-        ))
-        
-        logger.info(f"Organisation {self.organisation_id} deactivated: {reason}")
-    
-    def suspend(
-        self,
-        reason: str,
-        suspended_by: Optional[str] = None,
-        suspension_duration: Optional[int] = None
-    ) -> None:
-        """
-        Suspend the organisation.
-        
-        Business Rules:
-        1. Can suspend active or inactive organisations
-        2. Must provide reason for suspension
-        3. Cannot suspend already suspended organisations
-        """
-        if self.status == OrganisationStatus.SUSPENDED:
-            raise ValueError("Organisation is already suspended")
-        
-        if self.status == OrganisationStatus.TERMINATED:
-            raise ValueError("Cannot suspend terminated organisation")
-        
-        if not reason or not reason.strip():
-            raise ValueError("Suspension reason is required")
-        
-        previous_status = self.status
-        self.status = OrganisationStatus.SUSPENDED
-        self.updated_at = datetime.utcnow()
-        self.updated_by = suspended_by
-        
-        # Publish domain event
-        self._add_domain_event(OrganisationSuspended(
-            organisation_id=self.organisation_id,
-            suspended_by=suspended_by or "system",
-            reason=reason,
-            suspension_duration=suspension_duration,
-            previous_status=previous_status,
-            occurred_at=datetime.utcnow()
-        ))
-        
-        logger.info(f"Organisation {self.organisation_id} suspended: {reason}")
-    
     def increment_used_employee_strength(self) -> None:
         """
         Increment used employee strength when adding an employee.
@@ -500,10 +395,6 @@ class Organisation:
         logger.info(f"Organisation {self.organisation_id} deleted: {deletion_reason}")
     
     # ==================== QUERY METHODS ====================
-    
-    def is_active(self) -> bool:
-        """Check if organisation is active"""
-        return self.status == OrganisationStatus.ACTIVE
     
     def is_government_organisation(self) -> bool:
         """Check if organisation is government type"""

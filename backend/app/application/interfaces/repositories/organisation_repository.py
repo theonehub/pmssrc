@@ -9,7 +9,7 @@ from datetime import datetime
 
 from app.domain.entities.organisation import Organisation
 from app.domain.value_objects.organisation_id import OrganisationId
-from app.domain.value_objects.organisation_details import OrganisationType, OrganisationStatus
+from app.domain.value_objects.organisation_details import OrganisationType
 from app.application.dto.organisation_dto import (
     OrganisationSearchFiltersDTO, OrganisationStatisticsDTO, 
     OrganisationAnalyticsDTO, OrganisationHealthCheckDTO
@@ -61,21 +61,21 @@ class OrganisationCommandRepository(ABC):
         """
         pass
     
-    @abstractmethod
-    async def delete(self, organisation_id: OrganisationId) -> bool:
-        """
-        Delete an organisation by ID.
+    # @abstractmethod
+    # async def delete(self, organisation_id: OrganisationId) -> bool:
+    #     """
+    #     Delete an organisation by ID.
         
-        Args:
-            organisation_id: ID of organisation to delete
+    #     Args:
+    #         organisation_id: ID of organisation to delete
             
-        Returns:
-            True if deleted successfully, False if not found
+    #     Returns:
+    #         True if deleted successfully, False if not found
             
-        Raises:
-            OrganisationBusinessRuleError: If deletion violates business rules
-        """
-        pass
+    #     Raises:
+    #         OrganisationBusinessRuleError: If deletion violates business rules
+    #     """
+    #     pass
 
 
 class OrganisationQueryRepository(ABC):
@@ -176,19 +176,6 @@ class OrganisationQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_by_status(self, status: OrganisationStatus) -> List[Organisation]:
-        """
-        Get organisations by status.
-        
-        Args:
-            status: Organisation status to filter by
-            
-        Returns:
-            List of organisations with specified status
-        """
-        pass
-    
-    @abstractmethod
     async def get_by_type(self, organisation_type: OrganisationType) -> List[Organisation]:
         """
         Get organisations by type.
@@ -223,19 +210,6 @@ class OrganisationQueryRepository(ABC):
         
         Returns:
             Total number of organisations
-        """
-        pass
-    
-    @abstractmethod
-    async def count_by_status(self, status: OrganisationStatus) -> int:
-        """
-        Get count of organisations by status.
-        
-        Args:
-            status: Organisation status to count
-            
-        Returns:
-            Number of organisations with specified status
         """
         pass
     
@@ -456,28 +430,6 @@ class OrganisationBulkOperationsRepository(ABC):
     - ISP: Focused interface for bulk operations
     - DIP: Depends on abstractions
     """
-    
-    @abstractmethod
-    async def bulk_update_status(
-        self, 
-        organisation_ids: List[OrganisationId], 
-        status: OrganisationStatus,
-        updated_by: str,
-        reason: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """
-        Bulk update organisation status.
-        
-        Args:
-            organisation_ids: List of organisation IDs to update
-            status: New status to set
-            updated_by: User performing the update
-            reason: Reason for status change
-            
-        Returns:
-            Dictionary with update results
-        """
-        pass
     
     @abstractmethod
     async def bulk_update_employee_strength(

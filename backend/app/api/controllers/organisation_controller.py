@@ -14,7 +14,6 @@ from app.application.use_cases.organisation.delete_organisation_use_case import 
 from app.application.dto.organisation_dto import (
     CreateOrganisationRequestDTO,
     UpdateOrganisationRequestDTO,
-    OrganisationStatusUpdateRequestDTO,
     OrganisationSearchFiltersDTO,
     OrganisationResponseDTO,
     OrganisationListResponseDTO,
@@ -97,20 +96,6 @@ class OrganisationController:
         """Update an existing organisation"""
         logger.info(f"Updating organisation: {organisation_id} by {updated_by}")
         return await self.update_use_case.execute(
-            organisation_id=organisation_id,
-            request=request,
-            updated_by=updated_by
-        )
-
-    async def update_organisation_status(
-        self, 
-        organisation_id: str, 
-        request: OrganisationStatusUpdateRequestDTO, 
-        updated_by: str
-    ) -> OrganisationResponseDTO:
-        """Update organisation status"""
-        logger.info(f"Updating organisation status: {organisation_id} to {request.status} by {updated_by}")
-        return await self.update_use_case.execute_status_update(
             organisation_id=organisation_id,
             request=request,
             updated_by=updated_by

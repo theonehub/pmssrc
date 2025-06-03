@@ -8,7 +8,7 @@ import math
 from typing import List
 
 from app.domain.entities.organisation import Organisation
-from app.domain.value_objects.organisation_details import OrganisationType, OrganisationStatus
+from app.domain.value_objects.organisation_details import OrganisationType
 from app.application.dto.organisation_dto import (
     OrganisationSearchFiltersDTO, OrganisationListResponseDTO,
     OrganisationSummaryDTO, OrganisationValidationError
@@ -117,9 +117,6 @@ class ListOrganisationsUseCase:
         
         # Step 2: Get total count
         total_count = await self.query_repository.count_total()
-        if not include_inactive:
-            active_count = await self.query_repository.count_by_status(OrganisationStatus.ACTIVE)
-            total_count = active_count
         
         # Step 3: Convert to summary DTOs
         organisation_summaries = [
@@ -145,32 +142,6 @@ class ListOrganisationsUseCase:
         
         logger.info(f"Simple listed {len(organisation_summaries)} organisations (total: {total_count})")
         return response
-    
-    async def execute_by_status(self, status: str) -> List[OrganisationSummaryDTO]:
-        """
-        Execute organisation listing by status.
-        
-        Args:
-            status: Organisation status to filter by
-            
-        Returns:
-            List of organisation summaries with specified status
-        """
-        logger.info(f"Listing organisations by status: {status}")
-        
-        try:
-            organisation_status = OrganisationStatus(status)
-        except ValueError:
-            raise OrganisationValidationError(f"Invalid organisation status: {status}")
-        
-        organisations = await self.query_repository.get_by_status(organisation_status)
-        
-        organisation_summaries = [
-            self._convert_to_summary_dto(org) for org in organisations
-        ]
-        
-        logger.info(f"Listed {len(organisation_summaries)} organisations with status: {status}")
-        return organisation_summaries
     
     async def execute_by_type(self, organisation_type: str) -> List[OrganisationSummaryDTO]:
         """

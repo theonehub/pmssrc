@@ -426,3 +426,652 @@
 2025-06-03 18:15:11 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
 2025-06-03 18:15:12 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 0 organisations (total: 0)
 2025-06-03 18:15:12 [INFO] uvicorn.access:473 - send(): 127.0.0.1:52265 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-03 18:23:28 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-03 18:23:28 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-03 18:23:28 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-03 18:23:28 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-03 18:23:28 [INFO] uvicorn.error:93 - _serve(): Finished server process [6646]
+2025-06-03 18:23:38 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 18:23:44 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-03 18:23:44 [INFO] uvicorn.error:83 - _serve(): Started server process [6949]
+2025-06-03 18:23:44 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-03 18:23:44 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-03 18:23:44 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-03 18:34:12 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53578 - "OPTIONS /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 200
+2025-06-03 18:34:12 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53580 - "GET /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 307
+2025-06-03 18:34:12 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53580 - "GET /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 307
+2025-06-03 18:34:12 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53580 - "OPTIONS /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-03 18:34:12 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53578 - "OPTIONS /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-03 18:34:12 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-03 18:34:12 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-03 18:34:12 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-03 18:34:12 [INFO] app.config.dependency_container:142 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-03 18:34:12 [INFO] app.config.dependency_container:175 - _setup_services(): Services initialized
+2025-06-03 18:34:12 [INFO] app.config.dependency_container:180 - _setup_controllers(): Controllers setup deferred
+2025-06-03 18:34:12 [INFO] app.config.dependency_container:72 - initialize(): Dependency container initialized successfully
+2025-06-03 18:34:12 [INFO] app.config.dependency_container:712 - get_organisation_controller(): Organisation controller initialized with MongoDBOrganisationRepository
+2025-06-03 18:34:12 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-03 18:34:12 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 18:34:14 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-03 18:34:14 [INFO] app.infrastructure.repositories.mongodb_organisation_repository:98 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-03 18:34:14 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 0 organisations (total: 0)
+2025-06-03 18:34:14 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53580 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-03 18:34:14 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-03 18:34:14 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 18:34:14 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 0 organisations (total: 0)
+2025-06-03 18:34:14 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53580 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-03 18:38:19 [INFO] uvicorn.access:473 - send(): 127.0.0.1:54213 - "GET /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 307
+2025-06-03 18:38:19 [INFO] uvicorn.access:473 - send(): 127.0.0.1:54213 - "GET /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 307
+2025-06-03 18:38:19 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-03 18:38:19 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 18:38:56 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-03 18:38:56 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 18:38:57 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 0 organisations (total: 0)
+2025-06-03 18:38:57 [INFO] uvicorn.access:473 - send(): 127.0.0.1:54227 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-03 18:38:57 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 0 organisations (total: 0)
+2025-06-03 18:38:57 [INFO] uvicorn.access:473 - send(): 127.0.0.1:54213 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-03 18:45:30 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-03 18:45:30 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-03 18:45:30 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-03 18:45:30 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-03 18:45:30 [INFO] uvicorn.error:93 - _serve(): Finished server process [6949]
+2025-06-03 18:45:37 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 18:45:43 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-03 18:45:43 [INFO] uvicorn.error:83 - _serve(): Started server process [7144]
+2025-06-03 18:45:43 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-03 18:45:43 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-03 18:45:43 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-03 18:48:23 [INFO] uvicorn.access:473 - send(): 127.0.0.1:55150 - "OPTIONS /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 200
+2025-06-03 18:48:23 [INFO] uvicorn.access:473 - send(): 127.0.0.1:55152 - "OPTIONS /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 200
+2025-06-03 18:48:24 [INFO] uvicorn.access:473 - send(): 127.0.0.1:55150 - "GET /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 307
+2025-06-03 18:48:24 [INFO] uvicorn.access:473 - send(): 127.0.0.1:55150 - "GET /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 307
+2025-06-03 18:48:24 [INFO] uvicorn.access:473 - send(): 127.0.0.1:55150 - "OPTIONS /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-03 18:48:24 [INFO] uvicorn.access:473 - send(): 127.0.0.1:55152 - "OPTIONS /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-03 18:48:24 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-03 18:48:24 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-03 18:48:24 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-03 18:48:24 [INFO] app.config.dependency_container:142 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-03 18:48:24 [INFO] app.config.dependency_container:175 - _setup_services(): Services initialized
+2025-06-03 18:48:24 [INFO] app.config.dependency_container:180 - _setup_controllers(): Controllers setup deferred
+2025-06-03 18:48:24 [INFO] app.config.dependency_container:72 - initialize(): Dependency container initialized successfully
+2025-06-03 18:48:24 [INFO] app.config.dependency_container:712 - get_organisation_controller(): Organisation controller initialized with MongoDBOrganisationRepository
+2025-06-03 18:48:24 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-03 18:48:24 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 18:48:29 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-03 18:48:29 [INFO] app.infrastructure.repositories.mongodb_organisation_repository:98 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-03 18:48:29 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:324 - _document_to_organisation(): Error creating Organisation entity from document: Email is required
+2025-06-03 18:48:29 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:608 - search(): Error searching organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 18:48:29 [ERROR] app.api.routes.organisation_routes_v2:103 - _list_organisations_impl(): Error listing organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 18:48:29 [INFO] uvicorn.access:473 - send(): 127.0.0.1:55154 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 500
+2025-06-03 18:48:29 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-03 18:48:29 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 18:48:34 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:324 - _document_to_organisation(): Error creating Organisation entity from document: Email is required
+2025-06-03 18:48:34 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:608 - search(): Error searching organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 18:48:34 [ERROR] app.api.routes.organisation_routes_v2:103 - _list_organisations_impl(): Error listing organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 18:48:34 [INFO] uvicorn.access:473 - send(): 127.0.0.1:55154 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 500
+2025-06-03 18:57:34 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56324 - "GET /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 307
+2025-06-03 18:57:34 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56324 - "GET /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 307
+2025-06-03 18:57:34 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-03 18:57:34 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 19:01:43 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:324 - _document_to_organisation(): Error creating Organisation entity from document: Email is required
+2025-06-03 19:01:59 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:608 - search(): Error searching organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 19:01:59 [ERROR] app.api.routes.organisation_routes_v2:103 - _list_organisations_impl(): Error listing organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 19:01:59 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56324 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 500
+2025-06-03 19:01:59 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-03 19:01:59 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-03 19:01:59 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 19:04:07 [INFO] uvicorn.error:298 - _wait_tasks_to_complete(): Waiting for connections to close. (CTRL+C to force quit)
+2025-06-03 19:04:08 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:324 - _document_to_organisation(): Error creating Organisation entity from document: Email is required
+2025-06-03 19:04:08 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:608 - search(): Error searching organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 19:04:08 [ERROR] app.api.routes.organisation_routes_v2:103 - _list_organisations_impl(): Error listing organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 19:04:08 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56337 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 500
+2025-06-03 19:04:13 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-03 19:04:13 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-03 19:04:13 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-03 19:04:13 [INFO] uvicorn.error:93 - _serve(): Finished server process [7144]
+2025-06-03 19:04:17 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 19:04:22 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-03 19:04:22 [INFO] uvicorn.error:83 - _serve(): Started server process [7269]
+2025-06-03 19:04:22 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-03 19:04:22 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-03 19:04:22 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-03 19:06:11 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-03 19:06:11 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-03 19:06:11 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-03 19:06:11 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-03 19:06:11 [INFO] uvicorn.error:93 - _serve(): Finished server process [7269]
+2025-06-03 19:06:18 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 19:06:24 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-03 19:06:24 [INFO] uvicorn.error:83 - _serve(): Started server process [7306]
+2025-06-03 19:06:24 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-03 19:06:24 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-03 19:06:24 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-03 19:06:28 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 19:06:34 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-03 19:06:34 [INFO] uvicorn.error:83 - _serve(): Started server process [7332]
+2025-06-03 19:06:34 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-03 19:06:34 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-03 19:06:34 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-03 19:11:30 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-03 19:11:30 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-03 19:11:30 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-03 19:11:30 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-03 19:11:30 [INFO] uvicorn.error:93 - _serve(): Finished server process [7332]
+2025-06-03 19:11:36 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 19:11:42 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-03 19:11:42 [INFO] uvicorn.error:83 - _serve(): Started server process [7368]
+2025-06-03 19:11:42 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-03 19:11:42 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-03 19:11:42 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-03 19:11:50 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-03 19:11:50 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-03 19:11:50 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-03 19:11:50 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-03 19:11:50 [INFO] uvicorn.error:93 - _serve(): Finished server process [7368]
+2025-06-03 19:11:54 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 19:11:59 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-03 19:11:59 [INFO] uvicorn.error:83 - _serve(): Started server process [7397]
+2025-06-03 19:11:59 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-03 19:11:59 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-03 19:11:59 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-03 19:12:43 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-03 19:12:44 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-03 19:12:44 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-03 19:12:44 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-03 19:12:44 [INFO] uvicorn.error:93 - _serve(): Finished server process [7397]
+2025-06-03 19:12:48 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 19:12:53 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-03 19:12:53 [INFO] uvicorn.error:83 - _serve(): Started server process [7418]
+2025-06-03 19:12:53 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-03 19:12:53 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-03 19:12:53 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-03 19:14:46 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-03 19:14:46 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-03 19:14:46 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-03 19:14:46 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-03 19:14:46 [INFO] uvicorn.error:93 - _serve(): Finished server process [7418]
+2025-06-03 19:14:51 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 19:15:08 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 19:15:14 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 19:16:12 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 19:16:19 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 19:16:38 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 19:17:15 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 19:19:35 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 19:19:44 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 19:19:55 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 19:20:56 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:09:11 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:09:21 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:10:01 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:10:23 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:10:32 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:10:38 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:10:56 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:13:05 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:13:17 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:13:25 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:13:36 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:13:43 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:14:19 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:14:39 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:14:48 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:14:55 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:15:06 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:15:14 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:15:24 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:15:32 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:15:39 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:15:55 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:16:03 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:16:26 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:17:11 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:17:17 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:17:29 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:17:36 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:17:43 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:17:52 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:18:01 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:18:12 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:18:20 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:18:28 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:19:01 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:19:09 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:19:46 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:19:56 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:20:01 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-03 20:20:01 [INFO] uvicorn.error:83 - _serve(): Started server process [8397]
+2025-06-03 20:20:01 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-03 20:20:01 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-03 20:20:01 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-03 20:20:13 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:20:18 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-03 20:20:18 [INFO] uvicorn.error:83 - _serve(): Started server process [8447]
+2025-06-03 20:20:18 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-03 20:20:18 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-03 20:20:18 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-03 20:20:49 [INFO] uvicorn.access:473 - send(): 127.0.0.1:58535 - "OPTIONS /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 200
+2025-06-03 20:20:49 [INFO] uvicorn.access:473 - send(): 127.0.0.1:58535 - "GET /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 307
+2025-06-03 20:20:49 [INFO] uvicorn.access:473 - send(): 127.0.0.1:58537 - "OPTIONS /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 200
+2025-06-03 20:20:49 [INFO] uvicorn.access:473 - send(): 127.0.0.1:58535 - "GET /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 307
+2025-06-03 20:20:49 [INFO] uvicorn.access:473 - send(): 127.0.0.1:58535 - "OPTIONS /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-03 20:20:49 [INFO] uvicorn.access:473 - send(): 127.0.0.1:58537 - "OPTIONS /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-03 20:20:49 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-03 20:20:49 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-03 20:20:49 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-03 20:20:49 [ERROR] app.config.dependency_container:145 - _setup_repositories(): Error setting up repositories: Can't instantiate abstract class MongoDBOrganisationRepository without an implementation for abstract method 'delete'
+2025-06-03 20:20:49 [ERROR] app.config.dependency_container:75 - initialize(): Error initializing dependency container: Can't instantiate abstract class MongoDBOrganisationRepository without an implementation for abstract method 'delete'
+2025-06-03 20:20:49 [INFO] uvicorn.access:473 - send(): 127.0.0.1:58539 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 500
+2025-06-03 20:20:49 [ERROR] uvicorn.error:408 - run_asgi(): Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/routing.py", line 291, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 640, in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    result = context.run(func, *args)
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 872, in get_organisation_controller
+    return container.get_organisation_controller()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 656, in get_organisation_controller
+    self.initialize()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 67, in initialize
+    self._setup_repositories()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 126, in _setup_repositories
+    organisation_repository = MongoDBOrganisationRepository(self._database_connector)
+TypeError: Can't instantiate abstract class MongoDBOrganisationRepository without an implementation for abstract method 'delete'
+2025-06-03 20:20:50 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-03 20:20:50 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-03 20:20:50 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-03 20:20:50 [ERROR] app.config.dependency_container:145 - _setup_repositories(): Error setting up repositories: Can't instantiate abstract class MongoDBOrganisationRepository without an implementation for abstract method 'delete'
+2025-06-03 20:20:50 [ERROR] app.config.dependency_container:75 - initialize(): Error initializing dependency container: Can't instantiate abstract class MongoDBOrganisationRepository without an implementation for abstract method 'delete'
+2025-06-03 20:20:50 [INFO] uvicorn.access:473 - send(): 127.0.0.1:58537 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 500
+2025-06-03 20:20:50 [ERROR] uvicorn.error:408 - run_asgi(): Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/routing.py", line 291, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 640, in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    result = context.run(func, *args)
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 872, in get_organisation_controller
+    return container.get_organisation_controller()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 656, in get_organisation_controller
+    self.initialize()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 67, in initialize
+    self._setup_repositories()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 126, in _setup_repositories
+    organisation_repository = MongoDBOrganisationRepository(self._database_connector)
+TypeError: Can't instantiate abstract class MongoDBOrganisationRepository without an implementation for abstract method 'delete'
+2025-06-03 20:22:03 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-03 20:22:03 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-03 20:22:03 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-03 20:22:03 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-03 20:22:03 [INFO] uvicorn.error:93 - _serve(): Finished server process [8447]
+2025-06-03 20:22:07 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:22:12 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-03 20:22:12 [INFO] uvicorn.error:83 - _serve(): Started server process [8477]
+2025-06-03 20:22:12 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-03 20:22:12 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-03 20:22:12 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-03 20:22:25 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:22:30 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-03 20:22:30 [INFO] uvicorn.error:83 - _serve(): Started server process [8532]
+2025-06-03 20:22:30 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-03 20:22:30 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-03 20:22:30 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-03 20:22:49 [INFO] uvicorn.access:473 - send(): 127.0.0.1:58638 - "GET /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 307
+2025-06-03 20:22:49 [INFO] uvicorn.access:473 - send(): 127.0.0.1:58638 - "GET /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 307
+2025-06-03 20:22:49 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-03 20:22:49 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-03 20:22:49 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-03 20:22:49 [INFO] app.config.dependency_container:142 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-03 20:22:49 [WARNING] app.config.dependency_container:172 - _setup_services(): Organisation service setup failed: Can't instantiate abstract class OrganisationServiceImpl without an implementation for abstract methods 'bulk_update_status', 'send_status_change_notification'
+2025-06-03 20:22:49 [INFO] app.config.dependency_container:175 - _setup_services(): Services initialized
+2025-06-03 20:22:49 [INFO] app.config.dependency_container:180 - _setup_controllers(): Controllers setup deferred
+2025-06-03 20:22:49 [INFO] app.config.dependency_container:72 - initialize(): Dependency container initialized successfully
+2025-06-03 20:22:49 [INFO] app.config.dependency_container:712 - get_organisation_controller(): Organisation controller initialized with MongoDBOrganisationRepository
+2025-06-03 20:22:49 [INFO] app.api.controllers.organisation_controller:67 - list_organisations(): Listing organisations with filters
+2025-06-03 20:22:49 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 20:22:54 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-03 20:22:54 [INFO] app.infrastructure.repositories.mongodb_organisation_repository:98 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-03 20:22:58 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:318 - _document_to_organisation(): Error creating Organisation entity from document: Email is required
+2025-06-03 20:22:58 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:570 - search(): Error searching organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:22:58 [ERROR] app.api.routes.organisation_routes_v2:102 - _list_organisations_impl(): Error listing organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:22:58 [INFO] uvicorn.access:473 - send(): 127.0.0.1:58638 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 500
+2025-06-03 20:22:58 [INFO] app.api.controllers.organisation_controller:67 - list_organisations(): Listing organisations with filters
+2025-06-03 20:22:58 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 20:23:05 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:318 - _document_to_organisation(): Error creating Organisation entity from document: Email is required
+2025-06-03 20:23:05 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:570 - search(): Error searching organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:23:05 [ERROR] app.api.routes.organisation_routes_v2:102 - _list_organisations_impl(): Error listing organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:23:05 [INFO] uvicorn.access:473 - send(): 127.0.0.1:58638 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 500
+2025-06-03 20:27:25 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59292 - "GET /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 307
+2025-06-03 20:27:25 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59292 - "GET /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 307
+2025-06-03 20:27:25 [INFO] app.api.controllers.organisation_controller:67 - list_organisations(): Listing organisations with filters
+2025-06-03 20:27:25 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 20:29:53 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:318 - _document_to_organisation(): Error creating Organisation entity from document: Email is required
+2025-06-03 20:30:53 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:570 - search(): Error searching organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:30:53 [ERROR] app.api.routes.organisation_routes_v2:102 - _list_organisations_impl(): Error listing organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:30:53 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59292 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 500
+2025-06-03 20:30:54 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-03 20:30:54 [INFO] app.api.controllers.organisation_controller:67 - list_organisations(): Listing organisations with filters
+2025-06-03 20:30:54 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 20:30:54 [INFO] uvicorn.error:298 - _wait_tasks_to_complete(): Waiting for connections to close. (CTRL+C to force quit)
+2025-06-03 20:30:54 [ERROR] pymongo.client:104 - _log_client_error(): MongoClient background task encountered an error:
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/synchronous/pool.py", line 1011, in connect
+    networking_interface = _configured_socket_interface(self.address, self.opts)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/pool_shared.py", line 501, in _configured_socket_interface
+    sock = _create_connection(address, options)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/pool_shared.py", line 405, in _create_connection
+    for res in socket.getaddrinfo(host, port, family=family, type=socket.SOCK_STREAM):  # type: ignore[attr-defined, unused-ignore]
+               ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/Cellar/python@3.13/3.13.3/Frameworks/Python.framework/Versions/3.13/lib/python3.13/socket.py", line 977, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno 8] nodename nor servname provided, or not known
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/synchronous/mongo_client.py", line 2206, in _process_periodic_tasks
+    self._topology.update_pool()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/synchronous/topology.py", line 689, in update_pool
+    server.pool.remove_stale_sockets(generation)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/synchronous/pool.py", line 957, in remove_stale_sockets
+    conn = self.connect()
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/synchronous/pool.py", line 1034, in connect
+    _raise_connection_failure(self.address, error, timeout_details=details)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/pymongo/pool_shared.py", line 148, in _raise_connection_failure
+    raise AutoReconnect(msg) from error
+pymongo.errors.AutoReconnect: ac-uqkr9ns-shard-00-02.jhfj7s3.mongodb.net:27017: [Errno 8] nodename nor servname provided, or not known (configured timeouts: connectTimeoutMS: 10000.0ms)
+2025-06-03 20:31:14 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:318 - _document_to_organisation(): Error creating Organisation entity from document: Email is required
+2025-06-03 20:31:14 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:570 - search(): Error searching organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:31:14 [ERROR] app.api.routes.organisation_routes_v2:102 - _list_organisations_impl(): Error listing organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:31:14 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59305 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 500
+2025-06-03 20:31:14 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-03 20:31:14 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-03 20:31:14 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-03 20:31:14 [INFO] uvicorn.error:93 - _serve(): Finished server process [8532]
+2025-06-03 20:31:18 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:31:25 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-03 20:31:25 [INFO] uvicorn.error:83 - _serve(): Started server process [8634]
+2025-06-03 20:31:25 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-03 20:31:25 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-03 20:31:25 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-03 20:31:47 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59460 - "OPTIONS /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 200
+2025-06-03 20:31:47 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59460 - "GET /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 307
+2025-06-03 20:31:48 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59460 - "GET /api/v2/organisations?skip=0&limit=10 HTTP/1.1" 307
+2025-06-03 20:31:48 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59462 - "OPTIONS /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-03 20:31:48 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-03 20:31:48 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-03 20:31:48 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-03 20:31:48 [INFO] app.config.dependency_container:142 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-03 20:31:48 [WARNING] app.config.dependency_container:172 - _setup_services(): Organisation service setup failed: Can't instantiate abstract class OrganisationServiceImpl without an implementation for abstract methods 'bulk_update_status', 'send_status_change_notification'
+2025-06-03 20:31:48 [INFO] app.config.dependency_container:175 - _setup_services(): Services initialized
+2025-06-03 20:31:48 [INFO] app.config.dependency_container:180 - _setup_controllers(): Controllers setup deferred
+2025-06-03 20:31:48 [INFO] app.config.dependency_container:72 - initialize(): Dependency container initialized successfully
+2025-06-03 20:31:48 [INFO] app.config.dependency_container:712 - get_organisation_controller(): Organisation controller initialized with MongoDBOrganisationRepository
+2025-06-03 20:31:48 [INFO] app.api.controllers.organisation_controller:67 - list_organisations(): Listing organisations with filters
+2025-06-03 20:31:48 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 20:31:49 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-03 20:31:49 [INFO] app.infrastructure.repositories.mongodb_organisation_repository:98 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-03 20:32:03 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:318 - _document_to_organisation(): Error creating Organisation entity from document: Email is required
+2025-06-03 20:32:03 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:570 - search(): Error searching organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:32:03 [ERROR] app.api.routes.organisation_routes_v2:102 - _list_organisations_impl(): Error listing organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:32:03 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59460 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 500
+2025-06-03 20:32:03 [INFO] app.api.controllers.organisation_controller:67 - list_organisations(): Listing organisations with filters
+2025-06-03 20:32:03 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 20:32:09 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:318 - _document_to_organisation(): Error creating Organisation entity from document: Email is required
+2025-06-03 20:32:09 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:570 - search(): Error searching organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:32:09 [ERROR] app.api.routes.organisation_routes_v2:102 - _list_organisations_impl(): Error listing organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:32:09 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59462 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 500
+2025-06-03 20:32:39 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59606 - "OPTIONS /api/v2/organisations?skip=0&limit=10&search=a HTTP/1.1" 200
+2025-06-03 20:32:39 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59606 - "GET /api/v2/organisations?skip=0&limit=10&search=a HTTP/1.1" 307
+2025-06-03 20:32:39 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59606 - "OPTIONS /api/v2/organisations/?skip=0&limit=10&search=a HTTP/1.1" 200
+2025-06-03 20:32:39 [INFO] app.api.controllers.organisation_controller:67 - list_organisations(): Listing organisations with filters
+2025-06-03 20:32:39 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 20:32:56 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:318 - _document_to_organisation(): Error creating Organisation entity from document: Email is required
+2025-06-03 20:32:56 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:570 - search(): Error searching organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:32:56 [ERROR] app.api.routes.organisation_routes_v2:102 - _list_organisations_impl(): Error listing organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59608 - "GET /api/v2/organisations/?skip=0&limit=10&search=a HTTP/1.1" 500
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59606 - "OPTIONS /api/v2/organisations?skip=0&limit=10&search=ad HTTP/1.1" 200
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59608 - "OPTIONS /api/v2/organisations?skip=0&limit=10&search=adddddd HTTP/1.1" 200
+2025-06-03 20:32:56 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59618 - "OPTIONS /api/v2/organisations?skip=0&limit=10&search=add HTTP/1.1" 200
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59620 - "OPTIONS /api/v2/organisations?skip=0&limit=10&search=addd HTTP/1.1" 200
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59624 - "OPTIONS /api/v2/organisations?skip=0&limit=10&search=adddd HTTP/1.1" 200
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59628 - "OPTIONS /api/v2/organisations?skip=0&limit=10&search=addddd HTTP/1.1" 200
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59618 - "GET /api/v2/organisations?skip=0&limit=10&search=adddddd HTTP/1.1" 307
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59620 - "OPTIONS /api/v2/organisations?skip=0&limit=10&search=adddddddd HTTP/1.1" 200
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59624 - "OPTIONS /api/v2/organisations?skip=0&limit=10&search=addddddd HTTP/1.1" 200
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59628 - "GET /api/v2/organisations?skip=0&limit=10&search=add HTTP/1.1" 307
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59618 - "GET /api/v2/organisations?skip=0&limit=10&search=addd HTTP/1.1" 307
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59620 - "GET /api/v2/organisations?skip=0&limit=10&search=adddd HTTP/1.1" 307
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59624 - "GET /api/v2/organisations?skip=0&limit=10&search=addddd HTTP/1.1" 307
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59628 - "OPTIONS /api/v2/organisations/?skip=0&limit=10&search=adddddd HTTP/1.1" 200
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59618 - "GET /api/v2/organisations?skip=0&limit=10&search=adddddddd HTTP/1.1" 307
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59620 - "GET /api/v2/organisations?skip=0&limit=10&search=addddddd HTTP/1.1" 307
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59624 - "OPTIONS /api/v2/organisations/?skip=0&limit=10&search=add HTTP/1.1" 200
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59628 - "OPTIONS /api/v2/organisations/?skip=0&limit=10&search=addd HTTP/1.1" 200
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59618 - "OPTIONS /api/v2/organisations/?skip=0&limit=10&search=adddd HTTP/1.1" 200
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59620 - "OPTIONS /api/v2/organisations/?skip=0&limit=10&search=addddd HTTP/1.1" 200
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59628 - "OPTIONS /api/v2/organisations/?skip=0&limit=10&search=adddddddd HTTP/1.1" 200
+2025-06-03 20:32:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59618 - "OPTIONS /api/v2/organisations/?skip=0&limit=10&search=addddddd HTTP/1.1" 200
+2025-06-03 20:32:56 [INFO] uvicorn.error:298 - _wait_tasks_to_complete(): Waiting for connections to close. (CTRL+C to force quit)
+2025-06-03 20:32:56 [INFO] app.api.controllers.organisation_controller:67 - list_organisations(): Listing organisations with filters
+2025-06-03 20:32:56 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 20:32:56 [INFO] app.api.controllers.organisation_controller:67 - list_organisations(): Listing organisations with filters
+2025-06-03 20:32:56 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 20:32:56 [INFO] app.api.controllers.organisation_controller:67 - list_organisations(): Listing organisations with filters
+2025-06-03 20:32:56 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 20:32:56 [INFO] app.api.controllers.organisation_controller:67 - list_organisations(): Listing organisations with filters
+2025-06-03 20:32:56 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 20:33:01 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:318 - _document_to_organisation(): Error creating Organisation entity from document: Email is required
+2025-06-03 20:33:01 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:570 - search(): Error searching organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:33:01 [ERROR] app.api.routes.organisation_routes_v2:102 - _list_organisations_impl(): Error listing organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:33:01 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59624 - "GET /api/v2/organisations/?skip=0&limit=10&search=adddddd HTTP/1.1" 500
+2025-06-03 20:33:03 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:318 - _document_to_organisation(): Error creating Organisation entity from document: Email is required
+2025-06-03 20:33:03 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:570 - search(): Error searching organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:33:03 [ERROR] app.api.routes.organisation_routes_v2:102 - _list_organisations_impl(): Error listing organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:33:03 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59628 - "GET /api/v2/organisations/?skip=0&limit=10&search=addd HTTP/1.1" 500
+2025-06-03 20:33:03 [INFO] app.api.controllers.organisation_controller:67 - list_organisations(): Listing organisations with filters
+2025-06-03 20:33:03 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 20:33:05 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:318 - _document_to_organisation(): Error creating Organisation entity from document: Email is required
+2025-06-03 20:33:05 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:570 - search(): Error searching organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:33:05 [ERROR] app.api.routes.organisation_routes_v2:102 - _list_organisations_impl(): Error listing organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:33:05 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59620 - "GET /api/v2/organisations/?skip=0&limit=10&search=add HTTP/1.1" 500
+2025-06-03 20:33:08 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:318 - _document_to_organisation(): Error creating Organisation entity from document: Email is required
+2025-06-03 20:33:08 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:570 - search(): Error searching organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:33:08 [ERROR] app.api.routes.organisation_routes_v2:102 - _list_organisations_impl(): Error listing organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:33:08 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59618 - "GET /api/v2/organisations/?skip=0&limit=10&search=adddd HTTP/1.1" 500
+2025-06-03 20:33:08 [INFO] app.api.controllers.organisation_controller:67 - list_organisations(): Listing organisations with filters
+2025-06-03 20:33:08 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 20:33:10 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:318 - _document_to_organisation(): Error creating Organisation entity from document: Email is required
+2025-06-03 20:33:10 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:570 - search(): Error searching organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:33:10 [ERROR] app.api.routes.organisation_routes_v2:102 - _list_organisations_impl(): Error listing organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:33:10 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59624 - "GET /api/v2/organisations/?skip=0&limit=10&search=addddd HTTP/1.1" 500
+2025-06-03 20:33:10 [INFO] app.api.controllers.organisation_controller:67 - list_organisations(): Listing organisations with filters
+2025-06-03 20:33:10 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 20:33:12 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:318 - _document_to_organisation(): Error creating Organisation entity from document: Email is required
+2025-06-03 20:33:12 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:570 - search(): Error searching organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:33:12 [ERROR] app.api.routes.organisation_routes_v2:102 - _list_organisations_impl(): Error listing organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:33:12 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59628 - "GET /api/v2/organisations/?skip=0&limit=10&search=adddddddd HTTP/1.1" 500
+2025-06-03 20:33:14 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:318 - _document_to_organisation(): Error creating Organisation entity from document: Email is required
+2025-06-03 20:33:14 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:570 - search(): Error searching organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:33:14 [ERROR] app.api.routes.organisation_routes_v2:102 - _list_organisations_impl(): Error listing organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:33:14 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59620 - "GET /api/v2/organisations/?skip=0&limit=10&search=addddddd HTTP/1.1" 500
+2025-06-03 20:33:19 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-03 20:33:19 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-03 20:33:19 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-03 20:33:19 [INFO] uvicorn.error:93 - _serve(): Finished server process [8634]
+2025-06-03 20:33:24 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-03 20:33:32 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-03 20:33:32 [INFO] uvicorn.error:83 - _serve(): Started server process [8753]
+2025-06-03 20:33:32 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-03 20:33:32 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-03 20:33:32 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-03 20:33:32 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59647 - "GET /api/v2/organisations?skip=0&limit=10&search=a HTTP/1.1" 307
+2025-06-03 20:33:32 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59649 - "GET /api/v2/organisations?skip=0&limit=10&search=ad HTTP/1.1" 307
+2025-06-03 20:33:32 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59649 - "OPTIONS /api/v2/organisations/?skip=0&limit=10&search=ad HTTP/1.1" 200
+2025-06-03 20:33:32 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-03 20:33:32 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-03 20:33:32 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-03 20:33:32 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-03 20:33:32 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-03 20:33:32 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-03 20:33:32 [INFO] app.config.dependency_container:142 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-03 20:33:32 [INFO] app.config.dependency_container:142 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-03 20:33:32 [WARNING] app.config.dependency_container:172 - _setup_services(): Organisation service setup failed: Can't instantiate abstract class OrganisationServiceImpl without an implementation for abstract methods 'bulk_update_status', 'send_status_change_notification'
+2025-06-03 20:33:32 [WARNING] app.config.dependency_container:172 - _setup_services(): Organisation service setup failed: Can't instantiate abstract class OrganisationServiceImpl without an implementation for abstract methods 'bulk_update_status', 'send_status_change_notification'
+2025-06-03 20:33:32 [INFO] app.config.dependency_container:175 - _setup_services(): Services initialized
+2025-06-03 20:33:32 [INFO] app.config.dependency_container:175 - _setup_services(): Services initialized
+2025-06-03 20:33:32 [INFO] app.config.dependency_container:180 - _setup_controllers(): Controllers setup deferred
+2025-06-03 20:33:32 [INFO] app.config.dependency_container:180 - _setup_controllers(): Controllers setup deferred
+2025-06-03 20:33:32 [INFO] app.config.dependency_container:72 - initialize(): Dependency container initialized successfully
+2025-06-03 20:33:32 [INFO] app.config.dependency_container:72 - initialize(): Dependency container initialized successfully
+2025-06-03 20:33:32 [INFO] app.config.dependency_container:712 - get_organisation_controller(): Organisation controller initialized with MongoDBOrganisationRepository
+2025-06-03 20:33:32 [INFO] app.api.controllers.organisation_controller:67 - list_organisations(): Listing organisations with filters
+2025-06-03 20:33:32 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 20:33:33 [INFO] app.api.controllers.organisation_controller:67 - list_organisations(): Listing organisations with filters
+2025-06-03 20:33:33 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-03 20:33:34 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-03 20:33:34 [INFO] app.infrastructure.repositories.mongodb_organisation_repository:98 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-03 20:33:40 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:318 - _document_to_organisation(): Error creating Organisation entity from document: Email is required
+2025-06-03 20:33:40 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:570 - search(): Error searching organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:33:40 [ERROR] app.api.routes.organisation_routes_v2:102 - _list_organisations_impl(): Error listing organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:33:40 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59647 - "GET /api/v2/organisations/?skip=0&limit=10&search=a HTTP/1.1" 500
+2025-06-03 20:33:43 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:318 - _document_to_organisation(): Error creating Organisation entity from document: Email is required
+2025-06-03 20:33:43 [ERROR] app.infrastructure.repositories.mongodb_organisation_repository:570 - search(): Error searching organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:33:43 [ERROR] app.api.routes.organisation_routes_v2:102 - _list_organisations_impl(): Error listing organisations: Failed to reconstruct Organisation entity: Email is required
+2025-06-03 20:33:43 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59813 - "GET /api/v2/organisations/?skip=0&limit=10&search=ad HTTP/1.1" 500

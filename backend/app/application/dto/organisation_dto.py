@@ -8,7 +8,7 @@ from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
 from enum import Enum
 
-from app.domain.value_objects.organisation_details import OrganisationType, OrganisationStatus
+from app.domain.value_objects.organisation_details import OrganisationType
 
 
 # ==================== REQUEST DTOs ====================
@@ -161,34 +161,6 @@ class UpdateOrganisationRequestDTO:
                 errors.append("Invalid organisation type")
         
         return errors
-
-
-@dataclass
-class OrganisationStatusUpdateRequestDTO:
-    """DTO for updating organisation status"""
-    
-    action: str  # activate, deactivate, suspend
-    reason: Optional[str] = None
-    suspension_duration: Optional[int] = None  # Days for suspension
-    updated_by: Optional[str] = None
-    
-    def validate(self) -> List[str]:
-        """Validate the status update request"""
-        errors = []
-        
-        valid_actions = ["activate", "deactivate", "suspend"]
-        if self.action not in valid_actions:
-            errors.append(f"Invalid action. Must be one of: {', '.join(valid_actions)}")
-        
-        if self.action in ["deactivate", "suspend"] and not self.reason:
-            errors.append(f"Reason is required for {self.action} action")
-        
-        if self.action == "suspend" and self.suspension_duration is not None:
-            if self.suspension_duration <= 0:
-                errors.append("Suspension duration must be positive")
-        
-        return errors
-
 
 @dataclass
 class OrganisationSearchFiltersDTO:

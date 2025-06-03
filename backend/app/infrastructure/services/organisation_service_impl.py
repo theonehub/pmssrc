@@ -22,7 +22,6 @@ from app.application.interfaces.services.event_publisher import EventPublisher
 from app.application.dto.organisation_dto import (
     CreateOrganisationRequestDTO,
     UpdateOrganisationRequestDTO,
-    OrganisationStatusUpdateRequestDTO,
     OrganisationSearchFiltersDTO,
     OrganisationResponseDTO,
     OrganisationSummaryDTO,
@@ -40,7 +39,7 @@ from app.application.dto.organisation_dto import (
 from app.domain.entities.organisation import Organisation
 from app.domain.value_objects.organisation_id import OrganisationId
 from app.domain.value_objects.organisation_details import (
-    OrganisationType, OrganisationStatus, ContactInformation, 
+    OrganisationType, ContactInformation, 
     Address, TaxInformation
 )
 from app.infrastructure.services.notification_service import NotificationService
@@ -211,48 +210,6 @@ class OrganisationServiceImpl(OrganisationService):
             
         except Exception as e:
             self.logger.error(f"Error updating organisation {organisation_id}: {e}")
-            raise
-    
-    async def update_organisation_status(
-        self,
-        organisation_id: str,
-        request: OrganisationStatusUpdateRequestDTO
-    ) -> OrganisationResponseDTO:
-        """Update organisation status"""
-        try:
-            # Get existing organisation
-            org_id = OrganisationId.from_string(organisation_id)
-            organisation = await self.repository.get_by_id(org_id)
-            
-            if not organisation:
-                raise OrganisationNotFoundError(f"Organisation {organisation_id} not found")
-            
-            # Apply status update
-            new_status = OrganisationStatus(request.status)
-            
-            if new_status == OrganisationStatus.ACTIVE:
-                organisation.activate(request.reason)
-            elif new_status == OrganisationStatus.INACTIVE:
-                organisation.deactivate(request.reason)
-            elif new_status == OrganisationStatus.SUSPENDED:
-                organisation.suspend(request.reason, request.suspension_duration)
-            
-            # Save updated organisation
-            updated_organisation = await self.repository.update(organisation)
-            
-            # Publish domain events
-            for event in updated_organisation.get_domain_events():
-                self.event_publisher.publish(event)
-            
-            # Send notifications
-            await self._send_status_change_notification(updated_organisation, new_status, request.reason)
-            
-            self.logger.info(f"Updated organisation status: {updated_organisation.organisation_id} to {new_status}")
-            
-            return self._organisation_to_response_dto(updated_organisation)
-            
-        except Exception as e:
-            self.logger.error(f"Error updating organisation status {organisation_id}: {e}")
             raise
     
     async def delete_organisation(self, organisation_id: str, force: bool = False) -> bool:
@@ -568,12 +525,7 @@ class OrganisationServiceImpl(OrganisationService):
         """Send organisation update notification"""
         # Implement notification logic
         self.logger.info(f"Organisation updated notification sent for: {organisation.organisation_id}")
-    
-    async def _send_status_change_notification(self, organisation: Organisation, new_status: OrganisationStatus, reason: str):
-        """Send organisation status change notification"""
-        # Implement notification logic
-        self.logger.info(f"Organisation status change notification sent for: {organisation.organisation_id} to {new_status}")
-    
+ 
     async def _check_capacity_alerts(self, organisation: Organisation):
         """Check and send capacity alerts if needed"""
         utilization = organisation.get_capacity_utilization_percentage()
@@ -903,10 +855,6 @@ class OrganisationServiceImpl(OrganisationService):
                 health_score -= 10
                 issues.append("Near capacity")
             
-            # Check status
-            if organisation.status != OrganisationStatus.ACTIVE:
-                health_score -= 50
-                issues.append(f"Organisation is {organisation.status.value}")
             
             return OrganisationHealthCheckDTO(
                 organisation_id=organisation_id,
@@ -936,48 +884,6 @@ class OrganisationServiceImpl(OrganisationService):
             return unhealthy
         except Exception as e:
             self.logger.error(f"Error getting unhealthy organisations: {e}")
-            raise
-
-    # ==================== BULK OPERATIONS METHODS ====================
-
-    async def bulk_update_status(
-        self, 
-        organisation_ids: List[str], 
-        status: str,
-        reason: Optional[str] = None,
-        updated_by: Optional[str] = None
-    ) -> BulkOrganisationUpdateResultDTO:
-        """Bulk update organisation status"""
-        try:
-            successful_updates = []
-            failed_updates = []
-            
-            for org_id in organisation_ids:
-                try:
-                    request = OrganisationStatusUpdateRequestDTO(
-                        status=status,
-                        reason=reason or "Bulk status update",
-                        updated_by=updated_by
-                    )
-                    result = await self.update_organisation_status(org_id, request)
-                    successful_updates.append(org_id)
-                except Exception as e:
-                    failed_updates.append({
-                        "organisation_id": org_id,
-                        "error": str(e)
-                    })
-            
-            return BulkOrganisationUpdateResultDTO(
-                total_requested=len(organisation_ids),
-                successful_count=len(successful_updates),
-                failed_count=len(failed_updates),
-                successful_ids=successful_updates,
-                failed_updates=failed_updates,
-                operation_type="status_update",
-                completed_at=datetime.now()
-            )
-        except Exception as e:
-            self.logger.error(f"Error in bulk status update: {e}")
             raise
 
     # ==================== VALIDATION METHODS ====================
@@ -1025,10 +931,6 @@ class OrganisationServiceImpl(OrganisationService):
             # Check employee capacity constraints
             if organisation.employee_usage > organisation.employee_strength:
                 errors.append("Employee usage cannot exceed employee strength")
-            
-            # Check status transitions
-            if organisation.status == OrganisationStatus.DELETED and organisation.employee_usage > 0:
-                errors.append("Cannot delete organisation with active employees")
             
             # Check required fields
             if not organisation.name or len(organisation.name.strip()) == 0:
@@ -1098,25 +1000,6 @@ class OrganisationServiceImpl(OrganisationService):
             self.logger.error(f"Error sending update notification: {e}")
             return False
 
-    async def send_status_change_notification(
-        self, 
-        organisation: Organisation, 
-        old_status: str, 
-        new_status: str,
-        reason: Optional[str] = None
-    ) -> bool:
-        """Send notification when organisation status changes"""
-        try:
-            await self._send_status_change_notification(
-                organisation, 
-                OrganisationStatus(new_status), 
-                reason or "Status changed"
-            )
-            return True
-        except Exception as e:
-            self.logger.error(f"Error sending status change notification: {e}")
-            return False
-
     async def send_capacity_alert_notification(
         self, 
         organisation: Organisation, 
@@ -1129,5 +1012,3 @@ class OrganisationServiceImpl(OrganisationService):
         except Exception as e:
             self.logger.error(f"Error sending capacity alert notification: {e}")
             return False
-
-    # ==================== PRIVATE HELPER METHODS ==================== 

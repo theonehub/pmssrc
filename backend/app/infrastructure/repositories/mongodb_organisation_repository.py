@@ -15,7 +15,7 @@ from pymongo.collection import Collection
 from app.domain.entities.organisation import Organisation
 from app.domain.value_objects.organisation_id import OrganisationId
 from app.domain.value_objects.organisation_details import (
-    OrganisationType, OrganisationStatus, ContactInformation, 
+    OrganisationType, ContactInformation, 
     Address, TaxInformation
 )
 from app.application.interfaces.repositories.organisation_repository import (
@@ -52,7 +52,7 @@ class MongoDBOrganisationRepository(OrganisationRepository):
             database_connector: Database connection abstraction
         """
         self.db_connector = database_connector
-        self._collection_name = "organisations"
+        self._collection_name = "organisation"
         
         # Connection configuration (will be set by dependency container)
         self._connection_string = None
@@ -206,7 +206,6 @@ class MongoDBOrganisationRepository(OrganisationRepository):
             "name": getattr(organisation, 'name', ''),
             "description": getattr(organisation, 'description', ''),
             "organisation_type": safe_enum_value(getattr(organisation, 'organisation_type')),
-            "status": safe_enum_value(getattr(organisation, 'status')),
             "hostname": getattr(organisation, 'hostname', ''),
             "contact_information": value_object_to_dict(getattr(organisation, 'contact_info', None)),
             "address": value_object_to_dict(getattr(organisation, 'address', None)),
@@ -230,7 +229,6 @@ class MongoDBOrganisationRepository(OrganisationRepository):
             # For now, create a simple Organisation object that can work with the existing system
             # This is a temporary solution until we properly understand the Organisation entity structure
             
-            # Create a minimal Organisation-like object
             class SimpleOrganisation:
                 def __init__(self, **kwargs):
                     # Core identity
@@ -242,9 +240,6 @@ class MongoDBOrganisationRepository(OrganisationRepository):
                     # Status and type
                     org_type = kwargs.get("organisation_type", "private_limited")
                     self.organisation_type = OrganisationType(org_type) if org_type else OrganisationType.PRIVATE_LIMITED
-                    
-                    status = kwargs.get("status", "active")
-                    self.status = OrganisationStatus(status) if status else OrganisationStatus.ACTIVE
                     
                     # Contact information
                     contact_data = kwargs.get("contact_information", {})
@@ -301,8 +296,7 @@ class MongoDBOrganisationRepository(OrganisationRepository):
                 name=document.get("name", ""),
                 description=document.get("description", ""),
                 hostname=document.get("hostname", ""),
-                organisation_type=document.get("organisation_type"),
-                status=document.get("status"),
+                organisation_type=document.get("organisation_type", ""),
                 contact_information=document.get("contact_information", {}),
                 address=document.get("address", {}),
                 tax_information=document.get("tax_information", {}),
@@ -432,38 +426,6 @@ class MongoDBOrganisationRepository(OrganisationRepository):
             logger.error(f"Error updating organisation {organisation.organisation_id}: {e}")
             raise
     
-    async def delete(self, organisation_id: OrganisationId, soft_delete: bool = True) -> bool:
-        """Delete an organisation by ID."""
-        try:
-            collection = await self._get_collection()
-            
-            if soft_delete:
-                # Soft delete - mark as deleted
-                result = await collection.update_one(
-                    {"organisation_id": str(organisation_id)},
-                    {
-                        "$set": {
-                            "is_deleted": True,
-                            "deleted_at": datetime.utcnow(),
-                            "updated_at": datetime.utcnow(),
-                            "status": OrganisationStatus.INACTIVE.value
-                        }
-                    }
-                )
-            else:
-                # Hard delete
-                result = await collection.delete_one({"organisation_id": str(organisation_id)})
-            
-            success = result.modified_count > 0 or result.deleted_count > 0
-            if success:
-                logger.info(f"Organisation deleted: {organisation_id} (soft: {soft_delete})")
-            
-            return success
-            
-        except Exception as e:
-            logger.error(f"Error deleting organisation {organisation_id}: {e}")
-            raise
-
     # ==================== QUERY REPOSITORY IMPLEMENTATION ====================
 
     async def get_by_id(self, organisation_id: OrganisationId) -> Optional[Organisation]:
@@ -638,22 +600,6 @@ class MongoDBOrganisationRepository(OrganisationRepository):
             logger.error(f"Error getting all organisations: {e}")
             raise
     
-    async def get_by_status(self, status: OrganisationStatus) -> List[Organisation]:
-        """Get organisations by status."""
-        try:
-            collection = await self._get_collection()
-            cursor = collection.find({
-                "status": status.value,
-                "is_deleted": {"$ne": True}
-            }).sort("created_at", DESCENDING)
-            
-            documents = await cursor.to_list(length=None)
-            return [self._document_to_organisation(doc) for doc in documents]
-            
-        except Exception as e:
-            logger.error(f"Error getting organisations by status {status}: {e}")
-            raise
-    
     async def get_by_type(self, organisation_type: OrganisationType) -> List[Organisation]:
         """Get organisations by type."""
         try:
@@ -707,18 +653,7 @@ class MongoDBOrganisationRepository(OrganisationRepository):
             logger.error(f"Error counting total organisations: {e}")
             raise
     
-    async def count_by_status(self, status: OrganisationStatus) -> int:
-        """Count organisations by status."""
-        try:
-            collection = await self._get_collection()
-            return await collection.count_documents({
-                "status": status.value,
-                "is_deleted": {"$ne": True}
-            })
-        except Exception as e:
-            logger.error(f"Error counting organisations by status {status}: {e}")
-            raise
-    
+
     async def count_by_type(self, organisation_type: OrganisationType) -> int:
         """Count organisations by type."""
         try:
@@ -1320,51 +1255,6 @@ class MongoDBOrganisationRepository(OrganisationRepository):
             return []
 
     # ==================== BULK OPERATIONS REPOSITORY IMPLEMENTATION ====================
-    
-    async def bulk_update_status(
-        self, 
-        organisation_ids: List[OrganisationId], 
-        status: OrganisationStatus,
-        updated_by: str,
-        reason: Optional[str] = None
-    ) -> Dict[str, Any]:
-        """Bulk update organisation status."""
-        try:
-            collection = await self._get_collection()
-            ids = [str(org_id) for org_id in organisation_ids]
-            
-            update_data = {
-                "status": status.value,
-                "updated_at": datetime.utcnow(),
-                "updated_by": updated_by
-            }
-            
-            if reason:
-                update_data["status_change_reason"] = reason
-            
-            result = await collection.update_many(
-                {"organisation_id": {"$in": ids}, "is_deleted": {"$ne": True}},
-                {"$set": update_data}
-            )
-            
-            return {
-                "total_requested": len(organisation_ids),
-                "updated_count": result.modified_count,
-                "matched_count": result.matched_count,
-                "success": result.modified_count > 0,
-                "new_status": status.value,
-                "updated_by": updated_by,
-                "updated_at": datetime.utcnow().isoformat()
-            }
-            
-        except Exception as e:
-            logger.error(f"Error in bulk status update: {e}")
-            return {
-                "total_requested": len(organisation_ids),
-                "updated_count": 0,
-                "success": False,
-                "error": str(e)
-            }
     
     async def bulk_update_employee_strength(
         self, 

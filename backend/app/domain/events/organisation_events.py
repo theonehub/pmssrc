@@ -10,7 +10,10 @@ from dataclasses import dataclass
 from app.domain.events.employee_events import DomainEvent
 from app.domain.value_objects.organisation_id import OrganisationId
 from app.domain.value_objects.organisation_details import (
-    ContactInformation, Address, TaxInformation, OrganisationType, OrganisationStatus
+    ContactInformation, 
+    Address, 
+    TaxInformation, 
+    OrganisationType
 )
 
 
@@ -86,110 +89,6 @@ class OrganisationUpdated(DomainEvent):
             "updated_by": self.updated_by,
             "change_count": len(self.updated_fields)
         }
-
-
-@dataclass
-class OrganisationActivated(DomainEvent):
-    """
-    Event raised when an organisation is activated.
-    
-    This event can trigger:
-    - Enable organisation services
-    - Notification to organisation users
-    - System access restoration
-    - Audit logging
-    """
-    
-    organisation_id: OrganisationId
-    activated_by: str
-    previous_status: OrganisationStatus
-    reason: Optional[str] = None
-    
-    def get_event_type(self) -> str:
-        return "organisation.activated"
-    
-    def get_aggregate_id(self) -> str:
-        return str(self.organisation_id)
-    
-    def get_activation_details(self) -> dict:
-        """Get activation details"""
-        return {
-            "organisation_id": str(self.organisation_id),
-            "activated_by": self.activated_by,
-            "previous_status": self.previous_status.value,
-            "reason": self.reason
-        }
-
-
-@dataclass
-class OrganisationDeactivated(DomainEvent):
-    """
-    Event raised when an organisation is deactivated.
-    
-    This event can trigger:
-    - Disable organisation services
-    - Notification to organisation users
-    - System access suspension
-    - Data archival processes
-    - Audit logging
-    """
-    
-    organisation_id: OrganisationId
-    deactivated_by: str
-    reason: str
-    previous_status: OrganisationStatus
-    
-    def get_event_type(self) -> str:
-        return "organisation.deactivated"
-    
-    def get_aggregate_id(self) -> str:
-        return str(self.organisation_id)
-    
-    def get_deactivation_details(self) -> dict:
-        """Get deactivation details"""
-        return {
-            "organisation_id": str(self.organisation_id),
-            "deactivated_by": self.deactivated_by,
-            "reason": self.reason,
-            "previous_status": self.previous_status.value
-        }
-
-
-@dataclass
-class OrganisationSuspended(DomainEvent):
-    """
-    Event raised when an organisation is suspended.
-    
-    This event can trigger:
-    - Temporary service suspension
-    - Notification to organisation admins
-    - Limited system access
-    - Compliance team notification
-    - Audit logging
-    """
-    
-    organisation_id: OrganisationId
-    suspended_by: str
-    reason: str
-    suspension_duration: Optional[int] = None  # Days
-    previous_status: OrganisationStatus = OrganisationStatus.ACTIVE
-    
-    def get_event_type(self) -> str:
-        return "organisation.suspended"
-    
-    def get_aggregate_id(self) -> str:
-        return str(self.organisation_id)
-    
-    def get_suspension_details(self) -> dict:
-        """Get suspension details"""
-        return {
-            "organisation_id": str(self.organisation_id),
-            "suspended_by": self.suspended_by,
-            "reason": self.reason,
-            "duration_days": self.suspension_duration,
-            "previous_status": self.previous_status.value
-        }
-
 
 @dataclass
 class OrganisationContactUpdated(DomainEvent):

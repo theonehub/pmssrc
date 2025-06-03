@@ -13,7 +13,6 @@ from fastapi.responses import JSONResponse
 from app.application.dto.organisation_dto import (
     CreateOrganisationRequestDTO,
     UpdateOrganisationRequestDTO,
-    OrganisationStatusUpdateRequestDTO,
     OrganisationSearchFiltersDTO,
     OrganisationResponseDTO,
     OrganisationListResponseDTO,
@@ -272,43 +271,6 @@ async def delete_organisation(
     except Exception as e:
         logger.error(f"Unexpected error deleting organisation {organisation_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
-
-
-# ==================== ORGANISATION STATUS ENDPOINTS ====================
-
-@organisation_v2_router.patch("/{organisation_id}/status", response_model=OrganisationResponseDTO)
-async def update_organisation_status(
-    organisation_id: str = Path(..., description="Organisation ID"),
-    request: OrganisationStatusUpdateRequestDTO = None,
-    current_user: dict = Depends(get_current_user),
-    controller: OrganisationController = Depends(get_organisation_controller)
-):
-    """Update organisation status"""
-    try:
-        response = await controller.update_organisation_status(
-            organisation_id=organisation_id,
-            request=request,
-            updated_by=current_user.get("employee_id", "unknown")
-        )
-        
-        return response
-        
-    except OrganisationNotFoundError as e:
-        logger.warning(f"Organisation not found for status update: {e}")
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": str(e)})
-    
-    except OrganisationValidationError as e:
-        logger.warning(f"Validation error updating organisation status: {e}")
-        raise HTTPException(status_code=400, detail={"error": "validation_error", "message": str(e)})
-    
-    except OrganisationBusinessRuleError as e:
-        logger.warning(f"Business rule error updating organisation status: {e}")
-        raise HTTPException(status_code=422, detail={"error": "business_rule_error", "message": str(e)})
-    
-    except Exception as e:
-        logger.error(f"Unexpected error updating organisation status {organisation_id}: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
 
 # ==================== ORGANISATION LOOKUP ENDPOINTS ====================
 

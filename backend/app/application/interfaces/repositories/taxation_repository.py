@@ -42,7 +42,7 @@ class TaxationCommandRepository(ABC):
         
         Args:
             request: Taxation creation request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Created taxation response
@@ -62,7 +62,7 @@ class TaxationCommandRepository(ABC):
         Args:
             employee_id: Employee identifier
             request: Taxation update request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Updated taxation response
@@ -82,7 +82,7 @@ class TaxationCommandRepository(ABC):
         Args:
             employee_id: Employee identifier
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             True if deleted successfully
@@ -104,7 +104,7 @@ class TaxationCommandRepository(ABC):
             employee_id: Employee identifier
             tax_year: Tax year
             calculation_result: Tax calculation results
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             True if updated successfully
@@ -127,7 +127,7 @@ class TaxationCommandRepository(ABC):
             employee_id: Employee identifier
             tax_year: Tax year
             filing_status: New filing status
-            hostname: Organization hostname
+            hostname: Organisation hostname
             updated_by: User making the update
             
         Returns:
@@ -150,7 +150,7 @@ class TaxationCommandRepository(ABC):
             employee_id: Employee identifier
             tax_year: Tax year
             adjustment_data: LWP adjustment data
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             True if saved successfully
@@ -183,7 +183,7 @@ class TaxationQueryRepository(ABC):
         Args:
             employee_id: Employee identifier
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Taxation response or None if not found
@@ -201,7 +201,7 @@ class TaxationQueryRepository(ABC):
         
         Args:
             employee_id: Employee identifier
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Current taxation response or None if not found
@@ -219,7 +219,7 @@ class TaxationQueryRepository(ABC):
         
         Args:
             filters: Search filters
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             List of matching taxation records
@@ -237,7 +237,7 @@ class TaxationQueryRepository(ABC):
         
         Args:
             employee_id: Employee identifier
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             List of taxation records for the employee
@@ -257,7 +257,7 @@ class TaxationQueryRepository(ABC):
         Args:
             regime: Tax regime ('old' or 'new')
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             List of taxation records for the regime
@@ -277,7 +277,7 @@ class TaxationQueryRepository(ABC):
         Args:
             department: Department name
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             List of taxation records for the department
@@ -297,7 +297,7 @@ class TaxationQueryRepository(ABC):
         Args:
             employee_id: Employee identifier
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             True if taxation record exists
@@ -326,7 +326,7 @@ class TaxationCalculationRepository(ABC):
         Args:
             employee_id: Employee identifier
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             force_recalculate: Force recalculation even if already calculated
             
         Returns:
@@ -347,7 +347,7 @@ class TaxationCalculationRepository(ABC):
         Args:
             employee_id: Employee identifier
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Tax comparison between regimes
@@ -367,7 +367,7 @@ class TaxationCalculationRepository(ABC):
         Args:
             employee_id: Employee identifier
             projection_period: Projection period (monthly, quarterly, annual)
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Tax projection data
@@ -389,7 +389,7 @@ class TaxationCalculationRepository(ABC):
             employee_id: Employee identifier
             tax_year: Tax year
             lwp_days: Number of LWP days
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             LWP adjustment calculation results
@@ -409,7 +409,7 @@ class TaxationCalculationRepository(ABC):
         Args:
             employee_id: Employee identifier
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Salary projection data or None if not available
@@ -436,7 +436,7 @@ class TaxationAnalyticsRepository(ABC):
         
         Args:
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             department: Optional department filter
             
         Returns:
@@ -455,7 +455,7 @@ class TaxationAnalyticsRepository(ABC):
         
         Args:
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Regime adoption statistics
@@ -474,7 +474,7 @@ class TaxationAnalyticsRepository(ABC):
         
         Args:
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             limit: Number of top taxpayers to return
             
         Returns:
@@ -493,7 +493,7 @@ class TaxationAnalyticsRepository(ABC):
         
         Args:
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Department-wise tax summary
@@ -512,7 +512,7 @@ class TaxationAnalyticsRepository(ABC):
         
         Args:
             employee_id: Employee identifier
-            hostname: Organization hostname
+            hostname: Organisation hostname
             years: Number of years for trend analysis
             
         Returns:
@@ -531,7 +531,7 @@ class TaxationAnalyticsRepository(ABC):
         
         Args:
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Compliance metrics
@@ -562,7 +562,7 @@ class TaxationAuditRepository(ABC):
             tax_year: Tax year
             event_type: Type of event
             event_data: Event data
-            hostname: Organization hostname
+            hostname: Organisation hostname
             performed_by: User performing the action
             
         Returns:
@@ -583,7 +583,7 @@ class TaxationAuditRepository(ABC):
         Args:
             employee_id: Employee identifier
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             List of calculation events
@@ -608,7 +608,7 @@ class TaxationAuditRepository(ABC):
             tax_year: Tax year
             old_regime: Previous regime
             new_regime: New regime
-            hostname: Organization hostname
+            hostname: Organisation hostname
             changed_by: User making the change
             
         Returns:

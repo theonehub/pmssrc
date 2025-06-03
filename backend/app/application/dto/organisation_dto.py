@@ -1,6 +1,6 @@
 """
-Organization Data Transfer Objects (DTOs)
-Handles data transfer for organization operations
+Organisation Data Transfer Objects (DTOs)
+Handles data transfer for organisation operations
 """
 
 from datetime import datetime
@@ -8,14 +8,14 @@ from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
 from enum import Enum
 
-from app.domain.value_objects.organization_details import OrganizationType, OrganizationStatus
+from app.domain.value_objects.organisation_details import OrganisationType, OrganisationStatus
 
 
 # ==================== REQUEST DTOs ====================
 
 @dataclass
-class CreateOrganizationRequestDTO:
-    """DTO for creating a new organization"""
+class CreateOrganisationRequestDTO:
+    """DTO for creating a new organisation"""
     
     # Required Basic Information
     name: str
@@ -34,7 +34,7 @@ class CreateOrganizationRequestDTO:
     
     # Optional Basic Information
     description: Optional[str] = None
-    organization_type: str = OrganizationType.PRIVATE_LIMITED.value
+    organisation_type: str = OrganisationType.PRIVATE_LIMITED.value
     
     # Optional Contact Information
     website: Optional[str] = None
@@ -61,7 +61,7 @@ class CreateOrganizationRequestDTO:
         
         # Basic validation
         if not self.name or not self.name.strip():
-            errors.append("Organization name is required")
+            errors.append("Organisation name is required")
         
         if not self.email or not self.email.strip():
             errors.append("Email is required")
@@ -90,23 +90,23 @@ class CreateOrganizationRequestDTO:
         if self.employee_strength <= 0:
             errors.append("Employee strength must be positive")
         
-        # Validate organization type
+        # Validate organisation type
         try:
-            OrganizationType(self.organization_type)
+            OrganisationType(self.organisation_type)
         except ValueError:
-            errors.append("Invalid organization type")
+            errors.append("Invalid organisation type")
         
         return errors
 
 
 @dataclass
-class UpdateOrganizationRequestDTO:
-    """DTO for updating organization information"""
+class UpdateOrganisationRequestDTO:
+    """DTO for updating organisation information"""
     
     # Basic Information
     name: Optional[str] = None
     description: Optional[str] = None
-    organization_type: Optional[str] = None
+    organisation_type: Optional[str] = None
     
     # Contact Information
     email: Optional[str] = None
@@ -142,7 +142,7 @@ class UpdateOrganizationRequestDTO:
         
         # Validate non-empty strings if provided
         if self.name is not None and not self.name.strip():
-            errors.append("Organization name cannot be empty")
+            errors.append("Organisation name cannot be empty")
         
         if self.email is not None and not self.email.strip():
             errors.append("Email cannot be empty")
@@ -153,19 +153,19 @@ class UpdateOrganizationRequestDTO:
         if self.employee_strength is not None and self.employee_strength <= 0:
             errors.append("Employee strength must be positive")
         
-        # Validate organization type if provided
-        if self.organization_type is not None:
+        # Validate organisation type if provided
+        if self.organisation_type is not None:
             try:
-                OrganizationType(self.organization_type)
+                OrganisationType(self.organisation_type)
             except ValueError:
-                errors.append("Invalid organization type")
+                errors.append("Invalid organisation type")
         
         return errors
 
 
 @dataclass
-class OrganizationStatusUpdateRequestDTO:
-    """DTO for updating organization status"""
+class OrganisationStatusUpdateRequestDTO:
+    """DTO for updating organisation status"""
     
     action: str  # activate, deactivate, suspend
     reason: Optional[str] = None
@@ -191,12 +191,12 @@ class OrganizationStatusUpdateRequestDTO:
 
 
 @dataclass
-class OrganizationSearchFiltersDTO:
-    """DTO for organization search filters"""
+class OrganisationSearchFiltersDTO:
+    """DTO for organisation search filters"""
     
     # Basic filters
     name: Optional[str] = None
-    organization_type: Optional[str] = None
+    organisation_type: Optional[str] = None
     status: Optional[str] = None
     
     # Location filters
@@ -238,7 +238,7 @@ class OrganizationSearchFiltersDTO:
             errors.append("Sort order must be 'asc' or 'desc'")
         
         valid_sort_fields = [
-            "name", "organization_type", "status", "created_at", 
+            "name", "organisation_type", "status", "created_at", 
             "updated_at", "employee_strength", "city", "state"
         ]
         if self.sort_by not in valid_sort_fields:
@@ -289,16 +289,16 @@ class TaxInformationResponseDTO:
 
 
 @dataclass
-class OrganizationResponseDTO:
-    """DTO for organization response"""
+class OrganisationResponseDTO:
+    """DTO for organisation response"""
     
     # Required Identity
-    organization_id: str
+    organisation_id: str
     name: str
     
     # Optional Basic Information
     description: Optional[str] = None
-    organization_type: str = None
+    organisation_type: str = None
     status: str = None
     
     # Optional Contact and Location
@@ -332,13 +332,13 @@ class OrganizationResponseDTO:
 
 
 @dataclass
-class OrganizationSummaryDTO:
-    """DTO for organization summary (list view)"""
+class OrganisationSummaryDTO:
+    """DTO for organisation summary (list view)"""
     
     # Required fields
-    organization_id: str
+    organisation_id: str
     name: str
-    organization_type: str
+    organisation_type: str
     status: str
     
     # Optional fields
@@ -352,10 +352,10 @@ class OrganizationSummaryDTO:
 
 
 @dataclass
-class OrganizationListResponseDTO:
-    """DTO for paginated organization list response"""
+class OrganisationListResponseDTO:
+    """DTO for paginated organisation list response"""
     
-    organizations: List[OrganizationSummaryDTO]
+    organisations: List[OrganisationSummaryDTO]
     total_count: int
     page: int
     page_size: int
@@ -365,20 +365,20 @@ class OrganizationListResponseDTO:
 
 
 @dataclass
-class OrganizationStatisticsDTO:
-    """DTO for organization statistics"""
+class OrganisationStatisticsDTO:
+    """DTO for organisation statistics"""
     
-    total_organizations: int
-    active_organizations: int
-    inactive_organizations: int
-    suspended_organizations: int
+    total_organisations: int
+    active_organisations: int
+    inactive_organisations: int
+    suspended_organisations: int
     
     # By type
-    organizations_by_type: Dict[str, int]
+    organisations_by_type: Dict[str, int]
     
     # By location
-    organizations_by_state: Dict[str, int]
-    organizations_by_country: Dict[str, int]
+    organisations_by_state: Dict[str, int]
+    organisations_by_country: Dict[str, int]
     
     # Capacity statistics
     total_employee_capacity: int
@@ -386,18 +386,18 @@ class OrganizationStatisticsDTO:
     average_utilization: float
     
     # Growth statistics
-    organizations_created_this_month: int
-    organizations_created_this_year: int
+    organisations_created_this_month: int
+    organisations_created_this_year: int
 
 
 @dataclass
-class OrganizationAnalyticsDTO:
-    """DTO for organization analytics"""
+class OrganisationAnalyticsDTO:
+    """DTO for organisation analytics"""
     
     # Capacity analysis
-    organizations_at_capacity: int
-    organizations_under_utilized: int
-    organizations_over_utilized: int
+    organisations_at_capacity: int
+    organisations_under_utilized: int
+    organisations_over_utilized: int
     
     # Growth trends
     monthly_growth_rate: float
@@ -417,10 +417,10 @@ class OrganizationAnalyticsDTO:
 # ==================== UTILITY DTOs ====================
 
 @dataclass
-class OrganizationHealthCheckDTO:
-    """DTO for organization health check"""
+class OrganisationHealthCheckDTO:
+    """DTO for organisation health check"""
     
-    organization_id: str
+    organisation_id: str
     name: str
     status: str
     is_healthy: bool
@@ -430,10 +430,10 @@ class OrganizationHealthCheckDTO:
 
 
 @dataclass
-class BulkOrganizationUpdateDTO:
-    """DTO for bulk organization updates"""
+class BulkOrganisationUpdateDTO:
+    """DTO for bulk organisation updates"""
     
-    organization_ids: List[str]
+    organisation_ids: List[str]
     update_data: Dict[str, Any]
     updated_by: Optional[str] = None
     
@@ -441,8 +441,8 @@ class BulkOrganizationUpdateDTO:
         """Validate bulk update request"""
         errors = []
         
-        if not self.organization_ids:
-            errors.append("Organization IDs list cannot be empty")
+        if not self.organisation_ids:
+            errors.append("Organisation IDs list cannot be empty")
         
         if not self.update_data:
             errors.append("Update data cannot be empty")
@@ -451,44 +451,44 @@ class BulkOrganizationUpdateDTO:
 
 
 @dataclass
-class BulkOrganizationUpdateResultDTO:
+class BulkOrganisationUpdateResultDTO:
     """DTO for bulk update results"""
     
     total_requested: int
     successful_updates: int
     failed_updates: int
-    errors: List[Dict[str, str]]  # {organization_id: error_message}
-    updated_organization_ids: List[str]
+    errors: List[Dict[str, str]]  # {organisation_id: error_message}
+    updated_organisation_ids: List[str]
 
 
 # ==================== EXCEPTION DTOs ====================
 
-class OrganizationValidationError(Exception):
-    """Exception for organization validation errors"""
+class OrganisationValidationError(Exception):
+    """Exception for organisation validation errors"""
     
     def __init__(self, message: str, errors: List[str] = None):
         super().__init__(message)
         self.errors = errors or []
 
 
-class OrganizationBusinessRuleError(Exception):
-    """Exception for organization business rule violations"""
+class OrganisationBusinessRuleError(Exception):
+    """Exception for organisation business rule violations"""
     
     def __init__(self, message: str, rule: str = None):
         super().__init__(message)
         self.rule = rule
 
 
-class OrganizationNotFoundError(Exception):
-    """Exception for organization not found"""
+class OrganisationNotFoundError(Exception):
+    """Exception for organisation not found"""
     
-    def __init__(self, organization_id: str):
-        super().__init__(f"Organization not found: {organization_id}")
-        self.organization_id = organization_id
+    def __init__(self, organisation_id: str):
+        super().__init__(f"Organisation not found: {organisation_id}")
+        self.organisation_id = organisation_id
 
 
-class OrganizationConflictError(Exception):
-    """Exception for organization conflicts (e.g., duplicate name)"""
+class OrganisationConflictError(Exception):
+    """Exception for organisation conflicts (e.g., duplicate name)"""
     
     def __init__(self, message: str, conflict_field: str = None):
         super().__init__(message)

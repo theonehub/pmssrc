@@ -215,7 +215,7 @@ async def get_available_leave_types(
     current_user: CurrentUser = Depends(get_current_user),
     controller: CompanyLeaveController = Depends(get_company_leave_controller)
 ):
-    """Get all available leave types for the organization"""
+    """Get all available leave types for the organisation"""
     try:
         logger.info("Getting available leave types")
         

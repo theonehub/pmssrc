@@ -31,7 +31,7 @@ from app.infrastructure.services.password_service import PasswordService
 from app.infrastructure.services.notification_service import NotificationService
 from app.infrastructure.services.file_upload_service import FileUploadService
 
-# Import CurrentUser for organization context
+# Import CurrentUser for organisation context
 if TYPE_CHECKING:
     from app.auth.auth_dependencies import CurrentUser
 
@@ -86,11 +86,11 @@ class UserServiceImpl(UserService):
     async def create_user(self, request: CreateUserRequestDTO, current_user: "CurrentUser") -> UserResponseDTO:
         """Create a new user."""
         try:
-            logger.info(f"Creating user: {request.employee_id} in organization: {current_user.hostname}")
-            # Pass current_user to use case for organization context
+            logger.info(f"Creating user: {request.employee_id} in organisation: {current_user.hostname}")
+            # Pass current_user to use case for organisation context
             return await self._create_user_use_case.execute(request, current_user)
         except Exception as e:
-            logger.error(f"Error creating user {request.employee_id} in organization {current_user.hostname}: {e}")
+            logger.error(f"Error creating user {request.employee_id} in organisation {current_user.hostname}: {e}")
             raise
     
     async def update_user(
@@ -101,9 +101,9 @@ class UserServiceImpl(UserService):
     ) -> UserResponseDTO:
         """Update an existing user."""
         try:
-            logger.info(f"Updating user: {employee_id} in organization: {current_user.hostname}")
+            logger.info(f"Updating user: {employee_id} in organisation: {current_user.hostname}")
             
-            # Get existing user (repository will handle organization context via database service)
+            # Get existing user (repository will handle organisation context via database service)
             user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
             if not user:
                 raise ValueError(f"User not found: {employee_id}")
@@ -135,7 +135,7 @@ class UserServiceImpl(UserService):
             return UserResponseDTO.from_entity(updated_user)
             
         except Exception as e:
-            logger.error(f"Error updating user {employee_id} in organization {current_user.hostname}: {e}")
+            logger.error(f"Error updating user {employee_id} in organisation {current_user.hostname}: {e}")
             raise
     
     async def update_user_documents(
@@ -177,7 +177,7 @@ class UserServiceImpl(UserService):
     ) -> UserResponseDTO:
         """Change user password."""
         try:
-            logger.info(f"Changing password for user: {employee_id} in organization: {current_user.hostname}")
+            logger.info(f"Changing password for user: {employee_id} in organisation: {current_user.hostname}")
             
             # Get existing user
             user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
@@ -208,7 +208,7 @@ class UserServiceImpl(UserService):
             return UserResponseDTO.from_entity(updated_user)
             
         except Exception as e:
-            logger.error(f"Error changing password for user {employee_id} in organization {current_user.hostname}: {e}")
+            logger.error(f"Error changing password for user {employee_id} in organisation {current_user.hostname}: {e}")
             raise
     
     async def change_user_role(
@@ -219,7 +219,7 @@ class UserServiceImpl(UserService):
     ) -> UserResponseDTO:
         """Change user role."""
         try:
-            logger.info(f"Changing role for user: {employee_id} in organization: {current_user.hostname}")
+            logger.info(f"Changing role for user: {employee_id} in organisation: {current_user.hostname}")
             
             # Get existing user
             user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
@@ -242,7 +242,7 @@ class UserServiceImpl(UserService):
             return UserResponseDTO.from_entity(updated_user)
             
         except Exception as e:
-            logger.error(f"Error changing role for user {employee_id} in organization {current_user.hostname}: {e}")
+            logger.error(f"Error changing role for user {employee_id} in organisation {current_user.hostname}: {e}")
             raise
     
     async def update_user_status(
@@ -253,7 +253,7 @@ class UserServiceImpl(UserService):
     ) -> UserResponseDTO:
         """Update user status."""
         try:
-            logger.info(f"Updating status for user: {employee_id} in organization: {current_user.hostname}")
+            logger.info(f"Updating status for user: {employee_id} in organisation: {current_user.hostname}")
             
             # Get existing user
             user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
@@ -276,7 +276,7 @@ class UserServiceImpl(UserService):
             return UserResponseDTO.from_entity(updated_user)
             
         except Exception as e:
-            logger.error(f"Error updating status for user {employee_id} in organization {current_user.hostname}: {e}")
+            logger.error(f"Error updating status for user {employee_id} in organisation {current_user.hostname}: {e}")
             raise
     
     async def assign_manager(
@@ -340,31 +340,31 @@ class UserServiceImpl(UserService):
     async def get_user_by_id(self, employee_id: str, current_user: "CurrentUser") -> Optional[UserResponseDTO]:
         """Get user by ID."""
         try:
-            logger.debug(f"Getting user {employee_id} from organization {current_user.hostname}")
+            logger.debug(f"Getting user {employee_id} from organisation {current_user.hostname}")
             user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
             return UserResponseDTO.from_entity(user) if user else None
         except Exception as e:
-            logger.error(f"Error getting user by ID {employee_id} in organization {current_user.hostname}: {e}")
+            logger.error(f"Error getting user by ID {employee_id} in organisation {current_user.hostname}: {e}")
             raise
     
     async def get_user_by_email(self, email: str, current_user: "CurrentUser") -> Optional[UserResponseDTO]:
         """Get user by email."""
         try:
-            logger.debug(f"Getting user by email {email} from organization {current_user.hostname}")
+            logger.debug(f"Getting user by email {email} from organisation {current_user.hostname}")
             user = await self.user_repository.get_by_email(email, current_user.hostname)
             return UserResponseDTO.from_entity(user) if user else None
         except Exception as e:
-            logger.error(f"Error getting user by email {email} in organization {current_user.hostname}: {e}")
+            logger.error(f"Error getting user by email {email} in organisation {current_user.hostname}: {e}")
             raise
     
     async def get_user_by_mobile(self, mobile: str, current_user: "CurrentUser") -> Optional[UserResponseDTO]:
         """Get user by mobile."""
         try:
-            logger.debug(f"Getting user by mobile {mobile} from organization {current_user.hostname}")
+            logger.debug(f"Getting user by mobile {mobile} from organisation {current_user.hostname}")
             user = await self.user_repository.get_by_mobile(mobile, current_user.hostname)
             return UserResponseDTO.from_entity(user) if user else None
         except Exception as e:
-            logger.error(f"Error getting user by mobile {mobile} in organization {current_user.hostname}: {e}")
+            logger.error(f"Error getting user by mobile {mobile} in organisation {current_user.hostname}: {e}")
             raise
     
     async def get_all_users(
@@ -377,18 +377,18 @@ class UserServiceImpl(UserService):
     ) -> UserListResponseDTO:
         """Get all users with pagination."""
         try:
-            logger.debug(f"Getting all users from organization {current_user.hostname if current_user else 'global'}")
+            logger.debug(f"Getting all users from organisation {current_user.hostname if current_user else 'global'}")
             users = await self.user_repository.get_all(
                 skip=skip, 
                 limit=limit,
                 include_inactive=include_inactive,
                 include_deleted=include_deleted,
-                organization_id=current_user.hostname if current_user else None
+                organisation_id=current_user.hostname if current_user else None
             )
             
             total_count = await self.user_repository.count_total(
                 include_deleted=include_deleted,
-                organization_id=current_user.hostname if current_user else None
+                organisation_id=current_user.hostname if current_user else None
             )
             
             user_summaries = [UserSummaryDTO.from_entity(user) for user in users]
@@ -410,13 +410,13 @@ class UserServiceImpl(UserService):
             )
             
         except Exception as e:
-            logger.error(f"Error getting all users in organization {current_user.hostname if current_user else 'unknown'}: {e}")
+            logger.error(f"Error getting all users in organisation {current_user.hostname if current_user else 'unknown'}: {e}")
             raise
     
     async def search_users(self, filters: UserSearchFiltersDTO, current_user: "CurrentUser") -> UserListResponseDTO:
         """Search users with filters."""
         try:
-            logger.debug(f"Searching users in organization {current_user.hostname}")
+            logger.debug(f"Searching users in organisation {current_user.hostname}")
             users = await self.user_repository.search(filters, current_user.hostname)
             user_summaries = [UserSummaryDTO.from_entity(user) for user in users]
             
@@ -437,7 +437,7 @@ class UserServiceImpl(UserService):
             )
             
         except Exception as e:
-            logger.error(f"Error searching users in organization {current_user.hostname}: {e}")
+            logger.error(f"Error searching users in organisation {current_user.hostname}: {e}")
             raise
     
     async def get_users_by_role(self, role: str, current_user: "CurrentUser") -> List[UserSummaryDTO]:
@@ -486,32 +486,32 @@ class UserServiceImpl(UserService):
     ) -> Dict[str, bool]:
         """Check if user exists by various identifiers."""
         try:
-            organization_context = f" in organization {current_user.hostname}" if current_user else ""
-            logger.debug(f"Checking user existence{organization_context}")
+            organisation_context = f" in organisation {current_user.hostname}" if current_user else ""
+            logger.debug(f"Checking user existence{organisation_context}")
             
             result = {}
             exclude_employee_id = EmployeeId(exclude_id) if exclude_id else None
-            organization_id = current_user.hostname if current_user else None
+            organisation_id = current_user.hostname if current_user else None
             
             if email:
                 result["email"] = await self.user_repository.exists_by_email(
-                    email, exclude_employee_id, organization_id
+                    email, exclude_employee_id, organisation_id
                 )
             
             if mobile:
                 result["mobile"] = await self.user_repository.exists_by_mobile(
-                    mobile, exclude_employee_id, organization_id
+                    mobile, exclude_employee_id, organisation_id
                 )
             
             if pan_number:
                 result["pan_number"] = await self.user_repository.exists_by_pan_number(
-                    pan_number, exclude_employee_id, organization_id
+                    pan_number, exclude_employee_id, organisation_id
                 )
             
             return result
             
         except Exception as e:
-            logger.error(f"Error checking user existence in organization {current_user.hostname if current_user else 'unknown'}: {e}")
+            logger.error(f"Error checking user existence in organisation {current_user.hostname if current_user else 'unknown'}: {e}")
             raise
     
     # Authentication Service Implementation
@@ -668,12 +668,12 @@ class UserServiceImpl(UserService):
         role_permissions = {
             UserRole.SUPERADMIN: [
                 "user:create", "user:read", "user:update", "user:delete",
-                "organization:create", "organization:read", "organization:update", "organization:delete",
+                "organisation:create", "organisation:read", "organisation:update", "organisation:delete",
                 "system:admin"
             ],
             UserRole.ADMIN: [
                 "user:create", "user:read", "user:update",
-                "organization:read", "organization:update"
+                "organisation:read", "organisation:update"
             ],
             UserRole.HR: [
                 "user:create", "user:read", "user:update",
@@ -766,11 +766,11 @@ class UserServiceImpl(UserService):
     async def get_user_statistics(self, current_user: "CurrentUser") -> UserStatisticsDTO:
         """Get user statistics."""
         try:
-            logger.debug(f"Getting user statistics for organization {current_user.hostname}")
-            organization_id = current_user.hostname if current_user else None
-            return await self.user_repository.get_statistics(organization_id)
+            logger.debug(f"Getting user statistics for organisation {current_user.hostname}")
+            organisation_id = current_user.hostname if current_user else None
+            return await self.user_repository.get_statistics(organisation_id)
         except Exception as e:
-            logger.error(f"Error getting user statistics for organization {current_user.hostname}: {e}")
+            logger.error(f"Error getting user statistics for organisation {current_user.hostname}: {e}")
             raise
     
     async def get_user_analytics(self) -> UserAnalyticsDTO:
@@ -1384,21 +1384,21 @@ class UserServiceImpl(UserService):
         try:
             result = {}
             exclude_id = EmployeeId(exclude_employee_id) if exclude_employee_id else None
-            organization_id = current_user.hostname if current_user else None
+            organisation_id = current_user.hostname if current_user else None
             
             if email:
                 result["email_exists"] = await self.user_repository.exists_by_email(
-                    email, exclude_id, organization_id
+                    email, exclude_id, organisation_id
                 )
             
             if mobile:
                 result["mobile_exists"] = await self.user_repository.exists_by_mobile(
-                    mobile, exclude_id, organization_id
+                    mobile, exclude_id, organisation_id
                 )
             
             if pan_number:
                 result["pan_exists"] = await self.user_repository.exists_by_pan_number(
-                    pan_number, exclude_id, organization_id
+                    pan_number, exclude_id, organisation_id
                 )
             
             return result

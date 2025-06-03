@@ -69,7 +69,7 @@ async def get_current_user(employee_id: str = Depends(extract_employee_id), host
     # Retrieve the user info from the database based on employee_id.
     user = await get_user_by_employee_id(employee_id, hostname)
     if not user:
-        user = await get_user_by_employee_id(employee_id, "global_database")
+        user = await get_user_by_employee_id(employee_id, "pms_global_database")
     if user is None:
         logger.warning("User not found for employee_id: %s", employee_id)
         raise credentials_exception

@@ -61,7 +61,7 @@ class EmployeeLeaveController:
         Args:
             request: Leave application request
             employee_id: Employee applying for leave
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             EmployeeLeaveResponseDTO with created leave details
@@ -102,7 +102,7 @@ class EmployeeLeaveController:
             leave_id: Leave application identifier
             request: Approval/rejection request
             approver_id: User approving/rejecting the leave
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             EmployeeLeaveResponseDTO with updated leave details

@@ -125,7 +125,7 @@ class RepositoryAnalyzer:
             ("company_leave_repository", "solid_company_leave_repository"),
             ("employee_leave_repository", "employee_leave_repository_impl"),
             ("employee_leave_repository", "solid_employee_leave_repository"),
-            ("organisation_repository", "mongodb_organization_repository"),
+            ("organisation_repository", "mongodb_organisation_repository"),
             ("organisation_repository", "solid_organisation_repository"),
             ("payout_repository", "solid_payout_repository"),
             ("public_holiday_repository", "solid_public_holiday_repository"),
@@ -206,7 +206,6 @@ def main():
     
     # Show progress since last analysis
     print(f"\n🏆 RECENT ACHIEVEMENTS:")
-    print(f"• SolidOrganisationRepository: ✅ COMPLETED (31 methods added)")
     print(f"• SolidReimbursementRepository: ✅ COMPLETED (42 methods added)")
     print(f"• SolidPublicHolidayRepository: ✅ COMPLETED (24 methods added)")
     print(f"• Total methods implemented today: 97 methods!")

@@ -517,7 +517,7 @@ async def get_reimbursement_analytics(
     - **end_date**: Optional end date for filtering
     
     Managers see analytics for their team.
-    Admins see organization-wide analytics.
+    Admins see organisation-wide analytics.
     """
     try:
         # For managers, filter by their managed employees

@@ -33,7 +33,7 @@ class GetProjectAttributesUseCase:
         
         Args:
             filters: Search filters
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             List of ProjectAttributeResponseDTO (empty for stub)
@@ -59,7 +59,7 @@ class GetProjectAttributesUseCase:
         
         Args:
             key: Project attribute key
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             ProjectAttributeResponseDTO if found, None otherwise (None for stub)

@@ -18,7 +18,7 @@ from app.application.dto.user_dto import (
     UserProfileCompletionDTO, BulkUserUpdateDTO, BulkUserUpdateResultDTO
 )
 
-# Import CurrentUser for organization context
+# Import CurrentUser for organisation context
 if TYPE_CHECKING:
     from app.auth.auth_dependencies import CurrentUser
 
@@ -41,7 +41,7 @@ class UserCommandService(ABC):
         
         Args:
             request: User creation request DTO
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
             
         Returns:
             Created user response DTO
@@ -66,7 +66,7 @@ class UserCommandService(ABC):
         Args:
             employee_id: ID of user to update
             request: User update request DTO
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
             
         Returns:
             Updated user response DTO
@@ -91,7 +91,7 @@ class UserCommandService(ABC):
         Args:
             employee_id: ID of user to update
             request: Documents update request DTO
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
             
         Returns:
             Updated user response DTO
@@ -115,7 +115,7 @@ class UserCommandService(ABC):
         Args:
             employee_id: ID of user to update
             request: Password change request DTO
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
             
         Returns:
             Updated user response DTO
@@ -141,7 +141,7 @@ class UserCommandService(ABC):
         Args:
             employee_id: ID of user to update
             request: Role change request DTO
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
             
         Returns:
             Updated user response DTO
@@ -167,7 +167,7 @@ class UserCommandService(ABC):
         Args:
             employee_id: ID of user to update
             request: Status update request DTO
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
             
         Returns:
             Updated user response DTO
@@ -249,7 +249,7 @@ class UserQueryService(ABC):
         
         Args:
             employee_id: User ID to search for
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
             
         Returns:
             User response DTO if found, None otherwise
@@ -263,7 +263,7 @@ class UserQueryService(ABC):
         
         Args:
             email: Email to search for
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
             
         Returns:
             User response DTO if found, None otherwise
@@ -277,7 +277,7 @@ class UserQueryService(ABC):
         
         Args:
             mobile: Mobile number to search for
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
             
         Returns:
             User response DTO if found, None otherwise
@@ -301,7 +301,7 @@ class UserQueryService(ABC):
             limit: Maximum number of records to return
             include_inactive: Whether to include inactive users
             include_deleted: Whether to include deleted users
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
             
         Returns:
             Paginated list of user summary DTOs
@@ -315,7 +315,7 @@ class UserQueryService(ABC):
         
         Args:
             filters: Search filters and pagination parameters
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
             
         Returns:
             Paginated list of user summary DTOs matching filters
@@ -391,7 +391,7 @@ class UserQueryService(ABC):
             mobile: Mobile number to check
             pan_number: PAN number to check
             exclude_id: User ID to exclude from check
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
             
         Returns:
             Dictionary indicating existence for each checked field
@@ -655,7 +655,7 @@ class UserAnalyticsService(ABC):
         Get comprehensive user statistics.
         
         Args:
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
         
         Returns:
             User statistics including counts, distributions, and trends
@@ -1029,7 +1029,7 @@ class UserValidationService(ABC):
             mobile: Mobile number to check
             pan_number: PAN number to check
             exclude_id: User ID to exclude from check
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
             
         Returns:
             Dictionary indicating existence for each checked field

@@ -73,7 +73,7 @@ async def create_payout(
         request: Payout creation request
         controller: Payout controller dependency
         role: User role (admin, superadmin, manager)
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Created payout response
@@ -116,7 +116,7 @@ async def get_my_payouts(
         month: Filter by month (optional)
         controller: Payout controller dependency
         employee_id: Current user's employee ID
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         List of current user's payouts
@@ -139,7 +139,7 @@ async def get_payout_by_id(
         controller: Payout controller dependency
         employee_id: Current user's employee ID
         role: User role
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Payout response
@@ -169,7 +169,7 @@ async def update_payout(
         request: Update request data
         controller: Payout controller dependency
         role: User role (admin, superadmin, manager)
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Updated payout response
@@ -194,7 +194,7 @@ async def update_payout_status(
         controller: Payout controller dependency
         employee_id: Current user's employee ID
         role: User role (admin, superadmin, manager)
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Status update response
@@ -216,7 +216,7 @@ async def bulk_process_payouts(
         request: Bulk payout request
         controller: Payout controller dependency
         role: User role (admin, superadmin)
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Bulk processing response
@@ -242,7 +242,7 @@ async def get_monthly_payouts(
         status: Filter by status (optional)
         controller: Payout controller dependency
         role: User role (admin, superadmin, manager)
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         List of monthly payouts
@@ -266,7 +266,7 @@ async def get_monthly_payout_summary(
         month: Month
         controller: Payout controller dependency
         role: User role (admin, superadmin, manager)
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Monthly payout summary
@@ -290,7 +290,7 @@ async def get_payslip_data(
         controller: Payout controller dependency
         employee_id: Current user's employee ID
         role: User role
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Payslip data response
@@ -324,7 +324,7 @@ async def generate_payslip(
         controller: Payout controller dependency
         employee_id: Current user's employee ID
         role: User role
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Generated payslip response
@@ -375,7 +375,7 @@ async def get_my_payout_history(
         year: Year
         controller: Payout controller dependency
         employee_id: Current user's employee ID
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Current user's payout history
@@ -397,7 +397,7 @@ async def auto_generate_current_month_payout(
         employee_id: Employee ID
         controller: Payout controller dependency
         role: User role (admin, superadmin, manager)
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Generated payout response

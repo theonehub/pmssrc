@@ -284,7 +284,7 @@ class SolidUserRepository(BaseRepository[User]):
             await self._update_document(
                 filters=filters,
                 update_data=document,
-                organization_id=hostname,
+                organisation_id=hostname,
                 upsert=True
             )
             
@@ -437,7 +437,7 @@ class SolidUserRepository(BaseRepository[User]):
         limit: int = 100,
         include_inactive: bool = False,
         include_deleted: bool = False,
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> List[User]:
         """
         Get all users with pagination.
@@ -457,7 +457,7 @@ class SolidUserRepository(BaseRepository[User]):
                 filters=filters,
                 skip=skip,
                 limit=limit,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             users = [self._document_to_entity(doc) for doc in documents]
@@ -468,7 +468,7 @@ class SolidUserRepository(BaseRepository[User]):
             logger.error(f"Error getting all users: {e}")
             raise
     
-    async def get_by_manager(self, manager_id: Union[EmployeeId, str], organization_id: Optional[str] = None) -> List[User]:
+    async def get_by_manager(self, manager_id: Union[EmployeeId, str], organisation_id: Optional[str] = None) -> List[User]:
         """
         Get users by manager ID.
         
@@ -479,7 +479,7 @@ class SolidUserRepository(BaseRepository[User]):
             filters = {"manager_id": mgr_id}
             documents = await self._execute_query(
                 filters=filters,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             users = [self._document_to_entity(doc) for doc in documents]
@@ -495,7 +495,7 @@ class SolidUserRepository(BaseRepository[User]):
         employee_id: Union[EmployeeId, str], 
         leave_name: str, 
         leave_count: int, 
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> bool:
         """
         Update leave balance for a user.
@@ -504,7 +504,7 @@ class SolidUserRepository(BaseRepository[User]):
         """
         try:
             employee_id = str(employee_id) if isinstance(employee_id, str) else str(employee_id.value if hasattr(employee_id, 'value') else employee_id)
-            collection = self._get_collection(organization_id)
+            collection = self._get_collection(organisation_id)
             
             result = await collection.update_one(
                 {"employee_id": employee_id},
@@ -526,7 +526,7 @@ class SolidUserRepository(BaseRepository[User]):
             raise
     
     # Analytics Repository Implementation
-    async def get_statistics(self, organization_id: Optional[str] = None) -> UserStatisticsDTO:
+    async def get_statistics(self, organisation_id: Optional[str] = None) -> UserStatisticsDTO:
         """
         Get user statistics.
         
@@ -538,7 +538,7 @@ class SolidUserRepository(BaseRepository[User]):
                 {"$match": {"is_deleted": {"$ne": True}}},
                 {"$group": {"_id": "$role", "count": {"$sum": 1}}}
             ]
-            role_stats = await self._aggregate(role_pipeline, organization_id)
+            role_stats = await self._aggregate(role_pipeline, organisation_id)
             role_counts = {item["_id"]: item["count"] for item in role_stats}
             
             # Get status statistics
@@ -546,13 +546,13 @@ class SolidUserRepository(BaseRepository[User]):
                 {"$match": {"is_deleted": {"$ne": True}}},
                 {"$group": {"_id": "$status", "count": {"$sum": 1}}}
             ]
-            status_stats = await self._aggregate(status_pipeline, organization_id)
+            status_stats = await self._aggregate(status_pipeline, organisation_id)
             status_counts = {item["_id"]: item["count"] for item in status_stats}
             
             # Get total count
             total_count = await self._count_documents(
                 {"is_deleted": {"$ne": True}},
-                organization_id
+                organisation_id
             )
             
             return UserStatisticsDTO(
@@ -568,7 +568,7 @@ class SolidUserRepository(BaseRepository[User]):
             raise
     
     # Additional methods for compatibility with existing code
-    async def create_user_legacy(self, user_data: Dict[str, Any], organization_id: str) -> Dict[str, Any]:
+    async def create_user_legacy(self, user_data: Dict[str, Any], organisation_id: str) -> Dict[str, Any]:
         """
         Legacy compatibility method for create_user() function.
         
@@ -576,7 +576,7 @@ class SolidUserRepository(BaseRepository[User]):
         """
         try:
             document = user_data.copy()
-            document_id = await self._insert_document(document, organization_id)
+            document_id = await self._insert_document(document, organisation_id)
             
             logger.info(f"User created (legacy): {user_data.get('employee_id')}")
             return {
@@ -588,7 +588,7 @@ class SolidUserRepository(BaseRepository[User]):
             logger.error(f"Error creating user (legacy): {e}")
             raise
     
-    async def get_all_users_legacy(self, organization_id: str) -> List[Dict[str, Any]]:
+    async def get_all_users_legacy(self, organisation_id: str) -> List[Dict[str, Any]]:
         """
         Legacy compatibility method for get_all_users() function.
         
@@ -597,7 +597,7 @@ class SolidUserRepository(BaseRepository[User]):
         try:
             documents = await self._execute_query(
                 filters={},
-                organization_id=organization_id,
+                organisation_id=organisation_id,
                 limit=1000  # Large limit for legacy compatibility
             )
             
@@ -608,7 +608,7 @@ class SolidUserRepository(BaseRepository[User]):
             logger.error(f"Error getting all users (legacy): {e}")
             raise
     
-    async def get_users_stats_legacy(self, organization_id: str) -> Dict[str, int]:
+    async def get_users_stats_legacy(self, organisation_id: str) -> Dict[str, int]:
         """
         Legacy compatibility method for get_users_stats() function.
         
@@ -618,7 +618,7 @@ class SolidUserRepository(BaseRepository[User]):
             pipeline = [
                 {"$group": {"_id": "$role", "count": {"$sum": 1}}}
             ]
-            results = await self._aggregate(pipeline, organization_id)
+            results = await self._aggregate(pipeline, organisation_id)
             stats = {item["_id"]: item["count"] for item in results}
             
             logger.info(f"User stats (legacy): {stats}")

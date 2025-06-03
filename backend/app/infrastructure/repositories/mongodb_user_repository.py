@@ -62,13 +62,13 @@ class MongoDBUserRepository(UserRepository):
         self._connection_string = connection_string
         self._client_options = client_options
         
-    async def _get_collection(self, organization_id: Optional[str] = None):
+    async def _get_collection(self, organisation_id: Optional[str] = None):
         """
-        Get users collection for specific organization or global.
+        Get users collection for specific organisation or global.
         
         Ensures database connection is established in the correct event loop.
         """
-        db_name = organization_id if organization_id else "global_database"
+        db_name = organisation_id if organisation_id else "pms_global_database"
         
         # Ensure database is connected in the current event loop
         if not self.db_connector.is_connected:
@@ -359,10 +359,10 @@ class MongoDBUserRepository(UserRepository):
     async def save_batch(self, users: List[User]) -> List[User]:
         """Save multiple users in a batch operation."""
         try:
-            # Group users by organization
+            # Group users by organisation
             users_by_org = {}
             for user in users:
-                org_id = user.organization_id or "global_database"
+                org_id = user.organisation_id or "pms_global_database"
                 if org_id not in users_by_org:
                     users_by_org[org_id] = []
                 users_by_org[org_id].append(user)
@@ -403,7 +403,7 @@ class MongoDBUserRepository(UserRepository):
     async def delete(self, employee_id: EmployeeId, soft_delete: bool = True, hostname: Optional[str] = None) -> bool:
         """Delete a user by ID."""
         try:
-            # For soft delete, we need to find the user first to get organization
+            # For soft delete, we need to find the user first to get organisation
             user = await self.get_by_id(employee_id, hostname)
             if not user:
                 return False
@@ -430,7 +430,7 @@ class MongoDBUserRepository(UserRepository):
                 # Publish delete event
                 delete_event = UserDeleted(
                     employee_id=employee_id,
-                    organization_id=hostname,
+                    organisation_id=hostname,
                     soft_delete=soft_delete,
                     deleted_at=datetime.utcnow()
                 )
@@ -446,10 +446,10 @@ class MongoDBUserRepository(UserRepository):
             raise
     
     # Query Repository Implementation
-    async def get_by_id(self, employee_id: EmployeeId, organization_id: Optional[str] = None) -> Optional[User]:
+    async def get_by_id(self, employee_id: EmployeeId, organisation_id: Optional[str] = None) -> Optional[User]:
         """Get user by ID."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             document = await collection.find_one({
                 "employee_id": str(employee_id),
                 "is_deleted": {"$ne": True}
@@ -464,10 +464,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error getting user by ID {employee_id}: {e}")
             raise
     
-    async def get_by_email(self, email: str, organization_id: Optional[str] = None) -> Optional[User]:
+    async def get_by_email(self, email: str, organisation_id: Optional[str] = None) -> Optional[User]:
         """Get user by email."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             document = await collection.find_one({
                 "email": email,
                 "is_deleted": {"$ne": True}
@@ -482,10 +482,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error getting user by email {email}: {e}")
             raise
     
-    async def get_by_username(self, username: str, organization_id: Optional[str] = None) -> Optional[User]:
+    async def get_by_username(self, username: str, organisation_id: Optional[str] = None) -> Optional[User]:
         """Get user by username."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             document = await collection.find_one({
                 "username": username,
                 "is_deleted": {"$ne": True}
@@ -500,10 +500,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error getting user by username {username}: {e}")
             raise
     
-    async def get_by_mobile(self, mobile: str, organization_id: Optional[str] = None) -> Optional[User]:
+    async def get_by_mobile(self, mobile: str, organisation_id: Optional[str] = None) -> Optional[User]:
         """Get user by mobile number."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             document = await collection.find_one({
                 "mobile": mobile,
                 "is_deleted": {"$ne": True}
@@ -518,10 +518,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error getting user by mobile {mobile}: {e}")
             raise
     
-    async def get_by_pan_number(self, pan_number: str, organization_id: Optional[str] = None) -> Optional[User]:
+    async def get_by_pan_number(self, pan_number: str, organisation_id: Optional[str] = None) -> Optional[User]:
         """Get user by PAN number."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             document = await collection.find_one({
                 "pan_number": pan_number,
                 "is_deleted": {"$ne": True}
@@ -542,11 +542,11 @@ class MongoDBUserRepository(UserRepository):
         limit: int = 100,
         include_inactive: bool = False,
         include_deleted: bool = False,
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> List[User]:
         """Get all users with pagination."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             
             # Build filter
             filter_query = {}
@@ -567,10 +567,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error getting all users: {e}")
             raise
     
-    async def search(self, filters: UserSearchFiltersDTO, organization_id: Optional[str] = None) -> List[User]:
+    async def search(self, filters: UserSearchFiltersDTO, organisation_id: Optional[str] = None) -> List[User]:
         """Search users with filters."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             
             # Build search query
             query = {}
@@ -635,10 +635,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error searching users: {e}")
             raise
     
-    async def get_by_role(self, role: UserRole, organization_id: Optional[str] = None) -> List[User]:
+    async def get_by_role(self, role: UserRole, organisation_id: Optional[str] = None) -> List[User]:
         """Get users by role."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             cursor = collection.find({
                 "role": role.value,
                 "is_deleted": {"$ne": True}
@@ -651,10 +651,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error getting users by role {role}: {e}")
             raise
     
-    async def get_by_status(self, status: UserStatus, organization_id: Optional[str] = None) -> List[User]:
+    async def get_by_status(self, status: UserStatus, organisation_id: Optional[str] = None) -> List[User]:
         """Get users by status."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             cursor = collection.find({
                 "status": status.value,
                 "is_deleted": {"$ne": True}
@@ -667,10 +667,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error getting users by status {status}: {e}")
             raise
     
-    async def get_by_department(self, department: str, organization_id: Optional[str] = None) -> List[User]:
+    async def get_by_department(self, department: str, organisation_id: Optional[str] = None) -> List[User]:
         """Get users by department."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             cursor = collection.find({
                 "department": department,
                 "is_deleted": {"$ne": True}
@@ -683,10 +683,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error getting users by department {department}: {e}")
             raise
     
-    async def get_by_manager(self, manager_id: EmployeeId, organization_id: Optional[str] = None) -> List[User]:
+    async def get_by_manager(self, manager_id: EmployeeId, organisation_id: Optional[str] = None) -> List[User]:
         """Get users by manager."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             cursor = collection.find({
                 "manager_id": str(manager_id),
                 "is_deleted": {"$ne": True}
@@ -699,10 +699,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error getting users by manager {manager_id}: {e}")
             raise
     
-    async def get_active_users(self, organization_id: Optional[str] = None) -> List[User]:
+    async def get_active_users(self, organisation_id: Optional[str] = None) -> List[User]:
         """Get all active users."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             cursor = collection.find({
                 "is_active": True,
                 "status": {"$ne": UserStatus.INACTIVE.value},
@@ -716,10 +716,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error getting active users: {e}")
             raise
     
-    async def get_locked_users(self, organization_id: Optional[str] = None) -> List[User]:
+    async def get_locked_users(self, organisation_id: Optional[str] = None) -> List[User]:
         """Get all locked users."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             cursor = collection.find({
                 "status": UserStatus.LOCKED.value,
                 "is_deleted": {"$ne": True}
@@ -733,10 +733,10 @@ class MongoDBUserRepository(UserRepository):
             raise
     
     # Count methods
-    async def count_total(self, include_deleted: bool = False, organization_id: Optional[str] = None) -> int:
+    async def count_total(self, include_deleted: bool = False, organisation_id: Optional[str] = None) -> int:
         """Count total users."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             filter_query = {}
             if not include_deleted:
                 filter_query["is_deleted"] = {"$ne": True}
@@ -747,10 +747,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error counting total users: {e}")
             raise
     
-    async def count_by_status(self, status: UserStatus, organization_id: Optional[str] = None) -> int:
+    async def count_by_status(self, status: UserStatus, organisation_id: Optional[str] = None) -> int:
         """Count users by status."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             return await collection.count_documents({
                 "status": status.value,
                 "is_deleted": {"$ne": True}
@@ -760,10 +760,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error counting users by status {status}: {e}")
             raise
     
-    async def count_by_role(self, role: UserRole, organization_id: Optional[str] = None) -> int:
+    async def count_by_role(self, role: UserRole, organisation_id: Optional[str] = None) -> int:
         """Count users by role."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             return await collection.count_documents({
                 "role": role.value,
                 "is_deleted": {"$ne": True}
@@ -774,10 +774,10 @@ class MongoDBUserRepository(UserRepository):
             raise
     
     # Existence checks
-    async def exists_by_email(self, email: str, exclude_id: Optional[EmployeeId] = None, organization_id: Optional[str] = None) -> bool:
+    async def exists_by_email(self, email: str, exclude_id: Optional[EmployeeId] = None, organisation_id: Optional[str] = None) -> bool:
         """Check if user exists by email."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             query = {
                 "email": email,
                 "is_deleted": {"$ne": True}
@@ -793,10 +793,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error checking email existence {email}: {e}")
             raise
     
-    async def exists_by_mobile(self, mobile: str, exclude_id: Optional[EmployeeId] = None, organization_id: Optional[str] = None) -> bool:
+    async def exists_by_mobile(self, mobile: str, exclude_id: Optional[EmployeeId] = None, organisation_id: Optional[str] = None) -> bool:
         """Check if user exists by mobile."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             query = {
                 "mobile": mobile,
                 "is_deleted": {"$ne": True}
@@ -812,10 +812,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error checking mobile existence {mobile}: {e}")
             raise
     
-    async def exists_by_pan_number(self, pan_number: str, exclude_id: Optional[EmployeeId] = None, organization_id: Optional[str] = None) -> bool:
+    async def exists_by_pan_number(self, pan_number: str, exclude_id: Optional[EmployeeId] = None, organisation_id: Optional[str] = None) -> bool:
         """Check if user exists by PAN number."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             query = {
                 "pan_number": pan_number,
                 "is_deleted": {"$ne": True}
@@ -832,10 +832,10 @@ class MongoDBUserRepository(UserRepository):
             raise
     
     # Analytics Repository Implementation
-    async def get_statistics(self, organization_id: Optional[str] = None) -> UserStatisticsDTO:
+    async def get_statistics(self, organisation_id: Optional[str] = None) -> UserStatisticsDTO:
         """Get comprehensive user statistics."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             
             # Aggregate statistics
             pipeline = [
@@ -871,12 +871,12 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error getting user statistics: {e}")
             raise
     
-    async def get_analytics(self, organization_id: Optional[str] = None) -> UserAnalyticsDTO:
+    async def get_analytics(self, organisation_id: Optional[str] = None) -> UserAnalyticsDTO:
         """Get detailed user analytics."""
         try:
             # Implementation would include complex analytics queries
             # For now, return basic analytics
-            stats = await self.get_statistics(organization_id)
+            stats = await self.get_statistics(organisation_id)
             
             return UserAnalyticsDTO(
                 user_statistics=stats,
@@ -890,10 +890,10 @@ class MongoDBUserRepository(UserRepository):
             raise
 
     # Analytics Repository Methods
-    async def get_users_by_role_count(self, organization_id: Optional[str] = None) -> Dict[str, int]:
+    async def get_users_by_role_count(self, organisation_id: Optional[str] = None) -> Dict[str, int]:
         """Get user count by role."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             pipeline = [
                 {"$match": {"is_deleted": {"$ne": True}}},
                 {"$group": {"_id": "$role", "count": {"$sum": 1}}}
@@ -906,10 +906,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error getting users by role count: {e}")
             return {}
 
-    async def get_users_by_status_count(self, organization_id: Optional[str] = None) -> Dict[str, int]:
+    async def get_users_by_status_count(self, organisation_id: Optional[str] = None) -> Dict[str, int]:
         """Get user count by status."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             pipeline = [
                 {"$match": {"is_deleted": {"$ne": True}}},
                 {"$group": {"_id": "$status", "count": {"$sum": 1}}}
@@ -922,10 +922,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error getting users by status count: {e}")
             return {}
 
-    async def get_users_by_department_count(self, organization_id: Optional[str] = None) -> Dict[str, int]:
+    async def get_users_by_department_count(self, organisation_id: Optional[str] = None) -> Dict[str, int]:
         """Get user count by department."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             pipeline = [
                 {"$match": {"is_deleted": {"$ne": True}}},
                 {"$group": {"_id": "$department", "count": {"$sum": 1}}}
@@ -938,11 +938,11 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error getting users by department count: {e}")
             return {}
 
-    async def get_login_activity_stats(self, days: int = 30, organization_id: Optional[str] = None) -> Dict[str, Any]:
+    async def get_login_activity_stats(self, days: int = 30, organisation_id: Optional[str] = None) -> Dict[str, Any]:
         """Get login activity statistics."""
         try:
             # Basic implementation - would be more complex in real scenario
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             cutoff_date = datetime.now() - timedelta(days=days)
             
             active_users = await collection.count_documents({
@@ -960,10 +960,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error getting login activity stats: {e}")
             return {}
 
-    async def get_profile_completion_stats(self, organization_id: Optional[str] = None) -> Dict[str, Any]:
+    async def get_profile_completion_stats(self, organisation_id: Optional[str] = None) -> Dict[str, Any]:
         """Get profile completion statistics."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             pipeline = [
                 {"$match": {"is_deleted": {"$ne": True}}},
                 {
@@ -993,10 +993,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error getting profile completion stats: {e}")
             return {}
 
-    async def get_most_active_users(self, limit: int = 10, organization_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def get_most_active_users(self, limit: int = 10, organisation_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get most active users."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             cursor = collection.find(
                 {"is_deleted": {"$ne": True}},
                 {"employee_id": 1, "name": 1, "login_count": 1, "last_login": 1}
@@ -1012,11 +1012,11 @@ class MongoDBUserRepository(UserRepository):
         self, 
         start_date: datetime, 
         end_date: datetime,
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> List[User]:
         """Get users created in a specific period."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             cursor = collection.find({
                 "created_at": {"$gte": start_date, "$lte": end_date},
                 "is_deleted": {"$ne": True}
@@ -1029,10 +1029,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error getting users created in period: {e}")
             return []
 
-    async def get_password_security_metrics(self, organization_id: Optional[str] = None) -> Dict[str, Any]:
+    async def get_password_security_metrics(self, organisation_id: Optional[str] = None) -> Dict[str, Any]:
         """Get password security metrics."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             now = datetime.now()
             
             # Users with old passwords (older than 90 days)
@@ -1059,7 +1059,7 @@ class MongoDBUserRepository(UserRepository):
             return {}
 
     # Profile Repository Methods
-    async def get_profile_completion(self, employee_id: EmployeeId, organization_id: Optional[str] = None) -> UserProfileCompletionDTO:
+    async def get_profile_completion(self, employee_id: EmployeeId, organisation_id: Optional[str] = None) -> UserProfileCompletionDTO:
         """Get profile completion for a user."""
         try:
             user = await self.get_by_id(employee_id)
@@ -1100,10 +1100,10 @@ class MongoDBUserRepository(UserRepository):
                 completed_fields=[]
             )
 
-    async def get_incomplete_profiles(self, threshold: float = 80.0, organization_id: Optional[str] = None) -> List[UserProfileCompletionDTO]:
+    async def get_incomplete_profiles(self, threshold: float = 80.0, organisation_id: Optional[str] = None) -> List[UserProfileCompletionDTO]:
         """Get users with incomplete profiles."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             cursor = collection.find({
                 "profile_completion_percentage": {"$lt": threshold},
                 "is_deleted": {"$ne": True}
@@ -1114,7 +1114,7 @@ class MongoDBUserRepository(UserRepository):
             
             for doc in documents:
                 user = self._document_to_user(doc)
-                completion = await self.get_profile_completion(user.employee_id, organization_id)
+                completion = await self.get_profile_completion(user.employee_id, organisation_id)
                 result.append(completion)
             
             return result
@@ -1123,10 +1123,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error getting incomplete profiles: {e}")
             return []
 
-    async def get_users_missing_documents(self, organization_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def get_users_missing_documents(self, organisation_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get users missing required documents."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             cursor = collection.find({
                 "$or": [
                     {"pan_document_path": {"$in": [None, ""]}},
@@ -1160,10 +1160,10 @@ class MongoDBUserRepository(UserRepository):
             logger.error(f"Error getting users missing documents: {e}")
             return []
 
-    async def track_profile_update(self, employee_id: EmployeeId, section: str, organization_id: Optional[str] = None) -> None:
+    async def track_profile_update(self, employee_id: EmployeeId, section: str, organisation_id: Optional[str] = None) -> None:
         """Track profile section update."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             await collection.update_one(
                 {"employee_id": str(employee_id)},
                 {"$set": {"updated_at": datetime.now()}}
@@ -1180,11 +1180,11 @@ class MongoDBUserRepository(UserRepository):
         status: UserStatus,
         updated_by: str,
         reason: Optional[str] = None,
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Bulk update user status."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             filter_query = {"employee_id": {"$in": [str(uid) for uid in employee_ids]}}
             update_data = {
                 "$set": {
@@ -1215,11 +1215,11 @@ class MongoDBUserRepository(UserRepository):
         role: UserRole,
         updated_by: str,
         reason: str,
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Bulk update user role."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             filter_query = {"employee_id": {"$in": [str(uid) for uid in employee_ids]}}
             update_data = {
                 "$set": {
@@ -1247,11 +1247,11 @@ class MongoDBUserRepository(UserRepository):
         employee_ids: List[EmployeeId], 
         department: str,
         updated_by: str,
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Bulk update user department."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             filter_query = {"employee_id": {"$in": [str(uid) for uid in employee_ids]}}
             update_data = {
                 "$set": {
@@ -1278,14 +1278,14 @@ class MongoDBUserRepository(UserRepository):
         employee_ids: Optional[List[EmployeeId]] = None,
         format: str = "csv",
         include_sensitive: bool = False,
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> bytes:
         """Bulk export user data."""
         try:
             import csv
             import io
             
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             
             # Build query
             query = {"is_deleted": {"$ne": True}}
@@ -1332,7 +1332,7 @@ class MongoDBUserRepository(UserRepository):
         format: str = "csv",
         created_by: str = "system",
         validate_only: bool = False,
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Bulk import user data."""
         try:
@@ -1372,7 +1372,7 @@ class MongoDBUserRepository(UserRepository):
             
             if not validate_only and valid_users:
                 # Perform actual import
-                collection = await self._get_collection(organization_id)
+                collection = await self._get_collection(organisation_id)
                 operations = []
                 
                 for user_data in valid_users:
@@ -1407,14 +1407,14 @@ class MongoDBUserRepository(UserRepository):
         employee_ids: List[EmployeeId],
         reset_by: str,
         send_email: bool = True,
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Bulk password reset for users."""
         try:
             import secrets
             import string
             
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             reset_results = []
             
             for employee_id in employee_ids:

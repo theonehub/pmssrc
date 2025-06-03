@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from bson import ObjectId
 import json
 import os
+from datetime import datetime
 
 # Import centralized logger
 from app.utils.logger import get_logger
@@ -18,20 +19,16 @@ async def create_default_user():
     """Simplified default user creation"""
     pass
 
-# SOLID V2 Routes (Clean Architecture) - Our Working Routes
 from app.api.routes.auth_routes_v2 import router as auth_routes_v2_router
 from app.api.routes.employee_salary_routes_v2 import router as employee_salary_routes_v2_router
 from app.api.routes.payslip_routes_v2 import router as payslip_routes_v2_router
-
-# CRITICAL MISSING ROUTES - Add minimal working versions
 from app.api.routes.taxation_routes_v2_minimal import router as taxation_routes_v2_router
 from app.api.routes.payout_routes_v2_minimal import router as payout_routes_v2_router
 from app.api.routes.user_routes_v2 import router as user_routes_v2_router
+from app.api.routes.organisation_routes import organisation_v2_router
 
-# Set these as available since we have minimal versions
 USER_ROUTES_V2_AVAILABLE = True
 
-# Try to import other v2 routes if they exist and work
 try:
     from app.api.routes.reimbursement_routes_v2 import router as reimbursement_routes_v2_router
     REIMBURSEMENT_ROUTES_V2_AVAILABLE = True
@@ -90,16 +87,16 @@ except ImportError:
     print("Info: Company leave v1 controller not available - continuing without them")
 
 try:
-    from app.api.controllers.organization_controller import organization_route
-    ORGANIZATION_CONTROLLER_AVAILABLE = True
+    from app.api.routes.organisation_routes import organisation_v2_router
+    ORGANISATION_CONTROLLER_AVAILABLE = True
 except ImportError:
-    ORGANIZATION_CONTROLLER_AVAILABLE = False
-    print("Info: Organization controller not available - continuing without them")
+    ORGANISATION_CONTROLLER_AVAILABLE = False
+    print("Info: Organisation routes not available - continuing without them")
 
 
 # Simplified dependencies for now
-def initialize_organization_dependencies():
-    """Simplified organization initialization"""
+def initialize_organisation_dependencies():
+    """Simplified organisation initialization"""
     return True
 
 class MockDependencyContainer:
@@ -138,11 +135,11 @@ async def lifespan(app: FastAPI):
     # Create default user using legacy service (will be migrated later)
     await create_default_user()
     
-    # Initialize organization system
-    if initialize_organization_dependencies():
-        logger.info("Organization system initialized successfully")
+    # Initialize organisation system
+    if initialize_organisation_dependencies():
+        logger.info("Organisation system initialized successfully")
     else:
-        logger.error("Failed to initialize organization system")
+        logger.error("Failed to initialize organisation system")
     
     yield
     
@@ -253,9 +250,9 @@ if COMPANY_LEAVE_V1_AVAILABLE:
     app.include_router(company_leave_v1_router, tags=["🏢 Company Leaves V1 (Legacy)"])
     logger.info("✅ Company leave v1 controller registered")
 
-if ORGANIZATION_CONTROLLER_AVAILABLE:
-    app.include_router(organization_route, tags=["🏛️ Organization V2 (SOLID)"])
-    logger.info("✅ Organization controller registered")
+if ORGANISATION_CONTROLLER_AVAILABLE:
+    app.include_router(organisation_v2_router, tags=["🏛️ Organisation V2 (SOLID)"])
+    logger.info("✅ Organisation routes registered")
 
 
 # Health check endpoint
@@ -268,40 +265,21 @@ async def health_check():
         
         route_count = len(app.routes)
         
-        if health_status["status"] == "healthy":
-            return JSONResponse(
-                status_code=200,
-                content={
-                                    "status": "healthy",
-                "version": "2.0.0",
-                "architecture": "SOLID-compliant",
-                "active_routes": route_count,
-                "solid_v2_routes_core": ["auth", "employee_salary", "payslip", "taxation", "payout"],
-                "solid_v2_routes_optional": {
-                    "user": USER_ROUTES_V2_AVAILABLE,
-                    "reimbursement": REIMBURSEMENT_ROUTES_V2_AVAILABLE,
-                    "attendance": ATTENDANCE_ROUTES_V2_AVAILABLE,
-                    "public_holiday": PUBLIC_HOLIDAY_ROUTES_V2_AVAILABLE,
-                    "company_leave": COMPANY_LEAVE_ROUTES_V2_AVAILABLE,
-                    "project_attributes": PROJECT_ATTRIBUTES_ROUTES_V2_AVAILABLE,
-                    "employee_leave": EMPLOYEE_LEAVE_ROUTES_V2_AVAILABLE
-                }
-                }
-            )
-        else:
-            return JSONResponse(
-                status_code=503,
-                content=health_status
-            )
+        return {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "routes_registered": route_count,
+            "container_status": health_status,
+            "version": "2.0.0"
+        }
     except Exception as e:
         logger.error(f"Health check failed: {e}")
-        return JSONResponse(
-            status_code=503,
-            content={
-                "status": "unhealthy",
-                "error": str(e)
-            }
-        )
+        return {
+            "status": "unhealthy",
+            "timestamp": datetime.now().isoformat(),
+            "error": str(e),
+            "version": "2.0.0"
+        }
 
 @app.get("/")
 async def root():

@@ -128,7 +128,7 @@ async def calculate_annual_salary_projection(employee_id: str, tax_year: str, ho
     Args:
         employee_id: Employee ID
         tax_year: Tax year in format "YYYY-YYYY" (e.g., "2024-2025")
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         SalaryProjection with calculated annual amounts

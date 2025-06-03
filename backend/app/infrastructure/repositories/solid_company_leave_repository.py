@@ -166,10 +166,10 @@ class SolidCompanyLeaveRepository(
         
         return CompanyLeave(**document)
     
-    async def _ensure_indexes(self, organization_id: str) -> None:
+    async def _ensure_indexes(self, organisation_id: str) -> None:
         """Ensure necessary indexes for optimal query performance."""
         try:
-            collection = self._get_collection(organization_id)
+            collection = self._get_collection(organisation_id)
             
             # Index for company_leave_id queries
             await collection.create_index([
@@ -197,7 +197,7 @@ class SolidCompanyLeaveRepository(
                 ("created_at", -1)
             ])
             
-            logger.info(f"Company leave indexes ensured for organization: {organization_id}")
+            logger.info(f"Company leave indexes ensured for organisation: {organisation_id}")
             
         except Exception as e:
             logger.error(f"Error ensuring company leave indexes: {e}")
@@ -210,11 +210,11 @@ class SolidCompanyLeaveRepository(
         Replaces: create_leave() function
         """
         try:
-            # Get organization from leave or use default
-            organization_id = getattr(leave, 'organization_id', 'default')
+            # Get organisation from leave or use default
+            organisation_id = getattr(leave, 'organisation_id', 'default')
             
             # Ensure indexes
-            await self._ensure_indexes(organization_id)
+            await self._ensure_indexes(organisation_id)
             
             # Prepare document
             document = self._entity_to_document(leave)
@@ -231,7 +231,7 @@ class SolidCompanyLeaveRepository(
             # Check for existing record by company_leave_id
             existing = None
             if document.get('company_leave_id'):
-                existing = await self.get_by_id(document['company_leave_id'], organization_id)
+                existing = await self.get_by_id(document['company_leave_id'], organisation_id)
             
             if existing:
                 # Update existing record
@@ -239,17 +239,17 @@ class SolidCompanyLeaveRepository(
                 success = await self._update_document(
                     filters=filters,
                     update_data=document,
-                    organization_id=organization_id
+                    organisation_id=organisation_id
                 )
                 if success:
-                    return await self.get_by_id(document['company_leave_id'], organization_id)
+                    return await self.get_by_id(document['company_leave_id'], organisation_id)
                 else:
                     raise ValueError("Failed to update company leave record")
             else:
                 # Insert new record
-                document_id = await self._insert_document(document, organization_id)
+                document_id = await self._insert_document(document, organisation_id)
                 # Return the saved document
-                saved_doc = await self._get_collection(organization_id).find_one({"_id": document_id})
+                saved_doc = await self._get_collection(organisation_id).find_one({"_id": document_id})
                 return self._document_to_entity(saved_doc)
             
         except Exception as e:
@@ -257,7 +257,7 @@ class SolidCompanyLeaveRepository(
             raise
     
     async def update(self, leave_id: str, update_data: Dict[str, Any], 
-                    organization_id: str) -> bool:
+                    organisation_id: str) -> bool:
         """
         Update company leave record.
         
@@ -281,7 +281,7 @@ class SolidCompanyLeaveRepository(
             success = await self._update_document(
                 filters=filters,
                 update_data=filtered_update_data,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return success
@@ -290,7 +290,7 @@ class SolidCompanyLeaveRepository(
             logger.error(f"Error updating company leave {leave_id}: {e}")
             return False
     
-    async def delete(self, leave_id: str, organization_id: str) -> bool:
+    async def delete(self, leave_id: str, organisation_id: str) -> bool:
         """
         Delete company leave record (soft delete).
         
@@ -303,14 +303,14 @@ class SolidCompanyLeaveRepository(
                 "updated_at": datetime.now()
             }
             
-            return await self.update(leave_id, update_data, organization_id)
+            return await self.update(leave_id, update_data, organisation_id)
             
         except Exception as e:
             logger.error(f"Error deleting company leave {leave_id}: {e}")
             return False
     
     # Query Repository Implementation
-    async def get_by_id(self, leave_id: str, organization_id: str = "default") -> Optional[CompanyLeave]:
+    async def get_by_id(self, leave_id: str, organisation_id: str = "default") -> Optional[CompanyLeave]:
         """Get company leave record by ID."""
         try:
             filters = {"company_leave_id": leave_id, "is_active": True}
@@ -318,7 +318,7 @@ class SolidCompanyLeaveRepository(
             documents = await self._execute_query(
                 filters=filters,
                 limit=1,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             if documents:
@@ -329,7 +329,7 @@ class SolidCompanyLeaveRepository(
             logger.error(f"Error retrieving company leave {leave_id}: {e}")
             return None
     
-    async def get_all_active(self, organization_id: str = "default") -> List[CompanyLeave]:
+    async def get_all_active(self, organisation_id: str = "default") -> List[CompanyLeave]:
         """
         Get all active company leaves.
         
@@ -343,7 +343,7 @@ class SolidCompanyLeaveRepository(
                 sort_by="name",
                 sort_order=1,
                 limit=100,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -352,7 +352,7 @@ class SolidCompanyLeaveRepository(
             logger.error(f"Error retrieving all active company leaves: {e}")
             return []
     
-    async def get_by_name(self, name: str, organization_id: str = "default") -> Optional[CompanyLeave]:
+    async def get_by_name(self, name: str, organisation_id: str = "default") -> Optional[CompanyLeave]:
         """Get company leave by name."""
         try:
             filters = {"name": name, "is_active": True}
@@ -360,7 +360,7 @@ class SolidCompanyLeaveRepository(
             documents = await self._execute_query(
                 filters=filters,
                 limit=1,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             if documents:
@@ -372,7 +372,7 @@ class SolidCompanyLeaveRepository(
             return None
     
     async def get_by_count_range(self, min_count: int, max_count: int,
-                                organization_id: str = "default") -> List[CompanyLeave]:
+                                organisation_id: str = "default") -> List[CompanyLeave]:
         """Get company leaves within a count range."""
         try:
             filters = {
@@ -385,7 +385,7 @@ class SolidCompanyLeaveRepository(
                 sort_by="count",
                 sort_order=1,
                 limit=50,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -395,7 +395,7 @@ class SolidCompanyLeaveRepository(
             return []
     
     async def search(self, filters: CompanyLeaveSearchFiltersDTO,
-                    organization_id: str = "default") -> List[CompanyLeave]:
+                    organisation_id: str = "default") -> List[CompanyLeave]:
         """Search company leaves with filters."""
         try:
             query_filters = {"is_active": True}
@@ -426,7 +426,7 @@ class SolidCompanyLeaveRepository(
                 limit=page_size,
                 sort_by="name",
                 sort_order=1,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -436,7 +436,7 @@ class SolidCompanyLeaveRepository(
             return []
     
     async def count_by_filters(self, filters: CompanyLeaveSearchFiltersDTO,
-                              organization_id: str = "default") -> int:
+                              organisation_id: str = "default") -> int:
         """Count company leaves matching filters."""
         try:
             query_filters = {"is_active": True}
@@ -447,14 +447,14 @@ class SolidCompanyLeaveRepository(
             if hasattr(filters, 'is_active') and filters.is_active is not None:
                 query_filters["is_active"] = filters.is_active
             
-            return await self._count_documents(query_filters, organization_id)
+            return await self._count_documents(query_filters, organisation_id)
             
         except Exception as e:
             logger.error(f"Error counting company leaves: {e}")
             return 0
     
     # Analytics Repository Implementation
-    async def get_leave_statistics(self, organization_id: str = "default") -> Dict[str, Any]:
+    async def get_leave_statistics(self, organisation_id: str = "default") -> Dict[str, Any]:
         """Get company leave statistics."""
         try:
             # Use aggregation pipeline for statistics
@@ -489,7 +489,7 @@ class SolidCompanyLeaveRepository(
                 }
             ]
             
-            results = await self._aggregate(pipeline, organization_id)
+            results = await self._aggregate(pipeline, organisation_id)
             
             if results:
                 stats = results[0]
@@ -515,7 +515,7 @@ class SolidCompanyLeaveRepository(
             logger.error(f"Error getting company leave statistics: {e}")
             return {}
     
-    async def get_leave_distribution(self, organization_id: str = "default") -> Dict[str, Any]:
+    async def get_leave_distribution(self, organisation_id: str = "default") -> Dict[str, Any]:
         """Get leave count distribution."""
         try:
             pipeline = [
@@ -540,7 +540,7 @@ class SolidCompanyLeaveRepository(
                 }
             ]
             
-            results = await self._aggregate(pipeline, organization_id)
+            results = await self._aggregate(pipeline, organisation_id)
             
             distribution = {}
             for result in results:
@@ -563,7 +563,7 @@ class SolidCompanyLeaveRepository(
         
         Args:
             leave_data: Company leave data dictionary
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Company leave ID
@@ -586,7 +586,7 @@ class SolidCompanyLeaveRepository(
         Legacy compatibility for get_all_leaves() function.
         
         Args:
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             List of company leave documents
@@ -619,7 +619,7 @@ class SolidCompanyLeaveRepository(
         
         Args:
             leave_id: Company leave ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Company leave document or None
@@ -650,7 +650,7 @@ class SolidCompanyLeaveRepository(
         Args:
             leave_id: Company leave ID
             leave_data: Update data dictionary
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             True if updated, False otherwise
@@ -668,7 +668,7 @@ class SolidCompanyLeaveRepository(
         
         Args:
             leave_id: Company leave identifier
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             True if deleted successfully, False otherwise
@@ -684,28 +684,28 @@ class SolidCompanyLeaveRepository(
     
     # CompanyLeaveQueryRepository Missing Methods
     
-    async def count_active(self, organization_id: str = "default") -> int:
+    async def count_active(self, organisation_id: str = "default") -> int:
         """Count active company leaves."""
         try:
             filters = {"is_active": True}
-            return await self._count_documents(filters, organization_id)
+            return await self._count_documents(filters, organisation_id)
             
         except Exception as e:
             logger.error(f"Error counting active company leaves: {e}")
             return 0
     
-    async def exists_by_leave_type_code(self, leave_type_code: str, organization_id: str = "default") -> bool:
+    async def exists_by_leave_type_code(self, leave_type_code: str, organisation_id: str = "default") -> bool:
         """Check if company leave exists for leave type code."""
         try:
             filters = {"leave_type_code": leave_type_code}
-            count = await self._count_documents(filters, organization_id)
+            count = await self._count_documents(filters, organisation_id)
             return count > 0
             
         except Exception as e:
             logger.error(f"Error checking leave type code existence: {e}")
             return False
     
-    async def get_all(self, include_inactive: bool = False, organization_id: str = "default") -> List[CompanyLeave]:
+    async def get_all(self, include_inactive: bool = False, organisation_id: str = "default") -> List[CompanyLeave]:
         """Get all company leaves."""
         try:
             filters = {}
@@ -718,7 +718,7 @@ class SolidCompanyLeaveRepository(
                 sort_by="name",
                 sort_order=1,
                 limit=100,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -732,7 +732,7 @@ class SolidCompanyLeaveRepository(
         employee_gender: Optional[str] = None,
         employee_category: Optional[str] = None,
         is_on_probation: bool = False,
-        organization_id: str = "default"
+        organisation_id: str = "default"
     ) -> List[CompanyLeave]:
         """Get company leaves applicable for employee."""
         try:
@@ -771,7 +771,7 @@ class SolidCompanyLeaveRepository(
                 sort_by="name",
                 sort_order=1,
                 limit=50,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -780,14 +780,14 @@ class SolidCompanyLeaveRepository(
             logger.error(f"Error getting applicable company leaves: {e}")
             return []
     
-    async def get_by_leave_type_code(self, leave_type_code: str, organization_id: str = "default") -> Optional[CompanyLeave]:
+    async def get_by_leave_type_code(self, leave_type_code: str, organisation_id: str = "default") -> Optional[CompanyLeave]:
         """Get company leave by leave type code."""
         try:
             filters = {"leave_type_code": leave_type_code}
             documents = await self._execute_query(
                 filters=filters,
                 limit=1,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             if documents:
@@ -803,7 +803,7 @@ class SolidCompanyLeaveRepository(
     async def get_leave_trends(
         self,
         period: str = "monthly",
-        organization_id: str = "default"
+        organisation_id: str = "default"
     ) -> List[Dict[str, Any]]:
         """Get leave application trends."""
         try:
@@ -838,7 +838,7 @@ class SolidCompanyLeaveRepository(
                 {"$limit": 50}
             ]
             
-            results = await self._aggregate(pipeline, organization_id)
+            results = await self._aggregate(pipeline, organisation_id)
             
             trends = []
             for result in results:
@@ -858,7 +858,7 @@ class SolidCompanyLeaveRepository(
         self,
         from_date: Optional[datetime] = None,
         to_date: Optional[datetime] = None,
-        organization_id: str = "default"
+        organisation_id: str = "default"
     ) -> List[Dict[str, Any]]:
         """Get leave type usage statistics."""
         try:
@@ -878,7 +878,7 @@ class SolidCompanyLeaveRepository(
                 filters=filters,
                 sort_by="name",
                 sort_order=1,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             # Calculate usage statistics
@@ -906,7 +906,7 @@ class SolidCompanyLeaveRepository(
             logger.error(f"Error getting leave type usage stats: {e}")
             return []
     
-    async def get_policy_compliance_report(self, organization_id: str = "default") -> List[Dict[str, Any]]:
+    async def get_policy_compliance_report(self, organisation_id: str = "default") -> List[Dict[str, Any]]:
         """Get policy compliance report."""
         try:
             # Get all company leaves
@@ -914,7 +914,7 @@ class SolidCompanyLeaveRepository(
                 filters={},
                 sort_by="name",
                 sort_order=1,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             compliance_report = []

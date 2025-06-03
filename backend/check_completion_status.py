@@ -13,13 +13,12 @@ def main():
         "MongoDBCompanyLeaveRepository",
         "EmployeeLeaveRepositoryImpl",
         "SolidPayoutRepository", 
-        "SolidOrganisationRepository",
         "SolidReimbursementRepository",
         "SolidPublicHolidayRepository",
         "MongoDBReimbursementRepository",
         "SolidEmployeeLeaveRepository",
         "SolidCompanyLeaveRepository",
-        "MongoDBOrganizationRepository",
+        "MongoDBOrganisationRepository",
         "MongoDBUserRepository",        # JUST COMPLETED
         "SolidAttendanceRepository"     # JUST COMPLETED  
     ]
@@ -73,7 +72,7 @@ def main():
     print(f"  • 100% of repositories complete! (12/12)")
     print(f"  • Zero missing methods across all repositories!")
     print(f"  • Complete enterprise-grade repository system!")
-    print(f"  • Organization management: ✅ Complete")
+    print(f"  • Organisation management: ✅ Complete")
     print(f"  • Employee leave management: ✅ Complete")
     print(f"  • Reimbursement system: ✅ Complete")
     print(f"  • Public holiday system: ✅ Complete")

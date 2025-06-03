@@ -59,7 +59,7 @@ class ProjectAttributesController:
         
         Args:
             request: Project attribute creation request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             ProjectAttributeResponseDTO with created attribute details
@@ -90,7 +90,7 @@ class ProjectAttributesController:
         
         Args:
             filters: Search filters
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             List of ProjectAttributeResponseDTO
@@ -119,7 +119,7 @@ class ProjectAttributesController:
         
         Args:
             key: Project attribute key
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             ProjectAttributeResponseDTO if found, None otherwise
@@ -150,7 +150,7 @@ class ProjectAttributesController:
         Args:
             key: Project attribute key
             request: Update request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             ProjectAttributeResponseDTO with updated details
@@ -176,7 +176,7 @@ class ProjectAttributesController:
         
         Args:
             key: Project attribute key
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             True if deleted successfully

@@ -71,14 +71,14 @@ const transformFrontendToBackend = (frontendUser) => {
 // Front-end service layer matching back-end FastAPI v2 routes
 const dataService = {
   // User Management (Updated to v2 endpoints)
-  async getUsers(skip = 0, limit = 10, include_inactive = false, include_deleted = false, organization_id = null) {
+  async getUsers(skip = 0, limit = 10, include_inactive = false, include_deleted = false, organisation_id = null) {
     const response = await apiClient.get('/api/v2/users', { 
       params: { 
         skip, 
         limit, 
         include_inactive, 
         include_deleted,
-        organization_id 
+        organisation_id 
       } 
     });
     

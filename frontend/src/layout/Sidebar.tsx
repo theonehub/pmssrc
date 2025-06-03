@@ -68,7 +68,7 @@ const Sidebar: React.FC = () => {
   // State to track which menu categories are expanded
   const [expanded, setExpanded] = useState<ExpandedState>({
     home: false,
-    organization: false,
+    organisation: false,
     leaves: false,
     payouts: false,
     reimbursements: false,
@@ -100,12 +100,12 @@ const Sidebar: React.FC = () => {
       ],
     },
     {
-      id: 'organization',
-      title: 'Organization',
+      id: 'organisation',
+      title: 'Organisation',
       icon: <BusinessIcon />,
       items: [
         {
-          title: 'Organizations',
+          title: 'Organisations',
           icon: <BusinessIcon />,
           path: '/organisations',
           roles: ['superadmin'],

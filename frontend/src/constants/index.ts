@@ -23,7 +23,7 @@ export const ROUTES = {
   REIMBURSEMENTS: '/reimbursements',
   TAXATION: '/taxation',
   PAYOUTS: '/payouts',
-  ORGANIZATIONS: '/organisations',
+  ORGANISATIONS: '/organisations',
 } as const;
 
 // File Upload Configuration

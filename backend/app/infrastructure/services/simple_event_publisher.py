@@ -1,6 +1,6 @@
 """
 Simple Event Publisher Implementation
-Basic implementation of event publishing for the organization system
+Basic implementation of event publishing for the organisation system
 """
 
 import logging

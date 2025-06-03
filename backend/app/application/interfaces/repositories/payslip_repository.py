@@ -24,7 +24,7 @@ class PayslipCommandRepository(ABC):
         Args:
             payslip_metadata: Payslip metadata
             file_content: Generated file content
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Payslip ID
@@ -45,7 +45,7 @@ class PayslipCommandRepository(ABC):
         Args:
             payslip_id: Payslip ID
             update_data: Metadata to update
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             True if successful
@@ -67,7 +67,7 @@ class PayslipCommandRepository(ABC):
             email_status: Email status (sent, failed, etc.)
             email_sent_at: Timestamp when email was sent
             recipient_email: Email recipient
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             True if successful
@@ -82,7 +82,7 @@ class PayslipCommandRepository(ABC):
         
         Args:
             payslip_id: Payslip ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             True if successful
@@ -97,7 +97,7 @@ class PayslipCommandRepository(ABC):
         
         Args:
             payslips_data: List of payslip data with metadata and content
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             List of created payslip IDs
@@ -115,7 +115,7 @@ class PayslipCommandRepository(ABC):
         
         Args:
             payslip_id: Payslip ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             deleted_by: User deleting the payslip
             
         Returns:
@@ -137,7 +137,7 @@ class PayslipQueryRepository(ABC):
         
         Args:
             payslip_id: Payslip ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Payslip metadata if found, None otherwise
@@ -151,7 +151,7 @@ class PayslipQueryRepository(ABC):
         
         Args:
             payout_id: Payout ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Payslip metadata if found, None otherwise
@@ -167,7 +167,7 @@ class PayslipQueryRepository(ABC):
         Args:
             employee_id: Employee ID
             year: Year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             List of payslip metadata
@@ -184,7 +184,7 @@ class PayslipQueryRepository(ABC):
         Args:
             month: Month (1-12)
             year: Year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             format_filter: Optional format filter
             
         Returns:
@@ -200,7 +200,7 @@ class PayslipQueryRepository(ABC):
         
         Args:
             filters: Search filters including pagination
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Dictionary with 'payslips', 'total_count', 'page', 'page_size'
@@ -214,7 +214,7 @@ class PayslipQueryRepository(ABC):
         
         Args:
             payslip_id: Payslip ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             File content as BytesIO if found, None otherwise
@@ -234,7 +234,7 @@ class PayslipQueryRepository(ABC):
         Args:
             payout_id: Payout ID
             format: Payslip format
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             True if payslip exists
@@ -249,7 +249,7 @@ class PayslipQueryRepository(ABC):
         
         Args:
             payslip_id: Payslip ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Download statistics
@@ -264,7 +264,7 @@ class PayslipQueryRepository(ABC):
         
         Args:
             batch_id: Batch ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Bulk generation status
@@ -356,7 +356,7 @@ class PayslipStorageRepository(ABC):
         
         Args:
             older_than_days: Delete files older than this many days
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Number of files deleted
@@ -376,7 +376,7 @@ class PayslipAnalyticsRepository(ABC):
         Args:
             month: Month (1-12)
             year: Year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Generation statistics
@@ -392,7 +392,7 @@ class PayslipAnalyticsRepository(ABC):
         Args:
             month: Month (1-12)
             year: Year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Email delivery statistics
@@ -408,7 +408,7 @@ class PayslipAnalyticsRepository(ABC):
         Args:
             start_date: Start date
             end_date: End date
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Download analytics
@@ -424,7 +424,7 @@ class PayslipAnalyticsRepository(ABC):
         Args:
             month: Month (1-12)
             year: Year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Format distribution
@@ -439,7 +439,7 @@ class PayslipAnalyticsRepository(ABC):
         
         Args:
             employee_id: Employee ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Access patterns data
@@ -458,7 +458,7 @@ class PayslipTemplateRepository(ABC):
         
         Args:
             template_data: Template configuration
-            hostname: Organization hostname
+            hostname: Organisation hostname
             created_by: User creating the template
             
         Returns:
@@ -473,7 +473,7 @@ class PayslipTemplateRepository(ABC):
         
         Args:
             template_id: Template ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Template data if found
@@ -488,7 +488,7 @@ class PayslipTemplateRepository(ABC):
         
         Args:
             format: Payslip format
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Default template data if found
@@ -504,7 +504,7 @@ class PayslipTemplateRepository(ABC):
         Args:
             template_id: Template ID
             update_data: Update data
-            hostname: Organization hostname
+            hostname: Organisation hostname
             updated_by: User making the update
             
         Returns:
@@ -519,7 +519,7 @@ class PayslipTemplateRepository(ABC):
         List available templates
         
         Args:
-            hostname: Organization hostname
+            hostname: Organisation hostname
             format_filter: Optional format filter
             
         Returns:

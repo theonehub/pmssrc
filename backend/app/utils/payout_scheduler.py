@@ -11,7 +11,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 # MIGRATION NOTE: Legacy services have been moved to infrastructure layer
 # This scheduler will need to be updated to use the new SOLID architecture
 # from app.infrastructure.services.payroll_migration_service import PayrollMigrationService
-# from app.infrastructure.services.organization_migration_service import OrganizationMigrationService
+# from app.infrastructure.services.organisation_migration_service import OrganisationMigrationService
 from database.database_connector import connect_to_database
 
 logger = logging.getLogger(__name__)
@@ -25,16 +25,16 @@ class PayoutScheduler:
     def __init__(self):
         self.org_service = OrganisationService()
     
-    def get_all_active_organizations(self) -> List[str]:
-        """Get all active organization IDs"""
+    def get_all_active_organisations(self) -> List[str]:
+        """Get all active organisation IDs"""
         try:
             # This is a simplified approach - you might need to implement
-            # get_all_organizations in OrganisationService
+            # get_all_organisations in OrganisationService
             # For now, return a hardcoded list or implement based on your setup
             
-            # TODO: Implement proper organization listing
-            # organizations = self.org_service.get_all_organizations()
-            # return [org.id for org in organizations if org.is_active]
+            # TODO: Implement proper organisation listing
+            # organisations = self.org_service.get_all_organisations()
+            # return [org.id for org in organisations if org.is_active]
             
             # For now, we'll scan the database for company databases
             from pymongo import MongoClient
@@ -50,13 +50,13 @@ class PayoutScheduler:
             return company_ids
             
         except Exception as e:
-            logger.error(f"Error getting active organizations: {str(e)}")
+            logger.error(f"Error getting active organisations: {str(e)}")
             return []
     
-    def process_organization_payouts(self, company_id: str, target_date: date = None) -> Dict[str, Any]:
-        """Process payouts for a specific organization"""
+    def process_organisation_payouts(self, company_id: str, target_date: date = None) -> Dict[str, Any]:
+        """Process payouts for a specific organisation"""
         try:
-            logger.info(f"Processing payouts for organization: {company_id}")
+            logger.info(f"Processing payouts for organisation: {company_id}")
             
             if target_date is None:
                 target_date = date.today()
@@ -71,23 +71,23 @@ class PayoutScheduler:
             }
             
         except Exception as e:
-            logger.error(f"Error processing payouts for organization {company_id}: {str(e)}")
+            logger.error(f"Error processing payouts for organisation {company_id}: {str(e)}")
             return {
                 "company_id": company_id,
                 "success": False,
                 "error": str(e)
             }
     
-    def process_all_organizations(self, target_date: date = None) -> Dict[str, Any]:
+    def process_all_organisations(self, target_date: date = None) -> Dict[str, Any]:
         """
-        Process payouts for all active organizations
+        Process payouts for all active organisations
         This is the main method to be called by cron jobs
         """
         try:
             if target_date is None:
                 target_date = date.today()
             
-            logger.info(f"Starting scheduled payout processing for all organizations on {target_date}")
+            logger.info(f"Starting scheduled payout processing for all organisations on {target_date}")
             
             # Check if today is the 30th (or last day of month if month has < 30 days)
             if target_date.day != 30:
@@ -101,42 +101,42 @@ class PayoutScheduler:
                         "target_date": str(target_date)
                     }
             
-            # Get all active organizations
-            company_ids = self.get_all_active_organizations()
+            # Get all active organisations
+            company_ids = self.get_all_active_organisations()
             
             if not company_ids:
-                logger.warning("No active organizations found")
+                logger.warning("No active organisations found")
                 return {
                     "processed": False,
-                    "reason": "No active organizations found",
+                    "reason": "No active organisations found",
                     "target_date": str(target_date)
                 }
             
-            # Process payouts for each organization
+            # Process payouts for each organisation
             results = []
             successful_orgs = 0
             failed_orgs = 0
             
             for company_id in company_ids:
-                result = self.process_organization_payouts(company_id, target_date)
+                result = self.process_organisation_payouts(company_id, target_date)
                 results.append(result)
                 
                 if result["success"]:
                     successful_orgs += 1
                     if result["result"].get("processed", False):
-                        logger.info(f"Successfully processed payouts for organization {company_id}")
+                        logger.info(f"Successfully processed payouts for organisation {company_id}")
                     else:
-                        logger.info(f"No payouts to process for organization {company_id}: {result['result'].get('reason', 'Unknown')}")
+                        logger.info(f"No payouts to process for organisation {company_id}: {result['result'].get('reason', 'Unknown')}")
                 else:
                     failed_orgs += 1
-                    logger.error(f"Failed to process payouts for organization {company_id}: {result.get('error', 'Unknown error')}")
+                    logger.error(f"Failed to process payouts for organisation {company_id}: {result.get('error', 'Unknown error')}")
             
             summary = {
                 "processed": True,
                 "target_date": str(target_date),
-                "total_organizations": len(company_ids),
-                "successful_organizations": successful_orgs,
-                "failed_organizations": failed_orgs,
+                "total_organisations": len(company_ids),
+                "successful_organisations": successful_orgs,
+                "failed_organisations": failed_orgs,
                 "results": results,
                 "summary": {
                     "total_employees_processed": sum(
@@ -199,7 +199,7 @@ def main():
         
         # Create scheduler and process payouts
         scheduler = PayoutScheduler()
-        result = scheduler.process_all_organizations(target_date)
+        result = scheduler.process_all_organisations(target_date)
         
         # Log final result
         if result.get("processed", False):
@@ -210,9 +210,9 @@ def main():
         
         # Exit with appropriate code
         if result.get("processed", False):
-            failed_orgs = result.get("failed_organizations", 0)
+            failed_orgs = result.get("failed_organisations", 0)
             if failed_orgs > 0:
-                logger.warning(f"Some organizations failed processing: {failed_orgs}")
+                logger.warning(f"Some organisations failed processing: {failed_orgs}")
                 sys.exit(2)  # Partial success
             else:
                 sys.exit(0)  # Full success

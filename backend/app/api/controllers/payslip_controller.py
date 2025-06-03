@@ -53,7 +53,7 @@ class PayslipController:
         
         Args:
             request: Payslip generation request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             PDF file as BytesIO buffer
@@ -82,7 +82,7 @@ class PayslipController:
         
         Args:
             request: Payslip email request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Email operation response
@@ -116,7 +116,7 @@ class PayslipController:
         
         Args:
             request: Payslip history request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Employee payslip history
@@ -175,7 +175,7 @@ class PayslipController:
         
         Args:
             request: Bulk payslip generation request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Bulk operation response
@@ -220,7 +220,7 @@ class PayslipController:
         
         Args:
             request: Bulk payslip email request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Bulk operation response
@@ -263,7 +263,7 @@ class PayslipController:
         
         Args:
             operation_id: Bulk operation ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Bulk operation status
@@ -306,7 +306,7 @@ class PayslipController:
         Args:
             month: Month
             year: Year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Monthly payslip summary
@@ -345,7 +345,7 @@ class PayslipController:
         
         Args:
             request: Payslip schedule request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Created schedule response
@@ -378,7 +378,7 @@ class PayslipController:
         Get available payslip templates.
         
         Args:
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             List of available templates
@@ -414,7 +414,7 @@ class PayslipController:
         
         Args:
             template_id: Template ID to set as default
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Operation result
@@ -444,7 +444,7 @@ class PayslipController:
         
         Args:
             payout_id: Payout ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Payslip download information

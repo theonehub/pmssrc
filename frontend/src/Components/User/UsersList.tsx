@@ -83,7 +83,7 @@ const UsersList: React.FC = () => {
         rowsPerPage,
         false, // include_inactive
         false, // include_deleted
-        null   // organization_id
+        null   // organisation_id
       );
       
       setUsers(response.users || []);

@@ -42,14 +42,14 @@ class BaseRepository(ABC, Generic[T]):
         self._db_connector = database_connector
         self._collection_name = collection_name
         
-    async def _get_collection(self, organization_id: Optional[str] = None):
+    async def _get_collection(self, organisation_id: Optional[str] = None):
         """
-        Get collection for specific organization or global.
+        Get collection for specific organisation or global.
         
         Ensures database connection is established in the correct event loop.
         
         Args:
-            organization_id: Organization ID for multi-tenant support
+            organisation_id: Organisation ID for multi-tenant support
             
         Returns:
             Collection instance
@@ -83,9 +83,9 @@ class BaseRepository(ABC, Generic[T]):
         # Verify connection is still active
         try:
             # This will raise an exception if connection is invalid
-            db_name = f"pms_{organization_id}" if organization_id else "global_database"
+            db_name = f"pms_{organisation_id}" if organisation_id else "pms_global_database"
             collection = self._db_connector.get_collection(db_name, self._collection_name)
-            logger.debug(f"Successfully retrieved collection: {self._collection_name} from database: {db_name}")
+            logger.info(f"Successfully retrieved collection: {self._collection_name} from database: {db_name}")
             return collection
             
         except Exception as e:
@@ -168,7 +168,7 @@ class BaseRepository(ABC, Generic[T]):
         limit: int = 100,
         sort_by: Optional[str] = None,
         sort_order: int = 1,
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Execute a database query with common parameters.
@@ -179,13 +179,13 @@ class BaseRepository(ABC, Generic[T]):
             limit: Maximum number of documents to return
             sort_by: Field to sort by
             sort_order: Sort order
-            organization_id: Organization ID for multi-tenant support
+            organisation_id: Organisation ID for multi-tenant support
             
         Returns:
             List of database documents
         """
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             db_filter = self._prepare_filter(filters)
             sort_params = self._prepare_sort(sort_by, sort_order)
             
@@ -202,20 +202,20 @@ class BaseRepository(ABC, Generic[T]):
     async def _count_documents(
         self,
         filters: Dict[str, Any],
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> int:
         """
         Count documents matching filters.
         
         Args:
             filters: Query filters
-            organization_id: Organization ID for multi-tenant support
+            organisation_id: Organisation ID for multi-tenant support
             
         Returns:
             Number of matching documents
         """
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             db_filter = self._prepare_filter(filters)
             
             count = await collection.count_documents(db_filter)
@@ -229,20 +229,20 @@ class BaseRepository(ABC, Generic[T]):
     async def _insert_document(
         self,
         document: Dict[str, Any],
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> str:
         """
         Insert a single document.
         
         Args:
             document: Document to insert
-            organization_id: Organization ID for multi-tenant support
+            organisation_id: Organisation ID for multi-tenant support
             
         Returns:
             Inserted document ID
         """
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             
             # Add timestamps
             now = datetime.utcnow()
@@ -261,7 +261,7 @@ class BaseRepository(ABC, Generic[T]):
         self,
         filters: Dict[str, Any],
         update_data: Dict[str, Any],
-        organization_id: Optional[str] = None,
+        organisation_id: Optional[str] = None,
         upsert: bool = False
     ) -> bool:
         """
@@ -270,14 +270,14 @@ class BaseRepository(ABC, Generic[T]):
         Args:
             filters: Query filters to match documents
             update_data: Data to update
-            organization_id: Organization ID for multi-tenant support
+            organisation_id: Organisation ID for multi-tenant support
             upsert: Whether to insert if document doesn't exist
             
         Returns:
             True if documents were modified, False otherwise
         """
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             db_filter = self._prepare_filter(filters)
             
             # Add updated timestamp
@@ -299,7 +299,7 @@ class BaseRepository(ABC, Generic[T]):
     async def _delete_document(
         self,
         filters: Dict[str, Any],
-        organization_id: Optional[str] = None,
+        organisation_id: Optional[str] = None,
         soft_delete: bool = True
     ) -> bool:
         """
@@ -307,14 +307,14 @@ class BaseRepository(ABC, Generic[T]):
         
         Args:
             filters: Query filters to match documents
-            organization_id: Organization ID for multi-tenant support
+            organisation_id: Organisation ID for multi-tenant support
             soft_delete: Whether to perform soft delete (mark as deleted)
             
         Returns:
             True if documents were deleted, False otherwise
         """
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             db_filter = self._prepare_filter(filters)
             
             if soft_delete:
@@ -343,20 +343,20 @@ class BaseRepository(ABC, Generic[T]):
     async def _aggregate(
         self,
         pipeline: List[Dict[str, Any]],
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """
         Execute aggregation pipeline.
         
         Args:
             pipeline: Aggregation pipeline stages
-            organization_id: Organization ID for multi-tenant support
+            organisation_id: Organisation ID for multi-tenant support
             
         Returns:
             Aggregation results
         """
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             cursor = collection.aggregate(pipeline)
             results = await cursor.to_list(length=None)
             
@@ -367,18 +367,18 @@ class BaseRepository(ABC, Generic[T]):
             logger.error(f"Error executing aggregation: {e}")
             raise
     
-    async def health_check(self, organization_id: Optional[str] = None) -> Dict[str, Any]:
+    async def health_check(self, organisation_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Check repository health status.
         
         Args:
-            organization_id: Organization ID for multi-tenant support
+            organisation_id: Organisation ID for multi-tenant support
             
         Returns:
             Health status information
         """
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             
             # Simple ping to check collection accessibility
             count = await collection.count_documents({})
@@ -386,7 +386,7 @@ class BaseRepository(ABC, Generic[T]):
             return {
                 "status": "healthy",
                 "collection": self._collection_name,
-                "organization_id": organization_id,
+                "organisation_id": organisation_id,
                 "document_count": count,
                 "timestamp": datetime.utcnow().isoformat()
             }
@@ -396,7 +396,7 @@ class BaseRepository(ABC, Generic[T]):
             return {
                 "status": "unhealthy",
                 "collection": self._collection_name,
-                "organization_id": organization_id,
+                "organisation_id": organisation_id,
                 "error": str(e),
                 "timestamp": datetime.utcnow().isoformat()
             } 

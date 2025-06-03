@@ -161,7 +161,7 @@ class SOLIDMigrationTester:
             email="solid@example.com",
             role="Manager",
             department="Engineering",
-            organization_id="test_company"
+            organisation_id="test_company"
         )
         
         # Test save
@@ -174,7 +174,7 @@ class SOLIDMigrationTester:
         assert getattr(retrieved_user, 'name', '') == "SOLID Test User", "User data mismatch"
         
         # Test get all
-        users = await user_repo.get_all(organization_id="test_company", limit=10)
+        users = await user_repo.get_all(organisation_id="test_company", limit=10)
         assert isinstance(users, list), "Get all should return list"
         
         # Test statistics
@@ -205,7 +205,7 @@ class SOLIDMigrationTester:
                 email=f"batch{i}@example.com",
                 role="Employee",
                 department="Testing",
-                organization_id="test_company"
+                organisation_id="test_company"
             )
             for i in range(1, 4)
         ]

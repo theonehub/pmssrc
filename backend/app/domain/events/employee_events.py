@@ -132,7 +132,7 @@ class EmployeePromoted(DomainEvent):
     This event can trigger:
     - Congratulatory notifications
     - Role and permission updates
-    - Organizational chart updates
+    - Organisational chart updates
     - Performance review scheduling
     - Career progression tracking
     """

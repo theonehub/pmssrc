@@ -76,7 +76,7 @@ class CreateUserUseCase:
         
         Args:
             request: User creation request DTO
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
         Returns:
             Created user response DTO
             
@@ -85,7 +85,7 @@ class CreateUserUseCase:
             UserConflictError: If user already exists
             UserBusinessRuleError: If business rules are violated
         """
-        logger.info(f"Creating user: {request.email} in organization: {current_user.hostname}")
+        logger.info(f"Creating user: {request.email} in organisation: {current_user.hostname}")
         
         # Step 1: Validate request data
         await self._validate_request(request)
@@ -208,14 +208,14 @@ class CreateUserUseCase:
         
         Args:
             role: User role
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
             
         Returns:
             Initial leave balance in days
         """
         try:
             # TODO: Implement proper leave balance calculation based on:
-            # - Company leave policies for the organization
+            # - Company leave policies for the organisation
             # - User role and designation
             # - Joining date and pro-rata calculation
             # - Leave type allocations (annual, sick, casual, etc.)
@@ -233,7 +233,7 @@ class CreateUserUseCase:
             
             initial_balance = default_leave_balances.get(role, 20.0)
             
-            logger.info(f"Calculated initial leave balance for role {role.value} in organization {current_user.hostname}: {initial_balance} days")
+            logger.info(f"Calculated initial leave balance for role {role.value} in organisation {current_user.hostname}: {initial_balance} days")
             return initial_balance
             
         except Exception as e:

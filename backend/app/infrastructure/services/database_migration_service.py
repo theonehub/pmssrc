@@ -135,7 +135,7 @@ class DatabaseMigrationService:
         
         Args:
             user_data: User data dictionary
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Creation result dictionary
@@ -156,7 +156,7 @@ class DatabaseMigrationService:
         Legacy compatibility for get_all_users() function.
         
         Args:
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             List of user documents
@@ -177,7 +177,7 @@ class DatabaseMigrationService:
         Legacy compatibility for get_users_stats() function.
         
         Args:
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             User statistics dictionary
@@ -199,7 +199,7 @@ class DatabaseMigrationService:
         
         Args:
             employee_id: Employee ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             User document or None
@@ -271,7 +271,7 @@ class DatabaseMigrationService:
             employee_id: Employee ID
             leave_name: Name of leave type
             leave_count: Leave count to add/subtract
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Update result dictionary
@@ -335,12 +335,12 @@ class DatabaseMigrationService:
             }
     
     # Migration utilities
-    async def migrate_collection_indexes(self, organization_id: str) -> Dict[str, Any]:
+    async def migrate_collection_indexes(self, organisation_id: str) -> Dict[str, Any]:
         """
-        Migrate collection indexes for an organization.
+        Migrate collection indexes for an organisation.
         
         Args:
-            organization_id: Organization ID
+            organisation_id: Organisation ID
             
         Returns:
             Migration result
@@ -390,23 +390,23 @@ class DatabaseMigrationService:
             ]
             
             await connector.create_indexes(
-                f"pms_{organization_id}",
+                f"pms_{organisation_id}",
                 "users_info",
                 user_indexes
             )
             
-            logger.info(f"Migrated indexes for organization: {organization_id}")
+            logger.info(f"Migrated indexes for organisation: {organisation_id}")
             return {
                 "status": "success",
-                "organization_id": organization_id,
+                "organisation_id": organisation_id,
                 "indexes_created": len(user_indexes)
             }
             
         except Exception as e:
-            logger.error(f"Error migrating indexes for {organization_id}: {e}")
+            logger.error(f"Error migrating indexes for {organisation_id}: {e}")
             return {
                 "status": "error",
-                "organization_id": organization_id,
+                "organisation_id": organisation_id,
                 "error": str(e)
             }
 

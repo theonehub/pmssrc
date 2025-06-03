@@ -21,7 +21,7 @@ class PayoutCommandRepository(ABC):
         
         Args:
             payout: Payout data to create
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Created payout record
@@ -41,7 +41,7 @@ class PayoutCommandRepository(ABC):
         Args:
             payout_id: ID of payout to update
             update: Update data
-            hostname: Organization hostname
+            hostname: Organisation hostname
             updated_by: User making the update
             
         Returns:
@@ -63,7 +63,7 @@ class PayoutCommandRepository(ABC):
         Args:
             payout_id: ID of payout to update
             status: New status
-            hostname: Organization hostname
+            hostname: Organisation hostname
             updated_by: User making the update
             reason: Optional reason for status change
             
@@ -84,7 +84,7 @@ class PayoutCommandRepository(ABC):
         
         Args:
             payouts: List of payout data to create
-            hostname: Organization hostname
+            hostname: Organisation hostname
             created_by: User creating the payouts
             
         Returns:
@@ -104,7 +104,7 @@ class PayoutCommandRepository(ABC):
         Args:
             payout_ids: List of payout IDs to update
             status: New status
-            hostname: Organization hostname
+            hostname: Organisation hostname
             updated_by: User making the update
             
         Returns:
@@ -120,7 +120,7 @@ class PayoutCommandRepository(ABC):
         
         Args:
             payout_id: ID of payout to delete
-            hostname: Organization hostname
+            hostname: Organisation hostname
             deleted_by: User deleting the payout
             
         Returns:
@@ -143,7 +143,7 @@ class PayoutQueryRepository(ABC):
         
         Args:
             payout_id: ID of payout to retrieve
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Payout record if found, None otherwise
@@ -159,7 +159,7 @@ class PayoutQueryRepository(ABC):
         
         Args:
             employee_id: Employee ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             year: Optional year filter
             month: Optional month filter
             
@@ -177,7 +177,7 @@ class PayoutQueryRepository(ABC):
         Args:
             month: Month (1-12)
             year: Year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             status: Optional status filter
             
         Returns:
@@ -193,7 +193,7 @@ class PayoutQueryRepository(ABC):
         
         Args:
             filters: Search filters and pagination
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Dictionary with 'payouts', 'total_count', 'page', 'page_size'
@@ -210,7 +210,7 @@ class PayoutQueryRepository(ABC):
             employee_id: Employee ID
             pay_period_start: Start of pay period
             pay_period_end: End of pay period
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             True if duplicate exists
@@ -226,7 +226,7 @@ class PayoutQueryRepository(ABC):
         Args:
             month: Month (1-12)
             year: Year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Summary statistics
@@ -242,7 +242,7 @@ class PayoutQueryRepository(ABC):
         Args:
             employee_id: Employee ID
             year: Year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Payout history with statistics
@@ -257,7 +257,7 @@ class PayoutQueryRepository(ABC):
         
         Args:
             status: Payout status
-            hostname: Organization hostname
+            hostname: Organisation hostname
             limit: Optional limit on results
             
         Returns:
@@ -272,7 +272,7 @@ class PayoutQueryRepository(ABC):
         Get payouts pending approval
         
         Args:
-            hostname: Organization hostname
+            hostname: Organisation hostname
             approver_id: Optional approver filter
             
         Returns:
@@ -293,7 +293,7 @@ class PayoutAnalyticsRepository(ABC):
         Args:
             month: Month (1-12)
             year: Year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Department-wise breakdown
@@ -312,7 +312,7 @@ class PayoutAnalyticsRepository(ABC):
             start_year: Start year
             end_month: End month
             end_year: End year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Monthly trend data
@@ -328,7 +328,7 @@ class PayoutAnalyticsRepository(ABC):
         Args:
             month: Month (1-12)
             year: Year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Salary distribution data
@@ -344,7 +344,7 @@ class PayoutAnalyticsRepository(ABC):
         Args:
             month: Month (1-12)
             year: Year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             limit: Number of top earners to return
             
         Returns:
@@ -361,7 +361,7 @@ class PayoutAnalyticsRepository(ABC):
         Args:
             month: Month (1-12)
             year: Year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Deduction breakdown
@@ -377,7 +377,7 @@ class PayoutAnalyticsRepository(ABC):
         Args:
             month: Month (1-12)
             year: Year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Compliance metrics
@@ -396,7 +396,7 @@ class PayoutScheduleRepository(ABC):
         
         Args:
             schedule_data: Schedule configuration
-            hostname: Organization hostname
+            hostname: Organisation hostname
             created_by: User creating the schedule
             
         Returns:
@@ -413,7 +413,7 @@ class PayoutScheduleRepository(ABC):
         Args:
             month: Month (1-12)
             year: Year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Schedule data if exists
@@ -429,7 +429,7 @@ class PayoutScheduleRepository(ABC):
         Args:
             schedule_id: Schedule ID
             update_data: Update data
-            hostname: Organization hostname
+            hostname: Organisation hostname
             updated_by: User making the update
             
         Returns:
@@ -443,7 +443,7 @@ class PayoutScheduleRepository(ABC):
         Get all active payout schedules
         
         Args:
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             List of active schedules
@@ -462,7 +462,7 @@ class PayoutAuditRepository(ABC):
         
         Args:
             event_data: Audit event data
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Audit record ID
@@ -477,7 +477,7 @@ class PayoutAuditRepository(ABC):
         
         Args:
             payout_id: Payout ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             List of audit events
@@ -493,7 +493,7 @@ class PayoutAuditRepository(ABC):
         
         Args:
             employee_id: User ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             start_date: Optional start date filter
             end_date: Optional end date filter
             

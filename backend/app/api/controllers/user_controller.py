@@ -1,6 +1,6 @@
 """
 User Controller Implementation
-SOLID-compliant controller for user HTTP operations with organization segregation
+SOLID-compliant controller for user HTTP operations with organisation segregation
 """
 
 import logging
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 class UserController:
     """
-    User controller following SOLID principles with organization segregation.
+    User controller following SOLID principles with organisation segregation.
     
     - SRP: Only handles HTTP request/response concerns
     - OCP: Can be extended with new endpoints
@@ -52,12 +52,12 @@ class UserController:
         request: CreateUserRequestDTO, 
         current_user: CurrentUser
     ) -> UserResponseDTO:
-        """Create a new user with organization context."""
+        """Create a new user with organisation context."""
         try:
-            logger.info(f"Creating user: {request.employee_id} in organization: {current_user.hostname}")
+            logger.info(f"Creating user: {request.employee_id} in organisation: {current_user.hostname}")
             return await self.user_service.create_user(request, current_user)
         except Exception as e:
-            logger.error(f"Error creating user {request.employee_id} in organization {current_user.hostname}: {e}")
+            logger.error(f"Error creating user {request.employee_id} in organisation {current_user.hostname}: {e}")
             raise HTTPException(status_code=400, detail=str(e))
     
     async def create_user_with_files(
@@ -68,12 +68,12 @@ class UserController:
         aadhar_file: Optional[UploadFile] = None,
         photo: Optional[UploadFile] = None
     ) -> UserResponseDTO:
-        """Create user with file uploads and organization context."""
+        """Create user with file uploads and organisation context."""
         try:
             # Parse user data
             user_dict = json.loads(user_data)
             
-            # Handle file uploads with organization-specific paths
+            # Handle file uploads with organisation-specific paths
             if photo:
                 photo_path = await self.file_upload_service.upload_document(
                     photo, DocumentType.PHOTO, current_user.hostname
@@ -95,14 +95,14 @@ class UserController:
             # Create request DTO
             request = CreateUserRequestDTO(**user_dict)
             
-            # Create user with organization context
+            # Create user with organisation context
             return await self.user_service.create_user(request, current_user)
             
         except json.JSONDecodeError as e:
             logger.error(f"Invalid JSON in user_data: {e}")
             raise HTTPException(status_code=400, detail="Invalid JSON in user_data")
         except Exception as e:
-            logger.error(f"Error creating user with files in organization {current_user.hostname}: {e}")
+            logger.error(f"Error creating user with files in organisation {current_user.hostname}: {e}")
             raise HTTPException(status_code=400, detail=str(e))
     
     async def get_user_by_id(
@@ -110,7 +110,7 @@ class UserController:
         employee_id: str, 
         current_user: CurrentUser
     ) -> UserResponseDTO:
-        """Get user by ID with organization context."""
+        """Get user by ID with organisation context."""
         try:
             user = await self.user_service.get_user_by_id(employee_id, current_user)
             if not user:
@@ -119,11 +119,11 @@ class UserController:
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error getting user {employee_id} in organization {current_user.hostname}: {e}")
+            logger.error(f"Error getting user {employee_id} in organisation {current_user.hostname}: {e}")
             raise HTTPException(status_code=500, detail="Internal server error")
     
     async def authenticate_user(self, request: UserLoginRequestDTO) -> UserLoginResponseDTO:
-        """Authenticate user (no organization context needed for login)."""
+        """Authenticate user (no organisation context needed for login)."""
         try:
             return await self.user_service.authenticate_user(request)
         except Exception as e:
@@ -138,7 +138,7 @@ class UserController:
         include_deleted: bool = False,
         current_user: CurrentUser = None
     ) -> UserListResponseDTO:
-        """Get all users with pagination and organization context."""
+        """Get all users with pagination and organisation context."""
         try:
             return await self.user_service.get_all_users(
                 skip=skip,
@@ -148,7 +148,7 @@ class UserController:
                 current_user=current_user
             )
         except Exception as e:
-            logger.error(f"Error getting all users in organization {current_user.hostname if current_user else 'unknown'}: {e}")
+            logger.error(f"Error getting all users in organisation {current_user.hostname if current_user else 'unknown'}: {e}")
             raise HTTPException(status_code=500, detail="Internal server error")
     
     async def search_users(
@@ -156,11 +156,11 @@ class UserController:
         filters: UserSearchFiltersDTO, 
         current_user: CurrentUser
     ) -> UserListResponseDTO:
-        """Search users with filters and organization context."""
+        """Search users with filters and organisation context."""
         try:
             return await self.user_service.search_users(filters, current_user)
         except Exception as e:
-            logger.error(f"Error searching users in organization {current_user.hostname}: {e}")
+            logger.error(f"Error searching users in organisation {current_user.hostname}: {e}")
             raise HTTPException(status_code=500, detail="Internal server error")
     
     async def update_user(
@@ -169,11 +169,11 @@ class UserController:
         request: UpdateUserRequestDTO,
         current_user: CurrentUser
     ) -> UserResponseDTO:
-        """Update user with organization context."""
+        """Update user with organisation context."""
         try:
             return await self.user_service.update_user(employee_id, request, current_user)
         except Exception as e:
-            logger.error(f"Error updating user {employee_id} in organization {current_user.hostname}: {e}")
+            logger.error(f"Error updating user {employee_id} in organisation {current_user.hostname}: {e}")
             raise HTTPException(status_code=400, detail=str(e))
     
     async def change_user_password(
@@ -182,19 +182,19 @@ class UserController:
         request: ChangeUserPasswordRequestDTO,
         current_user: CurrentUser
     ) -> UserResponseDTO:
-        """Change user password with organization context."""
+        """Change user password with organisation context."""
         try:
             return await self.user_service.change_user_password(employee_id, request, current_user)
         except Exception as e:
-            logger.error(f"Error changing password for user {employee_id} in organization {current_user.hostname}: {e}")
+            logger.error(f"Error changing password for user {employee_id} in organisation {current_user.hostname}: {e}")
             raise HTTPException(status_code=400, detail=str(e))
     
     async def get_user_statistics(self, current_user: CurrentUser) -> UserStatisticsDTO:
-        """Get user statistics with organization context."""
+        """Get user statistics with organisation context."""
         try:
             return await self.user_service.get_user_statistics(current_user)
         except Exception as e:
-            logger.error(f"Error getting user statistics in organization {current_user.hostname}: {e}")
+            logger.error(f"Error getting user statistics in organisation {current_user.hostname}: {e}")
             raise HTTPException(status_code=500, detail="Internal server error")
 
     async def get_user_by_email(
@@ -202,7 +202,7 @@ class UserController:
         email: str, 
         current_user: CurrentUser
     ) -> UserResponseDTO:
-        """Get user by email with organization context."""
+        """Get user by email with organisation context."""
         try:
             user = await self.user_service.get_user_by_email(email, current_user)
             if not user:
@@ -211,7 +211,7 @@ class UserController:
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error getting user by email {email} in organization {current_user.hostname}: {e}")
+            logger.error(f"Error getting user by email {email} in organisation {current_user.hostname}: {e}")
             raise HTTPException(status_code=500, detail="Internal server error")
 
     async def change_user_role(
@@ -220,11 +220,11 @@ class UserController:
         request: ChangeUserRoleRequestDTO,
         current_user: CurrentUser
     ) -> UserResponseDTO:
-        """Change user role with organization context."""
+        """Change user role with organisation context."""
         try:
             return await self.user_service.change_user_role(employee_id, request, current_user)
         except Exception as e:
-            logger.error(f"Error changing role for user {employee_id} in organization {current_user.hostname}: {e}")
+            logger.error(f"Error changing role for user {employee_id} in organisation {current_user.hostname}: {e}")
             raise HTTPException(status_code=400, detail=str(e))
 
     async def update_user_status(
@@ -233,11 +233,11 @@ class UserController:
         request: UserStatusUpdateRequestDTO,
         current_user: CurrentUser
     ) -> UserResponseDTO:
-        """Update user status with organization context."""
+        """Update user status with organisation context."""
         try:
             return await self.user_service.update_user_status(employee_id, request, current_user)
         except Exception as e:
-            logger.error(f"Error updating status for user {employee_id} in organization {current_user.hostname}: {e}")
+            logger.error(f"Error updating status for user {employee_id} in organisation {current_user.hostname}: {e}")
             raise HTTPException(status_code=400, detail=str(e))
 
     async def check_user_exists(
@@ -248,7 +248,7 @@ class UserController:
         exclude_id: Optional[str] = None,
         current_user: CurrentUser = None
     ) -> Dict[str, bool]:
-        """Check if user exists with organization context."""
+        """Check if user exists with organisation context."""
         try:
             return await self.user_service.check_user_exists(
                 email=email,
@@ -258,14 +258,14 @@ class UserController:
                 current_user=current_user
             )
         except Exception as e:
-            logger.error(f"Error checking user existence in organization {current_user.hostname if current_user else 'unknown'}: {e}")
+            logger.error(f"Error checking user existence in organisation {current_user.hostname if current_user else 'unknown'}: {e}")
             raise HTTPException(status_code=500, detail="Internal server error")
 
     async def health_check(self) -> Dict[str, str]:
-        """Health check endpoint (no organization context needed)."""
+        """Health check endpoint (no organisation context needed)."""
         return {
             "service": "user_controller",
             "status": "healthy",
             "timestamp": "2024-01-01T00:00:00Z",
-            "version": "2.0.0-organization-segregated"
+            "version": "2.0.0-organisation-segregated"
         }

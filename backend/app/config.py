@@ -13,7 +13,7 @@ MONGO_URI: str = os.getenv(
 
 # Database Names
 DEFAULT_DATABASE: str = os.getenv('DEFAULT_DATABASE', 'pms_default')
-GLOBAL_DATABASE: str = os.getenv('GLOBAL_DATABASE', 'global_database')
+GLOBAL_DATABASE: str = os.getenv('GLOBAL_DATABASE', 'pms_global_database')
 
 # Connection Settings
 DB_CONNECTION_TIMEOUT: int = int(os.getenv('DB_CONNECTION_TIMEOUT', '5000'))

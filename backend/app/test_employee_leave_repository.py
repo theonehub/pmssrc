@@ -152,8 +152,8 @@ def test_employee_leave_repository():
                 self._db_connector = database_connector
                 self._collection_name = "employee_leave"
             
-            def _get_collection(self, organization_id):
-                db_name = f"pms_{organization_id}" if organization_id != "default" else "global_database"
+            def _get_collection(self, organisation_id):
+                db_name = f"pms_{organisation_id}" if organisation_id != "default" else "pms_global_database"
                 return self._db_connector.get_collection(db_name, self._collection_name)
             
             async def save(self, leave):
@@ -182,9 +182,9 @@ def test_employee_leave_repository():
                     print(f"Error saving employee leave: {e}")
                     raise
             
-            async def get_by_id(self, leave_id, organization_id="default"):
+            async def get_by_id(self, leave_id, organisation_id="default"):
                 try:
-                    collection = self._get_collection(organization_id)
+                    collection = self._get_collection(organisation_id)
                     document = await collection.find_one({"leave_id": leave_id})
                     
                     if document:
@@ -195,9 +195,9 @@ def test_employee_leave_repository():
                     print(f"Error getting employee leave by ID: {e}")
                     return None
             
-            async def get_by_employee_id(self, employee_id, organization_id="default"):
+            async def get_by_employee_id(self, employee_id, organisation_id="default"):
                 try:
-                    collection = self._get_collection(organization_id)
+                    collection = self._get_collection(organisation_id)
                     cursor = collection.find({"employee_id": employee_id})
                     documents = await cursor.to_list(length=None)
                     
@@ -207,9 +207,9 @@ def test_employee_leave_repository():
                     print(f"Error getting employee leaves by employee ID: {e}")
                     return []
             
-            async def get_by_employee_and_month(self, employee_id, year, month, organization_id="default"):
+            async def get_by_employee_and_month(self, employee_id, year, month, organisation_id="default"):
                 try:
-                    collection = self._get_collection(organization_id)
+                    collection = self._get_collection(organisation_id)
                     
                     # Simple month filter for testing
                     cursor = collection.find({"employee_id": employee_id})
@@ -221,7 +221,7 @@ def test_employee_leave_repository():
                     print(f"Error getting employee leaves by month: {e}")
                     return []
             
-            async def get_leave_statistics(self, organization_id="default", year=None):
+            async def get_leave_statistics(self, organisation_id="default", year=None):
                 try:
                     # Simple mock statistics
                     return {

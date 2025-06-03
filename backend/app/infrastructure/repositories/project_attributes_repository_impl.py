@@ -35,7 +35,7 @@ class ProjectAttributesRepositoryImpl:
         
         Args:
             request: Project attribute creation request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             ProjectAttributeResponseDTO with created attribute details
@@ -56,7 +56,7 @@ class ProjectAttributesRepositoryImpl:
         
         Args:
             key: Project attribute key
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             ProjectAttributeResponseDTO if found, None otherwise
@@ -77,7 +77,7 @@ class ProjectAttributesRepositoryImpl:
         
         Args:
             filters: Search filters
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             List of ProjectAttributeResponseDTO
@@ -100,7 +100,7 @@ class ProjectAttributesRepositoryImpl:
         Args:
             key: Project attribute key
             request: Update request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             ProjectAttributeResponseDTO if updated, None if not found
@@ -121,7 +121,7 @@ class ProjectAttributesRepositoryImpl:
         
         Args:
             key: Project attribute key
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             True if deleted, False if not found

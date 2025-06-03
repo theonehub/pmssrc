@@ -564,11 +564,11 @@ def email_payslip_service(payout_id: str, hostname: str, recipient_email: Option
         # Generate PDF
         pdf_buffer = generate_payslip_pdf_service(payout_id, hostname)
         
-        # Get organization details for email
+        # Get organisation details for email
         try:
             from app.infrastructure.services.legacy_migration_service import get_organisation_by_hostname_sync as get_organisation_by_hostname
-            organization = get_organisation_by_hostname(hostname)
-            company_name = organization.name if organization else "Company"
+            organisation = get_organisation_by_hostname(hostname)
+            company_name = organisation.name if organisation else "Company"
         except:
             company_name = "Company"
         

@@ -1,29 +1,29 @@
 """
 Dependency Injection Configuration
-Sets up all dependencies for the organization system
+Sets up all dependencies for the organisation system
 """
 
 import logging
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from typing import Optional
 
-from app.infrastructure.repositories.mongodb_organization_repository import MongoDBOrganizationRepository
-from app.infrastructure.services.organization_service_impl import OrganizationServiceImpl
-from app.application.use_cases.organization.create_organization_use_case import CreateOrganizationUseCase
-from app.application.use_cases.organization.update_organization_use_case import UpdateOrganizationUseCase
-from app.application.use_cases.organization.get_organization_use_case import GetOrganizationUseCase
-from app.application.use_cases.organization.list_organizations_use_case import ListOrganizationsUseCase
-from app.application.use_cases.organization.delete_organization_use_case import DeleteOrganizationUseCase
-from api.controllers.organization_controller import OrganizationController
-from database.database_connector import connect_to_database
+from app.infrastructure.repositories.mongodb_organisation_repository import MongoDBOrganisationRepository
+from app.infrastructure.services.organisation_service_impl import OrganisationServiceImpl
+from app.application.use_cases.organisation.create_organisation_use_case import CreateOrganisationUseCase
+from app.application.use_cases.organisation.update_organisation_use_case import UpdateOrganisationUseCase
+from app.application.use_cases.organisation.get_organisation_use_case import GetOrganisationUseCase
+from app.application.use_cases.organisation.list_organisations_use_case import ListOrganisationsUseCase
+from app.application.use_cases.organisation.delete_organisation_use_case import DeleteOrganisationUseCase
+from app.api.controllers.organisation_controller import OrganisationController
+from app.database.database_connector import connect_to_database
 
 
 logger = logging.getLogger(__name__)
 
 
-class OrganizationDependencyContainer:
+class OrganisationDependencyContainer:
     """
-    Dependency injection container for organization system.
+    Dependency injection container for organisation system.
     
     Follows SOLID principles:
     - SRP: Only handles dependency creation and management
@@ -35,40 +35,40 @@ class OrganizationDependencyContainer:
     
     def __init__(self):
         self._database: Optional[AsyncIOMotorDatabase] = None
-        self._repository: Optional[MongoDBOrganizationRepository] = None
-        self._service: Optional[OrganizationServiceImpl] = None
+        self._repository: Optional[MongoDBOrganisationRepository] = None
+        self._service: Optional[OrganisationServiceImpl] = None
         self._use_cases: dict = {}
-        self._controller: Optional[OrganizationController] = None
+        self._controller: Optional[OrganisationController] = None
     
     def get_database(self) -> AsyncIOMotorDatabase:
         """Get database connection"""
         if self._database is None:
-            self._database = connect_to_database("global_database")
+            self._database = connect_to_database("pms_global_database")
         return self._database
     
-    def get_repository(self) -> MongoDBOrganizationRepository:
-        """Get organization repository"""
+    def get_repository(self) -> MongoDBOrganisationRepository:
+        """Get organisation repository"""
         if self._repository is None:
             database = self.get_database()
-            self._repository = MongoDBOrganizationRepository(database)
+            self._repository = MongoDBOrganisationRepository(database)
         return self._repository
     
-    def get_service(self) -> OrganizationServiceImpl:
-        """Get organization service"""
+    def get_service(self) -> OrganisationServiceImpl:
+        """Get organisation service"""
         if self._service is None:
             repository = self.get_repository()
             # For now, we'll use a simple event publisher
             from app.infrastructure.services.simple_event_publisher import SimpleEventPublisher
             event_publisher = SimpleEventPublisher()
-            self._service = OrganizationServiceImpl(repository, event_publisher)
+            self._service = OrganisationServiceImpl(repository, event_publisher)
         return self._service
     
-    def get_create_use_case(self) -> CreateOrganizationUseCase:
-        """Get create organization use case"""
+    def get_create_use_case(self) -> CreateOrganisationUseCase:
+        """Get create organisation use case"""
         if 'create' not in self._use_cases:
             repository = self.get_repository()
             service = self.get_service()
-            self._use_cases['create'] = CreateOrganizationUseCase(
+            self._use_cases['create'] = CreateOrganisationUseCase(
                 command_repository=repository,
                 query_repository=repository,
                 validation_service=service,
@@ -76,12 +76,12 @@ class OrganizationDependencyContainer:
             )
         return self._use_cases['create']
     
-    def get_update_use_case(self) -> UpdateOrganizationUseCase:
-        """Get update organization use case"""
+    def get_update_use_case(self) -> UpdateOrganisationUseCase:
+        """Get update organisation use case"""
         if 'update' not in self._use_cases:
             repository = self.get_repository()
             service = self.get_service()
-            self._use_cases['update'] = UpdateOrganizationUseCase(
+            self._use_cases['update'] = UpdateOrganisationUseCase(
                 command_repository=repository,
                 query_repository=repository,
                 validation_service=service,
@@ -89,40 +89,40 @@ class OrganizationDependencyContainer:
             )
         return self._use_cases['update']
     
-    def get_get_use_case(self) -> GetOrganizationUseCase:
-        """Get get organization use case"""
+    def get_get_use_case(self) -> GetOrganisationUseCase:
+        """Get get organisation use case"""
         if 'get' not in self._use_cases:
             repository = self.get_repository()
-            self._use_cases['get'] = GetOrganizationUseCase(
+            self._use_cases['get'] = GetOrganisationUseCase(
                 query_repository=repository
             )
         return self._use_cases['get']
     
-    def get_list_use_case(self) -> ListOrganizationsUseCase:
-        """Get list organizations use case"""
+    def get_list_use_case(self) -> ListOrganisationsUseCase:
+        """Get list organisations use case"""
         if 'list' not in self._use_cases:
             repository = self.get_repository()
-            self._use_cases['list'] = ListOrganizationsUseCase(
+            self._use_cases['list'] = ListOrganisationsUseCase(
                 query_repository=repository
             )
         return self._use_cases['list']
     
-    def get_delete_use_case(self) -> DeleteOrganizationUseCase:
-        """Get delete organization use case"""
+    def get_delete_use_case(self) -> DeleteOrganisationUseCase:
+        """Get delete organisation use case"""
         if 'delete' not in self._use_cases:
             repository = self.get_repository()
             service = self.get_service()
-            self._use_cases['delete'] = DeleteOrganizationUseCase(
+            self._use_cases['delete'] = DeleteOrganisationUseCase(
                 command_repository=repository,
                 query_repository=repository,
                 notification_service=service
             )
         return self._use_cases['delete']
     
-    def get_controller(self) -> OrganizationController:
-        """Get organization controller"""
+    def get_controller(self) -> OrganisationController:
+        """Get organisation controller"""
         if self._controller is None:
-            self._controller = OrganizationController(
+            self._controller = OrganisationController(
                 create_use_case=self.get_create_use_case(),
                 update_use_case=self.get_update_use_case(),
                 get_use_case=self.get_get_use_case(),
@@ -133,34 +133,40 @@ class OrganizationDependencyContainer:
 
 
 # Global container instance
-_container: Optional[OrganizationDependencyContainer] = None
+_container: Optional[OrganisationDependencyContainer] = None
 
 
-def get_organization_container() -> OrganizationDependencyContainer:
-    """Get the global organization dependency container"""
+def get_organisation_container() -> OrganisationDependencyContainer:
+    """Get the global organisation dependency container"""
     global _container
     if _container is None:
-        _container = OrganizationDependencyContainer()
+        _container = OrganisationDependencyContainer()
     return _container
 
 
-def initialize_organization_dependencies():
-    """Initialize all organization dependencies"""
+def initialize_organisation_dependencies():
+    """Initialize all organisation dependencies"""
     try:
-        container = get_organization_container()
+        container = get_organisation_container()
         
         # Initialize all components
         repository = container.get_repository()
         service = container.get_service()
         controller = container.get_controller()
         
-        # Set the global controller in the API module
-        from api.controllers import organization_controller
-        organization_controller.controller = controller
+        # Initialize the global controller in the controller module
+        from app.api.controllers import organisation_controller
+        organisation_controller.initialize_organisation_controller(
+            create_use_case=container.get_create_use_case(),
+            update_use_case=container.get_update_use_case(),
+            get_use_case=container.get_get_use_case(),
+            list_use_case=container.get_list_use_case(),
+            delete_use_case=container.get_delete_use_case()
+        )
         
-        logger.info("Organization dependencies initialized successfully")
+        logger.info("Organisation dependencies initialized successfully")
         return True
         
     except Exception as e:
-        logger.error(f"Failed to initialize organization dependencies: {e}")
+        logger.error(f"Failed to initialize organisation dependencies: {e}")
         return False 

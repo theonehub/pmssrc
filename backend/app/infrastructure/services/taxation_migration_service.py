@@ -49,7 +49,7 @@ class TaxationMigrationService:
         
         Args:
             employee_id: Employee identifier
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Taxation data dictionary
@@ -80,7 +80,7 @@ class TaxationMigrationService:
         Args:
             employee_id: Employee identifier
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             force_recalculate: Force recalculation
             
         Returns:
@@ -128,7 +128,7 @@ class TaxationMigrationService:
         Args:
             employee_id: Employee identifier
             projection_period: Projection period
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Tax projection data
@@ -189,7 +189,7 @@ class TaxationMigrationService:
         Args:
             employee_id: Employee identifier
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Tax comparison data
@@ -275,7 +275,7 @@ class TaxationMigrationService:
             employee_id: Employee identifier
             tax_year: Tax year
             lwp_days: Number of LWP days
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             LWP adjustment calculation results
@@ -334,7 +334,7 @@ class TaxationMigrationService:
         Args:
             employee_id: Employee identifier
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Salary projection data or None

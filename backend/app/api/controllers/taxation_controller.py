@@ -75,7 +75,7 @@ class TaxationController:
         
         Args:
             request: Taxation creation request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             current_user: Current authenticated user
             
         Returns:
@@ -128,7 +128,7 @@ class TaxationController:
         Args:
             employee_ids: List of employee identifiers
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             current_user: Current authenticated user
             
         Returns:
@@ -162,7 +162,7 @@ class TaxationController:
         
         Args:
             request: Tax calculation request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             current_user: Current authenticated user
             
         Returns:
@@ -210,7 +210,7 @@ class TaxationController:
         
         Args:
             employee_id: Employee identifier
-            hostname: Organization hostname
+            hostname: Organisation hostname
             current_user: Current authenticated user
             
         Returns:
@@ -251,7 +251,7 @@ class TaxationController:
         Args:
             employee_id: Employee identifier
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Taxation response
@@ -288,7 +288,7 @@ class TaxationController:
         
         Args:
             employee_id: Employee identifier
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Current taxation response
@@ -325,7 +325,7 @@ class TaxationController:
         
         Args:
             filters: Search filters
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             List of matching taxation records
@@ -357,7 +357,7 @@ class TaxationController:
         
         Args:
             employee_id: Employee identifier
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             List of taxation records for the employee
@@ -389,7 +389,7 @@ class TaxationController:
         Args:
             employee_id: Employee identifier
             request: Taxation update request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             current_user: Current authenticated user
             
         Returns:
@@ -429,7 +429,7 @@ class TaxationController:
         Args:
             employee_id: Employee identifier
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             current_user: Current authenticated user
             
         Returns:
@@ -471,7 +471,7 @@ class TaxationController:
         
         Args:
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             department: Optional department filter
             
         Returns:
@@ -503,7 +503,7 @@ class TaxationController:
         
         Args:
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Regime adoption statistics
@@ -533,7 +533,7 @@ class TaxationController:
         
         Args:
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             limit: Number of top taxpayers to return
             
         Returns:
@@ -563,7 +563,7 @@ class TaxationController:
         
         Args:
             tax_year: Tax year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Department-wise tax summary
@@ -597,7 +597,7 @@ class TaxationController:
             employee_id: Employee identifier
             tax_year: Tax year
             filing_status: New filing status
-            hostname: Organization hostname
+            hostname: Organisation hostname
             current_user: Current authenticated user
             
         Returns:

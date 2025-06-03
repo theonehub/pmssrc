@@ -58,7 +58,7 @@ class CreateTaxationUseCase:
         
         Args:
             request: Taxation creation request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Created taxation response
@@ -111,7 +111,7 @@ class CreateTaxationUseCase:
             employee_id: Employee identifier
             emp_age: Employee age
             is_govt_employee: Whether employee is government employee
-            hostname: Organization hostname
+            hostname: Organisation hostname
             created_by: User creating the record
             
         Returns:
@@ -360,7 +360,7 @@ class BulkCreateTaxationUseCase:
         Args:
             employee_ids: List of employee identifiers
             tax_year: Tax year for records
-            hostname: Organization hostname
+            hostname: Organisation hostname
             created_by: User creating the records
             
         Returns:
@@ -380,7 +380,7 @@ class BulkCreateTaxationUseCase:
                 taxation = await self.create_use_case.create_default_taxation(
                     employee_id=employee_id,
                     emp_age=30,  # Default age, would be retrieved from employee record
-                    is_govt_employee=False,  # Default, would be retrieved from organization
+                    is_govt_employee=False,  # Default, would be retrieved from organisation
                     hostname=hostname,
                     created_by=created_by
                 )

@@ -156,10 +156,10 @@ class SolidReimbursementAssignmentRepository(
         
         return ReimbursementAssignment(**document)
     
-    async def _ensure_indexes(self, organization_id: str) -> None:
+    async def _ensure_indexes(self, organisation_id: str) -> None:
         """Ensure necessary indexes for optimal query performance."""
         try:
-            collection = self._get_collection(organization_id)
+            collection = self._get_collection(organisation_id)
             
             # Index for employee_id queries
             await collection.create_index([
@@ -176,7 +176,7 @@ class SolidReimbursementAssignmentRepository(
                 ("created_at", -1)
             ])
             
-            logger.info(f"Reimbursement assignment indexes ensured for organization: {organization_id}")
+            logger.info(f"Reimbursement assignment indexes ensured for organisation: {organisation_id}")
             
         except Exception as e:
             logger.error(f"Error ensuring reimbursement assignment indexes: {e}")
@@ -189,11 +189,11 @@ class SolidReimbursementAssignmentRepository(
         Replaces: create_assignment() function
         """
         try:
-            # Get organization from assignment or use default
-            organization_id = getattr(assignment, 'organization_id', 'default')
+            # Get organisation from assignment or use default
+            organisation_id = getattr(assignment, 'organisation_id', 'default')
             
             # Ensure indexes
-            await self._ensure_indexes(organization_id)
+            await self._ensure_indexes(organisation_id)
             
             # Prepare document
             document = self._entity_to_document(assignment)
@@ -206,7 +206,7 @@ class SolidReimbursementAssignmentRepository(
             # Check for existing record by employee_id
             existing = None
             if document.get('employee_id'):
-                existing = await self.get_by_employee_id(document['employee_id'], organization_id)
+                existing = await self.get_by_employee_id(document['employee_id'], organisation_id)
             
             if existing:
                 # Update existing record
@@ -214,17 +214,17 @@ class SolidReimbursementAssignmentRepository(
                 success = await self._update_document(
                     filters=filters,
                     update_data=document,
-                    organization_id=organization_id
+                    organisation_id=organisation_id
                 )
                 if success:
-                    return await self.get_by_employee_id(document['employee_id'], organization_id)
+                    return await self.get_by_employee_id(document['employee_id'], organisation_id)
                 else:
                     raise ValueError("Failed to update reimbursement assignment record")
             else:
                 # Insert new record
-                document_id = await self._insert_document(document, organization_id)
+                document_id = await self._insert_document(document, organisation_id)
                 # Return the saved document
-                saved_doc = await self._get_collection(organization_id).find_one({"_id": document_id})
+                saved_doc = await self._get_collection(organisation_id).find_one({"_id": document_id})
                 return self._document_to_entity(saved_doc)
             
         except Exception as e:
@@ -232,7 +232,7 @@ class SolidReimbursementAssignmentRepository(
             raise
     
     async def update(self, employee_id: str, update_data: Dict[str, Any], 
-                    organization_id: str) -> bool:
+                    organisation_id: str) -> bool:
         """
         Update reimbursement assignment record.
         """
@@ -245,7 +245,7 @@ class SolidReimbursementAssignmentRepository(
             success = await self._update_document(
                 filters=filters,
                 update_data=update_data,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return success
@@ -254,7 +254,7 @@ class SolidReimbursementAssignmentRepository(
             logger.error(f"Error updating reimbursement assignment {employee_id}: {e}")
             return False
     
-    async def delete(self, employee_id: str, organization_id: str) -> bool:
+    async def delete(self, employee_id: str, organisation_id: str) -> bool:
         """
         Delete reimbursement assignment record.
         """
@@ -263,7 +263,7 @@ class SolidReimbursementAssignmentRepository(
             
             return await self._delete_document(
                 filters=filters,
-                organization_id=organization_id,
+                organisation_id=organisation_id,
                 soft_delete=False  # Hard delete for assignments
             )
             
@@ -272,7 +272,7 @@ class SolidReimbursementAssignmentRepository(
             return False
     
     # Query Repository Implementation
-    async def get_by_employee_id(self, employee_id: str, organization_id: str = "default") -> Optional[ReimbursementAssignment]:
+    async def get_by_employee_id(self, employee_id: str, organisation_id: str = "default") -> Optional[ReimbursementAssignment]:
         """
         Get reimbursement assignment by employee ID.
         
@@ -284,7 +284,7 @@ class SolidReimbursementAssignmentRepository(
             documents = await self._execute_query(
                 filters=filters,
                 limit=1,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             if documents:
@@ -296,7 +296,7 @@ class SolidReimbursementAssignmentRepository(
             return None
     
     async def get_all_with_details(self, skip: int = 0, limit: int = 10, 
-                                  search: str = None, organization_id: str = "default") -> Dict[str, Any]:
+                                  search: str = None, organisation_id: str = "default") -> Dict[str, Any]:
         """
         Get all assignments with user and reimbursement type details.
         
@@ -304,9 +304,9 @@ class SolidReimbursementAssignmentRepository(
         """
         try:
             # Get collections
-            assignments_collection = self._get_collection(organization_id)
-            users_collection = self._db_connector.get_collection(f"pms_{organization_id}", "users")
-            types_collection = self._db_connector.get_collection(f"pms_{organization_id}", "reimbursement_types")
+            assignments_collection = self._get_collection(organisation_id)
+            users_collection = self._db_connector.get_collection(f"pms_{organisation_id}", "users")
+            types_collection = self._db_connector.get_collection(f"pms_{organisation_id}", "reimbursement_types")
             
             # Build search query for users
             user_query = {}
@@ -378,7 +378,7 @@ class SolidReimbursementAssignmentRepository(
             }
     
     async def get_by_reimbursement_type(self, reimbursement_type_id: str, 
-                                       organization_id: str = "default") -> List[ReimbursementAssignment]:
+                                       organisation_id: str = "default") -> List[ReimbursementAssignment]:
         """Get assignments by reimbursement type ID."""
         try:
             filters = {"reimbursement_type_ids": reimbursement_type_id}
@@ -388,7 +388,7 @@ class SolidReimbursementAssignmentRepository(
                 sort_by="created_at",
                 sort_order=-1,
                 limit=100,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -397,7 +397,7 @@ class SolidReimbursementAssignmentRepository(
             logger.error(f"Error retrieving assignments by reimbursement type: {e}")
             return []
     
-    async def get_all(self, organization_id: str = "default") -> List[ReimbursementAssignment]:
+    async def get_all(self, organisation_id: str = "default") -> List[ReimbursementAssignment]:
         """Get all reimbursement assignments."""
         try:
             documents = await self._execute_query(
@@ -405,7 +405,7 @@ class SolidReimbursementAssignmentRepository(
                 sort_by="created_at",
                 sort_order=-1,
                 limit=1000,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -415,7 +415,7 @@ class SolidReimbursementAssignmentRepository(
             return []
     
     async def search(self, filters: ReimbursementAssignmentSearchFiltersDTO,
-                    organization_id: str = "default") -> List[ReimbursementAssignment]:
+                    organisation_id: str = "default") -> List[ReimbursementAssignment]:
         """Search reimbursement assignments with filters."""
         try:
             query_filters = {}
@@ -437,7 +437,7 @@ class SolidReimbursementAssignmentRepository(
                 limit=page_size,
                 sort_by="created_at",
                 sort_order=-1,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -447,7 +447,7 @@ class SolidReimbursementAssignmentRepository(
             return []
     
     async def count_by_filters(self, filters: ReimbursementAssignmentSearchFiltersDTO,
-                              organization_id: str = "default") -> int:
+                              organisation_id: str = "default") -> int:
         """Count reimbursement assignments matching filters."""
         try:
             query_filters = {}
@@ -458,14 +458,14 @@ class SolidReimbursementAssignmentRepository(
             if hasattr(filters, 'reimbursement_type_id') and filters.reimbursement_type_id:
                 query_filters["reimbursement_type_ids"] = filters.reimbursement_type_id
             
-            return await self._count_documents(query_filters, organization_id)
+            return await self._count_documents(query_filters, organisation_id)
             
         except Exception as e:
             logger.error(f"Error counting reimbursement assignments: {e}")
             return 0
     
     # Analytics Repository Implementation
-    async def get_assignment_statistics(self, organization_id: str = "default") -> Dict[str, Any]:
+    async def get_assignment_statistics(self, organisation_id: str = "default") -> Dict[str, Any]:
         """Get reimbursement assignment statistics."""
         try:
             # Use aggregation pipeline for statistics
@@ -490,7 +490,7 @@ class SolidReimbursementAssignmentRepository(
                 }
             ]
             
-            results = await self._aggregate(pipeline, organization_id)
+            results = await self._aggregate(pipeline, organisation_id)
             
             if results:
                 stats = results[0]
@@ -512,7 +512,7 @@ class SolidReimbursementAssignmentRepository(
             logger.error(f"Error getting assignment statistics: {e}")
             return {}
     
-    async def get_type_usage_statistics(self, organization_id: str = "default") -> Dict[str, Any]:
+    async def get_type_usage_statistics(self, organisation_id: str = "default") -> Dict[str, Any]:
         """Get reimbursement type usage statistics."""
         try:
             pipeline = [
@@ -535,7 +535,7 @@ class SolidReimbursementAssignmentRepository(
                 }
             ]
             
-            results = await self._aggregate(pipeline, organization_id)
+            results = await self._aggregate(pipeline, organisation_id)
             
             return {
                 "type_usage": results
@@ -552,7 +552,7 @@ class SolidReimbursementAssignmentRepository(
         
         Args:
             data: Assignment data dictionary
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             True if successful

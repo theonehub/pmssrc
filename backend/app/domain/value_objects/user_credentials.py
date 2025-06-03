@@ -234,13 +234,13 @@ class UserPermissions:
         role_permissions = {
             UserRole.SUPERADMIN: [
                 "user.create", "user.read", "user.update", "user.delete",
-                "organization.create", "organization.read", "organization.update", "organization.delete",
+                "organisation.create", "organisation.read", "organisation.update", "organisation.delete",
                 "system.configure", "system.backup", "system.restore",
                 "reports.all", "audit.view"
             ],
             UserRole.ADMIN: [
                 "user.create", "user.read", "user.update",
-                "organization.read", "organization.update",
+                "organisation.read", "organisation.update",
                 "reports.all", "attendance.manage"
             ],
             UserRole.MANAGER: [

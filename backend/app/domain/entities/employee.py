@@ -67,7 +67,7 @@ class Employee:
     # Salary Information
     current_salary: Money = field(default_factory=lambda: Money.zero())
     
-    # Organizational Information
+    # Organisational Information
     department: Optional[str] = None
     designation: Optional[str] = None
     manager_id: Optional[EmployeeId] = None

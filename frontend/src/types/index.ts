@@ -739,8 +739,8 @@ export interface ExtendedTaxBreakup extends Omit<TaxBreakup, 'details'> {
   cess?: number;
 }
 
-// Organization Types
-export interface Organization {
+// Organisation Types
+export interface Organisation {
   id: string;
   name: string;
   hostname: string;

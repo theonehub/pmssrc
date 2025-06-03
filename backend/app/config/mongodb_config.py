@@ -14,7 +14,7 @@ class MongoDBSettings(BaseSettings):
     
     # MongoDB connection settings
     mongodb_url: str = os.getenv("MONGODB_URL", "mongodb+srv://admin:test123@mongodbtest.jhfj7s3.mongodb.net/?appName=mongodbTest")
-    database_name: str = os.getenv("MONGODB_DATABASE", "")
+    database_name: str = os.getenv("MONGODB_DATABASE", "pms_global_database")
     
     # Connection pool settings
     max_pool_size: int = int(os.getenv("MONGODB_MAX_POOL_SIZE", "100"))

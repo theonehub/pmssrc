@@ -6,6 +6,7 @@ SOLID-compliant dependency container for managing service dependencies
 from typing import Optional
 
 from app.infrastructure.repositories.mongodb_user_repository import MongoDBUserRepository
+from app.infrastructure.repositories.mongodb_organisation_repository import MongoDBOrganisationRepository
 from app.infrastructure.services.user_service_impl import UserServiceImpl
 from app.infrastructure.services.password_service import PasswordService
 from app.infrastructure.services.notification_service import EmailNotificationService, CompositeNotificationService
@@ -14,6 +15,7 @@ from app.infrastructure.database.database_connector import DatabaseConnector
 from app.infrastructure.database.mongodb_connector import MongoDBConnector
 from app.config.mongodb_config import get_mongodb_connection_string, get_mongodb_client_options, mongodb_settings
 from app.utils.logger import get_logger
+from app.infrastructure.services.organisation_service_impl import OrganisationServiceImpl
 # from api.controllers.user_controller import UserController  # Import when needed
 
 logger = get_logger(__name__)
@@ -121,6 +123,7 @@ class DependencyContainer:
         try:
             # Create user repository with database connector and connection parameters
             user_repository = MongoDBUserRepository(self._database_connector)
+            organisation_repository = MongoDBOrganisationRepository(self._database_connector)
             
             # Pass the MongoDB configuration to the repository
             user_repository.set_connection_config(
@@ -128,8 +131,14 @@ class DependencyContainer:
                 self._mongodb_client_options
             )
             
+            organisation_repository.set_connection_config(
+                self._mongodb_connection_string,
+                self._mongodb_client_options
+            )
+
             self._repositories['user'] = user_repository
-            
+            self._repositories['organisation'] = organisation_repository
+
             logger.info("Repositories initialized with MongoDB configuration")
             
         except Exception as e:
@@ -146,21 +155,22 @@ class DependencyContainer:
             file_upload_service=self._file_upload_service
         )
         
-        # Organization service
+        # Organisation service
         try:
-            from app.infrastructure.services.organization_service_impl import OrganizationServiceImpl
-            from app.infrastructure.repositories.mongodb_organization_repository import MongoDBOrganizationRepository
+            from app.infrastructure.services.event_publisher_impl import EventPublisherImpl
             
-            organization_repository = MongoDBOrganizationRepository(self._database_connector)
-            self._services['organization'] = OrganizationServiceImpl(
-                organization_repository=organization_repository,
-                user_repository=self._repositories['user'],
+            # Create event publisher
+            event_publisher = EventPublisherImpl()
+            
+            # Create organisation service with correct parameters
+            self._services['organisation'] = OrganisationServiceImpl(
+                repository=self._repositories['organisation'],
                 notification_service=self._notification_service,
-                file_upload_service=self._file_upload_service
+                event_publisher=event_publisher
             )
         except Exception as e:
-            logger.warning(f"Organization service setup failed: {e}")
-            self._services['organization'] = None
+            logger.warning(f"Organisation service setup failed: {e}")
+            self._services['organisation'] = None
         
         logger.info("Services initialized")
     
@@ -196,10 +206,10 @@ class DependencyContainer:
         self.initialize()
         return self._file_upload_service
     
-    def get_organization_service(self):
-        """Get organization service instance."""
+    def get_organisation_service(self) -> OrganisationServiceImpl:
+        """Get organisation service instance."""
         self.initialize()
-        return self._services['organization']
+        return self._services['organisation']
     
     # Controller getters
     def get_user_controller(self):
@@ -389,9 +399,9 @@ class DependencyContainer:
         # Check if repository has _db_connector (like BaseRepository-based repositories)
         elif hasattr(repository, '_db_connector'):
             # Store connection parameters on the database connector for later use
-            if hasattr(repository._db_connector, '_connection_string'):
-                repository._db_connector._connection_string = self._mongodb_connection_string
-                repository._db_connector._connection_params = self._mongodb_client_options
+            repository._db_connector._connection_string = self._mongodb_connection_string
+            repository._db_connector._connection_params = self._mongodb_client_options
+            logger.debug(f"Set connection parameters on database connector for {type(repository).__name__}")
         
         logger.debug(f"Configured MongoDB connection for repository: {type(repository).__name__}")
 
@@ -641,6 +651,124 @@ class DependencyContainer:
         
         return self._controllers['payslip']
 
+    def get_organisation_controller(self):
+        """Get organisation controller instance."""
+        self.initialize()
+        
+        # Import here to avoid circular imports
+        from app.api.controllers.organisation_controller import OrganisationController
+        from app.application.use_cases.organisation.create_organisation_use_case import CreateOrganisationUseCase
+        from app.application.use_cases.organisation.update_organisation_use_case import UpdateOrganisationUseCase
+        from app.application.use_cases.organisation.get_organisation_use_case import GetOrganisationUseCase
+        from app.application.use_cases.organisation.list_organisations_use_case import ListOrganisationsUseCase
+        from app.application.use_cases.organisation.delete_organisation_use_case import DeleteOrganisationUseCase
+        from app.infrastructure.repositories.mongodb_organisation_repository import MongoDBOrganisationRepository
+        
+        if 'organisation' not in self._controllers:
+            try:
+                # Create repository with database connector - using MongoDBOrganisationRepository
+                repository = MongoDBOrganisationRepository(self.get_database_connector())
+                
+                # Configure repository connection
+                self._configure_repository_connection(repository)
+                
+                # Create real use cases with proper error handling
+                create_use_case = CreateOrganisationUseCase(
+                    command_repository=repository,
+                    query_repository=repository,
+                    validation_service=None,  # Service may have issues, use repository directly
+                    notification_service=self._notification_service
+                )
+                
+                update_use_case = UpdateOrganisationUseCase(
+                    command_repository=repository,
+                    query_repository=repository,
+                    validation_service=None,
+                    notification_service=self._notification_service
+                )
+                
+                get_use_case = GetOrganisationUseCase(
+                    query_repository=repository
+                )
+                
+                list_use_case = ListOrganisationsUseCase(
+                    query_repository=repository
+                )
+                
+                delete_use_case = DeleteOrganisationUseCase(
+                    command_repository=repository,
+                    query_repository=repository,
+                    notification_service=self._notification_service
+                )
+                
+                self._controllers['organisation'] = OrganisationController(
+                    create_use_case=create_use_case,
+                    update_use_case=update_use_case,
+                    get_use_case=get_use_case,
+                    list_use_case=list_use_case,
+                    delete_use_case=delete_use_case
+                )
+                
+                logger.info("Organisation controller initialized with MongoDBOrganisationRepository")
+                
+            except Exception as e:
+                logger.error(f"Failed to initialize organisation controller: {e}")
+                # Return a fallback controller that raises proper errors
+                self._controllers['organisation'] = self._create_fallback_organisation_controller()
+        
+        return self._controllers['organisation']
+    
+    def _create_fallback_organisation_controller(self):
+        """Create a fallback controller that returns proper database errors"""
+        from app.api.controllers.organisation_controller import OrganisationController
+        
+        class FallbackUseCase:
+            async def execute(self, *args, **kwargs):
+                raise Exception("Database connection failed. Please check your database configuration.")
+            
+            async def execute_by_id(self, *args, **kwargs):
+                raise Exception("Database connection failed. Please check your database configuration.")
+            
+            async def execute_by_name(self, *args, **kwargs):
+                raise Exception("Database connection failed. Please check your database configuration.")
+            
+            async def execute_by_hostname(self, *args, **kwargs):
+                raise Exception("Database connection failed. Please check your database configuration.")
+            
+            async def execute_by_pan_number(self, *args, **kwargs):
+                raise Exception("Database connection failed. Please check your database configuration.")
+            
+            async def execute_statistics(self, *args, **kwargs):
+                raise Exception("Database connection failed. Please check your database configuration.")
+            
+            async def execute_exists_by_name(self, *args, **kwargs):
+                raise Exception("Database connection failed. Please check your database configuration.")
+            
+            async def execute_exists_by_hostname(self, *args, **kwargs):
+                raise Exception("Database connection failed. Please check your database configuration.")
+            
+            async def execute_exists_by_pan_number(self, *args, **kwargs):
+                raise Exception("Database connection failed. Please check your database configuration.")
+            
+            async def execute_status_update(self, *args, **kwargs):
+                raise Exception("Database connection failed. Please check your database configuration.")
+            
+            async def execute_increment_employee_usage(self, *args, **kwargs):
+                raise Exception("Database connection failed. Please check your database configuration.")
+            
+            async def execute_decrement_employee_usage(self, *args, **kwargs):
+                raise Exception("Database connection failed. Please check your database configuration.")
+        
+        fallback_use_case = FallbackUseCase()
+        
+        return OrganisationController(
+            create_use_case=fallback_use_case,
+            update_use_case=fallback_use_case,
+            get_use_case=fallback_use_case,
+            list_use_case=fallback_use_case,
+            delete_use_case=fallback_use_case
+        )
+
 
 # Global container instance
 _container: Optional[DependencyContainer] = None
@@ -736,6 +864,12 @@ def get_attendance_controller():
     """FastAPI dependency for attendance controller."""
     container = get_dependency_container()
     return container.get_attendance_controller()
+
+
+def get_organisation_controller():
+    """FastAPI dependency for organisation controller."""
+    container = get_dependency_container()
+    return container.get_organisation_controller()
 
 
 # Configuration management

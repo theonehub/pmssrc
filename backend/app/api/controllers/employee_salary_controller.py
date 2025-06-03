@@ -52,7 +52,7 @@ class EmployeeSalaryController:
         
         Args:
             request: Employee salary creation request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Created salary component response
@@ -93,7 +93,7 @@ class EmployeeSalaryController:
         
         Args:
             employee_id: Employee ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             List of employee salary components
@@ -137,7 +137,7 @@ class EmployeeSalaryController:
         Args:
             salary_id: Salary component ID to update
             request: Update request data
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Updated salary component response
@@ -177,7 +177,7 @@ class EmployeeSalaryController:
         
         Args:
             salary_id: Salary component ID to delete
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Deletion confirmation
@@ -207,7 +207,7 @@ class EmployeeSalaryController:
         
         Args:
             employee_id: Employee ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Salary assignment status
@@ -249,7 +249,7 @@ class EmployeeSalaryController:
         
         Args:
             request: Bulk salary assignment request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Bulk assignment response
@@ -290,7 +290,7 @@ class EmployeeSalaryController:
         
         Args:
             employee_id: Employee ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             as_of_date: Date for structure calculation (optional)
             
         Returns:
@@ -349,7 +349,7 @@ class EmployeeSalaryController:
         
         Args:
             employee_id: Employee ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             List of salary components with names
@@ -375,7 +375,7 @@ class EmployeeSalaryController:
         
         Args:
             request: Salary calculation request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Salary calculation response

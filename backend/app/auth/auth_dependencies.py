@@ -1,6 +1,6 @@
 """
 Authentication Dependencies
-Provides authentication and authorization dependencies with hostname-based organization segregation
+Provides authentication and authorization dependencies with hostname-based organisation segregation
 """
 
 import logging
@@ -19,7 +19,7 @@ security = HTTPBearer()
 
 class CurrentUser:
     """
-    Current user information with organization context.
+    Current user information with organisation context.
     """
     def __init__(self, token_payload: Dict[str, Any]):
         self.employee_id = token_payload.get("employee_id") or token_payload.get("sub")
@@ -30,13 +30,13 @@ class CurrentUser:
         self.token_payload = token_payload
     
     @property
-    def organization_id(self) -> str:
-        """Get organization ID based on hostname."""
+    def organisation_id(self) -> str:
+        """Get organisation ID based on hostname."""
         return self.hostname
     
     @property
     def database_name(self) -> str:
-        """Get database name for organization."""
+        """Get database name for organisation."""
         if self.hostname:
             return f"pms_{self.hostname}"
         return "pms_global_database"
@@ -49,8 +49,8 @@ class CurrentUser:
         """Check if user has specific role."""
         return self.role.lower() == role.lower()
     
-    def can_access_organization(self, hostname: Optional[str] = None) -> bool:
-        """Check if user can access specific organization."""
+    def can_access_organisation(self, hostname: Optional[str] = None) -> bool:
+        """Check if user can access specific organisation."""
         if hostname is None:
             return True
         return self.hostname == hostname
@@ -60,13 +60,13 @@ async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ) -> CurrentUser:
     """
-    Extract current user from JWT token with organization context.
+    Extract current user from JWT token with organisation context.
     
     Args:
         credentials: HTTP Authorization credentials containing JWT token
         
     Returns:
-        CurrentUser: Current user with organization context
+        CurrentUser: Current user with organisation context
         
     Raises:
         HTTPException: If token is invalid or missing required claims
@@ -83,7 +83,7 @@ async def get_current_user(
             logger.warning("Token missing hostname claim")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token: missing organization context",
+                detail="Invalid token: missing organisation context",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
@@ -98,7 +98,7 @@ async def get_current_user(
         # Create current user object
         current_user = CurrentUser(payload)
         
-        logger.debug(f"Authenticated user: {current_user.employee_id} from organization: {current_user.hostname}")
+        logger.debug(f"Authenticated user: {current_user.employee_id} from organisation: {current_user.hostname}")
         
         return current_user
         
@@ -178,26 +178,26 @@ def require_permission(required_permission: str):
     return permission_checker
 
 
-def require_organization_access(hostname: Optional[str] = None):
+def require_organisation_access(hostname: Optional[str] = None):
     """
-    Dependency factory for organization-based access control.
+    Dependency factory for organisation-based access control.
     
     Args:
-        hostname: Required organization hostname (None for any organization)
+        hostname: Required organisation hostname (None for any organisation)
         
     Returns:
         Dependency function
     """
-    async def organization_checker(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
-        if not current_user.can_access_organization(hostname):
-            logger.warning(f"Access denied: user {current_user.employee_id} cannot access organization {hostname}")
+    async def organisation_checker(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
+        if not current_user.can_access_organisation(hostname):
+            logger.warning(f"Access denied: user {current_user.employee_id} cannot access organisation {hostname}")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access denied: insufficient organization permissions"
+                detail="Access denied: insufficient organisation permissions"
             )
         return current_user
     
-    return organization_checker
+    return organisation_checker
 
 
 # Common role dependencies

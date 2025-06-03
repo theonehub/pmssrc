@@ -1,6 +1,6 @@
 """
-Organization Database Service
-Provides database connections and collections based on organization context
+Organisation Database Service
+Provides database connections and collections based on organisation context
 """
 
 import logging
@@ -15,18 +15,18 @@ from app.utils.logger import get_logger
 logger = get_logger(__name__)
 
 
-class OrganizationDatabaseService:
+class OrganisationDatabaseService:
     """
-    Service for handling organization-specific database operations.
+    Service for handling organisation-specific database operations.
     
     Responsibilities:
-    - Provide database connections based on organization context
+    - Provide database connections based on organisation context
     - Handle collection access with proper naming conventions
-    - Manage database lifecycle for different organizations
+    - Manage database lifecycle for different organisations
     """
     
     def __init__(self):
-        """Initialize the organization database service."""
+        """Initialize the organisation database service."""
         self._connector = MongoDBConnector()
         self._connection_established = False
     
@@ -38,37 +38,37 @@ class OrganizationDatabaseService:
             await self._connector.connect(connection_string, **options)
             self._connection_established = True
     
-    async def get_organization_database(self, current_user: CurrentUser) -> AsyncIOMotorDatabase:
+    async def get_organisation_database(self, current_user: CurrentUser) -> AsyncIOMotorDatabase:
         """
-        Get database instance for the user's organization.
+        Get database instance for the user's organisation.
         
         Args:
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
             
         Returns:
-            AsyncIOMotorDatabase: Database instance for the organization
+            AsyncIOMotorDatabase: Database instance for the organisation
         """
         await self._ensure_connection()
         
         database_name = current_user.database_name
-        logger.debug(f"Accessing database: {database_name} for organization: {current_user.hostname}")
+        logger.debug(f"Accessing database: {database_name} for organisation: {current_user.hostname}")
         
         return self._connector.get_database(database_name)
     
-    async def get_organization_collection(
+    async def get_organisation_collection(
         self, 
         current_user: CurrentUser, 
         collection_name: str
     ) -> AsyncIOMotorCollection:
         """
-        Get collection instance for the user's organization.
+        Get collection instance for the user's organisation.
         
         Args:
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
             collection_name: Name of the collection to access
             
         Returns:
-            AsyncIOMotorCollection: Collection instance for the organization
+            AsyncIOMotorCollection: Collection instance for the organisation
         """
         await self._ensure_connection()
         
@@ -79,7 +79,7 @@ class OrganizationDatabaseService:
     
     async def get_global_collection(self, collection_name: str) -> AsyncIOMotorCollection:
         """
-        Get collection from global database (for cross-organization data).
+        Get collection from global database (for cross-organisation data).
         
         Args:
             collection_name: Name of the collection to access
@@ -102,16 +102,16 @@ class OrganizationDatabaseService:
         Get collection with fallback to global database.
         
         Args:
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
             collection_name: Name of the collection to access
-            try_global: Whether to try global database if organization collection fails
+            try_global: Whether to try global database if organisation collection fails
             
         Returns:
-            AsyncIOMotorCollection: Collection instance (organization or global)
+            AsyncIOMotorCollection: Collection instance (organisation or global)
         """
         try:
-            # Try organization-specific database first
-            org_collection = await self.get_organization_collection(current_user, collection_name)
+            # Try organisation-specific database first
+            org_collection = await self.get_organisation_collection(current_user, collection_name)
             
             # Check if collection has data (optional validation)
             # For now, we'll return the collection and let the calling code handle empty collections
@@ -119,31 +119,31 @@ class OrganizationDatabaseService:
             
         except Exception as e:
             if try_global:
-                logger.warning(f"Failed to access organization collection {collection_name}: {e}")
+                logger.warning(f"Failed to access organisation collection {collection_name}: {e}")
                 logger.info(f"Falling back to global collection: {collection_name}")
                 return await self.get_global_collection(collection_name)
             else:
                 raise
     
-    async def list_organization_collections(self, current_user: CurrentUser) -> list:
+    async def list_organisation_collections(self, current_user: CurrentUser) -> list:
         """
-        List all collections in the user's organization database.
+        List all collections in the user's organisation database.
         
         Args:
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
             
         Returns:
             list: List of collection names
         """
-        database = await self.get_organization_database(current_user)
+        database = await self.get_organisation_database(current_user)
         return await database.list_collection_names()
     
-    async def create_organization_indexes(self, current_user: CurrentUser):
+    async def create_organisation_indexes(self, current_user: CurrentUser):
         """
-        Create necessary indexes for organization collections.
+        Create necessary indexes for organisation collections.
         
         Args:
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
         """
         try:
             # Common collections and their indexes
@@ -179,7 +179,7 @@ class OrganizationDatabaseService:
                 ]
             }
             
-            database = await self.get_organization_database(current_user)
+            database = await self.get_organisation_database(current_user)
             
             for collection_name, indexes in collections_indexes.items():
                 collection = database[collection_name]
@@ -192,10 +192,10 @@ class OrganizationDatabaseService:
                         # Compound index
                         await collection.create_index(index)
             
-            logger.info(f"Created indexes for organization: {current_user.hostname}")
+            logger.info(f"Created indexes for organisation: {current_user.hostname}")
             
         except Exception as e:
-            logger.error(f"Failed to create indexes for organization {current_user.hostname}: {e}")
+            logger.error(f"Failed to create indexes for organisation {current_user.hostname}: {e}")
             # Don't raise the exception as indexes are not critical for basic operations
     
     async def close_connection(self):
@@ -206,14 +206,14 @@ class OrganizationDatabaseService:
 
 
 # Global instance
-organization_db_service = OrganizationDatabaseService()
+organisation_db_service = OrganisationDatabaseService()
 
 
-async def get_organization_database_service() -> OrganizationDatabaseService:
+async def get_organisation_database_service() -> OrganisationDatabaseService:
     """
-    Dependency for getting organization database service.
+    Dependency for getting organisation database service.
     
     Returns:
-        OrganizationDatabaseService: Database service instance
+        OrganisationDatabaseService: Database service instance
     """
-    return organization_db_service 
+    return organisation_db_service 

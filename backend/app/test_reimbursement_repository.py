@@ -152,8 +152,8 @@ def test_reimbursement_repository():
                 self._db_connector = database_connector
                 self._collection_name = "reimbursements"
             
-            def _get_collection(self, organization_id):
-                db_name = f"pms_{organization_id}" if organization_id != "default" else "global_database"
+            def _get_collection(self, organisation_id):
+                db_name = f"pms_{organisation_id}" if organisation_id != "default" else "pms_global_database"
                 return self._db_connector.get_collection(db_name, self._collection_name)
             
             async def save(self, reimbursement):
@@ -185,9 +185,9 @@ def test_reimbursement_repository():
                     print(f"Error saving reimbursement: {e}")
                     raise
             
-            async def get_by_id(self, reimbursement_id, organization_id="default"):
+            async def get_by_id(self, reimbursement_id, organisation_id="default"):
                 try:
-                    collection = self._get_collection(organization_id)
+                    collection = self._get_collection(organisation_id)
                     
                     # Handle both ObjectId and string IDs
                     if len(reimbursement_id) == 24:  # Likely ObjectId
@@ -203,7 +203,7 @@ def test_reimbursement_repository():
                     print(f"Error getting reimbursement by ID: {e}")
                     return None
             
-            async def get_by_employee_id(self, employee_id, organization_id="default"):
+            async def get_by_employee_id(self, employee_id, organisation_id="default"):
                 try:
                     # Simple mock - return basic structure
                     return [
@@ -224,7 +224,7 @@ def test_reimbursement_repository():
                     print(f"Error getting reimbursements by employee ID: {e}")
                     return []
             
-            async def get_pending_reimbursements(self, organization_id="default", manager_id=None):
+            async def get_pending_reimbursements(self, organisation_id="default", manager_id=None):
                 try:
                     # Simple mock - return basic structure
                     return [
@@ -247,9 +247,9 @@ def test_reimbursement_repository():
                     print(f"Error getting pending reimbursements: {e}")
                     return []
             
-            async def update_status(self, reimbursement_id, status, comments, organization_id):
+            async def update_status(self, reimbursement_id, status, comments, organisation_id):
                 try:
-                    collection = self._get_collection(organization_id)
+                    collection = self._get_collection(organisation_id)
                     
                     update_data = {
                         "status": status,
@@ -264,7 +264,7 @@ def test_reimbursement_repository():
                     print(f"Error updating reimbursement status: {e}")
                     return False
             
-            async def get_reimbursement_statistics(self, organization_id="default", year=None):
+            async def get_reimbursement_statistics(self, organisation_id="default", year=None):
                 try:
                     # Simple mock statistics
                     return {

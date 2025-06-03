@@ -1,6 +1,6 @@
 """
-Organization ID Value Object
-Represents a unique identifier for an organization
+Organisation ID Value Object
+Represents a unique identifier for an organisation
 """
 
 import uuid
@@ -9,12 +9,12 @@ from typing import Union
 
 
 @dataclass(frozen=True)
-class OrganizationId:
+class OrganisationId:
     """
-    Value object representing an organization identifier.
+    Value object representing an organisation identifier.
     
     Follows SOLID principles:
-    - SRP: Encapsulates organization ID logic
+    - SRP: Encapsulates organisation ID logic
     - OCP: Extensible through new validation rules
     - LSP: Can be substituted with enhanced versions
     - ISP: Focused interface for ID operations
@@ -24,22 +24,22 @@ class OrganizationId:
     value: str
     
     def __post_init__(self):
-        """Validate the organization ID"""
+        """Validate the organisation ID"""
         if not self.value:
-            raise ValueError("Organization ID cannot be empty")
+            raise ValueError("Organisation ID cannot be empty")
         
         if not isinstance(self.value, str):
-            raise ValueError("Organization ID must be a string")
+            raise ValueError("Organisation ID must be a string")
         
         if len(self.value.strip()) == 0:
-            raise ValueError("Organization ID cannot be whitespace only")
+            raise ValueError("Organisation ID cannot be whitespace only")
         
         # Validate UUID format if it looks like a UUID
         if len(self.value) == 36 and '-' in self.value:
             try:
                 uuid.UUID(self.value)
             except ValueError:
-                raise ValueError("Invalid UUID format for organization ID")
+                raise ValueError("Invalid UUID format for organisation ID")
     
     def __str__(self) -> str:
         """String representation"""
@@ -47,11 +47,11 @@ class OrganizationId:
     
     def __repr__(self) -> str:
         """Developer representation"""
-        return f"OrganizationId('{self.value}')"
+        return f"OrganisationId('{self.value}')"
     
     def __eq__(self, other) -> bool:
         """Equality comparison"""
-        if isinstance(other, OrganizationId):
+        if isinstance(other, OrganisationId):
             return self.value == other.value
         return False
     
@@ -60,14 +60,14 @@ class OrganizationId:
         return hash(self.value)
     
     @classmethod
-    def generate(cls) -> 'OrganizationId':
-        """Generate a new random organization ID"""
+    def generate(cls) -> 'OrganisationId':
+        """Generate a new random organisation ID"""
         return cls(str(uuid.uuid4()))
     
     @classmethod
-    def from_string(cls, value: Union[str, 'OrganizationId']) -> 'OrganizationId':
-        """Create OrganizationId from string or existing OrganizationId"""
-        if isinstance(value, OrganizationId):
+    def from_string(cls, value: Union[str, 'OrganisationId']) -> 'OrganisationId':
+        """Create OrganisationId from string or existing OrganisationId"""
+        if isinstance(value, OrganisationId):
             return value
         return cls(value)
     
@@ -84,6 +84,6 @@ class OrganizationId:
         return {"value": self.value}
     
     @classmethod
-    def from_dict(cls, data: dict) -> 'OrganizationId':
+    def from_dict(cls, data: dict) -> 'OrganisationId':
         """Create from dictionary representation"""
         return cls(data["value"]) 

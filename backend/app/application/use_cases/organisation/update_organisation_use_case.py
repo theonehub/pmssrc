@@ -1,46 +1,46 @@
 """
-Update Organization Use Case
-Handles the business logic for updating an existing organization
+Update Organisation Use Case
+Handles the business logic for updating an existing organisation
 """
 
 import logging
 from typing import List, Optional
 
-from app.domain.entities.organization import Organization
-from app.domain.value_objects.organization_id import OrganizationId
-from app.domain.value_objects.organization_details import (
-    ContactInformation, Address, TaxInformation, OrganizationType
+from app.domain.entities.organisation import Organisation
+from app.domain.value_objects.organisation_id import OrganisationId
+from app.domain.value_objects.organisation_details import (
+    ContactInformation, Address, TaxInformation, OrganisationType
 )
-from app.application.dto.organization_dto import (
-    UpdateOrganizationRequestDTO, OrganizationResponseDTO,
-    OrganizationValidationError, OrganizationNotFoundError,
-    OrganizationBusinessRuleError, OrganizationConflictError
+from app.application.dto.organisation_dto import (
+    UpdateOrganisationRequestDTO, OrganisationResponseDTO,
+    OrganisationValidationError, OrganisationNotFoundError,
+    OrganisationBusinessRuleError, OrganisationConflictError
 )
-from app.application.interfaces.repositories.organization_repository import (
-    OrganizationCommandRepository, OrganizationQueryRepository
+from app.application.interfaces.repositories.organisation_repository import (
+    OrganisationCommandRepository, OrganisationQueryRepository
 )
-from app.application.interfaces.services.organization_service import (
-    OrganizationValidationService, OrganizationNotificationService
+from app.application.interfaces.services.organisation_service import (
+    OrganisationValidationService, OrganisationNotificationService
 )
 
 
 logger = logging.getLogger(__name__)
 
 
-class UpdateOrganizationUseCase:
+class UpdateOrganisationUseCase:
     """
-    Use case for updating an existing organization.
+    Use case for updating an existing organisation.
     
     Follows SOLID principles:
-    - SRP: Only handles organization update logic
+    - SRP: Only handles organisation update logic
     - OCP: Can be extended with new validation rules
     - LSP: Can be substituted with enhanced versions
     - ISP: Depends on focused interfaces
     - DIP: Depends on abstractions (repositories, services)
     
     Business Rules:
-    1. Organization must exist
-    2. Organization name must be unique (if changed)
+    1. Organisation must exist
+    2. Organisation name must be unique (if changed)
     3. Hostname must be unique (if changed)
     4. PAN number must be unique (if changed)
     5. Contact information must be valid (if provided)
@@ -51,10 +51,10 @@ class UpdateOrganizationUseCase:
     
     def __init__(
         self,
-        command_repository: OrganizationCommandRepository,
-        query_repository: OrganizationQueryRepository,
-        validation_service: OrganizationValidationService,
-        notification_service: OrganizationNotificationService
+        command_repository: OrganisationCommandRepository,
+        query_repository: OrganisationQueryRepository,
+        validation_service: OrganisationValidationService,
+        notification_service: OrganisationNotificationService
     ):
         self.command_repository = command_repository
         self.query_repository = query_repository
@@ -63,152 +63,152 @@ class UpdateOrganizationUseCase:
     
     async def execute(
         self, 
-        organization_id: str, 
-        request: UpdateOrganizationRequestDTO
-    ) -> OrganizationResponseDTO:
+        organisation_id: str, 
+        request: UpdateOrganisationRequestDTO
+    ) -> OrganisationResponseDTO:
         """
-        Execute the update organization use case.
+        Execute the update organisation use case.
         
         Args:
-            organization_id: ID of organization to update
-            request: Organization update request DTO
+            organisation_id: ID of organisation to update
+            request: Organisation update request DTO
             
         Returns:
-            Updated organization response DTO
+            Updated organisation response DTO
             
         Raises:
-            OrganizationNotFoundError: If organization not found
-            OrganizationValidationError: If request data is invalid
-            OrganizationConflictError: If update conflicts with existing data
-            OrganizationBusinessRuleError: If business rules are violated
+            OrganisationNotFoundError: If organisation not found
+            OrganisationValidationError: If request data is invalid
+            OrganisationConflictError: If update conflicts with existing data
+            OrganisationBusinessRuleError: If business rules are violated
         """
-        logger.info(f"Updating organization: {organization_id}")
+        logger.info(f"Updating organisation: {organisation_id}")
         
-        # Step 1: Get existing organization
-        organization = await self._get_existing_organization(organization_id)
+        # Step 1: Get existing organisation
+        organisation = await self._get_existing_organisation(organisation_id)
         
         # Step 2: Validate request data
-        await self._validate_request(organization_id, request)
+        await self._validate_request(organisation_id, request)
         
         # Step 3: Check uniqueness constraints (if applicable)
-        await self._check_uniqueness_constraints(organization_id, request)
+        await self._check_uniqueness_constraints(organisation_id, request)
         
         # Step 4: Track updated fields for notifications
         updated_fields = []
         
         # Step 5: Update basic information
         if self._should_update_basic_info(request):
-            self._update_basic_info(organization, request, updated_fields)
+            self._update_basic_info(organisation, request, updated_fields)
         
         # Step 6: Update contact information
         if self._should_update_contact_info(request):
-            await self._update_contact_info(organization, request, updated_fields)
+            await self._update_contact_info(organisation, request, updated_fields)
         
         # Step 7: Update address
         if self._should_update_address(request):
-            await self._update_address(organization, request, updated_fields)
+            await self._update_address(organisation, request, updated_fields)
         
         # Step 8: Update tax information
         if self._should_update_tax_info(request):
-            await self._update_tax_info(organization, request, updated_fields)
+            await self._update_tax_info(organisation, request, updated_fields)
         
         # Step 9: Update employee strength
         if request.employee_strength is not None:
-            await self._update_employee_strength(organization, request, updated_fields)
+            await self._update_employee_strength(organisation, request, updated_fields)
         
         # Step 10: Update system configuration
         if self._should_update_system_config(request):
-            self._update_system_config(organization, request, updated_fields)
+            self._update_system_config(organisation, request, updated_fields)
         
         # Step 11: Validate business rules
-        await self._validate_business_rules(organization)
+        await self._validate_business_rules(organisation)
         
-        # Step 12: Save organization
-        saved_organization = await self.command_repository.save(organization)
+        # Step 12: Save organisation
+        saved_organisation = await self.command_repository.save(organisation)
         
         # Step 13: Send notifications (non-blocking)
         if updated_fields:
             try:
-                await self.notification_service.send_organization_updated_notification(
-                    saved_organization, updated_fields
+                await self.notification_service.send_organisation_updated_notification(
+                    saved_organisation, updated_fields
                 )
             except Exception as e:
-                logger.warning(f"Failed to send organization updated notification: {e}")
+                logger.warning(f"Failed to send organisation updated notification: {e}")
         
         # Step 14: Convert to response DTO
-        response = self._convert_to_response_dto(saved_organization)
+        response = self._convert_to_response_dto(saved_organisation)
         
-        logger.info(f"Organization updated successfully: {organization_id}")
+        logger.info(f"Organisation updated successfully: {organisation_id}")
         return response
     
-    async def _get_existing_organization(self, organization_id: str) -> Organization:
-        """Get existing organization"""
-        org_id = OrganizationId.from_string(organization_id)
-        organization = await self.query_repository.get_by_id(org_id)
+    async def _get_existing_organisation(self, organisation_id: str) -> Organisation:
+        """Get existing organisation"""
+        org_id = OrganisationId.from_string(organisation_id)
+        organisation = await self.query_repository.get_by_id(org_id)
         
-        if not organization:
-            raise OrganizationNotFoundError(organization_id)
+        if not organisation:
+            raise OrganisationNotFoundError(organisation_id)
         
-        return organization
+        return organisation
     
     async def _validate_request(
         self, 
-        organization_id: str, 
-        request: UpdateOrganizationRequestDTO
+        organisation_id: str, 
+        request: UpdateOrganisationRequestDTO
     ) -> None:
         """Validate the request data"""
-        validation_errors = await self.validation_service.validate_organization_update(
-            organization_id, request
+        validation_errors = await self.validation_service.validate_organisation_update(
+            organisation_id, request
         )
         
         if validation_errors:
-            raise OrganizationValidationError(
-                "Organization update data is invalid",
+            raise OrganisationValidationError(
+                "Organisation update data is invalid",
                 validation_errors
             )
     
     async def _check_uniqueness_constraints(
         self, 
-        organization_id: str, 
-        request: UpdateOrganizationRequestDTO
+        organisation_id: str, 
+        request: UpdateOrganisationRequestDTO
     ) -> None:
         """Check uniqueness constraints for changed fields"""
         uniqueness_errors = await self.validation_service.validate_uniqueness_constraints(
             name=request.name,
             hostname=request.hostname,
             pan_number=request.pan_number,
-            exclude_id=organization_id
+            exclude_id=organisation_id
         )
         
         if uniqueness_errors:
-            raise OrganizationConflictError(
-                "Organization update conflicts with existing data",
+            raise OrganisationConflictError(
+                "Organisation update conflicts with existing data",
                 "uniqueness"
             )
     
-    def _should_update_basic_info(self, request: UpdateOrganizationRequestDTO) -> bool:
+    def _should_update_basic_info(self, request: UpdateOrganisationRequestDTO) -> bool:
         """Check if basic info should be updated"""
         return any([
             request.name is not None,
             request.description is not None,
-            request.organization_type is not None
+            request.organisation_type is not None
         ])
     
     def _update_basic_info(
         self, 
-        organization: Organization, 
-        request: UpdateOrganizationRequestDTO,
+        organisation: Organisation, 
+        request: UpdateOrganisationRequestDTO,
         updated_fields: List[str]
     ) -> None:
-        """Update basic organization information"""
-        organization_type = None
-        if request.organization_type:
-            organization_type = OrganizationType(request.organization_type)
+        """Update basic organisation information"""
+        organisation_type = None
+        if request.organisation_type:
+            organisation_type = OrganisationType(request.organisation_type)
         
-        organization.update_basic_info(
+        organisation.update_basic_info(
             name=request.name,
             description=request.description,
-            organization_type=organization_type,
+            organisation_type=organisation_type,
             updated_by=request.updated_by
         )
         
@@ -216,10 +216,10 @@ class UpdateOrganizationUseCase:
             updated_fields.append("name")
         if request.description is not None:
             updated_fields.append("description")
-        if request.organization_type is not None:
-            updated_fields.append("organization_type")
+        if request.organisation_type is not None:
+            updated_fields.append("organisation_type")
     
-    def _should_update_contact_info(self, request: UpdateOrganizationRequestDTO) -> bool:
+    def _should_update_contact_info(self, request: UpdateOrganisationRequestDTO) -> bool:
         """Check if contact info should be updated"""
         return any([
             request.email is not None,
@@ -230,14 +230,14 @@ class UpdateOrganizationUseCase:
     
     async def _update_contact_info(
         self, 
-        organization: Organization, 
-        request: UpdateOrganizationRequestDTO,
+        organisation: Organisation, 
+        request: UpdateOrganisationRequestDTO,
         updated_fields: List[str]
     ) -> None:
         """Update contact information"""
         try:
             # Use existing values if not provided in request
-            current_contact = organization.contact_info
+            current_contact = organisation.contact_info
             
             new_contact_info = ContactInformation(
                 email=request.email if request.email is not None else current_contact.email,
@@ -246,13 +246,13 @@ class UpdateOrganizationUseCase:
                 fax=request.fax if request.fax is not None else current_contact.fax
             )
             
-            organization.update_contact_info(new_contact_info, request.updated_by)
+            organisation.update_contact_info(new_contact_info, request.updated_by)
             updated_fields.append("contact_info")
             
         except ValueError as e:
-            raise OrganizationValidationError(f"Invalid contact information: {e}")
+            raise OrganisationValidationError(f"Invalid contact information: {e}")
     
-    def _should_update_address(self, request: UpdateOrganizationRequestDTO) -> bool:
+    def _should_update_address(self, request: UpdateOrganisationRequestDTO) -> bool:
         """Check if address should be updated"""
         return any([
             request.street_address is not None,
@@ -265,14 +265,14 @@ class UpdateOrganizationUseCase:
     
     async def _update_address(
         self, 
-        organization: Organization, 
-        request: UpdateOrganizationRequestDTO,
+        organisation: Organisation, 
+        request: UpdateOrganisationRequestDTO,
         updated_fields: List[str]
     ) -> None:
         """Update address"""
         try:
             # Use existing values if not provided in request
-            current_address = organization.address
+            current_address = organisation.address
             
             new_address = Address(
                 street_address=request.street_address if request.street_address is not None else current_address.street_address,
@@ -283,13 +283,13 @@ class UpdateOrganizationUseCase:
                 landmark=request.landmark if request.landmark is not None else current_address.landmark
             )
             
-            organization.update_address(new_address, request.updated_by)
+            organisation.update_address(new_address, request.updated_by)
             updated_fields.append("address")
             
         except ValueError as e:
-            raise OrganizationValidationError(f"Invalid address: {e}")
+            raise OrganisationValidationError(f"Invalid address: {e}")
     
-    def _should_update_tax_info(self, request: UpdateOrganizationRequestDTO) -> bool:
+    def _should_update_tax_info(self, request: UpdateOrganisationRequestDTO) -> bool:
         """Check if tax info should be updated"""
         return any([
             request.pan_number is not None,
@@ -300,14 +300,14 @@ class UpdateOrganizationUseCase:
     
     async def _update_tax_info(
         self, 
-        organization: Organization, 
-        request: UpdateOrganizationRequestDTO,
+        organisation: Organisation, 
+        request: UpdateOrganisationRequestDTO,
         updated_fields: List[str]
     ) -> None:
         """Update tax information"""
         try:
             # Use existing values if not provided in request
-            current_tax = organization.tax_info
+            current_tax = organisation.tax_info
             
             new_tax_info = TaxInformation(
                 pan_number=request.pan_number if request.pan_number is not None else current_tax.pan_number,
@@ -316,30 +316,30 @@ class UpdateOrganizationUseCase:
                 cin_number=request.cin_number if request.cin_number is not None else current_tax.cin_number
             )
             
-            organization.update_tax_info(new_tax_info, request.updated_by)
+            organisation.update_tax_info(new_tax_info, request.updated_by)
             updated_fields.append("tax_info")
             
         except ValueError as e:
-            raise OrganizationValidationError(f"Invalid tax information: {e}")
+            raise OrganisationValidationError(f"Invalid tax information: {e}")
     
     async def _update_employee_strength(
         self, 
-        organization: Organization, 
-        request: UpdateOrganizationRequestDTO,
+        organisation: Organisation, 
+        request: UpdateOrganisationRequestDTO,
         updated_fields: List[str]
     ) -> None:
         """Update employee strength"""
         try:
-            organization.update_employee_strength(
+            organisation.update_employee_strength(
                 request.employee_strength, 
                 request.updated_by
             )
             updated_fields.append("employee_strength")
             
         except ValueError as e:
-            raise OrganizationBusinessRuleError(f"Employee strength update failed: {e}")
+            raise OrganisationBusinessRuleError(f"Employee strength update failed: {e}")
     
-    def _should_update_system_config(self, request: UpdateOrganizationRequestDTO) -> bool:
+    def _should_update_system_config(self, request: UpdateOrganisationRequestDTO) -> bool:
         """Check if system config should be updated"""
         return any([
             request.hostname is not None,
@@ -348,57 +348,57 @@ class UpdateOrganizationUseCase:
     
     def _update_system_config(
         self, 
-        organization: Organization, 
-        request: UpdateOrganizationRequestDTO,
+        organisation: Organisation, 
+        request: UpdateOrganisationRequestDTO,
         updated_fields: List[str]
     ) -> None:
         """Update system configuration"""
         if request.hostname is not None:
-            organization.hostname = request.hostname
+            organisation.hostname = request.hostname
             updated_fields.append("hostname")
         
         if request.logo_path is not None:
-            organization.logo_path = request.logo_path
+            organisation.logo_path = request.logo_path
             updated_fields.append("logo_path")
         
         if updated_fields:
-            organization.updated_by = request.updated_by
+            organisation.updated_by = request.updated_by
     
-    async def _validate_business_rules(self, organization: Organization) -> None:
+    async def _validate_business_rules(self, organisation: Organisation) -> None:
         """Validate business rules"""
-        business_rule_errors = await self.validation_service.validate_business_rules(organization)
+        business_rule_errors = await self.validation_service.validate_business_rules(organisation)
         
         if business_rule_errors:
-            raise OrganizationBusinessRuleError(
-                "Organization violates business rules",
+            raise OrganisationBusinessRuleError(
+                "Organisation violates business rules",
                 "business_rules"
             )
     
-    def _convert_to_response_dto(self, organization: Organization) -> OrganizationResponseDTO:
-        """Convert organization entity to response DTO"""
-        return OrganizationResponseDTO(
-            organization_id=str(organization.organization_id),
-            name=organization.name,
-            description=organization.description,
-            organization_type=organization.organization_type.value,
-            status=organization.status.value,
-            contact_info=self._convert_contact_info_to_dto(organization.contact_info),
-            address=self._convert_address_to_dto(organization.address),
-            tax_info=self._convert_tax_info_to_dto(organization.tax_info),
-            employee_strength=organization.employee_strength,
-            used_employee_strength=organization.used_employee_strength,
-            available_capacity=organization.get_available_employee_capacity(),
-            utilization_percentage=organization.get_employee_utilization_percentage(),
-            hostname=organization.hostname,
-            logo_path=organization.logo_path,
-            created_at=organization.created_at.isoformat(),
-            updated_at=organization.updated_at.isoformat(),
-            created_by=organization.created_by,
-            updated_by=organization.updated_by,
-            is_active=organization.is_active(),
-            is_government=organization.is_government_organization(),
-            has_available_capacity=organization.has_available_employee_capacity(),
-            display_name=organization.get_display_name()
+    def _convert_to_response_dto(self, organisation: Organisation) -> OrganisationResponseDTO:
+        """Convert organisation entity to response DTO"""
+        return OrganisationResponseDTO(
+            organisation_id=str(organisation.organisation_id),
+            name=organisation.name,
+            description=organisation.description,
+            organisation_type=organisation.organisation_type.value,
+            status=organisation.status.value,
+            contact_info=self._convert_contact_info_to_dto(organisation.contact_info),
+            address=self._convert_address_to_dto(organisation.address),
+            tax_info=self._convert_tax_info_to_dto(organisation.tax_info),
+            employee_strength=organisation.employee_strength,
+            used_employee_strength=organisation.used_employee_strength,
+            available_capacity=organisation.get_available_employee_capacity(),
+            utilization_percentage=organisation.get_employee_utilization_percentage(),
+            hostname=organisation.hostname,
+            logo_path=organisation.logo_path,
+            created_at=organisation.created_at.isoformat(),
+            updated_at=organisation.updated_at.isoformat(),
+            created_by=organisation.created_by,
+            updated_by=organisation.updated_by,
+            is_active=organisation.is_active(),
+            is_government=organisation.is_government_organisation(),
+            has_available_capacity=organisation.has_available_employee_capacity(),
+            display_name=organisation.get_display_name()
         )
     
     def _convert_contact_info_to_dto(self, contact_info: ContactInformation):
@@ -406,7 +406,7 @@ class UpdateOrganizationUseCase:
         if not contact_info:
             return None
         
-        from app.application.dto.organization_dto import ContactInformationResponseDTO
+        from app.application.dto.organisation_dto import ContactInformationResponseDTO
         return ContactInformationResponseDTO(
             email=contact_info.email,
             phone=contact_info.phone,
@@ -421,7 +421,7 @@ class UpdateOrganizationUseCase:
         if not address:
             return None
         
-        from app.application.dto.organization_dto import AddressResponseDTO
+        from app.application.dto.organisation_dto import AddressResponseDTO
         return AddressResponseDTO(
             street_address=address.street_address,
             city=address.city,
@@ -439,7 +439,7 @@ class UpdateOrganizationUseCase:
         if not tax_info:
             return None
         
-        from app.application.dto.organization_dto import TaxInformationResponseDTO
+        from app.application.dto.organisation_dto import TaxInformationResponseDTO
         return TaxInformationResponseDTO(
             pan_number=tax_info.pan_number,
             gst_number=tax_info.gst_number,

@@ -123,7 +123,7 @@ async def example_solid_repository():
             designation="Engineering Manager",
             date_of_joining=datetime.now(),
             is_active=True,
-            organization_id="example_company"
+            organisation_id="example_company"
         )
         
         # Save user using repository
@@ -142,13 +142,13 @@ async def example_solid_repository():
         users = await user_repo.get_all(
             skip=0, 
             limit=10, 
-            organization_id="example_company"
+            organisation_id="example_company"
         )
         print(f"Found {len(users)} users")
         
         # Get user statistics
         print("\nGetting user statistics...")
-        stats = await user_repo.get_statistics(organization_id="example_company")
+        stats = await user_repo.get_statistics(organisation_id="example_company")
         print(f"Total users: {getattr(stats, 'total_users', 0)}")
         print(f"Users by role: {getattr(stats, 'users_by_role', {})}")
         
@@ -200,7 +200,7 @@ async def example_advanced_features():
                 email=f"user{i}@example.com",
                 role="Employee",
                 department="Engineering",
-                organization_id="example_company"
+                organisation_id="example_company"
             )
             for i in range(3, 6)
         ]
@@ -262,7 +262,7 @@ async def example_error_handling():
                 employee_id="EMP001",
                 name="Duplicate User",
                 email="duplicate@example.com",
-                organization_id="example_company"
+                organisation_id="example_company"
             )
             await user_repo.save(user)
             print("User saved successfully")
@@ -291,7 +291,7 @@ async def example_performance_monitoring():
         print("Measuring operation performance...")
         
         start_time = time.time()
-        users = await user_repo.get_all(limit=100, organization_id="example_company")
+        users = await user_repo.get_all(limit=100, organisation_id="example_company")
         end_time = time.time()
         
         print(f"Retrieved {len(users)} users in {end_time - start_time:.3f} seconds")

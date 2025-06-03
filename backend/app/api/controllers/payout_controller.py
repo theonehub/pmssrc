@@ -63,7 +63,7 @@ class PayoutController:
         
         Args:
             request: Payout calculation request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Calculated payout response
@@ -97,7 +97,7 @@ class PayoutController:
         
         Args:
             request: Payout creation request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Created payout response
@@ -131,7 +131,7 @@ class PayoutController:
         
         Args:
             employee_id: Employee ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             year: Filter by year (optional)
             month: Filter by month (optional)
             
@@ -161,7 +161,7 @@ class PayoutController:
         
         Args:
             payout_id: Payout ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Payout response
@@ -191,7 +191,7 @@ class PayoutController:
         Args:
             payout_id: Payout ID to update
             request: Update request data
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Updated payout response
@@ -227,7 +227,7 @@ class PayoutController:
             payout_id: Payout ID
             status: New status
             updated_by: User making the update
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Status update response
@@ -257,7 +257,7 @@ class PayoutController:
         
         Args:
             request: Bulk payout request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Bulk processing response
@@ -292,7 +292,7 @@ class PayoutController:
         Args:
             month: Month
             year: Year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             status: Filter by status (optional)
             
         Returns:
@@ -326,7 +326,7 @@ class PayoutController:
         Args:
             month: Month
             year: Year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Monthly payout summary
@@ -354,7 +354,7 @@ class PayoutController:
         
         Args:
             request: Payslip generation request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Generated payslip response
@@ -384,7 +384,7 @@ class PayoutController:
         Args:
             employee_id: Employee ID
             year: Year
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Employee payout history

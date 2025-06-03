@@ -216,10 +216,10 @@ class SolidEmployeeLeaveRepository(
         
         return EmployeeLeave(**document)
     
-    async def _ensure_indexes(self, organization_id: str) -> None:
+    async def _ensure_indexes(self, organisation_id: str) -> None:
         """Ensure necessary indexes for optimal query performance."""
         try:
-            collection = self._get_collection(organization_id)
+            collection = self._get_collection(organisation_id)
             
             # Index for employee queries
             await collection.create_index([
@@ -250,7 +250,7 @@ class SolidEmployeeLeaveRepository(
                 ("leave_id", 1)
             ], unique=True)
             
-            logger.info(f"Employee leave indexes ensured for organization: {organization_id}")
+            logger.info(f"Employee leave indexes ensured for organisation: {organisation_id}")
             
         except Exception as e:
             logger.error(f"Error ensuring employee leave indexes: {e}")
@@ -263,11 +263,11 @@ class SolidEmployeeLeaveRepository(
         Replaces: create_employee_leave() function
         """
         try:
-            # Get organization from leave or use default
-            organization_id = getattr(leave, 'organization_id', 'default')
+            # Get organisation from leave or use default
+            organisation_id = getattr(leave, 'organisation_id', 'default')
             
             # Ensure indexes
-            await self._ensure_indexes(organization_id)
+            await self._ensure_indexes(organisation_id)
             
             # Prepare document
             document = self._entity_to_document(leave)
@@ -282,7 +282,7 @@ class SolidEmployeeLeaveRepository(
                 document['created_by'] = document.get('employee_id')
             
             # Check for existing record by leave_id
-            existing = await self.get_by_id(document.get('leave_id'), organization_id)
+            existing = await self.get_by_id(document.get('leave_id'), organisation_id)
             
             if existing:
                 # Update existing record
@@ -290,23 +290,23 @@ class SolidEmployeeLeaveRepository(
                 success = await self._update_document(
                     filters=filters,
                     update_data=document,
-                    organization_id=organization_id
+                    organisation_id=organisation_id
                 )
                 if success:
-                    return await self.get_by_id(document['leave_id'], organization_id)
+                    return await self.get_by_id(document['leave_id'], organisation_id)
                 else:
                     raise ValueError("Failed to update employee leave record")
             else:
                 # Insert new record
-                document_id = await self._insert_document(document, organization_id)
-                return await self.get_by_id(document.get('leave_id'), organization_id)
+                document_id = await self._insert_document(document, organisation_id)
+                return await self.get_by_id(document.get('leave_id'), organisation_id)
             
         except Exception as e:
             logger.error(f"Error saving employee leave: {e}")
             raise
     
     async def update(self, leave_id: str, update_data: Dict[str, Any], 
-                    organization_id: str) -> bool:
+                    organisation_id: str) -> bool:
         """
         Update employee leave record.
         
@@ -326,7 +326,7 @@ class SolidEmployeeLeaveRepository(
             success = await self._update_document(
                 filters=filters,
                 update_data=update_data,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return success
@@ -335,7 +335,7 @@ class SolidEmployeeLeaveRepository(
             logger.error(f"Error updating employee leave {leave_id}: {e}")
             return False
     
-    async def delete(self, leave_id: str, organization_id: str) -> bool:
+    async def delete(self, leave_id: str, organisation_id: str) -> bool:
         """
         Delete employee leave record.
         
@@ -345,7 +345,7 @@ class SolidEmployeeLeaveRepository(
             filters = {"leave_id": leave_id}
             return await self._delete_document(
                 filters=filters,
-                organization_id=organization_id,
+                organisation_id=organisation_id,
                 soft_delete=True
             )
             
@@ -354,7 +354,7 @@ class SolidEmployeeLeaveRepository(
             return False
     
     # Query Repository Implementation
-    async def get_by_id(self, leave_id: str, organization_id: str = "default") -> Optional[EmployeeLeave]:
+    async def get_by_id(self, leave_id: str, organisation_id: str = "default") -> Optional[EmployeeLeave]:
         """
         Get employee leave by ID.
         
@@ -365,7 +365,7 @@ class SolidEmployeeLeaveRepository(
             documents = await self._execute_query(
                 filters=filters,
                 limit=1,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             if documents:
@@ -376,7 +376,7 @@ class SolidEmployeeLeaveRepository(
             logger.error(f"Error retrieving employee leave {leave_id}: {e}")
             return None
     
-    async def get_by_employee_id(self, employee_id: str, organization_id: str = "default") -> List[EmployeeLeave]:
+    async def get_by_employee_id(self, employee_id: str, organisation_id: str = "default") -> List[EmployeeLeave]:
         """
         Get all employee leaves for a specific employee.
         
@@ -390,7 +390,7 @@ class SolidEmployeeLeaveRepository(
                 sort_by="start_date",
                 sort_order=-1,
                 limit=100,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -399,7 +399,7 @@ class SolidEmployeeLeaveRepository(
             logger.error(f"Error retrieving employee leaves for {employee_id}: {e}")
             return []
     
-    async def get_all(self, organization_id: str = "default", 
+    async def get_all(self, organisation_id: str = "default", 
                      employee_ids: Optional[List[str]] = None) -> List[EmployeeLeave]:
         """
         Get all employee leaves.
@@ -417,7 +417,7 @@ class SolidEmployeeLeaveRepository(
                 sort_by="start_date",
                 sort_order=-1,
                 limit=1000,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -427,7 +427,7 @@ class SolidEmployeeLeaveRepository(
             return []
     
     async def get_by_manager_id(self, manager_id: str, 
-                               organization_id: str = "default") -> List[EmployeeLeave]:
+                               organisation_id: str = "default") -> List[EmployeeLeave]:
         """
         Get all employee leaves for a specific manager.
         
@@ -441,7 +441,7 @@ class SolidEmployeeLeaveRepository(
                 sort_by="applied_date",
                 sort_order=-1,
                 limit=100,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -451,7 +451,7 @@ class SolidEmployeeLeaveRepository(
             return []
     
     async def get_by_employee_and_month(self, employee_id: str, year: int, month: int,
-                                       organization_id: str = "default") -> List[EmployeeLeave]:
+                                       organisation_id: str = "default") -> List[EmployeeLeave]:
         """
         Get employee leaves for a specific month.
         
@@ -489,7 +489,7 @@ class SolidEmployeeLeaveRepository(
                 sort_by="start_date",
                 sort_order=1,
                 limit=50,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -499,7 +499,7 @@ class SolidEmployeeLeaveRepository(
             return []
     
     async def get_by_date_range(self, start_date: date, end_date: date,
-                               organization_id: str = "default",
+                               organisation_id: str = "default",
                                employee_ids: Optional[List[str]] = None) -> List[EmployeeLeave]:
         """Get employee leaves within a date range."""
         try:
@@ -528,7 +528,7 @@ class SolidEmployeeLeaveRepository(
                 sort_by="start_date",
                 sort_order=1,
                 limit=500,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -537,7 +537,7 @@ class SolidEmployeeLeaveRepository(
             logger.error(f"Error retrieving leaves by date range: {e}")
             return []
     
-    async def get_by_status(self, status: str, organization_id: str = "default",
+    async def get_by_status(self, status: str, organisation_id: str = "default",
                            limit: Optional[int] = None) -> List[EmployeeLeave]:
         """Get employee leaves by status."""
         try:
@@ -548,7 +548,7 @@ class SolidEmployeeLeaveRepository(
                 sort_by="applied_date",
                 sort_order=-1,
                 limit=limit or 100,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -558,7 +558,7 @@ class SolidEmployeeLeaveRepository(
             return []
     
     async def search(self, filters: EmployeeLeaveSearchFiltersDTO,
-                    organization_id: str = "default") -> List[EmployeeLeave]:
+                    organisation_id: str = "default") -> List[EmployeeLeave]:
         """Search employee leaves with filters."""
         try:
             query_filters = {}
@@ -597,7 +597,7 @@ class SolidEmployeeLeaveRepository(
                 limit=page_size,
                 sort_by="applied_date",
                 sort_order=-1,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -607,7 +607,7 @@ class SolidEmployeeLeaveRepository(
             return []
     
     async def count_by_filters(self, filters: EmployeeLeaveSearchFiltersDTO,
-                              organization_id: str = "default") -> int:
+                              organisation_id: str = "default") -> int:
         """Count employee leaves matching filters."""
         try:
             query_filters = {}
@@ -618,14 +618,14 @@ class SolidEmployeeLeaveRepository(
             if hasattr(filters, 'status') and filters.status:
                 query_filters["status"] = filters.status
             
-            return await self._count_documents(query_filters, organization_id)
+            return await self._count_documents(query_filters, organisation_id)
             
         except Exception as e:
             logger.error(f"Error counting employee leaves: {e}")
             return 0
     
     # Analytics Repository Implementation
-    async def get_leave_statistics(self, organization_id: str = "default",
+    async def get_leave_statistics(self, organisation_id: str = "default",
                                   year: Optional[int] = None) -> Dict[str, Any]:
         """Get leave statistics."""
         try:
@@ -666,7 +666,7 @@ class SolidEmployeeLeaveRepository(
                 }
             ]
             
-            results = await self._aggregate(pipeline, organization_id)
+            results = await self._aggregate(pipeline, organisation_id)
             
             if results:
                 stats = results[0]
@@ -691,7 +691,7 @@ class SolidEmployeeLeaveRepository(
             return {}
     
     async def get_employee_leave_summary(self, employee_id: str, year: int,
-                                        organization_id: str = "default") -> Dict[str, Any]:
+                                        organisation_id: str = "default") -> Dict[str, Any]:
         """Get leave summary for an employee."""
         try:
             start_date = f"{year}-01-01"
@@ -713,7 +713,7 @@ class SolidEmployeeLeaveRepository(
                 filters=filters,
                 sort_by="start_date",
                 sort_order=1,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             total_leaves = len(leaves)
@@ -749,7 +749,7 @@ class SolidEmployeeLeaveRepository(
         
         Args:
             leave: EmployeeLeave entity
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Inserted document ID as string
@@ -836,9 +836,9 @@ class SolidEmployeeLeaveRepository(
         """Get leaves that overlap with the given date range."""
         try:
             employee_id = employee_id.value if hasattr(employee_id, 'value') else str(employee_id)
-            organization_id = "default"  # Using default organization
+            organisation_id = "default"  # Using default organisation
             
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             
             # Build query for overlapping dates
             query = {
@@ -880,14 +880,14 @@ class SolidEmployeeLeaveRepository(
     ) -> List[EmployeeLeave]:
         """Get leaves pending approval."""
         try:
-            organization_id = "default"
+            organisation_id = "default"
             
             if manager_id:
                 # Get leaves for team members under this manager
-                return await self.get_by_manager_id(manager_id, organization_id)
+                return await self.get_by_manager_id(manager_id, organisation_id)
             else:
                 # Get all pending leaves
-                return await self.get_by_status("pending", organization_id, limit)
+                return await self.get_by_status("pending", organisation_id, limit)
                 
         except Exception as e:
             logger.error(f"Error getting pending approvals: {e}")
@@ -902,7 +902,7 @@ class SolidEmployeeLeaveRepository(
     ) -> bool:
         """Update leave application status."""
         try:
-            organization_id = "default"
+            organisation_id = "default"
             
             update_data = {
                 "status": status.value if hasattr(status, 'value') else str(status),
@@ -913,7 +913,7 @@ class SolidEmployeeLeaveRepository(
             if comments:
                 update_data["comments"] = comments
             
-            return await self.update(leave_id, update_data, organization_id)
+            return await self.update(leave_id, update_data, organisation_id)
             
         except Exception as e:
             logger.error(f"Error updating leave status: {e}")
@@ -929,8 +929,8 @@ class SolidEmployeeLeaveRepository(
     ) -> Dict[str, int]:
         """Get leave type breakdown."""
         try:
-            organization_id = "default"
-            collection = await self._get_collection(organization_id)
+            organisation_id = "default"
+            collection = await self._get_collection(organisation_id)
             
             # Build query
             query = {}
@@ -981,8 +981,8 @@ class SolidEmployeeLeaveRepository(
     ) -> Dict[str, int]:
         """Get monthly leave trends."""
         try:
-            organization_id = "default"
-            collection = await self._get_collection(organization_id)
+            organisation_id = "default"
+            collection = await self._get_collection(organisation_id)
             
             # Build query
             query = {}
@@ -1024,10 +1024,10 @@ class SolidEmployeeLeaveRepository(
     ) -> List[Dict[str, Any]]:
         """Get team leave summary for a manager."""
         try:
-            organization_id = "default"
+            organisation_id = "default"
             
             # Get all leaves for team members
-            team_leaves = await self.get_by_manager_id(manager_id, organization_id)
+            team_leaves = await self.get_by_manager_id(manager_id, organisation_id)
             
             # Filter by month/year if provided
             if month or year:
@@ -1121,10 +1121,10 @@ class SolidEmployeeLeaveRepository(
         """Get leave balance for an employee."""
         try:
             employee_id = employee_id.value if hasattr(employee_id, 'value') else str(employee_id)
-            organization_id = "default"
+            organisation_id = "default"
             
             # Check if we have a separate balances collection
-            balances_collection = self.db_connector.get_database().get_collection(f"{organization_id}_employee_leave_balances")
+            balances_collection = self.db_connector.get_database().get_collection(f"{organisation_id}_employee_leave_balances")
             
             balance_doc = await balances_collection.find_one({"employee_id": employee_id})
             
@@ -1157,9 +1157,9 @@ class SolidEmployeeLeaveRepository(
         """Update leave balance for an employee."""
         try:
             employee_id = employee_id.value if hasattr(employee_id, 'value') else str(employee_id)
-            organization_id = "default"
+            organisation_id = "default"
             
-            balances_collection = self.db_connector.get_database().get_collection(f"{organization_id}_employee_leave_balances")
+            balances_collection = self.db_connector.get_database().get_collection(f"{organisation_id}_employee_leave_balances")
             
             # Update the specific leave type balance
             result = await balances_collection.update_one(
@@ -1185,9 +1185,9 @@ class SolidEmployeeLeaveRepository(
         """Set leave balances for an employee."""
         try:
             employee_id = employee_id.value if hasattr(employee_id, 'value') else str(employee_id)
-            organization_id = "default"
+            organisation_id = "default"
             
-            balances_collection = self.db_connector.get_database().get_collection(f"{organization_id}_employee_leave_balances")
+            balances_collection = self.db_connector.get_database().get_collection(f"{organisation_id}_employee_leave_balances")
             
             # Set all leave balances
             balance_doc = {
@@ -1211,11 +1211,11 @@ class SolidEmployeeLeaveRepository(
     async def get_team_leave_balances(self, manager_id: str) -> List[Dict[str, Any]]:
         """Get leave balances for all team members under a manager."""
         try:
-            organization_id = "default"
+            organisation_id = "default"
             
             # First, get all team members under this manager
             # This is simplified - in a real system, you'd have an employee-manager relationship
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             
             # Get unique employee IDs who have had leaves under this manager
             pipeline = [

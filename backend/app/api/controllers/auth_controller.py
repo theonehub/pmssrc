@@ -491,11 +491,11 @@ class AuthController:
         permission_map = {
             "admin": [
                 "read_all", "write_all", "delete_all", "manage_users", 
-                "manage_payroll", "manage_organization"
+                "manage_payroll", "manage_organisation"
             ],
             "superadmin": [
                 "read_all", "write_all", "delete_all", "manage_users", 
-                "manage_payroll", "manage_organization", "system_admin"
+                "manage_payroll", "manage_organisation", "system_admin"
             ],
             "manager": [
                 "read_team", "write_team", "manage_team", "view_reports",

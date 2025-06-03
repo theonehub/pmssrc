@@ -68,7 +68,7 @@ class CalculatePayoutUseCase:
         
         Args:
             request: Payout calculation request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             created_by: User initiating the calculation
             
         Returns:

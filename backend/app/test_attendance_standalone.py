@@ -164,8 +164,8 @@ def test_attendance_repository_standalone():
                 self._db_connector = database_connector
                 self._collection_name = "attendance"
             
-            def _get_collection(self, organization_id):
-                db_name = f"pms_{organization_id}" if organization_id != "default" else "global_database"
+            def _get_collection(self, organisation_id):
+                db_name = f"pms_{organisation_id}" if organisation_id != "default" else "pms_global_database"
                 return self._db_connector.get_collection(db_name, self._collection_name)
             
             async def save(self, attendance):

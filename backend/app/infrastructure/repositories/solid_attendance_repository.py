@@ -217,10 +217,10 @@ class SolidAttendanceRepository(
         
         return Attendance(**document)
     
-    async def _ensure_indexes(self, organization_id: str) -> None:
+    async def _ensure_indexes(self, organisation_id: str) -> None:
         """Ensure necessary indexes for optimal query performance."""
         try:
-            collection = await self._get_collection(organization_id)
+            collection = await self._get_collection(organisation_id)
             
             # Index for employee and date queries
             await collection.create_index([
@@ -245,7 +245,7 @@ class SolidAttendanceRepository(
                 ("date", 1)
             ], unique=True)
             
-            logger.info(f"Attendance indexes ensured for organization: {organization_id}")
+            logger.info(f"Attendance indexes ensured for organisation: {organisation_id}")
             
         except Exception as e:
             logger.error(f"Error ensuring attendance indexes: {e}")
@@ -258,11 +258,11 @@ class SolidAttendanceRepository(
         Replaces: create_attendance() function
         """
         try:
-            # Get organization from attendance or use default
-            organization_id = getattr(attendance, 'organization_id', 'default')
+            # Get organisation from attendance or use default
+            organisation_id = getattr(attendance, 'organisation_id', 'default')
             
             # Ensure indexes
-            await self._ensure_indexes(organization_id)
+            await self._ensure_indexes(organisation_id)
             
             # Prepare document
             document = self._entity_to_document(attendance)
@@ -288,7 +288,7 @@ class SolidAttendanceRepository(
                 success = await self._update_document(
                     filters=filters,
                     update_data=document,
-                    organization_id=organization_id
+                    organisation_id=organisation_id
                 )
                 if success:
                     return await self.get_by_employee_and_date(
@@ -299,7 +299,7 @@ class SolidAttendanceRepository(
                     raise ValueError("Failed to update attendance record")
             else:
                 # Insert new record
-                document_id = await self._insert_document(document, organization_id)
+                document_id = await self._insert_document(document, organisation_id)
                 return await self.get_by_id(str(document_id))
             
         except Exception as e:
@@ -332,7 +332,7 @@ class SolidAttendanceRepository(
             filters = {"attendance_id": attendance_id}
             return await self._delete_document(
                 filters=filters,
-                organization_id="default",  # Will be improved with proper org handling
+                organisation_id="default",  # Will be improved with proper org handling
                 soft_delete=True
             )
             
@@ -346,7 +346,7 @@ class SolidAttendanceRepository(
             filters = {"employee_id": employee_id, "date": attendance_date}
             return await self._delete_document(
                 filters=filters,
-                organization_id="default",
+                organisation_id="default",
                 soft_delete=True
             )
             
@@ -362,7 +362,7 @@ class SolidAttendanceRepository(
             documents = await self._execute_query(
                 filters=filters,
                 limit=1,
-                organization_id="default"
+                organisation_id="default"
             )
             
             if documents:
@@ -390,7 +390,7 @@ class SolidAttendanceRepository(
             documents = await self._execute_query(
                 filters=filters,
                 limit=1,
-                organization_id="default"
+                organisation_id="default"
             )
             
             if documents:
@@ -431,7 +431,7 @@ class SolidAttendanceRepository(
                 limit=limit or 100,
                 sort_by="date",
                 sort_order=-1,
-                organization_id="default"
+                organisation_id="default"
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -462,7 +462,7 @@ class SolidAttendanceRepository(
                 sort_by="employee_id",
                 sort_order=1,
                 limit=1000,
-                organization_id="default"
+                organisation_id="default"
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -497,7 +497,7 @@ class SolidAttendanceRepository(
                 limit=limit or 1000,
                 sort_by="date",
                 sort_order=-1,
-                organization_id="default"
+                organisation_id="default"
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -537,7 +537,7 @@ class SolidAttendanceRepository(
                 limit=page_size,
                 sort_by="date",
                 sort_order=-1,
-                organization_id="default"
+                organisation_id="default"
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -589,7 +589,7 @@ class SolidAttendanceRepository(
                 sort_by="checkin_time",
                 sort_order=1,
                 limit=100,
-                organization_id="default"
+                organisation_id="default"
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -624,7 +624,7 @@ class SolidAttendanceRepository(
                 sort_by="date",
                 sort_order=-1,
                 limit=100,
-                organization_id="default"
+                organisation_id="default"
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -850,7 +850,7 @@ class SolidAttendanceRepository(
         
         Args:
             employee_id: Employee ID
-            hostname: Organization hostname
+            hostname: Organisation hostname
             check_in: Whether this is a check-in (True) or check-out (False)
             
         Returns:

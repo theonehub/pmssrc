@@ -181,10 +181,10 @@ class SolidPublicHolidayRepository(
         
         return PublicHoliday(**document)
     
-    async def _ensure_indexes(self, organization_id: str) -> None:
+    async def _ensure_indexes(self, organisation_id: str) -> None:
         """Ensure necessary indexes for optimal query performance."""
         try:
-            collection = self._get_collection(organization_id)
+            collection = self._get_collection(organisation_id)
             
             # Index for holiday_id queries
             await collection.create_index([
@@ -214,7 +214,7 @@ class SolidPublicHolidayRepository(
                 ("created_at", -1)
             ])
             
-            logger.info(f"Public holiday indexes ensured for organization: {organization_id}")
+            logger.info(f"Public holiday indexes ensured for organisation: {organisation_id}")
             
         except Exception as e:
             logger.error(f"Error ensuring public holiday indexes: {e}")
@@ -227,11 +227,11 @@ class SolidPublicHolidayRepository(
         Replaces: create_holiday() function
         """
         try:
-            # Get organization from holiday or use default
-            organization_id = getattr(holiday, 'organization_id', 'default')
+            # Get organisation from holiday or use default
+            organisation_id = getattr(holiday, 'organisation_id', 'default')
             
             # Ensure indexes
-            await self._ensure_indexes(organization_id)
+            await self._ensure_indexes(organisation_id)
             
             # Prepare document
             document = self._entity_to_document(holiday)
@@ -248,7 +248,7 @@ class SolidPublicHolidayRepository(
             # Check for existing record by holiday_id
             existing = None
             if document.get('holiday_id'):
-                existing = await self.get_by_id(document['holiday_id'], organization_id)
+                existing = await self.get_by_id(document['holiday_id'], organisation_id)
             
             if existing:
                 # Update existing record
@@ -256,17 +256,17 @@ class SolidPublicHolidayRepository(
                 success = await self._update_document(
                     filters=filters,
                     update_data=document,
-                    organization_id=organization_id
+                    organisation_id=organisation_id
                 )
                 if success:
-                    return await self.get_by_id(document['holiday_id'], organization_id)
+                    return await self.get_by_id(document['holiday_id'], organisation_id)
                 else:
                     raise ValueError("Failed to update public holiday record")
             else:
                 # Insert new record
-                document_id = await self._insert_document(document, organization_id)
+                document_id = await self._insert_document(document, organisation_id)
                 # Return the saved document
-                saved_doc = await self._get_collection(organization_id).find_one({"_id": document_id})
+                saved_doc = await self._get_collection(organisation_id).find_one({"_id": document_id})
                 return self._document_to_entity(saved_doc)
             
         except Exception as e:
@@ -274,7 +274,7 @@ class SolidPublicHolidayRepository(
             raise
     
     async def update(self, holiday_id: str, update_data: Dict[str, Any], 
-                    organization_id: str) -> bool:
+                    organisation_id: str) -> bool:
         """
         Update public holiday record.
         
@@ -303,7 +303,7 @@ class SolidPublicHolidayRepository(
             success = await self._update_document(
                 filters=filters,
                 update_data=update_data,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return success
@@ -312,7 +312,7 @@ class SolidPublicHolidayRepository(
             logger.error(f"Error updating public holiday {holiday_id}: {e}")
             return False
     
-    async def delete(self, holiday_id: str, organization_id: str) -> bool:
+    async def delete(self, holiday_id: str, organisation_id: str) -> bool:
         """
         Delete public holiday record (soft delete).
         
@@ -325,14 +325,14 @@ class SolidPublicHolidayRepository(
                 "updated_at": datetime.now()
             }
             
-            return await self.update(holiday_id, update_data, organization_id)
+            return await self.update(holiday_id, update_data, organisation_id)
             
         except Exception as e:
             logger.error(f"Error deleting public holiday {holiday_id}: {e}")
             return False
     
     async def bulk_import(self, holiday_data_list: List[Dict[str, Any]], 
-                         employee_id: str, organization_id: str) -> int:
+                         employee_id: str, organisation_id: str) -> int:
         """
         Import multiple holidays from processed data.
         
@@ -340,9 +340,9 @@ class SolidPublicHolidayRepository(
         """
         try:
             # Ensure indexes
-            await self._ensure_indexes(organization_id)
+            await self._ensure_indexes(organisation_id)
             
-            collection = self._get_collection(organization_id)
+            collection = self._get_collection(organisation_id)
             inserted_count = 0
             
             for holiday_data in holiday_data_list:
@@ -386,7 +386,7 @@ class SolidPublicHolidayRepository(
             return 0
     
     # Query Repository Implementation
-    async def get_by_id(self, holiday_id: str, organization_id: str = "default") -> Optional[PublicHoliday]:
+    async def get_by_id(self, holiday_id: str, organisation_id: str = "default") -> Optional[PublicHoliday]:
         """Get public holiday record by ID."""
         try:
             filters = {"holiday_id": holiday_id}
@@ -394,7 +394,7 @@ class SolidPublicHolidayRepository(
             documents = await self._execute_query(
                 filters=filters,
                 limit=1,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             if documents:
@@ -405,7 +405,7 @@ class SolidPublicHolidayRepository(
             logger.error(f"Error retrieving public holiday {holiday_id}: {e}")
             return None
     
-    async def get_all_active(self, organization_id: str = "default") -> List[PublicHoliday]:
+    async def get_all_active(self, organisation_id: str = "default") -> List[PublicHoliday]:
         """
         Get all active public holidays.
         
@@ -419,7 +419,7 @@ class SolidPublicHolidayRepository(
                 sort_by="date",
                 sort_order=1,
                 limit=500,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -429,7 +429,7 @@ class SolidPublicHolidayRepository(
             return []
     
     async def get_by_month(self, month: int, year: int, 
-                          organization_id: str = "default") -> List[PublicHoliday]:
+                          organisation_id: str = "default") -> List[PublicHoliday]:
         """
         Get all active public holidays for a specific month and year.
         
@@ -447,7 +447,7 @@ class SolidPublicHolidayRepository(
                 sort_by="day",
                 sort_order=1,
                 limit=50,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -457,7 +457,7 @@ class SolidPublicHolidayRepository(
             return []
     
     async def get_by_date(self, target_date: Union[date, str], 
-                         organization_id: str = "default") -> Optional[PublicHoliday]:
+                         organisation_id: str = "default") -> Optional[PublicHoliday]:
         """
         Get public holiday by specific date.
         
@@ -478,7 +478,7 @@ class SolidPublicHolidayRepository(
             documents = await self._execute_query(
                 filters=filters,
                 limit=1,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             if documents:
@@ -490,7 +490,7 @@ class SolidPublicHolidayRepository(
             return None
     
     async def get_by_date_range(self, start_date: date, end_date: date,
-                               organization_id: str = "default") -> List[PublicHoliday]:
+                               organisation_id: str = "default") -> List[PublicHoliday]:
         """Get public holidays within a date range."""
         try:
             filters = {
@@ -503,7 +503,7 @@ class SolidPublicHolidayRepository(
                 sort_by="date",
                 sort_order=1,
                 limit=100,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -512,7 +512,7 @@ class SolidPublicHolidayRepository(
             logger.error(f"Error retrieving holidays by date range: {e}")
             return []
     
-    async def get_by_year(self, year: int, organization_id: str = "default") -> List[PublicHoliday]:
+    async def get_by_year(self, year: int, organisation_id: str = "default") -> List[PublicHoliday]:
         """Get all active public holidays for a specific year."""
         try:
             filters = {
@@ -525,7 +525,7 @@ class SolidPublicHolidayRepository(
                 sort_by="date",
                 sort_order=1,
                 limit=200,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -535,7 +535,7 @@ class SolidPublicHolidayRepository(
             return []
     
     async def search(self, filters: PublicHolidaySearchFiltersDTO,
-                    organization_id: str = "default") -> List[PublicHoliday]:
+                    organisation_id: str = "default") -> List[PublicHoliday]:
         """Search public holidays with filters."""
         try:
             query_filters = {}
@@ -575,7 +575,7 @@ class SolidPublicHolidayRepository(
                 limit=page_size,
                 sort_by="date",
                 sort_order=1,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -585,7 +585,7 @@ class SolidPublicHolidayRepository(
             return []
     
     # Analytics Repository Implementation
-    async def get_holiday_statistics(self, organization_id: str = "default",
+    async def get_holiday_statistics(self, organisation_id: str = "default",
                                     year: Optional[int] = None) -> Dict[str, Any]:
         """Get public holiday statistics."""
         try:
@@ -619,7 +619,7 @@ class SolidPublicHolidayRepository(
                 }
             ]
             
-            results = await self._aggregate(pipeline, organization_id)
+            results = await self._aggregate(pipeline, organisation_id)
             
             if results:
                 stats = results[0]
@@ -651,7 +651,7 @@ class SolidPublicHolidayRepository(
             return {}
     
     async def get_upcoming_holidays(self, days_ahead: int = 30,
-                                   organization_id: str = "default") -> List[PublicHoliday]:
+                                   organisation_id: str = "default") -> List[PublicHoliday]:
         """Get upcoming holidays within specified days."""
         try:
             from datetime import timedelta
@@ -659,7 +659,7 @@ class SolidPublicHolidayRepository(
             today = date.today()
             end_date = today + timedelta(days=days_ahead)
             
-            return await self.get_by_date_range(today, end_date, organization_id)
+            return await self.get_by_date_range(today, end_date, organisation_id)
             
         except Exception as e:
             logger.error(f"Error getting upcoming holidays: {e}")
@@ -671,7 +671,7 @@ class SolidPublicHolidayRepository(
         Legacy compatibility for get_all_holidays() function.
         
         Args:
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             List of PublicHoliday models
@@ -709,7 +709,7 @@ class SolidPublicHolidayRepository(
         Args:
             holiday: PublicHoliday model
             employee_id: Employee ID creating the holiday
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Holiday ID
@@ -843,14 +843,14 @@ class SolidPublicHolidayRepository(
     async def get_all(self, include_inactive: bool = False) -> List[PublicHoliday]:
         """Get all public holidays."""
         try:
-            organization_id = "default"
+            organisation_id = "default"
             filters = {} if include_inactive else {"is_active": True}
             
             documents = await self._execute_query(
                 filters=filters,
                 sort_by="date",
                 sort_order=1,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -861,7 +861,7 @@ class SolidPublicHolidayRepository(
     async def get_by_category(self, category: str, include_inactive: bool = False) -> List[PublicHoliday]:
         """Get public holidays by category."""
         try:
-            organization_id = "default"
+            organisation_id = "default"
             filters = {"category": category}
             if not include_inactive:
                 filters["is_active"] = True
@@ -870,7 +870,7 @@ class SolidPublicHolidayRepository(
                 filters=filters,
                 sort_by="date",
                 sort_order=1,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -888,7 +888,7 @@ class SolidPublicHolidayRepository(
     ) -> List[PublicHoliday]:
         """Search holidays with multiple filters."""
         try:
-            organization_id = "default"
+            organisation_id = "default"
             filters = {}
             
             if search_term:
@@ -913,7 +913,7 @@ class SolidPublicHolidayRepository(
                 filters=filters,
                 sort_by="date",
                 sort_order=1,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -924,11 +924,11 @@ class SolidPublicHolidayRepository(
     async def exists_on_date(self, holiday_date: date) -> bool:
         """Check if any active holiday exists on a specific date."""
         try:
-            organization_id = "default"
+            organisation_id = "default"
             
             count = await self._count_documents(
                 filters={"date": holiday_date, "is_active": True},
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return count > 0
@@ -939,7 +939,7 @@ class SolidPublicHolidayRepository(
     async def get_conflicts(self, holiday: PublicHoliday) -> List[PublicHoliday]:
         """Get holidays that conflict with the given holiday."""
         try:
-            organization_id = "default"
+            organisation_id = "default"
             holiday_date = getattr(holiday, 'date', None)
             holiday_id = getattr(holiday, 'holiday_id', None)
             
@@ -954,7 +954,7 @@ class SolidPublicHolidayRepository(
                 filters=filters,
                 sort_by="created_at",
                 sort_order=1,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -967,7 +967,7 @@ class SolidPublicHolidayRepository(
         try:
             return await self._count_documents(
                 filters={"is_active": True},
-                organization_id="default"
+                organisation_id="default"
             )
         except Exception as e:
             logger.error(f"Error counting active holidays: {e}")
@@ -978,7 +978,7 @@ class SolidPublicHolidayRepository(
         try:
             return await self._count_documents(
                 filters={"category": category, "is_active": True},
-                organization_id="default"
+                organisation_id="default"
             )
         except Exception as e:
             logger.error(f"Error counting holidays by category {category}: {e}")
@@ -988,8 +988,8 @@ class SolidPublicHolidayRepository(
     async def get_category_distribution(self, year: Optional[int] = None) -> List[Dict[str, Any]]:
         """Get distribution of holidays by category."""
         try:
-            organization_id = "default"
-            collection = self._get_collection(organization_id)
+            organisation_id = "default"
+            collection = self._get_collection(organisation_id)
             
             match_filter = {"is_active": True}
             if year:
@@ -1007,7 +1007,7 @@ class SolidPublicHolidayRepository(
                 {"$sort": {"count": -1}}
             ]
             
-            results = await self._aggregate(pipeline, organization_id)
+            results = await self._aggregate(pipeline, organisation_id)
             
             return [
                 {
@@ -1024,7 +1024,7 @@ class SolidPublicHolidayRepository(
     async def get_monthly_distribution(self, year: Optional[int] = None) -> List[Dict[str, Any]]:
         """Get distribution of holidays by month."""
         try:
-            organization_id = "default"
+            organisation_id = "default"
             match_filter = {"is_active": True}
             if year:
                 match_filter["year"] = year
@@ -1041,7 +1041,7 @@ class SolidPublicHolidayRepository(
                 {"$sort": {"_id": 1}}
             ]
             
-            results = await self._aggregate(pipeline, organization_id)
+            results = await self._aggregate(pipeline, organisation_id)
             
             month_names = {
                 1: "January", 2: "February", 3: "March", 4: "April",
@@ -1065,7 +1065,7 @@ class SolidPublicHolidayRepository(
     async def get_observance_analysis(self, year: Optional[int] = None) -> List[Dict[str, Any]]:
         """Get analysis of holiday observance types."""
         try:
-            organization_id = "default"
+            organisation_id = "default"
             match_filter = {"is_active": True}
             if year:
                 match_filter["year"] = year
@@ -1082,7 +1082,7 @@ class SolidPublicHolidayRepository(
                 {"$sort": {"count": -1}}
             ]
             
-            results = await self._aggregate(pipeline, organization_id)
+            results = await self._aggregate(pipeline, organisation_id)
             
             return [
                 {
@@ -1099,7 +1099,7 @@ class SolidPublicHolidayRepository(
     async def get_holiday_trends(self, years: int = 5) -> List[Dict[str, Any]]:
         """Get holiday trends over multiple years."""
         try:
-            organization_id = "default"
+            organisation_id = "default"
             current_year = datetime.now().year
             start_year = current_year - years + 1
             
@@ -1122,7 +1122,7 @@ class SolidPublicHolidayRepository(
                 {"$sort": {"_id.year": 1, "_id.category": 1}}
             ]
             
-            results = await self._aggregate(pipeline, organization_id)
+            results = await self._aggregate(pipeline, organisation_id)
             
             # Group by year
             yearly_trends = {}
@@ -1145,8 +1145,8 @@ class SolidPublicHolidayRepository(
     async def get_weekend_analysis(self, year: Optional[int] = None) -> Dict[str, Any]:
         """Get weekend analysis of holidays."""
         try:
-            organization_id = "default"
-            collection = self._get_collection(organization_id)
+            organisation_id = "default"
+            collection = self._get_collection(organisation_id)
             
             match_filter = {"is_active": True}
             if year:
@@ -1173,7 +1173,7 @@ class SolidPublicHolidayRepository(
                 }
             ]
             
-            results = await self._aggregate(pipeline, organization_id)
+            results = await self._aggregate(pipeline, organisation_id)
             
             if results:
                 stats = results[0]
@@ -1237,7 +1237,7 @@ class SolidPublicHolidayRepository(
     async def get_holiday_calendar_summary(self, year: int, month: Optional[int] = None) -> Dict[str, Any]:
         """Get holiday calendar summary."""
         try:
-            organization_id = "default"
+            organisation_id = "default"
             filters = {"year": year, "is_active": True}
             
             if month:
@@ -1247,7 +1247,7 @@ class SolidPublicHolidayRepository(
                 filters=filters,
                 sort_by="date",
                 sort_order=1,
-                organization_id=organization_id
+                organisation_id=organisation_id
             )
             
             # Group by month if year-wide summary
@@ -1293,7 +1293,7 @@ class SolidPublicHolidayRepository(
     async def get_compliance_report(self) -> Dict[str, Any]:
         """Get compliance report."""
         try:
-            organization_id = "default"
+            organisation_id = "default"
             
             # Get all holidays
             all_holidays = await self.get_all(include_inactive=True)
@@ -1359,7 +1359,7 @@ class SolidPublicHolidayRepository(
         """Get usage metrics."""
         try:
             # This is a basic implementation - in a real system, you'd track actual usage
-            organization_id = "default"
+            organisation_id = "default"
             
             if not from_date:
                 from_date = datetime.now().replace(month=1, day=1)  # Start of year

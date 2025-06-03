@@ -202,7 +202,7 @@ def test_remaining_repositories():
                 self._collection_name = "reimbursement_types"
             
             async def _get_collection(self, company_id):
-                db_name = f"pms_{company_id}" if company_id != "default" else "global_database"
+                db_name = f"pms_{company_id}" if company_id != "default" else "pms_global_database"
                 return self._db_connector.get_collection(db_name, self._collection_name)
             
             async def create_reimbursement_type(self, type_data, company_id):
@@ -270,7 +270,7 @@ def test_remaining_repositories():
                 self._collection_name = "activity_tracker"
             
             async def _get_collection(self, company_id):
-                db_name = f"pms_{company_id}" if company_id != "default" else "global_database"
+                db_name = f"pms_{company_id}" if company_id != "default" else "pms_global_database"
                 return self._db_connector.get_collection(db_name, self._collection_name)
             
             async def create_activity_tracker(self, activity_data, company_id):
@@ -322,7 +322,7 @@ def test_remaining_repositories():
                 self._collection_name = "salary_history"
             
             async def _get_collection(self, company_id):
-                db_name = f"pms_{company_id}" if company_id != "default" else "global_database"
+                db_name = f"pms_{company_id}" if company_id != "default" else "pms_global_database"
                 return self._db_connector.get_collection(db_name, self._collection_name)
             
             async def create_salary_history(self, salary_data, company_id):
@@ -377,7 +377,7 @@ def test_remaining_repositories():
                 self._collection_name = "organisation"
             
             def _get_collection(self):
-                return self._db_connector.get_collection("global_database", self._collection_name)
+                return self._db_connector.get_collection("pms_global_database", self._collection_name)
             
             async def save(self, organisation):
                 try:

@@ -158,8 +158,8 @@ def test_public_holiday_repository():
                 self._db_connector = database_connector
                 self._collection_name = "public_holidays"
             
-            def _get_collection(self, organization_id):
-                db_name = f"pms_{organization_id}" if organization_id != "default" else "global_database"
+            def _get_collection(self, organisation_id):
+                db_name = f"pms_{organisation_id}" if organisation_id != "default" else "pms_global_database"
                 return self._db_connector.get_collection(db_name, self._collection_name)
             
             async def save(self, holiday):
@@ -204,9 +204,9 @@ def test_public_holiday_repository():
                     print(f"Error saving public holiday: {e}")
                     raise
             
-            async def get_by_id(self, holiday_id, organization_id="default"):
+            async def get_by_id(self, holiday_id, organisation_id="default"):
                 try:
-                    collection = self._get_collection(organization_id)
+                    collection = self._get_collection(organisation_id)
                     document = await collection.find_one({"holiday_id": holiday_id})
                     
                     if document:
@@ -217,9 +217,9 @@ def test_public_holiday_repository():
                     print(f"Error getting public holiday by ID: {e}")
                     return None
             
-            async def get_all_active(self, organization_id="default"):
+            async def get_all_active(self, organisation_id="default"):
                 try:
-                    collection = self._get_collection(organization_id)
+                    collection = self._get_collection(organisation_id)
                     cursor = collection.find({"is_active": True})
                     documents = await cursor.to_list(length=None)
                     
@@ -229,9 +229,9 @@ def test_public_holiday_repository():
                     print(f"Error getting all active holidays: {e}")
                     return []
             
-            async def get_by_month(self, month, year, organization_id="default"):
+            async def get_by_month(self, month, year, organisation_id="default"):
                 try:
-                    collection = self._get_collection(organization_id)
+                    collection = self._get_collection(organisation_id)
                     cursor = collection.find({"month": month, "year": year, "is_active": True})
                     documents = await cursor.to_list(length=None)
                     
@@ -241,12 +241,12 @@ def test_public_holiday_repository():
                     print(f"Error getting holidays by month: {e}")
                     return []
             
-            async def get_by_date(self, target_date, organization_id="default"):
+            async def get_by_date(self, target_date, organisation_id="default"):
                 try:
                     if isinstance(target_date, str):
                         target_date = datetime.strptime(target_date, '%Y-%m-%d').date()
                     
-                    collection = self._get_collection(organization_id)
+                    collection = self._get_collection(organisation_id)
                     document = await collection.find_one({"date": target_date, "is_active": True})
                     
                     if document:
@@ -257,9 +257,9 @@ def test_public_holiday_repository():
                     print(f"Error getting holiday by date: {e}")
                     return None
             
-            async def update(self, holiday_id, update_data, organization_id):
+            async def update(self, holiday_id, update_data, organisation_id):
                 try:
-                    collection = self._get_collection(organization_id)
+                    collection = self._get_collection(organisation_id)
                     
                     # Handle date updates
                     if 'date' in update_data:
@@ -281,18 +281,18 @@ def test_public_holiday_repository():
                     print(f"Error updating public holiday: {e}")
                     return False
             
-            async def delete(self, holiday_id, organization_id):
+            async def delete(self, holiday_id, organisation_id):
                 try:
                     # Soft delete
-                    return await self.update(holiday_id, {"is_active": False}, organization_id)
+                    return await self.update(holiday_id, {"is_active": False}, organisation_id)
                     
                 except Exception as e:
                     print(f"Error deleting public holiday: {e}")
                     return False
             
-            async def bulk_import(self, holiday_data_list, employee_id, organization_id):
+            async def bulk_import(self, holiday_data_list, employee_id, organisation_id):
                 try:
-                    collection = self._get_collection(organization_id)
+                    collection = self._get_collection(organisation_id)
                     inserted_count = 0
                     
                     for holiday_data in holiday_data_list:
@@ -330,9 +330,9 @@ def test_public_holiday_repository():
                     print(f"Error bulk importing holidays: {e}")
                     return 0
             
-            async def get_holiday_statistics(self, organization_id="default", year=None):
+            async def get_holiday_statistics(self, organisation_id="default", year=None):
                 try:
-                    collection = self._get_collection(organization_id)
+                    collection = self._get_collection(organisation_id)
                     
                     # Simple mock statistics
                     return {
@@ -349,7 +349,7 @@ def test_public_holiday_repository():
                     print(f"Error getting holiday statistics: {e}")
                     return {}
             
-            async def get_upcoming_holidays(self, days_ahead=30, organization_id="default"):
+            async def get_upcoming_holidays(self, days_ahead=30, organisation_id="default"):
                 try:
                     # Simple mock - return some upcoming holidays
                     return [

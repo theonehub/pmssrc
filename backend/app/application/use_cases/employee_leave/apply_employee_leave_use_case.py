@@ -80,7 +80,7 @@ class ApplyEmployeeLeaveUseCase:
         Args:
             request: Employee leave application request
             employee_id: Employee applying for leave
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             EmployeeLeaveResponseDTO with created leave details
@@ -191,7 +191,7 @@ class ApplyEmployeeLeaveUseCase:
         company_leave = self._company_leave_repository.get_by_leave_type_code(leave_type)
         if not company_leave:
             self._logger.warning(f"Company leave policy not found for type: {leave_type}")
-            # Allow application but log warning - some organizations might not have formal policies
+            # Allow application but log warning - some organisations might not have formal policies
             return None
         
         if not company_leave.is_active:

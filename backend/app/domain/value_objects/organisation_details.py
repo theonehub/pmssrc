@@ -1,6 +1,6 @@
 """
-Organization Details Value Objects
-Handles organization contact information, address, and tax details
+Organisation Details Value Objects
+Handles organisation contact information, address, and tax details
 """
 
 import re
@@ -9,8 +9,8 @@ from typing import Optional
 from enum import Enum
 
 
-class OrganizationType(Enum):
-    """Organization type enumeration"""
+class OrganisationType(Enum):
+    """Organisation type enumeration"""
     PRIVATE_LIMITED = "private_limited"
     PUBLIC_LIMITED = "public_limited"
     PARTNERSHIP = "partnership"
@@ -22,8 +22,8 @@ class OrganizationType(Enum):
     SOCIETY = "society"
 
 
-class OrganizationStatus(Enum):
-    """Organization status enumeration"""
+class OrganisationStatus(Enum):
+    """Organisation status enumeration"""
     ACTIVE = "active"
     INACTIVE = "inactive"
     SUSPENDED = "suspended"
@@ -34,7 +34,7 @@ class OrganizationStatus(Enum):
 @dataclass(frozen=True)
 class ContactInformation:
     """
-    Value object for organization contact information.
+    Value object for organisation contact information.
     
     Follows SOLID principles:
     - SRP: Encapsulates contact information logic
@@ -129,7 +129,7 @@ class ContactInformation:
 @dataclass(frozen=True)
 class Address:
     """
-    Value object for organization address.
+    Value object for organisation address.
     
     Follows SOLID principles:
     - SRP: Encapsulates address logic
@@ -210,7 +210,7 @@ class Address:
 @dataclass(frozen=True)
 class TaxInformation:
     """
-    Value object for organization tax information.
+    Value object for organisation tax information.
     
     Follows SOLID principles:
     - SRP: Encapsulates tax information logic
@@ -276,7 +276,7 @@ class TaxInformation:
             raise ValueError("Invalid CIN number format")
     
     def is_gst_registered(self) -> bool:
-        """Check if organization is GST registered"""
+        """Check if organisation is GST registered"""
         return bool(self.gst_number and self.gst_number.strip())
     
     def get_state_code_from_gst(self) -> Optional[str]:

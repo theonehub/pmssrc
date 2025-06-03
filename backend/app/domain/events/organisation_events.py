@@ -1,6 +1,6 @@
 """
-Organization Domain Events
-Events for organization lifecycle and business operations
+Organisation Domain Events
+Events for organisation lifecycle and business operations
 """
 
 from datetime import datetime
@@ -8,44 +8,44 @@ from typing import Optional, Dict, Any
 from dataclasses import dataclass
 
 from app.domain.events.employee_events import DomainEvent
-from app.domain.value_objects.organization_id import OrganizationId
-from app.domain.value_objects.organization_details import (
-    ContactInformation, Address, TaxInformation, OrganizationType, OrganizationStatus
+from app.domain.value_objects.organisation_id import OrganisationId
+from app.domain.value_objects.organisation_details import (
+    ContactInformation, Address, TaxInformation, OrganisationType, OrganisationStatus
 )
 
 
 @dataclass
-class OrganizationCreated(DomainEvent):
+class OrganisationCreated(DomainEvent):
     """
-    Event raised when an organization is created.
+    Event raised when an organisation is created.
     
     This event can trigger:
-    - Welcome email to organization admin
+    - Welcome email to organisation admin
     - System configuration setup
     - Initial user account creation
     - Audit logging
     - Integration with external systems
     """
     
-    organization_id: OrganizationId
+    organisation_id: OrganisationId
     name: str
-    organization_type: OrganizationType
+    organisation_type: OrganisationType
     contact_info: ContactInformation
     address: Address
     created_by: str
     
     def get_event_type(self) -> str:
-        return "organization.created"
+        return "organisation.created"
     
     def get_aggregate_id(self) -> str:
-        return str(self.organization_id)
+        return str(self.organisation_id)
     
-    def get_organization_details(self) -> dict:
-        """Get organization creation details"""
+    def get_organisation_details(self) -> dict:
+        """Get organisation creation details"""
         return {
-            "organization_id": str(self.organization_id),
+            "organisation_id": str(self.organisation_id),
             "name": self.name,
-            "type": self.organization_type.value,
+            "type": self.organisation_type.value,
             "email": self.contact_info.email,
             "phone": self.contact_info.phone,
             "city": self.address.city,
@@ -56,32 +56,32 @@ class OrganizationCreated(DomainEvent):
 
 
 @dataclass
-class OrganizationUpdated(DomainEvent):
+class OrganisationUpdated(DomainEvent):
     """
-    Event raised when organization details are updated.
+    Event raised when organisation details are updated.
     
     This event can trigger:
-    - Notification to organization admins
+    - Notification to organisation admins
     - System configuration updates
     - Integration sync with external systems
     - Audit logging
     """
     
-    organization_id: OrganizationId
+    organisation_id: OrganisationId
     updated_fields: Dict[str, Any]
     updated_by: str
     previous_values: Optional[Dict[str, Any]] = None
     
     def get_event_type(self) -> str:
-        return "organization.updated"
+        return "organisation.updated"
     
     def get_aggregate_id(self) -> str:
-        return str(self.organization_id)
+        return str(self.organisation_id)
     
     def get_update_summary(self) -> dict:
         """Get update summary"""
         return {
-            "organization_id": str(self.organization_id),
+            "organisation_id": str(self.organisation_id),
             "updated_fields": list(self.updated_fields.keys()),
             "updated_by": self.updated_by,
             "change_count": len(self.updated_fields)
@@ -89,32 +89,32 @@ class OrganizationUpdated(DomainEvent):
 
 
 @dataclass
-class OrganizationActivated(DomainEvent):
+class OrganisationActivated(DomainEvent):
     """
-    Event raised when an organization is activated.
+    Event raised when an organisation is activated.
     
     This event can trigger:
-    - Enable organization services
-    - Notification to organization users
+    - Enable organisation services
+    - Notification to organisation users
     - System access restoration
     - Audit logging
     """
     
-    organization_id: OrganizationId
+    organisation_id: OrganisationId
     activated_by: str
-    previous_status: OrganizationStatus
+    previous_status: OrganisationStatus
     reason: Optional[str] = None
     
     def get_event_type(self) -> str:
-        return "organization.activated"
+        return "organisation.activated"
     
     def get_aggregate_id(self) -> str:
-        return str(self.organization_id)
+        return str(self.organisation_id)
     
     def get_activation_details(self) -> dict:
         """Get activation details"""
         return {
-            "organization_id": str(self.organization_id),
+            "organisation_id": str(self.organisation_id),
             "activated_by": self.activated_by,
             "previous_status": self.previous_status.value,
             "reason": self.reason
@@ -122,33 +122,33 @@ class OrganizationActivated(DomainEvent):
 
 
 @dataclass
-class OrganizationDeactivated(DomainEvent):
+class OrganisationDeactivated(DomainEvent):
     """
-    Event raised when an organization is deactivated.
+    Event raised when an organisation is deactivated.
     
     This event can trigger:
-    - Disable organization services
-    - Notification to organization users
+    - Disable organisation services
+    - Notification to organisation users
     - System access suspension
     - Data archival processes
     - Audit logging
     """
     
-    organization_id: OrganizationId
+    organisation_id: OrganisationId
     deactivated_by: str
     reason: str
-    previous_status: OrganizationStatus
+    previous_status: OrganisationStatus
     
     def get_event_type(self) -> str:
-        return "organization.deactivated"
+        return "organisation.deactivated"
     
     def get_aggregate_id(self) -> str:
-        return str(self.organization_id)
+        return str(self.organisation_id)
     
     def get_deactivation_details(self) -> dict:
         """Get deactivation details"""
         return {
-            "organization_id": str(self.organization_id),
+            "organisation_id": str(self.organisation_id),
             "deactivated_by": self.deactivated_by,
             "reason": self.reason,
             "previous_status": self.previous_status.value
@@ -156,34 +156,34 @@ class OrganizationDeactivated(DomainEvent):
 
 
 @dataclass
-class OrganizationSuspended(DomainEvent):
+class OrganisationSuspended(DomainEvent):
     """
-    Event raised when an organization is suspended.
+    Event raised when an organisation is suspended.
     
     This event can trigger:
     - Temporary service suspension
-    - Notification to organization admins
+    - Notification to organisation admins
     - Limited system access
     - Compliance team notification
     - Audit logging
     """
     
-    organization_id: OrganizationId
+    organisation_id: OrganisationId
     suspended_by: str
     reason: str
     suspension_duration: Optional[int] = None  # Days
-    previous_status: OrganizationStatus = OrganizationStatus.ACTIVE
+    previous_status: OrganisationStatus = OrganisationStatus.ACTIVE
     
     def get_event_type(self) -> str:
-        return "organization.suspended"
+        return "organisation.suspended"
     
     def get_aggregate_id(self) -> str:
-        return str(self.organization_id)
+        return str(self.organisation_id)
     
     def get_suspension_details(self) -> dict:
         """Get suspension details"""
         return {
-            "organization_id": str(self.organization_id),
+            "organisation_id": str(self.organisation_id),
             "suspended_by": self.suspended_by,
             "reason": self.reason,
             "duration_days": self.suspension_duration,
@@ -192,9 +192,9 @@ class OrganizationSuspended(DomainEvent):
 
 
 @dataclass
-class OrganizationContactUpdated(DomainEvent):
+class OrganisationContactUpdated(DomainEvent):
     """
-    Event raised when organization contact information is updated.
+    Event raised when organisation contact information is updated.
     
     This event can trigger:
     - Update contact directories
@@ -203,16 +203,16 @@ class OrganizationContactUpdated(DomainEvent):
     - Audit logging
     """
     
-    organization_id: OrganizationId
+    organisation_id: OrganisationId
     new_contact_info: ContactInformation
     previous_contact_info: ContactInformation
     updated_by: str
     
     def get_event_type(self) -> str:
-        return "organization.contact_updated"
+        return "organisation.contact_updated"
     
     def get_aggregate_id(self) -> str:
-        return str(self.organization_id)
+        return str(self.organisation_id)
     
     def get_contact_changes(self) -> dict:
         """Get contact information changes"""
@@ -237,16 +237,16 @@ class OrganizationContactUpdated(DomainEvent):
             }
         
         return {
-            "organization_id": str(self.organization_id),
+            "organisation_id": str(self.organisation_id),
             "changes": changes,
             "updated_by": self.updated_by
         }
 
 
 @dataclass
-class OrganizationAddressUpdated(DomainEvent):
+class OrganisationAddressUpdated(DomainEvent):
     """
-    Event raised when organization address is updated.
+    Event raised when organisation address is updated.
     
     This event can trigger:
     - Update address directories
@@ -256,21 +256,21 @@ class OrganizationAddressUpdated(DomainEvent):
     - Audit logging
     """
     
-    organization_id: OrganizationId
+    organisation_id: OrganisationId
     new_address: Address
     previous_address: Address
     updated_by: str
     
     def get_event_type(self) -> str:
-        return "organization.address_updated"
+        return "organisation.address_updated"
     
     def get_aggregate_id(self) -> str:
-        return str(self.organization_id)
+        return str(self.organisation_id)
     
     def get_address_changes(self) -> dict:
         """Get address changes"""
         return {
-            "organization_id": str(self.organization_id),
+            "organisation_id": str(self.organisation_id),
             "previous_address": self.previous_address.get_full_address(),
             "new_address": self.new_address.get_full_address(),
             "city_changed": self.new_address.city != self.previous_address.city,
@@ -281,9 +281,9 @@ class OrganizationAddressUpdated(DomainEvent):
 
 
 @dataclass
-class OrganizationTaxInfoUpdated(DomainEvent):
+class OrganisationTaxInfoUpdated(DomainEvent):
     """
-    Event raised when organization tax information is updated.
+    Event raised when organisation tax information is updated.
     
     This event can trigger:
     - Tax system updates
@@ -292,16 +292,16 @@ class OrganizationTaxInfoUpdated(DomainEvent):
     - Audit logging
     """
     
-    organization_id: OrganizationId
+    organisation_id: OrganisationId
     new_tax_info: TaxInformation
     previous_tax_info: TaxInformation
     updated_by: str
     
     def get_event_type(self) -> str:
-        return "organization.tax_info_updated"
+        return "organisation.tax_info_updated"
     
     def get_aggregate_id(self) -> str:
-        return str(self.organization_id)
+        return str(self.organisation_id)
     
     def get_tax_changes(self) -> dict:
         """Get tax information changes"""
@@ -326,16 +326,16 @@ class OrganizationTaxInfoUpdated(DomainEvent):
             }
         
         return {
-            "organization_id": str(self.organization_id),
+            "organisation_id": str(self.organisation_id),
             "changes": changes,
             "updated_by": self.updated_by
         }
 
 
 @dataclass
-class OrganizationEmployeeStrengthUpdated(DomainEvent):
+class OrganisationEmployeeStrengthUpdated(DomainEvent):
     """
-    Event raised when organization employee strength is updated.
+    Event raised when organisation employee strength is updated.
     
     This event can trigger:
     - License management updates
@@ -344,22 +344,22 @@ class OrganizationEmployeeStrengthUpdated(DomainEvent):
     - Audit logging
     """
     
-    organization_id: OrganizationId
+    organisation_id: OrganisationId
     new_employee_strength: int
     previous_employee_strength: int
     current_used_strength: int
     updated_by: str
     
     def get_event_type(self) -> str:
-        return "organization.employee_strength_updated"
+        return "organisation.employee_strength_updated"
     
     def get_aggregate_id(self) -> str:
-        return str(self.organization_id)
+        return str(self.organisation_id)
     
     def get_strength_changes(self) -> dict:
         """Get employee strength changes"""
         return {
-            "organization_id": str(self.organization_id),
+            "organisation_id": str(self.organisation_id),
             "previous_strength": self.previous_employee_strength,
             "new_strength": self.new_employee_strength,
             "current_used": self.current_used_strength,
@@ -370,9 +370,9 @@ class OrganizationEmployeeStrengthUpdated(DomainEvent):
 
 
 @dataclass
-class OrganizationDeleted(DomainEvent):
+class OrganisationDeleted(DomainEvent):
     """
-    Event raised when an organization is deleted.
+    Event raised when an organisation is deleted.
     
     This event can trigger:
     - Data archival processes
@@ -382,22 +382,22 @@ class OrganizationDeleted(DomainEvent):
     - Audit logging
     """
     
-    organization_id: OrganizationId
-    organization_name: str
+    organisation_id: OrganisationId
+    organisation_name: str
     deleted_by: str
     deletion_reason: str
     
     def get_event_type(self) -> str:
-        return "organization.deleted"
+        return "organisation.deleted"
     
     def get_aggregate_id(self) -> str:
-        return str(self.organization_id)
+        return str(self.organisation_id)
     
     def get_deletion_details(self) -> dict:
         """Get deletion details"""
         return {
-            "organization_id": str(self.organization_id),
-            "organization_name": self.organization_name,
+            "organisation_id": str(self.organisation_id),
+            "organisation_name": self.organisation_name,
             "deleted_by": self.deleted_by,
             "deletion_reason": self.deletion_reason
         } 

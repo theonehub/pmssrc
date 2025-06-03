@@ -35,7 +35,7 @@ class CreateProjectAttributesUseCase:
         
         Args:
             request: Project attribute creation request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             ProjectAttributeResponseDTO with created attribute details

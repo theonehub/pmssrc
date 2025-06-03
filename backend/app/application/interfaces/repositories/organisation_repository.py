@@ -1,24 +1,24 @@
 """
-Organization Repository Interfaces
-Following Interface Segregation Principle for organization data access
+Organisation Repository Interfaces
+Following Interface Segregation Principle for organisation data access
 """
 
 from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-from app.domain.entities.organization import Organization
-from app.domain.value_objects.organization_id import OrganizationId
-from app.domain.value_objects.organization_details import OrganizationType, OrganizationStatus
-from app.application.dto.organization_dto import (
-    OrganizationSearchFiltersDTO, OrganizationStatisticsDTO, 
-    OrganizationAnalyticsDTO, OrganizationHealthCheckDTO
+from app.domain.entities.organisation import Organisation
+from app.domain.value_objects.organisation_id import OrganisationId
+from app.domain.value_objects.organisation_details import OrganisationType, OrganisationStatus
+from app.application.dto.organisation_dto import (
+    OrganisationSearchFiltersDTO, OrganisationStatisticsDTO, 
+    OrganisationAnalyticsDTO, OrganisationHealthCheckDTO
 )
 
 
-class OrganizationCommandRepository(ABC):
+class OrganisationCommandRepository(ABC):
     """
-    Repository interface for organization write operations.
+    Repository interface for organisation write operations.
     
     Follows SOLID principles:
     - SRP: Only handles write operations
@@ -29,58 +29,58 @@ class OrganizationCommandRepository(ABC):
     """
     
     @abstractmethod
-    async def save(self, organization: Organization) -> Organization:
+    async def save(self, organisation: Organisation) -> Organisation:
         """
-        Save an organization (create or update).
+        Save an organisation (create or update).
         
         Args:
-            organization: Organization entity to save
+            organisation: Organisation entity to save
             
         Returns:
-            Saved organization entity
+            Saved organisation entity
             
         Raises:
-            OrganizationConflictError: If organization conflicts with existing data
-            OrganizationValidationError: If organization data is invalid
+            OrganisationConflictError: If organisation conflicts with existing data
+            OrganisationValidationError: If organisation data is invalid
         """
         pass
     
     @abstractmethod
-    async def save_batch(self, organizations: List[Organization]) -> List[Organization]:
+    async def save_batch(self, organisations: List[Organisation]) -> List[Organisation]:
         """
-        Save multiple organizations in a batch operation.
+        Save multiple organisations in a batch operation.
         
         Args:
-            organizations: List of organization entities to save
+            organisations: List of organisation entities to save
             
         Returns:
-            List of saved organization entities
+            List of saved organisation entities
             
         Raises:
-            OrganizationValidationError: If any organization data is invalid
+            OrganisationValidationError: If any organisation data is invalid
         """
         pass
     
     @abstractmethod
-    async def delete(self, organization_id: OrganizationId) -> bool:
+    async def delete(self, organisation_id: OrganisationId) -> bool:
         """
-        Delete an organization by ID.
+        Delete an organisation by ID.
         
         Args:
-            organization_id: ID of organization to delete
+            organisation_id: ID of organisation to delete
             
         Returns:
             True if deleted successfully, False if not found
             
         Raises:
-            OrganizationBusinessRuleError: If deletion violates business rules
+            OrganisationBusinessRuleError: If deletion violates business rules
         """
         pass
 
 
-class OrganizationQueryRepository(ABC):
+class OrganisationQueryRepository(ABC):
     """
-    Repository interface for organization read operations.
+    Repository interface for organisation read operations.
     
     Follows SOLID principles:
     - SRP: Only handles read operations
@@ -91,54 +91,54 @@ class OrganizationQueryRepository(ABC):
     """
     
     @abstractmethod
-    async def get_by_id(self, organization_id: OrganizationId) -> Optional[Organization]:
+    async def get_by_id(self, organisation_id: OrganisationId) -> Optional[Organisation]:
         """
-        Get organization by ID.
+        Get organisation by ID.
         
         Args:
-            organization_id: Organization ID to search for
+            organisation_id: Organisation ID to search for
             
         Returns:
-            Organization entity if found, None otherwise
+            Organisation entity if found, None otherwise
         """
         pass
     
     @abstractmethod
-    async def get_by_name(self, name: str) -> Optional[Organization]:
+    async def get_by_name(self, name: str) -> Optional[Organisation]:
         """
-        Get organization by name.
+        Get organisation by name.
         
         Args:
-            name: Organization name to search for
+            name: Organisation name to search for
             
         Returns:
-            Organization entity if found, None otherwise
+            Organisation entity if found, None otherwise
         """
         pass
     
     @abstractmethod
-    async def get_by_hostname(self, hostname: str) -> Optional[Organization]:
+    async def get_by_hostname(self, hostname: str) -> Optional[Organisation]:
         """
-        Get organization by hostname.
+        Get organisation by hostname.
         
         Args:
             hostname: Hostname to search for
             
         Returns:
-            Organization entity if found, None otherwise
+            Organisation entity if found, None otherwise
         """
         pass
     
     @abstractmethod
-    async def get_by_pan_number(self, pan_number: str) -> Optional[Organization]:
+    async def get_by_pan_number(self, pan_number: str) -> Optional[Organisation]:
         """
-        Get organization by PAN number.
+        Get organisation by PAN number.
         
         Args:
             pan_number: PAN number to search for
             
         Returns:
-            Organization entity if found, None otherwise
+            Organisation entity if found, None otherwise
         """
         pass
     
@@ -148,63 +148,63 @@ class OrganizationQueryRepository(ABC):
         skip: int = 0, 
         limit: int = 100,
         include_inactive: bool = False
-    ) -> List[Organization]:
+    ) -> List[Organisation]:
         """
-        Get all organizations with pagination.
+        Get all organisations with pagination.
         
         Args:
             skip: Number of records to skip
             limit: Maximum number of records to return
-            include_inactive: Whether to include inactive organizations
+            include_inactive: Whether to include inactive organisations
             
         Returns:
-            List of organization entities
+            List of organisation entities
         """
         pass
     
     @abstractmethod
-    async def search(self, filters: OrganizationSearchFiltersDTO) -> List[Organization]:
+    async def search(self, filters: OrganisationSearchFiltersDTO) -> List[Organisation]:
         """
-        Search organizations with filters.
+        Search organisations with filters.
         
         Args:
             filters: Search filters and pagination parameters
             
         Returns:
-            List of organization entities matching filters
+            List of organisation entities matching filters
         """
         pass
     
     @abstractmethod
-    async def get_by_status(self, status: OrganizationStatus) -> List[Organization]:
+    async def get_by_status(self, status: OrganisationStatus) -> List[Organisation]:
         """
-        Get organizations by status.
+        Get organisations by status.
         
         Args:
-            status: Organization status to filter by
+            status: Organisation status to filter by
             
         Returns:
-            List of organizations with specified status
+            List of organisations with specified status
         """
         pass
     
     @abstractmethod
-    async def get_by_type(self, organization_type: OrganizationType) -> List[Organization]:
+    async def get_by_type(self, organisation_type: OrganisationType) -> List[Organisation]:
         """
-        Get organizations by type.
+        Get organisations by type.
         
         Args:
-            organization_type: Organization type to filter by
+            organisation_type: Organisation type to filter by
             
         Returns:
-            List of organizations with specified type
+            List of organisations with specified type
         """
         pass
     
     @abstractmethod
-    async def get_by_location(self, city: str = None, state: str = None, country: str = None) -> List[Organization]:
+    async def get_by_location(self, city: str = None, state: str = None, country: str = None) -> List[Organisation]:
         """
-        Get organizations by location.
+        Get organisations by location.
         
         Args:
             city: City to filter by
@@ -212,79 +212,79 @@ class OrganizationQueryRepository(ABC):
             country: Country to filter by
             
         Returns:
-            List of organizations in specified location
+            List of organisations in specified location
         """
         pass
     
     @abstractmethod
     async def count_total(self) -> int:
         """
-        Get total count of organizations.
+        Get total count of organisations.
         
         Returns:
-            Total number of organizations
+            Total number of organisations
         """
         pass
     
     @abstractmethod
-    async def count_by_status(self, status: OrganizationStatus) -> int:
+    async def count_by_status(self, status: OrganisationStatus) -> int:
         """
-        Get count of organizations by status.
-        
-        Args:
-            status: Organization status to count
-            
-        Returns:
-            Number of organizations with specified status
-        """
-        pass
-    
-    @abstractmethod
-    async def exists_by_name(self, name: str, exclude_id: Optional[OrganizationId] = None) -> bool:
-        """
-        Check if organization exists by name.
+        Get count of organisations by status.
         
         Args:
-            name: Organization name to check
-            exclude_id: Organization ID to exclude from check (for updates)
+            status: Organisation status to count
             
         Returns:
-            True if organization with name exists, False otherwise
+            Number of organisations with specified status
         """
         pass
     
     @abstractmethod
-    async def exists_by_hostname(self, hostname: str, exclude_id: Optional[OrganizationId] = None) -> bool:
+    async def exists_by_name(self, name: str, exclude_id: Optional[OrganisationId] = None) -> bool:
         """
-        Check if organization exists by hostname.
+        Check if organisation exists by name.
+        
+        Args:
+            name: Organisation name to check
+            exclude_id: Organisation ID to exclude from check (for updates)
+            
+        Returns:
+            True if organisation with name exists, False otherwise
+        """
+        pass
+    
+    @abstractmethod
+    async def exists_by_hostname(self, hostname: str, exclude_id: Optional[OrganisationId] = None) -> bool:
+        """
+        Check if organisation exists by hostname.
         
         Args:
             hostname: Hostname to check
-            exclude_id: Organization ID to exclude from check (for updates)
+            exclude_id: Organisation ID to exclude from check (for updates)
             
         Returns:
-            True if organization with hostname exists, False otherwise
+            True if organisation with hostname exists, False otherwise
         """
         pass
     
     @abstractmethod
-    async def exists_by_pan_number(self, pan_number: str, exclude_id: Optional[OrganizationId] = None) -> bool:
+    async def exists_by_pan_number(self, pan_number: str, exclude_id: Optional[OrganisationId] = None) -> bool:
         """
-        Check if organization exists by PAN number.
+        Check if organisation exists by PAN number.
         
         Args:
             pan_number: PAN number to check
-            exclude_id: Organization ID to exclude from check (for updates)
+            exclude_id: Organisation ID to exclude from check (for updates)
             
         Returns:
-            True if organization with PAN number exists, False otherwise
+            True if organisation with PAN number exists, False otherwise
         """
         pass
 
 
-class OrganizationAnalyticsRepository(ABC):
+class OrganisationAnalyticsRepository(ABC):
     """
-    Repository interface for organization analytics and reporting.
+    Repository interface for organisation analytics and reporting.
     
     Follows SOLID principles:
     - SRP: Only handles analytics operations
@@ -295,49 +295,49 @@ class OrganizationAnalyticsRepository(ABC):
     """
     
     @abstractmethod
-    async def get_statistics(self) -> OrganizationStatisticsDTO:
+    async def get_statistics(self) -> OrganisationStatisticsDTO:
         """
-        Get organization statistics.
+        Get organisation statistics.
         
         Returns:
-            Organization statistics DTO
+            Organisation statistics DTO
         """
         pass
     
     @abstractmethod
-    async def get_analytics(self) -> OrganizationAnalyticsDTO:
+    async def get_analytics(self) -> OrganisationAnalyticsDTO:
         """
-        Get organization analytics.
+        Get organisation analytics.
         
         Returns:
-            Organization analytics DTO
+            Organisation analytics DTO
         """
         pass
     
     @abstractmethod
-    async def get_organizations_by_type_count(self) -> Dict[str, int]:
+    async def get_organisations_by_type_count(self) -> Dict[str, int]:
         """
-        Get count of organizations by type.
+        Get count of organisations by type.
         
         Returns:
-            Dictionary mapping organization type to count
+            Dictionary mapping organisation type to count
         """
         pass
     
     @abstractmethod
-    async def get_organizations_by_status_count(self) -> Dict[str, int]:
+    async def get_organisations_by_status_count(self) -> Dict[str, int]:
         """
-        Get count of organizations by status.
+        Get count of organisations by status.
         
         Returns:
-            Dictionary mapping organization status to count
+            Dictionary mapping organisation status to count
         """
         pass
     
     @abstractmethod
-    async def get_organizations_by_location_count(self) -> Dict[str, Dict[str, int]]:
+    async def get_organisations_by_location_count(self) -> Dict[str, Dict[str, int]]:
         """
-        Get count of organizations by location.
+        Get count of organisations by location.
         
         Returns:
             Dictionary with state and city counts
@@ -357,7 +357,7 @@ class OrganizationAnalyticsRepository(ABC):
     @abstractmethod
     async def get_growth_trends(self, months: int = 12) -> Dict[str, Any]:
         """
-        Get organization growth trends.
+        Get organisation growth trends.
         
         Args:
             months: Number of months to analyze
@@ -368,40 +368,40 @@ class OrganizationAnalyticsRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_top_organizations_by_capacity(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_top_organisations_by_capacity(self, limit: int = 10) -> List[Dict[str, Any]]:
         """
-        Get top organizations by employee capacity.
+        Get top organisations by employee capacity.
         
         Args:
-            limit: Number of top organizations to return
+            limit: Number of top organisations to return
             
         Returns:
-            List of organization capacity data
+            List of organisation capacity data
         """
         pass
     
     @abstractmethod
-    async def get_organizations_created_in_period(
+    async def get_organisations_created_in_period(
         self, 
         start_date: datetime, 
         end_date: datetime
-    ) -> List[Organization]:
+    ) -> List[Organisation]:
         """
-        Get organizations created in a specific period.
+        Get organisations created in a specific period.
         
         Args:
             start_date: Start date of period
             end_date: End date of period
             
         Returns:
-            List of organizations created in period
+            List of organisations created in period
         """
         pass
 
 
-class OrganizationHealthRepository(ABC):
+class OrganisationHealthRepository(ABC):
     """
-    Repository interface for organization health monitoring.
+    Repository interface for organisation health monitoring.
     
     Follows SOLID principles:
     - SRP: Only handles health monitoring operations
@@ -412,42 +412,42 @@ class OrganizationHealthRepository(ABC):
     """
     
     @abstractmethod
-    async def perform_health_check(self, organization_id: OrganizationId) -> OrganizationHealthCheckDTO:
+    async def perform_health_check(self, organisation_id: OrganisationId) -> OrganisationHealthCheckDTO:
         """
-        Perform health check for an organization.
+        Perform health check for an organisation.
         
         Args:
-            organization_id: Organization ID to check
+            organisation_id: Organisation ID to check
             
         Returns:
-            Organization health check DTO
+            Organisation health check DTO
         """
         pass
     
     @abstractmethod
-    async def get_unhealthy_organizations(self) -> List[OrganizationHealthCheckDTO]:
+    async def get_unhealthy_organisations(self) -> List[OrganisationHealthCheckDTO]:
         """
-        Get list of unhealthy organizations.
+        Get list of unhealthy organisations.
         
         Returns:
-            List of unhealthy organization health checks
+            List of unhealthy organisation health checks
         """
         pass
     
     @abstractmethod
-    async def get_organizations_needing_attention(self) -> List[OrganizationHealthCheckDTO]:
+    async def get_organisations_needing_attention(self) -> List[OrganisationHealthCheckDTO]:
         """
-        Get organizations that need attention.
+        Get organisations that need attention.
         
         Returns:
-            List of organizations needing attention
+            List of organisations needing attention
         """
         pass
 
 
-class OrganizationBulkOperationsRepository(ABC):
+class OrganisationBulkOperationsRepository(ABC):
     """
-    Repository interface for organization bulk operations.
+    Repository interface for organisation bulk operations.
     
     Follows SOLID principles:
     - SRP: Only handles bulk operations
@@ -460,16 +460,16 @@ class OrganizationBulkOperationsRepository(ABC):
     @abstractmethod
     async def bulk_update_status(
         self, 
-        organization_ids: List[OrganizationId], 
-        status: OrganizationStatus,
+        organisation_ids: List[OrganisationId], 
+        status: OrganisationStatus,
         updated_by: str,
         reason: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Bulk update organization status.
+        Bulk update organisation status.
         
         Args:
-            organization_ids: List of organization IDs to update
+            organisation_ids: List of organisation IDs to update
             status: New status to set
             updated_by: User performing the update
             reason: Reason for status change
@@ -482,14 +482,14 @@ class OrganizationBulkOperationsRepository(ABC):
     @abstractmethod
     async def bulk_update_employee_strength(
         self, 
-        updates: Dict[OrganizationId, int],
+        updates: Dict[OrganisationId, int],
         updated_by: str
     ) -> Dict[str, Any]:
         """
-        Bulk update employee strength for multiple organizations.
+        Bulk update employee strength for multiple organisations.
         
         Args:
-            updates: Dictionary mapping organization ID to new employee strength
+            updates: Dictionary mapping organisation ID to new employee strength
             updated_by: User performing the update
             
         Returns:
@@ -500,14 +500,14 @@ class OrganizationBulkOperationsRepository(ABC):
     @abstractmethod
     async def bulk_export(
         self, 
-        organization_ids: Optional[List[OrganizationId]] = None,
+        organisation_ids: Optional[List[OrganisationId]] = None,
         format: str = "csv"
     ) -> bytes:
         """
-        Bulk export organization data.
+        Bulk export organisation data.
         
         Args:
-            organization_ids: List of organization IDs to export (None for all)
+            organisation_ids: List of organisation IDs to export (None for all)
             format: Export format (csv, excel, json)
             
         Returns:
@@ -523,7 +523,7 @@ class OrganizationBulkOperationsRepository(ABC):
         created_by: str = "system"
     ) -> Dict[str, Any]:
         """
-        Bulk import organization data.
+        Bulk import organisation data.
         
         Args:
             data: Import data as bytes
@@ -536,9 +536,9 @@ class OrganizationBulkOperationsRepository(ABC):
         pass
 
 
-class OrganizationRepositoryFactory(ABC):
+class OrganisationRepositoryFactory(ABC):
     """
-    Factory interface for creating organization repository implementations.
+    Factory interface for creating organisation repository implementations.
     
     Follows SOLID principles:
     - SRP: Only creates repository instances
@@ -549,40 +549,40 @@ class OrganizationRepositoryFactory(ABC):
     """
     
     @abstractmethod
-    def create_command_repository(self) -> OrganizationCommandRepository:
+    def create_command_repository(self) -> OrganisationCommandRepository:
         """Create command repository instance"""
         pass
     
     @abstractmethod
-    def create_query_repository(self) -> OrganizationQueryRepository:
+    def create_query_repository(self) -> OrganisationQueryRepository:
         """Create query repository instance"""
         pass
     
     @abstractmethod
-    def create_analytics_repository(self) -> OrganizationAnalyticsRepository:
+    def create_analytics_repository(self) -> OrganisationAnalyticsRepository:
         """Create analytics repository instance"""
         pass
     
     @abstractmethod
-    def create_health_repository(self) -> OrganizationHealthRepository:
+    def create_health_repository(self) -> OrganisationHealthRepository:
         """Create health repository instance"""
         pass
     
     @abstractmethod
-    def create_bulk_operations_repository(self) -> OrganizationBulkOperationsRepository:
+    def create_bulk_operations_repository(self) -> OrganisationBulkOperationsRepository:
         """Create bulk operations repository instance"""
         pass
 
 
-class OrganizationRepository(
-    OrganizationCommandRepository,
-    OrganizationQueryRepository,
-    OrganizationAnalyticsRepository,
-    OrganizationHealthRepository,
-    OrganizationBulkOperationsRepository
+class OrganisationRepository(
+    OrganisationCommandRepository,
+    OrganisationQueryRepository,
+    OrganisationAnalyticsRepository,
+    OrganisationHealthRepository,
+    OrganisationBulkOperationsRepository
 ):
     """
-    Composite repository interface combining all organization repository interfaces.
+    Composite repository interface combining all organisation repository interfaces.
     
     This interface can be used when you need access to all repository operations
     in a single interface. Individual interfaces should be preferred when possible

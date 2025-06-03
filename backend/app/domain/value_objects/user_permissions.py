@@ -124,11 +124,11 @@ class UserPermissions:
             self.has_resource_permission("payroll", "read")
         )
     
-    def can_manage_organization(self) -> bool:
-        """Check if user can manage organization settings"""
+    def can_manage_organisation(self) -> bool:
+        """Check if user can manage organisation settings"""
         return (
             self.is_superadmin() or
-            self.has_permission("manage_organization")
+            self.has_permission("manage_organisation")
         )
     
     def _get_role_permissions(self) -> List[str]:
@@ -276,7 +276,7 @@ class UserPermissions:
                 "can_view_reports": self.can_view_reports(),
                 "can_approve_requests": self.can_approve_requests(),
                 "can_access_payroll": self.can_access_payroll(),
-                "can_manage_organization": self.can_manage_organization()
+                "can_manage_organisation": self.can_manage_organisation()
             }
         }
     

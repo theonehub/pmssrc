@@ -62,7 +62,7 @@ class CalculateTaxUseCase:
         
         Args:
             request: Tax calculation request
-            hostname: Organization hostname
+            hostname: Organisation hostname
             
         Returns:
             Updated taxation response with calculated tax
@@ -148,7 +148,7 @@ class CalculateTaxUseCase:
         
         Args:
             employee_id: Employee identifier
-            hostname: Organization hostname
+            hostname: Organisation hostname
             calculated_by: User performing calculation
             
         Returns:

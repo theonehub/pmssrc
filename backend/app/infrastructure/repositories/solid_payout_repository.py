@@ -132,14 +132,14 @@ class SolidPayoutRepository(
         self._schedule_collection_name = "payout_schedules"
         self._audit_collection_name = "payout_audit"
         
-    def _get_schedule_collection(self, organization_id: Optional[str] = None):
+    def _get_schedule_collection(self, organisation_id: Optional[str] = None):
         """Get payout schedules collection."""
-        db_name = f"pms_{organization_id}" if organization_id else "global_database"
+        db_name = f"pms_{organisation_id}" if organisation_id else "pms_global_database"
         return self._db_connector.get_collection(db_name, self._schedule_collection_name)
     
-    def _get_audit_collection(self, organization_id: Optional[str] = None):
+    def _get_audit_collection(self, organisation_id: Optional[str] = None):
         """Get payout audit collection."""
-        db_name = f"pms_{organization_id}" if organization_id else "global_database"
+        db_name = f"pms_{organisation_id}" if organisation_id else "pms_global_database"
         return self._db_connector.get_collection(db_name, self._audit_collection_name)
     
     def _convert_dates_to_datetime(self, data: dict) -> dict:
@@ -210,10 +210,10 @@ class SolidPayoutRepository(
         
         return PayoutInDB(**document)
     
-    async def _ensure_indexes(self, organization_id: str) -> None:
+    async def _ensure_indexes(self, organisation_id: str) -> None:
         """Ensure necessary indexes for optimal query performance."""
         try:
-            collection = self._get_collection(organization_id)
+            collection = self._get_collection(organisation_id)
             
             # Index for employee and pay period queries
             await collection.create_index([
@@ -234,13 +234,13 @@ class SolidPayoutRepository(
             ])
             
             # Schedule collection indexes
-            schedule_collection = self._get_schedule_collection(organization_id)
+            schedule_collection = self._get_schedule_collection(organisation_id)
             await schedule_collection.create_index([
                 ("month", 1),
                 ("year", 1)
             ], unique=True)
             
-            logger.info(f"Payout indexes ensured for organization: {organization_id}")
+            logger.info(f"Payout indexes ensured for organisation: {organisation_id}")
             
         except Exception as e:
             logger.error(f"Error ensuring payout indexes: {e}")
@@ -313,7 +313,7 @@ class SolidPayoutRepository(
             success = await self._update_document(
                 filters=filters,
                 update_data=update_dict,
-                organization_id=hostname
+                organisation_id=hostname
             )
             
             if success:
@@ -356,7 +356,7 @@ class SolidPayoutRepository(
             success = await self._update_document(
                 filters=filters,
                 update_data=update_data,
-                organization_id=hostname
+                organisation_id=hostname
             )
             
             if success:
@@ -451,7 +451,7 @@ class SolidPayoutRepository(
             filters = {"_id": ObjectId(payout_id)}
             success = await self._delete_document(
                 filters=filters,
-                organization_id=hostname,
+                organisation_id=hostname,
                 soft_delete=True
             )
             
@@ -482,7 +482,7 @@ class SolidPayoutRepository(
             documents = await self._execute_query(
                 filters=filters,
                 limit=1,
-                organization_id=hostname
+                organisation_id=hostname
             )
             
             if documents:
@@ -522,7 +522,7 @@ class SolidPayoutRepository(
                 sort_by="pay_period_start",
                 sort_order=-1,
                 limit=12,
-                organization_id=hostname
+                organisation_id=hostname
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -558,7 +558,7 @@ class SolidPayoutRepository(
                 sort_by="employee_id",
                 sort_order=1,
                 limit=1000,  # Large limit for monthly data
-                organization_id=hostname
+                organisation_id=hostname
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -605,7 +605,7 @@ class SolidPayoutRepository(
                 limit=page_size,
                 sort_by="pay_period_start",
                 sort_order=-1,
-                organization_id=hostname
+                organisation_id=hostname
             )
             
             # Get total count
@@ -790,7 +790,7 @@ class SolidPayoutRepository(
                 limit=limit or 100,
                 sort_by="updated_at",
                 sort_order=-1,
-                organization_id=hostname
+                organisation_id=hostname
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -810,7 +810,7 @@ class SolidPayoutRepository(
                 limit=100,
                 sort_by="processed_at",
                 sort_order=1,  # Oldest first
-                organization_id=hostname
+                organisation_id=hostname
             )
             
             return [self._document_to_entity(doc) for doc in documents]
@@ -928,7 +928,7 @@ class SolidPayoutRepository(
                 limit=limit,
                 sort_by="net_salary",
                 sort_order=-1,  # Highest first
-                organization_id=hostname
+                organisation_id=hostname
             )
             
             return [

@@ -14,7 +14,7 @@ class LoginRequestDTO(BaseModel):
     """Request DTO for user login"""
     username: str = Field(..., min_length=1, max_length=50, description="Employee ID or username")
     password: str = Field(..., min_length=1, max_length=100, description="User password")
-    hostname: str = Field(..., min_length=1, max_length=100, description="Organization hostname")
+    hostname: str = Field(..., min_length=1, max_length=100, description="Organisation hostname")
     remember_me: bool = False
     
     @validator('username')
@@ -109,7 +109,7 @@ class PasswordChangeRequestDTO(BaseModel):
 class PasswordResetRequestDTO(BaseModel):
     """Request DTO for password reset initiation"""
     email: str = Field(..., pattern=r'^[^@]+@[^@]+\.[^@]+$', description="User email address")
-    hostname: str = Field(..., min_length=1, max_length=100, description="Organization hostname")
+    hostname: str = Field(..., min_length=1, max_length=100, description="Organisation hostname")
     
     class Config:
         json_schema_extra = {

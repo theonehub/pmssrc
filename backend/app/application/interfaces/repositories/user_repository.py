@@ -35,7 +35,7 @@ class UserCommandRepository(ABC):
         
         Args:
             user: User entity to save
-            hostname: Organization hostname for database selection
+            hostname: Organisation hostname for database selection
             
         Returns:
             Saved user entity
@@ -47,13 +47,13 @@ class UserCommandRepository(ABC):
         pass
     
     @abstractmethod
-    async def save_batch(self, users: List[User], organization_id: Optional[str] = None) -> List[User]:
+    async def save_batch(self, users: List[User], organisation_id: Optional[str] = None) -> List[User]:
         """
         Save multiple users in a batch operation.
         
         Args:
             users: List of user entities to save
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             List of saved user entities
@@ -64,14 +64,14 @@ class UserCommandRepository(ABC):
         pass
     
     @abstractmethod
-    async def delete(self, employee_id: EmployeeId, soft_delete: bool = True, organization_id: Optional[str] = None) -> bool:
+    async def delete(self, employee_id: EmployeeId, soft_delete: bool = True, organisation_id: Optional[str] = None) -> bool:
         """
         Delete a user by ID.
         
         Args:
             employee_id: User ID to delete
             soft_delete: Whether to soft delete (mark as deleted) or hard delete
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             True if user was deleted, False if not found
@@ -95,13 +95,13 @@ class UserQueryRepository(ABC):
     """
     
     @abstractmethod
-    async def get_by_id(self, employee_id: EmployeeId, organization_id: Optional[str] = None) -> Optional[User]:
+    async def get_by_id(self, employee_id: EmployeeId, organisation_id: Optional[str] = None) -> Optional[User]:
         """
         Get user by ID.
         
         Args:
             employee_id: User ID to search for
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             User entity if found, None otherwise
@@ -109,13 +109,13 @@ class UserQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_by_email(self, email: str, organization_id: Optional[str] = None) -> Optional[User]:
+    async def get_by_email(self, email: str, organisation_id: Optional[str] = None) -> Optional[User]:
         """
         Get user by email address.
         
         Args:
             email: Email address to search for
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             User entity if found, None otherwise
@@ -123,13 +123,13 @@ class UserQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_by_username(self, username: str, organization_id: Optional[str] = None) -> Optional[User]:
+    async def get_by_username(self, username: str, organisation_id: Optional[str] = None) -> Optional[User]:
         """
         Get user by username.
         
         Args:
             username: Username to search for
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             User entity if found, None otherwise
@@ -137,13 +137,13 @@ class UserQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_by_mobile(self, mobile: str, organization_id: Optional[str] = None) -> Optional[User]:
+    async def get_by_mobile(self, mobile: str, organisation_id: Optional[str] = None) -> Optional[User]:
         """
         Get user by mobile number.
         
         Args:
             mobile: Mobile number to search for
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             User entity if found, None otherwise
@@ -151,13 +151,13 @@ class UserQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_by_pan_number(self, pan_number: str, organization_id: Optional[str] = None) -> Optional[User]:
+    async def get_by_pan_number(self, pan_number: str, organisation_id: Optional[str] = None) -> Optional[User]:
         """
         Get user by PAN number.
         
         Args:
             pan_number: PAN number to search for
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             User entity if found, None otherwise
@@ -171,7 +171,7 @@ class UserQueryRepository(ABC):
         limit: int = 100,
         include_inactive: bool = False,
         include_deleted: bool = False,
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> List[User]:
         """
         Get all users with pagination.
@@ -181,7 +181,7 @@ class UserQueryRepository(ABC):
             limit: Maximum number of records to return
             include_inactive: Whether to include inactive users
             include_deleted: Whether to include deleted users
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             List of user entities
@@ -189,13 +189,13 @@ class UserQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def search(self, filters: UserSearchFiltersDTO, organization_id: Optional[str] = None) -> List[User]:
+    async def search(self, filters: UserSearchFiltersDTO, organisation_id: Optional[str] = None) -> List[User]:
         """
         Search users with filters.
         
         Args:
             filters: Search filters and pagination parameters
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             List of user entities matching filters
@@ -203,13 +203,13 @@ class UserQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_by_role(self, role: UserRole, organization_id: Optional[str] = None) -> List[User]:
+    async def get_by_role(self, role: UserRole, organisation_id: Optional[str] = None) -> List[User]:
         """
         Get users by role.
         
         Args:
             role: User role to filter by
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             List of users with specified role
@@ -217,13 +217,13 @@ class UserQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_by_status(self, status: UserStatus, organization_id: Optional[str] = None) -> List[User]:
+    async def get_by_status(self, status: UserStatus, organisation_id: Optional[str] = None) -> List[User]:
         """
         Get users by status.
         
         Args:
             status: User status to filter by
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             List of users with specified status
@@ -231,13 +231,13 @@ class UserQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_by_department(self, department: str, organization_id: Optional[str] = None) -> List[User]:
+    async def get_by_department(self, department: str, organisation_id: Optional[str] = None) -> List[User]:
         """
         Get users by department.
         
         Args:
             department: Department to filter by
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             List of users in specified department
@@ -245,13 +245,13 @@ class UserQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_by_manager(self, manager_id: EmployeeId, organization_id: Optional[str] = None) -> List[User]:
+    async def get_by_manager(self, manager_id: EmployeeId, organisation_id: Optional[str] = None) -> List[User]:
         """
         Get users by manager.
         
         Args:
             manager_id: Manager ID to filter by
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             List of users under specified manager
@@ -259,12 +259,12 @@ class UserQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_active_users(self, organization_id: Optional[str] = None) -> List[User]:
+    async def get_active_users(self, organisation_id: Optional[str] = None) -> List[User]:
         """
         Get all active users.
         
         Args:
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             List of active user entities
@@ -272,12 +272,12 @@ class UserQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_locked_users(self, organization_id: Optional[str] = None) -> List[User]:
+    async def get_locked_users(self, organisation_id: Optional[str] = None) -> List[User]:
         """
         Get all locked users.
         
         Args:
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             List of locked user entities
@@ -285,13 +285,13 @@ class UserQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def count_total(self, include_deleted: bool = False, organization_id: Optional[str] = None) -> int:
+    async def count_total(self, include_deleted: bool = False, organisation_id: Optional[str] = None) -> int:
         """
         Count total number of users.
         
         Args:
             include_deleted: Whether to include deleted users
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             Total count of users
@@ -299,13 +299,13 @@ class UserQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def count_by_status(self, status: UserStatus, organization_id: Optional[str] = None) -> int:
+    async def count_by_status(self, status: UserStatus, organisation_id: Optional[str] = None) -> int:
         """
         Count users by status.
         
         Args:
             status: User status to count
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             Count of users with specified status
@@ -313,13 +313,13 @@ class UserQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def count_by_role(self, role: UserRole, organization_id: Optional[str] = None) -> int:
+    async def count_by_role(self, role: UserRole, organisation_id: Optional[str] = None) -> int:
         """
         Count users by role.
         
         Args:
             role: User role to count
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             Count of users with specified role
@@ -327,14 +327,14 @@ class UserQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def exists_by_email(self, email: str, exclude_id: Optional[EmployeeId] = None, organization_id: Optional[str] = None) -> bool:
+    async def exists_by_email(self, email: str, exclude_id: Optional[EmployeeId] = None, organisation_id: Optional[str] = None) -> bool:
         """
         Check if user exists by email.
         
         Args:
             email: Email to check
             exclude_id: User ID to exclude from check (for updates)
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             True if user exists, False otherwise
@@ -342,14 +342,14 @@ class UserQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def exists_by_mobile(self, mobile: str, exclude_id: Optional[EmployeeId] = None, organization_id: Optional[str] = None) -> bool:
+    async def exists_by_mobile(self, mobile: str, exclude_id: Optional[EmployeeId] = None, organisation_id: Optional[str] = None) -> bool:
         """
         Check if user exists by mobile number.
         
         Args:
             mobile: Mobile number to check
             exclude_id: User ID to exclude from check (for updates)
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             True if user exists, False otherwise
@@ -357,14 +357,14 @@ class UserQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def exists_by_pan_number(self, pan_number: str, exclude_id: Optional[EmployeeId] = None, organization_id: Optional[str] = None) -> bool:
+    async def exists_by_pan_number(self, pan_number: str, exclude_id: Optional[EmployeeId] = None, organisation_id: Optional[str] = None) -> bool:
         """
         Check if user exists by PAN number.
         
         Args:
             pan_number: PAN number to check
             exclude_id: User ID to exclude from check (for updates)
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             True if user exists, False otherwise
@@ -380,12 +380,12 @@ class UserAnalyticsRepository(ABC):
     """
     
     @abstractmethod
-    async def get_statistics(self, organization_id: Optional[str] = None) -> UserStatisticsDTO:
+    async def get_statistics(self, organisation_id: Optional[str] = None) -> UserStatisticsDTO:
         """
         Get comprehensive user statistics.
         
         Args:
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             User statistics data
@@ -393,12 +393,12 @@ class UserAnalyticsRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_analytics(self, organization_id: Optional[str] = None) -> UserAnalyticsDTO:
+    async def get_analytics(self, organisation_id: Optional[str] = None) -> UserAnalyticsDTO:
         """
         Get detailed user analytics.
         
         Args:
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             User analytics data
@@ -406,12 +406,12 @@ class UserAnalyticsRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_users_by_role_count(self, organization_id: Optional[str] = None) -> Dict[str, int]:
+    async def get_users_by_role_count(self, organisation_id: Optional[str] = None) -> Dict[str, int]:
         """
         Get user count by role.
         
         Args:
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             Dictionary mapping role to user count
@@ -419,12 +419,12 @@ class UserAnalyticsRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_users_by_status_count(self, organization_id: Optional[str] = None) -> Dict[str, int]:
+    async def get_users_by_status_count(self, organisation_id: Optional[str] = None) -> Dict[str, int]:
         """
         Get user count by status.
         
         Args:
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             Dictionary mapping status to user count
@@ -432,12 +432,12 @@ class UserAnalyticsRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_users_by_department_count(self, organization_id: Optional[str] = None) -> Dict[str, int]:
+    async def get_users_by_department_count(self, organisation_id: Optional[str] = None) -> Dict[str, int]:
         """
         Get user count by department.
         
         Args:
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             Dictionary mapping department to user count
@@ -445,13 +445,13 @@ class UserAnalyticsRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_login_activity_stats(self, days: int = 30, organization_id: Optional[str] = None) -> Dict[str, Any]:
+    async def get_login_activity_stats(self, days: int = 30, organisation_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Get login activity statistics.
         
         Args:
             days: Number of days to analyze
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             Login activity statistics
@@ -459,12 +459,12 @@ class UserAnalyticsRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_profile_completion_stats(self, organization_id: Optional[str] = None) -> Dict[str, Any]:
+    async def get_profile_completion_stats(self, organisation_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Get profile completion statistics.
         
         Args:
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             Profile completion statistics
@@ -472,13 +472,13 @@ class UserAnalyticsRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_most_active_users(self, limit: int = 10, organization_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def get_most_active_users(self, limit: int = 10, organisation_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Get most active users.
         
         Args:
             limit: Maximum number of users to return
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             List of most active users
@@ -490,7 +490,7 @@ class UserAnalyticsRepository(ABC):
         self, 
         start_date: datetime, 
         end_date: datetime,
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> List[User]:
         """
         Get users created in a specific period.
@@ -498,7 +498,7 @@ class UserAnalyticsRepository(ABC):
         Args:
             start_date: Start date of the period
             end_date: End date of the period
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             List of users created in the period
@@ -506,12 +506,12 @@ class UserAnalyticsRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_password_security_metrics(self, organization_id: Optional[str] = None) -> Dict[str, Any]:
+    async def get_password_security_metrics(self, organisation_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Get password security metrics.
         
         Args:
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             Password security metrics
@@ -528,13 +528,13 @@ class UserProfileRepository(ABC):
     """
     
     @abstractmethod
-    async def get_profile_completion(self, employee_id: EmployeeId, organization_id: Optional[str] = None) -> UserProfileCompletionDTO:
+    async def get_profile_completion(self, employee_id: EmployeeId, organisation_id: Optional[str] = None) -> UserProfileCompletionDTO:
         """
         Get profile completion for a user.
         
         Args:
             employee_id: User ID
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             Profile completion data
@@ -542,13 +542,13 @@ class UserProfileRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_incomplete_profiles(self, threshold: float = 80.0, organization_id: Optional[str] = None) -> List[UserProfileCompletionDTO]:
+    async def get_incomplete_profiles(self, threshold: float = 80.0, organisation_id: Optional[str] = None) -> List[UserProfileCompletionDTO]:
         """
         Get users with incomplete profiles.
         
         Args:
             threshold: Completion percentage threshold
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             List of incomplete profile data
@@ -556,12 +556,12 @@ class UserProfileRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_users_missing_documents(self, organization_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def get_users_missing_documents(self, organisation_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Get users missing required documents.
         
         Args:
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             List of users with missing documents
@@ -569,14 +569,14 @@ class UserProfileRepository(ABC):
         pass
     
     @abstractmethod
-    async def track_profile_update(self, employee_id: EmployeeId, section: str, organization_id: Optional[str] = None) -> None:
+    async def track_profile_update(self, employee_id: EmployeeId, section: str, organisation_id: Optional[str] = None) -> None:
         """
         Track profile section update.
         
         Args:
             employee_id: User ID
             section: Profile section that was updated
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
         """
         pass
 
@@ -596,7 +596,7 @@ class UserBulkOperationsRepository(ABC):
         status: UserStatus,
         updated_by: str,
         reason: Optional[str] = None,
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Bulk update user status.
@@ -606,7 +606,7 @@ class UserBulkOperationsRepository(ABC):
             status: New status to set
             updated_by: User performing the update
             reason: Reason for status change
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             Results of bulk update operation
@@ -620,7 +620,7 @@ class UserBulkOperationsRepository(ABC):
         role: UserRole,
         updated_by: str,
         reason: str,
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Bulk update user role.
@@ -630,7 +630,7 @@ class UserBulkOperationsRepository(ABC):
             role: New role to set
             updated_by: User performing the update
             reason: Reason for role change
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             Results of bulk update operation
@@ -643,7 +643,7 @@ class UserBulkOperationsRepository(ABC):
         employee_ids: List[EmployeeId], 
         department: str,
         updated_by: str,
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Bulk update user department.
@@ -652,7 +652,7 @@ class UserBulkOperationsRepository(ABC):
             employee_ids: List of user IDs to update
             department: New department to set
             updated_by: User performing the update
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             Results of bulk update operation
@@ -665,7 +665,7 @@ class UserBulkOperationsRepository(ABC):
         employee_ids: Optional[List[EmployeeId]] = None,
         format: str = "csv",
         include_sensitive: bool = False,
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> bytes:
         """
         Bulk export user data.
@@ -674,7 +674,7 @@ class UserBulkOperationsRepository(ABC):
             employee_ids: List of user IDs to export (None for all)
             format: Export format (csv, xlsx, json)
             include_sensitive: Whether to include sensitive data
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             Exported data as bytes
@@ -688,7 +688,7 @@ class UserBulkOperationsRepository(ABC):
         format: str = "csv",
         created_by: str = "system",
         validate_only: bool = False,
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Bulk import user data.
@@ -698,7 +698,7 @@ class UserBulkOperationsRepository(ABC):
             format: Import format (csv, xlsx, json)
             created_by: User performing the import
             validate_only: Whether to only validate without importing
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             Results of bulk import operation
@@ -711,7 +711,7 @@ class UserBulkOperationsRepository(ABC):
         employee_ids: List[EmployeeId],
         reset_by: str,
         send_email: bool = True,
-        organization_id: Optional[str] = None
+        organisation_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Bulk password reset for users.
@@ -720,7 +720,7 @@ class UserBulkOperationsRepository(ABC):
             employee_ids: List of user IDs to reset passwords
             reset_by: User performing the reset
             send_email: Whether to send reset emails
-            organization_id: Organization ID for database selection
+            organisation_id: Organisation ID for database selection
             
         Returns:
             Results of bulk password reset operation

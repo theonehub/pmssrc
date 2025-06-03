@@ -164,8 +164,8 @@ def test_company_leave_repository():
                 self._db_connector = database_connector
                 self._collection_name = "company_leaves"
             
-            def _get_collection(self, organization_id):
-                db_name = f"pms_{organization_id}" if organization_id != "default" else "global_database"
+            def _get_collection(self, organisation_id):
+                db_name = f"pms_{organisation_id}" if organisation_id != "default" else "pms_global_database"
                 return self._db_connector.get_collection(db_name, self._collection_name)
             
             async def save(self, leave):
@@ -200,9 +200,9 @@ def test_company_leave_repository():
                     print(f"Error saving company leave: {e}")
                     raise
             
-            async def get_by_id(self, leave_id, organization_id="default"):
+            async def get_by_id(self, leave_id, organisation_id="default"):
                 try:
-                    collection = self._get_collection(organization_id)
+                    collection = self._get_collection(organisation_id)
                     document = await collection.find_one({"company_leave_id": leave_id, "is_active": True})
                     
                     if document:
@@ -213,9 +213,9 @@ def test_company_leave_repository():
                     print(f"Error getting company leave by ID: {e}")
                     return None
             
-            async def get_all_active(self, organization_id="default"):
+            async def get_all_active(self, organisation_id="default"):
                 try:
-                    collection = self._get_collection(organization_id)
+                    collection = self._get_collection(organisation_id)
                     cursor = collection.find({"is_active": True})
                     documents = await cursor.to_list(length=None)
                     
@@ -225,9 +225,9 @@ def test_company_leave_repository():
                     print(f"Error getting all active company leaves: {e}")
                     return []
             
-            async def get_by_name(self, name, organization_id="default"):
+            async def get_by_name(self, name, organisation_id="default"):
                 try:
-                    collection = self._get_collection(organization_id)
+                    collection = self._get_collection(organisation_id)
                     document = await collection.find_one({"name": name, "is_active": True})
                     
                     if document:
@@ -238,7 +238,7 @@ def test_company_leave_repository():
                     print(f"Error getting company leave by name: {e}")
                     return None
             
-            async def update(self, leave_id, update_data, organization_id):
+            async def update(self, leave_id, update_data, organisation_id):
                 try:
                     # Filter out empty fields
                     filtered_update_data = {}
@@ -258,18 +258,18 @@ def test_company_leave_repository():
                     print(f"Error updating company leave: {e}")
                     return False
             
-            async def delete(self, leave_id, organization_id):
+            async def delete(self, leave_id, organisation_id):
                 try:
                     # Soft delete
-                    return await self.update(leave_id, {"is_active": False}, organization_id)
+                    return await self.update(leave_id, {"is_active": False}, organisation_id)
                     
                 except Exception as e:
                     print(f"Error deleting company leave: {e}")
                     return False
             
-            async def get_by_count_range(self, min_count, max_count, organization_id="default"):
+            async def get_by_count_range(self, min_count, max_count, organisation_id="default"):
                 try:
-                    collection = self._get_collection(organization_id)
+                    collection = self._get_collection(organisation_id)
                     cursor = collection.find({
                         "count": {"$gte": min_count, "$lte": max_count},
                         "is_active": True
@@ -282,7 +282,7 @@ def test_company_leave_repository():
                     print(f"Error getting company leaves by count range: {e}")
                     return []
             
-            async def get_leave_statistics(self, organization_id="default"):
+            async def get_leave_statistics(self, organisation_id="default"):
                 try:
                     # Simple mock statistics
                     return {
@@ -302,7 +302,7 @@ def test_company_leave_repository():
                     print(f"Error getting company leave statistics: {e}")
                     return {}
             
-            async def get_leave_distribution(self, organization_id="default"):
+            async def get_leave_distribution(self, organisation_id="default"):
                 try:
                     # Simple mock distribution
                     return {

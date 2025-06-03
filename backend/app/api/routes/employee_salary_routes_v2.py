@@ -89,7 +89,7 @@ async def get_employee_salary_by_employee_id(
         controller: Employee salary controller dependency
         current_user: Current user object
         role: User role
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         List of employee salary components
@@ -121,7 +121,7 @@ async def get_my_salary_components(
     Args:
         controller: Employee salary controller dependency
         current_user: Current user object
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         List of current user's salary components
@@ -146,7 +146,7 @@ async def update_employee_salary(
         controller: Employee salary controller dependency
         current_user: Current user object
         role: User role (admin, superadmin, manager)
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Updated salary component response
@@ -178,7 +178,7 @@ async def delete_employee_salary(
         controller: Employee salary controller dependency
         current_user: Current user object
         role: User role (admin, superadmin, manager)
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Deletion confirmation
@@ -211,7 +211,7 @@ async def check_salary_assignment_status(
         controller: Employee salary controller dependency
         current_user: Current user object
         role: User role
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Salary assignment status
@@ -243,7 +243,7 @@ async def check_my_salary_assignment_status(
     Args:
         controller: Employee salary controller dependency
         current_user: Current user object
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Current user's salary assignment status
@@ -267,7 +267,7 @@ async def bulk_assign_salary_structure(
         controller: Employee salary controller dependency
         current_user: Current user object
         role: User role (admin, superadmin, manager)
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Bulk assignment response
@@ -301,7 +301,7 @@ async def assign_salary_structure_legacy(
         controller: Employee salary controller dependency
         current_user: Current user object
         role: User role (admin, superadmin, manager)
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Assignment confirmation
@@ -344,7 +344,7 @@ async def get_salary_structure(
         controller: Employee salary controller dependency
         current_user: Current user object
         role: User role
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Salary structure response
@@ -378,7 +378,7 @@ async def get_my_salary_structure(
         as_of_date: Date for structure calculation (optional)
         controller: Employee salary controller dependency
         current_user: Current user object
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Current user's salary structure
@@ -401,7 +401,7 @@ async def get_salary_structure_for_view(
         controller: Employee salary controller dependency
         current_user: Current user object
         role: User role
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         List of salary components with names
@@ -433,7 +433,7 @@ async def get_my_salary_structure_for_view(
     Args:
         controller: Employee salary controller dependency
         current_user: Current user object
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Current user's salary components with names
@@ -457,7 +457,7 @@ async def calculate_salary(
         controller: Employee salary controller dependency
         current_user: Current user object
         role: User role
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Salary calculation response
@@ -493,7 +493,7 @@ async def calculate_my_salary(
         include_variable_components: Include variable components in calculation
         controller: Employee salary controller dependency
         current_user: Current user object
-        hostname: Organization hostname
+        hostname: Organisation hostname
         
     Returns:
         Current user's salary calculation

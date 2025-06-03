@@ -1,6 +1,6 @@
 """
 SOLID-Compliant User Routes - Complete Implementation
-Clean architecture implementation of user HTTP endpoints with organization-based segregation
+Clean architecture implementation of user HTTP endpoints with organisation-based segregation
 """
 
 import logging
@@ -19,7 +19,7 @@ from app.application.dto.user_dto import (
 )
 from app.config.dependency_container import get_user_controller
 from app.auth.auth_dependencies import CurrentUser, get_current_user, get_current_user_optional
-from app.infrastructure.database.organization_database_service import get_organization_database_service, OrganizationDatabaseService
+from app.infrastructure.database.organisation_database_service import get_organisation_database_service, OrganisationDatabaseService
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ async def health_check(
 ) -> Dict[str, str]:
     """Health check for user service."""
     try:
-        # Pass organization context to controller
+        # Pass organisation context to controller
         return await controller.health_check(current_user)
     except Exception:
         # Fallback for minimal implementation
@@ -43,7 +43,7 @@ async def health_check(
             "status": "healthy",
             "timestamp": datetime.now().isoformat(),
             "version": "2.0.0-complete",
-            "organization": current_user.hostname
+            "organisation": current_user.hostname
         }
 
 # User creation endpoints
@@ -52,10 +52,10 @@ async def create_user(
     request: CreateUserRequestDTO,
     current_user: CurrentUser = Depends(get_current_user),
     controller: UserController = Depends(get_user_controller),
-    db_service: OrganizationDatabaseService = Depends(get_organization_database_service)
+    db_service: OrganisationDatabaseService = Depends(get_organisation_database_service)
 ) -> UserResponseDTO:
     """Create a new user."""
-    # Pass organization context to controller
+    # Pass organisation context to controller
     return await controller.create_user(request, current_user)
 
 @router.post("/create")
@@ -66,7 +66,7 @@ async def create_user_legacy(
 ) -> Dict[str, Any]:
     """Create a new user (legacy endpoint)."""
     try:
-        # Convert legacy format to DTO and include organization context
+        # Convert legacy format to DTO and include organisation context
         request = CreateUserRequestDTO(**user_data)
         result = await controller.create_user(request, current_user)
         
@@ -78,12 +78,12 @@ async def create_user_legacy(
             "email": result.email,
             "department": result.department,
             "designation": result.designation,
-            "organization": current_user.hostname,
+            "organisation": current_user.hostname,
             "created_at": datetime.now().isoformat(),
             "created_by": current_user.employee_id
         }
     except Exception as e:
-        logger.error(f"Error creating user in organization {current_user.hostname}: {e}")
+        logger.error(f"Error creating user in organisation {current_user.hostname}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/with-files", response_model=UserResponseDTO)
@@ -132,14 +132,14 @@ async def get_current_user_profile(
             "department": user.department,
             "designation": user.designation,
             "role": user.role,
-            "organization": current_user.hostname,
+            "organisation": current_user.hostname,
             "last_login": user.last_login_at,
             "permissions": current_user.permissions
         }
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting current user profile for organization {current_user.hostname}: {e}")
+        logger.error(f"Error getting current user profile for organisation {current_user.hostname}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/my/directs")
@@ -149,9 +149,9 @@ async def get_my_directs(
 ) -> List[Dict[str, Any]]:
     """Get direct reports for current user."""
     try:
-        logger.info(f"Getting direct reports for user {current_user.employee_id} in organization {current_user.hostname}")
+        logger.info(f"Getting direct reports for user {current_user.employee_id} in organisation {current_user.hostname}")
         
-        # Get direct reports using controller with organization context
+        # Get direct reports using controller with organisation context
         directs = await controller.get_users_by_manager(current_user.employee_id, current_user)
         
         return [
@@ -163,13 +163,13 @@ async def get_my_directs(
                 "designation": direct.designation,
                 "date_of_joining": direct.date_of_joining.isoformat() if direct.date_of_joining else None,
                 "status": direct.status,
-                "organization": current_user.hostname
+                "organisation": current_user.hostname
             }
             for direct in directs
         ]
         
     except Exception as e:
-        logger.error(f"Error getting direct reports for organization {current_user.hostname}: {e}")
+        logger.error(f"Error getting direct reports for organisation {current_user.hostname}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/manager/directs")
@@ -180,9 +180,9 @@ async def get_manager_directs(
 ) -> List[Dict[str, Any]]:
     """Get direct reports for a specific manager."""
     try:
-        logger.info(f"Getting direct reports for manager {manager_id} in organization {current_user.hostname}")
+        logger.info(f"Getting direct reports for manager {manager_id} in organisation {current_user.hostname}")
         
-        # Get direct reports using controller with organization context
+        # Get direct reports using controller with organisation context
         directs = await controller.get_users_by_manager(manager_id, current_user)
         
         return [
@@ -195,13 +195,13 @@ async def get_manager_directs(
                 "manager_id": manager_id,
                 "date_of_joining": direct.date_of_joining.isoformat() if direct.date_of_joining else None,
                 "status": direct.status,
-                "organization": current_user.hostname
+                "organisation": current_user.hostname
             }
             for direct in directs
         ]
         
     except Exception as e:
-        logger.error(f"Error getting manager directs for organization {current_user.hostname}: {e}")
+        logger.error(f"Error getting manager directs for organisation {current_user.hostname}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/stats")
@@ -219,11 +219,11 @@ async def get_user_stats(
             "departments": stats.department_distribution,
             "roles": stats.role_distribution,
             "recent_joiners": stats.recent_joiners_count,
-            "organization": current_user.hostname,
+            "organisation": current_user.hostname,
             "generated_at": datetime.now().isoformat()
         }
     except Exception as e:
-        logger.error(f"Error getting user stats for organization {current_user.hostname}: {e}")
+        logger.error(f"Error getting user stats for organisation {current_user.hostname}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{employee_id}")
@@ -238,7 +238,7 @@ async def get_user_by_id(
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        logger.info(f"Retrieved user {employee_id} for organization {current_user.hostname}")
+        logger.info(f"Retrieved user {employee_id} for organisation {current_user.hostname}")
         
         # Safe attribute access with proper defaults
         def safe_get(obj, attr, default=None):
@@ -280,7 +280,7 @@ async def get_user_by_id(
             "pan_document_path": safe_get(user.documents, 'pan_document_path') if hasattr(user, 'documents') and user.documents else safe_get(user, 'pan_document_path'),
             "aadhar_document_path": safe_get(user.documents, 'aadhar_document_path') if hasattr(user, 'documents') and user.documents else safe_get(user, 'aadhar_document_path'),
             "photo_path": safe_get(user.documents, 'photo_path') if hasattr(user, 'documents') and user.documents else safe_get(user, 'photo_path'),
-            "organization": current_user.hostname,
+            "organisation": current_user.hostname,
             "created_at": format_date(safe_get(user, 'created_at')),
             "updated_at": format_date(safe_get(user, 'updated_at')),
             "is_active": safe_get(user, 'is_active', True),
@@ -293,7 +293,7 @@ async def get_user_by_id(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting user {employee_id} for organization {current_user.hostname}: {e}")
+        logger.error(f"Error getting user {employee_id} for organisation {current_user.hostname}: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to get user: {str(e)}"
@@ -349,10 +349,10 @@ async def get_users(
             "total": result.total_count,
             "skip": skip,
             "limit": limit,
-            "organization": current_user.hostname
+            "organisation": current_user.hostname
         }
     except Exception as e:
-        logger.error(f"Error getting users for organization {current_user.hostname}: {e}")
+        logger.error(f"Error getting users for organisation {current_user.hostname}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/search", response_model=UserListResponseDTO)
@@ -376,7 +376,7 @@ async def update_user(
     try:
         result = await controller.update_user(employee_id, request, current_user)
         
-        logger.info(f"Updated user {employee_id} for organization {current_user.hostname}")
+        logger.info(f"Updated user {employee_id} for organisation {current_user.hostname}")
         
         # Return flattened structure consistent with get_user_by_id
         def safe_get(obj, attr, default=None):
@@ -417,7 +417,7 @@ async def update_user(
             "pan_document_path": safe_get(result.documents, 'pan_document_path') if hasattr(result, 'documents') and result.documents else safe_get(result, 'pan_document_path'),
             "aadhar_document_path": safe_get(result.documents, 'aadhar_document_path') if hasattr(result, 'documents') and result.documents else safe_get(result, 'aadhar_document_path'),
             "photo_path": safe_get(result.documents, 'photo_path') if hasattr(result, 'documents') and result.documents else safe_get(result, 'photo_path'),
-            "organization": current_user.hostname,
+            "organisation": current_user.hostname,
             "created_at": format_date(safe_get(result, 'created_at')),
             "updated_at": format_date(safe_get(result, 'updated_at')),
             "is_active": safe_get(result, 'is_active', True),
@@ -429,7 +429,7 @@ async def update_user(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error updating user {employee_id} for organization {current_user.hostname}: {e}")
+        logger.error(f"Error updating user {employee_id} for organisation {current_user.hostname}: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to update user: {str(e)}"
@@ -473,7 +473,7 @@ async def delete_user(
 ) -> Dict[str, Any]:
     """Delete/deactivate a user."""
     try:
-        # Use controller to deactivate user with organization context
+        # Use controller to deactivate user with organisation context
         request = UserStatusUpdateRequestDTO(status="inactive", reason="Deleted by admin")
         result = await controller.update_user_status(employee_id, request, current_user)
         
@@ -482,12 +482,12 @@ async def delete_user(
             "message": "User deactivated successfully",
             "employee_id": result.employee_id,
             "status": result.status,
-            "organization": current_user.hostname,
+            "organisation": current_user.hostname,
             "deactivated_at": datetime.now().isoformat(),
             "deactivated_by": current_user.employee_id
         }
     except Exception as e:
-        logger.error(f"Error deleting user {employee_id} in organization {current_user.hostname}: {e}")
+        logger.error(f"Error deleting user {employee_id} in organisation {current_user.hostname}: {e}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to delete user: {str(e)}"
@@ -523,16 +523,16 @@ async def get_user_statistics(
 # Legacy compatibility endpoints
 @router.get("/legacy/all")
 async def get_all_users_legacy(
-    hostname: str = Query(..., description="Organization hostname"),
+    hostname: str = Query(..., description="Organisation hostname"),
     current_user: CurrentUser = Depends(get_current_user),
     controller: UserController = Depends(get_user_controller)
 ) -> List[Dict[str, Any]]:
-    """Get all users for a specific organization (legacy endpoint)."""
-    # Validate user can access the specified organization
+    """Get all users for a specific organisation (legacy endpoint)."""
+    # Validate user can access the specified organisation
     if current_user.hostname != hostname and not current_user.has_role("superadmin"):
         raise HTTPException(
             status_code=403,
-            detail="Access denied: cannot access different organization"
+            detail="Access denied: cannot access different organisation"
         )
     
     try:
@@ -562,27 +562,27 @@ async def get_all_users_legacy(
                 "status": user.status,
                 "manager_id": user.manager_id,
                 "phone": user.mobile,
-                "organization": hostname
+                "organisation": hostname
             }
             for user in result.users
         ]
     except Exception as e:
-        logger.error(f"Error getting legacy users for organization {hostname}: {e}")
+        logger.error(f"Error getting legacy users for organisation {hostname}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # @router.get("/legacy/{employee_id}")
 # async def get_user_by_employee_id_legacy(
 #     employee_id: str,
-#     hostname: str = Query(..., description="Organization hostname"),
+#     hostname: str = Query(..., description="Organisation hostname"),
 #     current_user: CurrentUser = Depends(get_current_user),
 #     controller: UserController = Depends(get_user_controller)
 # ) -> Dict[str, Any]:
-#     """Get user by employee ID for specific organization (legacy endpoint)."""
-#     # Validate user can access the specified organization
+#     """Get user by employee ID for specific organisation (legacy endpoint)."""
+#     # Validate user can access the specified organisation
 #     if current_user.hostname != hostname and not current_user.has_role("superadmin"):
 #         raise HTTPException(
 #             status_code=403,
-#             detail="Access denied: cannot access different organization"
+#             detail="Access denied: cannot access different organisation"
 #         )
     
 #     try:
@@ -595,7 +595,7 @@ async def get_all_users_legacy(
 #         if not user:
 #             raise HTTPException(
 #                 status_code=404,
-#                 detail=f"User {employee_id} not found in organization {hostname}"
+#                 detail=f"User {employee_id} not found in organisation {hostname}"
 #             )
         
 #         # Convert to legacy format
@@ -623,7 +623,7 @@ async def get_all_users_legacy(
 #             "pan_document_path": user.pan_document_path,
 #             "aadhar_document_path": user.aadhar_document_path,
 #             "photo_path": user.photo_path,
-#             "organization": hostname,
+#             "organisation": hostname,
 #             "created_at": user.created_at.isoformat() if user.created_at else None,
 #             "updated_at": user.updated_at.isoformat() if user.updated_at else None,
 #             "bank_details": user.bank_details or {},
@@ -635,7 +635,7 @@ async def get_all_users_legacy(
 #     except HTTPException:
 #         raise
 #     except Exception as e:
-#         logger.error(f"Error getting legacy user {employee_id} for organization {hostname}: {e}")
+#         logger.error(f"Error getting legacy user {employee_id} for organisation {hostname}: {e}")
 #         raise HTTPException(
 #             status_code=500,
 #             detail=f"Failed to get user: {str(e)}"

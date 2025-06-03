@@ -23,7 +23,7 @@ from app.application.dto.organisation_dto import (
     OrganisationNotFoundError,
     OrganisationConflictError
 )
-from app.auth.auth_dependencies import get_current_user
+from app.auth.auth_dependencies import CurrentUser, get_current_user
 from app.config.dependency_container import get_organisation_controller
 from app.api.controllers.organisation_controller import OrganisationController
 
@@ -38,14 +38,14 @@ organisation_v2_router = APIRouter(prefix="/api/v2/organisations", tags=["organi
 
 async def _create_organisation_impl(
     request: CreateOrganisationRequestDTO,
-    current_user: dict,
+    current_user: CurrentUser,
     controller: OrganisationController
 ):
     """Shared implementation for create organisation"""
     try:
         response = await controller.create_organisation(
             request=request,
-            created_by=current_user.get("employee_id", "unknown")
+            created_by=current_user.employee_id
         )
         return response
         
@@ -71,7 +71,7 @@ async def _list_organisations_impl(
     status: Optional[str], city: Optional[str], state: Optional[str], country: Optional[str],
     created_after: Optional[datetime], created_before: Optional[datetime],
     sort_by: Optional[str], sort_order: Optional[str],
-    current_user: dict, controller: OrganisationController
+    current_user: CurrentUser, controller: OrganisationController
 ):
     """Shared implementation for list organisations"""
     try:
@@ -103,48 +103,10 @@ async def _list_organisations_impl(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-# ==================== AMERICAN SPELLING ROUTES (/api/v2/organisations) ====================
-
 @organisation_v2_router.post("/", response_model=OrganisationResponseDTO)
 async def create_organisation(
     request: CreateOrganisationRequestDTO,
-    current_user: dict = Depends(get_current_user),
-    controller: OrganisationController = Depends(get_organisation_controller)
-):
-    """Create a new organisation"""
-    return await _create_organisation_impl(request, current_user, controller)
-
-
-@organisation_v2_router.get("/", response_model=OrganisationListResponseDTO)
-async def list_organisations(
-    skip: int = Query(0, ge=0, description="Number of records to skip"),
-    limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
-    name: Optional[str] = Query(None, description="Filter by organisation name"),
-    organisation_type: Optional[str] = Query(None, description="Filter by organisation type"),
-    status: Optional[str] = Query(None, description="Filter by status"),
-    city: Optional[str] = Query(None, description="Filter by city"),
-    state: Optional[str] = Query(None, description="Filter by state"),
-    country: Optional[str] = Query(None, description="Filter by country"),
-    created_after: Optional[datetime] = Query(None, description="Filter by creation date (after)"),
-    created_before: Optional[datetime] = Query(None, description="Filter by creation date (before)"),
-    sort_by: Optional[str] = Query("created_at", description="Sort field"),
-    sort_order: Optional[str] = Query("desc", description="Sort order (asc/desc)"),
-    current_user: dict = Depends(get_current_user),
-    controller: OrganisationController = Depends(get_organisation_controller)
-):
-    """List organisations with optional filters and pagination"""
-    return await _list_organisations_impl(
-        skip, limit, name, organisation_type, status, city, state, country,
-        created_after, created_before, sort_by, sort_order, current_user, controller
-    )
-
-
-# ==================== BRITISH SPELLING ROUTES (/api/v2/organisations) ====================
-
-@organisation_v2_router.post("/", response_model=OrganisationResponseDTO)
-async def create_organisation(
-    request: CreateOrganisationRequestDTO,
-    current_user: dict = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: OrganisationController = Depends(get_organisation_controller)
 ):
     """Create a new organisation (British spelling alias)"""
@@ -165,7 +127,7 @@ async def list_organisations(
     created_before: Optional[datetime] = Query(None, description="Filter by creation date (before)"),
     sort_by: Optional[str] = Query("created_at", description="Sort field"),
     sort_order: Optional[str] = Query("desc", description="Sort order (asc/desc)"),
-    current_user: dict = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: OrganisationController = Depends(get_organisation_controller)
 ):
     """List organisations with optional filters and pagination (British spelling alias)"""
@@ -180,7 +142,7 @@ async def list_organisations(
 @organisation_v2_router.get("/{organisation_id}", response_model=OrganisationResponseDTO)
 async def get_organisation(
     organisation_id: str = Path(..., description="Organisation ID"),
-    current_user: dict = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: OrganisationController = Depends(get_organisation_controller)
 ):
     """Get organisation by ID"""
@@ -203,7 +165,7 @@ async def get_organisation(
 async def update_organisation(
     organisation_id: str = Path(..., description="Organisation ID"),
     request: UpdateOrganisationRequestDTO = None,
-    current_user: dict = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: OrganisationController = Depends(get_organisation_controller)
 ):
     """Update an existing organisation"""
@@ -211,7 +173,7 @@ async def update_organisation(
         response = await controller.update_organisation(
             organisation_id=organisation_id,
             request=request,
-            updated_by=current_user.get("employee_id", "unknown")
+            updated_by=current_user.employee_id
         )
         
         return response
@@ -241,7 +203,7 @@ async def update_organisation(
 async def delete_organisation(
     organisation_id: str = Path(..., description="Organisation ID"),
     force: bool = Query(False, description="Force deletion even if business rules prevent it"),
-    current_user: dict = Depends(get_current_user),
+    current_user: CurrentUser = Depends(get_current_user),
     controller: OrganisationController = Depends(get_organisation_controller)
 ):
     """Delete an organisation"""
@@ -249,7 +211,7 @@ async def delete_organisation(
         success = await controller.delete_organisation(
             organisation_id=organisation_id,
             force=force,
-            deleted_by=current_user.get("employee_id", "unknown")
+            deleted_by=current_user.employee_id
         )
         
         if success:

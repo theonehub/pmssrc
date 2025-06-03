@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { getToken } from '../../utils/auth';
 import PageLayout from '../../layout/PageLayout';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -39,33 +40,11 @@ import {
   Refresh as RefreshIcon,
   Business as BusinessIcon
 } from '@mui/icons-material';
-import { EmptyOrganisation } from '../../models/organisation';
-import OrganisationForm from './OrganisationForm';
+import type { Organisation } from '../../models/organisation';
 
 const API_BASE_URL = 'http://localhost:8000/api/v2';
 
 // Define interfaces
-interface Organisation {
-  organisation_id?: string;
-  name: string;
-  address: string;
-  city: string;
-  state: string;
-  country: string;
-  pin_code: string;
-  phone: string;
-  email: string;
-  website: string;
-  description: string;
-  is_active: boolean;
-  hostname: string;
-  employee_strength: string | number;
-  used_employee_strength?: number;
-  pan_number: string;
-  gst_number: string;
-  tan_number: string;
-}
-
 interface OrganisationsResponse {
   organisations: Organisation[];
   total: number;
@@ -78,6 +57,8 @@ interface ToastState {
 }
 
 const OrganisationsList: React.FC = () => {
+  const navigate = useNavigate();
+  
   // State management
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -85,8 +66,6 @@ const OrganisationsList: React.FC = () => {
   const [page, setPage] = useState<number>(0);
   const [rowsPerPage, setRowsPerPage] = useState<number>(10);
   const [total, setTotal] = useState<number>(0);
-  const [showForm, setShowForm] = useState<boolean>(false);
-  const [currentOrganisation, setCurrentOrganisation] = useState<Organisation>(EmptyOrganisation);
   const [toast, setToast] = useState<ToastState>({ 
     show: false, 
     message: '', 
@@ -110,7 +89,7 @@ const OrganisationsList: React.FC = () => {
       }
 
       const response = await axios.get<OrganisationsResponse>(
-        `${API_BASE_URL}/organisations`,
+        `${API_BASE_URL}/organisations/`,
         {
           params: {
             skip: page * rowsPerPage,
@@ -158,9 +137,12 @@ const OrganisationsList: React.FC = () => {
   };
 
   // Event handlers
+  const handleAdd = (): void => {
+    navigate('/organisations/add');
+  };
+
   const handleEdit = (organisation: Organisation): void => {
-    setCurrentOrganisation(organisation);
-    setShowForm(true);
+    navigate(`/organisations/edit/${organisation.organisation_id}`);
   };
 
   const handleDeleteClick = (id: string): void => {
@@ -177,7 +159,7 @@ const OrganisationsList: React.FC = () => {
       }
 
       await axios.delete(
-        `${API_BASE_URL}/organisation/${deleteConfirmId}`,
+        `${API_BASE_URL}/organisations/${deleteConfirmId}/`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -201,54 +183,6 @@ const OrganisationsList: React.FC = () => {
 
   const handleDeleteCancel = (): void => {
     setDeleteConfirmId(null);
-  };
-
-  const handleAdd = (): void => {
-    setCurrentOrganisation(EmptyOrganisation);
-    setShowForm(true);
-  };
-
-  const handleFormClose = (): void => {
-    setShowForm(false);
-    setCurrentOrganisation(EmptyOrganisation);
-  };
-
-  const handleFormSubmit = async (formData: Organisation): Promise<void> => {
-    try {
-      const token = getToken();
-      if (!token) {
-        throw new Error('Authentication required. Please login again.');
-      }
-
-      const isUpdate = formData.organisation_id;
-      const url = isUpdate 
-        ? `${API_BASE_URL}/organisation/${formData.organisation_id}`
-        : `${API_BASE_URL}/organisation`;
-      
-      const method = isUpdate ? 'put' : 'post';
-      
-      await axios[method](url, formData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const successMessage = isUpdate 
-        ? 'Organisation updated successfully'
-        : 'Organisation created successfully';
-      
-      showToast(successMessage, 'success');
-      handleFormClose();
-      fetchOrganisations();
-    } catch (error: any) {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.error('Error saving organisation:', error);
-      }
-      const errorMessage = error.response?.data?.detail || 
-                          error.message || 
-                          'Failed to save organisation';
-      showToast(errorMessage, 'error');
-      throw error; // Re-throw to let form handle the error state
-    }
   };
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
@@ -429,9 +363,9 @@ const OrganisationsList: React.FC = () => {
                             <Typography variant="subtitle2" fontWeight="medium">
                               {org.name}
                             </Typography>
-                            {org.email && (
+                            {org.contact_info.email && (
                               <Typography variant="caption" color="text.secondary">
-                                {org.email}
+                                {org.contact_info.email}
                               </Typography>
                             )}
                           </Box>
@@ -439,16 +373,16 @@ const OrganisationsList: React.FC = () => {
                         <TableCell>
                           <Box>
                             <Typography variant="body2">
-                              {org.city}
+                              {org.address.city}
                             </Typography>
-                            {org.state && (
+                            {org.address.state && (
                               <Typography variant="caption" color="text.secondary">
-                                {org.state}
+                                {org.address.state}
                               </Typography>
                             )}
                           </Box>
                         </TableCell>
-                        <TableCell>{org.country}</TableCell>
+                        <TableCell>{org.address.country}</TableCell>
                         <TableCell>{renderStatusChip(org.is_active)}</TableCell>
                         <TableCell align="center">
                           <Typography variant="body2" fontWeight="medium">
@@ -524,41 +458,6 @@ const OrganisationsList: React.FC = () => {
             {toast.message}
           </Alert>
         </Snackbar>
-
-        {/* Organisation Form Dialog */}
-        <Dialog
-          open={showForm}
-          onClose={handleFormClose}
-          maxWidth="lg"
-          fullWidth
-          disableEscapeKeyDown={false}
-          PaperProps={{
-            sx: { minHeight: '80vh' }
-          }}
-        >
-          <DialogTitle sx={{ pb: 1 }}>
-            <Typography variant="h5" component="div">
-              {currentOrganisation.organisation_id ? 'Edit Organisation' : 'Add New Organisation'}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              {currentOrganisation.organisation_id 
-                ? 'Update organisation details' 
-                : 'Fill in the details to create a new organisation'
-              }
-            </Typography>
-          </DialogTitle>
-          <DialogContent sx={{ pt: 1 }}>
-            <OrganisationForm 
-              organisation={currentOrganisation} 
-              onSubmit={handleFormSubmit} 
-            />
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button onClick={handleFormClose} size="large">
-              Cancel
-            </Button>
-          </DialogActions>
-        </Dialog>
 
         {/* Delete Confirmation Dialog */}
         <Dialog

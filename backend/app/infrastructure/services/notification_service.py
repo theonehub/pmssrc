@@ -4,7 +4,7 @@ SOLID-compliant service for sending notifications
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from abc import ABC, abstractmethod
 
 from app.domain.entities.user import User
@@ -368,6 +368,71 @@ class EmailNotificationService(NotificationService):
             
         except Exception as e:
             logger.error(f"Error sending password reset email: {e}")
+            return False
+    
+    async def send_organisation_created_notification(self, organisation) -> bool:
+        """Send notification when organisation is created."""
+        try:
+            subject = "New Organisation Created in PMS"
+            body = f"""
+            A new organisation has been created in the PMS system:
+            
+            Name: {organisation.name}
+            Organisation ID: {organisation.organisation_id}
+            Type: {organisation.organisation_type.value}
+            Email: {organisation.contact_info.email if organisation.contact_info else 'N/A'}
+            Phone: {organisation.contact_info.phone if organisation.contact_info else 'N/A'}
+            City: {organisation.address.city if organisation.address else 'N/A'}
+            State: {organisation.address.state if organisation.address else 'N/A'}
+            Country: {organisation.address.country if organisation.address else 'N/A'}
+            Created by: {organisation.created_by or 'System'}
+            
+            Please review and take necessary actions.
+            
+            Best regards,
+            PMS Team
+            """
+            
+            # Send notification to admin
+            await self._send_email(self.admin_email, subject, body)
+            
+            logger.info(f"Organisation created notification sent for: {organisation.organisation_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error sending organisation created notification: {e}")
+            return False
+    
+    async def send_organisation_updated_notification(
+        self, 
+        organisation, 
+        updated_fields: List[str]
+    ) -> bool:
+        """Send notification when organisation is updated."""
+        try:
+            subject = f"Organisation Updated: {organisation.name}"
+            body = f"""
+            An organisation has been updated in the PMS system:
+            
+            Name: {organisation.name}
+            Organisation ID: {organisation.organisation_id}
+            Updated Fields: {', '.join(updated_fields)}
+            Updated by: {organisation.updated_by or 'System'}
+            
+            Please review the changes if necessary.
+            
+            Best regards,
+            PMS Team
+            """
+            
+            # Send notification to admin
+            await self._send_email(self.admin_email, subject, body)
+            
+            logger.info(f"Organisation updated notification sent for: {organisation.organisation_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error sending organisation updated notification: {e}")
             return False
     
     async def _send_email(self, to_email: str, subject: str, body: str) -> bool:

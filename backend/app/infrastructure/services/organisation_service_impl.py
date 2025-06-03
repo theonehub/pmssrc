@@ -40,7 +40,7 @@ from app.domain.entities.organisation import Organisation
 from app.domain.value_objects.organisation_id import OrganisationId
 from app.domain.value_objects.organisation_details import (
     OrganisationType, ContactInformation, 
-    Address, TaxInformation
+    Address, TaxInformation, OrganisationStatus
 )
 from app.infrastructure.services.notification_service import NotificationService
 
@@ -112,9 +112,9 @@ class OrganisationServiceImpl(OrganisationService):
                 description=request.description,
                 organisation_type=OrganisationType(request.organisation_type),
                 hostname=request.hostname,
-                contact_information=contact_info,
+                contact_info=contact_info,
                 address=address,
-                tax_information=tax_info,
+                tax_info=tax_info,
                 employee_strength=request.employee_strength
             )
             
@@ -453,10 +453,10 @@ class OrganisationServiceImpl(OrganisationService):
             # Validate contact information
             try:
                 ContactInformation(
-                    email=request.contact_email,
-                    phone=request.contact_phone,
-                    website=request.contact_website,
-                    fax=request.contact_fax
+                    email=request.email,
+                    phone=request.phone,
+                    website=request.website,
+                    fax=request.fax
                 )
             except Exception as e:
                 errors.append(f"Invalid contact information: {str(e)}")
@@ -464,12 +464,12 @@ class OrganisationServiceImpl(OrganisationService):
             # Validate address
             try:
                 Address(
-                    street_address=request.address_street,
-                    city=request.address_city,
-                    state=request.address_state,
-                    country=request.address_country,
-                    pin_code=request.address_pin_code,
-                    landmark=request.address_landmark
+                    street_address=request.street_address,
+                    city=request.city,
+                    state=request.state,
+                    country=request.country,
+                    pin_code=request.pin_code,
+                    landmark=request.landmark
                 )
             except Exception as e:
                 errors.append(f"Invalid address: {str(e)}")
@@ -574,7 +574,7 @@ class OrganisationServiceImpl(OrganisationService):
             hostname=organisation.hostname,
             status=organisation.status.value,
             employee_strength=organisation.employee_strength,
-            employee_usage=organisation.employee_usage,
+            employee_usage=organisation.used_employee_strength,
             city=organisation.address.city,
             state=organisation.address.state,
             country=organisation.address.country,
@@ -848,10 +848,10 @@ class OrganisationServiceImpl(OrganisationService):
             issues = []
             
             # Check capacity utilization
-            if organisation.employee_usage > organisation.employee_strength:
+            if organisation.used_employee_strength > organisation.employee_strength:
                 health_score -= 30
                 issues.append("Over capacity")
-            elif organisation.employee_usage / organisation.employee_strength > 0.9:
+            elif organisation.used_employee_strength / organisation.employee_strength > 0.9:
                 health_score -= 10
                 issues.append("Near capacity")
             
@@ -929,7 +929,7 @@ class OrganisationServiceImpl(OrganisationService):
             errors = []
             
             # Check employee capacity constraints
-            if organisation.employee_usage > organisation.employee_strength:
+            if organisation.used_employee_strength > organisation.employee_strength:
                 errors.append("Employee usage cannot exceed employee strength")
             
             # Check required fields
@@ -1011,4 +1011,91 @@ class OrganisationServiceImpl(OrganisationService):
             return True
         except Exception as e:
             self.logger.error(f"Error sending capacity alert notification: {e}")
+            return False
+
+    # ==================== MISSING ABSTRACT METHODS ====================
+
+    async def bulk_update_status(
+        self, 
+        organisation_ids: List[str], 
+        status: str,
+        reason: Optional[str] = None,
+        updated_by: Optional[str] = None
+    ) -> BulkOrganisationUpdateResultDTO:
+        """Bulk update organisation status"""
+        try:
+            from app.application.dto.organisation_dto import BulkOrganisationUpdateResultDTO
+            
+            successful_updates = []
+            failed_updates = []
+            
+            for org_id in organisation_ids:
+                try:
+                    # Get organisation
+                    organisation_id = OrganisationId.from_string(org_id)
+                    organisation = await self.repository.get_by_id(organisation_id)
+                    
+                    if not organisation:
+                        failed_updates.append({
+                            "organisation_id": org_id,
+                            "error": "Organisation not found"
+                        })
+                        continue
+                    
+                    # Update status
+                    old_status = organisation.status.value
+                    organisation.update_status(status, updated_by or "system", reason)
+                    
+                    # Save changes
+                    await self.repository.update(organisation)
+                    
+                    # Send notification
+                    await self.send_status_change_notification(
+                        organisation, old_status, status, reason
+                    )
+                    
+                    successful_updates.append(org_id)
+                    
+                except Exception as e:
+                    failed_updates.append({
+                        "organisation_id": org_id,
+                        "error": str(e)
+                    })
+            
+            return BulkOrganisationUpdateResultDTO(
+                total_requested=len(organisation_ids),
+                successful_updates=len(successful_updates),
+                failed_updates=len(failed_updates),
+                successful_organisation_ids=successful_updates,
+                failed_updates_details=failed_updates,
+                operation_type="status_update",
+                updated_by=updated_by
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Error in bulk status update: {e}")
+            raise
+
+    async def send_status_change_notification(
+        self, 
+        organisation: Organisation, 
+        old_status: str, 
+        new_status: str,
+        reason: Optional[str] = None
+    ) -> bool:
+        """Send notification when organisation status changes"""
+        try:
+            # Implement status change notification logic
+            # This could send emails, create audit logs, etc.
+            self.logger.info(
+                f"Status change notification: Organisation {organisation.organisation_id} "
+                f"changed from {old_status} to {new_status}. Reason: {reason or 'Not specified'}"
+            )
+            
+            # Here you would integrate with actual notification service
+            # For now, just log and return success
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error sending status change notification: {e}")
             return False

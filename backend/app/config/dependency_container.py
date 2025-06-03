@@ -672,18 +672,21 @@ class DependencyContainer:
                 # Configure repository connection
                 self._configure_repository_connection(repository)
                 
-                # Create real use cases with proper error handling
+                # Get organisation service implementation for validation
+                validation_service = self.get_organisation_service()
+                
+                # Create real use cases with proper validation service
                 create_use_case = CreateOrganisationUseCase(
                     command_repository=repository,
                     query_repository=repository,
-                    validation_service=None,  # Service may have issues, use repository directly
+                    validation_service=validation_service,  # Use actual service instead of None
                     notification_service=self._notification_service
                 )
                 
                 update_use_case = UpdateOrganisationUseCase(
                     command_repository=repository,
                     query_repository=repository,
-                    validation_service=None,
+                    validation_service=validation_service,  # Use actual service instead of None
                     notification_service=self._notification_service
                 )
                 
@@ -709,7 +712,7 @@ class DependencyContainer:
                     delete_use_case=delete_use_case
                 )
                 
-                logger.info("Organisation controller initialized with MongoDBOrganisationRepository")
+                logger.info("Organisation controller initialized with MongoDBOrganisationRepository and proper validation service")
                 
             except Exception as e:
                 logger.error(f"Failed to initialize organisation controller: {e}")

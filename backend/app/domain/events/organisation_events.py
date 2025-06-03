@@ -5,7 +5,7 @@ Events for organisation lifecycle and business operations
 
 from datetime import datetime
 from typing import Optional, Dict, Any
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from app.domain.events.employee_events import DomainEvent
 from app.domain.value_objects.organisation_id import OrganisationId
@@ -36,6 +36,12 @@ class OrganisationCreated(DomainEvent):
     contact_info: ContactInformation
     address: Address
     created_by: str
+    occurred_at: datetime = field(default_factory=lambda: datetime.utcnow())
+    event_id: str = field(default_factory=lambda: str(__import__('uuid').uuid4()))
+    
+    def __post_init__(self):
+        """Initialize parent class"""
+        super().__init__(self.occurred_at, self.event_id)
     
     def get_event_type(self) -> str:
         return "organisation.created"
@@ -74,6 +80,12 @@ class OrganisationUpdated(DomainEvent):
     updated_fields: Dict[str, Any]
     updated_by: str
     previous_values: Optional[Dict[str, Any]] = None
+    occurred_at: datetime = field(default_factory=lambda: datetime.utcnow())
+    event_id: str = field(default_factory=lambda: str(__import__('uuid').uuid4()))
+    
+    def __post_init__(self):
+        """Initialize parent class"""
+        super().__init__(self.occurred_at, self.event_id)
     
     def get_event_type(self) -> str:
         return "organisation.updated"
@@ -106,6 +118,12 @@ class OrganisationContactUpdated(DomainEvent):
     new_contact_info: ContactInformation
     previous_contact_info: ContactInformation
     updated_by: str
+    occurred_at: datetime = field(default_factory=lambda: datetime.utcnow())
+    event_id: str = field(default_factory=lambda: str(__import__('uuid').uuid4()))
+    
+    def __post_init__(self):
+        """Initialize parent class"""
+        super().__init__(self.occurred_at, self.event_id)
     
     def get_event_type(self) -> str:
         return "organisation.contact_updated"
@@ -159,6 +177,12 @@ class OrganisationAddressUpdated(DomainEvent):
     new_address: Address
     previous_address: Address
     updated_by: str
+    occurred_at: datetime = field(default_factory=lambda: datetime.utcnow())
+    event_id: str = field(default_factory=lambda: str(__import__('uuid').uuid4()))
+    
+    def __post_init__(self):
+        """Initialize parent class"""
+        super().__init__(self.occurred_at, self.event_id)
     
     def get_event_type(self) -> str:
         return "organisation.address_updated"
@@ -195,6 +219,12 @@ class OrganisationTaxInfoUpdated(DomainEvent):
     new_tax_info: TaxInformation
     previous_tax_info: TaxInformation
     updated_by: str
+    occurred_at: datetime = field(default_factory=lambda: datetime.utcnow())
+    event_id: str = field(default_factory=lambda: str(__import__('uuid').uuid4()))
+    
+    def __post_init__(self):
+        """Initialize parent class"""
+        super().__init__(self.occurred_at, self.event_id)
     
     def get_event_type(self) -> str:
         return "organisation.tax_info_updated"
@@ -248,6 +278,12 @@ class OrganisationEmployeeStrengthUpdated(DomainEvent):
     previous_employee_strength: int
     current_used_strength: int
     updated_by: str
+    occurred_at: datetime = field(default_factory=lambda: datetime.utcnow())
+    event_id: str = field(default_factory=lambda: str(__import__('uuid').uuid4()))
+    
+    def __post_init__(self):
+        """Initialize parent class"""
+        super().__init__(self.occurred_at, self.event_id)
     
     def get_event_type(self) -> str:
         return "organisation.employee_strength_updated"
@@ -285,6 +321,12 @@ class OrganisationDeleted(DomainEvent):
     organisation_name: str
     deleted_by: str
     deletion_reason: str
+    occurred_at: datetime = field(default_factory=lambda: datetime.utcnow())
+    event_id: str = field(default_factory=lambda: str(__import__('uuid').uuid4()))
+    
+    def __post_init__(self):
+        """Initialize parent class"""
+        super().__init__(self.occurred_at, self.event_id)
     
     def get_event_type(self) -> str:
         return "organisation.deleted"

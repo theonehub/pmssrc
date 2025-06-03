@@ -20,6 +20,7 @@ import LeaveManagement from './Components/Leaves/LeaveManagement';
 import AllLeaves from './Components/Leaves/AllLeaves';
 import CompanyLeaves from './Components/CompanyLeaves/CompanyLeaves';
 import OrganisationsList from './Components/Organisation/OrganisationsList';
+import AddNewOrganisation from './Components/Organisation/AddNewOrganisation';
 import { CalculatorProvider, useCalculator } from './context/CalculatorContext';
 import Calculator from './Components/Common/Calculator';
 
@@ -125,6 +126,18 @@ const AppContent: React.FC = () => {
           <Route path="/organisations" element={
             <ProtectedRoute allowedRoles={['superadmin']}>
               <OrganisationsList />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/organisations/add" element={
+            <ProtectedRoute allowedRoles={['superadmin']}>
+              <AddNewOrganisation />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/organisations/edit/:id" element={
+            <ProtectedRoute allowedRoles={['superadmin']}>
+              <AddNewOrganisation />
             </ProtectedRoute>
           } />
 

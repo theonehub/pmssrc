@@ -57,7 +57,8 @@ class OrganisationController:
     ) -> OrganisationResponseDTO:
         """Create a new organisation"""
         logger.info(f"Creating organisation: {request.name} by {created_by}")
-        return await self.create_use_case.execute(request=request, created_by=created_by)
+        request.created_by = created_by
+        return await self.create_use_case.execute(request=request)
 
     async def list_organisations(
         self, 

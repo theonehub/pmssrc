@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 
 from app.domain.value_objects.organisation_id import OrganisationId
 from app.domain.value_objects.organisation_details import (
-    ContactInformation, Address, TaxInformation, OrganisationType
+    ContactInformation, Address, TaxInformation, OrganisationType, OrganisationStatus
 )
 from app.domain.events.organisation_events import (
     OrganisationCreated, OrganisationUpdated, OrganisationContactUpdated,
@@ -54,6 +54,7 @@ class Organisation:
     name: str
     description: Optional[str] = None
     organisation_type: OrganisationType = OrganisationType.PRIVATE_LIMITED
+    status: OrganisationStatus = OrganisationStatus.ACTIVE
     
     # Contact and Location
     contact_info: ContactInformation = None
@@ -342,6 +343,46 @@ class Organisation:
         
         logger.info(f"Organisation {self.organisation_id} employee strength updated to {new_employee_strength}")
     
+    def update_status(
+        self,
+        new_status: str,
+        updated_by: Optional[str] = None,
+        reason: Optional[str] = None
+    ) -> None:
+        """
+        Update organisation status.
+        
+        Business Rules:
+        1. Status must be valid
+        2. Status changes may have restrictions
+        3. Deletion requires special handling
+        """
+        # Convert string to enum if needed
+        if isinstance(new_status, str):
+            new_status = OrganisationStatus(new_status)
+        elif not isinstance(new_status, OrganisationStatus):
+            raise ValueError(f"Invalid status type: {type(new_status)}")
+        
+        if new_status == self.status:
+            return  # No changes
+        
+        old_status = self.status
+        self.status = new_status
+        self.updated_at = datetime.utcnow()
+        self.updated_by = updated_by
+        
+        # Publish domain event
+        from app.domain.events.organisation_events import OrganisationUpdated
+        self._add_domain_event(OrganisationUpdated(
+            organisation_id=self.organisation_id,
+            updated_fields={"status": new_status.value},
+            updated_by=updated_by or "system",
+            previous_values={"status": old_status.value},
+            occurred_at=datetime.utcnow()
+        ))
+        
+        logger.info(f"Organisation {self.organisation_id} status updated to {new_status.value}")
+    
     def increment_used_employee_strength(self) -> None:
         """
         Increment used employee strength when adding an employee.
@@ -433,6 +474,17 @@ class Organisation:
     def get_primary_phone(self) -> str:
         """Get primary phone"""
         return self.contact_info.phone if self.contact_info else ""
+    
+    def can_be_deleted(self) -> bool:
+        """Check if organisation can be deleted"""
+        # Business rules for deletion
+        if self.used_employee_strength > 0:
+            return False  # Cannot delete if has active employees
+        
+        if self.status == OrganisationStatus.DELETED:
+            return False  # Already deleted
+        
+        return True
     
     # ==================== HELPER METHODS ====================
     

@@ -12,7 +12,6 @@ MONGO_URI: str = os.getenv(
 )
 
 # Database Names
-DEFAULT_DATABASE: str = os.getenv('DEFAULT_DATABASE', 'pms_default')
 GLOBAL_DATABASE: str = os.getenv('GLOBAL_DATABASE', 'pms_global_database')
 
 # Connection Settings

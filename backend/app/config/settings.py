@@ -13,7 +13,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRATION_MINUTES", "30"))
 # Database Configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "mongodb://localhost:27017/pms")
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
-DEFAULT_DATABASE = os.getenv("DEFAULT_DATABASE", "pms")
 
 # Application Configuration
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"

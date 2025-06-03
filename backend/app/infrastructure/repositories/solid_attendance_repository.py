@@ -1,1198 +1,556 @@
 """
-SOLID-Compliant Attendance Repository Implementation
-Replaces the procedural attendance_database.py with proper SOLID architecture
+MongoDB User Repository Implementation
+Following SOLID principles and DDD patterns for user data access
 """
 
 import logging
-import uuid
-from typing import List, Optional, Dict, Any, Union
-from datetime import datetime, date, timedelta
-from decimal import Decimal
+from typing import List, Optional, Dict, Any
+from datetime import datetime, timedelta
 from bson import ObjectId
+from pymongo import ASCENDING, DESCENDING
 from pymongo.errors import DuplicateKeyError
+from pymongo.collection import Collection
 
-# Import domain entities
-try:
-    from app.domain.entities.attendance import Attendance
-    from app.domain.value_objects.employee_id import EmployeeId
-    from app.domain.value_objects.attendance_status import AttendanceStatus, AttendanceStatusType
-    from app.domain.value_objects.working_hours import WorkingHours
-except ImportError:
-    # Fallback classes for migration compatibility
-    class Attendance:
-        def __init__(self, **kwargs):
-            for key, value in kwargs.items():
-                setattr(self, key, value)
-        def dict(self):
-            return {k: v for k, v in self.__dict__.items()}
-    
-    class EmployeeId:
-        def __init__(self, value: str):
-            self.value = value
-        def __str__(self):
-            return self.value
-    
-    class AttendanceStatus:
-        def __init__(self, **kwargs):
-            for key, value in kwargs.items():
-                setattr(self, key, value)
-    
-    class AttendanceStatusType:
-        PRESENT = "present"
-        ABSENT = "absent"
-        LATE = "late"
-        HALF_DAY = "half_day"
-        ON_LEAVE = "on_leave"
-        HOLIDAY = "holiday"
-    
-    class WorkingHours:
-        def __init__(self, **kwargs):
-            for key, value in kwargs.items():
-                setattr(self, key, value)
-
-# Import application interfaces
-try:
-    from app.application.interfaces.repositories.attendance_repository import (
-        AttendanceCommandRepository, AttendanceQueryRepository, 
-        AttendanceAnalyticsRepository, AttendanceReportsRepository,
-        AttendanceBulkOperationsRepository, AttendanceRepository
-    )
-except ImportError:
-    # Fallback interfaces
-    from abc import ABC, abstractmethod
-    
-    class AttendanceCommandRepository(ABC):
-        pass
-    
-    class AttendanceQueryRepository(ABC):
-        pass
-    
-    class AttendanceAnalyticsRepository(ABC):
-        pass
-    
-    class AttendanceReportsRepository(ABC):
-        pass
-    
-    class AttendanceBulkOperationsRepository(ABC):
-        pass
-    
-    class AttendanceRepository(ABC):
-        pass
-
-# Import DTOs
-try:
-    from app.application.dto.attendance_dto import (
-        AttendanceSearchFiltersDTO, AttendanceSummaryDTO, 
-        AttendanceStatisticsDTO, DepartmentAttendanceDTO, AttendanceTrendDTO
-    )
-except ImportError:
-    # Fallback DTOs
-    class AttendanceSearchFiltersDTO:
-        def __init__(self, **kwargs):
-            for key, value in kwargs.items():
-                setattr(self, key, value)
-    
-    class AttendanceSummaryDTO:
-        def __init__(self, **kwargs):
-            for key, value in kwargs.items():
-                setattr(self, key, value)
-    
-    class AttendanceStatisticsDTO:
-        def __init__(self, **kwargs):
-            for key, value in kwargs.items():
-                setattr(self, key, value)
-    
-    class DepartmentAttendanceDTO:
-        def __init__(self, **kwargs):
-            for key, value in kwargs.items():
-                setattr(self, key, value)
-    
-    class AttendanceTrendDTO:
-        def __init__(self, **kwargs):
-            for key, value in kwargs.items():
-                setattr(self, key, value)
-
-from .base_repository import BaseRepository
-from ..database.database_connector import DatabaseConnector
+from app.domain.entities.attendance import Attendance
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.attendance_status import AttendanceStatus
+from app.application.interfaces.repositories.user_repository import (
+    AttendanceCommandRepository, AttendanceQueryRepository, AttendanceAnalyticsRepository,
+    AttendanceProfileRepository, AttendanceBulkOperationsRepository, AttendanceRepository
+)
+from app.application.dto.attendance_dto import (
+    AttendanceSearchFiltersDTO, AttendanceStatisticsDTO, AttendanceAnalyticsDTO,
+    AttendanceProfileCompletionDTO
+)
+from app.infrastructure.database.database_connector import DatabaseConnector
+from app.domain.events.attendance_events import AttendanceCreated, AttendanceUpdated, AttendanceDeleted
+from app.config.mongodb_config import get_mongodb_connection_string, get_mongodb_client_options
+from app.domain.value_objects.working_hours import WorkingHours
 
 logger = logging.getLogger(__name__)
 
 
-class SolidAttendanceRepository(
-    BaseRepository[Attendance],
-    AttendanceRepository
-):
+class MongoDBAttendanceRepository(AttendanceRepository):
     """
-    SOLID-compliant attendance repository implementation.
+    MongoDB implementation of user repository following DDD patterns.
     
-    Replaces the procedural attendance_database.py with proper SOLID architecture:
-    - Single Responsibility: Only handles attendance data persistence
-    - Open/Closed: Can be extended without modification
-    - Liskov Substitution: Implements all attendance repository interfaces
-    - Interface Segregation: Implements focused attendance repository interfaces
-    - Dependency Inversion: Depends on DatabaseConnector abstraction
+    Implements all user repository interfaces in a single class for simplicity
+    while maintaining SOLID principles through interface segregation.
     """
     
     def __init__(self, database_connector: DatabaseConnector):
         """
-        Initialize attendance repository.
+        Initialize repository with database connector.
         
         Args:
             database_connector: Database connection abstraction
         """
-        super().__init__(database_connector, "attendance")
+        self.db_connector = database_connector
+        self._collection_name = "attendance_info"
         
-    def _entity_to_document(self, attendance: Attendance) -> Dict[str, Any]:
+        # Connection configuration (will be set by dependency container)
+        self._connection_string = None
+        self._client_options = None
+        
+    def set_connection_config(self, connection_string: str, client_options: Dict[str, Any]):
         """
-        Convert Attendance entity to database document.
+        Set MongoDB connection configuration.
         
         Args:
-            attendance: Attendance entity to convert
+            connection_string: MongoDB connection string
+            client_options: MongoDB client options
+        """
+        self._connection_string = connection_string
+        self._client_options = client_options
+        
+    async def _get_collection(self, organisation_id: Optional[str] = None):
+        """
+        Get attendance collection for specific organisation or global.
+        
+        Ensures database connection is established in the correct event loop.
+        """
+        db_name = organisation_id if organisation_id else "pms_global_database"
+        
+        # Ensure database is connected in the current event loop
+        if not self.db_connector.is_connected:
+            logger.debug("Database not connected, establishing connection...")
             
-        Returns:
-            Database document representation
-        """
-        if hasattr(attendance, 'dict'):
-            document = attendance.dict()
-        elif hasattr(attendance, 'to_dict'):
-            document = attendance.to_dict()
-        else:
-            document = {k: v for k, v in attendance.__dict__.items()}
+            try:
+                # Use stored connection configuration or fallback to config functions
+                if self._connection_string and self._client_options:
+                    logger.debug("Using stored connection parameters from repository configuration")
+                    connection_string = self._connection_string
+                    options = self._client_options
+                else:
+                    # Fallback to config functions if connection config not set
+                    logger.debug("Loading connection parameters from mongodb_config")
+                    connection_string = get_mongodb_connection_string()
+                    options = get_mongodb_client_options()
+                
+                await self.db_connector.connect(connection_string, **options)
+                logger.info("MongoDB connection established successfully in current event loop")
+                
+            except Exception as e:
+                logger.error(f"Failed to establish database connection: {e}")
+                raise RuntimeError(f"Database connection failed: {e}")
         
-        # Remove the 'id' field if present (MongoDB uses '_id')
-        if 'id' in document:
-            del document['id']
-        
-        # Ensure proper field mapping for legacy compatibility
-        if 'attendance_id' not in document and hasattr(attendance, 'attendance_id'):
-            document['attendance_id'] = getattr(attendance, 'attendance_id')
-        
-        if 'employee_id' not in document and hasattr(attendance, 'employee_id'):
-            employee_id = getattr(attendance, 'employee_id')
-            if hasattr(employee_id, 'value'):
-                document['employee_id'] = employee_id.value
-            else:
-                document['employee_id'] = str(employee_id)
-        
-        if 'date' not in document and hasattr(attendance, 'attendance_date'):
-            document['date'] = getattr(attendance, 'attendance_date')
-        
-        # Handle working hours
-        working_hours = getattr(attendance, 'working_hours', None)
-        if working_hours:
-            if hasattr(working_hours, 'check_in_time'):
-                document['checkin_time'] = getattr(working_hours, 'check_in_time')
-            if hasattr(working_hours, 'check_out_time'):
-                document['checkout_time'] = getattr(working_hours, 'check_out_time')
-        
-        return document
-    
-    def _document_to_entity(self, document: Dict[str, Any]) -> Attendance:
-        """
-        Convert database document to Attendance entity.
-        
-        Args:
-            document: Database document to convert
-            
-        Returns:
-            Attendance entity instance
-        """
-        # Convert MongoDB _id to id
-        if '_id' in document:
-            document['id'] = str(document['_id'])
-            del document['_id']
-        
-        # Map legacy fields to new structure
-        if 'employee_id' in document and 'employee_id' not in document:
-            document['employee_id'] = document['employee_id']
-        
-        if 'date' in document and 'attendance_date' not in document:
-            document['attendance_date'] = document['date']
-        
-        # Handle legacy time fields
-        if 'checkin_time' in document:
-            document['check_in_time'] = document['checkin_time']
-        if 'checkout_time' in document:
-            document['check_out_time'] = document['checkout_time']
-        
-        return Attendance(**document)
-    
-    async def _ensure_indexes(self, organisation_id: str) -> None:
-        """Ensure necessary indexes for optimal query performance."""
+        # Verify connection and get collection
         try:
-            collection = await self._get_collection(organisation_id)
-            
-            # Index for employee and date queries
-            await collection.create_index([
-                ("employee_id", 1),
-                ("date", -1)
-            ])
-            
-            # Index for date range queries
-            await collection.create_index([
-                ("date", -1)
-            ])
-            
-            # Index for status queries
-            await collection.create_index([
-                ("status", 1),
-                ("date", -1)
-            ])
-            
-            # Unique index for employee and date combination
-            await collection.create_index([
-                ("employee_id", 1),
-                ("date", 1)
-            ], unique=True)
-            
-            logger.info(f"Attendance indexes ensured for organisation: {organisation_id}")
+            db = self.db_connector.get_database('pms_'+db_name)
+            collection = db[self._collection_name]
+            logger.debug(f"Successfully retrieved collection: {self._collection_name} from database: {'pms_'+db_name}")
+            return collection
             
         except Exception as e:
-            logger.error(f"Error ensuring attendance indexes: {e}")
+            logger.error(f"Failed to get collection {self._collection_name}: {e}")
+            # Reset connection state to force reconnection on next call
+            if hasattr(self.db_connector, '_client'):
+                self.db_connector._client = None
+            raise RuntimeError(f"Collection access failed: {e}")
+    
+    def _attendance_to_document(self, attendance: Attendance) -> Dict[str, Any]:
+        """Convert domain entity to database document."""
+        
+        # Safe value extraction for enums - handle both enum objects and strings
+        def safe_enum_value(field_value):
+            if hasattr(field_value, 'value'):
+                return field_value.value
+            return str(field_value) if field_value is not None else None
+        
+        # Safe extraction for complex nested objects
+        def safe_get_attr(obj, attr_path, default=None):
+            """Safely get nested attributes like 'permissions.role.value'"""
+            try:
+                attrs = attr_path.split('.')
+                value = obj
+                for attr in attrs:
+                    value = getattr(value, attr, None)
+                    if value is None:
+                        return default
+                return value
+            except (AttributeError, TypeError):
+                return default
+        
+        # Convert date objects to datetime for MongoDB compatibility
+        def safe_date_conversion(date_value):
+            """Convert date objects to datetime objects for MongoDB"""
+            if date_value is None:
+                return None
+            if isinstance(date_value, datetime):
+                return date_value
+            elif hasattr(date_value, 'date') and callable(date_value.date):
+                # It's a datetime, return as is
+                return date_value
+            elif hasattr(date_value, 'year') and hasattr(date_value, 'month') and hasattr(date_value, 'day'):
+                # It's a date object, convert to datetime
+                from datetime import datetime as dt
+                return dt.combine(date_value, dt.min.time())
+            else:
+                return date_value
+        
+        # Safe boolean extraction - call method if it's callable
+        def safe_boolean_value(obj, attr_name, default=True):
+            """Safely get boolean value, calling method if needed"""
+            try:
+                value = getattr(obj, attr_name, default)
+                if callable(value):
+                    return value()
+                return bool(value) if value is not None else default
+            except (AttributeError, TypeError):
+                return default
+        
+        return {
+            "employee_id": str(attendance.employee_id)
+        }
+    
+    def _document_to_attendance(self, document: Dict[str, Any]) -> Attendance:
+        """Convert database document to domain entity."""
+        # Identity
+        attendance_id = document.get("attendance_id")
+        employee_id = EmployeeId(document.get("employee_id"))
+        attendance_date = document.get("attendance_date")
+    
+        # Core attributes
+        status = AttendanceStatus(document.get("status"))
+        working_hours = WorkingHours(document.get("working_hours"))
+        
+        # Metadata
+        created_at = document.get("created_at")
+        created_by = document.get("created_by")
+        updated_at = document.get("updated_at")
+        updated_by = document.get("updated_by")
+        
+        # Location tracking (optional)
+        check_in_location = document.get("check_in_location")
+        check_out_location = document.get("check_out_location")
+        
+        # Comments and notes
+        comments = document.get("comments")
+        admin_notes = document.get("admin_notes")
+    
+        return Attendance(
+            attendance_id=attendance_id,
+            employee_id=employee_id,
+            attendance_date=attendance_date,
+            status=status,
+            working_hours=working_hours,
+            created_at=created_at,
+            created_by=created_by,
+            updated_at=updated_at,
+            updated_by=updated_by,
+            check_in_location=check_in_location,
+            check_out_location=check_out_location,
+            comments=comments,
+            admin_notes=admin_notes
+    )
+    
+    async def _publish_events(self, events: List[Any]) -> None:
+        """Publish domain events."""
+        # Implementation would depend on event publisher
+        for event in events:
+            logger.info(f"Publishing event: {type(event).__name__}")
     
     # Command Repository Implementation
-    async def save(self, attendance: Attendance) -> Attendance:
-        """
-        Save attendance record.
-        
-        Replaces: create_attendance() function
-        """
+    async def save(self, attendance: Attendance, hostname: str) -> Attendance:
+        """Save a user (create or update)."""
         try:
-            # Get organisation from attendance or use default
-            organisation_id = getattr(attendance, 'organisation_id', 'default')
+            collection = await self._get_collection(hostname)
+            document = self._attendance_to_document(attendance)
             
-            # Ensure indexes
-            await self._ensure_indexes(organisation_id)
-            
-            # Prepare document
-            document = self._entity_to_document(attendance)
-            
-            # Set timestamps
-            if not document.get('created_at'):
-                document['created_at'] = datetime.utcnow()
-            document['updated_at'] = datetime.utcnow()
-            
-            # Generate attendance_id if not present
-            if not document.get('attendance_id'):
-                document['attendance_id'] = str(uuid.uuid4())
-            
-            # Check for existing record
-            existing = await self.get_by_employee_and_date(
-                document['employee_id'], 
-                document['date'].date() if isinstance(document['date'], datetime) else document['date']
+            # Use upsert to handle both create and update
+            result = await collection.replace_one(
+                {"attendance_id": str(attendance.attendance_id)},
+                document,
+                upsert=True
             )
             
-            if existing:
-                # Update existing record
-                filters = {"employee_id": document['employee_id'], "date": document['date']}
-                success = await self._update_document(
-                    filters=filters,
-                    update_data=document,
-                    organisation_id=organisation_id
-                )
-                if success:
-                    return await self.get_by_employee_and_date(
-                        document['employee_id'], 
-                        document['date'].date() if isinstance(document['date'], datetime) else document['date']
-                    )
-                else:
-                    raise ValueError("Failed to update attendance record")
-            else:
-                # Insert new record
-                document_id = await self._insert_document(document, organisation_id)
-                return await self.get_by_id(str(document_id))
+            # Publish domain events
+            await self._publish_events(attendance.get_domain_events())
+            attendance.clear_domain_events()
             
+            logger.info(f"Attendance saved: {attendance.attendance_id}")
+            return attendance
+            
+        except DuplicateKeyError as e:
+            logger.error(f"Duplicate key error saving attendance {attendance.attendance_id}: {e}")
+            raise
         except Exception as e:
-            logger.error(f"Error saving attendance: {e}")
+            logger.error(f"Error saving attendance {attendance.attendance_id}: {e}")
             raise
     
     async def save_batch(self, attendances: List[Attendance]) -> List[Attendance]:
-        """Save multiple attendance records in batch."""
+        """Save multiple users in a batch operation."""
         try:
-            saved_attendances = []
-            
+            # Group users by organisation
+            attendances_by_org = {}
             for attendance in attendances:
-                try:
-                    saved_attendance = await self.save(attendance)
-                    saved_attendances.append(saved_attendance)
-                except Exception as e:
-                    logger.error(f"Error saving attendance in batch: {e}")
-                    # Continue with other records
+                org_id = attendance.organisation_id or "pms_global_database"
+                if org_id not in attendances_by_org:
+                    attendances_by_org[org_id] = []
+                attendances_by_org[org_id].append(attendance)
             
-            logger.info(f"Batch saved {len(saved_attendances)} attendance records")
+            saved_attendances = []
+            for org_id, org_attendances in attendances_by_org.items():
+                collection = await self._get_collection(org_id)
+                
+                # Prepare bulk operations
+                operations = []
+                for attendance in org_attendances:
+                    document = self._attendance_to_document(attendance)
+                    operations.append({
+                        "replaceOne": {
+                            "filter": {"attendance_id": str(attendance.attendance_id)},
+                            "replacement": document,
+                            "upsert": True
+                        }
+                    })
+                
+                # Execute bulk write
+                if operations:
+                    await collection.bulk_write(operations)
+                    saved_attendances.extend(org_attendances)
+                    
+                    # Publish events for all attendances
+                    for attendance in org_attendances:
+                        await self._publish_events(attendance.get_domain_events())
+                        attendance.clear_domain_events()
+            
+            logger.info(f"Batch saved {len(saved_attendances)} attendances")
             return saved_attendances
             
         except Exception as e:
             logger.error(f"Error in batch save: {e}")
             raise
     
-    async def delete(self, attendance_id: str) -> bool:
-        """Delete attendance record by ID."""
+    async def delete(self, attendance_id: AttendanceId, soft_delete: bool = True, hostname: Optional[str] = None) -> bool:
+        """Delete a attendance by ID."""
         try:
-            filters = {"attendance_id": attendance_id}
-            return await self._delete_document(
-                filters=filters,
-                organisation_id="default",  # Will be improved with proper org handling
-                soft_delete=True
-            )
+            # For soft delete, we need to find the user first to get organisation
+            attendance = await self.get_by_id(attendance_id, hostname)
+            if not attendance:
+                return False
+            
+            collection = await self._get_collection(hostname)
+            
+            if soft_delete:
+                # Soft delete - mark as deleted
+                result = await collection.update_one(
+                    {"attendance_id": str(attendance_id)},
+                    {
+                        "$set": {
+                            "is_deleted": True,
+                            "deleted_at": datetime.utcnow(),
+                            "status": AttendanceStatus.INACTIVE.value
+                        }
+                    }
+                )
+            else:
+                # Hard delete
+                result = await collection.delete_one({"attendance_id": str(attendance_id)})
+            
+            if result.modified_count > 0 or result.deleted_count > 0:
+                # Publish delete event
+                delete_event = AttendanceDeleted(
+                    attendance_id=attendance_id,
+                    organisation_id=hostname,
+                    soft_delete=soft_delete,
+                    deleted_at=datetime.utcnow()
+                )
+                await self._publish_events([delete_event])
+                
+                logger.info(f"Attendance deleted: {attendance_id} (soft: {soft_delete})")
+                return True
+            
+            return False
             
         except Exception as e:
             logger.error(f"Error deleting attendance {attendance_id}: {e}")
-            return False
-    
-    async def delete_by_employee_and_date(self, employee_id: str, attendance_date: date) -> bool:
-        """Delete attendance record by employee and date."""
-        try:
-            filters = {"employee_id": employee_id, "date": attendance_date}
-            return await self._delete_document(
-                filters=filters,
-                organisation_id="default",
-                soft_delete=True
-            )
-            
-        except Exception as e:
-            logger.error(f"Error deleting attendance for {employee_id} on {attendance_date}: {e}")
-            return False
-    
-    # Query Repository Implementation
-    async def get_by_id(self, attendance_id: str) -> Optional[Attendance]:
-        """Get attendance record by ID."""
-        try:
-            filters = {"attendance_id": attendance_id}
-            documents = await self._execute_query(
-                filters=filters,
-                limit=1,
-                organisation_id="default"
-            )
-            
-            if documents:
-                return self._document_to_entity(documents[0])
-            return None
-            
-        except Exception as e:
-            logger.error(f"Error retrieving attendance {attendance_id}: {e}")
-            return None
-    
-    async def get_by_employee_and_date(self, employee_id: str, attendance_date: date) -> Optional[Attendance]:
-        """Get attendance record by employee ID and date."""
-        try:
-            # Convert date to datetime for MongoDB query
-            if isinstance(attendance_date, date) and not isinstance(attendance_date, datetime):
-                start_date = datetime.combine(attendance_date, datetime.min.time())
-                end_date = start_date + timedelta(days=1)
-                filters = {
-                    "employee_id": employee_id,
-                    "date": {"$gte": start_date, "$lt": end_date}
-                }
-            else:
-                filters = {"employee_id": employee_id, "date": attendance_date}
-            
-            documents = await self._execute_query(
-                filters=filters,
-                limit=1,
-                organisation_id="default"
-            )
-            
-            if documents:
-                return self._document_to_entity(documents[0])
-            return None
-            
-        except Exception as e:
-            logger.error(f"Error retrieving attendance for {employee_id} on {attendance_date}: {e}")
-            return None
-    
-    async def get_by_employee(
-        self,
-        employee_id: str,
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None
-    ) -> List[Attendance]:
-        """
-        Get attendance records by employee ID with optional date range.
-        
-        Replaces: get_employee_attendance_by_month(), get_employee_attendance_by_year()
-        """
-        try:
-            filters = {"employee_id": employee_id}
-            
-            if start_date or end_date:
-                date_filter = {}
-                if start_date:
-                    date_filter["$gte"] = datetime.combine(start_date, datetime.min.time())
-                if end_date:
-                    date_filter["$lt"] = datetime.combine(end_date + timedelta(days=1), datetime.min.time())
-                filters["date"] = date_filter
-            
-            documents = await self._execute_query(
-                filters=filters,
-                skip=offset or 0,
-                limit=limit or 100,
-                sort_by="date",
-                sort_order=-1,
-                organisation_id="default"
-            )
-            
-            return [self._document_to_entity(doc) for doc in documents]
-            
-        except Exception as e:
-            logger.error(f"Error retrieving employee attendance: {e}")
-            return []
-    
-    async def get_by_date(
-        self,
-        attendance_date: date,
-        employee_ids: Optional[List[str]] = None
-    ) -> List[Attendance]:
-        """Get attendance records by date with optional employee filter."""
-        try:
-            start_date = datetime.combine(attendance_date, datetime.min.time())
-            end_date = start_date + timedelta(days=1)
-            
-            filters = {
-                "date": {"$gte": start_date, "$lt": end_date}
-            }
-            
-            if employee_ids:
-                filters["employee_id"] = {"$in": employee_ids}
-            
-            documents = await self._execute_query(
-                filters=filters,
-                sort_by="employee_id",
-                sort_order=1,
-                limit=1000,
-                organisation_id="default"
-            )
-            
-            return [self._document_to_entity(doc) for doc in documents]
-            
-        except Exception as e:
-            logger.error(f"Error retrieving attendance by date: {e}")
-            return []
-    
-    async def get_by_date_range(
-        self,
-        start_date: date,
-        end_date: date,
-        employee_ids: Optional[List[str]] = None,
-        limit: Optional[int] = None,
-        offset: Optional[int] = None
-    ) -> List[Attendance]:
-        """Get attendance records by date range with optional employee filter."""
-        try:
-            start_datetime = datetime.combine(start_date, datetime.min.time())
-            end_datetime = datetime.combine(end_date + timedelta(days=1), datetime.min.time())
-            
-            filters = {
-                "date": {"$gte": start_datetime, "$lt": end_datetime}
-            }
-            
-            if employee_ids:
-                filters["employee_id"] = {"$in": employee_ids}
-            
-            documents = await self._execute_query(
-                filters=filters,
-                skip=offset or 0,
-                limit=limit or 1000,
-                sort_by="date",
-                sort_order=-1,
-                organisation_id="default"
-            )
-            
-            return [self._document_to_entity(doc) for doc in documents]
-            
-        except Exception as e:
-            logger.error(f"Error retrieving attendance by date range: {e}")
-            return []
-    
-    async def search(self, filters: AttendanceSearchFiltersDTO) -> List[Attendance]:
-        """Search attendance records with filters."""
-        try:
-            query_filters = {}
-            
-            if hasattr(filters, 'employee_ids') and filters.employee_ids:
-                query_filters["employee_id"] = {"$in": filters.employee_ids}
-            
-            if hasattr(filters, 'start_date') and filters.start_date:
-                query_filters["date"] = {"$gte": datetime.combine(filters.start_date, datetime.min.time())}
-            
-            if hasattr(filters, 'end_date') and filters.end_date:
-                if "date" in query_filters:
-                    query_filters["date"]["$lt"] = datetime.combine(filters.end_date + timedelta(days=1), datetime.min.time())
-                else:
-                    query_filters["date"] = {"$lt": datetime.combine(filters.end_date + timedelta(days=1), datetime.min.time())}
-            
-            if hasattr(filters, 'status') and filters.status:
-                query_filters["status"] = filters.status
-            
-            # Get pagination parameters
-            page = getattr(filters, 'page', 1)
-            page_size = getattr(filters, 'page_size', 50)
-            skip = (page - 1) * page_size
-            
-            documents = await self._execute_query(
-                filters=query_filters,
-                skip=skip,
-                limit=page_size,
-                sort_by="date",
-                sort_order=-1,
-                organisation_id="default"
-            )
-            
-            return [self._document_to_entity(doc) for doc in documents]
-            
-        except Exception as e:
-            logger.error(f"Error searching attendance: {e}")
-            return []
-    
-    async def count_by_filters(self, filters: AttendanceSearchFiltersDTO) -> int:
-        """Count attendance records matching filters."""
-        try:
-            query_filters = {}
-            
-            if hasattr(filters, 'employee_ids') and filters.employee_ids:
-                query_filters["employee_id"] = {"$in": filters.employee_ids}
-            
-            if hasattr(filters, 'start_date') and filters.start_date:
-                query_filters["date"] = {"$gte": datetime.combine(filters.start_date, datetime.min.time())}
-            
-            if hasattr(filters, 'end_date') and filters.end_date:
-                if "date" in query_filters:
-                    query_filters["date"]["$lt"] = datetime.combine(filters.end_date + timedelta(days=1), datetime.min.time())
-                else:
-                    query_filters["date"] = {"$lt": datetime.combine(filters.end_date + timedelta(days=1), datetime.min.time())}
-            
-            return await self._count_documents(query_filters, "default")
-            
-        except Exception as e:
-            logger.error(f"Error counting attendance: {e}")
-            return 0
-    
-    async def get_pending_check_outs(self, date: Optional[date] = None) -> List[Attendance]:
-        """Get attendance records with check-in but no check-out."""
-        try:
-            if date is None:
-                date = datetime.now().date()
-            
-            start_date = datetime.combine(date, datetime.min.time())
-            end_date = start_date + timedelta(days=1)
-            
-            filters = {
-                "date": {"$gte": start_date, "$lt": end_date},
-                "checkin_time": {"$ne": None},
-                "checkout_time": None
-            }
-            
-            documents = await self._execute_query(
-                filters=filters,
-                sort_by="checkin_time",
-                sort_order=1,
-                limit=100,
-                organisation_id="default"
-            )
-            
-            return [self._document_to_entity(doc) for doc in documents]
-            
-        except Exception as e:
-            logger.error(f"Error retrieving pending check-outs: {e}")
-            return []
-    
-    async def get_regularization_requests(
-        self,
-        employee_ids: Optional[List[str]] = None,
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None
-    ) -> List[Attendance]:
-        """Get attendance records that need regularization."""
-        try:
-            filters = {"is_regularized": True}
-            
-            if employee_ids:
-                filters["employee_id"] = {"$in": employee_ids}
-            
-            if start_date or end_date:
-                date_filter = {}
-                if start_date:
-                    date_filter["$gte"] = datetime.combine(start_date, datetime.min.time())
-                if end_date:
-                    date_filter["$lt"] = datetime.combine(end_date + timedelta(days=1), datetime.min.time())
-                filters["date"] = date_filter
-            
-            documents = await self._execute_query(
-                filters=filters,
-                sort_by="date",
-                sort_order=-1,
-                limit=100,
-                organisation_id="default"
-            )
-            
-            return [self._document_to_entity(doc) for doc in documents]
-            
-        except Exception as e:
-            logger.error(f"Error retrieving regularization requests: {e}")
-            return []
-    
-    async def exists_by_employee_and_date(self, employee_id: str, attendance_date: date) -> bool:
-        """Check if attendance record exists for employee and date."""
-        try:
-            attendance = await self.get_by_employee_and_date(employee_id, attendance_date)
-            return attendance is not None
-            
-        except Exception as e:
-            logger.error(f"Error checking attendance existence: {e}")
-            return False
-    
-    # Analytics Repository Implementation
-    async def get_employee_summary(
-        self,
-        employee_id: str,
-        start_date: date,
-        end_date: date
-    ) -> AttendanceSummaryDTO:
-        """Get attendance summary for an employee."""
-        try:
-            attendances = await self.get_by_employee(employee_id, start_date, end_date)
-            
-            total_days = len(attendances)
-            present_days = sum(1 for a in attendances if getattr(a, 'status', '') == 'present')
-            absent_days = sum(1 for a in attendances if getattr(a, 'status', '') == 'absent')
-            late_days = sum(1 for a in attendances if getattr(a, 'status', '') == 'late')
-            half_days = sum(1 for a in attendances if getattr(a, 'status', '') == 'half_day')
-            
-            total_working_hours = sum(
-                getattr(a, 'working_hours', 0) if hasattr(a, 'working_hours') else 0 
-                for a in attendances
-            )
-            
-            return AttendanceSummaryDTO(
-                employee_id=employee_id,
-                start_date=start_date,
-                end_date=end_date,
-                total_days=total_days,
-                present_days=present_days,
-                absent_days=absent_days,
-                late_days=late_days,
-                half_days=half_days,
-                total_working_hours=total_working_hours,
-                attendance_percentage=(present_days / max(total_days, 1)) * 100
-            )
-            
-        except Exception as e:
-            logger.error(f"Error getting employee summary: {e}")
-            return AttendanceSummaryDTO(
-                employee_id=employee_id,
-                start_date=start_date,
-                end_date=end_date,
-                total_days=0,
-                present_days=0,
-                absent_days=0,
-                late_days=0,
-                half_days=0,
-                total_working_hours=0,
-                attendance_percentage=0
-            )
-    
-    async def get_multiple_employee_summaries(
-        self,
-        employee_ids: List[str],
-        start_date: date,
-        end_date: date
-    ) -> List[AttendanceSummaryDTO]:
-        """Get attendance summaries for multiple employees."""
-        try:
-            summaries = []
-            
-            for employee_id in employee_ids:
-                summary = await self.get_employee_summary(employee_id, start_date, end_date)
-                summaries.append(summary)
-            
-            return summaries
-            
-        except Exception as e:
-            logger.error(f"Error getting multiple employee summaries: {e}")
-            return []
-    
-    async def get_daily_statistics(self, date: date) -> AttendanceStatisticsDTO:
-        """
-        Get daily attendance statistics.
-        
-        Replaces: get_todays_attendance_stats()
-        """
-        try:
-            attendances = await self.get_by_date(date)
-            
-            total_employees = len(attendances)
-            present_count = sum(1 for a in attendances if getattr(a, 'checkin_time', None) is not None)
-            checked_out_count = sum(1 for a in attendances if getattr(a, 'checkout_time', None) is not None)
-            absent_count = sum(1 for a in attendances if getattr(a, 'status', '') == 'absent')
-            late_count = sum(1 for a in attendances if getattr(a, 'status', '') == 'late')
-            
-            return AttendanceStatisticsDTO(
-                date=date,
-                total_employees=total_employees,
-                present_count=present_count,
-                absent_count=absent_count,
-                late_count=late_count,
-                checked_out_count=checked_out_count,
-                pending_check_out=present_count - checked_out_count,
-                attendance_percentage=(present_count / max(total_employees, 1)) * 100
-            )
-            
-        except Exception as e:
-            logger.error(f"Error getting daily statistics: {e}")
-            return AttendanceStatisticsDTO(
-                date=date,
-                total_employees=0,
-                present_count=0,
-                absent_count=0,
-                late_count=0,
-                checked_out_count=0,
-                pending_check_out=0,
-                attendance_percentage=0
-            )
-    
-    async def get_period_statistics(
-        self,
-        start_date: date,
-        end_date: date,
-        employee_ids: Optional[List[str]] = None
-    ) -> AttendanceStatisticsDTO:
-        """Get attendance statistics for a period."""
-        try:
-            attendances = await self.get_by_date_range(start_date, end_date, employee_ids)
-            
-            total_records = len(attendances)
-            present_count = sum(1 for a in attendances if getattr(a, 'status', '') == 'present')
-            absent_count = sum(1 for a in attendances if getattr(a, 'status', '') == 'absent')
-            late_count = sum(1 for a in attendances if getattr(a, 'status', '') == 'late')
-            
-            # Calculate unique employees
-            unique_employees = len(set(getattr(a, 'employee_id', '') for a in attendances))
-            
-            return AttendanceStatisticsDTO(
-                start_date=start_date,
-                end_date=end_date,
-                total_employees=unique_employees,
-                total_records=total_records,
-                present_count=present_count,
-                absent_count=absent_count,
-                late_count=late_count,
-                attendance_percentage=(present_count / max(total_records, 1)) * 100
-            )
-            
-        except Exception as e:
-            logger.error(f"Error getting period statistics: {e}")
-            return AttendanceStatisticsDTO(
-                start_date=start_date,
-                end_date=end_date,
-                total_employees=0,
-                total_records=0,
-                present_count=0,
-                absent_count=0,
-                late_count=0,
-                attendance_percentage=0
-            )
-    
-    # Team-based methods (replacing manager-based functions)
-    async def get_team_attendance_by_date(self, manager_id: str, attendance_date: date, hostname: str) -> List[Attendance]:
-        """
-        Get team attendance for a specific date.
-        
-        Replaces: get_team_attendance_by_date()
-        """
-        try:
-            # This would require integration with user repository to get team members
-            # For now, return empty list as it needs user repository integration
-            logger.warning("Team attendance requires user repository integration")
-            return []
-            
-        except Exception as e:
-            logger.error(f"Error getting team attendance by date: {e}")
-            return []
-    
-    async def get_team_attendance_by_month(self, manager_id: str, month: int, year: int, hostname: str) -> List[Attendance]:
-        """
-        Get team attendance for a month.
-        
-        Replaces: get_team_attendance_by_month()
-        """
-        try:
-            # This would require integration with user repository to get team members
-            # For now, return empty list as it needs user repository integration
-            logger.warning("Team attendance requires user repository integration")
-            return []
-            
-        except Exception as e:
-            logger.error(f"Error getting team attendance by month: {e}")
-            return []
-    
-    async def get_team_attendance_by_year(self, manager_id: str, year: int, hostname: str) -> List[Attendance]:
-        """
-        Get team attendance for a year.
-        
-        Replaces: get_team_attendance_by_year()
-        """
-        try:
-            # This would require integration with user repository to get team members
-            # For now, return empty list as it needs user repository integration
-            logger.warning("Team attendance requires user repository integration")
-            return []
-            
-        except Exception as e:
-            logger.error(f"Error getting team attendance by year: {e}")
-            return []
-    
-    # Legacy compatibility methods
-    async def create_attendance_legacy(self, employee_id: str, hostname: str, check_in: bool = True) -> str:
-        """
-        Legacy compatibility for create_attendance() function.
-        
-        Args:
-            employee_id: Employee ID
-            hostname: Organisation hostname
-            check_in: Whether this is a check-in (True) or check-out (False)
-            
-        Returns:
-            Attendance ID
-        """
-        try:
-            now = datetime.now()
-            attendance_id = str(uuid.uuid4())
-            
-            # Create simple attendance object
-            attendance_data = {
-                "attendance_id": attendance_id,
-                "employee_id": employee_id,
-                "date": now,
-                "checkin_time": now if check_in else None,
-                "checkout_time": None if check_in else now,
-                "status": "present" if check_in else "present",
-                "created_at": now,
-                "updated_at": now
-            }
-            
-            # Save using new method
-            document_id = await self._insert_document(attendance_data, hostname)
-            
-            logger.info(f"Created attendance (legacy): {attendance_id}")
-            return attendance_id
-            
-        except Exception as e:
-            logger.error(f"Error creating attendance (legacy): {e}")
             raise
     
-    async def get_employee_attendance_by_month_legacy(self, employee_id: str, month: int, year: int, hostname: str) -> List[Dict[str, Any]]:
-        """
-        Legacy compatibility for get_employee_attendance_by_month() function.
-        
-        Returns raw documents for backward compatibility.
-        """
+    # Query Repository Implementation
+    async def get_by_id(self, attendance_id: AttendanceId, organisation_id: Optional[str] = None) -> Optional[Attendance]:
+        """Get attendance by ID."""
         try:
-            start_date = date(year, month, 1)
-            if month == 12:
-                end_date = date(year + 1, 1, 1) - timedelta(days=1)
-            else:
-                end_date = date(year, month + 1, 1) - timedelta(days=1)
+            collection = await self._get_collection(organisation_id)
+            document = await collection.find_one({
+                "attendance_id": str(attendance_id),
+                "is_deleted": {"$ne": True}
+            })
             
-            attendances = await self.get_by_employee(employee_id, start_date, end_date)
+            if document:
+                return self._document_to_attendance(document)
             
-            # Convert to legacy format
-            legacy_attendances = []
-            for attendance in attendances:
-                if hasattr(attendance, 'dict'):
-                    legacy_attendances.append(attendance.dict())
-                else:
-                    legacy_attendances.append({
-                        "attendance_id": getattr(attendance, 'attendance_id', ''),
-                        "employee_id": getattr(attendance, 'employee_id', employee_id),
-                        "date": getattr(attendance, 'date', None),
-                        "checkin_time": getattr(attendance, 'checkin_time', None),
-                        "checkout_time": getattr(attendance, 'checkout_time', None),
-                        "status": getattr(attendance, 'status', 'absent')
-                    })
-            
-            return legacy_attendances
+            return None
             
         except Exception as e:
-            logger.error(f"Error getting employee attendance by month (legacy): {e}")
-            return []
+            logger.error(f"Error getting attendance by ID {attendance_id}: {e}")
+            raise
     
-    async def get_todays_attendance_stats_legacy(self, hostname: str) -> Dict[str, int]:
-        """
-        Legacy compatibility for get_todays_attendance_stats() function.
-        
-        Returns:
-            Statistics dictionary
-        """
+    async def get_by_employee_id(self, employee_id: EmployeeId, organisation_id: Optional[str] = None) -> Optional[Attendance]:
+        """Get attendance by employee ID."""
         try:
-            today = datetime.now().date()
-            stats = await self.get_daily_statistics(today)
+            collection = await self._get_collection(organisation_id)
+            document = await collection.find_one({
+                "employee_id": str(employee_id),
+                "is_deleted": {"$ne": True}
+            })
             
-            return {
-                "total_users": getattr(stats, 'total_employees', 0),
-                "checked_in": getattr(stats, 'present_count', 0),
-                "checked_out": getattr(stats, 'checked_out_count', 0),
-                "pending_check_in": getattr(stats, 'total_employees', 0) - getattr(stats, 'present_count', 0),
-                "pending_check_out": getattr(stats, 'pending_check_out', 0)
-            }
+            if document:
+                return self._document_to_attendance(document)
+            
+            return None
             
         except Exception as e:
-            logger.error(f"Error getting today's attendance stats (legacy): {e}")
-            return {
-                "total_users": 0,
-                "checked_in": 0,
-                "checked_out": 0,
-                "pending_check_in": 0,
-                "pending_check_out": 0
-            }
+            logger.error(f"Error getting attendance by employee ID {employee_id}: {e}")
+            raise
     
-    # Placeholder implementations for remaining interface methods
-    async def get_department_attendance(
-        self,
-        date: date,
-        department_ids: Optional[List[str]] = None
-    ) -> List[DepartmentAttendanceDTO]:
-        """Get department-wise attendance for a date."""
-        # Placeholder - requires department integration
-        return []
+    async def get_by_attendance_date(self, attendance_date: date, organisation_id: Optional[str] = None) -> Optional[Attendance]:
+        """Get attendance by attendance date."""
+        try:
+            collection = await self._get_collection(organisation_id)
+            document = await collection.find_one({
+                "attendance_date": attendance_date,
+                "is_deleted": {"$ne": True}
+            })
+            
+            if document:
+                return self._document_to_attendance(document)
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting attendance by attendance date {attendance_date}: {e}")
+            raise
     
-    async def get_attendance_trends(
-        self,
-        start_date: date,
-        end_date: date,
-        employee_ids: Optional[List[str]] = None
-    ) -> List[AttendanceTrendDTO]:
-        """Get attendance trends over a period."""
-        # Placeholder - requires trend analysis implementation
-        return []
+    async def get_by_status(self, status: AttendanceStatus, organisation_id: Optional[str] = None) -> Optional[Attendance]:
+        """Get attendance by status."""
+        try:
+            collection = await self._get_collection(organisation_id)
+            document = await collection.find_one({
+                "status": status.value,
+                "is_deleted": {"$ne": True}
+            })
+            
+            if document:
+                return self._document_to_attendance(document)
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting attendance by status {status}: {e}")
+            raise
     
-    async def get_late_arrivals(
-        self,
-        start_date: date,
-        end_date: date,
-        employee_ids: Optional[List[str]] = None
+    async def get_by_working_hours(self, working_hours: WorkingHours, organisation_id: Optional[str] = None) -> Optional[Attendance]:
+        """Get attendance by working hours."""
+        try:
+            collection = await self._get_collection(organisation_id)
+            document = await collection.find_one({
+                "working_hours": working_hours.value,
+                "is_deleted": {"$ne": True}
+            })
+            
+            if document:
+                return self._document_to_attendance(document)
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting attendance by working hours {working_hours}: {e}")
+            raise
+    
+    async def get_all(
+        self, 
+        skip: int = 0, 
+        limit: int = 100,
+        include_inactive: bool = False,
+        include_deleted: bool = False,
+        organisation_id: Optional[str] = None
     ) -> List[Attendance]:
-        """Get late arrival records."""
+        """Get all attendances with pagination."""
         try:
-            attendances = await self.get_by_date_range(start_date, end_date, employee_ids)
-            return [a for a in attendances if getattr(a, 'status', '') == 'late']
-        except Exception as e:
-            logger.error(f"Error getting late arrivals: {e}")
-            return []
-    
-    async def get_overtime_records(
-        self,
-        start_date: date,
-        end_date: date,
-        employee_ids: Optional[List[str]] = None,
-        min_overtime_hours: Optional[Decimal] = None
-    ) -> List[Attendance]:
-        """Get overtime records."""
-        # Placeholder - requires overtime calculation
-        return []
-    
-    async def get_absent_employees(
-        self,
-        date: date,
-        department_ids: Optional[List[str]] = None
-    ) -> List[str]:
-        """Get absent employees for a date."""
-        try:
-            attendances = await self.get_by_date(date)
-            return [getattr(a, 'employee_id', '') for a in attendances if getattr(a, 'status', '') == 'absent']
-        except Exception as e:
-            logger.error(f"Error getting absent employees: {e}")
-            return []
-    
-    async def get_working_hours_distribution(
-        self,
-        start_date: date,
-        end_date: date,
-        employee_ids: Optional[List[str]] = None
-    ) -> Dict[str, int]:
-        """Get working hours distribution."""
-        # Placeholder - requires working hours analysis
-        return {}
-    
-    async def get_attendance_percentage_by_employee(
-        self,
-        start_date: date,
-        end_date: date,
-        employee_ids: Optional[List[str]] = None
-    ) -> Dict[str, float]:
-        """Get attendance percentage by employee."""
-        try:
-            if employee_ids:
-                percentages = {}
-                for employee_id in employee_ids:
-                    summary = await self.get_employee_summary(employee_id, start_date, end_date)
-                    percentages[employee_id] = getattr(summary, 'attendance_percentage', 0.0)
-                return percentages
-            return {}
-        except Exception as e:
-            logger.error(f"Error getting attendance percentages: {e}")
-            return {}
-    
-    async def get_monthly_attendance_summary(
-        self,
-        year: int,
-        month: int,
-        employee_ids: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
-        """Get monthly attendance summary."""
-        try:
-            start_date = date(year, month, 1)
-            if month == 12:
-                end_date = date(year + 1, 1, 1) - timedelta(days=1)
-            else:
-                end_date = date(year, month + 1, 1) - timedelta(days=1)
+            collection = await self._get_collection(organisation_id)
             
-            stats = await self.get_period_statistics(start_date, end_date, employee_ids)
+            # Build filter
+            filter_query = {}
+            if not include_deleted:
+                filter_query["is_deleted"] = {"$ne": True}
+            if not include_inactive:
+                filter_query["is_active"] = True
             
-            return {
-                "year": year,
-                "month": month,
-                "total_employees": getattr(stats, 'total_employees', 0),
-                "total_records": getattr(stats, 'total_records', 0),
-                "present_count": getattr(stats, 'present_count', 0),
-                "absent_count": getattr(stats, 'absent_count', 0),
-                "late_count": getattr(stats, 'late_count', 0),
-                "attendance_percentage": getattr(stats, 'attendance_percentage', 0.0)
-            }
+            # Execute query
+            cursor = collection.find(filter_query).skip(skip).limit(limit)
+            documents = await cursor.to_list(length=limit)
+            
+            attendances = [self._document_to_attendance(doc) for doc in documents]
+            logger.info(f"Retrieved {len(attendances)} attendances")
+            return attendances
+            
         except Exception as e:
-            logger.error(f"Error getting monthly summary: {e}")
-            return {}
+            logger.error(f"Error getting all attendances: {e}")
+            raise
     
-    # Reports Repository placeholder implementations
-    async def generate_daily_report(
-        self,
-        date: date,
-        employee_ids: Optional[List[str]] = None,
-        department_ids: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
-        """Generate daily attendance report."""
-        # Placeholder - requires report generation implementation
-        return {}
+    async def search(self, filters: AttendanceSearchFiltersDTO, organisation_id: Optional[str] = None) -> List[Attendance]:
+        """Search attendances with filters."""
+        try:
+            collection = await self._get_collection(organisation_id)
+            
+            # Build search query
+            query = {}
+            
+            # Text search
+            if filters.search_term:
+                query["$or"] = [
+                    {"employee_id": {"$regex": filters.search_term, "$options": "i"}},
+                    {"attendance_date": {"$regex": filters.search_term, "$options": "i"}},
+                    {"status": {"$regex": filters.search_term, "$options": "i"}}
+                ]
+            
+            # Employee ID filter
+            if filters.employee_id:
+                query["employee_id"] = filters.employee_id
+            
+            # Attendance date filter
+            if filters.attendance_date:
+                query["attendance_date"] = filters.attendance_date
+            
+            # Working hours filter
+            if filters.working_hours:
+                query["working_hours"] = filters.working_hours
+            
+                # Status filter
+            if filters.status:
+                query["status"] = filters.status
+            
+            # Date range filters
+            if filters.attendance_date_from or filters.attendance_date_to:
+                date_filter = {}
+                if filters.attendance_date_from:
+                    date_filter["$gte"] = filters.attendance_date_from
+                if filters.attendance_date_to:
+                    date_filter["$lte"] = filters.attendance_date_to
+                query["attendance_date"] = date_filter
+            
+            # Active/deleted filters
+            if not filters.include_deleted:
+                query["is_deleted"] = {"$ne": True}
+            if not filters.include_inactive:
+                query["is_active"] = True
+            
+            # Execute query with pagination
+            cursor = collection.find(query)
+            
+            # Apply sorting
+            if filters.sort_by:
+                sort_direction = DESCENDING if filters.sort_desc else ASCENDING
+                cursor = cursor.sort(filters.sort_by, sort_direction)
+            
+            # Apply pagination
+            cursor = cursor.skip(filters.skip).limit(filters.limit)
+            
+            documents = await cursor.to_list(length=filters.limit)
+            attendances = [self._document_to_attendance(doc) for doc in documents]
+            
+            logger.info(f"Search returned {len(attendances)} attendances")
+            return attendances
+            
+        except Exception as e:
+            logger.error(f"Error searching attendances: {e}")
+            raise
     
-    async def generate_weekly_report(
-        self,
-        start_date: date,
-        employee_ids: Optional[List[str]] = None,
-        department_ids: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
-        """Generate weekly attendance report."""
-        # Placeholder - requires report generation implementation
-        return {}
+
     
-    async def generate_monthly_report(
-        self,
-        year: int,
-        month: int,
-        employee_ids: Optional[List[str]] = None,
-        department_ids: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
-        """Generate monthly attendance report."""
-        # Placeholder - requires report generation implementation
-        return {}
+    # Count methods
+    async def count_total(self, include_deleted: bool = False, organisation_id: Optional[str] = None) -> int:
+        """Count total attendances."""
+        try:
+            collection = await self._get_collection(organisation_id)
+            filter_query = {}
+            if not include_deleted:
+                filter_query["is_deleted"] = {"$ne": True}
+            
+            return await collection.count_documents(filter_query)
+            
+        except Exception as e:
+            logger.error(f"Error counting total users: {e}")
+            raise
     
-    async def generate_custom_report(
-        self,
-        start_date: date,
-        end_date: date,
-        employee_ids: Optional[List[str]] = None,
-        department_ids: Optional[List[str]] = None,
-        include_summary: bool = True,
-        include_details: bool = True
-    ) -> Dict[str, Any]:
-        """Generate custom attendance report."""
-        # Placeholder - requires report generation implementation
-        return {}
-    
-    async def export_to_csv(
-        self,
-        attendances: List[Attendance],
-        include_summary: bool = False
-    ) -> str:
-        """Export attendance records to CSV."""
-        # Placeholder - requires CSV export implementation
-        return ""
-    
-    async def export_to_excel(
-        self,
-        attendances: List[Attendance],
-        include_summary: bool = False,
-        include_charts: bool = False
-    ) -> bytes:
-        """Export attendance records to Excel."""
-        # Placeholder - requires Excel export implementation
-        return b""
-    
-    # Bulk Operations Repository placeholder implementations
-    async def bulk_import(
-        self,
-        attendance_data: List[Dict[str, Any]],
-        import_mode: str = "create"
-    ) -> Dict[str, Any]:
-        """Bulk import attendance records."""
-        # Placeholder - requires bulk import implementation
-        return {}
-    
-    async def bulk_update_status(
-        self,
-        attendance_ids: List[str],
-        new_status: str,
-        updated_by: str,
-        reason: Optional[str] = None
-    ) -> int:
-        """Bulk update attendance status."""
-        # Placeholder - requires bulk update implementation
-        return 0
-    
-    async def bulk_regularize(
-        self,
-        attendance_ids: List[str],
-        reason: str,
-        regularized_by: str
-    ) -> int:
-        """Bulk regularize attendance records."""
-        # Placeholder - requires bulk regularization implementation
-        return 0
-    
-    async def bulk_delete(
-        self,
-        attendance_ids: List[str],
-        deleted_by: str,
-        reason: str
-    ) -> int:
-        """Bulk delete attendance records."""
-        # Placeholder - requires bulk delete implementation
-        return 0
-    
-    async def auto_mark_absent(
-        self,
-        date: date,
-        employee_ids: Optional[List[str]] = None,
-        exclude_on_leave: bool = True,
-        exclude_holidays: bool = True
-    ) -> int:
-        """Auto mark employees as absent."""
-        # Placeholder - requires auto marking implementation
-        return 0
-    
-    async def auto_mark_holidays(
-        self,
-        date: date,
-        employee_ids: Optional[List[str]] = None
-    ) -> int:
-        """Auto mark holidays."""
-        # Placeholder - requires holiday marking implementation
-        return 0
+    async def count_by_status(self, status: AttendanceStatus, organisation_id: Optional[str] = None) -> int:
+        """Count attendances by status."""
+        try:
+            collection = await self._get_collection(organisation_id)
+            return await collection.count_documents({
+                "status": status.value,
+                "is_deleted": {"$ne": True}
+            })
+            
+        except Exception as e:
+            logger.error(f"Error counting attendances by status {status}: {e}")
+            raise
     
     # ==================== FACTORY METHODS IMPLEMENTATION ====================
     # These methods are required by the repository interfaces but are not used
     # in the current dependency injection architecture. They return self since
-    # this repository implements all attendance repository interfaces.
+    # this repository implements all user repository interfaces.
     
     def create_command_repository(self) -> AttendanceCommandRepository:
         """Create command repository instance."""
@@ -1206,14 +564,10 @@ class SolidAttendanceRepository(
         """Create analytics repository instance."""
         return self
     
-    def create_reports_repository(self) -> AttendanceReportsRepository:
-        """Create reports repository instance."""
+    def create_profile_repository(self) -> AttendanceProfileRepository:
+        """Create profile repository instance."""
         return self
     
     def create_bulk_operations_repository(self) -> AttendanceBulkOperationsRepository:
         """Create bulk operations repository instance."""
-        return self
-    
-    def create_composite_repository(self) -> AttendanceRepository:
-        """Create composite repository instance."""
         return self 

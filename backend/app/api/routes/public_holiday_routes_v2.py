@@ -46,7 +46,7 @@ async def health_check(
     return {"status": "healthy", "service": "public_holiday"}
 
 # Public holiday CRUD endpoints
-@router.post("", response_model=PublicHolidayResponseDTO)
+@router.post("/", response_model=PublicHolidayResponseDTO)
 async def create_public_holiday(
     request: PublicHolidayCreateRequestDTO,
     current_user: CurrentUser = Depends(get_current_user),
@@ -127,7 +127,7 @@ async def update_public_holiday(
         logger.info(f"Updating public holiday: {holiday_id} by {current_user.employee_id}")
         
         response = await controller.update_public_holiday(
-            holiday_id, request, current_user.hostname
+            holiday_id, request, current_user.employee_id, current_user.hostname
         )
         
         return response

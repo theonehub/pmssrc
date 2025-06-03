@@ -125,6 +125,10 @@ class DependencyContainer:
             user_repository = MongoDBUserRepository(self._database_connector)
             organisation_repository = MongoDBOrganisationRepository(self._database_connector)
             
+            # Import and create public holiday repository
+            from app.infrastructure.repositories.mongodb_public_holiday_repository import MongoDBPublicHolidayRepository
+            public_holiday_repository = MongoDBPublicHolidayRepository(self._database_connector)
+            
             # Pass the MongoDB configuration to the repository
             user_repository.set_connection_config(
                 self._mongodb_connection_string,
@@ -138,6 +142,7 @@ class DependencyContainer:
 
             self._repositories['user'] = user_repository
             self._repositories['organisation'] = organisation_repository
+            self._repositories['public_holiday'] = public_holiday_repository
 
             logger.info("Repositories initialized with MongoDB configuration")
             
@@ -255,7 +260,7 @@ class DependencyContainer:
         if 'public_holiday' not in self._controllers:
             self._controllers['public_holiday'] = PublicHolidayController(
                 create_use_case=self._get_create_public_holiday_use_case(),
-                query_use_case=self._get_query_public_holiday_use_case(),
+                get_use_case=self._get_query_public_holiday_use_case(),
                 update_use_case=self._get_update_public_holiday_use_case(),
                 delete_use_case=self._get_delete_public_holiday_use_case(),
                 import_use_case=self._get_import_public_holiday_use_case()
@@ -771,6 +776,105 @@ class DependencyContainer:
             list_use_case=fallback_use_case,
             delete_use_case=fallback_use_case
         )
+
+    # Public Holiday use case methods
+    def _get_create_public_holiday_use_case(self):
+        """Get create public holiday use case"""
+        try:
+            from app.application.use_cases.public_holiday.create_public_holiday_use_case import CreatePublicHolidayUseCase
+            from app.infrastructure.repositories.mongodb_public_holiday_repository import MongoDBPublicHolidayRepository
+            from app.infrastructure.services.event_publisher_impl import EventPublisherImpl
+            
+            holiday_repo = MongoDBPublicHolidayRepository(self._database_connector)
+            event_publisher = EventPublisherImpl()
+            
+            return CreatePublicHolidayUseCase(
+                command_repository=holiday_repo,
+                query_repository=holiday_repo,
+                event_publisher=event_publisher,
+                notification_service=self._notification_service
+            )
+        except Exception as e:
+            logger.warning(f"Failed to create public holiday use case: {e}")
+            return None
+    
+    def _get_query_public_holiday_use_case(self):
+        """Get query public holiday use case"""
+        try:
+            from app.application.use_cases.public_holiday.get_public_holidays_use_case import GetPublicHolidaysUseCase
+            from app.infrastructure.repositories.mongodb_public_holiday_repository import MongoDBPublicHolidayRepository
+            
+            holiday_repo = MongoDBPublicHolidayRepository(self._database_connector)
+            
+            return GetPublicHolidaysUseCase(
+                query_repository=holiday_repo,
+                analytics_repository=holiday_repo,
+                calendar_repository=holiday_repo
+            )
+        except Exception as e:
+            logger.warning(f"Failed to create query public holiday use case: {e}")
+            return None
+    
+    def _get_update_public_holiday_use_case(self):
+        """Get update public holiday use case"""
+        try:
+            from app.application.use_cases.public_holiday.update_public_holiday_use_case import UpdatePublicHolidayUseCase
+            from app.infrastructure.repositories.mongodb_public_holiday_repository import MongoDBPublicHolidayRepository
+            from app.infrastructure.services.event_publisher_impl import EventPublisherImpl
+            
+            holiday_repo = MongoDBPublicHolidayRepository(self._database_connector)
+            event_publisher = EventPublisherImpl()
+            
+            return UpdatePublicHolidayUseCase(
+                command_repository=holiday_repo,
+                query_repository=holiday_repo,
+                event_publisher=event_publisher,
+                notification_service=self._notification_service
+            )
+        except Exception as e:
+            logger.warning(f"Failed to create update public holiday use case: {e}")
+            return None
+    
+    def _get_delete_public_holiday_use_case(self):
+        """Get delete public holiday use case"""
+        try:
+            from app.application.use_cases.public_holiday.delete_public_holiday_use_case import DeletePublicHolidayUseCase
+            from app.infrastructure.repositories.mongodb_public_holiday_repository import MongoDBPublicHolidayRepository
+            from app.infrastructure.services.event_publisher_impl import EventPublisherImpl
+            
+            holiday_repo = MongoDBPublicHolidayRepository(self._database_connector)
+            event_publisher = EventPublisherImpl()
+            
+            return DeletePublicHolidayUseCase(
+                command_repository=holiday_repo,
+                query_repository=holiday_repo,
+                event_publisher=event_publisher,
+                notification_service=self._notification_service
+            )
+        except Exception as e:
+            logger.warning(f"Failed to create delete public holiday use case: {e}")
+            return None
+    
+    def _get_import_public_holiday_use_case(self):
+        """Get import public holiday use case"""
+        try:
+            from app.application.use_cases.public_holiday.import_public_holidays_use_case import ImportPublicHolidaysUseCase
+            from app.infrastructure.repositories.mongodb_public_holiday_repository import MongoDBPublicHolidayRepository
+            from app.infrastructure.services.event_publisher_impl import EventPublisherImpl
+            
+            holiday_repo = MongoDBPublicHolidayRepository(self._database_connector)
+            event_publisher = EventPublisherImpl()
+            
+            return ImportPublicHolidaysUseCase(
+                command_repository=holiday_repo,
+                query_repository=holiday_repo,
+                event_publisher=event_publisher,
+                notification_service=self._notification_service,
+                file_upload_service=self._file_upload_service
+            )
+        except Exception as e:
+            logger.warning(f"Failed to create import public holiday use case: {e}")
+            return None
 
 
 # Global container instance

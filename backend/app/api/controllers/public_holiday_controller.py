@@ -74,7 +74,7 @@ class PublicHolidayController:
             logger.info(f"Creating public holiday: {request.name}")
             
             if self.create_use_case:
-                return await self.create_use_case.execute(request, employee_id, hostname)
+                return await self.create_use_case.execute(request, employee_id)
             else:
                 # Fallback implementation for development/testing
                 return self._create_mock_response(request)
@@ -89,7 +89,23 @@ class PublicHolidayController:
             logger.info(f"Getting public holidays with filters")
             
             if self.get_use_case:
-                return await self.get_use_case.execute(filters, hostname)
+                # Handle different filter combinations
+                if filters.year and filters.month:
+                    # Get by specific month and year
+                    return await self.get_use_case.get_holidays_by_month(
+                        filters.year, filters.month, include_inactive=not filters.active_only
+                    )
+                elif filters.year:
+                    # Get by year
+                    return await self.get_use_case.get_holidays_by_year(
+                        filters.year, include_inactive=not filters.active_only
+                    )
+                else:
+                    # Get all holidays
+                    if filters.active_only:
+                        return await self.get_use_case.get_active_holidays()
+                    else:
+                        return await self.get_use_case.get_all_holidays(include_inactive=True)
             else:
                 # Fallback implementation for development/testing
                 return self._create_mock_list(filters)
@@ -104,7 +120,7 @@ class PublicHolidayController:
             logger.info(f"Getting public holiday: {holiday_id}")
             
             if self.get_use_case:
-                return await self.get_use_case.get_by_id(holiday_id, hostname)
+                return await self.get_use_case.get_holiday_by_id(holiday_id)
             else:
                 # Fallback implementation for development/testing
                 return self._create_mock_single_response(holiday_id)
@@ -119,7 +135,7 @@ class PublicHolidayController:
             logger.info(f"Updating public holiday: {holiday_id}")
             
             if self.update_use_case:
-                return await self.update_use_case.execute(holiday_id, request, employee_id, hostname)
+                return await self.update_use_case.execute(holiday_id, request, employee_id)
             else:
                 # Fallback implementation for development/testing
                 return self._create_mock_updated_response(holiday_id, request)
@@ -134,7 +150,7 @@ class PublicHolidayController:
             logger.info(f"Deleting public holiday: {holiday_id}")
             
             if self.delete_use_case:
-                await self.delete_use_case.execute(holiday_id, employee_id, hostname)
+                await self.delete_use_case.execute(holiday_id, employee_id)
             else:
                 # Fallback implementation for development/testing
                 logger.info(f"Mock deletion of public holiday: {holiday_id}")
@@ -143,67 +159,41 @@ class PublicHolidayController:
             logger.error(f"Error deleting public holiday: {e}")
             raise PublicHolidayBusinessRuleError(f"Holiday deletion failed: {str(e)}")
     
-    # Private helper methods for fallback implementations
+    async def import_public_holidays(self, file, hostname: str) -> PublicHolidayImportResultDTO:
+        """Import public holidays from file"""
+        try:
+            logger.info(f"Importing public holidays from file: {file.filename}")
+            
+            if self.import_use_case:
+                # Read file content
+                content = await file.read()
+                return await self.import_use_case.execute(content, file.filename, "system")
+            else:
+                # Fallback implementation for development/testing
+                return PublicHolidayImportResultDTO(
+                    total_processed=0,
+                    successful_imports=0,
+                    failed_imports=0,
+                    errors=[],
+                    warnings=["Import functionality not available"]
+                )
+                
+        except Exception as e:
+            logger.error(f"Error importing public holidays: {e}")
+            raise PublicHolidayBusinessRuleError(f"Holiday import failed: {str(e)}")
+
+    async def is_public_holiday(self, date_str: str, hostname: str) -> bool:
+        """Check if a specific date is a public holiday"""
+        try:
+            logger.info(f"Checking if {date_str} is a public holiday")
+            
+            if self.get_use_case:
+                return await self.get_use_case.check_holiday_on_date(date_str)
+            else:
+                # Fallback implementation for development/testing
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error checking holiday on date: {e}")
+            raise PublicHolidayBusinessRuleError(f"Holiday check failed: {str(e)}")
     
-    def _create_mock_response(self, request: PublicHolidayCreateRequestDTO) -> PublicHolidayResponseDTO:
-        """Create a mock public holiday response for development/testing"""
-        current_time = datetime.now()
-        
-        return PublicHolidayResponseDTO(
-            id=f"holiday_{request.name.lower().replace(' ', '_')}_{current_time.strftime('%Y%m%d')}",
-            name=request.name,
-            holiday_date=request.holiday_date,
-            description=request.description or "",
-            category=request.category,
-            observance=request.observance,
-            recurrence=request.recurrence,
-            is_active=True,
-            created_at=current_time,
-            updated_at=current_time,
-            created_by="SYSTEM",
-            updated_by="SYSTEM"
-        )
-    
-    def _create_mock_list(self, filters: PublicHolidaySearchFiltersDTO) -> List[PublicHolidayResponseDTO]:
-        """Create mock public holiday list for development/testing"""
-        # Return empty list for now - can be enhanced later
-        logger.info(f"Returning empty public holiday list for filters: {filters}")
-        return []
-    
-    def _create_mock_single_response(self, holiday_id: str) -> PublicHolidayResponseDTO:
-        """Create mock single public holiday response for development/testing"""
-        current_time = datetime.now()
-        
-        return PublicHolidayResponseDTO(
-            id=holiday_id,
-            name="Mock Holiday",
-            holiday_date=current_time.date(),
-            description="Mock public holiday for testing",
-            category=HolidayCategory.NATIONAL,
-            observance=HolidayObservance.MANDATORY,
-            recurrence=HolidayRecurrence.ANNUAL,
-            is_active=True,
-            created_at=current_time,
-            updated_at=current_time,
-            created_by="SYSTEM",
-            updated_by="SYSTEM"
-        )
-    
-    def _create_mock_updated_response(self, holiday_id: str, request: PublicHolidayUpdateRequestDTO) -> PublicHolidayResponseDTO:
-        """Create mock updated public holiday response for development/testing"""
-        current_time = datetime.now()
-        
-        return PublicHolidayResponseDTO(
-            id=holiday_id,
-            name=request.name or "Updated Mock Holiday",
-            holiday_date=request.holiday_date or current_time.date(),
-            description=request.description or "Updated mock public holiday",
-            category=request.category or HolidayCategory.NATIONAL,
-            observance=request.observance or HolidayObservance.MANDATORY,
-            recurrence=request.recurrence or HolidayRecurrence.ANNUAL,
-            is_active=request.is_active if request.is_active is not None else True,
-            created_at=current_time,
-            updated_at=current_time,
-            created_by="SYSTEM",
-            updated_by="SYSTEM"
-        ) 

@@ -53,13 +53,13 @@ class GetPublicHolidaysUseCase:
         self.analytics_repository = analytics_repository
         self.calendar_repository = calendar_repository
     
-    def get_all_holidays(self, include_inactive: bool = False) -> List[PublicHolidayResponseDTO]:
+    async def get_all_holidays(self, include_inactive: bool = False) -> List[PublicHolidayResponseDTO]:
         """Get all public holidays"""
         
         logger.info(f"Retrieving all public holidays (include_inactive: {include_inactive})")
         
         try:
-            holidays = self.query_repository.get_all(include_inactive=include_inactive)
+            holidays = await self.query_repository.get_all(include_inactive=include_inactive)
             
             response_dtos = [
                 PublicHolidayResponseDTO.from_domain(holiday)
@@ -73,13 +73,13 @@ class GetPublicHolidaysUseCase:
             logger.error(f"Error retrieving all public holidays: {e}")
             raise GetPublicHolidaysUseCaseError(f"Failed to retrieve holidays: {str(e)}")
     
-    def get_active_holidays(self) -> List[PublicHolidayResponseDTO]:
+    async def get_active_holidays(self) -> List[PublicHolidayResponseDTO]:
         """Get all active public holidays"""
         
         logger.info("Retrieving active public holidays")
         
         try:
-            holidays = self.query_repository.get_all_active()
+            holidays = await self.query_repository.get_all_active()
             
             response_dtos = [
                 PublicHolidayResponseDTO.from_domain(holiday)
@@ -93,13 +93,13 @@ class GetPublicHolidaysUseCase:
             logger.error(f"Error retrieving active public holidays: {e}")
             raise GetPublicHolidaysUseCaseError(f"Failed to retrieve active holidays: {str(e)}")
     
-    def get_holiday_by_id(self, holiday_id: str) -> Optional[PublicHolidayResponseDTO]:
+    async def get_holiday_by_id(self, holiday_id: str) -> Optional[PublicHolidayResponseDTO]:
         """Get public holiday by ID"""
         
         logger.info(f"Retrieving public holiday by ID: {holiday_id}")
         
         try:
-            holiday = self.query_repository.get_by_id(holiday_id)
+            holiday = await self.query_repository.get_by_id(holiday_id)
             
             if not holiday:
                 logger.warning(f"Public holiday not found: {holiday_id}")
@@ -114,7 +114,7 @@ class GetPublicHolidaysUseCase:
             logger.error(f"Error retrieving public holiday by ID: {e}")
             raise GetPublicHolidaysUseCaseError(f"Failed to retrieve holiday: {str(e)}")
     
-    def get_holiday_by_date(self, holiday_date: str) -> Optional[PublicHolidayResponseDTO]:
+    async def get_holiday_by_date(self, holiday_date: str) -> Optional[PublicHolidayResponseDTO]:
         """Get public holiday by date"""
         
         logger.info(f"Retrieving public holiday by date: {holiday_date}")
@@ -123,7 +123,7 @@ class GetPublicHolidaysUseCase:
             # Parse date
             date_obj = datetime.fromisoformat(holiday_date).date()
             
-            holiday = self.query_repository.get_by_date(date_obj)
+            holiday = await self.query_repository.get_by_date(date_obj)
             
             if not holiday:
                 logger.info(f"No public holiday found on date: {holiday_date}")
@@ -142,7 +142,7 @@ class GetPublicHolidaysUseCase:
             logger.error(f"Error retrieving public holiday by date: {e}")
             raise GetPublicHolidaysUseCaseError(f"Failed to retrieve holiday: {str(e)}")
     
-    def get_holidays_by_year(
+    async def get_holidays_by_year(
         self, 
         year: int, 
         include_inactive: bool = False
@@ -152,7 +152,7 @@ class GetPublicHolidaysUseCase:
         logger.info(f"Retrieving public holidays for year: {year}")
         
         try:
-            holidays = self.query_repository.get_by_year(year, include_inactive=include_inactive)
+            holidays = await self.query_repository.get_by_year(year, include_inactive=include_inactive)
             
             response_dtos = [
                 PublicHolidayResponseDTO.from_domain(holiday)
@@ -160,7 +160,7 @@ class GetPublicHolidaysUseCase:
             ]
             
             # Sort by date
-            response_dtos.sort(key=lambda h: h.date_range["start_date"])
+            response_dtos.sort(key=lambda h: h.holiday_date)
             
             logger.info(f"Retrieved {len(response_dtos)} public holidays for {year}")
             return response_dtos
@@ -169,7 +169,7 @@ class GetPublicHolidaysUseCase:
             logger.error(f"Error retrieving public holidays for year {year}: {e}")
             raise GetPublicHolidaysUseCaseError(f"Failed to retrieve holidays for {year}: {str(e)}")
     
-    def get_holidays_by_month(
+    async def get_holidays_by_month(
         self, 
         year: int, 
         month: int, 
@@ -183,7 +183,7 @@ class GetPublicHolidaysUseCase:
             if month < 1 or month > 12:
                 raise GetPublicHolidaysUseCaseError("Month must be between 1 and 12")
             
-            holidays = self.query_repository.get_by_month(year, month, include_inactive=include_inactive)
+            holidays = await self.query_repository.get_by_month(year, month, include_inactive=include_inactive)
             
             response_dtos = [
                 PublicHolidayResponseDTO.from_domain(holiday)
@@ -191,7 +191,7 @@ class GetPublicHolidaysUseCase:
             ]
             
             # Sort by date
-            response_dtos.sort(key=lambda h: h.date_range["start_date"])
+            response_dtos.sort(key=lambda h: h.holiday_date)
             
             logger.info(f"Retrieved {len(response_dtos)} public holidays for {month}/{year}")
             return response_dtos
@@ -289,7 +289,7 @@ class GetPublicHolidaysUseCase:
             ]
             
             # Sort by date
-            summary_dtos.sort(key=lambda h: h.date)
+            summary_dtos.sort(key=lambda h: h.holiday_date)
             
             logger.info(f"Retrieved {len(summary_dtos)} upcoming holidays")
             return summary_dtos
@@ -442,7 +442,7 @@ class GetPublicHolidaysUseCase:
             logger.error(f"Error retrieving holiday options: {e}")
             raise GetPublicHolidaysUseCaseError(f"Failed to retrieve options: {str(e)}")
     
-    def check_holiday_on_date(self, check_date: str) -> bool:
+    async def check_holiday_on_date(self, check_date: str) -> bool:
         """Check if there's a holiday on a specific date"""
         
         logger.info(f"Checking for holiday on date: {check_date}")
@@ -451,7 +451,7 @@ class GetPublicHolidaysUseCase:
             # Parse date
             date_obj = datetime.fromisoformat(check_date).date()
             
-            exists = self.query_repository.exists_on_date(date_obj)
+            exists = await self.query_repository.exists_on_date(date_obj)
             
             logger.info(f"Holiday exists on {check_date}: {exists}")
             return exists

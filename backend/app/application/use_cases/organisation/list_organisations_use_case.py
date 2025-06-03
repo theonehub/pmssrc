@@ -225,6 +225,8 @@ class ListOrganisationsUseCase:
             name=organisation.name,
             organisation_type=organisation.organisation_type.value,
             status=organisation.status.value,
+            email=organisation.contact_info.email if organisation.contact_info else None,
+            phone=organisation.contact_info.phone if organisation.contact_info else None,
             city=organisation.address.city if organisation.address else None,
             state=organisation.address.state if organisation.address else None,
             employee_strength=organisation.employee_strength,

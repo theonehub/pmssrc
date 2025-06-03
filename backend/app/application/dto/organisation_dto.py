@@ -314,6 +314,8 @@ class OrganisationSummaryDTO:
     status: str
     
     # Optional fields
+    email: Optional[str] = None
+    phone: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
     employee_strength: int = 0

@@ -688,7 +688,7 @@ const AddNewOrganisation: React.FC = () => {
           </Box>
 
           {/* Developer Help Section - Only show in development */}
-          {process.env.NODE_ENV === 'development' && (
+          {/* {process.env.NODE_ENV === 'development' && (
             <Paper 
               elevation={1} 
               sx={{ 
@@ -716,7 +716,7 @@ const AddNewOrganisation: React.FC = () => {
                 This form is ready and will work once the backend type annotation is corrected.
               </Typography>
             </Paper>
-          )}
+          )} */}
         </Box>
 
         {/* Toast Notifications */}

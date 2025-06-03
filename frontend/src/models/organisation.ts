@@ -27,9 +27,17 @@ export interface Organisation {
   description?: string;
   organisation_type: string;
   status: string;
-  contact_info: ContactInfo;
-  address: Address;
-  tax_info: TaxInfo;
+  
+  // Flat fields from backend summary response
+  email?: string;
+  phone?: string;
+  city?: string;
+  
+  // Original nested fields (still used in detail views)
+  contact_info?: ContactInfo | null;
+  address?: Address | null;
+  tax_info?: TaxInfo | null;
+  
   employee_strength: number;
   used_employee_strength?: number;
   hostname: string;

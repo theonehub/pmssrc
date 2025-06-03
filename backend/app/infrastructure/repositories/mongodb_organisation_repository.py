@@ -16,7 +16,7 @@ from app.domain.entities.organisation import Organisation
 from app.domain.value_objects.organisation_id import OrganisationId
 from app.domain.value_objects.organisation_details import (
     OrganisationType, ContactInformation, 
-    Address, TaxInformation
+    Address, TaxInformation, OrganisationStatus
 )
 from app.application.interfaces.repositories.organisation_repository import (
     OrganisationCommandRepository, OrganisationQueryRepository, OrganisationAnalyticsRepository,
@@ -206,13 +206,14 @@ class MongoDBOrganisationRepository(OrganisationRepository):
             "name": getattr(organisation, 'name', ''),
             "description": getattr(organisation, 'description', ''),
             "organisation_type": safe_enum_value(getattr(organisation, 'organisation_type')),
+            "status": safe_enum_value(getattr(organisation, 'status')),
             "hostname": getattr(organisation, 'hostname', ''),
             "contact_information": value_object_to_dict(getattr(organisation, 'contact_info', None)),
             "address": value_object_to_dict(getattr(organisation, 'address', None)),
             "tax_information": value_object_to_dict(getattr(organisation, 'tax_info', None)),
             "employee_strength": getattr(organisation, 'employee_strength', 0),
             "used_employee_strength": getattr(organisation, 'used_employee_strength', 0),
-            "is_active": getattr(organisation, 'is_active', True),
+            "is_active": organisation.is_active(),
             "is_deleted": getattr(organisation, 'is_deleted', False),
             "created_at": safe_date_conversion(getattr(organisation, 'created_at', None)),
             "updated_at": safe_date_conversion(getattr(organisation, 'updated_at', None)),
@@ -226,93 +227,25 @@ class MongoDBOrganisationRepository(OrganisationRepository):
         """Convert database document to domain entity."""
         
         try:
-            # For now, create a simple Organisation object that can work with the existing system
-            # This is a temporary solution until we properly understand the Organisation entity structure
-            
-            class SimpleOrganisation:
-                def __init__(self, **kwargs):
-                    # Core identity
-                    self.organisation_id = OrganisationId.from_string(kwargs.get("organisation_id"))
-                    self.name = kwargs.get("name", "")
-                    self.description = kwargs.get("description", "")
-                    self.hostname = kwargs.get("hostname", "")
-                    
-                    # Status and type
-                    org_type = kwargs.get("organisation_type", "private_limited")
-                    self.organisation_type = OrganisationType(org_type) if org_type else OrganisationType.PRIVATE_LIMITED
-                    
-                    # Contact information
-                    contact_data = kwargs.get("contact_information", {})
-                    self.contact_info = ContactInformation(
-                        email=contact_data.get("email", ""),
-                        phone=contact_data.get("phone", ""),
-                        website=contact_data.get("website", ""),
-                        fax=contact_data.get("fax", "")
-                    )
-                    
-                    # Address
-                    address_data = kwargs.get("address", {})
-                    self.address = Address(
-                        street_address=address_data.get("street_address", ""),
-                        city=address_data.get("city", ""),
-                        state=address_data.get("state", ""),
-                        country=address_data.get("country", ""),
-                        pin_code=address_data.get("pin_code", ""),
-                        landmark=address_data.get("landmark", "")
-                    )
-                    
-                    # Tax information
-                    tax_data = kwargs.get("tax_information", {})
-                    self.tax_info = TaxInformation(
-                        pan_number=tax_data.get("pan_number", ""),
-                        gst_number=tax_data.get("gst_number", ""),
-                        tan_number=tax_data.get("tan_number", ""),
-                        cin_number=tax_data.get("cin_number", "")
-                    )
-                    
-                    # Capacity information
-                    self.employee_strength = kwargs.get("employee_strength", 0)
-                    self.used_employee_strength = kwargs.get("used_employee_strength", 0)
-                    
-                    # System fields
-                    self.is_active = kwargs.get("is_active", True)
-                    self.is_deleted = kwargs.get("is_deleted", False)
-                    self.created_at = kwargs.get("created_at")
-                    self.updated_at = kwargs.get("updated_at")
-                    self.deleted_at = kwargs.get("deleted_at")
-                    self.created_by = kwargs.get("created_by")
-                    self.updated_by = kwargs.get("updated_by")
-                    self.version = kwargs.get("version", 1)
-                    
-                def get_domain_events(self):
-                    return []
-                    
-                def clear_domain_events(self):
-                    pass
-            
-            # Create the simple organisation object
-            organisation = SimpleOrganisation(
+            # Use the actual Organisation entity instead of SimpleOrganisation
+            return Organisation.from_existing_data(
                 organisation_id=document["organisation_id"],
                 name=document.get("name", ""),
                 description=document.get("description", ""),
                 hostname=document.get("hostname", ""),
-                organisation_type=document.get("organisation_type", ""),
-                contact_information=document.get("contact_information", {}),
+                organisation_type=document.get("organisation_type", "private_limited"),
+                status=document.get("status", "active"),
+                contact_info=document.get("contact_information", {}),
                 address=document.get("address", {}),
-                tax_information=document.get("tax_information", {}),
+                tax_info=document.get("tax_information", {}),
                 employee_strength=document.get("employee_strength", 0),
                 used_employee_strength=document.get("used_employee_strength", 0),
-                is_active=document.get("is_active", True),
-                is_deleted=document.get("is_deleted", False),
+                logo_path=document.get("logo_path"),
                 created_at=document.get("created_at"),
                 updated_at=document.get("updated_at"),
-                deleted_at=document.get("deleted_at"),
                 created_by=document.get("created_by"),
-                updated_by=document.get("updated_by"),
-                version=document.get("version", 1)
+                updated_by=document.get("updated_by")
             )
-            
-            return organisation
             
         except Exception as e:
             logger.error(f"Error creating Organisation entity from document: {e}")
@@ -586,7 +519,7 @@ class MongoDBOrganisationRepository(OrganisationRepository):
             if not include_deleted:
                 filter_query["is_deleted"] = {"$ne": True}
             if not include_inactive:
-                filter_query["is_active"] = True
+                filter_query["status"] = "active"
             
             # Execute query
             cursor = collection.find(filter_query).skip(skip).limit(limit).sort("created_at", DESCENDING)
@@ -1510,7 +1443,7 @@ class MongoDBOrganisationRepository(OrganisationRepository):
                     "organisation_id": str(getattr(org, 'organisation_id', '')),
                     "name": getattr(org, 'name', ''),
                     "hostname": getattr(org, 'hostname', ''),
-                    "is_active": getattr(org, 'is_active', True),
+                    "is_active": org.is_active() if hasattr(org, 'is_active') else True,
                     "created_at": getattr(org, 'created_at', None),
                     "updated_at": getattr(org, 'updated_at', None)
                 }
@@ -1538,7 +1471,7 @@ class MongoDBOrganisationRepository(OrganisationRepository):
                     "organisation_id": str(getattr(organisation, 'organisation_id', '')),
                     "name": getattr(organisation, 'name', ''),
                     "hostname": getattr(organisation, 'hostname', ''),
-                    "is_active": getattr(organisation, 'is_active', True),
+                    "is_active": organisation.is_active() if hasattr(organisation, 'is_active') else True,
                     "created_at": getattr(organisation, 'created_at', None),
                     "updated_at": getattr(organisation, 'updated_at', None)
                 }
@@ -1561,7 +1494,7 @@ class MongoDBOrganisationRepository(OrganisationRepository):
                     "organisation_id": str(getattr(organisation, 'organisation_id', '')),
                     "name": getattr(organisation, 'name', ''),
                     "hostname": getattr(organisation, 'hostname', ''),
-                    "is_active": getattr(organisation, 'is_active', True),
+                    "is_active": organisation.is_active() if hasattr(organisation, 'is_active') else True,
                     "created_at": getattr(organisation, 'created_at', None),
                     "updated_at": getattr(organisation, 'updated_at', None)
                 }

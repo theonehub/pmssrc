@@ -1,0 +1,968 @@
+2025-06-04 03:12:14 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 03:12:14 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 03:12:14 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 03:12:14 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 03:12:14 [INFO] uvicorn.error:93 - _serve(): Finished server process [15629]
+2025-06-04 03:12:19 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:12:26 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:12:26 [INFO] uvicorn.error:83 - _serve(): Started server process [15729]
+2025-06-04 03:12:26 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:12:26 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:12:26 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:12:31 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:12:36 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:12:36 [INFO] uvicorn.error:83 - _serve(): Started server process [15736]
+2025-06-04 03:12:36 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:12:36 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:12:36 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:12:52 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 03:12:52 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 03:12:52 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 03:12:52 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 03:12:52 [INFO] uvicorn.error:93 - _serve(): Finished server process [15736]
+2025-06-04 03:12:56 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:13:04 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:13:04 [INFO] uvicorn.error:83 - _serve(): Started server process [15743]
+2025-06-04 03:13:04 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:13:04 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:13:04 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:13:13 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:13:23 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:13:23 [INFO] uvicorn.error:83 - _serve(): Started server process [15754]
+2025-06-04 03:13:23 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:13:23 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:13:23 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:13:30 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:13:37 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:13:37 [INFO] uvicorn.error:83 - _serve(): Started server process [15769]
+2025-06-04 03:13:37 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:13:37 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:13:37 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:13:42 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:13:48 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:13:48 [INFO] uvicorn.error:83 - _serve(): Started server process [15780]
+2025-06-04 03:13:48 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:13:48 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:13:48 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:13:51 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 03:13:51 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 03:13:51 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 03:13:51 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 03:13:51 [INFO] uvicorn.error:93 - _serve(): Finished server process [15780]
+2025-06-04 03:13:56 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:14:02 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:14:02 [INFO] uvicorn.error:83 - _serve(): Started server process [15790]
+2025-06-04 03:14:02 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:14:02 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:14:02 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:14:08 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:14:16 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:14:16 [INFO] uvicorn.error:83 - _serve(): Started server process [15799]
+2025-06-04 03:14:16 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:14:16 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:14:16 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:14:20 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:14:27 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:14:27 [INFO] uvicorn.error:83 - _serve(): Started server process [15804]
+2025-06-04 03:14:27 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:14:27 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:14:27 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:14:32 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 03:14:32 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 03:14:32 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 03:14:32 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 03:14:32 [INFO] uvicorn.error:93 - _serve(): Finished server process [15804]
+2025-06-04 03:14:39 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:14:44 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:14:44 [INFO] uvicorn.error:83 - _serve(): Started server process [15813]
+2025-06-04 03:14:44 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:14:44 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:14:44 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:14:50 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:14:57 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:14:57 [INFO] uvicorn.error:83 - _serve(): Started server process [15894]
+2025-06-04 03:14:57 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:14:57 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:14:57 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:14:58 [WARNING] app.auth.jwt_handler:81 - decode_access_token(): Invalid token: Not enough segments
+2025-06-04 03:14:58 [ERROR] app.auth.auth_dependencies:108 - get_current_user(): Authentication error: Invalid token: Not enough segments
+2025-06-04 03:14:58 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57605 - "POST /api/v2/organisations/ HTTP/1.1" 401
+2025-06-04 03:15:04 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57607 - "GET /health HTTP/1.1" 404
+2025-06-04 03:15:14 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57616 - "GET / HTTP/1.1" 404
+2025-06-04 03:16:47 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 03:16:47 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 03:16:47 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 03:16:47 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 03:16:47 [INFO] uvicorn.error:93 - _serve(): Finished server process [15894]
+2025-06-04 03:16:53 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:17:00 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:17:00 [INFO] uvicorn.error:83 - _serve(): Started server process [15987]
+2025-06-04 03:17:00 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:17:00 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:17:00 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:17:05 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:17:11 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:17:11 [INFO] uvicorn.error:83 - _serve(): Started server process [16013]
+2025-06-04 03:17:11 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:17:11 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:17:11 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:22:00 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57716 - "OPTIONS /api/v2/organisations/ HTTP/1.1" 405
+2025-06-04 03:23:25 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 03:23:26 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 03:23:26 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 03:23:26 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 03:23:26 [INFO] uvicorn.error:93 - _serve(): Finished server process [16013]
+2025-06-04 03:23:32 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:23:40 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:23:40 [INFO] uvicorn.error:83 - _serve(): Started server process [16200]
+2025-06-04 03:23:40 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:23:40 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:23:40 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:23:46 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 03:23:46 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 03:23:46 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 03:23:46 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 03:23:46 [INFO] uvicorn.error:93 - _serve(): Finished server process [16200]
+2025-06-04 03:23:53 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:24:02 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:24:02 [INFO] uvicorn.error:83 - _serve(): Started server process [16221]
+2025-06-04 03:24:02 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:24:02 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:24:02 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:24:07 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 03:24:07 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 03:24:07 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 03:24:07 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 03:24:07 [INFO] uvicorn.error:93 - _serve(): Finished server process [16221]
+2025-06-04 03:24:16 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:24:26 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:24:27 [INFO] uvicorn.error:83 - _serve(): Started server process [16246]
+2025-06-04 03:24:27 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:24:27 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:24:27 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:24:33 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:24:54 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:24:54 [INFO] uvicorn.error:83 - _serve(): Started server process [16268]
+2025-06-04 03:24:54 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:24:54 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:24:54 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:25:03 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:25:16 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:25:16 [INFO] uvicorn.error:83 - _serve(): Started server process [16284]
+2025-06-04 03:25:16 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:25:16 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:25:16 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:26:26 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 03:26:26 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 03:26:26 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 03:26:26 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 03:26:26 [INFO] uvicorn.error:93 - _serve(): Finished server process [16284]
+2025-06-04 03:26:34 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:26:40 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:26:40 [INFO] uvicorn.error:83 - _serve(): Started server process [16371]
+2025-06-04 03:26:40 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:26:40 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:26:40 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:26:40 [INFO] uvicorn.access:473 - send(): 127.0.0.1:58105 - "OPTIONS /api/v2/organisations/ HTTP/1.1" 200
+2025-06-04 03:26:40 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-04 03:26:40 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-04 03:26:40 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-04 03:26:40 [INFO] app.config.dependency_container:142 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-04 03:26:40 [INFO] app.config.dependency_container:175 - _setup_services(): Services initialized
+2025-06-04 03:26:40 [INFO] app.config.dependency_container:180 - _setup_controllers(): Controllers setup deferred
+2025-06-04 03:26:40 [INFO] app.config.dependency_container:72 - initialize(): Dependency container initialized successfully
+2025-06-04 03:26:40 [INFO] app.config.dependency_container:715 - get_organisation_controller(): Organisation controller initialized with MongoDBOrganisationRepository and proper validation service
+2025-06-04 03:26:40 [INFO] app.api.controllers.organisation_controller:59 - create_organisation(): Creating organisation: TheOne by superadmin
+2025-06-04 03:26:40 [INFO] app.application.use_cases.organisation.create_organisation_use_case:79 - execute(): Creating organisation: TheOne
+2025-06-04 03:26:41 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-04 03:26:41 [INFO] app.infrastructure.repositories.mongodb_organisation_repository:98 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-04 03:26:42 [INFO] app.infrastructure.repositories.mongodb_organisation_repository:147 - _ensure_indexes(): Organisation indexes ensured
+2025-06-04 03:26:42 [INFO] app.infrastructure.repositories.mongodb_organisation_repository:258 - _publish_events(): Publishing event: OrganisationCreated
+2025-06-04 03:26:42 [INFO] app.infrastructure.repositories.mongodb_organisation_repository:286 - save(): Organisation saved: a485b5b9-8344-408c-bef1-496b8b3cbeba
+2025-06-04 03:26:42 [INFO] app.infrastructure.services.notification_service:461 - _send_email(): EMAIL TO: admin@pms.com
+2025-06-04 03:26:42 [INFO] app.infrastructure.services.notification_service:462 - _send_email(): SUBJECT: New Organisation Created in PMS
+2025-06-04 03:26:42 [INFO] app.infrastructure.services.notification_service:463 - _send_email(): BODY: 
+            A new organisation has been created in the PMS system:
+            
+            Name: TheOne
+            Organisation ID: a485b5b9-8344-408c-bef1-496b8b3cbeba
+            Type: private_limited
+            Email: support@localhost.com
+            Phone: 9988998899
+            City: GHAZIABAD
+            State: Uttar Pradesh
+            Country: India
+            Created by: superadmin
+            
+            Please review and take necessary actions.
+            
+            Best regards,
+            PMS Team
+            
+2025-06-04 03:26:42 [INFO] app.infrastructure.services.notification_service:399 - send_organisation_created_notification(): Organisation created notification sent for: a485b5b9-8344-408c-bef1-496b8b3cbeba
+2025-06-04 03:26:42 [INFO] app.application.use_cases.organisation.create_organisation_use_case:121 - execute(): Organisation created successfully: a485b5b9-8344-408c-bef1-496b8b3cbeba
+2025-06-04 03:26:42 [INFO] uvicorn.access:473 - send(): 127.0.0.1:58105 - "POST /api/v2/organisations/ HTTP/1.1" 200
+2025-06-04 03:26:44 [INFO] uvicorn.access:473 - send(): 127.0.0.1:58105 - "OPTIONS /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:26:44 [INFO] uvicorn.access:473 - send(): 127.0.0.1:58107 - "OPTIONS /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:26:44 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:26:44 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:26:44 [ERROR] app.api.routes.organisation_routes_v2:102 - _list_organisations_impl(): Error listing organisations: 'str' object has no attribute 'value'
+2025-06-04 03:26:44 [INFO] uvicorn.access:473 - send(): 127.0.0.1:58105 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 500
+2025-06-04 03:26:44 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:26:44 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:26:44 [ERROR] app.api.routes.organisation_routes_v2:102 - _list_organisations_impl(): Error listing organisations: 'str' object has no attribute 'value'
+2025-06-04 03:26:44 [INFO] uvicorn.access:473 - send(): 127.0.0.1:58105 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 500
+2025-06-04 03:30:55 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 03:30:55 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 03:30:55 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 03:30:55 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 03:30:55 [INFO] uvicorn.error:93 - _serve(): Finished server process [16371]
+2025-06-04 03:31:03 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:31:10 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:31:10 [INFO] uvicorn.error:83 - _serve(): Started server process [16435]
+2025-06-04 03:31:10 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:31:10 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:31:10 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:31:10 [INFO] uvicorn.access:473 - send(): 127.0.0.1:58994 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 403
+2025-06-04 03:32:07 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59034 - "GET /api/v2/organisations/ HTTP/1.1" 403
+2025-06-04 03:34:34 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-04 03:34:34 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-04 03:34:34 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-04 03:34:35 [INFO] app.config.dependency_container:142 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-04 03:34:35 [INFO] app.config.dependency_container:175 - _setup_services(): Services initialized
+2025-06-04 03:34:35 [INFO] app.config.dependency_container:180 - _setup_controllers(): Controllers setup deferred
+2025-06-04 03:34:35 [INFO] app.config.dependency_container:72 - initialize(): Dependency container initialized successfully
+2025-06-04 03:34:35 [INFO] app.config.dependency_container:715 - get_organisation_controller(): Organisation controller initialized with MongoDBOrganisationRepository and proper validation service
+2025-06-04 03:34:35 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:34:35 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:34:36 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-04 03:34:36 [INFO] app.infrastructure.repositories.mongodb_organisation_repository:98 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-04 03:34:36 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 03:34:36 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59105 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:34:36 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:34:36 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:34:36 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 03:34:36 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59122 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:34:40 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 03:34:40 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 03:34:40 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 03:34:40 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 03:34:40 [INFO] uvicorn.error:93 - _serve(): Finished server process [16435]
+2025-06-04 03:34:44 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:34:49 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:34:49 [INFO] uvicorn.error:83 - _serve(): Started server process [16643]
+2025-06-04 03:34:49 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:34:49 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:34:49 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:35:01 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-04 03:35:01 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-04 03:35:01 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-04 03:35:01 [INFO] app.config.dependency_container:142 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-04 03:35:01 [INFO] app.config.dependency_container:175 - _setup_services(): Services initialized
+2025-06-04 03:35:01 [INFO] app.config.dependency_container:180 - _setup_controllers(): Controllers setup deferred
+2025-06-04 03:35:01 [INFO] app.config.dependency_container:72 - initialize(): Dependency container initialized successfully
+2025-06-04 03:35:01 [INFO] app.config.dependency_container:715 - get_organisation_controller(): Organisation controller initialized with MongoDBOrganisationRepository and proper validation service
+2025-06-04 03:35:01 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:35:01 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:35:02 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-04 03:35:02 [INFO] app.infrastructure.repositories.mongodb_organisation_repository:98 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-04 03:35:02 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 03:35:02 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59164 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:35:02 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:35:02 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:35:02 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 03:35:02 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59181 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:37:30 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 03:37:30 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 03:37:30 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 03:37:30 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 03:37:30 [INFO] uvicorn.error:93 - _serve(): Finished server process [16643]
+2025-06-04 03:37:43 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:38:04 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:38:04 [INFO] uvicorn.error:83 - _serve(): Started server process [16751]
+2025-06-04 03:38:04 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:38:04 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:38:04 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:38:12 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 03:38:12 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 03:38:12 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 03:38:12 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 03:38:12 [INFO] uvicorn.error:93 - _serve(): Finished server process [16751]
+2025-06-04 03:38:24 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:39:58 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:43:53 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 03:43:59 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 03:43:59 [INFO] uvicorn.error:83 - _serve(): Started server process [17329]
+2025-06-04 03:43:59 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 03:43:59 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 03:43:59 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 03:44:00 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60027 - "OPTIONS /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:44:00 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60029 - "OPTIONS /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:44:00 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-04 03:44:00 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-04 03:44:00 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-04 03:44:00 [INFO] app.config.dependency_container:142 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-04 03:44:00 [INFO] app.config.dependency_container:175 - _setup_services(): Services initialized
+2025-06-04 03:44:00 [INFO] app.config.dependency_container:180 - _setup_controllers(): Controllers setup deferred
+2025-06-04 03:44:00 [INFO] app.config.dependency_container:72 - initialize(): Dependency container initialized successfully
+2025-06-04 03:44:00 [INFO] app.config.dependency_container:715 - get_organisation_controller(): Organisation controller initialized with MongoDBOrganisationRepository and proper validation service
+2025-06-04 03:44:00 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:44:00 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:44:01 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-04 03:44:01 [INFO] app.infrastructure.repositories.mongodb_organisation_repository:98 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-04 03:44:01 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 03:44:01 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60027 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:44:02 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:44:02 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:44:02 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 03:44:02 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60027 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:50:47 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:50:47 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:50:47 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 03:50:47 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60941 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:50:47 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:50:47 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:50:47 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 03:50:47 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60941 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:54:16 [INFO] uvicorn.access:473 - send(): 127.0.0.1:62277 - "OPTIONS /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:54:16 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:54:16 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:54:16 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 03:54:17 [INFO] uvicorn.access:473 - send(): 127.0.0.1:62277 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:54:28 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:54:28 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:54:28 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 03:54:28 [INFO] uvicorn.access:473 - send(): 127.0.0.1:62279 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:54:50 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:54:50 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:54:50 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 03:54:50 [INFO] uvicorn.access:473 - send(): 127.0.0.1:62505 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:55:10 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:55:10 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:55:10 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 03:55:10 [INFO] uvicorn.access:473 - send(): 127.0.0.1:62663 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:55:24 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:55:24 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:55:24 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 03:55:24 [INFO] uvicorn.access:473 - send(): 127.0.0.1:62739 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:56:52 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:56:52 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:56:52 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 03:56:52 [INFO] uvicorn.access:473 - send(): 127.0.0.1:63301 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:56:53 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:56:53 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:56:53 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 03:56:53 [INFO] uvicorn.access:473 - send(): 127.0.0.1:63301 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:56:54 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:56:54 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:56:54 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 03:56:54 [INFO] uvicorn.access:473 - send(): 127.0.0.1:63301 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:58:15 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:58:15 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:58:15 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 03:58:15 [INFO] uvicorn.access:473 - send(): 127.0.0.1:63872 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:58:27 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:58:27 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:58:27 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 03:58:27 [INFO] uvicorn.access:473 - send(): 127.0.0.1:63963 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:58:49 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:58:49 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:58:49 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 03:58:49 [INFO] uvicorn.access:473 - send(): 127.0.0.1:64100 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 03:58:49 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 03:58:49 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 03:58:49 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 03:58:49 [INFO] uvicorn.access:473 - send(): 127.0.0.1:64100 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 04:02:18 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 04:02:18 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 04:02:18 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 04:02:18 [INFO] uvicorn.access:473 - send(): 127.0.0.1:65440 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 04:02:18 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 04:02:18 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 04:02:18 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 04:02:18 [INFO] uvicorn.access:473 - send(): 127.0.0.1:65440 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 04:04:38 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:04:38 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:04:38 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:04:38 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:04:38 [INFO] uvicorn.error:93 - _serve(): Finished server process [17329]
+2025-06-04 04:04:52 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:05:08 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:05:08 [INFO] uvicorn.error:83 - _serve(): Started server process [17765]
+2025-06-04 04:05:08 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:05:08 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:05:08 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:05:13 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:05:19 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:05:19 [INFO] uvicorn.error:83 - _serve(): Started server process [17793]
+2025-06-04 04:05:19 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:05:19 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:05:19 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:05:28 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:05:28 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:05:28 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:05:28 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:05:28 [INFO] uvicorn.error:93 - _serve(): Finished server process [17793]
+2025-06-04 04:05:38 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:05:43 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:05:43 [INFO] uvicorn.error:83 - _serve(): Started server process [17802]
+2025-06-04 04:05:43 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:05:43 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:05:43 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:05:48 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:05:55 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:05:55 [INFO] uvicorn.error:83 - _serve(): Started server process [17807]
+2025-06-04 04:05:55 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:05:55 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:05:55 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:06:26 [INFO] uvicorn.access:473 - send(): 127.0.0.1:50571 - "OPTIONS /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 04:06:26 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-04 04:06:26 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-04 04:06:26 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-04 04:06:26 [INFO] app.config.dependency_container:142 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-04 04:06:26 [INFO] app.config.dependency_container:175 - _setup_services(): Services initialized
+2025-06-04 04:06:26 [INFO] app.config.dependency_container:180 - _setup_controllers(): Controllers setup deferred
+2025-06-04 04:06:26 [INFO] app.config.dependency_container:72 - initialize(): Dependency container initialized successfully
+2025-06-04 04:06:26 [INFO] app.config.dependency_container:715 - get_organisation_controller(): Organisation controller initialized with MongoDBOrganisationRepository and proper validation service
+2025-06-04 04:06:26 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 04:06:26 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 04:06:28 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-04 04:06:28 [INFO] app.infrastructure.repositories.mongodb_organisation_repository:98 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-04 04:06:28 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 04:06:28 [INFO] uvicorn.access:473 - send(): 127.0.0.1:50571 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 04:08:40 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51493 - "GET /api/v2/organisations/ HTTP/1.1" 403
+2025-06-04 04:09:15 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:09:15 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:09:15 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:09:15 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:09:15 [INFO] uvicorn.error:93 - _serve(): Finished server process [17807]
+2025-06-04 04:09:23 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:09:33 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:09:33 [INFO] uvicorn.error:83 - _serve(): Started server process [18011]
+2025-06-04 04:09:33 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:09:33 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:09:33 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:09:33 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-04 04:09:33 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-04 04:09:33 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-04 04:09:33 [INFO] app.config.dependency_container:142 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-04 04:09:33 [INFO] app.config.dependency_container:175 - _setup_services(): Services initialized
+2025-06-04 04:09:33 [INFO] app.config.dependency_container:180 - _setup_controllers(): Controllers setup deferred
+2025-06-04 04:09:33 [INFO] app.config.dependency_container:72 - initialize(): Dependency container initialized successfully
+2025-06-04 04:09:33 [INFO] app.config.dependency_container:715 - get_organisation_controller(): Organisation controller initialized with MongoDBOrganisationRepository and proper validation service
+2025-06-04 04:09:33 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 04:09:33 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 04:09:34 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-04 04:09:34 [INFO] app.infrastructure.repositories.mongodb_organisation_repository:98 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-04 04:09:35 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 04:09:35 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51845 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 04:09:35 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 04:09:35 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 04:09:35 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 04:09:35 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51845 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 04:11:50 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 04:11:50 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 04:11:50 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 04:11:50 [INFO] uvicorn.access:473 - send(): 127.0.0.1:52240 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 04:11:50 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 04:11:50 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 04:11:50 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 04:11:50 [INFO] uvicorn.access:473 - send(): 127.0.0.1:52242 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 04:12:51 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 04:12:51 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 04:12:51 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 04:12:51 [INFO] uvicorn.access:473 - send(): 127.0.0.1:52633 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 04:12:54 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 04:12:54 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 04:12:54 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 04:12:54 [INFO] uvicorn.access:473 - send(): 127.0.0.1:52633 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 04:14:52 [INFO] uvicorn.access:473 - send(): 127.0.0.1:52968 - "OPTIONS /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-04 04:14:52 [INFO] uvicorn.access:473 - send(): 127.0.0.1:52970 - "OPTIONS /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-04 04:14:52 [INFO] app.infrastructure.repositories.mongodb_user_repository:563 - get_all(): Retrieved 2 users
+2025-06-04 04:14:52 [INFO] uvicorn.access:473 - send(): 127.0.0.1:52968 - "GET /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-04 04:14:52 [INFO] app.infrastructure.repositories.mongodb_user_repository:563 - get_all(): Retrieved 2 users
+2025-06-04 04:14:52 [INFO] uvicorn.access:473 - send(): 127.0.0.1:52968 - "GET /api/v2/users?skip=0&limit=10&include_inactive=false&include_deleted=false HTTP/1.1" 200
+2025-06-04 04:16:05 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 04:16:05 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 04:16:05 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 04:16:05 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53139 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 04:16:05 [INFO] app.api.controllers.organisation_controller:68 - list_organisations(): Listing organisations with filters
+2025-06-04 04:16:05 [INFO] app.application.use_cases.organisation.list_organisations_use_case:57 - execute(): Listing organisations with filters: OrganisationSearchFiltersDTO(name=None, organisation_type=None, status=None, city=None, state=None, country=None, min_employee_strength=None, max_employee_strength=None, has_available_capacity=None, is_gst_registered=None, created_after=None, created_before=None, page=1, page_size=10, sort_by='created_at', sort_order='desc')
+2025-06-04 04:16:05 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
+2025-06-04 04:16:05 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53139 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-04 04:18:04 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53391 - "OPTIONS /public-holidays HTTP/1.1" 200
+2025-06-04 04:18:04 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53393 - "OPTIONS /public-holidays HTTP/1.1" 200
+2025-06-04 04:18:04 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53393 - "GET /public-holidays HTTP/1.1" 404
+2025-06-04 04:18:04 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53393 - "GET /public-holidays HTTP/1.1" 404
+2025-06-04 04:20:24 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53665 - "OPTIONS /public-holidays/ HTTP/1.1" 200
+2025-06-04 04:20:24 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53667 - "POST /public-holidays/ HTTP/1.1" 404
+2025-06-04 04:22:11 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53962 - "OPTIONS /api/v2/public-holidays HTTP/1.1" 200
+2025-06-04 04:22:11 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53964 - "GET /api/v2/public-holidays HTTP/1.1" 405
+2025-06-04 04:22:55 [INFO] uvicorn.access:473 - send(): 127.0.0.1:54087 - "GET /api/v2/public-holidays HTTP/1.1" 405
+2025-06-04 04:23:01 [INFO] uvicorn.access:473 - send(): 127.0.0.1:54101 - "OPTIONS /api/v2/public-holidays/ HTTP/1.1" 200
+2025-06-04 04:23:01 [INFO] uvicorn.access:473 - send(): 127.0.0.1:54101 - "POST /api/v2/public-holidays/ HTTP/1.1" 405
+2025-06-04 04:23:02 [INFO] uvicorn.access:473 - send(): 127.0.0.1:54101 - "GET /api/v2/public-holidays HTTP/1.1" 405
+2025-06-04 04:31:51 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:31:51 [WARNING] app.api.controllers.public_holiday_controller:69 - __init__(): PublicHolidayController initialized without all required use cases
+2025-06-04 04:35:49 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:35:49 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:35:49 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:35:49 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:35:49 [INFO] uvicorn.error:93 - _serve(): Finished server process [18011]
+2025-06-04 04:35:55 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:36:01 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:36:01 [INFO] uvicorn.error:83 - _serve(): Started server process [18508]
+2025-06-04 04:36:01 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:36:01 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:36:01 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:36:05 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:36:11 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:36:11 [INFO] uvicorn.error:83 - _serve(): Started server process [18533]
+2025-06-04 04:36:11 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:36:11 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:36:11 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:36:35 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:36:35 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:36:35 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:36:35 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:36:35 [INFO] uvicorn.error:93 - _serve(): Finished server process [18533]
+2025-06-04 04:36:39 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:36:46 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:36:46 [INFO] uvicorn.error:83 - _serve(): Started server process [18546]
+2025-06-04 04:36:46 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:36:46 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:36:46 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:36:50 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:36:50 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:36:50 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:36:50 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:36:50 [INFO] uvicorn.error:93 - _serve(): Finished server process [18546]
+2025-06-04 04:36:57 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:37:02 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:37:02 [INFO] uvicorn.error:83 - _serve(): Started server process [18567]
+2025-06-04 04:37:02 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:37:02 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:37:02 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:37:06 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:37:12 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:37:12 [INFO] uvicorn.error:83 - _serve(): Started server process [18580]
+2025-06-04 04:37:12 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:37:12 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:37:12 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:37:49 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:37:49 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:37:49 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:37:49 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:37:49 [INFO] uvicorn.error:93 - _serve(): Finished server process [18580]
+2025-06-04 04:37:55 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:38:03 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:38:03 [INFO] uvicorn.error:83 - _serve(): Started server process [18627]
+2025-06-04 04:38:03 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:38:03 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:38:03 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:38:21 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:38:21 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:38:21 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:38:21 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:38:21 [INFO] uvicorn.error:93 - _serve(): Finished server process [18627]
+2025-06-04 04:38:26 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:38:33 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:38:33 [INFO] uvicorn.error:83 - _serve(): Started server process [18662]
+2025-06-04 04:38:33 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:38:33 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:38:33 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:40:19 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:40:19 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:40:19 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:40:19 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:40:19 [INFO] uvicorn.error:93 - _serve(): Finished server process [18662]
+2025-06-04 04:40:23 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:40:29 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:40:29 [INFO] uvicorn.error:83 - _serve(): Started server process [18690]
+2025-06-04 04:40:29 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:40:29 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:40:29 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:40:29 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:40:29 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-04 04:40:29 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-04 04:40:29 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-04 04:40:29 [ERROR] app.config.dependency_container:150 - _setup_repositories(): Error setting up repositories: Can't instantiate abstract class MongoDBPublicHolidayRepository without an implementation for abstract methods 'generate_monthly_calendar', 'generate_yearly_calendar', 'get_category_distribution', 'get_compliance_report', 'get_holiday_bridges', 'get_holiday_calendar_summary', 'get_holiday_trends', 'get_long_weekend_opportunities', 'get_monthly_distribution', 'get_next_working_day', 'get_observance_analysis', 'get_previous_working_day', 'get_usage_metrics', 'get_weekend_analysis', 'get_working_days_count', 'is_working_day'
+2025-06-04 04:40:29 [ERROR] app.config.dependency_container:75 - initialize(): Error initializing dependency container: Can't instantiate abstract class MongoDBPublicHolidayRepository without an implementation for abstract methods 'generate_monthly_calendar', 'generate_yearly_calendar', 'get_category_distribution', 'get_compliance_report', 'get_holiday_bridges', 'get_holiday_calendar_summary', 'get_holiday_trends', 'get_long_weekend_opportunities', 'get_monthly_distribution', 'get_next_working_day', 'get_observance_analysis', 'get_previous_working_day', 'get_usage_metrics', 'get_weekend_analysis', 'get_working_days_count', 'is_working_day'
+2025-06-04 04:41:22 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:41:22 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:41:22 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:41:22 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:41:22 [INFO] uvicorn.error:93 - _serve(): Finished server process [18690]
+2025-06-04 04:41:29 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:41:34 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:41:34 [INFO] uvicorn.error:83 - _serve(): Started server process [18723]
+2025-06-04 04:41:34 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:41:34 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:41:34 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:41:37 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:41:37 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-04 04:41:37 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-04 04:41:37 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-04 04:41:37 [ERROR] app.config.dependency_container:150 - _setup_repositories(): Error setting up repositories: Can't instantiate abstract class DatabaseConnector without an implementation for abstract methods 'connect', 'create_indexes', 'disconnect', 'get_collection', 'get_database', 'health_check', 'is_connected', 'transaction'
+2025-06-04 04:41:37 [ERROR] app.config.dependency_container:75 - initialize(): Error initializing dependency container: Can't instantiate abstract class DatabaseConnector without an implementation for abstract methods 'connect', 'create_indexes', 'disconnect', 'get_collection', 'get_database', 'health_check', 'is_connected', 'transaction'
+2025-06-04 04:41:40 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:41:48 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:41:48 [INFO] uvicorn.error:83 - _serve(): Started server process [18750]
+2025-06-04 04:41:48 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:41:48 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:41:48 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:41:49 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:41:49 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:41:49 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:41:49 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:41:49 [INFO] uvicorn.error:93 - _serve(): Finished server process [18750]
+2025-06-04 04:41:54 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:42:00 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:42:00 [INFO] uvicorn.error:83 - _serve(): Started server process [18778]
+2025-06-04 04:42:00 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:42:00 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:42:00 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:42:05 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:42:14 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:42:14 [INFO] uvicorn.error:83 - _serve(): Started server process [18795]
+2025-06-04 04:42:14 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:42:14 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:42:14 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:42:18 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:42:26 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:42:26 [INFO] uvicorn.error:83 - _serve(): Started server process [18816]
+2025-06-04 04:42:26 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:42:26 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:42:26 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:42:32 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:42:40 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:42:40 [INFO] uvicorn.error:83 - _serve(): Started server process [18832]
+2025-06-04 04:42:40 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:42:40 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:42:40 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:42:46 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:42:46 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:42:46 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:42:46 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:42:46 [INFO] uvicorn.error:93 - _serve(): Finished server process [18832]
+2025-06-04 04:42:53 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:42:59 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:42:59 [INFO] uvicorn.error:83 - _serve(): Started server process [18851]
+2025-06-04 04:42:59 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:42:59 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:42:59 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:43:04 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:43:05 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:43:05 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-04 04:43:05 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-04 04:43:05 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-04 04:43:05 [INFO] app.config.dependency_container:147 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-04 04:43:05 [INFO] app.config.dependency_container:180 - _setup_services(): Services initialized
+2025-06-04 04:43:05 [INFO] app.config.dependency_container:185 - _setup_controllers(): Controllers setup deferred
+2025-06-04 04:43:05 [INFO] app.config.dependency_container:72 - initialize(): Dependency container initialized successfully
+2025-06-04 04:43:05 [WARNING] app.config.dependency_container:798 - _get_create_public_holiday_use_case(): Failed to create public holiday use case: cannot import name 'PublicHolidayDTOValidationError' from 'app.application.dto.public_holiday_dto' (/Users/ankit/Downloads/code/pmssrc/backend/app/application/dto/public_holiday_dto.py)
+2025-06-04 04:43:05 [WARNING] app.config.dependency_container:815 - _get_query_public_holiday_use_case(): Failed to create query public holiday use case: cannot import name 'PublicHolidaySummaryDTO' from 'app.application.dto.public_holiday_dto' (/Users/ankit/Downloads/code/pmssrc/backend/app/application/dto/public_holiday_dto.py)
+2025-06-04 04:43:05 [WARNING] app.config.dependency_container:876 - _get_import_public_holiday_use_case(): Failed to create import public holiday use case: No module named 'app.application.interfaces.services.file_upload_service'
+2025-06-04 04:43:10 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:43:11 [INFO] uvicorn.error:83 - _serve(): Started server process [18872]
+2025-06-04 04:43:11 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:43:11 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:43:11 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:44:40 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:44:40 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:44:40 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:44:40 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:44:40 [INFO] uvicorn.error:93 - _serve(): Finished server process [18872]
+2025-06-04 04:44:44 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:44:49 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:44:49 [INFO] uvicorn.error:83 - _serve(): Started server process [18914]
+2025-06-04 04:44:49 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:44:49 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:44:49 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:44:53 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:44:59 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:44:59 [INFO] uvicorn.error:83 - _serve(): Started server process [18927]
+2025-06-04 04:44:59 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:44:59 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:44:59 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:45:01 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:45:01 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:45:01 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:45:01 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:45:01 [INFO] uvicorn.error:93 - _serve(): Finished server process [18927]
+2025-06-04 04:45:06 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:45:11 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:45:11 [INFO] uvicorn.error:83 - _serve(): Started server process [18938]
+2025-06-04 04:45:11 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:45:11 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:45:11 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:45:15 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:45:22 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:45:22 [INFO] uvicorn.error:83 - _serve(): Started server process [18951]
+2025-06-04 04:45:22 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:45:22 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:45:22 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:45:25 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:45:25 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:45:25 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:45:25 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:45:25 [INFO] uvicorn.error:93 - _serve(): Finished server process [18951]
+2025-06-04 04:45:28 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:45:35 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:45:35 [INFO] uvicorn.error:83 - _serve(): Started server process [18966]
+2025-06-04 04:45:35 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:45:35 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:45:35 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:45:39 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:45:39 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:45:39 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:45:39 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:45:39 [INFO] uvicorn.error:93 - _serve(): Finished server process [18966]
+2025-06-04 04:45:44 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:45:51 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:45:51 [INFO] uvicorn.error:83 - _serve(): Started server process [18985]
+2025-06-04 04:45:51 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:45:51 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:45:51 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:46:39 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:46:40 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:46:40 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:46:40 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:46:40 [INFO] uvicorn.error:93 - _serve(): Finished server process [18985]
+2025-06-04 04:46:45 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:47:03 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:47:10 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:47:10 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-04 04:47:10 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-04 04:47:10 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-04 04:47:10 [INFO] app.config.dependency_container:147 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-04 04:47:10 [INFO] app.config.dependency_container:180 - _setup_services(): Services initialized
+2025-06-04 04:47:10 [INFO] app.config.dependency_container:185 - _setup_controllers(): Controllers setup deferred
+2025-06-04 04:47:10 [INFO] app.config.dependency_container:72 - initialize(): Dependency container initialized successfully
+2025-06-04 04:47:34 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:47:38 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:47:38 [INFO] uvicorn.error:83 - _serve(): Started server process [19060]
+2025-06-04 04:47:38 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:47:38 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:47:38 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:47:45 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:47:50 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:47:50 [INFO] uvicorn.error:83 - _serve(): Started server process [19073]
+2025-06-04 04:47:50 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:47:50 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:47:50 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:47:53 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:47:53 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-04 04:47:53 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-04 04:47:53 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-04 04:47:53 [INFO] app.config.dependency_container:147 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-04 04:47:53 [INFO] app.config.dependency_container:180 - _setup_services(): Services initialized
+2025-06-04 04:47:53 [INFO] app.config.dependency_container:185 - _setup_controllers(): Controllers setup deferred
+2025-06-04 04:47:53 [INFO] app.config.dependency_container:72 - initialize(): Dependency container initialized successfully
+2025-06-04 04:47:54 [WARNING] app.config.dependency_container:876 - _get_import_public_holiday_use_case(): Failed to create import public holiday use case: No module named 'app.application.interfaces.services.file_upload_service'
+2025-06-04 04:47:54 [WARNING] app.api.controllers.public_holiday_controller:69 - __init__(): PublicHolidayController initialized without all required use cases
+2025-06-04 04:47:56 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:48:03 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:48:03 [INFO] uvicorn.error:83 - _serve(): Started server process [19098]
+2025-06-04 04:48:03 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:48:03 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:48:03 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:48:03 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:48:32 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:48:33 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:48:33 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:48:33 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:48:33 [INFO] uvicorn.error:93 - _serve(): Finished server process [19098]
+2025-06-04 04:48:39 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:48:40 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:48:40 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-04 04:48:40 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-04 04:48:40 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-04 04:48:40 [INFO] app.config.dependency_container:147 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-04 04:48:40 [INFO] app.config.dependency_container:180 - _setup_services(): Services initialized
+2025-06-04 04:48:40 [INFO] app.config.dependency_container:185 - _setup_controllers(): Controllers setup deferred
+2025-06-04 04:48:40 [INFO] app.config.dependency_container:72 - initialize(): Dependency container initialized successfully
+2025-06-04 04:48:40 [WARNING] app.config.dependency_container:876 - _get_import_public_holiday_use_case(): Failed to create import public holiday use case: No module named 'app.application.interfaces.services.file_upload_service'
+2025-06-04 04:48:40 [WARNING] app.api.controllers.public_holiday_controller:69 - __init__(): PublicHolidayController initialized without all required use cases
+2025-06-04 04:48:46 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:48:46 [INFO] uvicorn.error:83 - _serve(): Started server process [19157]
+2025-06-04 04:48:46 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:48:46 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:48:47 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:49:37 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56862 - "OPTIONS /api/v2/public-holidays/ HTTP/1.1" 200
+2025-06-04 04:49:37 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56862 - "POST /api/v2/public-holidays/ HTTP/1.1" 405
+2025-06-04 04:50:31 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:50:31 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:50:31 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:50:31 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:50:31 [INFO] uvicorn.error:93 - _serve(): Finished server process [19157]
+2025-06-04 04:50:36 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:50:41 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:50:41 [INFO] uvicorn.error:83 - _serve(): Started server process [19199]
+2025-06-04 04:50:41 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:50:41 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:50:41 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:50:52 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:50:52 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:50:52 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:50:52 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:50:52 [INFO] uvicorn.error:93 - _serve(): Finished server process [19199]
+2025-06-04 04:50:58 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:51:03 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:51:03 [INFO] uvicorn.error:83 - _serve(): Started server process [19220]
+2025-06-04 04:51:03 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:51:03 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:51:03 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:51:07 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:51:12 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:51:12 [INFO] uvicorn.error:83 - _serve(): Started server process [19237]
+2025-06-04 04:51:12 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:51:12 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:51:12 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:51:45 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:51:45 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:51:45 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:51:45 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:51:45 [INFO] uvicorn.error:93 - _serve(): Finished server process [19237]
+2025-06-04 04:51:49 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:51:55 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:51:55 [INFO] uvicorn.error:83 - _serve(): Started server process [19256]
+2025-06-04 04:51:55 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:51:55 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:51:55 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:52:19 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:52:19 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:52:19 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:52:19 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:52:19 [INFO] uvicorn.error:93 - _serve(): Finished server process [19256]
+2025-06-04 04:52:24 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:52:30 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:52:30 [INFO] uvicorn.error:83 - _serve(): Started server process [19283]
+2025-06-04 04:52:30 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:52:30 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:52:30 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:52:36 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:52:41 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:52:41 [INFO] uvicorn.error:83 - _serve(): Started server process [19298]
+2025-06-04 04:52:41 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:52:41 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:52:41 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:52:46 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:52:54 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:52:54 [INFO] uvicorn.error:83 - _serve(): Started server process [19312]
+2025-06-04 04:52:54 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:52:54 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:52:54 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:53:15 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:53:15 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:53:15 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:53:15 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:53:15 [INFO] uvicorn.error:93 - _serve(): Finished server process [19312]
+2025-06-04 04:53:19 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:53:25 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:53:25 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-04 04:53:25 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-04 04:53:25 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-04 04:53:25 [INFO] app.config.dependency_container:147 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-04 04:53:25 [INFO] app.config.dependency_container:180 - _setup_services(): Services initialized
+2025-06-04 04:53:25 [INFO] app.config.dependency_container:185 - _setup_controllers(): Controllers setup deferred
+2025-06-04 04:53:25 [INFO] app.config.dependency_container:72 - initialize(): Dependency container initialized successfully
+2025-06-04 04:53:25 [WARNING] app.config.dependency_container:876 - _get_import_public_holiday_use_case(): Failed to create import public holiday use case: No module named 'app.application.interfaces.services.file_upload_service'
+2025-06-04 04:53:25 [WARNING] app.api.controllers.public_holiday_controller:69 - __init__(): PublicHolidayController initialized without all required use cases
+2025-06-04 04:53:26 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:53:26 [INFO] uvicorn.error:83 - _serve(): Started server process [19328]
+2025-06-04 04:53:26 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:53:26 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:53:26 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:53:33 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:53:45 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:54:19 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:54:19 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:54:19 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:54:19 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:54:19 [INFO] uvicorn.error:93 - _serve(): Finished server process [19328]
+2025-06-04 04:54:25 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:54:28 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:54:28 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-04 04:54:28 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-04 04:54:28 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-04 04:54:28 [INFO] app.config.dependency_container:147 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-04 04:54:28 [INFO] app.config.dependency_container:180 - _setup_services(): Services initialized
+2025-06-04 04:54:28 [INFO] app.config.dependency_container:185 - _setup_controllers(): Controllers setup deferred
+2025-06-04 04:54:28 [INFO] app.config.dependency_container:72 - initialize(): Dependency container initialized successfully
+2025-06-04 04:54:28 [WARNING] app.config.dependency_container:876 - _get_import_public_holiday_use_case(): Failed to create import public holiday use case: No module named 'app.application.interfaces.services.file_upload_service'
+2025-06-04 04:54:28 [WARNING] app.api.controllers.public_holiday_controller:69 - __init__(): PublicHolidayController initialized without all required use cases
+2025-06-04 04:54:28 [INFO] app.api.controllers.public_holiday_controller:74 - create_public_holiday(): Creating public holiday: Test Holiday
+2025-06-04 04:54:28 [ERROR] app.api.controllers.public_holiday_controller:83 - create_public_holiday(): Error creating public holiday: CreatePublicHolidayUseCase.execute() takes 2 positional arguments but 3 were given
+2025-06-04 04:54:32 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:54:32 [INFO] uvicorn.error:83 - _serve(): Started server process [19397]
+2025-06-04 04:54:32 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:54:32 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:54:32 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-04 04:55:18 [WARNING] app.auth.auth_dependencies:149 - role_checker(): Access denied: user superadmin lacks required role admin
+2025-06-04 04:55:18 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57316 - "POST /api/v2/public-holidays/ HTTP/1.1" 403
+2025-06-04 04:55:37 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57327 - "OPTIONS /api/v2/auth/login HTTP/1.1" 200
+2025-06-04 04:55:37 [INFO] app.api.routes.auth_routes_v2:73 - login(): Login request for user: superadmin @ localhost
+2025-06-04 04:55:38 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-04 04:55:38 [INFO] app.infrastructure.database.mongodb_connector:90 - disconnect(): MongoDB connections closed
+2025-06-04 04:55:38 [WARNING] passlib.handlers.bcrypt:622 - _load_backend_mixin(): (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-06-04 04:55:38 [INFO] app.auth.jwt_handler:37 - create_access_token(): Access token created for user: superadmin
+2025-06-04 04:55:38 [INFO] app.api.controllers.auth_controller:160 - login(): User superadmin logged in successfully
+2025-06-04 04:55:38 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57327 - "POST /api/v2/auth/login HTTP/1.1" 200
+2025-06-04 04:55:39 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57327 - "OPTIONS /api/v2/users/analytics/statistics HTTP/1.1" 200
+2025-06-04 04:55:39 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57329 - "OPTIONS /api/v2/users/analytics/statistics HTTP/1.1" 200
+2025-06-04 04:55:39 [INFO] app.config.dependency_container:63 - initialize(): Initializing dependency container...
+2025-06-04 04:55:39 [INFO] app.config.dependency_container:92 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-04 04:55:39 [INFO] app.config.dependency_container:93 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-04 04:55:39 [INFO] app.config.dependency_container:147 - _setup_repositories(): Repositories initialized with MongoDB configuration
+2025-06-04 04:55:39 [INFO] app.config.dependency_container:180 - _setup_services(): Services initialized
+2025-06-04 04:55:39 [INFO] app.config.dependency_container:185 - _setup_controllers(): Controllers setup deferred
+2025-06-04 04:55:39 [INFO] app.config.dependency_container:72 - initialize(): Dependency container initialized successfully
+2025-06-04 04:55:39 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-04 04:55:39 [INFO] app.infrastructure.repositories.mongodb_user_repository:90 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-04 04:55:39 [ERROR] app.infrastructure.repositories.mongodb_user_repository:871 - get_statistics(): Error getting user statistics: UserStatisticsDTO.__init__() got an unexpected keyword argument 'total_roles'. Did you mean 'total_users'?
+2025-06-04 04:55:39 [ERROR] app.infrastructure.services.user_service_impl:773 - get_user_statistics(): Error getting user statistics for organisation localhost: UserStatisticsDTO.__init__() got an unexpected keyword argument 'total_roles'. Did you mean 'total_users'?
+2025-06-04 04:55:39 [ERROR] app.api.controllers.user_controller:197 - get_user_statistics(): Error getting user statistics in organisation localhost: UserStatisticsDTO.__init__() got an unexpected keyword argument 'total_roles'. Did you mean 'total_users'?
+2025-06-04 04:55:39 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57327 - "GET /api/v2/users/analytics/statistics HTTP/1.1" 500
+2025-06-04 04:55:40 [ERROR] app.infrastructure.repositories.mongodb_user_repository:871 - get_statistics(): Error getting user statistics: UserStatisticsDTO.__init__() got an unexpected keyword argument 'total_roles'. Did you mean 'total_users'?
+2025-06-04 04:55:40 [ERROR] app.infrastructure.services.user_service_impl:773 - get_user_statistics(): Error getting user statistics for organisation localhost: UserStatisticsDTO.__init__() got an unexpected keyword argument 'total_roles'. Did you mean 'total_users'?
+2025-06-04 04:55:40 [ERROR] app.api.controllers.user_controller:197 - get_user_statistics(): Error getting user statistics in organisation localhost: UserStatisticsDTO.__init__() got an unexpected keyword argument 'total_roles'. Did you mean 'total_users'?
+2025-06-04 04:55:40 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57327 - "GET /api/v2/users/analytics/statistics HTTP/1.1" 500
+2025-06-04 04:55:44 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57327 - "OPTIONS /api/v2/public-holidays HTTP/1.1" 200
+2025-06-04 04:55:44 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57342 - "OPTIONS /api/v2/public-holidays HTTP/1.1" 200
+2025-06-04 04:55:44 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57327 - "GET /api/v2/public-holidays HTTP/1.1" 307
+2025-06-04 04:55:44 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57327 - "GET /api/v2/public-holidays HTTP/1.1" 307
+2025-06-04 04:55:44 [WARNING] app.config.dependency_container:876 - _get_import_public_holiday_use_case(): Failed to create import public holiday use case: No module named 'app.application.interfaces.services.file_upload_service'
+2025-06-04 04:55:44 [WARNING] app.api.controllers.public_holiday_controller:69 - __init__(): PublicHolidayController initialized without all required use cases
+2025-06-04 04:55:44 [INFO] app.api.routes.public_holiday_routes_v2:76 - get_public_holidays(): Getting public holidays with filters: year=None, month=None
+2025-06-04 04:55:44 [INFO] app.api.controllers.public_holiday_controller:89 - get_public_holidays(): Getting public holidays with filters
+2025-06-04 04:55:44 [INFO] app.application.use_cases.public_holiday.get_public_holidays_use_case:79 - get_active_holidays(): Retrieving active public holidays
+2025-06-04 04:55:44 [ERROR] app.infrastructure.repositories.mongodb_public_holiday_repository:76 - _get_collection(): Error getting public holiday collection: 'MongoDBConnector' object has no attribute 'get_database_client'
+2025-06-04 04:55:44 [ERROR] app.infrastructure.repositories.mongodb_public_holiday_repository:302 - get_all_active(): Error getting active holidays: 'MongoDBConnector' object has no attribute 'get_database_client'
+2025-06-04 04:55:44 [INFO] app.application.use_cases.public_holiday.get_public_holidays_use_case:89 - get_active_holidays(): Retrieved 0 active public holidays
+2025-06-04 04:55:44 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57327 - "GET /api/v2/public-holidays/ HTTP/1.1" 200
+2025-06-04 04:55:44 [INFO] app.api.routes.public_holiday_routes_v2:76 - get_public_holidays(): Getting public holidays with filters: year=None, month=None
+2025-06-04 04:55:44 [INFO] app.api.controllers.public_holiday_controller:89 - get_public_holidays(): Getting public holidays with filters
+2025-06-04 04:55:44 [INFO] app.application.use_cases.public_holiday.get_public_holidays_use_case:79 - get_active_holidays(): Retrieving active public holidays
+2025-06-04 04:55:44 [ERROR] app.infrastructure.repositories.mongodb_public_holiday_repository:76 - _get_collection(): Error getting public holiday collection: 'MongoDBConnector' object has no attribute 'get_database_client'
+2025-06-04 04:55:44 [ERROR] app.infrastructure.repositories.mongodb_public_holiday_repository:302 - get_all_active(): Error getting active holidays: 'MongoDBConnector' object has no attribute 'get_database_client'
+2025-06-04 04:55:44 [INFO] app.application.use_cases.public_holiday.get_public_holidays_use_case:89 - get_active_holidays(): Retrieved 0 active public holidays
+2025-06-04 04:55:44 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57342 - "GET /api/v2/public-holidays/ HTTP/1.1" 200
+2025-06-04 04:55:57 [WARNING] app.auth.auth_dependencies:149 - role_checker(): Access denied: user superadmin lacks required role admin
+2025-06-04 04:55:57 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57393 - "POST /api/v2/public-holidays/ HTTP/1.1" 403
+2025-06-04 04:58:20 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-04 04:58:20 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-04 04:58:20 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-04 04:58:20 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-04 04:58:20 [INFO] uvicorn.error:93 - _serve(): Finished server process [19397]
+2025-06-04 04:58:28 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-04 04:58:35 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-04 04:58:35 [INFO] uvicorn.error:83 - _serve(): Started server process [19481]
+2025-06-04 04:58:35 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-04 04:58:35 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-04 04:58:35 [INFO] uvicorn.error:62 - startup(): Application startup complete.

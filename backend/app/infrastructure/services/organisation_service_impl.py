@@ -163,10 +163,10 @@ class OrganisationServiceImpl(OrganisationService):
             
             if any([request.contact_email, request.contact_phone, request.contact_website, request.contact_fax]):
                 contact_info = ContactInformation(
-                    email=request.contact_email or organisation.contact_information.email,
-                    phone=request.contact_phone or organisation.contact_information.phone,
-                    website=request.contact_website or organisation.contact_information.website,
-                    fax=request.contact_fax or organisation.contact_information.fax
+                    email=request.contact_email or organisation.contact_info.email,
+                    phone=request.contact_phone or organisation.contact_info.phone,
+                    website=request.contact_website or organisation.contact_info.website,
+                    fax=request.contact_fax or organisation.contact_info.fax
                 )
                 organisation.update_contact_info(contact_info)
             
@@ -543,10 +543,10 @@ class OrganisationServiceImpl(OrganisationService):
             organisation_type=organisation.organisation_type.value,
             status=organisation.status.value,
             hostname=organisation.hostname,
-            contact_email=organisation.contact_information.email,
-            contact_phone=organisation.contact_information.phone,
-            contact_website=organisation.contact_information.website,
-            contact_fax=organisation.contact_information.fax,
+            contact_email=organisation.contact_info.email,
+            contact_phone=organisation.contact_info.phone,
+            contact_website=organisation.contact_info.website,
+            contact_fax=organisation.contact_info.fax,
             address_street=organisation.address.street_address,
             address_city=organisation.address.city,
             address_state=organisation.address.state,
@@ -571,15 +571,16 @@ class OrganisationServiceImpl(OrganisationService):
             organisation_id=str(organisation.organisation_id),
             name=organisation.name,
             organisation_type=organisation.organisation_type.value,
-            hostname=organisation.hostname,
             status=organisation.status.value,
+            email=organisation.contact_info.email if organisation.contact_info else None,
+            phone=organisation.contact_info.phone if organisation.contact_info else None,
+            city=organisation.address.city if organisation.address else None,
+            state=organisation.address.state if organisation.address else None,
             employee_strength=organisation.employee_strength,
-            employee_usage=organisation.used_employee_strength,
-            city=organisation.address.city,
-            state=organisation.address.state,
-            country=organisation.address.country,
-            created_at=organisation.created_at,
-            updated_at=organisation.updated_at
+            used_employee_strength=organisation.used_employee_strength,
+            utilization_percentage=organisation.get_employee_utilization_percentage(),
+            created_at=organisation.created_at.isoformat(),
+            is_active=organisation.is_active()
         )
 
     # ==================== MISSING ABSTRACT METHODS ====================

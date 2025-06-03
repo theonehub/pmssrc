@@ -151,6 +151,9 @@ class Organisation:
         
         if 'organisation_type' in kwargs and isinstance(kwargs['organisation_type'], str):
             kwargs['organisation_type'] = OrganisationType(kwargs['organisation_type'])
+            
+        if 'status' in kwargs and isinstance(kwargs['status'], str):
+            kwargs['status'] = OrganisationStatus(kwargs['status'])
         
         organisation = cls(**kwargs)
         organisation._is_existing_organisation = True
@@ -486,6 +489,10 @@ class Organisation:
         
         return True
     
+    def is_active(self) -> bool:
+        """Check if organisation is active"""
+        return self.status == OrganisationStatus.ACTIVE
+    
     # ==================== HELPER METHODS ====================
     
     def _validate_organisation_data(self) -> None:
@@ -547,6 +554,7 @@ class Organisation:
             "used_employee_strength": self.used_employee_strength,
             "hostname": self.hostname,
             "logo_path": self.logo_path,
+            "is_active": self.is_active(),
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
             "created_by": self.created_by,

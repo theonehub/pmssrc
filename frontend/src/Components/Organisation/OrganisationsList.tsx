@@ -336,8 +336,9 @@ const OrganisationsList: React.FC = () => {
                   }
                 }}>
                   <TableCell>Organisation Name</TableCell>
-                  <TableCell>Location</TableCell>
-                  <TableCell>Country</TableCell>
+                  <TableCell>Email</TableCell>
+                  <TableCell>Phone</TableCell>
+                  <TableCell>City</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell align="center">Employee Strength</TableCell>
                   <TableCell align="center">Used Strength</TableCell>
@@ -363,26 +364,28 @@ const OrganisationsList: React.FC = () => {
                             <Typography variant="subtitle2" fontWeight="medium">
                               {org.name}
                             </Typography>
-                            {org.contact_info.email && (
+                            {org.city && (
                               <Typography variant="caption" color="text.secondary">
-                                {org.contact_info.email}
+                                {org.city}
                               </Typography>
                             )}
                           </Box>
                         </TableCell>
                         <TableCell>
-                          <Box>
-                            <Typography variant="body2">
-                              {org.address.city}
-                            </Typography>
-                            {org.address.state && (
-                              <Typography variant="caption" color="text.secondary">
-                                {org.address.state}
-                              </Typography>
-                            )}
-                          </Box>
+                          <Typography variant="body2">
+                            {org.email || 'N/A'}
+                          </Typography>
                         </TableCell>
-                        <TableCell>{org.address.country}</TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {org.phone || 'N/A'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {org.city || 'N/A'}
+                          </Typography>
+                        </TableCell>
                         <TableCell>{renderStatusChip(org.is_active)}</TableCell>
                         <TableCell align="center">
                           <Typography variant="body2" fontWeight="medium">

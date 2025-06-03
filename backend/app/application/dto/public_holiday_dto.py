@@ -39,6 +39,13 @@ class PublicHolidayValidationError(Exception):
         super().__init__(message)
 
 
+class PublicHolidayDTOValidationError(Exception):
+    """Exception raised for public holiday DTO validation errors"""
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(message)
+
+
 class PublicHolidayBusinessRuleError(Exception):
     """Exception raised for public holiday business rule violations"""
     def __init__(self, message: str):
@@ -120,6 +127,24 @@ class PublicHolidayResponseDTO(BaseModel):
     created_by: Optional[str] = Field(None, description="Created by user")
     updated_by: Optional[str] = Field(None, description="Updated by user")
 
+    @classmethod
+    def from_domain(cls, holiday) -> 'PublicHolidayResponseDTO':
+        """Create DTO from domain entity"""
+        return cls(
+            id=holiday.holiday_id,
+            name=holiday.holiday_type.name,
+            holiday_date=holiday.date_range.start_date,
+            description=holiday.holiday_type.description,
+            category=holiday.holiday_type.category,
+            observance=holiday.holiday_type.observance,
+            recurrence=holiday.holiday_type.recurrence,
+            is_active=holiday.is_active,
+            created_at=holiday.created_at,
+            updated_at=holiday.updated_at,
+            created_by=holiday.created_by,
+            updated_by=holiday.updated_by
+        )
+
 
 class PublicHolidaySearchFiltersDTO(BaseModel):
     """DTO for public holiday search filters"""
@@ -139,6 +164,38 @@ class PublicHolidayImportResultDTO(BaseModel):
     failed_imports: int = Field(..., description="Number of failed imports")
     errors: List[str] = Field(default_factory=list, description="Import errors")
     warnings: List[str] = Field(default_factory=list, description="Import warnings")
+
+
+class PublicHolidaySummaryDTO(BaseModel):
+    """DTO for public holiday summary (lightweight version)"""
+    id: str = Field(..., description="Holiday ID")
+    name: str = Field(..., description="Holiday name")
+    holiday_date: date = Field(..., description="Holiday date")
+    category: HolidayCategory = Field(..., description="Holiday category")
+    observance: HolidayObservance = Field(..., description="Holiday observance")
+    is_active: bool = Field(..., description="Whether holiday is active")
+    
+    @classmethod
+    def from_domain(cls, holiday) -> 'PublicHolidaySummaryDTO':
+        """Create DTO from domain entity"""
+        return cls(
+            id=holiday.holiday_id,
+            name=holiday.holiday_type.name,
+            holiday_date=holiday.date_range.start_date,
+            category=holiday.holiday_type.category,
+            observance=holiday.holiday_type.observance,
+            is_active=holiday.is_active
+        )
+
+
+class HolidayCalendarDTO(BaseModel):
+    """DTO for holiday calendar data"""
+    year: int = Field(..., description="Calendar year")
+    month: Optional[int] = Field(None, description="Calendar month (if monthly view)")
+    holidays: List[Dict[str, Any]] = Field(default_factory=list, description="Holiday data")
+    total_holidays: int = Field(0, description="Total number of holidays")
+    mandatory_holidays: int = Field(0, description="Number of mandatory holidays")
+    optional_holidays: int = Field(0, description="Number of optional holidays")
 
 
 # Utility functions for DTO validation

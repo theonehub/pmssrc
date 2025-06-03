@@ -99,7 +99,7 @@ const PublicHolidays: React.FC = () => {
     }
 
     try {
-      const response = await api.get('/public-holidays');
+      const response = await api.get('/api/v2/public-holidays');
       setHolidays(response.data || []);
     } catch (error: any) {
       if (process.env.NODE_ENV === 'development') {
@@ -144,7 +144,7 @@ const PublicHolidays: React.FC = () => {
   // Event handlers
   const handleAddHoliday = async (holidayData: HolidayFormData): Promise<void> => {
     try {
-      await api.post('/public-holidays/', holidayData);
+      await api.post('/api/v2/public-holidays/', holidayData);
       fetchHolidays();
       setOpenAddDialog(false);
       showAlert('Holiday added successfully!', 'success');
@@ -161,7 +161,7 @@ const PublicHolidays: React.FC = () => {
 
   const handleEditHoliday = async (holidayId: string | number, holidayData: HolidayFormData): Promise<void> => {
     try {
-      await api.put(`/public-holidays/${holidayId}`, holidayData);
+      await api.put(`/api/v2/public-holidays/${holidayId}`, holidayData);
       fetchHolidays();
       setOpenEditDialog(false);
       setSelectedHoliday(null);
@@ -185,7 +185,7 @@ const PublicHolidays: React.FC = () => {
     if (!deleteConfirmId) return;
 
     try {
-      await api.delete(`/public-holidays/${deleteConfirmId}`);
+      await api.delete(`/api/v2/public-holidays/${deleteConfirmId}`);
       fetchHolidays();
       showAlert('Holiday deleted successfully!', 'success');
     } catch (error: any) {
@@ -206,7 +206,7 @@ const PublicHolidays: React.FC = () => {
 
   const handleImportHolidays = async (file: File): Promise<void> => {
     try {
-      await api.upload('/public-holidays/import/with-file', file);
+      await api.upload('/api/v2/public-holidays/import/with-file', file);
       fetchHolidays();
       setOpenImportDialog(false);
       showAlert('Holidays imported successfully!', 'success');

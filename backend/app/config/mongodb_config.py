@@ -1,5 +1,6 @@
 """
-MongoDB Configuration for Taxation System
+MongoDB Configuration for PMS System
+SINGLE SOURCE OF TRUTH for all MongoDB and database-related configuration
 """
 
 import os
@@ -10,7 +11,7 @@ except ImportError:
     from pydantic import BaseSettings
 
 class MongoDBSettings(BaseSettings):
-    """MongoDB configuration settings"""
+    """MongoDB configuration settings - Single source of truth for database config"""
     
     # MongoDB connection settings
     mongodb_url: str = os.getenv("MONGODB_URL", "mongodb+srv://admin:test123@mongodbtest.jhfj7s3.mongodb.net/?appName=mongodbTest")
@@ -38,11 +39,16 @@ class MongoDBSettings(BaseSettings):
         env_file = ".env"
         case_sensitive = False
 
-# Global settings instance
+# Global settings instance - SINGLE SOURCE OF TRUTH
 mongodb_settings = MongoDBSettings()
 
 def get_mongodb_connection_string() -> str:
-    """Get complete MongoDB connection string"""
+    """
+    Get complete MongoDB connection string.
+    
+    This is the SINGLE SOURCE OF TRUTH for the connection string.
+    All other modules should use this function.
+    """
     if mongodb_settings.username and mongodb_settings.password:
         # With authentication
         return (
@@ -51,12 +57,16 @@ def get_mongodb_connection_string() -> str:
             f"/{mongodb_settings.database_name}?authSource={mongodb_settings.auth_source}"
         )
     else:
-        # Without authentication
-        # return f"{mongodb_settings.mongodb_url}/{mongodb_settings.database_name}"
+        # Without authentication - use the full URL as provided
         return f"{mongodb_settings.mongodb_url}"
 
 def get_mongodb_client_options() -> Dict[str, Any]:
-    """Get MongoDB client options"""
+    """
+    Get MongoDB client options.
+    
+    This is the SINGLE SOURCE OF TRUTH for client options.
+    All other modules should use this function.
+    """
     options = {
         "maxPoolSize": mongodb_settings.max_pool_size,
         "minPoolSize": mongodb_settings.min_pool_size,
@@ -72,6 +82,14 @@ def get_mongodb_client_options() -> Dict[str, Any]:
         })
     
     return options
+
+def get_mongodb_settings() -> MongoDBSettings:
+    """
+    Get the MongoDB settings instance.
+    
+    This provides access to all MongoDB configuration settings.
+    """
+    return mongodb_settings
 
 # Tax calculation configuration
 TAX_CALCULATION_CONFIG = {
@@ -193,7 +211,15 @@ VALIDATION_SCHEMAS = {
 }
 
 def get_database_config() -> Dict[str, Any]:
-    """Get complete database configuration"""
+    """
+    Get complete database configuration.
+    
+    This is the SINGLE SOURCE OF TRUTH for all database configuration.
+    All other modules should use this function to get database config.
+    
+    Returns:
+        Complete database configuration dictionary
+    """
     return {
         "connection_string": get_mongodb_connection_string(),
         "database_name": mongodb_settings.database_name,
@@ -201,5 +227,27 @@ def get_database_config() -> Dict[str, Any]:
         "collection_names": COLLECTION_NAMES,
         "index_definitions": INDEX_DEFINITIONS,
         "validation_schemas": VALIDATION_SCHEMAS,
-        "tax_calculation_config": TAX_CALCULATION_CONFIG
-    } 
+        "tax_calculation_config": TAX_CALCULATION_CONFIG,
+        "settings": mongodb_settings
+    }
+
+def validate_mongodb_config() -> bool:
+    """
+    Validate MongoDB configuration.
+    
+    Returns:
+        True if configuration is valid
+        
+    Raises:
+        ValueError: If configuration is invalid
+    """
+    if not mongodb_settings.mongodb_url:
+        raise ValueError("MongoDB URL is required")
+    
+    if not mongodb_settings.database_name:
+        raise ValueError("Database name is required")
+    
+    if mongodb_settings.max_pool_size <= mongodb_settings.min_pool_size:
+        raise ValueError("Max pool size must be greater than min pool size")
+    
+    return True 

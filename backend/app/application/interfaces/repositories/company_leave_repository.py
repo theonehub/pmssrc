@@ -8,7 +8,7 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 from app.domain.entities.company_leave import CompanyLeave
-from app.domain.value_objects.leave_type import LeaveType
+from app.application.dto.company_leave_dto import CompanyLeaveSearchFiltersDTO
 
 
 class CompanyLeaveCommandRepository(ABC):
@@ -24,7 +24,7 @@ class CompanyLeaveCommandRepository(ABC):
     """
     
     @abstractmethod
-    def save(self, company_leave: CompanyLeave) -> bool:
+    async def save(self, company_leave: CompanyLeave) -> bool:
         """
         Save company leave record.
         
@@ -37,7 +37,7 @@ class CompanyLeaveCommandRepository(ABC):
         pass
     
     @abstractmethod
-    def update(self, company_leave: CompanyLeave) -> bool:
+    async def update(self, company_leave: CompanyLeave) -> bool:
         """
         Update existing company leave record.
         
@@ -50,7 +50,7 @@ class CompanyLeaveCommandRepository(ABC):
         pass
     
     @abstractmethod
-    def delete(self, company_leave_id: str) -> bool:
+    async def delete(self, company_leave_id: str) -> bool:
         """
         Delete company leave record.
         
@@ -69,7 +69,7 @@ class CompanyLeaveQueryRepository(ABC):
     """
     
     @abstractmethod
-    def get_by_id(self, company_leave_id: str) -> Optional[CompanyLeave]:
+    async def get_by_id(self, company_leave_id: str) -> Optional[CompanyLeave]:
         """
         Get company leave by ID.
         
@@ -82,20 +82,7 @@ class CompanyLeaveQueryRepository(ABC):
         pass
     
     @abstractmethod
-    def get_by_leave_type_code(self, leave_type_code: str) -> Optional[CompanyLeave]:
-        """
-        Get company leave by leave type code.
-        
-        Args:
-            leave_type_code: Leave type code (e.g., "CL", "SL")
-            
-        Returns:
-            CompanyLeave entity if found, None otherwise
-        """
-        pass
-    
-    @abstractmethod
-    def get_all_active(self) -> List[CompanyLeave]:
+    async def get_all_active(self) -> List[CompanyLeave]:
         """
         Get all active company leaves.
         
@@ -105,7 +92,7 @@ class CompanyLeaveQueryRepository(ABC):
         pass
     
     @abstractmethod
-    def get_all(self, include_inactive: bool = False) -> List[CompanyLeave]:
+    async def get_all(self, include_inactive: bool = False) -> List[CompanyLeave]:
         """
         Get all company leaves.
         
@@ -118,32 +105,38 @@ class CompanyLeaveQueryRepository(ABC):
         pass
     
     @abstractmethod
-    def get_applicable_for_employee(
-        self,
-        employee_gender: Optional[str] = None,
-        employee_category: Optional[str] = None,
-        is_on_probation: bool = False
-    ) -> List[CompanyLeave]:
+    async def list_with_filters(self, filters: CompanyLeaveSearchFiltersDTO) -> List[CompanyLeave]:
         """
-        Get company leaves applicable for employee.
+        Get company leaves with filters and pagination.
         
         Args:
-            employee_gender: Employee gender
-            employee_category: Employee category
-            is_on_probation: Whether employee is on probation
+            filters: Search filters and pagination parameters
             
         Returns:
-            List of applicable CompanyLeave entities
+            List of CompanyLeave entities matching filters
         """
         pass
     
     @abstractmethod
-    def exists_by_leave_type_code(self, leave_type_code: str) -> bool:
+    async def count_with_filters(self, filters: CompanyLeaveSearchFiltersDTO) -> int:
         """
-        Check if company leave exists for leave type code.
+        Count company leaves matching filters.
         
         Args:
-            leave_type_code: Leave type code
+            filters: Search filters
+            
+        Returns:
+            Number of company leaves matching filters
+        """
+        pass
+    
+    @abstractmethod
+    async def exists_by_id(self, company_leave_id: str) -> bool:
+        """
+        Check if company leave exists by ID.
+        
+        Args:
+            company_leave_id: Company leave identifier
             
         Returns:
             True if exists, False otherwise
@@ -151,7 +144,7 @@ class CompanyLeaveQueryRepository(ABC):
         pass
     
     @abstractmethod
-    def count_active(self) -> int:
+    async def count_active(self) -> int:
         """
         Count active company leaves.
         
@@ -161,51 +154,9 @@ class CompanyLeaveQueryRepository(ABC):
         pass
 
 
-class CompanyLeaveAnalyticsRepository(ABC):
+class CompanyLeaveRepository(CompanyLeaveCommandRepository, CompanyLeaveQueryRepository):
     """
-    Analytics repository interface for company leave reporting and analytics.
+    Unified repository interface that combines both command and query operations.
+    This is what some implementations prefer to use instead of separate interfaces.
     """
-    
-    @abstractmethod
-    def get_leave_type_usage_stats(
-        self,
-        from_date: Optional[datetime] = None,
-        to_date: Optional[datetime] = None
-    ) -> List[Dict[str, Any]]:
-        """
-        Get leave type usage statistics.
-        
-        Args:
-            from_date: Start date for analysis
-            to_date: End date for analysis
-            
-        Returns:
-            List of usage statistics per leave type
-        """
-        pass
-    
-    @abstractmethod
-    def get_policy_compliance_report(self) -> List[Dict[str, Any]]:
-        """
-        Get policy compliance report.
-        
-        Returns:
-            List of compliance metrics per leave type
-        """
-        pass
-    
-    @abstractmethod
-    def get_leave_trends(
-        self,
-        period: str = "monthly"  # "daily", "weekly", "monthly", "quarterly"
-    ) -> List[Dict[str, Any]]:
-        """
-        Get leave application trends.
-        
-        Args:
-            period: Aggregation period
-            
-        Returns:
-            List of trend data
-        """
-        pass 
+    pass

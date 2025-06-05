@@ -1,204 +1,150 @@
 """
-SOLID-Compliant Company Leave Routes
-Clean API layer following SOLID principles
+Company Leave API Routes
+FastAPI route definitions for company leave management
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Path
-from fastapi.responses import JSONResponse
-from typing import List, Optional
 import logging
+from typing import Optional
 from datetime import datetime
 
-from app.api.controllers.company_leave_controller import CompanyLeaveController
+from fastapi import APIRouter, HTTPException, Depends, Query, Path
+from fastapi.responses import JSONResponse
+
 from app.application.dto.company_leave_dto import (
-    CompanyLeaveCreateRequestDTO,
-    CompanyLeaveUpdateRequestDTO,
+    CreateCompanyLeaveRequestDTO,
+    UpdateCompanyLeaveRequestDTO,
+    CompanyLeaveSearchFiltersDTO,
     CompanyLeaveResponseDTO,
-    CompanyLeaveDTOValidationError,
-    InvalidCompanyLeaveDataError
+    CompanyLeaveListResponseDTO,
+    CompanyLeaveValidationError,
+    CompanyLeaveBusinessRuleError,
+    CompanyLeaveNotFoundError,
+    CompanyLeaveConflictError
 )
-from app.auth.auth_dependencies import CurrentUser, get_current_user, require_role
-from app.config.dependency_container import get_dependency_container
+from app.auth.auth_dependencies import CurrentUser, get_current_user
+from app.config.dependency_container import get_company_leave_controller
+from app.api.controllers.company_leave_controller import CompanyLeaveController
+
 
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(prefix="/api/v2/company-leaves", tags=["Company Leaves V2 (SOLID)"])
+router = APIRouter(prefix="/api/v2/company-leaves", tags=["company-leaves"])
 
-# Create simple DTO for search filters
-from pydantic import BaseModel
-
-class CompanyLeaveSearchFiltersDTO(BaseModel):
-    """DTO for company leave search filters"""
-    leave_type: Optional[str] = None
-    active_only: bool = True
-    skip: int = 0
-    limit: int = 100
-
-# Create simple exception classes for business logic
-class CompanyLeaveValidationError(Exception):
-    """Exception for validation errors"""
-    pass
-
-class CompanyLeaveBusinessRuleError(Exception):
-    """Exception for business rule violations"""
-    pass
-
-class CompanyLeaveNotFoundError(Exception):
-    """Exception when company leave is not found"""
-    pass
-
-
-def get_company_leave_controller() -> CompanyLeaveController:
-    """Dependency injection for company leave controller"""
-    try:
-        container = get_dependency_container()
-        return container.get_company_leave_controller()
-    except Exception as e:
-        logger.warning(f"Could not get company leave controller from container: {e}")
-        # Fallback to direct instantiation
-        return CompanyLeaveController()
-
-
-# ==================== COMPANY LEAVE ENDPOINTS ====================
 
 @router.post("/", response_model=CompanyLeaveResponseDTO)
 async def create_company_leave(
-    request: CompanyLeaveCreateRequestDTO,
-    current_user: CurrentUser = Depends(get_current_user),
-    role: str = Depends(require_role("admin")),
-    controller: CompanyLeaveController = Depends(get_company_leave_controller)
-):
-    """Create a new company leave policy"""
-    try:
-        logger.info(f"Creating company leave: {request.leave_type_name} by {current_user.employee_id}")
-        
-        response = await controller.create_company_leave(
-            request, 
-            current_user.employee_id, 
-            current_user.hostname
-        )
-        
-        return response
-        
-    except CompanyLeaveValidationError as e:
-        logger.warning(f"Validation error creating company leave: {e}")
-        raise HTTPException(status_code=400, detail={"error": "validation_error", "message": str(e)})
-    
-    except CompanyLeaveBusinessRuleError as e:
-        logger.warning(f"Business rule error creating company leave: {e}")
-        raise HTTPException(status_code=422, detail={"error": "business_rule_error", "message": str(e)})
-    
-    except Exception as e:
-        logger.error(f"Unexpected error creating company leave: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.get("/", response_model=List[CompanyLeaveResponseDTO])
-async def get_company_leaves(
-    leave_type: Optional[str] = Query(None, description="Filter by leave type"),
-    active_only: bool = Query(True, description="Return only active leave policies"),
-    skip: int = Query(0, ge=0, description="Number of records to skip"),
-    limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
+    request: CreateCompanyLeaveRequestDTO,
     current_user: CurrentUser = Depends(get_current_user),
     controller: CompanyLeaveController = Depends(get_company_leave_controller)
 ):
-    """Get company leave policies with optional filters"""
-    try:
-        logger.info(f"Getting company leaves with filters: leave_type={leave_type}")
-        
-        filters = CompanyLeaveSearchFiltersDTO(
-            leave_type=leave_type,
-            active_only=active_only,
-            skip=skip,
-            limit=limit
+    """Create a new company leave"""
+    return await controller.create_company_leave(request, current_user)
+
+
+@router.get("/", response_model=CompanyLeaveListResponseDTO)
+async def list_company_leaves(
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
+    is_active: Optional[bool] = Query(None, description="Filter by active status"),
+    accrual_type: Optional[str] = Query(None, description="Filter by accrual type"),
+    sort_by: Optional[str] = Query("created_at", description="Sort field"),
+    sort_order: Optional[str] = Query("desc", description="Sort order (asc/desc)"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: CompanyLeaveController = Depends(get_company_leave_controller)
+):
+    """List company leaves with optional filters and pagination"""
+    return await controller.list_company_leaves(
+        CompanyLeaveSearchFiltersDTO(
+            page=page,
+            page_size=page_size,
+            is_active=is_active,
+            accrual_type=accrual_type,
+            sort_by=sort_by,
+            sort_order=sort_order
         )
-        
-        response = await controller.get_company_leaves(filters, current_user.hostname)
-        
-        return response
-        
-    except Exception as e:
-        logger.error(f"Error getting company leaves: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+    )
 
 
-@router.get("/{leave_id}", response_model=CompanyLeaveResponseDTO)
+@router.get("/{company_leave_id}", response_model=CompanyLeaveResponseDTO)
 async def get_company_leave(
-    leave_id: str = Path(..., description="Company leave ID"),
+    company_leave_id: str = Path(..., description="Company Leave ID"),
     current_user: CurrentUser = Depends(get_current_user),
     controller: CompanyLeaveController = Depends(get_company_leave_controller)
 ):
-    """Get a specific company leave policy by ID"""
+    """Get company leave by ID"""
     try:
-        logger.info(f"Getting company leave: {leave_id}")
-        
-        response = await controller.get_company_leave(leave_id, current_user.hostname)
+        response = await controller.get_company_leave_by_id(company_leave_id)
         
         if not response:
-            raise HTTPException(status_code=404, detail="Company leave policy not found")
+            raise HTTPException(status_code=404, detail="Company leave not found")
         
         return response
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting company leave {leave_id}: {e}")
+        logger.error(f"Error getting company leave {company_leave_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.put("/{leave_id}", response_model=CompanyLeaveResponseDTO)
+@router.put("/{company_leave_id}", response_model=CompanyLeaveResponseDTO)
 async def update_company_leave(
-    request: CompanyLeaveUpdateRequestDTO,
-    leave_id: str = Path(..., description="Company leave ID"),
+    company_leave_id: str = Path(..., description="Company Leave ID"),
+    request: UpdateCompanyLeaveRequestDTO = None,
     current_user: CurrentUser = Depends(get_current_user),
-    role: str = Depends(require_role("admin")),
     controller: CompanyLeaveController = Depends(get_company_leave_controller)
 ):
-    """Update an existing company leave policy"""
+    """Update an existing company leave"""
     try:
-        logger.info(f"Updating company leave: {leave_id} by {current_user.employee_id}")
-        
         response = await controller.update_company_leave(
-            leave_id, request, current_user.employee_id, current_user.hostname
+            company_leave_id=company_leave_id,
+            request=request,
+            updated_by=current_user.employee_id
         )
         
         return response
         
     except CompanyLeaveNotFoundError as e:
-        logger.warning(f"Company leave not found: {e}")
+        logger.warning(f"Company leave not found for update: {e}")
         raise HTTPException(status_code=404, detail={"error": "not_found", "message": str(e)})
     
     except CompanyLeaveValidationError as e:
         logger.warning(f"Validation error updating company leave: {e}")
         raise HTTPException(status_code=400, detail={"error": "validation_error", "message": str(e)})
     
+    except CompanyLeaveConflictError as e:
+        logger.warning(f"Conflict error updating company leave: {e}")
+        raise HTTPException(status_code=409, detail={"error": "conflict_error", "message": str(e)})
+    
     except CompanyLeaveBusinessRuleError as e:
         logger.warning(f"Business rule error updating company leave: {e}")
         raise HTTPException(status_code=422, detail={"error": "business_rule_error", "message": str(e)})
     
     except Exception as e:
-        logger.error(f"Unexpected error updating company leave: {e}")
+        logger.error(f"Unexpected error updating company leave {company_leave_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.delete("/{leave_id}")
+@router.delete("/{company_leave_id}")
 async def delete_company_leave(
-    leave_id: str = Path(..., description="Company leave ID"),
+    company_leave_id: str = Path(..., description="Company Leave ID"),
+    force: bool = Query(False, description="Force deletion even if business rules prevent it"),
     current_user: CurrentUser = Depends(get_current_user),
-    role: str = Depends(require_role("admin")),
     controller: CompanyLeaveController = Depends(get_company_leave_controller)
 ):
-    """Delete (deactivate) a company leave policy"""
+    """Delete company leave"""
     try:
-        logger.info(f"Deleting company leave: {leave_id} by {current_user.employee_id}")
+        await controller.delete_company_leave(
+            company_leave_id=company_leave_id,
+            force=force,
+            deleted_by=current_user.employee_id
+        )
         
-        await controller.delete_company_leave(leave_id, current_user.employee_id, current_user.hostname)
-        
-        return {"message": "Company leave policy deleted successfully"}
+        return {"message": "Company leave deleted successfully"}
         
     except CompanyLeaveNotFoundError as e:
-        logger.warning(f"Company leave not found: {e}")
+        logger.warning(f"Company leave not found for deletion: {e}")
         raise HTTPException(status_code=404, detail={"error": "not_found", "message": str(e)})
     
     except CompanyLeaveBusinessRuleError as e:
@@ -206,104 +152,11 @@ async def delete_company_leave(
         raise HTTPException(status_code=422, detail={"error": "business_rule_error", "message": str(e)})
     
     except Exception as e:
-        logger.error(f"Unexpected error deleting company leave: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.get("/types/available", response_model=List[str])
-async def get_available_leave_types(
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: CompanyLeaveController = Depends(get_company_leave_controller)
-):
-    """Get all available leave types for the organisation"""
-    try:
-        logger.info("Getting available leave types")
-        
-        response = await controller.get_available_leave_types(current_user.hostname)
-        
-        return response
-        
-    except Exception as e:
-        logger.error(f"Error getting available leave types: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.get("/employee/{employee_id}/entitlements", response_model=List[CompanyLeaveResponseDTO])
-async def get_employee_leave_entitlements(
-    employee_id: str = Path(..., description="Employee ID"),
-    current_user: CurrentUser = Depends(get_current_user),
-    role: str = Depends(require_role("admin")),
-    controller: CompanyLeaveController = Depends(get_company_leave_controller)
-):
-    """Get leave entitlements for a specific employee"""
-    try:
-        logger.info(f"Getting leave entitlements for employee: {employee_id}")
-        
-        # Check if user can access this employee's data
-        if role not in ["admin", "superadmin"] and employee_id != current_user.employee_id:
-            # For managers, check if they manage this employee
-            if role == "manager":
-                # This would need to be implemented based on your manager-employee relationship logic
-                pass
-            else:
-                raise HTTPException(status_code=403, detail="Access denied")
-        
-        response = await controller.get_employee_leave_entitlements(employee_id, current_user.hostname)
-        
-        return response
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error getting employee leave entitlements: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.get("/my/entitlements", response_model=List[CompanyLeaveResponseDTO])
-async def get_my_leave_entitlements(
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: CompanyLeaveController = Depends(get_company_leave_controller)
-):
-    """Get my leave entitlements"""
-    try:
-        logger.info(f"Getting leave entitlements for current user: {current_user.employee_id}")
-        
-        response = await controller.get_employee_leave_entitlements(current_user.employee_id, current_user.hostname)
-        
-        return response
-        
-    except Exception as e:
-        logger.error(f"Error getting my leave entitlements: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.get("/analytics/usage", response_model=dict)
-async def get_leave_usage_analytics(
-    year: Optional[int] = Query(None, description="Filter by year"),
-    leave_type: Optional[str] = Query(None, description="Filter by leave type"),
-    current_user: CurrentUser = Depends(get_current_user),
-    role: str = Depends(require_role("admin")),
-    controller: CompanyLeaveController = Depends(get_company_leave_controller)
-):
-    """Get leave usage analytics"""
-    try:
-        logger.info(f"Getting leave usage analytics for year: {year}, leave_type: {leave_type}")
-        
-        response = await controller.get_leave_usage_analytics(
-            year=year,
-            leave_type=leave_type,
-            manager_id=current_user.employee_id if role == "manager" else None,
-            hostname=current_user.hostname
-        )
-        
-        return response
-        
-    except Exception as e:
-        logger.error(f"Error getting leave usage analytics: {e}")
+        logger.error(f"Unexpected error deleting company leave {company_leave_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "service": "company_leaves_v2"} 
+    return {"status": "healthy", "service": "company-leaves"} 

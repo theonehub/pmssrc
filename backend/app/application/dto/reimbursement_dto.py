@@ -525,4 +525,30 @@ def create_reimbursement_response_from_entity(entity, reimbursement_type_entity)
         payment_reference=entity.payment.payment_reference if entity.payment else None,
         created_by=entity.created_by,
         updated_by=entity.updated_by
-    ) 
+    )
+
+
+# Aliases for backward compatibility and consistent naming
+CreateReimbursementTypeRequestDTO = ReimbursementTypeCreateRequestDTO
+CreateReimbursementRequestDTO = ReimbursementRequestCreateDTO
+ApproveReimbursementRequestDTO = ReimbursementApprovalDTO
+
+# Additional response DTOs for list operations
+@dataclass
+class ReimbursementListResponseDTO:
+    """DTO for reimbursement list responses"""
+    
+    reimbursements: List[ReimbursementSummaryDTO]
+    total_count: int
+    page: int = 1
+    page_size: int = 20
+    total_pages: int = 1
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "reimbursements": [r.to_dict() for r in self.reimbursements],
+            "total_count": self.total_count,
+            "page": self.page,
+            "page_size": self.page_size,
+            "total_pages": self.total_pages
+        } 

@@ -48,7 +48,7 @@ import api from '../../utils/apiUtils';
 interface PublicHoliday {
   holiday_id: string | number;
   name: string;
-  date: string;
+  holiday_date: string;
   description?: string;
   created_by?: string;
   created_at?: string;
@@ -57,7 +57,7 @@ interface PublicHoliday {
 
 interface HolidayFormData {
   name: string;
-  date: string;
+  holiday_date: string;
   description?: string;
 }
 
@@ -122,7 +122,7 @@ const PublicHolidays: React.FC = () => {
       const filtered = holidays.filter(holiday =>
         holiday.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         holiday.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        new Date(holiday.date).toLocaleDateString().includes(searchTerm)
+        new Date(holiday.holiday_date).toLocaleDateString().includes(searchTerm)
       );
       setFilteredHolidays(filtered);
     }
@@ -399,7 +399,7 @@ const PublicHolidays: React.FC = () => {
                   renderTableSkeleton()
                 ) : filteredHolidays.length > 0 ? (
                   filteredHolidays.map((holiday) => {
-                    const { formatted: formattedDate, isUpcoming } = formatDate(holiday.date);
+                    const { formatted: formattedDate, isUpcoming } = formatDate(holiday.holiday_date);
                     return (
                       <Fade in key={holiday.holiday_id} timeout={300}>
                         <TableRow 

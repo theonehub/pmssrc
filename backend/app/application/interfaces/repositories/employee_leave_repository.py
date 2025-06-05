@@ -7,9 +7,7 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any
 from datetime import datetime, date
 
-from app.domain.entities.employee_leave import EmployeeLeave, LeaveStatus
-from app.domain.value_objects.employee_id import EmployeeId
-from app.domain.value_objects.date_range import DateRange
+from app.domain.entities.employee_leave import EmployeeLeave
 from app.application.dto.employee_leave_dto import EmployeeLeaveSearchFiltersDTO
 
 
@@ -26,60 +24,42 @@ class EmployeeLeaveCommandRepository(ABC):
     """
     
     @abstractmethod
-    def save(self, employee_leave: EmployeeLeave) -> bool:
+    async def save(self, employee_leave: EmployeeLeave, organisation_id: Optional[str] = None) -> EmployeeLeave:
         """
         Save employee leave application.
         
         Args:
             employee_leave: Employee leave entity to save
+            organisation_id: Organisation identifier
             
         Returns:
-            True if successful, False otherwise
+            Saved EmployeeLeave entity
         """
         pass
     
     @abstractmethod
-    def update(self, employee_leave: EmployeeLeave) -> bool:
+    async def save_batch(self, employee_leaves: List[EmployeeLeave], organisation_id: Optional[str] = None) -> List[EmployeeLeave]:
         """
-        Update existing employee leave application.
+        Save multiple employee leave applications in batch.
         
         Args:
-            employee_leave: Employee leave entity to update
+            employee_leaves: List of employee leave entities to save
+            organisation_id: Organisation identifier
             
         Returns:
-            True if successful, False otherwise
+            List of saved EmployeeLeave entities
         """
         pass
     
     @abstractmethod
-    def delete(self, leave_id: str) -> bool:
+    async def delete(self, leave_id: str, soft_delete: bool = True, organisation_id: Optional[str] = None) -> bool:
         """
         Delete employee leave application.
         
         Args:
             leave_id: Leave application identifier
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        pass
-    
-    @abstractmethod
-    def update_status(
-        self, 
-        leave_id: str, 
-        status: LeaveStatus, 
-        approved_by: str,
-        comments: Optional[str] = None
-    ) -> bool:
-        """
-        Update leave application status.
-        
-        Args:
-            leave_id: Leave application identifier
-            status: New status
-            approved_by: User who approved/rejected
-            comments: Approval/rejection comments
+            soft_delete: Whether to soft delete (mark as deleted) or hard delete
+            organisation_id: Organisation identifier
             
         Returns:
             True if successful, False otherwise
@@ -93,12 +73,13 @@ class EmployeeLeaveQueryRepository(ABC):
     """
     
     @abstractmethod
-    def get_by_id(self, leave_id: str) -> Optional[EmployeeLeave]:
+    async def get_by_id(self, leave_id: str, organisation_id: Optional[str] = None) -> Optional[EmployeeLeave]:
         """
         Get employee leave by ID.
         
         Args:
             leave_id: Leave application identifier
+            organisation_id: Organisation identifier
             
         Returns:
             EmployeeLeave entity if found, None otherwise
@@ -106,19 +87,13 @@ class EmployeeLeaveQueryRepository(ABC):
         pass
     
     @abstractmethod
-    def get_by_employee_id(
-        self, 
-        employee_id: EmployeeId,
-        status_filter: Optional[LeaveStatus] = None,
-        limit: Optional[int] = None
-    ) -> List[EmployeeLeave]:
+    async def get_by_employee_id(self, employee_id: str, organisation_id: Optional[str] = None) -> List[EmployeeLeave]:
         """
         Get employee leaves by employee ID.
         
         Args:
             employee_id: Employee identifier
-            status_filter: Optional status filter
-            limit: Optional limit on results
+            organisation_id: Organisation identifier
             
         Returns:
             List of EmployeeLeave entities
@@ -126,39 +101,47 @@ class EmployeeLeaveQueryRepository(ABC):
         pass
     
     @abstractmethod
-    def get_by_manager_id(
-        self, 
-        manager_id: str,
-        status_filter: Optional[LeaveStatus] = None,
-        limit: Optional[int] = None
-    ) -> List[EmployeeLeave]:
+    async def get_by_status(self, status: str, organisation_id: Optional[str] = None) -> List[EmployeeLeave]:
         """
-        Get employee leaves by manager ID.
+        Get employee leaves by status.
         
         Args:
-            manager_id: Manager identifier
-            status_filter: Optional status filter
-            limit: Optional limit on results
+            status: Leave status (pending, approved, rejected, cancelled)
+            organisation_id: Organisation identifier
             
         Returns:
-            List of EmployeeLeave entities for employees under the manager
+            List of EmployeeLeave entities with the specified status
         """
         pass
     
     @abstractmethod
-    def get_by_date_range(
+    async def get_by_leave_name(self, leave_name: str, organisation_id: Optional[str] = None) -> List[EmployeeLeave]:
+        """
+        Get employee leaves by leave name.
+        
+        Args:
+            leave_name: Leave name/type
+            organisation_id: Organisation identifier
+            
+        Returns:
+            List of EmployeeLeave entities with the specified leave name
+        """
+        pass
+    
+    @abstractmethod
+    async def get_by_date_range(
         self, 
-        date_range: DateRange,
-        employee_id: Optional[EmployeeId] = None,
-        status_filter: Optional[LeaveStatus] = None
+        start_date: date, 
+        end_date: date, 
+        organisation_id: Optional[str] = None
     ) -> List[EmployeeLeave]:
         """
         Get employee leaves by date range.
         
         Args:
-            date_range: Date range to search
-            employee_id: Optional employee filter
-            status_filter: Optional status filter
+            start_date: Start date of range
+            end_date: End date of range
+            organisation_id: Organisation identifier
             
         Returns:
             List of EmployeeLeave entities within the date range
@@ -166,138 +149,80 @@ class EmployeeLeaveQueryRepository(ABC):
         pass
     
     @abstractmethod
-    def get_by_month(
+    async def get_all(
         self, 
-        employee_id: EmployeeId,
-        month: int,
-        year: int
+        skip: int = 0, 
+        limit: int = 100,
+        include_deleted: bool = False,
+        organisation_id: Optional[str] = None
     ) -> List[EmployeeLeave]:
         """
-        Get employee leaves for a specific month.
+        Get all employee leaves with pagination.
         
         Args:
-            employee_id: Employee identifier
-            month: Month (1-12)
-            year: Year
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+            include_deleted: Whether to include soft-deleted records
+            organisation_id: Organisation identifier
             
         Returns:
-            List of EmployeeLeave entities for the month
+            List of EmployeeLeave entities
         """
         pass
     
     @abstractmethod
-    def get_overlapping_leaves(
-        self, 
-        employee_id: EmployeeId,
-        date_range: DateRange,
-        exclude_leave_id: Optional[str] = None
-    ) -> List[EmployeeLeave]:
-        """
-        Get leaves that overlap with the given date range.
-        
-        Args:
-            employee_id: Employee identifier
-            date_range: Date range to check for overlaps
-            exclude_leave_id: Optional leave ID to exclude from results
-            
-        Returns:
-            List of overlapping EmployeeLeave entities
-        """
-        pass
-    
-    @abstractmethod
-    def get_pending_approvals(
-        self, 
-        manager_id: Optional[str] = None,
-        limit: Optional[int] = None
-    ) -> List[EmployeeLeave]:
-        """
-        Get pending leave approvals.
-        
-        Args:
-            manager_id: Optional manager filter
-            limit: Optional limit on results
-            
-        Returns:
-            List of pending EmployeeLeave entities
-        """
-        pass
-    
-    @abstractmethod
-    def search(
-        self,
-        employee_id: Optional[EmployeeId] = None,
-        manager_id: Optional[str] = None,
-        leave_type: Optional[str] = None,
-        status: Optional[LeaveStatus] = None,
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None,
-        month: Optional[int] = None,
-        year: Optional[int] = None,
-        skip: int = 0,
-        limit: int = 100
-    ) -> List[EmployeeLeave]:
+    async def search(self, filters: EmployeeLeaveSearchFiltersDTO, organisation_id: Optional[str] = None) -> List[EmployeeLeave]:
         """
         Search employee leaves with filters.
         
         Args:
-            employee_id: Optional employee filter
-            manager_id: Optional manager filter
-            leave_type: Optional leave type filter
-            status: Optional status filter
-            start_date: Optional start date filter
-            end_date: Optional end date filter
-            month: Optional month filter
-            year: Optional year filter
-            skip: Number of records to skip
-            limit: Maximum number of records to return
+            filters: Search filters
+            organisation_id: Organisation identifier
             
         Returns:
-            List of matching EmployeeLeave entities
+            List of EmployeeLeave entities matching the filters
         """
         pass
     
     @abstractmethod
-    def count_by_filters(
-        self,
-        employee_id: Optional[EmployeeId] = None,
-        manager_id: Optional[str] = None,
-        leave_type: Optional[str] = None,
-        status: Optional[LeaveStatus] = None,
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None,
-        month: Optional[int] = None,
-        year: Optional[int] = None
-    ) -> int:
+    async def count_total(self, include_deleted: bool = False, organisation_id: Optional[str] = None) -> int:
         """
-        Count employee leaves matching filters.
+        Count total employee leaves.
         
         Args:
-            employee_id: Optional employee filter
-            manager_id: Optional manager filter
-            leave_type: Optional leave type filter
-            status: Optional status filter
-            start_date: Optional start date filter
-            end_date: Optional end date filter
-            month: Optional month filter
-            year: Optional year filter
+            include_deleted: Whether to include soft-deleted records
+            organisation_id: Organisation identifier
             
         Returns:
-            Count of matching records
+            Total count of employee leaves
+        """
+        pass
+    
+    @abstractmethod
+    async def count_by_status(self, status: str, organisation_id: Optional[str] = None) -> int:
+        """
+        Count employee leaves by status.
+        
+        Args:
+            status: Leave status
+            organisation_id: Organisation identifier
+            
+        Returns:
+            Count of employee leaves with the specified status
         """
         pass
 
 
 class EmployeeLeaveAnalyticsRepository(ABC):
     """
-    Analytics repository interface for employee leave reporting and analytics.
+    Analytics repository interface for employee leave analytics and reporting.
     """
     
     @abstractmethod
-    def get_leave_statistics(
+    async def get_leave_statistics(
         self,
-        employee_id: Optional[EmployeeId] = None,
-        manager_id: Optional[str] = None,
+        employee_id: Optional[str] = None,
+        organisation_id: Optional[str] = None,
         year: Optional[int] = None
     ) -> Dict[str, Any]:
         """
@@ -305,7 +230,7 @@ class EmployeeLeaveAnalyticsRepository(ABC):
         
         Args:
             employee_id: Optional employee filter
-            manager_id: Optional manager filter
+            organisation_id: Organisation identifier
             year: Optional year filter
             
         Returns:
@@ -314,30 +239,30 @@ class EmployeeLeaveAnalyticsRepository(ABC):
         pass
     
     @abstractmethod
-    def get_leave_type_breakdown(
+    async def get_leave_name_breakdown(
         self,
-        employee_id: Optional[EmployeeId] = None,
-        manager_id: Optional[str] = None,
+        employee_id: Optional[str] = None,
+        organisation_id: Optional[str] = None,
         year: Optional[int] = None
     ) -> Dict[str, int]:
         """
-        Get leave type breakdown.
+        Get leave breakdown by leave name.
         
         Args:
             employee_id: Optional employee filter
-            manager_id: Optional manager filter
+            organisation_id: Organisation identifier
             year: Optional year filter
             
         Returns:
-            Dictionary mapping leave types to counts
+            Dictionary mapping leave names to counts
         """
         pass
     
     @abstractmethod
-    def get_monthly_leave_trends(
+    async def get_monthly_leave_trends(
         self,
-        employee_id: Optional[EmployeeId] = None,
-        manager_id: Optional[str] = None,
+        employee_id: Optional[str] = None,
+        organisation_id: Optional[str] = None,
         year: Optional[int] = None
     ) -> Dict[str, int]:
         """
@@ -345,120 +270,34 @@ class EmployeeLeaveAnalyticsRepository(ABC):
         
         Args:
             employee_id: Optional employee filter
-            manager_id: Optional manager filter
+            organisation_id: Organisation identifier
             year: Optional year filter
             
         Returns:
             Dictionary mapping months to leave counts
         """
         pass
-    
-    @abstractmethod
-    def get_team_leave_summary(
-        self,
-        manager_id: str,
-        month: Optional[int] = None,
-        year: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
-        """
-        Get team leave summary for a manager.
-        
-        Args:
-            manager_id: Manager identifier
-            month: Optional month filter
-            year: Optional year filter
-            
-        Returns:
-            List of team member leave summaries
-        """
-        pass
-    
-    @abstractmethod
-    def calculate_lwp_for_employee(
-        self,
-        employee_id: EmployeeId,
-        month: int,
-        year: int
-    ) -> int:
-        """
-        Calculate Leave Without Pay (LWP) for an employee.
-        
-        Args:
-            employee_id: Employee identifier
-            month: Month (1-12)
-            year: Year
-            
-        Returns:
-            Number of LWP days
-        """
-        pass
 
 
-class EmployeeLeaveBalanceRepository(ABC):
+class EmployeeLeaveRepository(ABC):
     """
-    Repository interface for employee leave balance operations.
+    Main repository interface that combines all employee leave repository interfaces.
+    
+    This interface provides factory methods to create specific repository instances
+    while maintaining separation of concerns through interface segregation.
     """
     
     @abstractmethod
-    def get_leave_balance(self, employee_id: EmployeeId) -> Dict[str, int]:
-        """
-        Get leave balance for an employee.
-        
-        Args:
-            employee_id: Employee identifier
-            
-        Returns:
-            Dictionary mapping leave types to balances
-        """
+    def create_command_repository(self) -> EmployeeLeaveCommandRepository:
+        """Create command repository instance."""
         pass
     
     @abstractmethod
-    def update_leave_balance(
-        self, 
-        employee_id: EmployeeId, 
-        leave_type: str, 
-        balance_change: int
-    ) -> bool:
-        """
-        Update leave balance for an employee.
-        
-        Args:
-            employee_id: Employee identifier
-            leave_type: Leave type
-            balance_change: Change in balance (positive or negative)
-            
-        Returns:
-            True if successful, False otherwise
-        """
+    def create_query_repository(self) -> EmployeeLeaveQueryRepository:
+        """Create query repository instance."""
         pass
     
     @abstractmethod
-    def set_leave_balance(
-        self, 
-        employee_id: EmployeeId, 
-        leave_balances: Dict[str, int]
-    ) -> bool:
-        """
-        Set leave balances for an employee.
-        
-        Args:
-            employee_id: Employee identifier
-            leave_balances: Dictionary mapping leave types to balances
-            
-        Returns:
-            True if successful, False otherwise
-        """
-        pass
-    
-    @abstractmethod
-    def get_team_leave_balances(self, manager_id: str) -> List[Dict[str, Any]]:
-        """
-        Get leave balances for all team members under a manager.
-        
-        Args:
-            manager_id: Manager identifier
-            
-        Returns:
-            List of employee leave balance summaries
-        """
+    def create_analytics_repository(self) -> EmployeeLeaveAnalyticsRepository:
+        """Create analytics repository instance."""
         pass 

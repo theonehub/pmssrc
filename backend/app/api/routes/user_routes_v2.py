@@ -18,8 +18,7 @@ from app.application.dto.user_dto import (
     UserListResponseDTO, UserStatisticsDTO, UserAnalyticsDTO, UserLoginResponseDTO
 )
 from app.config.dependency_container import get_user_controller
-from app.auth.auth_dependencies import CurrentUser, get_current_user, get_current_user_optional
-from app.infrastructure.database.organisation_database_service import get_organisation_database_service, OrganisationDatabaseService
+from app.auth.auth_dependencies import CurrentUser, get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +51,6 @@ async def create_user(
     request: CreateUserRequestDTO,
     current_user: CurrentUser = Depends(get_current_user),
     controller: UserController = Depends(get_user_controller),
-    db_service: OrganisationDatabaseService = Depends(get_organisation_database_service)
 ) -> UserResponseDTO:
     """Create a new user."""
     # Pass organisation context to controller

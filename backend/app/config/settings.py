@@ -10,9 +10,10 @@ SECRET_KEY = os.getenv("JWT_SECRET", "your-secret-key-change-in-production")
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRATION_MINUTES", "30"))
 
-# Database Configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "mongodb://localhost:27017/pms")
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+# Database Configuration - Basic settings without circular imports
+DATABASE_URL = os.getenv("MONGODB_URL", "mongodb+srv://admin:test123@mongodbtest.jhfj7s3.mongodb.net/?appName=mongodbTest")
+MONGO_URI = DATABASE_URL
+DATABASE_NAME = os.getenv("MONGODB_DATABASE", "pms_global_database")
 
 # Application Configuration
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"

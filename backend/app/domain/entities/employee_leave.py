@@ -1,478 +1,374 @@
 """
-Employee Leave Domain Entity
-Aggregate root for employee leave applications and management
+Employee Leave Entity
+Domain entity representing employee leave requests
 """
 
+import uuid
 from dataclasses import dataclass, field
-from typing import Optional, List, Any, Dict
 from datetime import datetime, date
-from uuid import uuid4
-from enum import Enum
+from typing import Optional, List, Dict, Any
 
-from app.domain.value_objects.employee_id import EmployeeId
-from app.domain.value_objects.leave_type import LeaveType
-from app.domain.value_objects.date_range import DateRange
-from app.domain.events.leave_events import (
-    EmployeeLeaveApplied, EmployeeLeaveApproved, EmployeeLeaveRejected,
-    EmployeeLeaveCancelled, EmployeeLeaveUpdated
-)
-
-# Define LeaveStatus as proper enum
-class LeaveStatus(str, Enum):
-    PENDING = "pending"
-    APPROVED = "approved" 
-    REJECTED = "rejected"
-    CANCELLED = "cancelled"
-
+from app.domain.entities.base_entity import BaseEntity
 
 @dataclass
-class EmployeeLeave:
+class EmployeeLeave(BaseEntity):
     """
-    Employee Leave aggregate root following DDD principles.
+    Employee Leave domain entity.
     
-    Follows SOLID principles:
-    - SRP: Only handles employee leave application management
-    - OCP: Can be extended with new leave types without modification
-    - LSP: Can be substituted anywhere EmployeeLeave is expected
-    - ISP: Provides focused leave application operations
-    - DIP: Depends on abstractions (value objects, events)
+    Represents a leave request made by an employee. Follows DDD principles
+    with rich domain behavior and encapsulated business rules.
     """
     
     # Identity
     leave_id: str
-    employee_id: EmployeeId
+    employee_id: str
+    organisation_id: str
     
-    # Leave Details
-    leave_type: LeaveType
-    date_range: DateRange
-    working_days_count: int
+    # Leave details using leave_name instead of LeaveType
+    leave_name: str  # e.g., "Casual Leave", "Sick Leave"
+    start_date: date
+    end_date: date
+    
+    # Optional fields with defaults
     reason: Optional[str] = None
-    
-    # Status and Approval
-    status: LeaveStatus = LeaveStatus.PENDING
-    applied_date: date = field(default_factory=date.today)
-    approved_by: Optional[str] = None
-    approved_date: Optional[date] = None
-    approval_comments: Optional[str] = None
-    
-    # Employee Information (for convenience)
-    employee_name: Optional[str] = None
-    employee_email: Optional[str] = None
+    status: str = "pending"  # pending, approved, rejected, cancelled
+    applied_days: Optional[int] = None
+    approved_days: Optional[int] = None
     
     # Metadata
+    applied_at: datetime = field(default_factory=datetime.utcnow)
+    approved_at: Optional[datetime] = None
+    approved_by: Optional[str] = None
+    rejected_at: Optional[datetime] = None
+    rejected_by: Optional[str] = None
+    rejection_reason: Optional[str] = None
+    
+    # Business fields
+    is_half_day: bool = False
+    is_compensatory: bool = False
+    compensatory_work_date: Optional[date] = None
+    
+    # Audit fields
     created_at: datetime = field(default_factory=datetime.utcnow)
     updated_at: datetime = field(default_factory=datetime.utcnow)
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
     
-    # Domain Events
-    _domain_events: List = field(default_factory=list, init=False)
-    
     def __post_init__(self):
-        """Post initialization validation"""
-        self._validate_employee_leave_data()
+        """Initialize the entity after dataclass creation"""
+        if not self.leave_id:
+            self.leave_id = str(uuid.uuid4())
+        
+        # Initialize applied_days if not provided
+        if self.applied_days is None:
+            self.applied_days = self.calculate_leave_days()
     
     @classmethod
-    def create_new_leave_application(
+    def create(
         cls,
-        employee_id: EmployeeId,
-        leave_type: LeaveType,
-        date_range: DateRange,
-        working_days_count: int,
-        reason: Optional[str] = None,
-        employee_name: Optional[str] = None,
-        employee_email: Optional[str] = None
-    ) -> 'EmployeeLeave':
-        """Factory method to create new employee leave application"""
-        
-        leave_id = str(uuid4())
-        
-        employee_leave = cls(
-            leave_id=leave_id,
-            employee_id=employee_id,
-            leave_type=leave_type,
-            date_range=date_range,
-            working_days_count=working_days_count,
-            reason=reason,
-            employee_name=employee_name,
-            employee_email=employee_email,
-            created_by=str(employee_id)
-        )
-        
-        # Raise domain event
-        employee_leave._domain_events.append(
-            EmployeeLeaveApplied(
-                leave_application_id=leave_id,
-                employee_id=employee_id,
-                leave_type=leave_type,
-                date_range=date_range,
-                requested_days=working_days_count,
-                reason=reason,
-                occurred_at=datetime.utcnow()
-            )
-        )
-        
-        return employee_leave
-    
-    @classmethod
-    def create_from_legacy_data(
-        cls,
-        leave_id: str,
         employee_id: str,
-        leave_type_code: str,
-        start_date: str,
-        end_date: str,
-        working_days_count: int,
-        status: LeaveStatus,
-        applied_date: str,
+        organisation_id: str,
+        leave_name: str,
+        start_date: date,
+        end_date: date,
         reason: Optional[str] = None,
-        approved_by: Optional[str] = None,
-        approved_date: Optional[str] = None,
-        employee_name: Optional[str] = None,
-        employee_email: Optional[str] = None,
-        created_at: Optional[datetime] = None,
-        updated_at: Optional[datetime] = None
+        is_half_day: bool = False,
+        is_compensatory: bool = False,
+        compensatory_work_date: Optional[date] = None,
+        created_by: Optional[str] = None
     ) -> 'EmployeeLeave':
-        """Create employee leave from legacy data format"""
+        """
+        Factory method to create a new employee leave.
         
-        from app.domain.value_objects.leave_type import LeaveCategory
-        
-        # Convert legacy data to domain objects
-        employee_id = EmployeeId(employee_id)
-        leave_type = LeaveType(
-            code=leave_type_code,
-            name=leave_type_code,  # In legacy, code and name might be same
-            category=LeaveCategory.GENERAL,  # Default category
-            description=f"{leave_type_code} leave"
+        Args:
+            employee_id: ID of the employee
+            organisation_id: ID of the organisation
+            leave_name: Name of the leave type
+            start_date: Leave start date
+            end_date: Leave end date
+            reason: Reason for leave
+            is_half_day: Whether it's a half day leave
+            is_compensatory: Whether it's compensatory leave
+            compensatory_work_date: Date of compensatory work
+            created_by: Who created the leave
+            
+        Returns:
+            New EmployeeLeave instance
+        """
+        return cls(
+            leave_id=str(uuid.uuid4()),
+            employee_id=employee_id,
+            organisation_id=organisation_id,
+            leave_name=leave_name,
+            start_date=start_date,
+            end_date=end_date,
+            reason=reason,
+            is_half_day=is_half_day,
+            is_compensatory=is_compensatory,
+            compensatory_work_date=compensatory_work_date,
+            created_by=created_by
         )
+    
+    @classmethod
+    def from_legacy_data(
+        cls,
+        legacy_leave_name: str,
+        employee_id: str,
+        organisation_id: str,
+        start_date: date,
+        end_date: date,
+        reason: Optional[str] = None,
+        status: str = "approved"
+    ) -> 'EmployeeLeave':
+        """
+        Create EmployeeLeave from legacy data.
         
-        start_dt = datetime.strptime(start_date, "%Y-%m-%d").date()
-        end_dt = datetime.strptime(end_date, "%Y-%m-%d").date()
-        date_range = DateRange(start_date=start_dt, end_date=end_dt)
-        
-        applied_dt = datetime.strptime(applied_date, "%Y-%m-%d").date()
-        approved_dt = None
-        if approved_date:
-            approved_dt = datetime.strptime(approved_date, "%Y-%m-%d").date()
+        This method helps in migrating from legacy systems where
+        leave data might be stored differently.
+        """
         
         return cls(
-            leave_id=leave_id,
+            leave_id=str(uuid.uuid4()),
             employee_id=employee_id,
-            leave_type=leave_type,
-            date_range=date_range,
-            working_days_count=working_days_count,
+            organisation_id=organisation_id,
+            leave_name=legacy_leave_name,
+            start_date=start_date,
+            end_date=end_date,
             reason=reason,
             status=status,
-            applied_date=applied_dt,
-            approved_by=approved_by,
-            approved_date=approved_dt,
-            employee_name=employee_name,
-            employee_email=employee_email,
-            created_at=created_at or datetime.utcnow(),
-            updated_at=updated_at or datetime.utcnow()
+            applied_days=None,  # Will be calculated in __post_init__
+            created_by="migration_service"
         )
     
-    def approve(self, approved_by: str, comments: Optional[str] = None):
+    def calculate_leave_days(self) -> int:
+        """Calculate the number of leave days"""
+        if self.is_half_day:
+            return 0.5
+        
+        # Simple calculation - in real implementation, you'd exclude weekends and holidays
+        delta = self.end_date - self.start_date
+        return delta.days + 1
+    
+    def approve(self, approved_by: str, approved_days: Optional[int] = None) -> None:
         """
-        Approve the leave application.
+        Approve the leave request.
         
-        Business Rules:
-        1. Leave must be in pending status
-        2. Approver must be provided
-        3. Approval date is set to current date
+        Args:
+            approved_by: Who approved the leave
+            approved_days: Number of days approved (defaults to applied_days)
         """
+        if self.status != "pending":
+            raise ValueError(f"Cannot approve leave in status: {self.status}")
         
-        if self.status != LeaveStatus.PENDING:
-            raise ValueError(f"Cannot approve leave in {self.status} status")
-        
-        if not approved_by or not approved_by.strip():
-            raise ValueError("Approver is required")
-        
-        self.status = LeaveStatus.APPROVED
+        self.status = "approved"
+        self.approved_at = datetime.utcnow()
         self.approved_by = approved_by
-        self.approved_date = date.today()
-        self.approval_comments = comments
+        self.approved_days = approved_days or self.applied_days
         self.updated_at = datetime.utcnow()
         self.updated_by = approved_by
         
-        # Raise domain event
-        self._domain_events.append(
-            EmployeeLeaveApproved(
-                leave_application_id=self.leave_id,
-                employee_id=self.employee_id,
-                leave_type=self.leave_type,
-                date_range=self.date_range,
-                approved_days=self.working_days_count,
-                approved_by=approved_by,
-                approval_comments=comments,
-                occurred_at=datetime.utcnow()
-            )
-        )
+        # Publish domain event
+        from app.domain.events.leave_events import EmployeeLeaveApprovedEvent
+        self.add_domain_event(EmployeeLeaveApprovedEvent(
+            event_id=f"leave_approved_{self.leave_id}_{datetime.utcnow().isoformat()}",
+            occurred_at=datetime.utcnow(),
+            employee_id=self.employee_id,
+            leave_id=self.leave_id,
+            leave_name=self.leave_name,
+            approved_by=approved_by,
+            approved_days=self.approved_days
+        ))
     
-    def reject(self, rejected_by: str, reason: str):
+    def reject(self, rejected_by: str, rejection_reason: str) -> None:
         """
-        Reject the leave application.
+        Reject the leave request.
         
-        Business Rules:
-        1. Leave must be in pending status
-        2. Rejector and reason must be provided
-        3. Rejection date is set to current date
+        Args:
+            rejected_by: Who rejected the leave
+            rejection_reason: Reason for rejection
         """
+        if self.status != "pending":
+            raise ValueError(f"Cannot reject leave in status: {self.status}")
         
-        if self.status != LeaveStatus.PENDING:
-            raise ValueError(f"Cannot reject leave in {self.status} status")
-        
-        if not rejected_by or not rejected_by.strip():
-            raise ValueError("Rejector is required")
-        
-        if not reason or not reason.strip():
-            raise ValueError("Rejection reason is required")
-        
-        self.status = LeaveStatus.REJECTED
-        self.approved_by = rejected_by
-        self.approved_date = date.today()
-        self.approval_comments = reason
+        self.status = "rejected"
+        self.rejected_at = datetime.utcnow()
+        self.rejected_by = rejected_by
+        self.rejection_reason = rejection_reason
         self.updated_at = datetime.utcnow()
         self.updated_by = rejected_by
         
-        # Raise domain event
-        self._domain_events.append(
-            EmployeeLeaveRejected(
-                leave_application_id=self.leave_id,
-                employee_id=self.employee_id,
-                leave_type=self.leave_type,
-                date_range=self.date_range,
-                rejected_by=rejected_by,
-                rejection_reason=reason,
-                occurred_at=datetime.utcnow()
-            )
-        )
+        # Publish domain event
+        from app.domain.events.leave_events import EmployeeLeaveRejectedEvent
+        self.add_domain_event(EmployeeLeaveRejectedEvent(
+            event_id=f"leave_rejected_{self.leave_id}_{datetime.utcnow().isoformat()}",
+            occurred_at=datetime.utcnow(),
+            employee_id=self.employee_id,
+            leave_id=self.leave_id,
+            leave_name=self.leave_name,
+            rejected_by=rejected_by,
+            rejection_reason=rejection_reason
+        ))
     
-    def cancel(self, cancelled_by: str, reason: Optional[str] = None):
+    def cancel(self, cancelled_by: str, cancellation_reason: Optional[str] = None) -> None:
         """
-        Cancel the leave application.
+        Cancel the leave request.
         
-        Business Rules:
-        1. Leave must be in pending or approved status
-        2. Cannot cancel if leave has already started
-        3. Canceller must be provided
+        Args:
+            cancelled_by: Who cancelled the leave
+            cancellation_reason: Reason for cancellation
         """
+        if self.status in ["rejected", "cancelled"]:
+            raise ValueError(f"Cannot cancel leave in status: {self.status}")
         
-        if self.status not in [LeaveStatus.PENDING, LeaveStatus.APPROVED]:
-            raise ValueError(f"Cannot cancel leave in {self.status} status")
-        
-        if self.date_range.start_date <= date.today():
-            raise ValueError("Cannot cancel leave that has already started")
-        
-        if not cancelled_by or not cancelled_by.strip():
-            raise ValueError("Canceller is required")
-        
-        self.status = LeaveStatus.CANCELLED
+        self.status = "cancelled"
         self.updated_at = datetime.utcnow()
         self.updated_by = cancelled_by
         
-        # Raise domain event
-        self._domain_events.append(
-            EmployeeLeaveCancelled(
-                leave_application_id=self.leave_id,
-                employee_id=self.employee_id,
-                leave_type=self.leave_type,
-                date_range=self.date_range,
-                cancelled_by=cancelled_by,
-                cancellation_reason=reason,
-                occurred_at=datetime.utcnow()
-            )
-        )
+        # Store cancellation reason in the general reason field if provided
+        if cancellation_reason:
+            if self.reason:
+                self.reason += f" [Cancelled: {cancellation_reason}]"
+            else:
+                self.reason = f"Cancelled: {cancellation_reason}"
+        
+        # Publish domain event
+        from app.domain.events.leave_events import EmployeeLeaveCancelledEvent
+        self.add_domain_event(EmployeeLeaveCancelledEvent(
+            event_id=f"leave_cancelled_{self.leave_id}_{datetime.utcnow().isoformat()}",
+            occurred_at=datetime.utcnow(),
+            employee_id=self.employee_id,
+            leave_id=self.leave_id,
+            leave_name=self.leave_name,
+            cancelled_by=cancelled_by,
+            cancellation_reason=cancellation_reason
+        ))
     
-    def update_details(
-        self,
-        new_date_range: Optional[DateRange] = None,
-        new_working_days_count: Optional[int] = None,
-        new_reason: Optional[str] = None,
-        updated_by: str = None
-    ):
-        """
-        Update leave application details.
-        
-        Business Rules:
-        1. Leave must be in pending status
-        2. Cannot update if leave has already started
-        3. Must recalculate working days if dates change
-        """
-        
-        if self.status != LeaveStatus.PENDING:
-            raise ValueError(f"Cannot update leave in {self.status} status")
-        
-        if self.date_range.start_date <= date.today():
-            raise ValueError("Cannot update leave that has already started")
-        
-        old_date_range = self.date_range
-        old_working_days = self.working_days_count
-        old_reason = self.reason
-        
-        if new_date_range:
-            self.date_range = new_date_range
-        
-        if new_working_days_count is not None:
-            self.working_days_count = new_working_days_count
-        
-        if new_reason is not None:
-            self.reason = new_reason
-        
-        self.updated_at = datetime.utcnow()
-        if updated_by:
-            self.updated_by = updated_by
-        
-        # Raise domain event if there were changes
-        if (new_date_range and new_date_range != old_date_range) or \
-           (new_working_days_count is not None and new_working_days_count != old_working_days) or \
-           (new_reason is not None and new_reason != old_reason):
-            
-            self._domain_events.append(
-                EmployeeLeaveUpdated(
-                    leave_application_id=self.leave_id,
-                    employee_id=self.employee_id,
-                    old_date_range=old_date_range,
-                    new_date_range=self.date_range,
-                    old_working_days=old_working_days,
-                    new_working_days=self.working_days_count,
-                    updated_by=updated_by or str(self.employee_id),
-                    occurred_at=datetime.utcnow()
-                )
-            )
+    def is_pending(self) -> bool:
+        """Check if leave is pending approval"""
+        return self.status == "pending"
+    
+    def is_approved(self) -> bool:
+        """Check if leave is approved"""
+        return self.status == "approved"
+    
+    def is_rejected(self) -> bool:
+        """Check if leave is rejected"""
+        return self.status == "rejected"
+    
+    def is_cancelled(self) -> bool:
+        """Check if leave is cancelled"""
+        return self.status == "cancelled"
     
     def is_active(self) -> bool:
-        """Check if leave is currently active (approved and within date range)"""
-        if self.status != LeaveStatus.APPROVED:
-            return False
-        
-        today = date.today()
-        return self.date_range.start_date <= today <= self.date_range.end_date
-    
-    def is_future(self) -> bool:
-        """Check if leave is in the future"""
-        return self.date_range.start_date > date.today()
+        """Check if leave is currently active (approved and not past)"""
+        return self.is_approved() and self.end_date >= date.today()
     
     def is_past(self) -> bool:
         """Check if leave is in the past"""
-        return self.date_range.end_date < date.today()
+        return self.end_date < date.today()
     
-    def can_be_modified(self) -> bool:
-        """Check if leave can be modified"""
-        return (
-            self.status == LeaveStatus.PENDING and
-            self.date_range.start_date > date.today()
-        )
+    def is_future(self) -> bool:
+        """Check if leave is in the future"""
+        return self.start_date > date.today()
     
-    def can_be_cancelled(self) -> bool:
-        """Check if leave can be cancelled"""
-        return (
-            self.status in [LeaveStatus.PENDING, LeaveStatus.APPROVED] and
-            self.date_range.start_date > date.today()
-        )
+    def is_current(self) -> bool:
+        """Check if leave is currently ongoing"""
+        today = date.today()
+        return self.start_date <= today <= self.end_date
     
-    def overlaps_with(self, other_date_range: DateRange) -> bool:
-        """Check if this leave overlaps with another date range"""
-        return self.date_range.overlaps_with(other_date_range)
-    
-    def get_duration_in_days(self) -> int:
-        """Get total duration in calendar days"""
-        return self.date_range.get_duration_in_days()
-    
-    def get_working_days_in_month(self, month: int, year: int) -> int:
-        """Get working days that fall within a specific month"""
-        from datetime import datetime
+    def get_duration_display(self) -> str:
+        """Get human-readable duration"""
+        if self.is_half_day:
+            return "Half Day"
         
-        # Get month boundaries
-        month_start = date(year, month, 1)
-        if month == 12:
-            month_end = date(year + 1, 1, 1) - datetime.timedelta(days=1)
-        else:
-            month_end = date(year, month + 1, 1) - datetime.timedelta(days=1)
-        
-        # Find overlap with leave period
-        overlap_start = max(self.date_range.start_date, month_start)
-        overlap_end = min(self.date_range.end_date, month_end)
-        
-        if overlap_start > overlap_end:
-            return 0
-        
-        # Calculate working days in overlap period
-        # This is a simplified calculation - in real implementation,
-        # you'd use the same working days calculation as in the service
-        overlap_range = DateRange(start_date=overlap_start, end_date=overlap_end)
-        return overlap_range.get_duration_in_days()  # Simplified
+        days = self.applied_days or self.calculate_leave_days()
+        if days == 1:
+            return "1 Day"
+        return f"{days} Days"
     
-    def to_legacy_dict(self) -> Dict[str, Any]:
-        """Convert to legacy dictionary format for backward compatibility"""
+    def get_status_display(self) -> str:
+        """Get human-readable status"""
+        status_map = {
+            "pending": "Pending Approval",
+            "approved": "Approved",
+            "rejected": "Rejected",
+            "cancelled": "Cancelled"
+        }
+        return status_map.get(self.status, self.status.title())
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert entity to dictionary"""
         return {
             "leave_id": self.leave_id,
-            "employee_id": str(self.employee_id),
-            "emp_name": self.employee_name,
-            "emp_email": self.employee_email,
-            "leave_name": self.leave_type.code,
-            "start_date": self.date_range.start_date.strftime("%Y-%m-%d"),
-            "end_date": self.date_range.end_date.strftime("%Y-%m-%d"),
-            "leave_count": self.working_days_count,
-            "status": self.status,
-            "applied_date": self.applied_date.strftime("%Y-%m-%d"),
-            "approved_by": self.approved_by,
-            "approved_date": self.approved_date.strftime("%Y-%m-%d") if self.approved_date else None,
+            "employee_id": self.employee_id,
+            "organisation_id": self.organisation_id,
+            "leave_name": self.leave_name,
+            "start_date": self.start_date.isoformat(),
+            "end_date": self.end_date.isoformat(),
             "reason": self.reason,
-            "created_at": self.created_at,
-            "updated_at": self.updated_at
+            "status": self.status,
+            "applied_days": self.applied_days,
+            "approved_days": self.approved_days,
+            "applied_at": self.applied_at.isoformat(),
+            "approved_at": self.approved_at.isoformat() if self.approved_at else None,
+            "approved_by": self.approved_by,
+            "rejected_at": self.rejected_at.isoformat() if self.rejected_at else None,
+            "rejected_by": self.rejected_by,
+            "rejection_reason": self.rejection_reason,
+            "is_half_day": self.is_half_day,
+            "is_compensatory": self.is_compensatory,
+            "compensatory_work_date": self.compensatory_work_date.isoformat() if self.compensatory_work_date else None,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat(),
+            "created_by": self.created_by,
+            "updated_by": self.updated_by
         }
     
-    def get_domain_events(self) -> List:
-        """Get domain events for this aggregate"""
-        return self._domain_events.copy()
-    
-    def clear_domain_events(self):
-        """Clear domain events after processing"""
-        self._domain_events.clear()
-    
-    def _validate_employee_leave_data(self):
-        """Validate employee leave data"""
+    def validate(self) -> List[str]:
+        """
+        Validate the leave entity and return list of validation errors.
         
-        if not self.leave_id:
-            raise ValueError("Leave ID is required")
+        Returns:
+            List of validation error messages
+        """
+        errors = []
         
+        # Basic field validation
         if not self.employee_id:
-            raise ValueError("Employee ID is required")
+            errors.append("Employee ID is required")
         
-        if not self.leave_type:
-            raise ValueError("Leave type is required")
+        if not self.organisation_id:
+            errors.append("Organisation ID is required")
         
-        if not self.date_range:
-            raise ValueError("Date range is required")
+        if not self.leave_name:
+            errors.append("Leave name is required")
         
-        if self.working_days_count < 0:
-            raise ValueError("Working days count cannot be negative")
+        # Date validation
+        if not self.start_date:
+            errors.append("Start date is required")
         
-        if self.date_range.start_date > self.date_range.end_date:
-            raise ValueError("Start date cannot be after end date")
+        if not self.end_date:
+            errors.append("End date is required")
         
-        # Validate status transitions
-        if self.status not in [LeaveStatus.PENDING, LeaveStatus.APPROVED, 
-                              LeaveStatus.REJECTED, LeaveStatus.CANCELLED]:
-            raise ValueError(f"Invalid leave status: {self.status}")
+        if self.start_date and self.end_date and self.start_date > self.end_date:
+            errors.append("Start date cannot be after end date")
+        
+        # Business rule validation
+        if self.is_compensatory and not self.compensatory_work_date:
+            errors.append("Compensatory work date is required for compensatory leave")
+        
+        if self.is_half_day and self.start_date != self.end_date:
+            errors.append("Half day leave must be for a single date")
+        
+        return errors
     
     def __str__(self) -> str:
         """String representation"""
         return (
-            f"EmployeeLeave(id={self.leave_id}, "
-            f"employee={self.employee_id}, "
-            f"type={self.leave_type.code}, "
-            f"dates={self.date_range}, "
+            f"EmployeeLeave(leave_id={self.leave_id}, "
+            f"employee_id={self.employee_id}, "
+            f"leave_name={self.leave_name}, "
+            f"start_date={self.start_date}, "
+            f"end_date={self.end_date}, "
             f"status={self.status})"
-        )
-    
-    def __eq__(self, other) -> bool:
-        """Equality comparison based on leave ID"""
-        if not isinstance(other, EmployeeLeave):
-            return False
-        return self.leave_id == other.leave_id
-    
-    def __hash__(self) -> int:
-        """Hash based on leave ID"""
-        return hash(self.leave_id) 
+        ) 

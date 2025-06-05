@@ -7,12 +7,8 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
-from app.domain.value_objects.leave_type import LeaveType, LeaveCategory
-from app.domain.value_objects.leave_policy import LeavePolicy, AccrualType
-
-
 @dataclass
-class CompanyLeaveCreateRequestDTO:
+class CreateCompanyLeaveRequestDTO:
     """
     DTO for company leave creation request.
     
@@ -24,203 +20,84 @@ class CompanyLeaveCreateRequestDTO:
     - DIP: Doesn't depend on concrete implementations
     """
     
-    leave_type_code: str
-    leave_type_name: str
-    leave_category: str
+    leave_name: str
+    accrual_type: str
     annual_allocation: int
-    created_by: str
-    accrual_type: str = "annually"
     description: Optional[str] = None
-    
-    # Policy configuration
-    max_carryover_days: Optional[int] = None
-    min_advance_notice_days: Optional[int] = None
-    max_continuous_days: Optional[int] = None
-    requires_approval: bool = True
-    auto_approve_threshold: Optional[int] = None
-    requires_medical_certificate: bool = False
-    medical_certificate_threshold: Optional[int] = None
-    is_encashable: bool = False
-    max_encashment_days: Optional[int] = None
-    available_during_probation: bool = True
-    probation_allocation: Optional[int] = None
-    gender_specific: Optional[str] = None
-    
-    # Metadata
-    effective_from: Optional[str] = None
+    encashable: bool = False
+    is_allowed_on_probation: bool = False
+    created_by: Optional[str] = None  # Auto-populated from authenticated user
     
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'CompanyLeaveCreateRequestDTO':
+    def from_dict(cls, data: Dict[str, Any]) -> 'CreateCompanyLeaveRequestDTO':
         """Create DTO from dictionary"""
         return cls(
-            leave_type_code=data['leave_type_code'],
-            leave_type_name=data['leave_type_name'],
-            leave_category=data['leave_category'],
-            annual_allocation=int(data['annual_allocation']),
+            leave_name=data['leave_name'],
             accrual_type=data.get('accrual_type', 'annually'),
+            annual_allocation=int(data['annual_allocation']),
             description=data.get('description'),
-            max_carryover_days=data.get('max_carryover_days'),
-            min_advance_notice_days=data.get('min_advance_notice_days'),
-            max_continuous_days=data.get('max_continuous_days'),
-            requires_approval=data.get('requires_approval', True),
-            auto_approve_threshold=data.get('auto_approve_threshold'),
-            requires_medical_certificate=data.get('requires_medical_certificate', False),
-            medical_certificate_threshold=data.get('medical_certificate_threshold'),
-            is_encashable=data.get('is_encashable', False),
-            max_encashment_days=data.get('max_encashment_days'),
-            available_during_probation=data.get('available_during_probation', True),
-            probation_allocation=data.get('probation_allocation'),
-            gender_specific=data.get('gender_specific'),
-            created_by=data['created_by'],
-            effective_from=data.get('effective_from')
+            encashable=data.get('encashable', False),
+            is_allowed_on_probation=data.get('is_allowed_on_probation', False),
+            created_by=data.get('created_by')  # Optional, will be populated by service
         )
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert DTO to dictionary"""
         return {
-            'leave_type_code': self.leave_type_code,
-            'leave_type_name': self.leave_type_name,
-            'leave_category': self.leave_category,
-            'annual_allocation': self.annual_allocation,
+            'leave_name': self.leave_name,
             'accrual_type': self.accrual_type,
+            'annual_allocation': self.annual_allocation,
             'description': self.description,
-            'max_carryover_days': self.max_carryover_days,
-            'min_advance_notice_days': self.min_advance_notice_days,
-            'max_continuous_days': self.max_continuous_days,
-            'requires_approval': self.requires_approval,
-            'auto_approve_threshold': self.auto_approve_threshold,
-            'requires_medical_certificate': self.requires_medical_certificate,
-            'medical_certificate_threshold': self.medical_certificate_threshold,
-            'is_encashable': self.is_encashable,
-            'max_encashment_days': self.max_encashment_days,
-            'available_during_probation': self.available_during_probation,
-            'probation_allocation': self.probation_allocation,
-            'gender_specific': self.gender_specific,
             'created_by': self.created_by,
-            'effective_from': self.effective_from
+            'encashable': self.encashable,
+            'is_allowed_on_probation': self.is_allowed_on_probation
         }
     
     def validate(self) -> List[str]:
         """Validate DTO data and return list of errors"""
         errors = []
         
-        if not self.leave_type_code or not self.leave_type_code.strip():
-            errors.append("Leave type code is required")
+        if not self.leave_name or not self.leave_name.strip():
+            errors.append("Leave name is required")
         
-        if not self.leave_type_name or not self.leave_type_name.strip():
-            errors.append("Leave type name is required")
-        
-        if not self.leave_category or not self.leave_category.strip():
-            errors.append("Leave category is required")
+        if not self.accrual_type or not self.accrual_type.strip():
+            errors.append("Accrual type is required")
         
         if self.annual_allocation < 0:
             errors.append("Annual allocation cannot be negative")
         
-        if not self.created_by or not self.created_by.strip():
-            errors.append("Created by is required")
-        
-        # Validate leave category
-        try:
-            LeaveCategory(self.leave_category.lower())
-        except ValueError:
-            errors.append(f"Invalid leave category: {self.leave_category}")
-        
-        # Validate accrual type
-        try:
-            AccrualType(self.accrual_type.lower())
-        except ValueError:
-            errors.append(f"Invalid accrual type: {self.accrual_type}")
-        
-        # Validate carryover days
-        if self.max_carryover_days is not None:
-            if self.max_carryover_days < 0:
-                errors.append("Max carryover days cannot be negative")
-            elif self.max_carryover_days > self.annual_allocation:
-                errors.append("Max carryover days cannot exceed annual allocation")
-        
-        # Validate advance notice days
-        if self.min_advance_notice_days is not None and self.min_advance_notice_days < 0:
-            errors.append("Min advance notice days cannot be negative")
-        
-        # Validate continuous days
-        if self.max_continuous_days is not None and self.max_continuous_days <= 0:
-            errors.append("Max continuous days must be positive if specified")
-        
-        # Validate auto approve threshold
-        if self.auto_approve_threshold is not None and self.auto_approve_threshold <= 0:
-            errors.append("Auto approve threshold must be positive if specified")
-        
-        # Validate medical certificate threshold
-        if self.medical_certificate_threshold is not None and self.medical_certificate_threshold <= 0:
-            errors.append("Medical certificate threshold must be positive if specified")
-        
-        # Validate encashment days
-        if self.max_encashment_days is not None:
-            if self.max_encashment_days < 0:
-                errors.append("Max encashment days cannot be negative")
-            elif self.max_encashment_days > self.annual_allocation:
-                errors.append("Max encashment days cannot exceed annual allocation")
-        
-        # Validate probation allocation
-        if self.probation_allocation is not None and self.probation_allocation < 0:
-            errors.append("Probation allocation cannot be negative")
-        
-        # Validate gender specific
-        if self.gender_specific and self.gender_specific not in ['male', 'female']:
-            errors.append("Gender specific must be 'male', 'female', or None")
+        # Note: created_by is optional and will be auto-populated from authenticated user
         
         return errors
 
 
 @dataclass
-class CompanyLeaveUpdateRequestDTO:
+class UpdateCompanyLeaveRequestDTO:
     """
     DTO for company leave update request.
     """
     
     updated_by: str
-    leave_type_name: Optional[str] = None
+    leave_name: Optional[str] = None
+    accrual_type: Optional[str] = None
     annual_allocation: Optional[int] = None
     description: Optional[str] = None
     is_active: Optional[bool] = None
-    
-    # Policy updates
-    max_carryover_days: Optional[int] = None
-    min_advance_notice_days: Optional[int] = None
-    max_continuous_days: Optional[int] = None
-    requires_approval: Optional[bool] = None
-    auto_approve_threshold: Optional[int] = None
-    requires_medical_certificate: Optional[bool] = None
-    medical_certificate_threshold: Optional[int] = None
-    is_encashable: Optional[bool] = None
-    max_encashment_days: Optional[int] = None
-    available_during_probation: Optional[bool] = None
-    probation_allocation: Optional[int] = None
-    
-    # Metadata
-    update_reason: Optional[str] = None
+    encashable: Optional[bool] = None
+    is_allowed_on_probation: Optional[bool] = None
     
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'CompanyLeaveUpdateRequestDTO':
+    def from_dict(cls, data: Dict[str, Any]) -> 'UpdateCompanyLeaveRequestDTO':
         """Create DTO from dictionary"""
         return cls(
-            leave_type_name=data.get('leave_type_name'),
+            leave_name=data.get('leave_name'),
+            accrual_type=data.get('accrual_type'),
             annual_allocation=data.get('annual_allocation'),
             description=data.get('description'),
             is_active=data.get('is_active'),
-            max_carryover_days=data.get('max_carryover_days'),
-            min_advance_notice_days=data.get('min_advance_notice_days'),
-            max_continuous_days=data.get('max_continuous_days'),
-            requires_approval=data.get('requires_approval'),
-            auto_approve_threshold=data.get('auto_approve_threshold'),
-            requires_medical_certificate=data.get('requires_medical_certificate'),
-            medical_certificate_threshold=data.get('medical_certificate_threshold'),
-            is_encashable=data.get('is_encashable'),
-            max_encashment_days=data.get('max_encashment_days'),
-            available_during_probation=data.get('available_during_probation'),
-            probation_allocation=data.get('probation_allocation'),
             updated_by=data['updated_by'],
-            update_reason=data.get('update_reason')
+            encashable=data.get('encashable'),
+            is_allowed_on_probation=data.get('is_allowed_on_probation')
         )
     
     def validate(self) -> List[str]:
@@ -233,28 +110,32 @@ class CompanyLeaveUpdateRequestDTO:
         if self.annual_allocation is not None and self.annual_allocation < 0:
             errors.append("Annual allocation cannot be negative")
         
-        if self.max_carryover_days is not None and self.max_carryover_days < 0:
-            errors.append("Max carryover days cannot be negative")
-        
-        if self.min_advance_notice_days is not None and self.min_advance_notice_days < 0:
-            errors.append("Min advance notice days cannot be negative")
-        
-        if self.max_continuous_days is not None and self.max_continuous_days <= 0:
-            errors.append("Max continuous days must be positive if specified")
-        
-        if self.auto_approve_threshold is not None and self.auto_approve_threshold <= 0:
-            errors.append("Auto approve threshold must be positive if specified")
-        
-        if self.medical_certificate_threshold is not None and self.medical_certificate_threshold <= 0:
-            errors.append("Medical certificate threshold must be positive if specified")
-        
-        if self.max_encashment_days is not None and self.max_encashment_days < 0:
-            errors.append("Max encashment days cannot be negative")
-        
-        if self.probation_allocation is not None and self.probation_allocation < 0:
-            errors.append("Probation allocation cannot be negative")
-        
         return errors
+
+
+@dataclass
+class CompanyLeaveSearchFiltersDTO:
+    """
+    DTO for company leave search filters.
+    """
+    
+    is_active: Optional[bool] = None
+    accrual_type: Optional[str] = None
+    sort_by: str = "created_at"
+    sort_order: str = "desc"
+    page: int = 1
+    page_size: int = 100
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert DTO to dictionary"""
+        return {
+            'is_active': self.is_active,
+            'accrual_type': self.accrual_type,
+            'sort_by': self.sort_by,
+            'sort_order': self.sort_order,
+            'page': self.page,
+            'page_size': self.page_size
+        }
 
 
 @dataclass
@@ -264,12 +145,14 @@ class CompanyLeaveResponseDTO:
     """
     
     company_leave_id: str
-    leave_type: Dict[str, Any]
-    policy: Dict[str, Any]
+    leave_name: str
+    accrual_type: str
+    annual_allocation: int
+    computed_monthly_allocation: int
     is_active: bool
     description: Optional[str]
-    effective_from: Optional[str]
-    effective_until: Optional[str]
+    encashable: bool
+    is_allowed_on_probation: bool
     created_at: str
     updated_at: str
     created_by: Optional[str]
@@ -280,38 +163,14 @@ class CompanyLeaveResponseDTO:
         """Create DTO from CompanyLeave entity"""
         return cls(
             company_leave_id=company_leave.company_leave_id,
-            leave_type={
-                'code': company_leave.leave_type.code,
-                'name': company_leave.leave_type.name,
-                'category': company_leave.leave_type.category.value,
-                'description': company_leave.leave_type.description
-            },
-            policy={
-                'annual_allocation': company_leave.policy.annual_allocation,
-                'accrual_type': company_leave.policy.accrual_type.value,
-                'accrual_rate': float(company_leave.policy.accrual_rate) if company_leave.policy.accrual_rate else None,
-                'max_carryover_days': company_leave.policy.max_carryover_days,
-                'carryover_expiry_months': company_leave.policy.carryover_expiry_months,
-                'min_advance_notice_days': company_leave.policy.min_advance_notice_days,
-                'max_advance_application_days': company_leave.policy.max_advance_application_days,
-                'min_application_days': company_leave.policy.min_application_days,
-                'max_continuous_days': company_leave.policy.max_continuous_days,
-                'requires_approval': company_leave.policy.requires_approval,
-                'auto_approve_threshold': company_leave.policy.auto_approve_threshold,
-                'requires_medical_certificate': company_leave.policy.requires_medical_certificate,
-                'medical_certificate_threshold': company_leave.policy.medical_certificate_threshold,
-                'is_encashable': company_leave.policy.is_encashable,
-                'max_encashment_days': company_leave.policy.max_encashment_days,
-                'encashment_percentage': float(company_leave.policy.encashment_percentage),
-                'available_during_probation': company_leave.policy.available_during_probation,
-                'probation_allocation': company_leave.policy.probation_allocation,
-                'gender_specific': company_leave.policy.gender_specific,
-                'employee_category_specific': company_leave.policy.employee_category_specific
-            },
+            leave_name=company_leave.leave_name,
+            accrual_type=company_leave.accrual_type,
+            annual_allocation=company_leave.annual_allocation,
+            computed_monthly_allocation=company_leave.computed_monthly_allocation,
             is_active=company_leave.is_active,
             description=company_leave.description,
-            effective_from=company_leave.effective_from.isoformat() if company_leave.effective_from else None,
-            effective_until=company_leave.effective_until.isoformat() if company_leave.effective_until else None,
+            encashable=company_leave.encashable,
+            is_allowed_on_probation=company_leave.is_allowed_on_probation,
             created_at=company_leave.created_at.isoformat(),
             updated_at=company_leave.updated_at.isoformat(),
             created_by=company_leave.created_by,
@@ -322,12 +181,14 @@ class CompanyLeaveResponseDTO:
         """Convert DTO to dictionary for API response"""
         return {
             'company_leave_id': self.company_leave_id,
-            'leave_type': self.leave_type,
-            'policy': self.policy,
+            'leave_name': self.leave_name,
+            'accrual_type': self.accrual_type,
+            'annual_allocation': self.annual_allocation,
+            'computed_monthly_allocation': self.computed_monthly_allocation,
             'is_active': self.is_active,
             'description': self.description,
-            'effective_from': self.effective_from,
-            'effective_until': self.effective_until,
+            'encashable': self.encashable,
+            'is_allowed_on_probation': self.is_allowed_on_probation,
             'created_at': self.created_at,
             'updated_at': self.updated_at,
             'created_by': self.created_by,
@@ -338,13 +199,11 @@ class CompanyLeaveResponseDTO:
 @dataclass
 class CompanyLeaveSummaryDTO:
     """
-    DTO for company leave summary (lightweight version).
+    DTO for company leave summary (simplified view).
     """
     
     company_leave_id: str
-    leave_type_code: str
-    leave_type_name: str
-    leave_category: str
+    leave_name: str
     annual_allocation: int
     is_active: bool
     
@@ -353,90 +212,162 @@ class CompanyLeaveSummaryDTO:
         """Create summary DTO from CompanyLeave entity"""
         return cls(
             company_leave_id=company_leave.company_leave_id,
-            leave_type_code=company_leave.leave_type.code,
-            leave_type_name=company_leave.leave_type.name,
-            leave_category=company_leave.leave_type.category.value,
-            annual_allocation=company_leave.policy.annual_allocation,
+            leave_name=company_leave.leave_name,
+            annual_allocation=company_leave.annual_allocation,
             is_active=company_leave.is_active
         )
     
     def to_dict(self) -> Dict[str, Any]:
-        """Convert DTO to dictionary"""
+        """Convert DTO to dictionary for API response"""
         return {
             'company_leave_id': self.company_leave_id,
-            'leave_type_code': self.leave_type_code,
-            'leave_type_name': self.leave_type_name,
-            'leave_category': self.leave_category,
+            'leave_name': self.leave_name,
             'annual_allocation': self.annual_allocation,
             'is_active': self.is_active
         }
 
 
 @dataclass
-class LeaveTypeOptionsDTO:
+class CompanyLeaveListResponseDTO:
     """
-    DTO for leave type options (for dropdowns, etc.).
+    DTO for company leave list response.
     """
     
-    code: str
-    name: str
-    category: str
-    description: Optional[str]
+    items: List[CompanyLeaveResponseDTO]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert DTO to dictionary"""
         return {
-            'code': self.code,
-            'name': self.name,
-            'category': self.category,
-            'description': self.description
+            'items': [item.to_dict() for item in self.items],
+            'total': self.total,
+            'page': self.page,
+            'page_size': self.page_size,
+            'total_pages': self.total_pages
         }
 
 
-# Validation utilities
-def validate_leave_type_code(code: str) -> bool:
-    """Validate leave type code format"""
-    if not code or len(code) > 10:
-        return False
-    return code.replace('_', '').replace('-', '').isalnum()
+@dataclass
+class BulkCompanyLeaveUpdateDTO:
+    """
+    DTO for bulk company leave updates.
+    """
+    
+    company_leave_id: str
+    updates: Dict[str, Any]
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'BulkCompanyLeaveUpdateDTO':
+        """Create DTO from dictionary"""
+        return cls(
+            company_leave_id=data['company_leave_id'],
+            updates=data.get('updates', {})
+        )
 
 
-def validate_leave_category(category: str) -> bool:
-    """Validate leave category"""
-    try:
-        LeaveCategory(category.lower())
-        return True
-    except ValueError:
-        return False
+@dataclass
+class BulkCompanyLeaveUpdateResultDTO:
+    """
+    DTO for bulk company leave update results.
+    """
+    
+    successful_updates: List[str]
+    failed_updates: List[Dict[str, Any]]
+    total_processed: int
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert DTO to dictionary"""
+        return {
+            'successful_updates': self.successful_updates,
+            'failed_updates': self.failed_updates,
+            'total_processed': self.total_processed
+        }
 
 
-def validate_accrual_type(accrual_type: str) -> bool:
-    """Validate accrual type"""
-    try:
-        AccrualType(accrual_type.lower())
-        return True
-    except ValueError:
-        return False
+@dataclass
+class CompanyLeaveStatisticsDTO:
+    """
+    DTO for company leave statistics.
+    """
+    
+    total_leave_types: int
+    active_leave_types: int
+    inactive_leave_types: int
+    total_allocation_days: int
+    average_allocation: float
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert DTO to dictionary"""
+        return {
+            'total_leave_types': self.total_leave_types,
+            'active_leave_types': self.active_leave_types,
+            'inactive_leave_types': self.inactive_leave_types,
+            'total_allocation_days': self.total_allocation_days,
+            'average_allocation': self.average_allocation
+        }
 
 
+@dataclass
+class CompanyLeaveAnalyticsDTO:
+    """
+    DTO for company leave analytics.
+    """
+    
+    leave_usage_trends: Dict[str, Any]
+    popular_leave_types: List[Dict[str, Any]]
+    seasonal_patterns: Dict[str, Any]
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert DTO to dictionary"""
+        return {
+            'leave_usage_trends': self.leave_usage_trends,
+            'popular_leave_types': self.popular_leave_types,
+            'seasonal_patterns': self.seasonal_patterns
+        }
+
+
+# Exception classes
 class CompanyLeaveDTOError(Exception):
     """Base exception for company leave DTO operations"""
     pass
 
 
 class InvalidCompanyLeaveDataError(CompanyLeaveDTOError):
-    """Exception raised when company leave data is invalid"""
+    """Exception for invalid company leave data"""
     
     def __init__(self, field: str, value: Any, reason: str):
         self.field = field
         self.value = value
         self.reason = reason
-        super().__init__(f"Invalid {field} '{value}': {reason}")
+        super().__init__(f"Invalid {field}: {value} - {reason}")
 
 
 class CompanyLeaveDTOValidationError(CompanyLeaveDTOError):
-    """Exception raised when DTO validation fails"""
+    """Exception for company leave DTO validation errors"""
     
     def __init__(self, errors: List[str]):
         self.errors = errors
-        super().__init__(f"Validation failed: {', '.join(errors)}") 
+        super().__init__(f"Validation errors: {', '.join(errors)}")
+
+
+class CompanyLeaveValidationError(Exception):
+    """Exception for company leave validation errors"""
+    pass
+
+
+class CompanyLeaveBusinessRuleError(Exception):
+    """Exception for business rule violations"""
+    pass
+
+
+class CompanyLeaveNotFoundError(Exception):
+    """Exception for when company leave is not found"""
+    pass
+
+
+class CompanyLeaveConflictError(Exception):
+    """Exception for company leave conflicts"""
+    pass 

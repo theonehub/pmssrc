@@ -107,7 +107,6 @@ class GetPublicHolidaysUseCase:
             
             response_dto = PublicHolidayResponseDTO.from_domain(holiday)
             
-            logger.info(f"Retrieved public holiday: {holiday.holiday_type.name}")
             return response_dto
             
         except Exception as e:
@@ -131,7 +130,7 @@ class GetPublicHolidaysUseCase:
             
             response_dto = PublicHolidayResponseDTO.from_domain(holiday)
             
-            logger.info(f"Retrieved public holiday: {holiday.holiday_type.name}")
+            logger.info(f"Retrieved public holiday: {holiday.holiday_name}")
             return response_dto
             
         except ValueError as e:

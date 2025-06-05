@@ -30,6 +30,8 @@ from app.application.dto.reimbursement_dto import (
     ReimbursementSearchFiltersDTO,
     ReimbursementStatisticsDTO
 )
+from app.infrastructure.database.mongodb_connector import MongoDBConnector
+from app.config.mongodb_config import get_mongodb_connection_string, get_mongodb_client_options
 
 
 logger = logging.getLogger(__name__)
@@ -47,34 +49,100 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
     - DIP: Depends on abstractions (database interface)
     """
     
-    def __init__(self, database: AsyncIOMotorDatabase):
-        self.database = database
-        self.reimbursements_collection = database.reimbursements
-        self.reimbursement_types_collection = database.reimbursement_types
+    def __init__(self, database_connector: MongoDBConnector):
+        self.db_connector = database_connector
+        self._collection_name = "reimbursements"
+        self._types_collection_name = "reimbursement_types"
+        self._connection_string = None
+        self._client_options = None
         
         # Create indexes for better performance
-        self._create_indexes()
+        # Note: Indexes will be created when collections are accessed
     
-    def _create_indexes(self):
+    def set_connection_config(self, connection_string: str, client_options: Dict[str, Any]):
+        """Set connection configuration - called by dependency container."""
+        self._connection_string = connection_string
+        self._client_options = client_options
+    
+    async def _get_collection(self, organisation_id: Optional[str] = None, collection_name: Optional[str] = None):
+        """
+        Get collection for specific organisation or global.
+        
+        Ensures database connection is established in the correct event loop.
+        Uses global database for reimbursement data.
+        """
+        db_name = "pms_global_database"
+        actual_collection_name = collection_name or self._collection_name
+        
+        # Ensure database is connected in the current event loop
+        if not self.db_connector.is_connected:
+            logger.debug("Database not connected, establishing connection...")
+            
+            try:
+                # Use stored connection configuration or fallback to config functions
+                if self._connection_string and self._client_options:
+                    logger.debug("Using stored connection parameters from repository configuration")
+                    connection_string = self._connection_string
+                    options = self._client_options
+                else:
+                    # Fallback to config functions if connection config not set
+                    logger.debug("Loading connection parameters from mongodb_config")
+                    connection_string = get_mongodb_connection_string()
+                    options = get_mongodb_client_options()
+                
+                await self.db_connector.connect(connection_string, **options)
+                logger.info("MongoDB connection established successfully in current event loop")
+                
+            except Exception as e:
+                logger.error(f"Failed to establish database connection: {e}")
+                raise RuntimeError(f"Database connection failed: {e}")
+        
+        # Verify connection and get collection
+        try:
+            db = self.db_connector.get_database(db_name)
+            collection = db[actual_collection_name]
+            logger.debug(f"Successfully retrieved collection: {actual_collection_name} from database: {db_name}")
+            return collection
+            
+        except Exception as e:
+            logger.error(f"Failed to get collection {actual_collection_name}: {e}")
+            # Reset connection state to force reconnection on next call
+            if hasattr(self.db_connector, '_client'):
+                self.db_connector._client = None
+            raise RuntimeError(f"Collection access failed: {e}")
+    
+    async def _get_reimbursements_collection(self, organisation_id: Optional[str] = None):
+        """Get the reimbursements collection."""
+        return await self._get_collection(organisation_id, self._collection_name)
+    
+    async def _get_reimbursement_types_collection(self, organisation_id: Optional[str] = None):
+        """Get the reimbursement types collection."""
+        return await self._get_collection(organisation_id, self._types_collection_name)
+
+    async def _create_indexes(self, organisation_id: Optional[str] = None):
         """Create database indexes for optimal query performance"""
         try:
+            # Get collections
+            reimbursements_collection = await self._get_reimbursements_collection(organisation_id)
+            reimbursement_types_collection = await self._get_reimbursement_types_collection(organisation_id)
+            
             # Reimbursements collection indexes
-            self.reimbursements_collection.create_index([("employee_id", ASCENDING)])
-            self.reimbursements_collection.create_index([("status", ASCENDING)])
-            self.reimbursements_collection.create_index([("reimbursement_type.code", ASCENDING)])
-            self.reimbursements_collection.create_index([("submitted_at", DESCENDING)])
-            self.reimbursements_collection.create_index([("created_at", DESCENDING)])
-            self.reimbursements_collection.create_index([
+            await reimbursements_collection.create_index([("employee_id", ASCENDING)])
+            await reimbursements_collection.create_index([("status", ASCENDING)])
+            await reimbursements_collection.create_index([("reimbursement_type.code", ASCENDING)])
+            await reimbursements_collection.create_index([("submitted_at", DESCENDING)])
+            await reimbursements_collection.create_index([("created_at", DESCENDING)])
+            await reimbursements_collection.create_index([
                 ("employee_id", ASCENDING),
                 ("status", ASCENDING),
                 ("submitted_at", DESCENDING)
             ])
             
             # Reimbursement types collection indexes
-            self.reimbursement_types_collection.create_index([("type_id", ASCENDING)], unique=True)
-            self.reimbursement_types_collection.create_index([("reimbursement_type.code", ASCENDING)], unique=True)
-            self.reimbursement_types_collection.create_index([("reimbursement_type.category", ASCENDING)])
-            self.reimbursement_types_collection.create_index([("is_active", ASCENDING)])
+            await reimbursement_types_collection.create_index([("type_id", ASCENDING)], unique=True)
+            await reimbursement_types_collection.create_index([("reimbursement_type.code", ASCENDING)], unique=True)
+            await reimbursement_types_collection.create_index([("reimbursement_type.category", ASCENDING)])
+            await reimbursement_types_collection.create_index([("is_active", ASCENDING)])
             
             logger.info("Database indexes created successfully")
         except Exception as e:
@@ -86,7 +154,8 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
         """Save a new reimbursement request"""
         try:
             document = self._reimbursement_to_document(reimbursement)
-            result = await self.reimbursements_collection.insert_one(document)
+            collection = await self._get_reimbursements_collection()
+            result = await collection.insert_one(document)
             
             if result.inserted_id:
                 logger.debug(f"Saved reimbursement: {reimbursement.request_id}")
@@ -104,7 +173,8 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
             document = self._reimbursement_to_document(reimbursement)
             document["updated_at"] = datetime.utcnow()
             
-            result = await self.reimbursements_collection.replace_one(
+            collection = await self._get_reimbursements_collection()
+            result = await collection.replace_one(
                 {"request_id": reimbursement.request_id},
                 document
             )
@@ -182,7 +252,8 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
     async def get_by_id(self, request_id: str) -> Optional[Reimbursement]:
         """Get reimbursement by ID"""
         try:
-            document = await self.reimbursements_collection.find_one({"request_id": request_id})
+            collection = await self._get_reimbursements_collection()
+            document = await collection.find_one({"request_id": request_id})
             
             if document:
                 return self._document_to_reimbursement(document)
@@ -195,7 +266,8 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
     async def get_by_employee_id(self, employee_id: str) -> List[Reimbursement]:
         """Get reimbursements by employee ID"""
         try:
-            cursor = self.reimbursements_collection.find(
+            collection = await self._get_reimbursements_collection()
+            cursor = collection.find(
                 {"employee_id": employee_id}
             ).sort("created_at", DESCENDING)
             
@@ -214,7 +286,8 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
     async def get_by_status(self, status: str) -> List[Reimbursement]:
         """Get reimbursements by status"""
         try:
-            cursor = self.reimbursements_collection.find(
+            collection = await self._get_reimbursements_collection()
+            cursor = collection.find(
                 {"status": status}
             ).sort("submitted_at", DESCENDING)
             
@@ -237,7 +310,8 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
     async def get_all(self) -> List[Reimbursement]:
         """Get all reimbursements"""
         try:
-            cursor = self.reimbursements_collection.find().sort("created_at", DESCENDING)
+            collection = await self._get_reimbursements_collection()
+            cursor = collection.find().sort("created_at", DESCENDING)
             
             reimbursements = []
             async for document in cursor:
@@ -280,10 +354,11 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
                     amount_query["$gte"] = float(filters.min_amount)
                 if filters.max_amount:
                     amount_query["$lte"] = float(filters.max_amount)
-                query["amount.amount"] = amount_query
+                query["amount"] = amount_query
             
             # Execute query
-            cursor = self.reimbursements_collection.find(query).sort("submitted_at", DESCENDING)
+            collection = await self._get_reimbursements_collection()
+            cursor = collection.find(query).sort("submitted_at", DESCENDING)
             
             if filters.limit:
                 cursor = cursor.limit(filters.limit)
@@ -303,7 +378,8 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
     async def get_by_date_range(self, start_date: datetime, end_date: datetime) -> List[Reimbursement]:
         """Get reimbursements within date range"""
         try:
-            cursor = self.reimbursements_collection.find({
+            collection = await self._get_reimbursements_collection()
+            cursor = collection.find({
                 "submitted_at": {
                     "$gte": start_date,
                     "$lte": end_date
@@ -329,29 +405,30 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
         start_date: datetime,
         end_date: datetime
     ) -> Decimal:
-        """Get total amount spent by employee for a specific type in date range"""
+        """Get total reimbursement amount for employee and type within date range"""
         try:
             pipeline = [
                 {
                     "$match": {
                         "employee_id": employee_id,
-                        "reimbursement_type.code": reimbursement_type_id,
-                        "status": {"$in": ["approved", "paid"]},
+                        "reimbursement_type.type_id": reimbursement_type_id,
                         "submitted_at": {
                             "$gte": start_date,
                             "$lte": end_date
-                        }
+                        },
+                        "status": {"$in": ["approved", "paid"]}
                     }
                 },
                 {
                     "$group": {
                         "_id": None,
-                        "total": {"$sum": "$amount.amount"}
+                        "total": {"$sum": "$amount"}
                     }
                 }
             ]
             
-            result = await self.reimbursements_collection.aggregate(pipeline).to_list(1)
+            collection = await self._get_reimbursements_collection()
+            result = await collection.aggregate(pipeline).to_list(1)
             
             if result:
                 return Decimal(str(result[0]["total"]))
@@ -367,7 +444,8 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
         """Save a new reimbursement type"""
         try:
             document = self._reimbursement_type_to_document(reimbursement_type)
-            result = await self.reimbursement_types_collection.insert_one(document)
+            collection = await self._get_reimbursement_types_collection()
+            result = await collection.insert_one(document)
             
             if result.inserted_id:
                 logger.debug(f"Saved reimbursement type: {reimbursement_type.type_id}")
@@ -385,7 +463,8 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
             document = self._reimbursement_type_to_document(reimbursement_type)
             document["updated_at"] = datetime.utcnow()
             
-            result = await self.reimbursement_types_collection.replace_one(
+            collection = await self._get_reimbursement_types_collection()
+            result = await collection.replace_one(
                 {"type_id": reimbursement_type.type_id},
                 document
             )
@@ -403,7 +482,8 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
     async def get_reimbursement_type_by_id(self, type_id: str) -> Optional[ReimbursementTypeEntity]:
         """Get reimbursement type by ID"""
         try:
-            document = await self.reimbursement_types_collection.find_one({"type_id": type_id})
+            collection = await self._get_reimbursement_types_collection()
+            document = await collection.find_one({"type_id": type_id})
             
             if document:
                 return self._document_to_reimbursement_type(document)
@@ -416,7 +496,8 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
     async def get_reimbursement_type_by_code(self, code: str) -> Optional[ReimbursementTypeEntity]:
         """Get reimbursement type by code"""
         try:
-            document = await self.reimbursement_types_collection.find_one({"reimbursement_type.code": code})
+            collection = await self._get_reimbursement_types_collection()
+            document = await collection.find_one({"reimbursement_type.code": code})
             
             if document:
                 return self._document_to_reimbursement_type(document)
@@ -429,7 +510,8 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
     async def get_all_reimbursement_types(self) -> List[ReimbursementTypeEntity]:
         """Get all reimbursement types"""
         try:
-            cursor = self.reimbursement_types_collection.find().sort("reimbursement_type.name", ASCENDING)
+            collection = await self._get_reimbursement_types_collection()
+            cursor = collection.find().sort("reimbursement_type.name", ASCENDING)
             
             types = []
             async for document in cursor:
@@ -443,8 +525,6 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
             logger.error(f"Error getting all reimbursement types: {e}")
             raise
     
-    # ==================== ANALYTICS OPERATIONS ====================
-    
     async def get_statistics(
         self,
         start_date: Optional[datetime] = None,
@@ -452,42 +532,40 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
     ) -> ReimbursementStatisticsDTO:
         """Get reimbursement statistics"""
         try:
-            # Build date filter
             date_filter = {}
             if start_date or end_date:
-                date_range = {}
                 if start_date:
-                    date_range["$gte"] = start_date
+                    date_filter["$gte"] = start_date
                 if end_date:
-                    date_range["$lte"] = end_date
-                date_filter["submitted_at"] = date_range
+                    date_filter["$lte"] = end_date
             
-            # Get total counts by status
+            # Get status counts
             status_pipeline = [
-                {"$match": date_filter},
+                {"$match": {"submitted_at": date_filter} if date_filter else {"$match": {}}},
                 {"$group": {"_id": "$status", "count": {"$sum": 1}}}
             ]
             
-            status_results = await self.reimbursements_collection.aggregate(status_pipeline).to_list(None)
+            collection = await self._get_reimbursements_collection()
+            status_results = await collection.aggregate(status_pipeline).to_list(None)
             status_counts = {result["_id"]: result["count"] for result in status_results}
             
-            # Get total amounts
+            # Get total amount
             amount_pipeline = [
-                {"$match": {**date_filter, "status": {"$in": ["approved", "paid"]}}},
-                {"$group": {"_id": None, "total": {"$sum": "$amount.amount"}}}
+                {"$match": {"submitted_at": date_filter} if date_filter else {"$match": {}}},
+                {"$group": {"_id": None, "total": {"$sum": "$amount"}}}
             ]
             
-            amount_results = await self.reimbursements_collection.aggregate(amount_pipeline).to_list(1)
+            amount_results = await collection.aggregate(amount_pipeline).to_list(1)
             total_amount = amount_results[0]["total"] if amount_results else 0
             
             return ReimbursementStatisticsDTO(
                 total_requests=sum(status_counts.values()),
-                pending_requests=status_counts.get("under_review", 0),
+                pending_requests=status_counts.get("pending", 0),
                 approved_requests=status_counts.get("approved", 0),
                 rejected_requests=status_counts.get("rejected", 0),
                 paid_requests=status_counts.get("paid", 0),
-                total_amount=float(total_amount),
-                average_amount=float(total_amount) / max(status_counts.get("approved", 0) + status_counts.get("paid", 0), 1)
+                total_amount=Decimal(str(total_amount)),
+                average_amount=Decimal(str(total_amount / sum(status_counts.values()))) if sum(status_counts.values()) > 0 else Decimal("0")
             )
             
         except Exception as e:
@@ -664,7 +742,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
     async def activate(self, type_id: str, updated_by: str) -> bool:
         """Activate a reimbursement type."""
         try:
-            result = await self.reimbursement_types_collection.update_one(
+            result = await self._get_reimbursement_types_collection().update_one(
                 {"type_id": type_id},
                 {
                     "$set": {
@@ -696,7 +774,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
             if reason:
                 update_data["deactivation_reason"] = reason
             
-            result = await self.reimbursement_types_collection.update_one(
+            result = await self._get_reimbursement_types_collection().update_one(
                 {"type_id": type_id},
                 {"$set": update_data}
             )
@@ -714,7 +792,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
     async def get_by_code(self, code: str) -> Optional[ReimbursementTypeEntity]:
         """Get reimbursement type by code."""
         try:
-            document = await self.reimbursement_types_collection.find_one(
+            document = await self._get_reimbursement_types_collection().find_one(
                 {"reimbursement_type.code": code}
             )
             
@@ -729,7 +807,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
     async def get_active(self) -> List[ReimbursementTypeEntity]:
         """Get all active reimbursement types."""
         try:
-            cursor = self.reimbursement_types_collection.find({"is_active": True})
+            cursor = await self._get_reimbursement_types_collection().find({"is_active": True})
             documents = await cursor.to_list(length=None)
             
             types = []
@@ -747,7 +825,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
     async def get_by_category(self, category: str) -> List[ReimbursementTypeEntity]:
         """Get reimbursement types by category."""
         try:
-            cursor = self.reimbursement_types_collection.find(
+            cursor = await self._get_reimbursement_types_collection().find(
                 {"reimbursement_type.category": category}
             )
             documents = await cursor.to_list(length=None)
@@ -772,7 +850,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
             if exclude_id:
                 query["type_id"] = {"$ne": exclude_id}
             
-            count = await self.reimbursement_types_collection.count_documents(query)
+            count = await self._get_reimbursement_types_collection().count_documents(query)
             return count > 0
             
         except Exception as e:
@@ -783,7 +861,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
     async def delete(self, request_id: str) -> bool:
         """Delete a reimbursement request (soft delete)."""
         try:
-            result = await self.reimbursements_collection.update_one(
+            result = await self._get_reimbursements_collection().update_one(
                 {"request_id": request_id},
                 {
                     "$set": {
@@ -806,7 +884,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
     async def submit_request(self, request_id: str, submitted_by: str) -> bool:
         """Submit a reimbursement request."""
         try:
-            result = await self.reimbursements_collection.update_one(
+            result = await self._get_reimbursements_collection().update_one(
                 {"request_id": request_id},
                 {
                     "$set": {
@@ -851,7 +929,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
             if comments:
                 update_data["approval.comments"] = comments
             
-            result = await self.reimbursements_collection.update_one(
+            result = await self._get_reimbursements_collection().update_one(
                 {"request_id": request_id},
                 {"$set": update_data}
             )
@@ -873,7 +951,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
     ) -> bool:
         """Reject a reimbursement request."""
         try:
-            result = await self.reimbursements_collection.update_one(
+            result = await self._get_reimbursements_collection().update_one(
                 {"request_id": request_id},
                 {
                     "$set": {
@@ -913,7 +991,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
             if cancellation_reason:
                 update_data["cancellation.reason"] = cancellation_reason
             
-            result = await self.reimbursements_collection.update_one(
+            result = await self._get_reimbursements_collection().update_one(
                 {"request_id": request_id},
                 {"$set": update_data}
             )
@@ -951,7 +1029,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
             if bank_details:
                 update_data["payment.bank_details"] = bank_details
             
-            result = await self.reimbursements_collection.update_one(
+            result = await self._get_reimbursements_collection().update_one(
                 {"request_id": request_id},
                 {"$set": update_data}
             )
@@ -983,7 +1061,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
                 "uploaded_at": datetime.utcnow()
             }
             
-            result = await self.reimbursements_collection.update_one(
+            result = await self._get_reimbursements_collection().update_one(
                 {"request_id": request_id},
                 {
                     "$push": {"receipts": receipt_data},
@@ -1004,7 +1082,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
     async def get_approved(self) -> List[Reimbursement]:
         """Get all approved reimbursements."""
         try:
-            cursor = self.reimbursements_collection.find(
+            cursor = await self._get_reimbursements_collection().find(
                 {"status": "approved"}
             ).sort("approval.approved_at", DESCENDING)
             
@@ -1025,7 +1103,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
     async def get_paid(self) -> List[Reimbursement]:
         """Get all paid reimbursements."""
         try:
-            cursor = self.reimbursements_collection.find(
+            cursor = await self._get_reimbursements_collection().find(
                 {"status": "paid"}
             ).sort("payment.paid_at", DESCENDING)
             
@@ -1046,7 +1124,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
     async def get_by_reimbursement_type(self, type_id: str) -> List[Reimbursement]:
         """Get reimbursements by type."""
         try:
-            cursor = self.reimbursements_collection.find(
+            cursor = await self._get_reimbursements_collection().find(
                 {"reimbursement_type.type_id": type_id}
             ).sort("created_at", DESCENDING)
             
@@ -1081,7 +1159,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
             if reimbursement_type_id:
                 query["reimbursement_type.type_id"] = reimbursement_type_id
             
-            cursor = self.reimbursements_collection.find(query).sort("created_at", DESCENDING)
+            cursor = await self._get_reimbursements_collection().find(query).sort("created_at", DESCENDING)
             documents = await cursor.to_list(length=None)
             
             reimbursements = []
@@ -1136,7 +1214,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
                 }
             ]
             
-            cursor = self.reimbursements_collection.aggregate(pipeline)
+            cursor = await self._get_reimbursements_collection().aggregate(pipeline)
             results = await cursor.to_list(length=1)
             
             if results:
@@ -1178,7 +1256,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
                 }
             ]
             
-            cursor = self.reimbursements_collection.aggregate(pipeline)
+            cursor = await self._get_reimbursements_collection().aggregate(pipeline)
             results = await cursor.to_list(length=None)
             
             category_spending = {}
@@ -1224,7 +1302,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
                 {"$sort": {"_id.year": 1, "_id.month": 1}}
             ]
             
-            cursor = self.reimbursements_collection.aggregate(pipeline)
+            cursor = await self._get_reimbursements_collection().aggregate(pipeline)
             results = await cursor.to_list(length=None)
             
             trends = {}
@@ -1291,7 +1369,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
                 }
             ]
             
-            cursor = self.reimbursements_collection.aggregate(pipeline)
+            cursor = await self._get_reimbursements_collection().aggregate(pipeline)
             results = await cursor.to_list(length=1)
             
             if results:
@@ -1347,7 +1425,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
                 {"$limit": limit}
             ]
             
-            cursor = self.reimbursements_collection.aggregate(pipeline)
+            cursor = await self._get_reimbursements_collection().aggregate(pipeline)
             results = await cursor.to_list(length=limit)
             
             top_spenders = []
@@ -1395,7 +1473,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
                 }
             ]
             
-            cursor = self.reimbursements_collection.aggregate(pipeline)
+            cursor = await self._get_reimbursements_collection().aggregate(pipeline)
             results = await cursor.to_list(length=1)
             
             if results:
@@ -1446,7 +1524,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
                 }
             ]
             
-            cursor = self.reimbursements_collection.aggregate(pipeline)
+            cursor = await self._get_reimbursements_collection().aggregate(pipeline)
             results = await cursor.to_list(length=None)
             
             payment_methods = {}
@@ -1534,7 +1612,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
                 }
             ]
             
-            cursor = self.reimbursements_collection.aggregate(pipeline)
+            cursor = await self._get_reimbursements_collection().aggregate(pipeline)
             employee_stats = await cursor.to_list(length=None)
             
             total_department_amount = sum(emp["total_amount"] for emp in employee_stats)
@@ -1579,7 +1657,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
                 }
             ]
             
-            cursor = self.reimbursements_collection.aggregate(pipeline)
+            cursor = await self._get_reimbursements_collection().aggregate(pipeline)
             type_breakdown = await cursor.to_list(length=None)
             
             return {
@@ -1731,7 +1809,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
                 {"$sort": {"count": -1}}
             ]
             
-            cursor = self.reimbursements_collection.aggregate(pipeline)
+            cursor = await self._get_reimbursements_collection().aggregate(pipeline)
             results = await cursor.to_list(length=None)
             
             return {
@@ -1755,7 +1833,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
                 }
             ]
             
-            cursor = self.reimbursement_types_collection.aggregate(pipeline)
+            cursor = await self._get_reimbursement_types_collection().aggregate(pipeline)
             results = await cursor.to_list(length=None)
             
             return {
@@ -1779,7 +1857,7 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
                 }
             ]
             
-            cursor = self.reimbursement_types_collection.aggregate(pipeline)
+            cursor = await self._get_reimbursement_types_collection().aggregate(pipeline)
             results = await cursor.to_list(length=None)
             
             return {

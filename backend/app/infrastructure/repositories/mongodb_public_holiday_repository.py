@@ -12,8 +12,6 @@ from pymongo.errors import DuplicateKeyError
 from pymongo.collection import Collection
 
 from app.domain.entities.public_holiday import PublicHoliday
-from app.domain.value_objects.holiday_type import HolidayType, HolidayCategory, HolidayObservance, HolidayRecurrence
-from app.domain.value_objects.holiday_date_range import HolidayDateRange
 from app.application.interfaces.repositories.public_holiday_repository import (
     PublicHolidayCommandRepository, 
     PublicHolidayQueryRepository, 
@@ -43,47 +41,82 @@ class MongoDBPublicHolidayRepository(
     - DIP: Depends on abstractions
     """
     
-    def __init__(self, database_connector: Optional[DatabaseConnector] = None, hostname: Optional[str] = None):
-        self.hostname = hostname or "localhost"
-        self.db_connector = database_connector or DatabaseConnector()
-        self._collection_cache = {}
+    def __init__(self, database_connector: DatabaseConnector):
+        """
+        Initialize repository with database connector.
+        
+        Args:
+            database_connector: Database connection abstraction
+        """
+        self.db_connector = database_connector
+        self._collection_name = "public_holidays"
+        
+        # Connection configuration (will be set by dependency container)
+        self._connection_string = None
+        self._client_options = None
     
-    async def _get_collection(self, organisation_id: Optional[str] = None) -> Collection:
-        """Get MongoDB collection for public holidays."""
+    def set_connection_config(self, connection_string: str, client_options: Dict[str, Any]):
+        """
+        Set MongoDB connection configuration.
+        
+        Args:
+            connection_string: MongoDB connection string
+            client_options: MongoDB client options
+        """
+        self._connection_string = connection_string
+        self._client_options = client_options
+        
+    async def _get_collection(self, db_name: str = "pms_public_holiday_database"):
+        """
+        Get public holidays collection for specific public holiday or global.
+        
+        Ensures database connection is established in the correct event loop.
+        Uses global database for public holiday data.
+        """
+        # Ensure database is connected in the current event loop
+        if not self.db_connector.is_connected:
+            logger.debug("Database not connected, establishing connection...")
+            
+            try:
+                # Use stored connection configuration or fallback to config functions
+                if self._connection_string and self._client_options:
+                    logger.debug("Using stored connection parameters from repository configuration")
+                    connection_string = self._connection_string
+                    options = self._client_options
+                else:
+                    # Fallback to config functions if connection config not set
+                    logger.debug("Loading connection parameters from mongodb_config")
+                    connection_string = get_mongodb_connection_string()
+                    options = get_mongodb_client_options()
+                
+                await self.db_connector.connect(connection_string, **options)
+                logger.info("MongoDB connection established successfully in current event loop")
+                
+            except Exception as e:
+                logger.error(f"Failed to establish database connection: {e}")
+                raise RuntimeError(f"Database connection failed: {e}")
+        
+        # Verify connection and get collection
         try:
-            cache_key = f"{self.hostname}_{organisation_id or 'default'}"
-            
-            if cache_key in self._collection_cache:
-                return self._collection_cache[cache_key]
-            
-            # Get database connection
-            client = await self.db_connector.get_database_client(self.hostname)
-            db_name = f"pmssrc_{self.hostname}" if self.hostname != "localhost" else "pmssrc"
-            database = client[db_name]
-            
-            # Get collection
-            collection = database["public_holidays"]
-            
-            # Create indexes for performance
-            await self._ensure_indexes(collection)
-            
-            # Cache the collection
-            self._collection_cache[cache_key] = collection
-            
+            db = self.db_connector.get_database(db_name)
+            collection = db[self._collection_name]
+            logger.debug(f"Successfully retrieved collection: {self._collection_name} from database: {db_name}")
             return collection
             
         except Exception as e:
-            logger.error(f"Error getting public holiday collection: {e}")
-            raise
-    
+            logger.error(f"Failed to get collection {self._collection_name}: {e}")
+            # Reset connection state to force reconnection on next call
+            if hasattr(self.db_connector, '_client'):
+                self.db_connector._client = None
+            raise RuntimeError(f"Collection access failed: {e}")
+        
     async def _ensure_indexes(self, collection: Collection):
         """Ensure necessary indexes exist."""
         try:
             indexes = [
                 ("holiday_id", ASCENDING),
-                ("date_range.start_date", ASCENDING),
-                ("date_range.end_date", ASCENDING),
-                ("holiday_type.category", ASCENDING),
+                ("holiday_date", ASCENDING),
+                ("holiday_name", ASCENDING),
                 ("is_active", ASCENDING),
                 ("created_at", DESCENDING)
             ]
@@ -96,69 +129,50 @@ class MongoDBPublicHolidayRepository(
     
     def _holiday_to_document(self, holiday: PublicHoliday) -> Dict[str, Any]:
         """Convert domain entity to MongoDB document."""
+        # Convert date to datetime for MongoDB compatibility
+        holiday_datetime = datetime.combine(holiday.holiday_date, datetime.min.time())
+        
         return {
             "holiday_id": holiday.holiday_id,
-            "holiday_type": {
-                "code": holiday.holiday_type.code,
-                "name": holiday.holiday_type.name,
-                "category": holiday.holiday_type.category.value,
-                "observance": holiday.holiday_type.observance.value,
-                "recurrence": holiday.holiday_type.recurrence.value,
-                "description": holiday.holiday_type.description
-            },
-            "date_range": {
-                "start_date": holiday.date_range.start_date,
-                "end_date": holiday.date_range.end_date,
-                "is_single_day": holiday.date_range.is_single_day()
-            },
+            "holiday_name": holiday.holiday_name,
+            "holiday_date": holiday_datetime,
             "is_active": holiday.is_active,
             "created_at": holiday.created_at,
             "updated_at": holiday.updated_at,
             "created_by": holiday.created_by,
             "updated_by": holiday.updated_by,
-            "notes": holiday.notes,
-            "location_specific": holiday.location_specific,
-            "substitute_for": holiday.substitute_for
+            "description": holiday.description,
+            "location_specific": holiday.location_specific
         }
     
     def _document_to_holiday(self, document: Dict[str, Any]) -> PublicHoliday:
         """Convert MongoDB document to domain entity."""
         try:
-            # Reconstruct holiday type
-            holiday_type_data = document.get("holiday_type", {})
-            holiday_type = HolidayType(
-                code=holiday_type_data.get("code", ""),
-                name=holiday_type_data.get("name", ""),
-                category=HolidayCategory(holiday_type_data.get("category", "national")),
-                observance=HolidayObservance(holiday_type_data.get("observance", "mandatory")),
-                recurrence=HolidayRecurrence(holiday_type_data.get("recurrence", "annual")),
-                description=holiday_type_data.get("description")
-            )
+            # Reconstruct holiday data
+            holiday_name = document.get("holiday_name", "")
+            holiday_date_value = document.get("holiday_date", "")
             
-            # Reconstruct date range
-            date_range_data = document.get("date_range", {})
-            start_date = date_range_data.get("start_date")
-            end_date = date_range_data.get("end_date")
-            
-            if isinstance(start_date, datetime):
-                start_date = start_date.date()
-            if isinstance(end_date, datetime):
-                end_date = end_date.date()
-                
-            date_range = HolidayDateRange(start_date=start_date, end_date=end_date)
+            # Convert datetime back to date if needed
+            if isinstance(holiday_date_value, datetime):
+                holiday_date = holiday_date_value.date()
+            elif isinstance(holiday_date_value, str):
+                # Handle string dates
+                from datetime import datetime as dt
+                holiday_date = dt.fromisoformat(holiday_date_value).date()
+            else:
+                holiday_date = holiday_date_value
             
             return PublicHoliday(
                 holiday_id=document.get("holiday_id"),
-                holiday_type=holiday_type,
-                date_range=date_range,
+                holiday_name=holiday_name,
+                holiday_date=holiday_date,
                 is_active=document.get("is_active", True),
-                created_at=document.get("created_at", datetime.utcnow()),
-                updated_at=document.get("updated_at", datetime.utcnow()),
+                created_at=document.get("created_at", datetime.now()),
+                updated_at=document.get("updated_at", datetime.now()),
                 created_by=document.get("created_by"),
                 updated_by=document.get("updated_by"),
-                notes=document.get("notes"),
-                location_specific=document.get("location_specific"),
-                substitute_for=document.get("substitute_for")
+                description=document.get("description"),
+                location_specific=document.get("location_specific")
             )
             
         except Exception as e:
@@ -274,9 +288,11 @@ class MongoDBPublicHolidayRepository(
         """Get public holiday by specific date."""
         try:
             collection = await self._get_collection()
+            # Convert date to datetime for MongoDB compatibility
+            holiday_datetime = datetime.combine(holiday_date, datetime.min.time())
+            
             document = await collection.find_one({
-                "date_range.start_date": {"$lte": holiday_date},
-                "date_range.end_date": {"$gte": holiday_date},
+                "holiday_date": holiday_datetime,
                 "is_active": True
             })
             
@@ -293,7 +309,7 @@ class MongoDBPublicHolidayRepository(
         """Get all active public holidays."""
         try:
             collection = await self._get_collection()
-            cursor = collection.find({"is_active": True}).sort("date_range.start_date", ASCENDING)
+            cursor = collection.find({"is_active": True}).sort("holiday_date", ASCENDING)
             documents = await cursor.to_list(length=None)
             
             return [self._document_to_holiday(doc) for doc in documents]
@@ -308,7 +324,7 @@ class MongoDBPublicHolidayRepository(
             collection = await self._get_collection()
             
             query = {} if include_inactive else {"is_active": True}
-            cursor = collection.find(query).sort("date_range.start_date", ASCENDING)
+            cursor = collection.find(query).sort("holiday_date", ASCENDING)
             documents = await cursor.to_list(length=None)
             
             return [self._document_to_holiday(doc) for doc in documents]
@@ -322,17 +338,17 @@ class MongoDBPublicHolidayRepository(
         try:
             collection = await self._get_collection()
             
-            start_date = date(year, 1, 1)
-            end_date = date(year, 12, 31)
+            start_datetime = datetime.combine(date(year, 1, 1), datetime.min.time())
+            end_datetime = datetime.combine(date(year, 12, 31), datetime.max.time())
             
             query = {
-                "date_range.start_date": {"$gte": start_date, "$lte": end_date}
+                "holiday_date": {"$gte": start_datetime, "$lte": end_datetime}
             }
             
             if not include_inactive:
                 query["is_active"] = True
             
-            cursor = collection.find(query).sort("date_range.start_date", ASCENDING)
+            cursor = collection.find(query).sort("holiday_date", ASCENDING)
             documents = await cursor.to_list(length=None)
             
             return [self._document_to_holiday(doc) for doc in documents]
@@ -350,17 +366,17 @@ class MongoDBPublicHolidayRepository(
             from calendar import monthrange
             _, last_day = monthrange(year, month)
             
-            start_date = date(year, month, 1)
-            end_date = date(year, month, last_day)
+            start_datetime = datetime.combine(date(year, month, 1), datetime.min.time())
+            end_datetime = datetime.combine(date(year, month, last_day), datetime.max.time())
             
             query = {
-                "date_range.start_date": {"$gte": start_date, "$lte": end_date}
+                "holiday_date": {"$gte": start_datetime, "$lte": end_datetime}
             }
             
             if not include_inactive:
                 query["is_active"] = True
             
-            cursor = collection.find(query).sort("date_range.start_date", ASCENDING)
+            cursor = collection.find(query).sort("holiday_date", ASCENDING)
             documents = await cursor.to_list(length=None)
             
             return [self._document_to_holiday(doc) for doc in documents]
@@ -379,25 +395,18 @@ class MongoDBPublicHolidayRepository(
         try:
             collection = await self._get_collection()
             
+            # Convert dates to datetime for MongoDB compatibility
+            start_datetime = datetime.combine(start_date, datetime.min.time())
+            end_datetime = datetime.combine(end_date, datetime.max.time())
+            
             query = {
-                "$or": [
-                    {
-                        "date_range.start_date": {"$gte": start_date, "$lte": end_date}
-                    },
-                    {
-                        "date_range.end_date": {"$gte": start_date, "$lte": end_date}
-                    },
-                    {
-                        "date_range.start_date": {"$lte": start_date},
-                        "date_range.end_date": {"$gte": end_date}
-                    }
-                ]
+                "holiday_date": {"$gte": start_datetime, "$lte": end_datetime}
             }
             
             if not include_inactive:
                 query["is_active"] = True
             
-            cursor = collection.find(query).sort("date_range.start_date", ASCENDING)
+            cursor = collection.find(query).sort("holiday_date", ASCENDING)
             documents = await cursor.to_list(length=None)
             
             return [self._document_to_holiday(doc) for doc in documents]
@@ -441,14 +450,18 @@ class MongoDBPublicHolidayRepository(
             today = date.today()
             end_date = today + timedelta(days=days_ahead)
             
+            # Convert dates to datetime for MongoDB compatibility
+            today_datetime = datetime.combine(today, datetime.min.time())
+            end_datetime = datetime.combine(end_date, datetime.max.time())
+            
             query = {
-                "date_range.start_date": {"$gte": today, "$lte": end_date}
+                "holiday_date": {"$gte": today_datetime, "$lte": end_datetime}
             }
             
             if not include_inactive:
                 query["is_active"] = True
             
-            cursor = collection.find(query).sort("date_range.start_date", ASCENDING)
+            cursor = collection.find(query).sort("holiday_date", ASCENDING)
             documents = await cursor.to_list(length=None)
             
             return [self._document_to_holiday(doc) for doc in documents]
@@ -474,30 +487,21 @@ class MongoDBPublicHolidayRepository(
             # Text search
             if search_term:
                 query["$or"] = [
-                    {"holiday_type.name": {"$regex": search_term, "$options": "i"}},
-                    {"holiday_type.description": {"$regex": search_term, "$options": "i"}},
-                    {"notes": {"$regex": search_term, "$options": "i"}}
+                    {"holiday_name": {"$regex": search_term, "$options": "i"}},
+                    {"description": {"$regex": search_term, "$options": "i"}}
                 ]
-            
-            # Category filter
-            if category:
-                query["holiday_type.category"] = category
-            
-            # Observance filter
-            if observance:
-                query["holiday_type.observance"] = observance
             
             # Year filter
             if year:
-                start_date = date(year, 1, 1)
-                end_date = date(year, 12, 31)
-                query["date_range.start_date"] = {"$gte": start_date, "$lte": end_date}
+                start_datetime = datetime.combine(date(year, 1, 1), datetime.min.time())
+                end_datetime = datetime.combine(date(year, 12, 31), datetime.max.time())
+                query["holiday_date"] = {"$gte": start_datetime, "$lte": end_datetime}
             
             # Active filter
             if is_active is not None:
                 query["is_active"] = is_active
             
-            cursor = collection.find(query).sort("date_range.start_date", ASCENDING)
+            cursor = collection.find(query).sort("holiday_date", ASCENDING)
             documents = await cursor.to_list(length=None)
             
             return [self._document_to_holiday(doc) for doc in documents]
@@ -510,10 +514,11 @@ class MongoDBPublicHolidayRepository(
         """Check if any active holiday exists on a specific date."""
         try:
             collection = await self._get_collection()
+            # Convert date to datetime for MongoDB compatibility
+            holiday_datetime = datetime.combine(holiday_date, datetime.min.time())
             
             count = await collection.count_documents({
-                "date_range.start_date": {"$lte": holiday_date},
-                "date_range.end_date": {"$gte": holiday_date},
+                "holiday_date": holiday_datetime,
                 "is_active": True
             })
             
@@ -528,27 +533,13 @@ class MongoDBPublicHolidayRepository(
         try:
             collection = await self._get_collection()
             
+            # Convert to datetime for MongoDB compatibility
+            holiday_datetime = datetime.combine(holiday.holiday_date, datetime.min.time())
+            
             query = {
                 "holiday_id": {"$ne": holiday.holiday_id},
                 "is_active": True,
-                "$or": [
-                    {
-                        "date_range.start_date": {
-                            "$gte": holiday.date_range.start_date,
-                            "$lte": holiday.date_range.end_date
-                        }
-                    },
-                    {
-                        "date_range.end_date": {
-                            "$gte": holiday.date_range.start_date,
-                            "$lte": holiday.date_range.end_date
-                        }
-                    },
-                    {
-                        "date_range.start_date": {"$lte": holiday.date_range.start_date},
-                        "date_range.end_date": {"$gte": holiday.date_range.end_date}
-                    }
-                ]
+                "holiday_date": holiday_datetime
             }
             
             cursor = collection.find(query)
@@ -594,23 +585,16 @@ class MongoDBPublicHolidayRepository(
             # Build date filter for year if provided
             match_filter = {"is_active": True}
             if year:
-                start_date = date(year, 1, 1)
-                end_date = date(year, 12, 31)
-                match_filter["date_range.start_date"] = {"$gte": start_date, "$lte": end_date}
+                start_datetime = datetime.combine(date(year, 1, 1), datetime.min.time())
+                end_datetime = datetime.combine(date(year, 12, 31), datetime.max.time())
+                match_filter["holiday_date"] = {"$gte": start_datetime, "$lte": end_datetime}
             
             pipeline = [
                 {"$match": match_filter},
                 {
                     "$group": {
                         "_id": None,
-                        "total_holidays": {"$sum": 1},
-                        "categories": {"$addToSet": "$holiday_type.category"},
-                        "mandatory_count": {
-                            "$sum": {"$cond": [{"$eq": ["$holiday_type.observance", "mandatory"]}, 1, 0]}
-                        },
-                        "optional_count": {
-                            "$sum": {"$cond": [{"$eq": ["$holiday_type.observance", "optional"]}, 1, 0]}
-                        }
+                        "total_holidays": {"$sum": 1}
                     }
                 }
             ]
@@ -621,13 +605,10 @@ class MongoDBPublicHolidayRepository(
                 stats = result[0]
                 return {
                     "total_holidays": stats.get("total_holidays", 0),
-                    "unique_categories": len(stats.get("categories", [])),
-                    "mandatory_holidays": stats.get("mandatory_count", 0),
-                    "optional_holidays": stats.get("optional_count", 0),
                     "year": year
                 }
             
-            return {"total_holidays": 0, "unique_categories": 0, "mandatory_holidays": 0, "optional_holidays": 0, "year": year}
+            return {"total_holidays": 0, "year": year}
             
         except Exception as e:
             logger.error(f"Error getting holiday statistics: {e}")
@@ -641,18 +622,14 @@ class MongoDBPublicHolidayRepository(
             
             match_filter = {"is_active": True}
             if year:
-                start_date = date(year, 1, 1)
-                end_date = date(year, 12, 31)
-                match_filter["date_range.start_date"] = {"$gte": start_date, "$lte": end_date}
+                start_datetime = datetime.combine(date(year, 1, 1), datetime.min.time())
+                end_datetime = datetime.combine(date(year, 12, 31), datetime.max.time())
+                match_filter["holiday_date"] = {"$gte": start_datetime, "$lte": end_datetime}
             
-            pipeline = [
-                {"$match": match_filter},
-                {"$group": {"_id": "$holiday_type.category", "count": {"$sum": 1}}},
-                {"$sort": {"count": -1}}
-            ]
+            # Since we simplified the structure, we'll just return basic stats
+            count = await collection.count_documents(match_filter)
             
-            results = await collection.aggregate(pipeline).to_list(length=None)
-            return [{"category": item["_id"], "count": item["count"]} for item in results]
+            return [{"category": "national", "count": count}]
             
         except Exception as e:
             logger.error(f"Error getting category distribution: {e}")
@@ -665,13 +642,13 @@ class MongoDBPublicHolidayRepository(
             
             match_filter = {"is_active": True}
             if year:
-                start_date = date(year, 1, 1)
-                end_date = date(year, 12, 31)
-                match_filter["date_range.start_date"] = {"$gte": start_date, "$lte": end_date}
+                start_datetime = datetime.combine(date(year, 1, 1), datetime.min.time())
+                end_datetime = datetime.combine(date(year, 12, 31), datetime.max.time())
+                match_filter["holiday_date"] = {"$gte": start_datetime, "$lte": end_datetime}
             
             pipeline = [
                 {"$match": match_filter},
-                {"$group": {"_id": {"$month": "$date_range.start_date"}, "count": {"$sum": 1}}},
+                {"$group": {"_id": {"$month": "$holiday_date"}, "count": {"$sum": 1}}},
                 {"$sort": {"_id": 1}}
             ]
             
@@ -689,18 +666,14 @@ class MongoDBPublicHolidayRepository(
             
             match_filter = {"is_active": True}
             if year:
-                start_date = date(year, 1, 1)
-                end_date = date(year, 12, 31)
-                match_filter["date_range.start_date"] = {"$gte": start_date, "$lte": end_date}
+                start_datetime = datetime.combine(date(year, 1, 1), datetime.min.time())
+                end_datetime = datetime.combine(date(year, 12, 31), datetime.max.time())
+                match_filter["holiday_date"] = {"$gte": start_datetime, "$lte": end_datetime}
             
-            pipeline = [
-                {"$match": match_filter},
-                {"$group": {"_id": "$holiday_type.observance", "count": {"$sum": 1}}},
-                {"$sort": {"count": -1}}
-            ]
+            # Since we simplified the structure, we'll just return basic stats
+            count = await collection.count_documents(match_filter)
             
-            results = await collection.aggregate(pipeline).to_list(length=None)
-            return [{"observance": item["_id"], "count": item["count"]} for item in results]
+            return [{"observance": "mandatory", "count": count}]
             
         except Exception as e:
             logger.error(f"Error getting observance analysis: {e}")
@@ -714,19 +687,22 @@ class MongoDBPublicHolidayRepository(
             current_year = date.today().year
             start_year = current_year - years + 1
             
+            start_datetime = datetime.combine(date(start_year, 1, 1), datetime.min.time())
+            end_datetime = datetime.combine(date(current_year, 12, 31), datetime.max.time())
+            
             pipeline = [
                 {
                     "$match": {
                         "is_active": True,
-                        "date_range.start_date": {
-                            "$gte": date(start_year, 1, 1),
-                            "$lte": date(current_year, 12, 31)
+                        "holiday_date": {
+                            "$gte": start_datetime,
+                            "$lte": end_datetime
                         }
                     }
                 },
                 {
                     "$group": {
-                        "_id": {"$year": "$date_range.start_date"},
+                        "_id": {"$year": "$holiday_date"},
                         "count": {"$sum": 1}
                     }
                 },
@@ -758,7 +734,7 @@ class MongoDBPublicHolidayRepository(
                 "year": year,
                 "month": month,
                 "total_holidays": len(holidays),
-                "holidays": [{"name": h.holiday_type.name, "date": h.date_range.start_date} for h in holidays]
+                "holidays": [{"name": h.holiday_name, "date": h.holiday_date} for h in holidays]
             }
         except Exception as e:
             logger.error(f"Error getting calendar summary: {e}")
@@ -788,10 +764,10 @@ class MongoDBPublicHolidayRepository(
             
             for holiday in holidays:
                 calendar_data["holidays"].append({
-                    "name": holiday.holiday_type.name,
-                    "date": holiday.date_range.start_date.isoformat(),
-                    "category": holiday.holiday_type.category.value,
-                    "observance": holiday.holiday_type.observance.value
+                    "name": holiday.holiday_name,
+                    "date": holiday.holiday_date.isoformat(),
+                    "description": holiday.description or "",
+                    "is_active": holiday.is_active
                 })
             
             return calendar_data
@@ -814,10 +790,10 @@ class MongoDBPublicHolidayRepository(
             
             for holiday in holidays:
                 calendar_data["holidays"].append({
-                    "name": holiday.holiday_type.name,
-                    "date": holiday.date_range.start_date.isoformat(),
-                    "category": holiday.holiday_type.category.value,
-                    "observance": holiday.holiday_type.observance.value
+                    "name": holiday.holiday_name,
+                    "date": holiday.holiday_date.isoformat(),
+                    "description": holiday.description or "",
+                    "is_active": holiday.is_active
                 })
             
             return calendar_data
@@ -831,7 +807,7 @@ class MongoDBPublicHolidayRepository(
         try:
             # Get holidays in the date range
             holidays = await self.get_by_date_range(start_date, end_date)
-            holiday_dates = {h.date_range.start_date for h in holidays}
+            holiday_dates = {h.holiday_date for h in holidays}
             
             # Count working days
             current_date = start_date

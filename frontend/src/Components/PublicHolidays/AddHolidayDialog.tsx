@@ -21,19 +21,19 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 // Define interfaces
 interface HolidayFormData {
   name: string;
-  date: Date | null;
+  holiday_date: Date | null;
   description: string;
 }
 
 interface FormErrors {
   name?: string;
-  date?: string;
+  holiday_date?: string;
   description?: string;
 }
 
 interface HolidaySubmitData {
   name: string;
-  date: string;
+  holiday_date: string;
   description: string;
   is_active: boolean;
 }
@@ -47,7 +47,7 @@ interface AddHolidayDialogProps {
 const AddHolidayDialog: React.FC<AddHolidayDialogProps> = ({ open, onClose, onSubmit }) => {
   const [formData, setFormData] = useState<HolidayFormData>({
     name: '',
-    date: new Date(),
+    holiday_date: new Date(),
     description: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
@@ -60,13 +60,13 @@ const AddHolidayDialog: React.FC<AddHolidayDialogProps> = ({ open, onClose, onSu
       newErrors.name = 'Holiday name is required';
     }
     
-    if (!formData.date) {
-      newErrors.date = 'Date is required';
+    if (!formData.holiday_date) {
+      newErrors.holiday_date = 'Date is required';
     } else {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      if (formData.date.getTime() < today.getTime()) {
-        newErrors.date = 'Date cannot be in the past';
+      if (formData.holiday_date.getTime() < today.getTime()) {
+        newErrors.holiday_date = 'Date cannot be in the past';
       }
     }
 
@@ -79,9 +79,12 @@ const AddHolidayDialog: React.FC<AddHolidayDialogProps> = ({ open, onClose, onSu
     
     setIsSubmitting(true);
     try {
+      // Format the date safely
+      const formattedDate: string = formData.holiday_date?.toISOString().split('T')[0] ?? '';
+
       const formattedData: HolidaySubmitData = {
         name: formData.name.trim(),
-        date: formData.date instanceof Date ? formData.date.toISOString() : formData.date || '',
+        holiday_date: formattedDate,
         description: formData.description.trim() || '',
         is_active: true
       };
@@ -101,7 +104,7 @@ const AddHolidayDialog: React.FC<AddHolidayDialogProps> = ({ open, onClose, onSu
   const handleClose = (): void => {
     setFormData({
       name: '',
-      date: new Date(),
+      holiday_date: new Date(),
       description: '',
     });
     setErrors({});
@@ -159,14 +162,14 @@ const AddHolidayDialog: React.FC<AddHolidayDialogProps> = ({ open, onClose, onSu
           <LocalizationProvider dateAdapter={AdapterDateFns}>
             <DatePicker
               label="Holiday Date"
-              value={formData.date}
-              onChange={(date) => handleChange('date', date)}
+              value={formData.holiday_date}
+              onChange={(date) => handleChange('holiday_date', date)}
               slotProps={{
                 textField: {
                   fullWidth: true,
                   required: true,
-                  error: !!errors.date,
-                  helperText: errors.date,
+                  error: !!errors.holiday_date,
+                  helperText: errors.holiday_date,
                 }
               }}
               minDate={new Date()}
@@ -204,7 +207,7 @@ const AddHolidayDialog: React.FC<AddHolidayDialogProps> = ({ open, onClose, onSu
           onClick={handleSubmit} 
           variant="contained" 
           size="large"
-          disabled={!formData.name.trim() || !formData.date || isSubmitting}
+          disabled={!formData.name.trim() || !formData.holiday_date || isSubmitting}
           sx={{ minWidth: 120 }}
         >
           {isSubmitting ? 'Adding...' : 'Add Holiday'}

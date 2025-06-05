@@ -5,7 +5,8 @@ Following SOLID principles and DDD patterns for user data access
 
 import logging
 from typing import List, Optional, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
+from decimal import Decimal
 from bson import ObjectId
 from pymongo import ASCENDING, DESCENDING
 from pymongo.errors import DuplicateKeyError
@@ -14,17 +15,17 @@ from pymongo.collection import Collection
 from app.domain.entities.attendance import Attendance
 from app.domain.value_objects.employee_id import EmployeeId
 from app.domain.value_objects.attendance_status import AttendanceStatus
-from app.application.interfaces.repositories.user_repository import (
+from app.application.interfaces.repositories.attendance_repository import (
     AttendanceCommandRepository, AttendanceQueryRepository, AttendanceAnalyticsRepository,
-    AttendanceProfileRepository, AttendanceBulkOperationsRepository, AttendanceRepository
+    AttendanceReportsRepository, AttendanceBulkOperationsRepository, AttendanceRepository
 )
 from app.application.dto.attendance_dto import (
-    AttendanceSearchFiltersDTO, AttendanceStatisticsDTO, AttendanceAnalyticsDTO,
-    AttendanceProfileCompletionDTO
+    AttendanceSearchFiltersDTO, AttendanceStatisticsDTO, AttendanceSummaryDTO,
+    DepartmentAttendanceDTO, AttendanceTrendDTO
 )
 from app.infrastructure.database.database_connector import DatabaseConnector
-from app.domain.events.attendance_events import AttendanceCreated, AttendanceUpdated, AttendanceDeleted
-from app.config.mongodb_config import get_mongodb_connection_string, get_mongodb_client_options
+from app.domain.events.attendance_events import AttendanceCreatedEvent, AttendanceUpdatedEvent, AttendanceDeletedEvent
+# from app.config.mongodb_config import get_mongodb_connection_string, get_mongodb_client_options
 from app.domain.value_objects.working_hours import WorkingHours
 
 logger = logging.getLogger(__name__)
@@ -32,9 +33,9 @@ logger = logging.getLogger(__name__)
 
 class MongoDBAttendanceRepository(AttendanceRepository):
     """
-    MongoDB implementation of user repository following DDD patterns.
+    MongoDB implementation of attendance repository following DDD patterns.
     
-    Implements all user repository interfaces in a single class for simplicity
+    Implements all attendance repository interfaces in a single class for simplicity
     while maintaining SOLID principles through interface segregation.
     """
     
@@ -76,16 +77,14 @@ class MongoDBAttendanceRepository(AttendanceRepository):
             logger.debug("Database not connected, establishing connection...")
             
             try:
-                # Use stored connection configuration or fallback to config functions
+                # Use stored connection configuration
                 if self._connection_string and self._client_options:
                     logger.debug("Using stored connection parameters from repository configuration")
                     connection_string = self._connection_string
                     options = self._client_options
                 else:
-                    # Fallback to config functions if connection config not set
-                    logger.debug("Loading connection parameters from mongodb_config")
-                    connection_string = get_mongodb_connection_string()
-                    options = get_mongodb_client_options()
+                    # Connection config must be set by dependency container
+                    raise RuntimeError("Database connection configuration not set. Call set_connection_config() first.")
                 
                 await self.db_connector.connect(connection_string, **options)
                 logger.info("MongoDB connection established successfully in current event loop")
@@ -211,31 +210,51 @@ class MongoDBAttendanceRepository(AttendanceRepository):
             logger.info(f"Publishing event: {type(event).__name__}")
     
     # Command Repository Implementation
-    async def save(self, attendance: Attendance, hostname: str) -> Attendance:
-        """Save a user (create or update)."""
+    async def save(self, attendance: Attendance) -> Attendance:
+        """Save a attendance (create or update)."""
         try:
-            collection = await self._get_collection(hostname)
+            collection = await self._get_collection()
             document = self._attendance_to_document(attendance)
             
-            # Use upsert to handle both create and update
+            # Use upsert based on employee_id for simplicity
+            filter_query = {"employee_id": str(attendance.employee_id)}
+            
             result = await collection.replace_one(
-                {"attendance_id": str(attendance.attendance_id)},
+                filter_query,
                 document,
                 upsert=True
             )
             
-            # Publish domain events
-            await self._publish_events(attendance.get_domain_events())
-            attendance.clear_domain_events()
+            # Publish events based on operation
+            events = []
+            if result.upserted_id:
+                events.append(AttendanceCreatedEvent(
+                    event_id=f"attendance_created_{attendance.employee_id}_{datetime.utcnow().isoformat()}",
+                    occurred_at=datetime.utcnow(),
+                    attendance_id=str(attendance.employee_id),  # Using employee_id as attendance_id for now
+                    employee_id=str(attendance.employee_id),
+                    attendance_date=str(attendance.attendance_date) if hasattr(attendance, 'attendance_date') else datetime.utcnow().date().isoformat(),
+                    initial_status=str(attendance.status) if hasattr(attendance, 'status') else "present",
+                    created_by="system"
+                ))
+                logger.info(f"Created attendance: {attendance.employee_id}")
+            else:
+                events.append(AttendanceUpdatedEvent(
+                    event_id=f"attendance_updated_{attendance.employee_id}_{datetime.utcnow().isoformat()}",
+                    occurred_at=datetime.utcnow(),
+                    attendance_id=str(attendance.employee_id),  # Using employee_id as attendance_id for now
+                    employee_id=str(attendance.employee_id),
+                    previous_status="unknown",  # Would need to fetch from DB in real implementation
+                    new_status=str(attendance.status) if hasattr(attendance, 'status') else "present",
+                    updated_by="system"
+                ))
+                logger.info(f"Updated attendance: {attendance.employee_id}")
             
-            logger.info(f"Attendance saved: {attendance.attendance_id}")
+            await self._publish_events(events)
             return attendance
             
-        except DuplicateKeyError as e:
-            logger.error(f"Duplicate key error saving attendance {attendance.attendance_id}: {e}")
-            raise
         except Exception as e:
-            logger.error(f"Error saving attendance {attendance.attendance_id}: {e}")
+            logger.error(f"Error saving attendance: {e}")
             raise
     
     async def save_batch(self, attendances: List[Attendance]) -> List[Attendance]:
@@ -282,7 +301,7 @@ class MongoDBAttendanceRepository(AttendanceRepository):
             logger.error(f"Error in batch save: {e}")
             raise
     
-    async def delete(self, attendance_id: AttendanceId, soft_delete: bool = True, hostname: Optional[str] = None) -> bool:
+    async def delete(self, attendance_id: str, soft_delete: bool = True, hostname: Optional[str] = None) -> bool:
         """Delete a attendance by ID."""
         try:
             # For soft delete, we need to find the user first to get organisation
@@ -310,11 +329,13 @@ class MongoDBAttendanceRepository(AttendanceRepository):
             
             if result.modified_count > 0 or result.deleted_count > 0:
                 # Publish delete event
-                delete_event = AttendanceDeleted(
+                delete_event = AttendanceDeletedEvent(
+                    event_id=f"attendance_deleted_{attendance_id}_{datetime.utcnow().isoformat()}",
+                    occurred_at=datetime.utcnow(),
                     attendance_id=attendance_id,
-                    organisation_id=hostname,
-                    soft_delete=soft_delete,
-                    deleted_at=datetime.utcnow()
+                    employee_id=attendance.employee_id if attendance else "unknown",
+                    deleted_by="system",
+                    deletion_reason="Soft delete" if soft_delete else "Hard delete"
                 )
                 await self._publish_events([delete_event])
                 
@@ -328,7 +349,7 @@ class MongoDBAttendanceRepository(AttendanceRepository):
             raise
     
     # Query Repository Implementation
-    async def get_by_id(self, attendance_id: AttendanceId, organisation_id: Optional[str] = None) -> Optional[Attendance]:
+    async def get_by_id(self, attendance_id: str, organisation_id: Optional[str] = None) -> Optional[Attendance]:
         """Get attendance by ID."""
         try:
             collection = await self._get_collection(organisation_id)
@@ -564,10 +585,582 @@ class MongoDBAttendanceRepository(AttendanceRepository):
         """Create analytics repository instance."""
         return self
     
-    def create_profile_repository(self) -> AttendanceProfileRepository:
-        """Create profile repository instance."""
+    def create_reports_repository(self) -> AttendanceReportsRepository:
+        """Create reports repository instance."""
         return self
     
     def create_bulk_operations_repository(self) -> AttendanceBulkOperationsRepository:
         """Create bulk operations repository instance."""
-        return self 
+        return self
+
+    # New required interface methods
+    async def delete_by_employee_and_date(self, employee_id: str, attendance_date: date) -> bool:
+        """Delete attendance record by employee and date"""
+        try:
+            collection = await self._get_collection()
+            result = await collection.delete_one({
+                "employee_id": employee_id,
+                "attendance_date": attendance_date.isoformat()
+            })
+            return result.deleted_count > 0
+        except Exception as e:
+            logger.error(f"Error deleting attendance by employee and date: {e}")
+            raise
+
+    async def get_by_employee_and_date(self, employee_id: str, attendance_date: date) -> Optional[Attendance]:
+        """Get attendance record by employee ID and date"""
+        try:
+            collection = await self._get_collection()
+            document = await collection.find_one({
+                "employee_id": employee_id,
+                "attendance_date": attendance_date.isoformat(),
+                "is_deleted": {"$ne": True}
+            })
+            
+            if document:
+                return self._document_to_attendance(document)
+            return None
+        except Exception as e:
+            logger.error(f"Error getting attendance by employee and date: {e}")
+            raise
+
+    async def get_by_employee(
+        self,
+        employee_id: str,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None
+    ) -> List[Attendance]:
+        """Get attendance records by employee ID with optional date range"""
+        try:
+            collection = await self._get_collection()
+            query = {"employee_id": employee_id, "is_deleted": {"$ne": True}}
+            
+            if start_date or end_date:
+                date_query = {}
+                if start_date:
+                    date_query["$gte"] = start_date.isoformat()
+                if end_date:
+                    date_query["$lte"] = end_date.isoformat()
+                query["attendance_date"] = date_query
+            
+            cursor = collection.find(query)
+            if offset:
+                cursor = cursor.skip(offset)
+            if limit:
+                cursor = cursor.limit(limit)
+                
+            documents = await cursor.to_list(length=limit)
+            return [self._document_to_attendance(doc) for doc in documents]
+        except Exception as e:
+            logger.error(f"Error getting attendance by employee: {e}")
+            raise
+
+    async def get_by_date(
+        self,
+        attendance_date: date,
+        employee_ids: Optional[List[str]] = None
+    ) -> List[Attendance]:
+        """Get attendance records by date with optional employee filter"""
+        try:
+            collection = await self._get_collection()
+            query = {
+                "attendance_date": attendance_date.isoformat(),
+                "is_deleted": {"$ne": True}
+            }
+            
+            if employee_ids:
+                query["employee_id"] = {"$in": employee_ids}
+                
+            documents = await collection.find(query).to_list(length=None)
+            return [self._document_to_attendance(doc) for doc in documents]
+        except Exception as e:
+            logger.error(f"Error getting attendance by date: {e}")
+            raise
+
+    async def get_by_date_range(
+        self,
+        start_date: date,
+        end_date: date,
+        employee_ids: Optional[List[str]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None
+    ) -> List[Attendance]:
+        """Get attendance records by date range with optional employee filter"""
+        try:
+            collection = await self._get_collection()
+            query = {
+                "attendance_date": {
+                    "$gte": start_date.isoformat(),
+                    "$lte": end_date.isoformat()
+                },
+                "is_deleted": {"$ne": True}
+            }
+            
+            if employee_ids:
+                query["employee_id"] = {"$in": employee_ids}
+                
+            cursor = collection.find(query)
+            if offset:
+                cursor = cursor.skip(offset)
+            if limit:
+                cursor = cursor.limit(limit)
+                
+            documents = await cursor.to_list(length=limit)
+            return [self._document_to_attendance(doc) for doc in documents]
+        except Exception as e:
+            logger.error(f"Error getting attendance by date range: {e}")
+            raise
+
+    async def count_by_filters(self, filters: AttendanceSearchFiltersDTO) -> int:
+        """Count attendance records matching filters"""
+        try:
+            collection = await self._get_collection()
+            
+            # Build search query (reuse search logic)
+            query = {}
+            
+            if filters.employee_id:
+                query["employee_id"] = filters.employee_id
+                
+            if filters.start_date or filters.end_date:
+                date_filter = {}
+                if filters.start_date:
+                    date_filter["$gte"] = filters.start_date.isoformat()
+                if filters.end_date:
+                    date_filter["$lte"] = filters.end_date.isoformat()
+                query["attendance_date"] = date_filter
+                
+            if not filters.include_deleted:
+                query["is_deleted"] = {"$ne": True}
+                
+            return await collection.count_documents(query)
+        except Exception as e:
+            logger.error(f"Error counting attendance by filters: {e}")
+            raise
+
+    async def get_pending_check_outs(self, date: Optional[date] = None) -> List[Attendance]:
+        """Get attendance records with check-in but no check-out"""
+        try:
+            collection = await self._get_collection()
+            query = {
+                "check_in_time": {"$exists": True, "$ne": None},
+                "check_out_time": {"$exists": False},
+                "is_deleted": {"$ne": True}
+            }
+            
+            if date:
+                query["attendance_date"] = date.isoformat()
+                
+            documents = await collection.find(query).to_list(length=None)
+            return [self._document_to_attendance(doc) for doc in documents]
+        except Exception as e:
+            logger.error(f"Error getting pending check outs: {e}")
+            raise
+
+    async def get_regularization_requests(
+        self,
+        employee_ids: Optional[List[str]] = None,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
+    ) -> List[Attendance]:
+        """Get attendance records that need regularization"""
+        try:
+            collection = await self._get_collection()
+            query = {
+                "is_regularized": {"$ne": True},
+                "needs_regularization": True,
+                "is_deleted": {"$ne": True}
+            }
+            
+            if employee_ids:
+                query["employee_id"] = {"$in": employee_ids}
+                
+            if start_date or end_date:
+                date_filter = {}
+                if start_date:
+                    date_filter["$gte"] = start_date.isoformat()
+                if end_date:
+                    date_filter["$lte"] = end_date.isoformat()
+                query["attendance_date"] = date_filter
+                
+            documents = await collection.find(query).to_list(length=None)
+            return [self._document_to_attendance(doc) for doc in documents]
+        except Exception as e:
+            logger.error(f"Error getting regularization requests: {e}")
+            raise
+
+    async def exists_by_employee_and_date(self, employee_id: str, attendance_date: date) -> bool:
+        """Check if attendance record exists for employee and date"""
+        try:
+            collection = await self._get_collection()
+            count = await collection.count_documents({
+                "employee_id": employee_id,
+                "attendance_date": attendance_date.isoformat(),
+                "is_deleted": {"$ne": True}
+            })
+            return count > 0
+        except Exception as e:
+            logger.error(f"Error checking attendance existence: {e}")
+            raise
+
+    # Analytics Repository Implementation
+    async def get_employee_summary(
+        self,
+        employee_id: str,
+        start_date: date,
+        end_date: date
+    ) -> AttendanceSummaryDTO:
+        """Get attendance summary for an employee"""
+        try:
+            collection = await self._get_collection()
+            # This is a placeholder implementation
+            # You would implement actual aggregation logic here
+            return AttendanceSummaryDTO(
+                employee_id=employee_id,
+                total_days=0,
+                present_days=0,
+                absent_days=0,
+                late_days=0,
+                half_days=0,
+                work_from_home_days=0,
+                leave_days=0,
+                holiday_days=0,
+                total_working_hours=0.0,
+                total_overtime_hours=0.0,
+                average_working_hours=0.0,
+                attendance_percentage=0.0
+            )
+        except Exception as e:
+            logger.error(f"Error getting employee summary: {e}")
+            raise
+
+    async def get_multiple_employee_summaries(
+        self,
+        employee_ids: List[str],
+        start_date: date,
+        end_date: date
+    ) -> List[AttendanceSummaryDTO]:
+        """Get attendance summaries for multiple employees"""
+        try:
+            summaries = []
+            for employee_id in employee_ids:
+                summary = await self.get_employee_summary(employee_id, start_date, end_date)
+                summaries.append(summary)
+            return summaries
+        except Exception as e:
+            logger.error(f"Error getting multiple employee summaries: {e}")
+            raise
+
+    async def get_daily_statistics(self, date: date) -> AttendanceStatisticsDTO:
+        """Get daily attendance statistics"""
+        try:
+            # Placeholder implementation
+            return AttendanceStatisticsDTO(
+                total_employees=0,
+                present_today=0,
+                absent_today=0,
+                late_today=0,
+                on_leave_today=0,
+                work_from_home_today=0,
+                checked_in=0,
+                checked_out=0,
+                pending_check_out=0,
+                average_working_hours=0.0,
+                total_overtime_hours=0.0,
+                attendance_percentage=0.0
+            )
+        except Exception as e:
+            logger.error(f"Error getting daily statistics: {e}")
+            raise
+
+    async def get_period_statistics(
+        self,
+        start_date: date,
+        end_date: date,
+        employee_ids: Optional[List[str]] = None
+    ) -> AttendanceStatisticsDTO:
+        """Get attendance statistics for a period"""
+        try:
+            # Placeholder implementation
+            return AttendanceStatisticsDTO(
+                total_employees=0,
+                present_today=0,
+                absent_today=0,
+                late_today=0,
+                on_leave_today=0,
+                work_from_home_today=0,
+                checked_in=0,
+                checked_out=0,
+                pending_check_out=0,
+                average_working_hours=0.0,
+                total_overtime_hours=0.0,
+                attendance_percentage=0.0
+            )
+        except Exception as e:
+            logger.error(f"Error getting period statistics: {e}")
+            raise
+
+    async def get_department_attendance(
+        self,
+        date: date,
+        department_ids: Optional[List[str]] = None
+    ) -> List[DepartmentAttendanceDTO]:
+        """Get department-wise attendance for a date"""
+        try:
+            # Placeholder implementation
+            return []
+        except Exception as e:
+            logger.error(f"Error getting department attendance: {e}")
+            raise
+
+    async def get_attendance_trends(
+        self,
+        start_date: date,
+        end_date: date,
+        employee_ids: Optional[List[str]] = None
+    ) -> List[AttendanceTrendDTO]:
+        """Get attendance trends over a period"""
+        try:
+            # Placeholder implementation
+            return []
+        except Exception as e:
+            logger.error(f"Error getting attendance trends: {e}")
+            raise
+
+    async def get_late_arrivals(
+        self,
+        start_date: date,
+        end_date: date,
+        employee_ids: Optional[List[str]] = None
+    ) -> List[Attendance]:
+        """Get late arrival records"""
+        try:
+            collection = await self._get_collection()
+            query = {
+                "status": "late",
+                "attendance_date": {
+                    "$gte": start_date.isoformat(),
+                    "$lte": end_date.isoformat()
+                },
+                "is_deleted": {"$ne": True}
+            }
+            
+            if employee_ids:
+                query["employee_id"] = {"$in": employee_ids}
+                
+            documents = await collection.find(query).to_list(length=None)
+            return [self._document_to_attendance(doc) for doc in documents]
+        except Exception as e:
+            logger.error(f"Error getting late arrivals: {e}")
+            raise
+
+    async def get_overtime_records(
+        self,
+        start_date: date,
+        end_date: date,
+        employee_ids: Optional[List[str]] = None,
+        min_overtime_hours: Optional[Decimal] = None
+    ) -> List[Attendance]:
+        """Get overtime records"""
+        try:
+            collection = await self._get_collection()
+            query = {
+                "overtime_hours": {"$gt": 0},
+                "attendance_date": {
+                    "$gte": start_date.isoformat(),
+                    "$lte": end_date.isoformat()
+                },
+                "is_deleted": {"$ne": True}
+            }
+            
+            if employee_ids:
+                query["employee_id"] = {"$in": employee_ids}
+                
+            if min_overtime_hours:
+                query["overtime_hours"]["$gte"] = float(min_overtime_hours)
+                
+            documents = await collection.find(query).to_list(length=None)
+            return [self._document_to_attendance(doc) for doc in documents]
+        except Exception as e:
+            logger.error(f"Error getting overtime records: {e}")
+            raise
+
+    async def get_absent_employees(
+        self,
+        date: date,
+        department_ids: Optional[List[str]] = None
+    ) -> List[str]:
+        """Get list of absent employee IDs for a date"""
+        try:
+            collection = await self._get_collection()
+            query = {
+                "status": "absent",
+                "attendance_date": date.isoformat(),
+                "is_deleted": {"$ne": True}
+            }
+            
+            # Note: department filtering would require joining with employee data
+            # This is a simplified implementation
+            
+            documents = await collection.find(query, {"employee_id": 1}).to_list(length=None)
+            return [doc["employee_id"] for doc in documents]
+        except Exception as e:
+            logger.error(f"Error getting absent employees: {e}")
+            raise
+
+    async def get_working_hours_distribution(
+        self,
+        start_date: date,
+        end_date: date,
+        employee_ids: Optional[List[str]] = None
+    ) -> Dict[str, int]:
+        """Get working hours distribution"""
+        try:
+            # Placeholder implementation
+            return {}
+        except Exception as e:
+            logger.error(f"Error getting working hours distribution: {e}")
+            raise
+
+    async def get_attendance_percentage_by_employee(
+        self,
+        start_date: date,
+        end_date: date,
+        employee_ids: Optional[List[str]] = None
+    ) -> Dict[str, float]:
+        """Get attendance percentage by employee"""
+        try:
+            # Placeholder implementation
+            return {}
+        except Exception as e:
+            logger.error(f"Error getting attendance percentage by employee: {e}")
+            raise
+
+    async def get_monthly_attendance_summary(
+        self,
+        year: int,
+        month: int,
+        employee_ids: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """Get monthly attendance summary"""
+        try:
+            # Placeholder implementation
+            return {}
+        except Exception as e:
+            logger.error(f"Error getting monthly attendance summary: {e}")
+            raise
+
+    # Reports Repository Implementation - placeholder methods
+    async def generate_daily_report(
+        self,
+        date: date,
+        employee_ids: Optional[List[str]] = None,
+        department_ids: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """Generate daily attendance report"""
+        return {}
+
+    async def generate_weekly_report(
+        self,
+        start_date: date,
+        employee_ids: Optional[List[str]] = None,
+        department_ids: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """Generate weekly attendance report"""
+        return {}
+
+    async def generate_monthly_report(
+        self,
+        year: int,
+        month: int,
+        employee_ids: Optional[List[str]] = None,
+        department_ids: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """Generate monthly attendance report"""
+        return {}
+
+    async def generate_custom_report(
+        self,
+        start_date: date,
+        end_date: date,
+        employee_ids: Optional[List[str]] = None,
+        department_ids: Optional[List[str]] = None,
+        include_summary: bool = True,
+        include_details: bool = True
+    ) -> Dict[str, Any]:
+        """Generate custom attendance report"""
+        return {}
+
+    async def export_to_csv(
+        self,
+        attendances: List[Attendance],
+        include_summary: bool = False
+    ) -> str:
+        """Export attendance records to CSV format"""
+        return ""
+
+    async def export_to_excel(
+        self,
+        attendances: List[Attendance],
+        include_summary: bool = False,
+        include_charts: bool = False
+    ) -> bytes:
+        """Export attendance records to Excel format"""
+        return b""
+
+    # Bulk Operations Repository Implementation - placeholder methods
+    async def bulk_import(
+        self,
+        attendance_data: List[Dict[str, Any]],
+        import_mode: str = "create"
+    ) -> Dict[str, Any]:
+        """Bulk import attendance records"""
+        return {}
+
+    async def bulk_update_status(
+        self,
+        attendance_ids: List[str],
+        new_status: str,
+        updated_by: str,
+        reason: Optional[str] = None
+    ) -> int:
+        """Bulk update attendance status"""
+        return 0
+
+    async def bulk_regularize(
+        self,
+        attendance_ids: List[str],
+        reason: str,
+        regularized_by: str
+    ) -> int:
+        """Bulk regularize attendance records"""
+        return 0
+
+    async def bulk_delete(
+        self,
+        attendance_ids: List[str],
+        deleted_by: str,
+        reason: str
+    ) -> int:
+        """Bulk delete attendance records"""
+        return 0
+
+    async def auto_mark_absent(
+        self,
+        date: date,
+        employee_ids: Optional[List[str]] = None,
+        exclude_on_leave: bool = True,
+        exclude_holidays: bool = True
+    ) -> int:
+        """Auto-mark employees as absent for a date"""
+        return 0
+
+    async def auto_mark_holidays(
+        self,
+        date: date,
+        employee_ids: Optional[List[str]] = None
+    ) -> int:
+        """Auto-mark employees as on holiday for a date"""
+        return 0 

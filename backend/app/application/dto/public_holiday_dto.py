@@ -70,6 +70,7 @@ class PublicHolidayCreateRequestDTO(BaseModel):
     observance: HolidayObservance = Field(HolidayObservance.MANDATORY, description="Holiday observance")
     recurrence: HolidayRecurrence = Field(HolidayRecurrence.ANNUAL, description="Holiday recurrence")
     is_active: bool = Field(True, description="Whether holiday is active")
+    location_specific: Optional[str] = Field(None, description="Location specific holiday information")
     
     @validator('name')
     def validate_name(cls, v):
@@ -95,6 +96,7 @@ class PublicHolidayUpdateRequestDTO(BaseModel):
     observance: Optional[HolidayObservance] = Field(None, description="Holiday observance")
     recurrence: Optional[HolidayRecurrence] = Field(None, description="Holiday recurrence")
     is_active: Optional[bool] = Field(None, description="Whether holiday is active")
+    location_specific: Optional[str] = Field(None, description="Location specific holiday information")
     
     @validator('name')
     def validate_name(cls, v):
@@ -132,12 +134,12 @@ class PublicHolidayResponseDTO(BaseModel):
         """Create DTO from domain entity"""
         return cls(
             id=holiday.holiday_id,
-            name=holiday.holiday_type.name,
-            holiday_date=holiday.date_range.start_date,
-            description=holiday.holiday_type.description,
-            category=holiday.holiday_type.category,
-            observance=holiday.holiday_type.observance,
-            recurrence=holiday.holiday_type.recurrence,
+            name=holiday.holiday_name,
+            holiday_date=holiday.holiday_date,
+            description=holiday.description,
+            category=HolidayCategory.NATIONAL,  # Default value for now
+            observance=HolidayObservance.MANDATORY,  # Default value for now
+            recurrence=HolidayRecurrence.ANNUAL,  # Default value for now
             is_active=holiday.is_active,
             created_at=holiday.created_at,
             updated_at=holiday.updated_at,
@@ -180,10 +182,10 @@ class PublicHolidaySummaryDTO(BaseModel):
         """Create DTO from domain entity"""
         return cls(
             id=holiday.holiday_id,
-            name=holiday.holiday_type.name,
-            holiday_date=holiday.date_range.start_date,
-            category=holiday.holiday_type.category,
-            observance=holiday.holiday_type.observance,
+            name=holiday.holiday_name,
+            holiday_date=holiday.holiday_date,
+            category=HolidayCategory.NATIONAL,  # Default value for now
+            observance=HolidayObservance.MANDATORY,  # Default value for now
             is_active=holiday.is_active
         )
 
@@ -196,6 +198,28 @@ class HolidayCalendarDTO(BaseModel):
     total_holidays: int = Field(0, description="Total number of holidays")
     mandatory_holidays: int = Field(0, description="Number of mandatory holidays")
     optional_holidays: int = Field(0, description="Number of optional holidays")
+
+
+class PublicHolidayListResponseDTO(BaseModel):
+    """DTO for paginated public holiday list responses"""
+    items: List[PublicHolidayResponseDTO] = Field(default_factory=list, description="Holiday items")
+    total: int = Field(0, description="Total number of holidays")
+    page: int = Field(1, description="Current page number")
+    page_size: int = Field(100, description="Number of items per page")
+    total_pages: int = Field(0, description="Total number of pages")
+
+
+class ImportPublicHolidayRequestDTO(BaseModel):
+    """DTO for importing multiple public holidays"""
+    holidays: List[Dict[str, Any]] = Field(..., description="List of holiday data to import")
+    overwrite_existing: bool = Field(False, description="Whether to overwrite existing holidays")
+    validate_only: bool = Field(False, description="Whether to only validate without importing")
+    source: Optional[str] = Field(None, description="Import source identifier")
+
+
+# Aliases for backward compatibility with service interface expectations
+CreatePublicHolidayRequestDTO = PublicHolidayCreateRequestDTO
+UpdatePublicHolidayRequestDTO = PublicHolidayUpdateRequestDTO
 
 
 # Utility functions for DTO validation

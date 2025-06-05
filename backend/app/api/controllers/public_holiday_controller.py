@@ -76,8 +76,9 @@ class PublicHolidayController:
             if self.create_use_case:
                 return await self.create_use_case.execute(request, employee_id)
             else:
-                # Fallback implementation for development/testing
-                return self._create_mock_response(request)
+                # Use case not available
+                logger.error("Create use case not available")
+                raise PublicHolidayBusinessRuleError("Public holiday creation service is not available")
                 
         except Exception as e:
             logger.error(f"Error creating public holiday: {e}")
@@ -107,8 +108,9 @@ class PublicHolidayController:
                     else:
                         return await self.get_use_case.get_all_holidays(include_inactive=True)
             else:
-                # Fallback implementation for development/testing
-                return self._create_mock_list(filters)
+                # Use case not available - return empty list
+                logger.warning("Get use case not available, returning empty list")
+                return []
                 
         except Exception as e:
             logger.error(f"Error getting public holidays: {e}")
@@ -122,8 +124,9 @@ class PublicHolidayController:
             if self.get_use_case:
                 return await self.get_use_case.get_holiday_by_id(holiday_id)
             else:
-                # Fallback implementation for development/testing
-                return self._create_mock_single_response(holiday_id)
+                # Use case not available
+                logger.error("Get use case not available")
+                raise PublicHolidayNotFoundError(f"Public holiday not found: {holiday_id}")
                 
         except Exception as e:
             logger.error(f"Error getting public holiday: {e}")
@@ -137,8 +140,9 @@ class PublicHolidayController:
             if self.update_use_case:
                 return await self.update_use_case.execute(holiday_id, request, employee_id)
             else:
-                # Fallback implementation for development/testing
-                return self._create_mock_updated_response(holiday_id, request)
+                # Use case not available
+                logger.error("Update use case not available")
+                raise PublicHolidayBusinessRuleError("Public holiday update service is not available")
                 
         except Exception as e:
             logger.error(f"Error updating public holiday: {e}")
@@ -152,8 +156,9 @@ class PublicHolidayController:
             if self.delete_use_case:
                 await self.delete_use_case.execute(holiday_id, employee_id)
             else:
-                # Fallback implementation for development/testing
-                logger.info(f"Mock deletion of public holiday: {holiday_id}")
+                # Use case not available
+                logger.error("Delete use case not available")
+                raise PublicHolidayBusinessRuleError("Public holiday deletion service is not available")
                 
         except Exception as e:
             logger.error(f"Error deleting public holiday: {e}")

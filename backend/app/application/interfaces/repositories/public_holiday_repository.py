@@ -314,4 +314,26 @@ class PublicHolidayCalendarRepository(ABC):
         year: int
     ) -> List[Dict[str, Any]]:
         """Get potential holiday bridge opportunities"""
-        pass 
+        pass
+
+
+class PublicHolidayRepository(
+    PublicHolidayCommandRepository,
+    PublicHolidayQueryRepository,
+    PublicHolidayAnalyticsRepository,
+    PublicHolidayCalendarRepository
+):
+    """
+    Main Public Holiday Repository Interface.
+    
+    Combines all specialized repository interfaces to provide a unified
+    interface for public holiday operations.
+    
+    Follows SOLID principles:
+    - SRP: Provides a unified interface
+    - OCP: Can be extended through inheritance
+    - LSP: All implementations must be substitutable
+    - ISP: Composed of focused, segregated interfaces
+    - DIP: Depends on abstractions, not concretions
+    """
+    pass 

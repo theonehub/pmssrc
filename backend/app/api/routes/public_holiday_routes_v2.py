@@ -50,7 +50,7 @@ async def health_check(
 async def create_public_holiday(
     request: PublicHolidayCreateRequestDTO,
     current_user: CurrentUser = Depends(get_current_user),
-    role: str = Depends(require_role("admin")),
+    role: str = Depends(require_role("superadmin")),
     controller: PublicHolidayController = Depends(get_public_holiday_controller)
 ) -> PublicHolidayResponseDTO:
     """Create a new public holiday."""

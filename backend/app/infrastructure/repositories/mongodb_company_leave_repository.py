@@ -12,53 +12,120 @@ from pymongo import ASCENDING, DESCENDING
 from bson import ObjectId
 
 from app.application.interfaces.repositories.company_leave_repository import (
+    CompanyLeaveRepository,
     CompanyLeaveCommandRepository,
-    CompanyLeaveQueryRepository,
-    CompanyLeaveAnalyticsRepository
+    CompanyLeaveQueryRepository
 )
+from app.application.dto.company_leave_dto import CompanyLeaveSearchFiltersDTO
 from app.domain.entities.company_leave import CompanyLeave
-from app.domain.value_objects.leave_type import LeaveType, LeaveCategory, AccrualType
-from app.domain.value_objects.leave_policy import LeavePolicy
-from app.database.database_connector import connect_to_database
-from decimal import Decimal
+from app.infrastructure.database.database_connector import DatabaseConnector
+from app.config.mongodb_config import get_mongodb_connection_string, get_mongodb_client_options
+
+logger = logging.getLogger(__name__)
 
 
-class MongoDBCompanyLeaveCommandRepository(CompanyLeaveCommandRepository):
+class MongoDBCompanyLeaveRepository(CompanyLeaveRepository):
     """
-    MongoDB implementation of company leave command repository.
+    MongoDB implementation of company leave repository.
     
     Follows SOLID principles:
-    - SRP: Only handles company leave write operations
+    - SRP: Only handles company leave storage operations
     - OCP: Can be extended with new storage features
     - LSP: Can be substituted with other implementations
-    - ISP: Implements only command operations
+    - ISP: Implements both command and query operations
     - DIP: Depends on MongoDB abstractions
     """
     
-    def __init__(self, hostname: str):
-        self._hostname = hostname
+    def __init__(self, database_connector: DatabaseConnector):
+        """
+        Initialize repository with database connector.
+        
+        Args:
+            database_connector: Database connection abstraction
+        """
+        self.db_connector = database_connector
+        self._collection_name = "company_leaves"
         self._logger = logging.getLogger(__name__)
-        self._db = connect_to_database(hostname)
-        self._collection: Collection = self._db["company_leaves"]
-        self._ensure_indexes()
+        
+        # Connection configuration (will be set by dependency container)
+        self._connection_string = None
+        self._client_options = None
     
-    def _ensure_indexes(self):
+    def set_connection_config(self, connection_string: str, client_options: Dict[str, Any]):
+        """
+        Set MongoDB connection configuration.
+        
+        Args:
+            connection_string: MongoDB connection string
+            client_options: MongoDB client options
+        """
+        self._connection_string = connection_string
+        self._client_options = client_options
+        
+    async def _get_collection(self, organisation_id: Optional[str] = None):
+        """
+        Get company leaves collection for specific organisation or global.
+        
+        Ensures database connection is established in the correct event loop.
+        Uses global database for company leave data.
+        """
+        db_name = "pms_"+organisation_id if organisation_id else "pms_"+self._collection_name
+        
+        # Ensure database is connected in the current event loop
+        if not self.db_connector.is_connected:
+            logger.debug("Database not connected, establishing connection...")
+            
+            try:
+                # Use stored connection configuration or fallback to config functions
+                if self._connection_string and self._client_options:
+                    logger.debug("Using stored connection parameters from repository configuration")
+                    connection_string = self._connection_string
+                    options = self._client_options
+                else:
+                    # Fallback to config functions if connection config not set
+                    logger.debug("Loading connection parameters from mongodb_config")
+                    connection_string = get_mongodb_connection_string()
+                    options = get_mongodb_client_options()
+                
+                await self.db_connector.connect(connection_string, **options)
+                logger.info("MongoDB connection established successfully in current event loop")
+                
+            except Exception as e:
+                logger.error(f"Failed to establish database connection: {e}")
+                raise RuntimeError(f"Database connection failed: {e}")
+        
+        # Verify connection and get collection
+        try:
+            db = self.db_connector.get_database(db_name)
+            collection = db[self._collection_name]
+            logger.debug(f"Successfully retrieved collection: {self._collection_name} from database: {db_name}")
+            return collection
+            
+        except Exception as e:
+            logger.error(f"Failed to get collection {self._collection_name}: {e}")
+            # Reset connection state to force reconnection on next call
+            if hasattr(self.db_connector, '_client'):
+                self.db_connector._client = None
+            raise RuntimeError(f"Collection access failed: {e}")
+    
+    async def _ensure_indexes(self):
         """Ensure necessary indexes exist"""
         try:
-            self._collection.create_index([("company_leave_id", ASCENDING)], unique=True)
-            self._collection.create_index([("leave_type.code", ASCENDING)], unique=True)
-            self._collection.create_index([("is_active", ASCENDING)])
-            self._collection.create_index([("created_at", DESCENDING)])
-            self._collection.create_index([("policy.gender_specific", ASCENDING)])
-            self._collection.create_index([("policy.available_during_probation", ASCENDING)])
+            collection = await self._get_collection()
+            await collection.create_index([("company_leave_id", ASCENDING)], unique=True)
+            await collection.create_index([("accrual_type", ASCENDING)])
+            await collection.create_index([("is_active", ASCENDING)])
+            await collection.create_index([("created_at", DESCENDING)])
+            self._logger.info("Company leave indexes ensured")
         except Exception as e:
             self._logger.warning(f"Error creating indexes: {e}")
-    
-    def save(self, company_leave: CompanyLeave) -> bool:
+
+    async def save(self, company_leave: CompanyLeave) -> bool:
         """Save company leave record"""
         try:
+            collection = await self._get_collection()
             document = self._entity_to_document(company_leave)
-            result = self._collection.insert_one(document)
+            result = await collection.insert_one(document)
             
             if result.inserted_id:
                 self._logger.info(f"Saved company leave: {company_leave.company_leave_id}")
@@ -69,14 +136,15 @@ class MongoDBCompanyLeaveCommandRepository(CompanyLeaveCommandRepository):
             self._logger.error(f"Error saving company leave: {e}")
             return False
     
-    def update(self, company_leave: CompanyLeave) -> bool:
+    async def update(self, company_leave: CompanyLeave) -> bool:
         """Update existing company leave record"""
         try:
+            collection = await self._get_collection()
             document = self._entity_to_document(company_leave)
             # Remove _id to avoid update conflicts
             document.pop('_id', None)
             
-            result = self._collection.replace_one(
+            result = await collection.replace_one(
                 {"company_leave_id": company_leave.company_leave_id},
                 document
             )
@@ -90,10 +158,11 @@ class MongoDBCompanyLeaveCommandRepository(CompanyLeaveCommandRepository):
             self._logger.error(f"Error updating company leave: {e}")
             return False
     
-    def delete(self, company_leave_id: str) -> bool:
+    async def delete(self, company_leave_id: str) -> bool:
         """Delete company leave record (soft delete)"""
         try:
-            result = self._collection.update_one(
+            collection = await self._get_collection()
+            result = await collection.update_one(
                 {"company_leave_id": company_leave_id},
                 {
                     "$set": {
@@ -112,64 +181,11 @@ class MongoDBCompanyLeaveCommandRepository(CompanyLeaveCommandRepository):
             self._logger.error(f"Error deleting company leave: {e}")
             return False
     
-    def _entity_to_document(self, company_leave: CompanyLeave) -> Dict[str, Any]:
-        """Convert CompanyLeave entity to MongoDB document"""
-        return {
-            "company_leave_id": company_leave.company_leave_id,
-            "leave_type": {
-                "code": company_leave.leave_type.code,
-                "name": company_leave.leave_type.name,
-                "category": company_leave.leave_type.category.value,
-                "description": company_leave.leave_type.description
-            },
-            "policy": {
-                "annual_allocation": company_leave.policy.annual_allocation,
-                "accrual_type": company_leave.policy.accrual_type.value,
-                "accrual_rate": float(company_leave.policy.accrual_rate) if company_leave.policy.accrual_rate else None,
-                "max_carryover_days": company_leave.policy.max_carryover_days,
-                "carryover_expiry_months": company_leave.policy.carryover_expiry_months,
-                "min_advance_notice_days": company_leave.policy.min_advance_notice_days,
-                "max_advance_application_days": company_leave.policy.max_advance_application_days,
-                "min_application_days": company_leave.policy.min_application_days,
-                "max_continuous_days": company_leave.policy.max_continuous_days,
-                "requires_approval": company_leave.policy.requires_approval,
-                "auto_approve_threshold": company_leave.policy.auto_approve_threshold,
-                "requires_medical_certificate": company_leave.policy.requires_medical_certificate,
-                "medical_certificate_threshold": company_leave.policy.medical_certificate_threshold,
-                "is_encashable": company_leave.policy.is_encashable,
-                "max_encashment_days": company_leave.policy.max_encashment_days,
-                "encashment_percentage": float(company_leave.policy.encashment_percentage),
-                "available_during_probation": company_leave.policy.available_during_probation,
-                "probation_allocation": company_leave.policy.probation_allocation,
-                "gender_specific": company_leave.policy.gender_specific,
-                "employee_category_specific": company_leave.policy.employee_category_specific
-            },
-            "is_active": company_leave.is_active,
-            "description": company_leave.description,
-            "effective_from": company_leave.effective_from,
-            "effective_until": company_leave.effective_until,
-            "created_at": company_leave.created_at,
-            "updated_at": company_leave.updated_at,
-            "created_by": company_leave.created_by,
-            "updated_by": company_leave.updated_by
-        }
-
-
-class MongoDBCompanyLeaveQueryRepository(CompanyLeaveQueryRepository):
-    """
-    MongoDB implementation of company leave query repository.
-    """
-    
-    def __init__(self, hostname: str):
-        self._hostname = hostname
-        self._logger = logging.getLogger(__name__)
-        self._db = connect_to_database(hostname)
-        self._collection: Collection = self._db["company_leaves"]
-    
-    def get_by_id(self, company_leave_id: str) -> Optional[CompanyLeave]:
+    async def get_by_id(self, company_leave_id: str) -> Optional[CompanyLeave]:
         """Get company leave by ID"""
         try:
-            document = self._collection.find_one({"company_leave_id": company_leave_id})
+            collection = await self._get_collection()
+            document = await collection.find_one({"company_leave_id": company_leave_id})
             if document:
                 return self._document_to_entity(document)
             return None
@@ -178,253 +194,156 @@ class MongoDBCompanyLeaveQueryRepository(CompanyLeaveQueryRepository):
             self._logger.error(f"Error retrieving company leave by ID: {e}")
             return None
     
-    def get_by_leave_type_code(self, leave_type_code: str) -> Optional[CompanyLeave]:
-        """Get company leave by leave type code"""
-        try:
-            document = self._collection.find_one({
-                "leave_type.code": leave_type_code.upper(),
-                "is_active": True
-            })
-            if document:
-                return self._document_to_entity(document)
-            return None
-            
-        except Exception as e:
-            self._logger.error(f"Error retrieving company leave by type code: {e}")
-            return None
-    
-    def get_all_active(self) -> List[CompanyLeave]:
+    async def get_all_active(self) -> List[CompanyLeave]:
         """Get all active company leaves"""
         try:
-            documents = list(self._collection.find({"is_active": True}).sort("created_at", DESCENDING))
+            collection = await self._get_collection()
+            cursor = collection.find({"is_active": True}).sort("created_at", DESCENDING)
+            documents = await cursor.to_list(None)
             return [self._document_to_entity(doc) for doc in documents]
             
         except Exception as e:
             self._logger.error(f"Error retrieving active company leaves: {e}")
             return []
     
-    def get_all(self, include_inactive: bool = False) -> List[CompanyLeave]:
+    async def get_all(self, include_inactive: bool = False) -> List[CompanyLeave]:
         """Get all company leaves"""
         try:
+            logger.info(f"Retrieving all company leaves (include_inactive: {include_inactive})")
+            collection = await self._get_collection()
             query = {} if include_inactive else {"is_active": True}
-            documents = list(self._collection.find(query).sort("created_at", DESCENDING))
-            return [self._document_to_entity(doc) for doc in documents]
+            
+            logger.debug(f"Using query: {query}")
+            cursor = collection.find(query).sort("created_at", DESCENDING)
+            documents = await cursor.to_list(None)
+            
+            logger.info(f"Retrieved {len(documents)} company leave documents from MongoDB")
+            company_leaves = [self._document_to_entity(doc) for doc in documents]
+            logger.info(f"Successfully converted {len(company_leaves)} documents to entities")
+            
+            return company_leaves
             
         except Exception as e:
-            self._logger.error(f"Error retrieving company leaves: {e}")
+            logger.error(f"Error retrieving company leaves: {e}")
             return []
     
-    def get_applicable_for_employee(
-        self,
-        employee_gender: Optional[str] = None,
-        employee_category: Optional[str] = None,
-        is_on_probation: bool = False
-    ) -> List[CompanyLeave]:
-        """Get company leaves applicable for employee"""
+    async def list_with_filters(self, filters: CompanyLeaveSearchFiltersDTO) -> List[CompanyLeave]:
+        """Get company leaves with filters and pagination"""
         try:
-            query = {"is_active": True}
+            logger.info(f"Retrieving company leaves with filters: {filters.to_dict()}")
+            collection = await self._get_collection()
+            # Build query
+            query = {}
             
-            # Build query for applicable leaves
-            if employee_gender:
-                query["$or"] = [
-                    {"policy.gender_specific": None},
-                    {"policy.gender_specific": employee_gender}
-                ]
+            if filters.is_active is not None:
+                query["is_active"] = filters.is_active
             
-            if is_on_probation:
-                query["policy.available_during_probation"] = True
+            if filters.accrual_type:
+                query["accrual_type"] = filters.accrual_type
             
-            if employee_category:
-                query["$or"] = query.get("$or", []) + [
-                    {"policy.employee_category_specific": None},
-                    {"policy.employee_category_specific": {"$in": [employee_category]}}
-                ]
+            logger.debug(f"MongoDB query: {query}")
             
-            documents = list(self._collection.find(query).sort("leave_type.name", ASCENDING))
-            return [self._document_to_entity(doc) for doc in documents]
+            # Calculate pagination
+            skip = (filters.page - 1) * filters.page_size
+            logger.debug(f"Pagination: skip={skip}, limit={filters.page_size}")
+            
+            # Build sort
+            sort_direction = ASCENDING if filters.sort_order == "asc" else DESCENDING
+            sort_field = filters.sort_by
+            logger.debug(f"Sort: field={sort_field}, direction={sort_direction}")
+            
+            cursor = (
+                collection
+                .find(query)
+                .sort(sort_field, sort_direction)
+                .skip(skip)
+                .limit(filters.page_size)
+            )
+            
+            documents = await cursor.to_list(None)
+            logger.info(f"Retrieved {len(documents)} company leave documents from MongoDB with filters")
+            
+            company_leaves = [self._document_to_entity(doc) for doc in documents]
+            logger.info(f"Successfully converted {len(company_leaves)} filtered documents to entities")
+            
+            return company_leaves
             
         except Exception as e:
-            self._logger.error(f"Error retrieving applicable leaves: {e}")
+            logger.error(f"Error retrieving filtered company leaves: {e}")
             return []
     
-    def exists_by_leave_type_code(self, leave_type_code: str) -> bool:
-        """Check if company leave exists for leave type code"""
+    async def count_with_filters(self, filters: CompanyLeaveSearchFiltersDTO) -> int:
+        """Count company leaves matching filters"""
         try:
-            count = self._collection.count_documents({
-                "leave_type.code": leave_type_code.upper(),
-                "is_active": True
-            })
+            collection = await self._get_collection()
+            # Build query
+            query = {}
+            
+            if filters.is_active is not None:
+                query["is_active"] = filters.is_active
+            
+            if filters.accrual_type:
+                query["accrual_type"] = filters.accrual_type
+            
+            return await collection.count_documents(query)
+            
+        except Exception as e:
+            self._logger.error(f"Error counting filtered company leaves: {e}")
+            return 0
+    
+    async def exists_by_id(self, company_leave_id: str) -> bool:
+        """Check if company leave exists by ID"""
+        try:
+            collection = await self._get_collection()
+            count = await collection.count_documents({"company_leave_id": company_leave_id})
             return count > 0
             
         except Exception as e:
-            self._logger.error(f"Error checking leave type existence: {e}")
+            self._logger.error(f"Error checking company leave existence: {e}")
             return False
     
-    def count_active(self) -> int:
+    async def count_active(self) -> int:
         """Count active company leaves"""
         try:
-            return self._collection.count_documents({"is_active": True})
+            collection = await self._get_collection()
+            return await collection.count_documents({"is_active": True})
             
         except Exception as e:
-            self._logger.error(f"Error counting active leaves: {e}")
+            self._logger.error(f"Error counting active company leaves: {e}")
             return 0
+    
+    def _entity_to_document(self, company_leave: CompanyLeave) -> Dict[str, Any]:
+        """Convert CompanyLeave entity to MongoDB document"""
+        return {
+            "company_leave_id": company_leave.company_leave_id,
+            "leave_name": company_leave.leave_name,
+            "accrual_type": company_leave.accrual_type,
+            "annual_allocation": company_leave.annual_allocation,
+            "computed_monthly_allocation": company_leave.computed_monthly_allocation,
+            "is_active": company_leave.is_active,
+            "description": company_leave.description,
+            "encashable": company_leave.encashable,
+            "is_allowed_on_probation": company_leave.is_allowed_on_probation,
+            "created_at": company_leave.created_at,
+            "updated_at": company_leave.updated_at,
+            "created_by": company_leave.created_by,
+            "updated_by": company_leave.updated_by
+        }
     
     def _document_to_entity(self, document: Dict[str, Any]) -> CompanyLeave:
         """Convert MongoDB document to CompanyLeave entity"""
-        # Create LeaveType value object
-        leave_type = LeaveType(
-            code=document["leave_type"]["code"],
-            name=document["leave_type"]["name"],
-            category=LeaveCategory(document["leave_type"]["category"]),
-            description=document["leave_type"].get("description")
-        )
-        
-        # Create LeavePolicy value object
-        policy_data = document["policy"]
-        leave_policy = LeavePolicy(
-            leave_type=leave_type,
-            annual_allocation=policy_data["annual_allocation"],
-            accrual_type=AccrualType(policy_data["accrual_type"]),
-            accrual_rate=Decimal(str(policy_data["accrual_rate"])) if policy_data.get("accrual_rate") else None,
-            max_carryover_days=policy_data["max_carryover_days"],
-            carryover_expiry_months=policy_data["carryover_expiry_months"],
-            min_advance_notice_days=policy_data["min_advance_notice_days"],
-            max_advance_application_days=policy_data["max_advance_application_days"],
-            min_application_days=policy_data["min_application_days"],
-            max_continuous_days=policy_data.get("max_continuous_days"),
-            requires_approval=policy_data["requires_approval"],
-            auto_approve_threshold=policy_data.get("auto_approve_threshold"),
-            requires_medical_certificate=policy_data["requires_medical_certificate"],
-            medical_certificate_threshold=policy_data.get("medical_certificate_threshold"),
-            is_encashable=policy_data["is_encashable"],
-            max_encashment_days=policy_data["max_encashment_days"],
-            encashment_percentage=Decimal(str(policy_data["encashment_percentage"])),
-            available_during_probation=policy_data["available_during_probation"],
-            probation_allocation=policy_data.get("probation_allocation"),
-            gender_specific=policy_data.get("gender_specific"),
-            employee_category_specific=policy_data.get("employee_category_specific")
-        )
-        
-        # Create CompanyLeave entity
-        company_leave = CompanyLeave(
+        return CompanyLeave(
             company_leave_id=document["company_leave_id"],
-            leave_type=leave_type,
-            policy=leave_policy,
+            leave_name=document.get("leave_name", ""),
+            accrual_type=document["accrual_type"],
+            annual_allocation=document["annual_allocation"],
+            computed_monthly_allocation=document.get("computed_monthly_allocation", 0),
             is_active=document["is_active"],
+            description=document.get("description"),
+            encashable=document.get("encashable", False),
+            is_allowed_on_probation=document.get("is_allowed_on_probation", False),
             created_at=document["created_at"],
             updated_at=document["updated_at"],
             created_by=document.get("created_by"),
-            updated_by=document.get("updated_by"),
-            description=document.get("description"),
-            effective_from=document.get("effective_from"),
-            effective_until=document.get("effective_until")
+            updated_by=document.get("updated_by")
         )
-        
-        return company_leave
-
-
-class MongoDBCompanyLeaveAnalyticsRepository(CompanyLeaveAnalyticsRepository):
-    """
-    MongoDB implementation of company leave analytics repository.
-    """
-    
-    def __init__(self, hostname: str):
-        self._hostname = hostname
-        self._logger = logging.getLogger(__name__)
-        self._db = connect_to_database(hostname)
-        self._collection: Collection = self._db["company_leaves"]
-        self._employee_leaves_collection: Collection = self._db["employee_leaves"]
-    
-    def get_leave_type_usage_stats(
-        self,
-        from_date: Optional[datetime] = None,
-        to_date: Optional[datetime] = None
-    ) -> List[Dict[str, Any]]:
-        """Get leave type usage statistics"""
-        try:
-            # This would typically aggregate from employee leave applications
-            # For now, return basic stats from company leaves
-            pipeline = [
-                {"$match": {"is_active": True}},
-                {
-                    "$group": {
-                        "_id": "$leave_type.category",
-                        "leave_types": {"$push": "$leave_type.name"},
-                        "total_allocation": {"$sum": "$policy.annual_allocation"},
-                        "count": {"$sum": 1}
-                    }
-                }
-            ]
-            
-            results = list(self._collection.aggregate(pipeline))
-            return results
-            
-        except Exception as e:
-            self._logger.error(f"Error getting usage stats: {e}")
-            return []
-    
-    def get_policy_compliance_report(self) -> List[Dict[str, Any]]:
-        """Get policy compliance report"""
-        try:
-            pipeline = [
-                {"$match": {"is_active": True}},
-                {
-                    "$group": {
-                        "_id": None,
-                        "total_policies": {"$sum": 1},
-                        "encashable_policies": {
-                            "$sum": {"$cond": ["$policy.is_encashable", 1, 0]}
-                        },
-                        "auto_approval_policies": {
-                            "$sum": {"$cond": [{"$ne": ["$policy.auto_approve_threshold", None]}, 1, 0]}
-                        },
-                        "medical_cert_required": {
-                            "$sum": {"$cond": ["$policy.requires_medical_certificate", 1, 0]}
-                        },
-                        "probation_restricted": {
-                            "$sum": {"$cond": [{"$eq": ["$policy.available_during_probation", False]}, 1, 0]}
-                        }
-                    }
-                }
-            ]
-            
-            results = list(self._collection.aggregate(pipeline))
-            return results
-            
-        except Exception as e:
-            self._logger.error(f"Error getting compliance report: {e}")
-            return []
-    
-    def get_leave_trends(
-        self,
-        period: str = "monthly"
-    ) -> List[Dict[str, Any]]:
-        """Get leave application trends"""
-        try:
-            # This would typically analyze employee leave applications over time
-            # For now, return creation trends of company leaves
-            group_format = {
-                "daily": {"$dateToString": {"format": "%Y-%m-%d", "date": "$created_at"}},
-                "weekly": {"$dateToString": {"format": "%Y-W%U", "date": "$created_at"}},
-                "monthly": {"$dateToString": {"format": "%Y-%m", "date": "$created_at"}},
-                "quarterly": {"$dateToString": {"format": "%Y-Q%q", "date": "$created_at"}}
-            }
-            
-            pipeline = [
-                {"$match": {"is_active": True}},
-                {
-                    "$group": {
-                        "_id": group_format.get(period, group_format["monthly"]),
-                        "policies_created": {"$sum": 1},
-                        "total_allocation": {"$sum": "$policy.annual_allocation"}
-                    }
-                },
-                {"$sort": {"_id": 1}}
-            ]
-            
-            results = list(self._collection.aggregate(pipeline))
-            return results
-            
-        except Exception as e:
-            self._logger.error(f"Error getting leave trends: {e}")
-            return [] 

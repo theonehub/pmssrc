@@ -215,7 +215,7 @@ class DependencyContainer:
             
             # Public holiday service
             self._services['public_holiday'] = PublicHolidayServiceImpl(
-                repository=self._repositories['public_holiday'],
+                public_holiday_repository=self._repositories['public_holiday'],
                 notification_service=self._notification_service
             )
             
@@ -492,7 +492,7 @@ class DependencyContainer:
         
         if 'public_holiday' not in self._controllers:
             self._controllers['public_holiday'] = PublicHolidayController(
-                public_holiday_service=self._services['public_holiday']
+                public_holiday_service=self.get_public_holiday_service()
             )
         
         return self._controllers['public_holiday']

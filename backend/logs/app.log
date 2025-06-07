@@ -5550,3 +5550,361 @@ Comments: as
 2025-06-07 17:39:11 [ERROR] app.infrastructure.repositories.mongodb_company_leave_repository:272 - list_with_filters(): Error retrieving filtered company leaves: MongoDBCompanyLeaveRepository._get_collection() missing 1 required positional argument: 'organisation_id'
 2025-06-07 17:39:11 [ERROR] app.infrastructure.repositories.mongodb_company_leave_repository:291 - count_with_filters(): Error counting filtered company leaves: MongoDBCompanyLeaveRepository._get_collection() missing 1 required positional argument: 'organisation_id'
 2025-06-07 17:39:11 [INFO] uvicorn.access:473 - send(): 127.0.0.1:55871 - "GET /api/v2/company-leaves/ HTTP/1.1" 200
+2025-06-07 17:44:18 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56695 - "OPTIONS /api/v2/reimbursements/types HTTP/1.1" 200
+2025-06-07 17:44:18 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56696 - "OPTIONS /api/v2/reimbursements/types HTTP/1.1" 200
+2025-06-07 17:44:18 [INFO] app.infrastructure.services.reimbursement_service_impl:623 - list_reimbursement_types(): Listing reimbursement types in organisation: localhost
+2025-06-07 17:44:18 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56698 - "GET /api/v2/reimbursements/types HTTP/1.1" 200
+2025-06-07 17:44:18 [INFO] app.infrastructure.services.reimbursement_service_impl:623 - list_reimbursement_types(): Listing reimbursement types in organisation: localhost
+2025-06-07 17:44:18 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56698 - "GET /api/v2/reimbursements/types HTTP/1.1" 200
+2025-06-07 17:44:21 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56698 - "OPTIONS /api/v2/reimbursements/requests/my HTTP/1.1" 200
+2025-06-07 17:44:21 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56695 - "OPTIONS /api/v2/reimbursements/requests/my HTTP/1.1" 200
+2025-06-07 17:44:21 [INFO] app.infrastructure.services.reimbursement_service_impl:623 - list_reimbursement_types(): Listing reimbursement types in organisation: localhost
+2025-06-07 17:44:21 [INFO] app.infrastructure.services.reimbursement_service_impl:657 - list_reimbursement_requests(): Listing reimbursement requests in organisation: localhost
+2025-06-07 17:44:21 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:109 - get_requests_by_employee(): Retrieving reimbursement requests for employee: superadmin
+2025-06-07 17:44:21 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56696 - "GET /api/v2/reimbursements/types HTTP/1.1" 200
+2025-06-07 17:44:21 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:121 - get_requests_by_employee(): Retrieved 0 reimbursement requests for employee: superadmin
+2025-06-07 17:44:21 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56711 - "GET /api/v2/reimbursements/requests/my HTTP/1.1" 200
+2025-06-07 17:44:21 [INFO] app.infrastructure.services.reimbursement_service_impl:623 - list_reimbursement_types(): Listing reimbursement types in organisation: localhost
+2025-06-07 17:44:21 [INFO] app.infrastructure.services.reimbursement_service_impl:657 - list_reimbursement_requests(): Listing reimbursement requests in organisation: localhost
+2025-06-07 17:44:21 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:109 - get_requests_by_employee(): Retrieving reimbursement requests for employee: superadmin
+2025-06-07 17:44:21 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56696 - "GET /api/v2/reimbursements/types HTTP/1.1" 200
+2025-06-07 17:44:21 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:121 - get_requests_by_employee(): Retrieved 0 reimbursement requests for employee: superadmin
+2025-06-07 17:44:21 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56711 - "GET /api/v2/reimbursements/requests/my HTTP/1.1" 200
+2025-06-07 17:44:27 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56742 - "OPTIONS /api/v2/reimbursements/pending HTTP/1.1" 200
+2025-06-07 17:44:27 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56743 - "OPTIONS /api/v2/reimbursements/approved HTTP/1.1" 200
+2025-06-07 17:44:27 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56745 - "OPTIONS /api/v2/reimbursements/pending HTTP/1.1" 200
+2025-06-07 17:44:27 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56747 - "OPTIONS /api/v2/reimbursements/approved HTTP/1.1" 200
+2025-06-07 17:44:27 [INFO] app.auth.auth:83 - checker(): Checking role for user: superadmin
+2025-06-07 17:44:27 [INFO] app.auth.auth:83 - checker(): Checking role for user: superadmin
+2025-06-07 17:44:27 [INFO] app.infrastructure.services.reimbursement_service_impl:657 - list_reimbursement_requests(): Listing reimbursement requests in organisation: localhost
+2025-06-07 17:44:27 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:131 - get_requests_by_status(): Retrieving reimbursement requests with status: draft
+2025-06-07 17:44:27 [INFO] app.infrastructure.services.reimbursement_service_impl:657 - list_reimbursement_requests(): Listing reimbursement requests in organisation: localhost
+2025-06-07 17:44:27 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:131 - get_requests_by_status(): Retrieving reimbursement requests with status: approved
+2025-06-07 17:44:27 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:143 - get_requests_by_status(): Retrieved 1 reimbursement requests with status: draft
+2025-06-07 17:44:27 [INFO] app.infrastructure.services.reimbursement_service_impl:657 - list_reimbursement_requests(): Listing reimbursement requests in organisation: localhost
+2025-06-07 17:44:27 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:131 - get_requests_by_status(): Retrieving reimbursement requests with status: submitted
+2025-06-07 17:44:27 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:143 - get_requests_by_status(): Retrieved 0 reimbursement requests with status: submitted
+2025-06-07 17:44:27 [INFO] app.infrastructure.services.reimbursement_service_impl:657 - list_reimbursement_requests(): Listing reimbursement requests in organisation: localhost
+2025-06-07 17:44:27 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:131 - get_requests_by_status(): Retrieving reimbursement requests with status: under_review
+2025-06-07 17:44:27 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:143 - get_requests_by_status(): Retrieved 0 reimbursement requests with status: under_review
+2025-06-07 17:44:27 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56742 - "GET /api/v2/reimbursements/pending HTTP/1.1" 200
+2025-06-07 17:44:27 [INFO] app.auth.auth:83 - checker(): Checking role for user: superadmin
+2025-06-07 17:44:27 [INFO] app.infrastructure.services.reimbursement_service_impl:657 - list_reimbursement_requests(): Listing reimbursement requests in organisation: localhost
+2025-06-07 17:44:27 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:131 - get_requests_by_status(): Retrieving reimbursement requests with status: draft
+2025-06-07 17:44:27 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:143 - get_requests_by_status(): Retrieved 5 reimbursement requests with status: approved
+2025-06-07 17:44:27 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56749 - "GET /api/v2/reimbursements/approved HTTP/1.1" 200
+2025-06-07 17:44:27 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:143 - get_requests_by_status(): Retrieved 1 reimbursement requests with status: draft
+2025-06-07 17:44:27 [INFO] app.infrastructure.services.reimbursement_service_impl:657 - list_reimbursement_requests(): Listing reimbursement requests in organisation: localhost
+2025-06-07 17:44:27 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:131 - get_requests_by_status(): Retrieving reimbursement requests with status: submitted
+2025-06-07 17:44:27 [INFO] app.auth.auth:83 - checker(): Checking role for user: superadmin
+2025-06-07 17:44:27 [INFO] app.infrastructure.services.reimbursement_service_impl:657 - list_reimbursement_requests(): Listing reimbursement requests in organisation: localhost
+2025-06-07 17:44:27 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:131 - get_requests_by_status(): Retrieving reimbursement requests with status: approved
+2025-06-07 17:44:27 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:143 - get_requests_by_status(): Retrieved 0 reimbursement requests with status: submitted
+2025-06-07 17:44:27 [INFO] app.infrastructure.services.reimbursement_service_impl:657 - list_reimbursement_requests(): Listing reimbursement requests in organisation: localhost
+2025-06-07 17:44:27 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:131 - get_requests_by_status(): Retrieving reimbursement requests with status: under_review
+2025-06-07 17:44:27 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:143 - get_requests_by_status(): Retrieved 0 reimbursement requests with status: under_review
+2025-06-07 17:44:27 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56742 - "GET /api/v2/reimbursements/pending HTTP/1.1" 200
+2025-06-07 17:44:28 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:143 - get_requests_by_status(): Retrieved 5 reimbursement requests with status: approved
+2025-06-07 17:44:28 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56747 - "GET /api/v2/reimbursements/approved HTTP/1.1" 200
+2025-06-07 17:45:48 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56899 - "GET /api/v2/public-holidays HTTP/1.1" 307
+2025-06-07 17:45:48 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56899 - "GET /api/v2/public-holidays HTTP/1.1" 307
+2025-06-07 17:45:48 [WARNING] app.api.routes.public_holiday_routes_v2:37 - get_public_holiday_controller(): Could not get public holiday controller from container: PublicHolidayController.__init__() got an unexpected keyword argument 'public_holiday_service'
+2025-06-07 17:45:48 [WARNING] app.api.controllers.public_holiday_controller:69 - __init__(): PublicHolidayController initialized without all required use cases
+2025-06-07 17:45:48 [INFO] app.api.routes.public_holiday_routes_v2:76 - get_public_holidays(): Getting public holidays with filters: year=None, month=None
+2025-06-07 17:45:48 [INFO] app.api.controllers.public_holiday_controller:90 - get_public_holidays(): Getting public holidays with filters
+2025-06-07 17:45:48 [WARNING] app.api.controllers.public_holiday_controller:112 - get_public_holidays(): Get use case not available, returning empty list
+2025-06-07 17:45:48 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56901 - "GET /api/v2/public-holidays/ HTTP/1.1" 200
+2025-06-07 17:45:48 [WARNING] app.api.routes.public_holiday_routes_v2:37 - get_public_holiday_controller(): Could not get public holiday controller from container: PublicHolidayController.__init__() got an unexpected keyword argument 'public_holiday_service'
+2025-06-07 17:45:48 [WARNING] app.api.controllers.public_holiday_controller:69 - __init__(): PublicHolidayController initialized without all required use cases
+2025-06-07 17:45:48 [INFO] app.api.routes.public_holiday_routes_v2:76 - get_public_holidays(): Getting public holidays with filters: year=None, month=None
+2025-06-07 17:45:48 [INFO] app.api.controllers.public_holiday_controller:90 - get_public_holidays(): Getting public holidays with filters
+2025-06-07 17:45:48 [WARNING] app.api.controllers.public_holiday_controller:112 - get_public_holidays(): Get use case not available, returning empty list
+2025-06-07 17:45:48 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56899 - "GET /api/v2/public-holidays/ HTTP/1.1" 200
+2025-06-07 17:45:55 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56946 - "GET /api/v2/company-leaves HTTP/1.1" 307
+2025-06-07 17:45:55 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56946 - "GET /api/v2/company-leaves HTTP/1.1" 307
+2025-06-07 17:45:55 [INFO] app.api.controllers.company_leave_controller:62 - list_company_leaves(): Listing company leaves with filters
+2025-06-07 17:45:55 [INFO] app.infrastructure.repositories.mongodb_company_leave_repository:233 - list_with_filters(): Retrieving company leaves with filters: {'is_active': None, 'accrual_type': None, 'sort_by': 'created_at', 'sort_order': 'desc', 'page': 1, 'page_size': 100}
+2025-06-07 17:45:55 [ERROR] app.infrastructure.repositories.mongodb_company_leave_repository:272 - list_with_filters(): Error retrieving filtered company leaves: MongoDBCompanyLeaveRepository._get_collection() missing 1 required positional argument: 'organisation_id'
+2025-06-07 17:45:55 [ERROR] app.infrastructure.repositories.mongodb_company_leave_repository:291 - count_with_filters(): Error counting filtered company leaves: MongoDBCompanyLeaveRepository._get_collection() missing 1 required positional argument: 'organisation_id'
+2025-06-07 17:45:55 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56948 - "GET /api/v2/company-leaves/ HTTP/1.1" 200
+2025-06-07 17:45:55 [INFO] app.api.controllers.company_leave_controller:62 - list_company_leaves(): Listing company leaves with filters
+2025-06-07 17:45:55 [INFO] app.infrastructure.repositories.mongodb_company_leave_repository:233 - list_with_filters(): Retrieving company leaves with filters: {'is_active': None, 'accrual_type': None, 'sort_by': 'created_at', 'sort_order': 'desc', 'page': 1, 'page_size': 100}
+2025-06-07 17:45:55 [ERROR] app.infrastructure.repositories.mongodb_company_leave_repository:272 - list_with_filters(): Error retrieving filtered company leaves: MongoDBCompanyLeaveRepository._get_collection() missing 1 required positional argument: 'organisation_id'
+2025-06-07 17:45:55 [ERROR] app.infrastructure.repositories.mongodb_company_leave_repository:291 - count_with_filters(): Error counting filtered company leaves: MongoDBCompanyLeaveRepository._get_collection() missing 1 required positional argument: 'organisation_id'
+2025-06-07 17:45:55 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56948 - "GET /api/v2/company-leaves/ HTTP/1.1" 200
+2025-06-07 17:46:37 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57136 - "GET /api/v2/public-holidays HTTP/1.1" 307
+2025-06-07 17:46:37 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57136 - "GET /api/v2/public-holidays HTTP/1.1" 307
+2025-06-07 17:46:37 [WARNING] app.api.routes.public_holiday_routes_v2:37 - get_public_holiday_controller(): Could not get public holiday controller from container: PublicHolidayController.__init__() got an unexpected keyword argument 'public_holiday_service'
+2025-06-07 17:46:37 [WARNING] app.api.controllers.public_holiday_controller:69 - __init__(): PublicHolidayController initialized without all required use cases
+2025-06-07 17:46:37 [INFO] app.api.routes.public_holiday_routes_v2:76 - get_public_holidays(): Getting public holidays with filters: year=None, month=None
+2025-06-07 17:46:37 [INFO] app.api.controllers.public_holiday_controller:90 - get_public_holidays(): Getting public holidays with filters
+2025-06-07 17:46:37 [WARNING] app.api.controllers.public_holiday_controller:112 - get_public_holidays(): Get use case not available, returning empty list
+2025-06-07 17:46:38 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57138 - "GET /api/v2/public-holidays/ HTTP/1.1" 200
+2025-06-07 17:46:38 [WARNING] app.api.routes.public_holiday_routes_v2:37 - get_public_holiday_controller(): Could not get public holiday controller from container: PublicHolidayController.__init__() got an unexpected keyword argument 'public_holiday_service'
+2025-06-07 17:46:38 [WARNING] app.api.controllers.public_holiday_controller:69 - __init__(): PublicHolidayController initialized without all required use cases
+2025-06-07 17:46:38 [INFO] app.api.routes.public_holiday_routes_v2:76 - get_public_holidays(): Getting public holidays with filters: year=None, month=None
+2025-06-07 17:46:38 [INFO] app.api.controllers.public_holiday_controller:90 - get_public_holidays(): Getting public holidays with filters
+2025-06-07 17:46:38 [WARNING] app.api.controllers.public_holiday_controller:112 - get_public_holidays(): Get use case not available, returning empty list
+2025-06-07 17:46:38 [INFO] uvicorn.access:473 - send(): 127.0.0.1:57136 - "GET /api/v2/public-holidays/ HTTP/1.1" 200
+2025-06-07 17:51:32 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-07 17:51:32 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-07 17:51:32 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-07 17:51:32 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-07 17:51:32 [INFO] uvicorn.error:93 - _serve(): Finished server process [29718]
+2025-06-07 17:51:36 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 17:52:15 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 17:52:26 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 17:53:14 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 17:53:57 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 17:54:16 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 17:54:32 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 17:54:48 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 17:55:38 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 17:55:44 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-07 17:55:44 [INFO] uvicorn.error:83 - _serve(): Started server process [30192]
+2025-06-07 17:55:44 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-07 17:55:44 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-07 17:55:44 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-07 17:56:08 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-07 17:56:08 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-07 17:56:08 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-07 17:56:08 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-07 17:56:08 [INFO] uvicorn.error:93 - _serve(): Finished server process [30192]
+2025-06-07 17:56:12 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 17:56:18 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-07 17:56:18 [INFO] uvicorn.error:83 - _serve(): Started server process [30215]
+2025-06-07 17:56:18 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-07 17:56:18 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-07 17:56:18 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-07 17:56:59 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-07 17:56:59 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-07 17:56:59 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-07 17:56:59 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-07 17:56:59 [INFO] uvicorn.error:93 - _serve(): Finished server process [30215]
+2025-06-07 17:57:04 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 17:57:10 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-07 17:57:10 [INFO] uvicorn.error:83 - _serve(): Started server process [30245]
+2025-06-07 17:57:10 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-07 17:57:10 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-07 17:57:10 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-07 17:58:22 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-07 17:58:22 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-07 17:58:22 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-07 17:58:22 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-07 17:58:22 [INFO] uvicorn.error:93 - _serve(): Finished server process [30245]
+2025-06-07 17:58:28 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 17:58:35 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-07 17:58:35 [INFO] uvicorn.error:83 - _serve(): Started server process [30288]
+2025-06-07 17:58:35 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-07 17:58:35 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-07 17:58:35 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-07 17:59:41 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-07 17:59:41 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-07 17:59:41 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-07 17:59:41 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-07 17:59:41 [INFO] uvicorn.error:93 - _serve(): Finished server process [30288]
+2025-06-07 17:59:45 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 17:59:50 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-07 17:59:50 [INFO] uvicorn.error:83 - _serve(): Started server process [30320]
+2025-06-07 17:59:50 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-07 17:59:50 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-07 17:59:50 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-07 17:59:59 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-07 17:59:59 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-07 17:59:59 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-07 17:59:59 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-07 17:59:59 [INFO] uvicorn.error:93 - _serve(): Finished server process [30320]
+2025-06-07 18:00:04 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 18:00:11 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-07 18:00:11 [INFO] uvicorn.error:83 - _serve(): Started server process [30336]
+2025-06-07 18:00:11 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-07 18:00:11 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-07 18:00:11 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-07 18:00:15 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 18:00:23 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-07 18:00:23 [INFO] uvicorn.error:83 - _serve(): Started server process [30354]
+2025-06-07 18:00:23 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-07 18:00:23 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-07 18:00:23 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-07 18:00:27 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 18:00:33 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-07 18:00:33 [INFO] uvicorn.error:83 - _serve(): Started server process [30363]
+2025-06-07 18:00:33 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-07 18:00:33 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-07 18:00:33 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-07 18:00:37 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 18:00:44 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-07 18:00:44 [INFO] uvicorn.error:83 - _serve(): Started server process [30368]
+2025-06-07 18:00:44 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-07 18:00:44 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-07 18:00:44 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-07 18:00:47 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 18:00:54 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-07 18:00:55 [INFO] uvicorn.error:83 - _serve(): Started server process [30373]
+2025-06-07 18:00:55 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-07 18:00:55 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-07 18:00:55 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-07 18:00:58 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 18:01:05 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-07 18:01:05 [INFO] uvicorn.error:83 - _serve(): Started server process [30386]
+2025-06-07 18:01:05 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-07 18:01:05 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-07 18:01:05 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-07 18:01:05 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-07 18:01:05 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-07 18:01:05 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-07 18:01:05 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-07 18:01:05 [INFO] uvicorn.error:93 - _serve(): Finished server process [30386]
+2025-06-07 18:01:09 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 18:01:15 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-07 18:01:15 [INFO] uvicorn.error:83 - _serve(): Started server process [30392]
+2025-06-07 18:01:15 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-07 18:01:15 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-07 18:01:15 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-07 18:01:17 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-07 18:01:17 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-07 18:01:17 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-07 18:01:17 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-07 18:01:17 [INFO] uvicorn.error:93 - _serve(): Finished server process [30392]
+2025-06-07 18:01:21 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 18:01:27 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-07 18:01:27 [INFO] uvicorn.error:83 - _serve(): Started server process [30399]
+2025-06-07 18:01:27 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-07 18:01:27 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-07 18:01:27 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-07 18:01:28 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-07 18:01:28 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-07 18:01:28 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-07 18:01:28 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-07 18:01:28 [INFO] uvicorn.error:93 - _serve(): Finished server process [30399]
+2025-06-07 18:01:32 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 18:01:38 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-07 18:01:38 [INFO] uvicorn.error:83 - _serve(): Started server process [30405]
+2025-06-07 18:01:38 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-07 18:01:38 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-07 18:01:38 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-07 18:01:42 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 18:01:49 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 18:01:50 [INFO] app.config.dependency_container:76 - initialize(): Initializing dependency container...
+2025-06-07 18:01:50 [INFO] app.config.dependency_container:101 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-07 18:01:50 [INFO] app.config.dependency_container:102 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-07 18:01:50 [INFO] app.config.dependency_container:192 - _setup_repositories(): Repositories initialized with centralized MongoDB configuration
+2025-06-07 18:01:50 [ERROR] app.config.dependency_container:265 - _setup_services(): Error setting up services: PublicHolidayServiceImpl.__init__() got an unexpected keyword argument 'repository'
+2025-06-07 18:01:50 [ERROR] app.config.dependency_container:88 - initialize(): Error initializing dependency container: PublicHolidayServiceImpl.__init__() got an unexpected keyword argument 'repository'
+2025-06-07 18:02:15 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-07 18:02:15 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-07 18:02:15 [INFO] app.main:38 - lifespan(): Running shutdown tasks...
+2025-06-07 18:02:15 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-07 18:02:15 [INFO] uvicorn.error:93 - _serve(): Finished server process [30405]
+2025-06-07 18:02:21 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 18:02:25 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 18:02:25 [INFO] app.config.dependency_container:76 - initialize(): Initializing dependency container...
+2025-06-07 18:02:25 [INFO] app.config.dependency_container:101 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-07 18:02:25 [INFO] app.config.dependency_container:102 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-07 18:02:25 [INFO] app.config.dependency_container:192 - _setup_repositories(): Repositories initialized with centralized MongoDB configuration
+2025-06-07 18:02:25 [INFO] app.config.dependency_container:262 - _setup_services(): Services initialized
+2025-06-07 18:02:25 [INFO] app.config.dependency_container:271 - _setup_controllers(): Controllers setup deferred
+2025-06-07 18:02:25 [INFO] app.config.dependency_container:85 - initialize(): Dependency container initialized successfully
+2025-06-07 18:02:29 [INFO] app.main:79 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes
+2025-06-07 18:02:29 [INFO] uvicorn.error:83 - _serve(): Started server process [30507]
+2025-06-07 18:02:29 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-07 18:02:29 [INFO] app.main:36 - lifespan(): Running startup tasks...
+2025-06-07 18:02:29 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-07 18:02:32 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-07 18:06:22 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59669 - "OPTIONS /api/v2/public-holidays HTTP/1.1" 200
+2025-06-07 18:06:22 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59671 - "OPTIONS /api/v2/public-holidays HTTP/1.1" 200
+2025-06-07 18:06:22 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59669 - "GET /api/v2/public-holidays HTTP/1.1" 307
+2025-06-07 18:06:22 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59669 - "GET /api/v2/public-holidays HTTP/1.1" 307
+2025-06-07 18:06:23 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59669 - "OPTIONS /api/v2/public-holidays/ HTTP/1.1" 200
+2025-06-07 18:06:23 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59671 - "OPTIONS /api/v2/public-holidays/ HTTP/1.1" 200
+2025-06-07 18:06:23 [INFO] app.config.dependency_container:76 - initialize(): Initializing dependency container...
+2025-06-07 18:06:23 [INFO] app.config.dependency_container:101 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-07 18:06:23 [INFO] app.config.dependency_container:102 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-07 18:06:23 [INFO] app.config.dependency_container:192 - _setup_repositories(): Repositories initialized with centralized MongoDB configuration
+2025-06-07 18:06:23 [INFO] app.config.dependency_container:262 - _setup_services(): Services initialized
+2025-06-07 18:06:23 [INFO] app.config.dependency_container:271 - _setup_controllers(): Controllers setup deferred
+2025-06-07 18:06:23 [INFO] app.config.dependency_container:85 - initialize(): Dependency container initialized successfully
+2025-06-07 18:06:23 [ERROR] app.infrastructure.repositories.mongodb_public_holiday_repository:142 - find_with_filters(): Error finding public holidays with filters in database localhost: Not connected to MongoDB. Call connect() first. Connection string: None and database_name: pms_localhost
+2025-06-07 18:06:23 [ERROR] app.infrastructure.services.public_holiday_service_impl:264 - list_public_holidays(): Error listing public holidays in organisation localhost: Not connected to MongoDB. Call connect() first. Connection string: None and database_name: pms_localhost
+2025-06-07 18:06:23 [ERROR] app.api.controllers.public_holiday_controller:80 - list_public_holidays(): Error listing public holidays in organisation localhost: Not connected to MongoDB. Call connect() first. Connection string: None and database_name: pms_localhost
+2025-06-07 18:06:23 [ERROR] app.api.routes.public_holiday_routes_v2:96 - list_public_holidays(): Error listing public holidays: 500: Internal server error
+2025-06-07 18:06:23 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59669 - "GET /api/v2/public-holidays/ HTTP/1.1" 500
+2025-06-07 18:06:23 [ERROR] app.infrastructure.repositories.mongodb_public_holiday_repository:142 - find_with_filters(): Error finding public holidays with filters in database localhost: Not connected to MongoDB. Call connect() first. Connection string: None and database_name: pms_localhost
+2025-06-07 18:06:23 [ERROR] app.infrastructure.services.public_holiday_service_impl:264 - list_public_holidays(): Error listing public holidays in organisation localhost: Not connected to MongoDB. Call connect() first. Connection string: None and database_name: pms_localhost
+2025-06-07 18:06:23 [ERROR] app.api.controllers.public_holiday_controller:80 - list_public_holidays(): Error listing public holidays in organisation localhost: Not connected to MongoDB. Call connect() first. Connection string: None and database_name: pms_localhost
+2025-06-07 18:06:23 [ERROR] app.api.routes.public_holiday_routes_v2:96 - list_public_holidays(): Error listing public holidays: 500: Internal server error
+2025-06-07 18:06:23 [INFO] uvicorn.access:473 - send(): 127.0.0.1:59671 - "GET /api/v2/public-holidays/ HTTP/1.1" 500
+2025-06-07 18:16:16 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60410 - "OPTIONS /api/v2/reimbursements/types?active_only=true HTTP/1.1" 200
+2025-06-07 18:16:16 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60412 - "OPTIONS /api/v2/reimbursements/types?active_only=true HTTP/1.1" 200
+2025-06-07 18:16:16 [INFO] app.infrastructure.services.reimbursement_service_impl:623 - list_reimbursement_types(): Listing reimbursement types in organisation: localhost
+2025-06-07 18:16:17 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-07 18:16:17 [INFO] app.infrastructure.repositories.mongodb_reimbursement_repository:94 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-07 18:16:17 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60410 - "GET /api/v2/reimbursements/types?active_only=true HTTP/1.1" 200
+2025-06-07 18:16:17 [INFO] app.infrastructure.services.reimbursement_service_impl:623 - list_reimbursement_types(): Listing reimbursement types in organisation: localhost
+2025-06-07 18:16:17 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60410 - "GET /api/v2/reimbursements/types?active_only=true HTTP/1.1" 200
+2025-06-07 18:16:20 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60410 - "OPTIONS /api/v2/reimbursements/requests/my?limit=50&offset=0 HTTP/1.1" 200
+2025-06-07 18:16:20 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60414 - "OPTIONS /api/v2/reimbursements/requests/my?limit=50&offset=0 HTTP/1.1" 200
+2025-06-07 18:16:20 [INFO] app.infrastructure.services.reimbursement_service_impl:623 - list_reimbursement_types(): Listing reimbursement types in organisation: localhost
+2025-06-07 18:16:20 [INFO] app.infrastructure.services.reimbursement_service_impl:657 - list_reimbursement_requests(): Listing reimbursement requests in organisation: localhost
+2025-06-07 18:16:20 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:109 - get_requests_by_employee(): Retrieving reimbursement requests for employee: superadmin
+2025-06-07 18:16:20 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60412 - "GET /api/v2/reimbursements/types?active_only=true HTTP/1.1" 200
+2025-06-07 18:16:20 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:121 - get_requests_by_employee(): Retrieved 0 reimbursement requests for employee: superadmin
+2025-06-07 18:16:20 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60449 - "GET /api/v2/reimbursements/requests/my?limit=50&offset=0 HTTP/1.1" 200
+2025-06-07 18:16:20 [INFO] app.infrastructure.services.reimbursement_service_impl:623 - list_reimbursement_types(): Listing reimbursement types in organisation: localhost
+2025-06-07 18:16:20 [INFO] app.infrastructure.services.reimbursement_service_impl:657 - list_reimbursement_requests(): Listing reimbursement requests in organisation: localhost
+2025-06-07 18:16:20 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:109 - get_requests_by_employee(): Retrieving reimbursement requests for employee: superadmin
+2025-06-07 18:16:20 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60412 - "GET /api/v2/reimbursements/types?active_only=true HTTP/1.1" 200
+2025-06-07 18:16:20 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:121 - get_requests_by_employee(): Retrieved 0 reimbursement requests for employee: superadmin
+2025-06-07 18:16:20 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60449 - "GET /api/v2/reimbursements/requests/my?limit=50&offset=0 HTTP/1.1" 200
+2025-06-07 18:16:22 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60449 - "OPTIONS /api/v2/reimbursements/pending HTTP/1.1" 200
+2025-06-07 18:16:22 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60412 - "OPTIONS /api/v2/reimbursements/approved HTTP/1.1" 200
+2025-06-07 18:16:22 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60414 - "OPTIONS /api/v2/reimbursements/pending HTTP/1.1" 200
+2025-06-07 18:16:22 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60410 - "OPTIONS /api/v2/reimbursements/approved HTTP/1.1" 200
+2025-06-07 18:16:22 [INFO] app.auth.auth:83 - checker(): Checking role for user: superadmin
+2025-06-07 18:16:22 [INFO] app.auth.auth:83 - checker(): Checking role for user: superadmin
+2025-06-07 18:16:22 [INFO] app.infrastructure.services.reimbursement_service_impl:657 - list_reimbursement_requests(): Listing reimbursement requests in organisation: localhost
+2025-06-07 18:16:22 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:131 - get_requests_by_status(): Retrieving reimbursement requests with status: draft
+2025-06-07 18:16:22 [INFO] app.infrastructure.services.reimbursement_service_impl:657 - list_reimbursement_requests(): Listing reimbursement requests in organisation: localhost
+2025-06-07 18:16:22 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:131 - get_requests_by_status(): Retrieving reimbursement requests with status: approved
+2025-06-07 18:16:22 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:143 - get_requests_by_status(): Retrieved 1 reimbursement requests with status: draft
+2025-06-07 18:16:22 [INFO] app.infrastructure.services.reimbursement_service_impl:657 - list_reimbursement_requests(): Listing reimbursement requests in organisation: localhost
+2025-06-07 18:16:22 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:131 - get_requests_by_status(): Retrieving reimbursement requests with status: submitted
+2025-06-07 18:16:22 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:143 - get_requests_by_status(): Retrieved 0 reimbursement requests with status: submitted
+2025-06-07 18:16:22 [INFO] app.infrastructure.services.reimbursement_service_impl:657 - list_reimbursement_requests(): Listing reimbursement requests in organisation: localhost
+2025-06-07 18:16:22 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:131 - get_requests_by_status(): Retrieving reimbursement requests with status: under_review
+2025-06-07 18:16:22 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:143 - get_requests_by_status(): Retrieved 0 reimbursement requests with status: under_review
+2025-06-07 18:16:22 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60449 - "GET /api/v2/reimbursements/pending HTTP/1.1" 200
+2025-06-07 18:16:22 [INFO] app.auth.auth:83 - checker(): Checking role for user: superadmin
+2025-06-07 18:16:22 [INFO] app.infrastructure.services.reimbursement_service_impl:657 - list_reimbursement_requests(): Listing reimbursement requests in organisation: localhost
+2025-06-07 18:16:22 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:131 - get_requests_by_status(): Retrieving reimbursement requests with status: draft
+2025-06-07 18:16:23 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:143 - get_requests_by_status(): Retrieved 5 reimbursement requests with status: approved
+2025-06-07 18:16:23 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60472 - "GET /api/v2/reimbursements/approved HTTP/1.1" 200
+2025-06-07 18:16:23 [INFO] app.auth.auth:83 - checker(): Checking role for user: superadmin
+2025-06-07 18:16:23 [INFO] app.infrastructure.services.reimbursement_service_impl:657 - list_reimbursement_requests(): Listing reimbursement requests in organisation: localhost
+2025-06-07 18:16:23 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:131 - get_requests_by_status(): Retrieving reimbursement requests with status: approved
+2025-06-07 18:16:23 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:143 - get_requests_by_status(): Retrieved 1 reimbursement requests with status: draft
+2025-06-07 18:16:23 [INFO] app.infrastructure.services.reimbursement_service_impl:657 - list_reimbursement_requests(): Listing reimbursement requests in organisation: localhost
+2025-06-07 18:16:23 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:131 - get_requests_by_status(): Retrieving reimbursement requests with status: submitted
+2025-06-07 18:16:23 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:143 - get_requests_by_status(): Retrieved 0 reimbursement requests with status: submitted
+2025-06-07 18:16:23 [INFO] app.infrastructure.services.reimbursement_service_impl:657 - list_reimbursement_requests(): Listing reimbursement requests in organisation: localhost
+2025-06-07 18:16:23 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:131 - get_requests_by_status(): Retrieving reimbursement requests with status: under_review
+2025-06-07 18:16:23 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:143 - get_requests_by_status(): Retrieved 0 reimbursement requests with status: under_review
+2025-06-07 18:16:23 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60449 - "GET /api/v2/reimbursements/pending HTTP/1.1" 200
+2025-06-07 18:16:23 [INFO] app.application.use_cases.reimbursement.get_reimbursement_requests_use_case:143 - get_requests_by_status(): Retrieved 5 reimbursement requests with status: approved
+2025-06-07 18:16:23 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60472 - "GET /api/v2/reimbursements/approved HTTP/1.1" 200
+2025-06-07 18:16:27 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60472 - "OPTIONS /api/v2/public-holidays HTTP/1.1" 200
+2025-06-07 18:16:27 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60449 - "OPTIONS /api/v2/public-holidays HTTP/1.1" 200
+2025-06-07 18:16:27 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60410 - "GET /api/v2/public-holidays HTTP/1.1" 307
+2025-06-07 18:16:27 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60410 - "GET /api/v2/public-holidays HTTP/1.1" 307
+2025-06-07 18:16:27 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60410 - "OPTIONS /api/v2/public-holidays/ HTTP/1.1" 200
+2025-06-07 18:16:27 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60449 - "OPTIONS /api/v2/public-holidays/ HTTP/1.1" 200
+2025-06-07 18:16:27 [ERROR] app.infrastructure.repositories.mongodb_public_holiday_repository:142 - find_with_filters(): Error finding public holidays with filters in database localhost: object AsyncIOMotorDatabase can't be used in 'await' expression
+2025-06-07 18:16:27 [ERROR] app.infrastructure.services.public_holiday_service_impl:264 - list_public_holidays(): Error listing public holidays in organisation localhost: object AsyncIOMotorDatabase can't be used in 'await' expression
+2025-06-07 18:16:27 [ERROR] app.api.controllers.public_holiday_controller:80 - list_public_holidays(): Error listing public holidays in organisation localhost: object AsyncIOMotorDatabase can't be used in 'await' expression
+2025-06-07 18:16:27 [ERROR] app.api.routes.public_holiday_routes_v2:96 - list_public_holidays(): Error listing public holidays: 500: Internal server error
+2025-06-07 18:16:27 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60472 - "GET /api/v2/public-holidays/ HTTP/1.1" 500
+2025-06-07 18:16:27 [ERROR] app.infrastructure.repositories.mongodb_public_holiday_repository:142 - find_with_filters(): Error finding public holidays with filters in database localhost: object AsyncIOMotorDatabase can't be used in 'await' expression
+2025-06-07 18:16:27 [ERROR] app.infrastructure.services.public_holiday_service_impl:264 - list_public_holidays(): Error listing public holidays in organisation localhost: object AsyncIOMotorDatabase can't be used in 'await' expression
+2025-06-07 18:16:27 [ERROR] app.api.controllers.public_holiday_controller:80 - list_public_holidays(): Error listing public holidays in organisation localhost: object AsyncIOMotorDatabase can't be used in 'await' expression
+2025-06-07 18:16:27 [ERROR] app.api.routes.public_holiday_routes_v2:96 - list_public_holidays(): Error listing public holidays: 500: Internal server error
+2025-06-07 18:16:27 [INFO] uvicorn.access:473 - send(): 127.0.0.1:60472 - "GET /api/v2/public-holidays/ HTTP/1.1" 500

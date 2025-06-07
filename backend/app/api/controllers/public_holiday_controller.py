@@ -1,204 +1,188 @@
 """
-SOLID-Compliant Public Holiday Controller
-Handles public holiday-related HTTP operations with proper dependency injection
+Public Holiday Controller Implementation
+SOLID-compliant controller for public holiday HTTP operations
 """
 
 import logging
-from typing import List, Optional
-from datetime import datetime
+from typing import List, Optional, Dict, Any
+from fastapi import HTTPException
 
+from app.application.interfaces.services.public_holiday_service import PublicHolidayService
 from app.application.dto.public_holiday_dto import (
-    PublicHolidayCreateRequestDTO,
-    PublicHolidayUpdateRequestDTO,
-    PublicHolidaySearchFiltersDTO,
-    PublicHolidayResponseDTO,
-    PublicHolidayImportResultDTO,
-    PublicHolidayValidationError,
-    PublicHolidayBusinessRuleError,
-    PublicHolidayNotFoundError,
-    HolidayCategory,
-    HolidayObservance,
-    HolidayRecurrence
+    CreatePublicHolidayRequestDTO, UpdatePublicHolidayRequestDTO, PublicHolidaySearchFiltersDTO,
+    PublicHolidayResponseDTO, PublicHolidayListResponseDTO, ImportPublicHolidayRequestDTO,
+    PublicHolidayValidationError, PublicHolidayBusinessRuleError, PublicHolidayNotFoundError
 )
+from app.auth.auth_dependencies import CurrentUser
 
 logger = logging.getLogger(__name__)
 
-
 class PublicHolidayController:
     """
-    Controller for public holiday operations following SOLID principles.
+    Public holiday controller following SOLID principles.
     
-    This controller acts as a facade between the HTTP layer and business logic,
-    delegating operations to appropriate use cases.
+    - SRP: Only handles HTTP request/response concerns
+    - OCP: Can be extended with new endpoints
+    - LSP: Can be substituted with other controllers
+    - ISP: Focused interface for public holiday HTTP operations
+    - DIP: Depends on abstractions (PublicHolidayService)
     """
     
-    def __init__(
+    def __init__(self, public_holiday_service: PublicHolidayService):
+        """Initialize controller with dependencies."""
+        self.public_holiday_service = public_holiday_service
+    
+    async def create_public_holiday(
+        self, 
+        request: CreatePublicHolidayRequestDTO, 
+        current_user: CurrentUser
+    ) -> PublicHolidayResponseDTO:
+        """Create a new public holiday."""
+        try:
+            logger.info(f"Creating public holiday in organisation: {current_user.hostname}")
+            return await self.public_holiday_service.create_public_holiday(request, current_user)
+        except PublicHolidayValidationError as e:
+            logger.warning(f"Validation error creating public holiday: {e}")
+            raise HTTPException(status_code=400, detail={"error": "validation_error", "message": str(e)})
+        except PublicHolidayBusinessRuleError as e:
+            logger.warning(f"Business rule error creating public holiday: {e}")
+            raise HTTPException(status_code=422, detail={"error": "business_rule_error", "message": str(e)})
+        except Exception as e:
+            logger.error(f"Error creating public holiday in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+    
+    async def get_public_holiday_by_id(
+        self, 
+        holiday_id: str, 
+        current_user: CurrentUser
+    ) -> PublicHolidayResponseDTO:
+        """Get public holiday by ID."""
+        try:
+            holiday = await self.public_holiday_service.get_public_holiday_by_id(holiday_id, current_user)
+            if not holiday:
+                raise HTTPException(status_code=404, detail="Public holiday not found")
+            return holiday
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error getting public holiday {holiday_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+    
+    async def list_public_holidays(
+        self, 
+        filters: PublicHolidaySearchFiltersDTO, 
+        current_user: CurrentUser
+    ) -> PublicHolidayListResponseDTO:
+        """List public holidays with filters."""
+        try:
+            return await self.public_holiday_service.list_public_holidays(filters, current_user)
+        except Exception as e:
+            logger.error(f"Error listing public holidays in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+    
+    async def update_public_holiday(
         self,
-        create_use_case=None,
-        get_use_case=None,
-        update_use_case=None,
-        delete_use_case=None,
-        import_use_case=None
-    ):
-        """
-        Initialize the controller with use cases.
-        
-        Args:
-            create_use_case: Use case for creating public holidays
-            get_use_case: Use case for querying public holidays
-            update_use_case: Use case for updating public holidays
-            delete_use_case: Use case for deleting public holidays
-            import_use_case: Use case for importing public holidays
-        """
-        self.create_use_case = create_use_case
-        self.get_use_case = get_use_case
-        self.update_use_case = update_use_case
-        self.delete_use_case = delete_use_case
-        self.import_use_case = import_use_case
-        
-        # If use cases are not provided, we'll handle gracefully
-        self._initialized = all([
-            create_use_case is not None,
-            get_use_case is not None,
-            update_use_case is not None,
-            delete_use_case is not None,
-            import_use_case is not None
-        ])
-        
-        if not self._initialized:
-            logger.warning("PublicHolidayController initialized without all required use cases")
+        holiday_id: str,
+        request: UpdatePublicHolidayRequestDTO,
+        current_user: CurrentUser
+    ) -> PublicHolidayResponseDTO:
+        """Update public holiday."""
+        try:
+            return await self.public_holiday_service.update_public_holiday(holiday_id, request, current_user)
+        except PublicHolidayNotFoundError as e:
+            logger.warning(f"Public holiday not found for update: {e}")
+            raise HTTPException(status_code=404, detail={"error": "not_found", "message": str(e)})
+        except PublicHolidayValidationError as e:
+            logger.warning(f"Validation error updating public holiday: {e}")
+            raise HTTPException(status_code=400, detail={"error": "validation_error", "message": str(e)})
+        except PublicHolidayBusinessRuleError as e:
+            logger.warning(f"Business rule error updating public holiday: {e}")
+            raise HTTPException(status_code=422, detail={"error": "business_rule_error", "message": str(e)})
+        except Exception as e:
+            logger.error(f"Unexpected error updating public holiday {holiday_id}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
     
-    async def create_public_holiday(self, request: PublicHolidayCreateRequestDTO, employee_id: str, hostname: str) -> PublicHolidayResponseDTO:
-        """Create a new public holiday"""
+    async def delete_public_holiday(
+        self,
+        holiday_id: str,
+        force: bool,
+        current_user: CurrentUser
+    ) -> bool:
+        """Delete public holiday."""
         try:
-            logger.info(f"Creating public holiday: {request.name}")
-            
-            if self.create_use_case:
-                return await self.create_use_case.execute(request, employee_id)
-            else:
-                # Use case not available
-                logger.error("Create use case not available")
-                raise PublicHolidayBusinessRuleError("Public holiday creation service is not available")
-                
+            return await self.public_holiday_service.delete_public_holiday(holiday_id, force, current_user)
+        except PublicHolidayNotFoundError as e:
+            logger.warning(f"Public holiday not found for deletion: {e}")
+            raise HTTPException(status_code=404, detail={"error": "not_found", "message": str(e)})
+        except PublicHolidayBusinessRuleError as e:
+            logger.warning(f"Business rule error deleting public holiday: {e}")
+            raise HTTPException(status_code=422, detail={"error": "business_rule_error", "message": str(e)})
         except Exception as e:
-            logger.error(f"Error creating public holiday: {e}")
-            raise PublicHolidayBusinessRuleError(f"Holiday creation failed: {str(e)}")
+            logger.error(f"Unexpected error deleting public holiday {holiday_id}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
     
-    async def get_public_holidays(self, filters: PublicHolidaySearchFiltersDTO, hostname: str) -> List[PublicHolidayResponseDTO]:
-        """Get public holidays with filters"""
+    async def import_public_holidays(
+        self,
+        request: ImportPublicHolidayRequestDTO,
+        current_user: CurrentUser
+    ) -> List[PublicHolidayResponseDTO]:
+        """Import public holidays."""
         try:
-            logger.info(f"Getting public holidays with filters")
-            
-            if self.get_use_case:
-                # Handle different filter combinations
-                if filters.year and filters.month:
-                    # Get by specific month and year
-                    return await self.get_use_case.get_holidays_by_month(
-                        filters.year, filters.month, include_inactive=not filters.active_only
-                    )
-                elif filters.year:
-                    # Get by year
-                    return await self.get_use_case.get_holidays_by_year(
-                        filters.year, include_inactive=not filters.active_only
-                    )
-                else:
-                    # Get all holidays
-                    if filters.active_only:
-                        return await self.get_use_case.get_active_holidays()
-                    else:
-                        return await self.get_use_case.get_all_holidays(include_inactive=True)
-            else:
-                # Use case not available - return empty list
-                logger.warning("Get use case not available, returning empty list")
-                return []
-                
+            return await self.public_holiday_service.import_public_holidays(request, current_user)
+        except PublicHolidayValidationError as e:
+            logger.warning(f"Validation error importing public holidays: {e}")
+            raise HTTPException(status_code=400, detail={"error": "validation_error", "message": str(e)})
         except Exception as e:
-            logger.error(f"Error getting public holidays: {e}")
-            raise PublicHolidayBusinessRuleError(f"Failed to get holidays: {str(e)}")
+            logger.error(f"Error importing public holidays in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
     
-    async def get_public_holiday(self, holiday_id: str, hostname: str) -> PublicHolidayResponseDTO:
-        """Get a specific public holiday by ID"""
+    async def get_holidays_by_date_range(
+        self,
+        start_date: str,
+        end_date: str,
+        current_user: CurrentUser
+    ) -> List[PublicHolidayResponseDTO]:
+        """Get holidays by date range."""
         try:
-            logger.info(f"Getting public holiday: {holiday_id}")
+            from datetime import datetime
+            start_dt = datetime.strptime(start_date, "%Y-%m-%d").date()
+            end_dt = datetime.strptime(end_date, "%Y-%m-%d").date()
             
-            if self.get_use_case:
-                return await self.get_use_case.get_holiday_by_id(holiday_id)
-            else:
-                # Use case not available
-                logger.error("Get use case not available")
-                raise PublicHolidayNotFoundError(f"Public holiday not found: {holiday_id}")
-                
+            return await self.public_holiday_service.get_holidays_by_date_range(start_dt, end_dt, current_user)
+        except ValueError as e:
+            logger.warning(f"Invalid date format: {e}")
+            raise HTTPException(status_code=400, detail={"error": "invalid_date_format", "message": "Date must be in YYYY-MM-DD format"})
         except Exception as e:
-            logger.error(f"Error getting public holiday: {e}")
-            raise PublicHolidayBusinessRuleError(f"Failed to get holiday: {str(e)}")
+            logger.error(f"Error getting holidays by date range in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
     
-    async def update_public_holiday(self, holiday_id: str, request: PublicHolidayUpdateRequestDTO, employee_id: str, hostname: str) -> PublicHolidayResponseDTO:
-        """Update an existing public holiday"""
+    async def check_holiday_on_date(
+        self,
+        date_str: str,
+        current_user: CurrentUser
+    ) -> Dict[str, Any]:
+        """Check if a specific date is a public holiday."""
         try:
-            logger.info(f"Updating public holiday: {holiday_id}")
+            from datetime import datetime
+            check_date = datetime.strptime(date_str, "%Y-%m-%d").date()
             
-            if self.update_use_case:
-                return await self.update_use_case.execute(holiday_id, request, employee_id)
-            else:
-                # Use case not available
-                logger.error("Update use case not available")
-                raise PublicHolidayBusinessRuleError("Public holiday update service is not available")
-                
-        except Exception as e:
-            logger.error(f"Error updating public holiday: {e}")
-            raise PublicHolidayBusinessRuleError(f"Holiday update failed: {str(e)}")
-    
-    async def delete_public_holiday(self, holiday_id: str, employee_id: str, hostname: str) -> None:
-        """Delete (deactivate) a public holiday"""
-        try:
-            logger.info(f"Deleting public holiday: {holiday_id}")
+            # Get holidays for the specific date
+            holidays = await self.public_holiday_service.get_holidays_by_date_range(
+                check_date, check_date, current_user
+            )
             
-            if self.delete_use_case:
-                await self.delete_use_case.execute(holiday_id, employee_id)
-            else:
-                # Use case not available
-                logger.error("Delete use case not available")
-                raise PublicHolidayBusinessRuleError("Public holiday deletion service is not available")
-                
-        except Exception as e:
-            logger.error(f"Error deleting public holiday: {e}")
-            raise PublicHolidayBusinessRuleError(f"Holiday deletion failed: {str(e)}")
-    
-    async def import_public_holidays(self, file, hostname: str) -> PublicHolidayImportResultDTO:
-        """Import public holidays from file"""
-        try:
-            logger.info(f"Importing public holidays from file: {file.filename}")
+            is_holiday = len(holidays) > 0
+            holiday_info = holidays[0] if holidays else None
             
-            if self.import_use_case:
-                # Read file content
-                content = await file.read()
-                return await self.import_use_case.execute(content, file.filename, "system")
-            else:
-                # Fallback implementation for development/testing
-                return PublicHolidayImportResultDTO(
-                    total_processed=0,
-                    successful_imports=0,
-                    failed_imports=0,
-                    errors=[],
-                    warnings=["Import functionality not available"]
-                )
-                
+            return {
+                "date": date_str,
+                "is_holiday": is_holiday,
+                "holiday": holiday_info.dict() if holiday_info else None
+            }
+        except ValueError as e:
+            logger.warning(f"Invalid date format: {e}")
+            raise HTTPException(status_code=400, detail={"error": "invalid_date_format", "message": "Date must be in YYYY-MM-DD format"})
         except Exception as e:
-            logger.error(f"Error importing public holidays: {e}")
-            raise PublicHolidayBusinessRuleError(f"Holiday import failed: {str(e)}")
-
-    async def is_public_holiday(self, date_str: str, hostname: str) -> bool:
-        """Check if a specific date is a public holiday"""
-        try:
-            logger.info(f"Checking if {date_str} is a public holiday")
-            
-            if self.get_use_case:
-                return await self.get_use_case.check_holiday_on_date(date_str)
-            else:
-                # Fallback implementation for development/testing
-                return False
-                
-        except Exception as e:
-            logger.error(f"Error checking holiday on date: {e}")
-            raise PublicHolidayBusinessRuleError(f"Holiday check failed: {str(e)}")
+            logger.error(f"Error checking holiday on date in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
     

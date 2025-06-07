@@ -23,22 +23,22 @@ class PublicHolidayCommandService(ABC):
     """
     
     @abstractmethod
-    async def create_public_holiday(self, request: CreatePublicHolidayRequestDTO) -> PublicHolidayResponseDTO:
+    async def create_public_holiday(self, request: CreatePublicHolidayRequestDTO, current_user: 'CurrentUser') -> PublicHolidayResponseDTO:
         """Create a new public holiday."""
         pass
     
     @abstractmethod
-    async def update_public_holiday(self, holiday_id: str, request: UpdatePublicHolidayRequestDTO) -> PublicHolidayResponseDTO:
+    async def update_public_holiday(self, holiday_id: str, request: UpdatePublicHolidayRequestDTO, current_user: 'CurrentUser') -> PublicHolidayResponseDTO:
         """Update an existing public holiday."""
         pass
     
     @abstractmethod
-    async def delete_public_holiday(self, holiday_id: str) -> bool:
+    async def delete_public_holiday(self, holiday_id: str, force: bool, current_user: 'CurrentUser') -> bool:
         """Delete a public holiday."""
         pass
     
     @abstractmethod
-    async def import_public_holidays(self, request: ImportPublicHolidayRequestDTO) -> List[PublicHolidayResponseDTO]:
+    async def import_public_holidays(self, request: ImportPublicHolidayRequestDTO, current_user: 'CurrentUser') -> List[PublicHolidayResponseDTO]:
         """Import multiple public holidays."""
         pass
 
@@ -49,17 +49,17 @@ class PublicHolidayQueryService(ABC):
     """
     
     @abstractmethod
-    async def get_public_holiday_by_id(self, holiday_id: str) -> Optional[PublicHolidayResponseDTO]:
+    async def get_public_holiday_by_id(self, holiday_id: str, current_user: 'CurrentUser') -> Optional[PublicHolidayResponseDTO]:
         """Get public holiday by ID."""
         pass
     
     @abstractmethod
-    async def list_public_holidays(self, filters: Optional[PublicHolidaySearchFiltersDTO] = None) -> PublicHolidayListResponseDTO:
+    async def list_public_holidays(self, filters: PublicHolidaySearchFiltersDTO, current_user: 'CurrentUser') -> PublicHolidayListResponseDTO:
         """List public holidays with optional filters."""
         pass
     
     @abstractmethod
-    async def get_holidays_by_date_range(self, start_date: date, end_date: date) -> List[PublicHolidayResponseDTO]:
+    async def get_holidays_by_date_range(self, start_date: date, end_date: date, current_user: 'CurrentUser') -> List[PublicHolidayResponseDTO]:
         """Get holidays within a date range."""
         pass
 
@@ -70,7 +70,7 @@ class PublicHolidayValidationService(ABC):
     """
     
     @abstractmethod
-    async def validate_holiday_request(self, request: CreatePublicHolidayRequestDTO) -> List[str]:
+    async def validate_holiday_request(self, request: CreatePublicHolidayRequestDTO, current_user: 'CurrentUser') -> List[str]:
         """Validate public holiday creation request."""
         pass
 

@@ -317,14 +317,63 @@ class PublicHolidayCalendarRepository(ABC):
         pass
 
 
-class PublicHolidayRepository(
+class PublicHolidayRepository(ABC):
+    """
+    Unified Public Holiday Repository Interface following User Module Architecture Guide.
+    
+    Combines essential CRUD operations with organisation context support.
+    Follows SOLID principles with clean architecture patterns.
+    """
+    
+    @abstractmethod
+    async def save(self, holiday: PublicHoliday, hostname: str) -> PublicHoliday:
+        """Save public holiday to organisation-specific database."""
+        pass
+    
+    @abstractmethod
+    async def get_by_id(self, holiday_id: 'PublicHolidayId', hostname: str) -> Optional[PublicHoliday]:
+        """Get public holiday by ID from organisation-specific database."""
+        pass
+    
+    @abstractmethod
+    async def find_with_filters(
+        self, 
+        filters: 'PublicHolidaySearchFiltersDTO', 
+        hostname: str
+    ) -> tuple[List[PublicHoliday], int]:
+        """Find public holidays with filters from organisation-specific database."""
+        pass
+    
+    @abstractmethod
+    async def find_by_date_range(
+        self, 
+        start_date: date, 
+        end_date: date, 
+        hostname: str
+    ) -> List[PublicHoliday]:
+        """Find public holidays within date range from organisation-specific database."""
+        pass
+    
+    @abstractmethod
+    async def find_by_date(self, holiday_date: date, hostname: str) -> List[PublicHoliday]:
+        """Find public holidays on specific date from organisation-specific database."""
+        pass
+    
+    @abstractmethod
+    async def delete(self, holiday_id: 'PublicHolidayId', hostname: str) -> bool:
+        """Delete public holiday from organisation-specific database."""
+        pass
+
+
+# Legacy interface for backward compatibility
+class LegacyPublicHolidayRepository(
     PublicHolidayCommandRepository,
     PublicHolidayQueryRepository,
     PublicHolidayAnalyticsRepository,
     PublicHolidayCalendarRepository
 ):
     """
-    Main Public Holiday Repository Interface.
+    Legacy Public Holiday Repository Interface.
     
     Combines all specialized repository interfaces to provide a unified
     interface for public holiday operations.

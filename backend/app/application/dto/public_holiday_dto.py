@@ -146,6 +146,11 @@ class PublicHolidayResponseDTO(BaseModel):
             created_by=holiday.created_by,
             updated_by=holiday.updated_by
         )
+    
+    @classmethod
+    def from_entity(cls, holiday) -> 'PublicHolidayResponseDTO':
+        """Create DTO from domain entity (alias for from_domain)"""
+        return cls.from_domain(holiday)
 
 
 class PublicHolidaySearchFiltersDTO(BaseModel):
@@ -154,9 +159,11 @@ class PublicHolidaySearchFiltersDTO(BaseModel):
     month: Optional[int] = Field(None, ge=1, le=12, description="Filter by month")
     category: Optional[HolidayCategory] = Field(None, description="Filter by category")
     observance: Optional[HolidayObservance] = Field(None, description="Filter by observance")
-    active_only: bool = Field(True, description="Return only active holidays")
-    skip: int = Field(0, ge=0, description="Number of records to skip")
-    limit: int = Field(100, ge=1, le=1000, description="Maximum number of records")
+    is_active: Optional[bool] = Field(None, description="Filter by active status")
+    sort_by: str = Field("holiday_date", description="Sort field")
+    sort_order: str = Field("asc", description="Sort order (asc/desc)")
+    page: int = Field(1, ge=1, description="Page number")
+    page_size: int = Field(100, ge=1, le=1000, description="Number of records per page")
 
 
 class PublicHolidayImportResultDTO(BaseModel):
@@ -202,16 +209,21 @@ class HolidayCalendarDTO(BaseModel):
 
 class PublicHolidayListResponseDTO(BaseModel):
     """DTO for paginated public holiday list responses"""
-    items: List[PublicHolidayResponseDTO] = Field(default_factory=list, description="Holiday items")
-    total: int = Field(0, description="Total number of holidays")
+    holidays: List[PublicHolidayResponseDTO] = Field(default_factory=list, description="Holiday items")
+    total_count: int = Field(0, description="Total number of holidays")
     page: int = Field(1, description="Current page number")
     page_size: int = Field(100, description="Number of items per page")
     total_pages: int = Field(0, description="Total number of pages")
+    has_next: bool = Field(False, description="Whether there is a next page")
+    has_previous: bool = Field(False, description="Whether there is a previous page")
 
 
 class ImportPublicHolidayRequestDTO(BaseModel):
     """DTO for importing multiple public holidays"""
-    holidays: List[Dict[str, Any]] = Field(..., description="List of holiday data to import")
+    file_content: bytes = Field(..., description="File content as bytes")
+    file_name: str = Field(..., description="Original file name")
+    file_type: str = Field(..., description="File type (xlsx, xls, csv)")
+    holidays: Optional[List[Dict[str, Any]]] = Field(None, description="Parsed holiday data")
     overwrite_existing: bool = Field(False, description="Whether to overwrite existing holidays")
     validate_only: bool = Field(False, description="Whether to only validate without importing")
     source: Optional[str] = Field(None, description="Import source identifier")

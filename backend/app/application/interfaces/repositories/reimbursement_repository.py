@@ -26,27 +26,27 @@ class ReimbursementTypeCommandRepository(ABC):
     """
     
     @abstractmethod
-    async def save(self, reimbursement_type: ReimbursementTypeEntity) -> ReimbursementTypeEntity:
+    async def save(self, reimbursement_type: ReimbursementTypeEntity, organisation_id: str) -> ReimbursementTypeEntity:
         """Save a new reimbursement type"""
         pass
     
     @abstractmethod
-    async def update(self, reimbursement_type: ReimbursementTypeEntity) -> ReimbursementTypeEntity:
+    async def update(self, reimbursement_type: ReimbursementTypeEntity, organisation_id: str) -> ReimbursementTypeEntity:
         """Update an existing reimbursement type"""
         pass
     
     @abstractmethod
-    async def delete(self, type_id: str) -> bool:
+    async def delete(self, type_id: str, organisation_id: str) -> bool:
         """Delete a reimbursement type (soft delete)"""
         pass
     
     @abstractmethod
-    async def activate(self, type_id: str, updated_by: str) -> bool:
+    async def activate(self, type_id: str, updated_by: str, organisation_id: str) -> bool:
         """Activate a reimbursement type"""
         pass
     
     @abstractmethod
-    async def deactivate(self, type_id: str, updated_by: str, reason: Optional[str] = None) -> bool:
+    async def deactivate(self, type_id: str, updated_by: str, organisation_id: str, reason: Optional[str] = None) -> bool:
         """Deactivate a reimbursement type"""
         pass
 
@@ -59,33 +59,30 @@ class ReimbursementTypeQueryRepository(ABC):
     """
     
     @abstractmethod
-    async def get_by_id(self, type_id: str) -> Optional[ReimbursementTypeEntity]:
+    async def get_by_id(self, type_id: str, organisation_id: str) -> Optional[ReimbursementTypeEntity]:
         """Get reimbursement type by ID"""
         pass
     
-    @abstractmethod
-    async def get_by_code(self, code: str) -> Optional[ReimbursementTypeEntity]:
-        """Get reimbursement type by code"""
-        pass
     
     @abstractmethod
-    async def get_all(self) -> List[ReimbursementTypeEntity]:
+    async def get_all(self, organisation_id: str, include_inactive: bool = False) -> List[ReimbursementTypeEntity]:
         """Get all reimbursement types"""
         pass
     
     @abstractmethod
-    async def get_active(self) -> List[ReimbursementTypeEntity]:
+    async def get_active(self, organisation_id: str) -> List[ReimbursementTypeEntity]:
         """Get all active reimbursement types"""
         pass
     
     @abstractmethod
-    async def get_by_category(self, category: str) -> List[ReimbursementTypeEntity]:
+    async def get_by_category(self, category: str, organisation_id: str) -> List[ReimbursementTypeEntity]:
         """Get reimbursement types by category"""
         pass
     
     @abstractmethod
     async def search(
         self,
+        organisation_id: str,
         name: Optional[str] = None,
         category: Optional[str] = None,
         is_active: Optional[bool] = None
@@ -94,7 +91,7 @@ class ReimbursementTypeQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def exists_by_code(self, code: str, exclude_id: Optional[str] = None) -> bool:
+    async def exists_by_code(self, code: str, organisation_id: str, exclude_id: Optional[str] = None) -> bool:
         """Check if reimbursement type code exists"""
         pass
 
@@ -107,17 +104,17 @@ class ReimbursementTypeAnalyticsRepository(ABC):
     """
     
     @abstractmethod
-    async def get_usage_statistics(self) -> Dict[str, Any]:
+    async def get_usage_statistics(self, organisation_id: str) -> Dict[str, Any]:
         """Get usage statistics for reimbursement types"""
         pass
     
     @abstractmethod
-    async def get_category_breakdown(self) -> Dict[str, int]:
+    async def get_category_breakdown(self, organisation_id: str) -> Dict[str, int]:
         """Get breakdown by category"""
         pass
     
     @abstractmethod
-    async def get_approval_level_distribution(self) -> Dict[str, int]:
+    async def get_approval_level_distribution(self, organisation_id: str) -> Dict[str, int]:
         """Get distribution by approval level"""
         pass
 
@@ -132,22 +129,22 @@ class ReimbursementCommandRepository(ABC):
     """
     
     @abstractmethod
-    async def save(self, reimbursement: Reimbursement) -> Reimbursement:
+    async def save(self, reimbursement: Reimbursement, organisation_id: str) -> Reimbursement:
         """Save a new reimbursement request"""
         pass
     
     @abstractmethod
-    async def update(self, reimbursement: Reimbursement) -> Reimbursement:
+    async def update(self, reimbursement: Reimbursement, organisation_id: str) -> Reimbursement:
         """Update an existing reimbursement request"""
         pass
     
     @abstractmethod
-    async def delete(self, request_id: str) -> bool:
+    async def delete(self, request_id: str, organisation_id: str) -> bool:
         """Delete a reimbursement request (soft delete)"""
         pass
     
     @abstractmethod
-    async def submit_request(self, request_id: str, submitted_by: str) -> bool:
+    async def submit_request(self, request_id: str, submitted_by: str, organisation_id: str) -> bool:
         """Submit reimbursement request for approval"""
         pass
     
@@ -155,9 +152,9 @@ class ReimbursementCommandRepository(ABC):
     async def approve_request(
         self,
         request_id: str,
+        organisation_id: str,
         approved_by: str,
         approved_amount: Optional[Decimal] = None,
-        approval_level: str = "manager",
         comments: Optional[str] = None
     ) -> bool:
         """Approve reimbursement request"""
@@ -168,7 +165,8 @@ class ReimbursementCommandRepository(ABC):
         self,
         request_id: str,
         rejected_by: str,
-        rejection_reason: str
+        rejection_reason: str,
+        organisation_id: str
     ) -> bool:
         """Reject reimbursement request"""
         pass
@@ -177,6 +175,7 @@ class ReimbursementCommandRepository(ABC):
     async def cancel_request(
         self,
         request_id: str,
+        organisation_id: str,
         cancelled_by: str,
         cancellation_reason: Optional[str] = None
     ) -> bool:
@@ -187,6 +186,7 @@ class ReimbursementCommandRepository(ABC):
     async def process_payment(
         self,
         request_id: str,
+        organisation_id: str,
         paid_by: str,
         payment_method: str,
         payment_reference: Optional[str] = None,
@@ -199,6 +199,7 @@ class ReimbursementCommandRepository(ABC):
     async def upload_receipt(
         self,
         request_id: str,
+        organisation_id: str,
         file_path: str,
         file_name: str,
         file_size: int,
@@ -211,6 +212,7 @@ class ReimbursementCommandRepository(ABC):
     async def bulk_approve(
         self,
         request_ids: List[str],
+        organisation_id: str,
         approved_by: str,
         approval_criteria: str
     ) -> Dict[str, bool]:
@@ -226,42 +228,42 @@ class ReimbursementQueryRepository(ABC):
     """
     
     @abstractmethod
-    async def get_by_id(self, request_id: str) -> Optional[Reimbursement]:
+    async def get_by_id(self, request_id: str, organisation_id: str) -> Optional[Reimbursement]:
         """Get reimbursement by ID"""
         pass
     
     @abstractmethod
-    async def get_by_employee_id(self, employee_id: str) -> List[Reimbursement]:
+    async def get_by_employee_id(self, employee_id: str, organisation_id: str) -> List[Reimbursement]:
         """Get reimbursements by employee ID"""
         pass
     
     @abstractmethod
-    async def get_all(self) -> List[Reimbursement]:
+    async def get_all(self, organisation_id: str) -> List[Reimbursement]:
         """Get all reimbursements"""
         pass
     
     @abstractmethod
-    async def get_by_status(self, status: str) -> List[Reimbursement]:
+    async def get_by_status(self, status: str, organisation_id: str) -> List[Reimbursement]:
         """Get reimbursements by status"""
         pass
     
     @abstractmethod
-    async def get_pending_approval(self) -> List[Reimbursement]:
+    async def get_pending_approval(self, organisation_id: str) -> List[Reimbursement]:
         """Get reimbursements pending approval"""
         pass
     
     @abstractmethod
-    async def get_approved(self) -> List[Reimbursement]:
+    async def get_approved(self, organisation_id: str) -> List[Reimbursement]:
         """Get approved reimbursements"""
         pass
     
     @abstractmethod
-    async def get_paid(self) -> List[Reimbursement]:
+    async def get_paid(self, organisation_id: str) -> List[Reimbursement]:
         """Get paid reimbursements"""
         pass
     
     @abstractmethod
-    async def get_by_reimbursement_type(self, type_id: str) -> List[Reimbursement]:
+    async def get_by_reimbursement_type(self, type_id: str, organisation_id: str) -> List[Reimbursement]:
         """Get reimbursements by type"""
         pass
     
@@ -269,13 +271,14 @@ class ReimbursementQueryRepository(ABC):
     async def get_by_date_range(
         self,
         start_date: datetime,
-        end_date: datetime
+        end_date: datetime,
+        organisation_id: str
     ) -> List[Reimbursement]:
         """Get reimbursements within date range"""
         pass
     
     @abstractmethod
-    async def search(self, filters: ReimbursementSearchFiltersDTO) -> List[Reimbursement]:
+    async def search(self, filters: ReimbursementSearchFiltersDTO, organisation_id: str) -> List[Reimbursement]:
         """Search reimbursements with filters"""
         pass
     
@@ -285,6 +288,7 @@ class ReimbursementQueryRepository(ABC):
         employee_id: str,
         start_date: datetime,
         end_date: datetime,
+        organisation_id: str,
         reimbursement_type_id: Optional[str] = None
     ) -> List[Reimbursement]:
         """Get employee reimbursements for a specific period"""
@@ -296,7 +300,8 @@ class ReimbursementQueryRepository(ABC):
         employee_id: str,
         reimbursement_type_id: str,
         start_date: datetime,
-        end_date: datetime
+        end_date: datetime,
+        organisation_id: str
     ) -> Decimal:
         """Get total reimbursement amount for employee by type and period"""
         pass
@@ -312,8 +317,9 @@ class ReimbursementAnalyticsRepository(ABC):
     @abstractmethod
     async def get_statistics(
         self,
+        organisation_id: str,
         start_date: Optional[datetime] = None,
-        end_date: Optional[datetime] = None
+        end_date: Optional[datetime] = None,
     ) -> ReimbursementStatisticsDTO:
         """Get reimbursement statistics"""
         pass
@@ -322,6 +328,7 @@ class ReimbursementAnalyticsRepository(ABC):
     async def get_employee_statistics(
         self,
         employee_id: str,
+        organisation_id: str,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
     ) -> Dict[str, Any]:
@@ -331,6 +338,7 @@ class ReimbursementAnalyticsRepository(ABC):
     @abstractmethod
     async def get_category_wise_spending(
         self,
+        organisation_id: str,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
     ) -> Dict[str, Decimal]:
@@ -340,6 +348,7 @@ class ReimbursementAnalyticsRepository(ABC):
     @abstractmethod
     async def get_monthly_trends(
         self,
+        organisation_id: str,
         months: int = 12
     ) -> Dict[str, Dict[str, Any]]:
         """Get monthly spending trends"""
@@ -348,6 +357,7 @@ class ReimbursementAnalyticsRepository(ABC):
     @abstractmethod
     async def get_approval_metrics(
         self,
+        organisation_id: str,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
     ) -> Dict[str, Any]:
@@ -357,6 +367,7 @@ class ReimbursementAnalyticsRepository(ABC):
     @abstractmethod
     async def get_top_spenders(
         self,
+        organisation_id: str,
         limit: int = 10,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
@@ -367,6 +378,7 @@ class ReimbursementAnalyticsRepository(ABC):
     @abstractmethod
     async def get_compliance_report(
         self,
+        organisation_id: str,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
     ) -> Dict[str, Any]:
@@ -376,6 +388,7 @@ class ReimbursementAnalyticsRepository(ABC):
     @abstractmethod
     async def get_payment_analytics(
         self,
+        organisation_id: str,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
     ) -> Dict[str, Any]:
@@ -394,6 +407,7 @@ class ReimbursementReportRepository(ABC):
     async def generate_employee_report(
         self,
         employee_id: str,
+        organisation_id: str,
         start_date: datetime,
         end_date: datetime
     ) -> Dict[str, Any]:
@@ -404,6 +418,7 @@ class ReimbursementReportRepository(ABC):
     async def generate_department_report(
         self,
         department: str,
+        organisation_id: str,
         start_date: datetime,
         end_date: datetime
     ) -> Dict[str, Any]:
@@ -413,6 +428,7 @@ class ReimbursementReportRepository(ABC):
     @abstractmethod
     async def generate_tax_report(
         self,
+        organisation_id: str,
         start_date: datetime,
         end_date: datetime
     ) -> Dict[str, Any]:
@@ -422,6 +438,7 @@ class ReimbursementReportRepository(ABC):
     @abstractmethod
     async def generate_audit_trail(
         self,
+        organisation_id: str,
         request_id: str
     ) -> List[Dict[str, Any]]:
         """Generate audit trail for a reimbursement request"""
@@ -430,6 +447,7 @@ class ReimbursementReportRepository(ABC):
     @abstractmethod
     async def export_to_excel(
         self,
+        organisation_id: str,
         filters: ReimbursementSearchFiltersDTO,
         file_path: str
     ) -> str:

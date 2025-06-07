@@ -115,6 +115,7 @@ class CreateUserUseCase:
             designation=request.designation,
             location=request.location,
             manager_id=EmployeeId(request.manager_id) if request.manager_id else None,
+            date_of_joining=request.date_of_joining,
             created_by=request.created_by
         )
         
@@ -161,7 +162,7 @@ class CreateUserUseCase:
         
         if uniqueness_result.get("email_exists") or uniqueness_result.get("mobile_exists") or uniqueness_result.get("pan_exists"):
             raise UserConflictError(
-                "User conflicts with existing data",
+                "User conflicts with existing data " + str(uniqueness_result),
                 "uniqueness"
             )
     
@@ -265,7 +266,7 @@ class CreateUserUseCase:
             designation=user.designation,
             location=user.location,
             manager_id=str(user.manager_id) if user.manager_id else None,
-            date_of_joining=user.date_of_joining,
+            date_of_joining=user.personal_details.date_of_joining.isoformat() if user.personal_details.date_of_joining else user.date_of_joining,
             date_of_leaving=user.date_of_leaving,
             
             # Authorization

@@ -6,7 +6,7 @@ Clean architecture implementation of reimbursement HTTP endpoints
 import logging
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body, UploadFile, File, Form
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
 from datetime import date, datetime
 
 from app.api.controllers.reimbursement_controller import ReimbursementController
@@ -22,7 +22,9 @@ from app.application.dto.reimbursement_dto import (
     ReimbursementBusinessRuleError,
     ReimbursementNotFoundError,
     ReimbursementTypeCreateRequestDTO,
+    ReimbursementTypeUpdateRequestDTO,
     ReimbursementTypeResponseDTO,
+    ReimbursementTypeOptionsDTO,
     ReimbursementRejectionDTO,
     ReimbursementPaymentDTO,
     ReimbursementReceiptUploadDTO
@@ -47,16 +49,12 @@ def get_reimbursement_controller() -> ReimbursementController:
         logger.warning(f"Could not get reimbursement controller from container: {e}")
         return ReimbursementController()
 
-# Alias for consistency with other endpoints
-def get_controller() -> ReimbursementController:
-    """Alias for get_reimbursement_controller"""
-    return get_reimbursement_controller()
 
 # Health check endpoint
 @router.get("/health")
 async def health_check(
     controller: ReimbursementController = Depends(get_reimbursement_controller)
-) -> Dict[str, str]:
+) -> Dict[str, Any]:
     """Health check for reimbursement service."""
     return await controller.health_check()
 
@@ -70,7 +68,7 @@ async def create_reimbursement(
     """Create a new reimbursement request."""
     try:
         logger.info(f"Creating reimbursement request for employee {current_user.employee_id}")
-        return await controller.create_reimbursement(request, current_user.employee_id, current_user.hostname)
+        return await controller.create_reimbursement_request(request, current_user)
     except Exception as e:
         logger.error(f"Error creating reimbursement: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -80,9 +78,8 @@ async def create_reimbursement(
 @router.post("/requests", response_model=ReimbursementResponseDTO)
 async def create_reimbursement_request(
     request_data: ReimbursementRequestCreateDTO,
-    employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname),
-    controller: ReimbursementController = Depends(get_controller)
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
 ):
     """
     Create a new reimbursement request.
@@ -93,16 +90,13 @@ async def create_reimbursement_request(
     - **receipt_url**: Optional receipt file URL
     """
     try:
-        # Set employee ID from authentication
-        request_data.employee_id = employee_id
-        
-        result = await controller.create_reimbursement_request(request_data, hostname)
+        result = await controller.create_reimbursement_request(request_data, current_user)
         return result
         
     except ReimbursementValidationError as e:
-        raise HTTPException(status_code=400, detail=e.message)
+        raise HTTPException(status_code=400, detail=str(e))
     except ReimbursementBusinessRuleError as e:
-        raise HTTPException(status_code=422, detail=e.message)
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         logger.error(f"Error creating reimbursement request: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -114,9 +108,8 @@ async def create_reimbursement_request_with_file(
     amount: float = Form(...),
     description: str = Form(""),
     file: UploadFile = File(...),
-    employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname),
-    controller: ReimbursementController = Depends(get_controller)
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
 ):
     """
     Create a new reimbursement request with file upload.
@@ -129,34 +122,33 @@ async def create_reimbursement_request_with_file(
     try:
         # Create DTO from form data
         request_data = ReimbursementRequestCreateDTO(
-            employee_id=employee_id,
+            employee_id=current_user.employee_id,
             reimbursement_type_id=reimbursement_type_id,
             amount=amount,
             description=description
         )
         
         result = await controller.create_reimbursement_request_with_file(
-            request_data, file, hostname
+            request_data, file, current_user
         )
         return result
         
     except ReimbursementValidationError as e:
-        raise HTTPException(status_code=400, detail=e.message)
+        raise HTTPException(status_code=400, detail=str(e))
     except ReimbursementBusinessRuleError as e:
-        raise HTTPException(status_code=422, detail=e.message)
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         logger.error(f"Error creating reimbursement request with file: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/requests/my", response_model=List[ReimbursementResponseDTO])
+@router.get("/requests/my", response_model=List[ReimbursementSummaryDTO])
 async def get_my_reimbursement_requests(
     status: Optional[str] = Query(None, description="Filter by status"),
     limit: int = Query(50, ge=1, le=100, description="Number of requests to return"),
     offset: int = Query(0, ge=0, description="Number of requests to skip"),
-    employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname),
-    controller: ReimbursementController = Depends(get_controller)
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
 ):
     """
     Get current user's reimbursement requests.
@@ -167,28 +159,27 @@ async def get_my_reimbursement_requests(
     """
     try:
         filters = ReimbursementSearchFiltersDTO(
-            employee_id=employee_id,
+            employee_id=current_user.employee_id,
             status=status,
-            limit=limit,
-            offset=offset
+            page=offset // limit + 1,
+            page_size=limit
         )
         
-        result = await controller.get_reimbursement_requests(filters, hostname)
-        return result
+        result = await controller.list_reimbursement_requests(filters, current_user)
+        return result.reimbursements
         
     except Exception as e:
         logger.error(f"Error getting user reimbursement requests: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/requests/pending", response_model=List[ReimbursementResponseDTO])
+@router.get("/requests/pending", response_model=List[ReimbursementSummaryDTO])
 async def get_pending_reimbursement_requests(
     limit: int = Query(50, ge=1, le=100, description="Number of requests to return"),
     offset: int = Query(0, ge=0, description="Number of requests to skip"),
-    employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname),
+    current_user: CurrentUser = Depends(get_current_user),
     role: str = Depends(role_checker(["manager", "admin", "superadmin"])),
-    controller: ReimbursementController = Depends(get_controller)
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
 ):
     """
     Get pending reimbursement requests for approval.
@@ -202,31 +193,50 @@ async def get_pending_reimbursement_requests(
     try:
         # For managers, filter by their managed employees
         # For admin/superadmin, show all pending requests
-        manager_id = employee_id if role == "manager" else None
+        manager_id = current_user.employee_id if role == "manager" else None
         
-        filters = ReimbursementSearchFiltersDTO(
-            status="pending",
-            manager_id=manager_id,
-            limit=limit,
-            offset=offset
-        )
+        # Get requests with pending statuses: draft, submitted, under_review
+        pending_statuses = ["draft", "submitted", "under_review"]
+        all_pending_requests = []
         
-        result = await controller.get_reimbursement_requests(filters, hostname)
-        return result
+        for status in pending_statuses:
+            # Get all pages for this status
+            page = 1
+            while True:
+                filters = ReimbursementSearchFiltersDTO(
+                    status=status,
+                    approved_by=manager_id,
+                    page=page,
+                    page_size=100  # Maximum allowed page size
+                )
+                
+                result = await controller.list_reimbursement_requests(filters, current_user)
+                all_pending_requests.extend(result.reimbursements)
+                
+                # Break if we got fewer results than page size (last page)
+                if len(result.reimbursements) < 100:
+                    break
+                page += 1
+        
+        # Apply pagination to combined results
+        start_idx = offset
+        end_idx = offset + limit
+        paginated_requests = all_pending_requests[start_idx:end_idx]
+        
+        return paginated_requests
         
     except Exception as e:
         logger.error(f"Error getting pending reimbursement requests: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/requests/approved", response_model=List[ReimbursementResponseDTO])
+@router.get("/requests/approved", response_model=List[ReimbursementSummaryDTO])
 async def get_approved_reimbursement_requests(
     limit: int = Query(50, ge=1, le=100, description="Number of requests to return"),
     offset: int = Query(0, ge=0, description="Number of requests to skip"),
-    employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname),
+    current_user: CurrentUser = Depends(get_current_user),
     role: str = Depends(role_checker(["manager", "admin", "superadmin"])),
-    controller: ReimbursementController = Depends(get_controller)
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
 ):
     """
     Get approved reimbursement requests.
@@ -240,29 +250,123 @@ async def get_approved_reimbursement_requests(
     try:
         # For managers, filter by their managed employees
         # For admin/superadmin, show all approved requests
-        manager_id = employee_id if role == "manager" else None
+        manager_id = current_user.employee_id if role == "manager" else None
         
         filters = ReimbursementSearchFiltersDTO(
             status="approved",
-            manager_id=manager_id,
-            limit=limit,
-            offset=offset
+            approved_by=manager_id,
+            page=offset // limit + 1,
+            page_size=limit
         )
         
-        result = await controller.get_reimbursement_requests(filters, hostname)
-        return result
+        result = await controller.list_reimbursement_requests(filters, current_user)
+        return result.reimbursements
         
     except Exception as e:
         logger.error(f"Error getting approved reimbursement requests: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+# Legacy endpoints for frontend compatibility
+@router.get("/pending", response_model=List[ReimbursementSummaryDTO])
+async def get_pending_reimbursements_legacy(
+    limit: int = Query(50, ge=1, le=100, description="Number of requests to return"),
+    offset: int = Query(0, ge=0, description="Number of requests to skip"),
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(role_checker(["manager", "admin", "superadmin"])),
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
+):
+    """
+    Get pending reimbursement requests for approval (legacy endpoint).
+    
+    - **limit**: Maximum number of requests to return
+    - **offset**: Number of requests to skip for pagination
+    
+    Managers see requests from their team members.
+    Admins see all pending requests.
+    """
+    try:
+        # For managers, filter by their managed employees
+        # For admin/superadmin, show all pending requests
+        manager_id = current_user.employee_id if role == "manager" else None
+        
+        # Get requests with pending statuses: draft, submitted, under_review
+        pending_statuses = ["draft", "submitted", "under_review"]
+        all_pending_requests = []
+        
+        for status in pending_statuses:
+            # Get all pages for this status
+            page = 1
+            while True:
+                filters = ReimbursementSearchFiltersDTO(
+                    status=status,
+                    approved_by=manager_id,
+                    page=page,
+                    page_size=100  # Maximum allowed page size
+                )
+                
+                result = await controller.list_reimbursement_requests(filters, current_user)
+                all_pending_requests.extend(result.reimbursements)
+                
+                # Break if we got fewer results than page size (last page)
+                if len(result.reimbursements) < 100:
+                    break
+                page += 1
+        
+        # Apply pagination to combined results
+        start_idx = offset
+        end_idx = offset + limit
+        paginated_requests = all_pending_requests[start_idx:end_idx]
+        
+        return paginated_requests
+        
+    except Exception as e:
+        logger.error(f"Error getting pending reimbursement requests (legacy): {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.get("/approved", response_model=List[ReimbursementSummaryDTO])
+async def get_approved_reimbursements_legacy(
+    limit: int = Query(50, ge=1, le=100, description="Number of requests to return"),
+    offset: int = Query(0, ge=0, description="Number of requests to skip"),
+    current_user: CurrentUser = Depends(get_current_user),
+    role: str = Depends(role_checker(["manager", "admin", "superadmin"])),
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
+):
+    """
+    Get approved reimbursement requests (legacy endpoint).
+    
+    - **limit**: Maximum number of requests to return
+    - **offset**: Number of requests to skip for pagination
+    
+    Managers see requests from their team members.
+    Admins see all approved requests.
+    """
+    try:
+        # For managers, filter by their managed employees
+        # For admin/superadmin, show all approved requests
+        manager_id = current_user.employee_id if role == "manager" else None
+        
+        filters = ReimbursementSearchFiltersDTO(
+            status="approved",
+            approved_by=manager_id,
+            page=offset // limit + 1,
+            page_size=limit
+        )
+        
+        result = await controller.list_reimbursement_requests(filters, current_user)
+        return result.reimbursements
+        
+    except Exception as e:
+        logger.error(f"Error getting approved reimbursement requests (legacy): {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 @router.get("/requests/{request_id}", response_model=ReimbursementResponseDTO)
 async def get_reimbursement_request(
     request_id: str,
-    employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname),
-    controller: ReimbursementController = Depends(get_controller)
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
 ):
     """
     Get a specific reimbursement request by ID.
@@ -270,7 +374,7 @@ async def get_reimbursement_request(
     - **request_id**: ID of the reimbursement request
     """
     try:
-        result = await controller.get_reimbursement_request(request_id, employee_id, hostname)
+        result = await controller.get_reimbursement_request(request_id, current_user)
         return result
         
     except Exception as e:
@@ -282,9 +386,8 @@ async def get_reimbursement_request(
 async def update_reimbursement_request(
     request_id: str,
     request_data: ReimbursementRequestCreateDTO,
-    employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname),
-    controller: ReimbursementController = Depends(get_controller)
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
 ):
     """
     Update a reimbursement request.
@@ -293,11 +396,14 @@ async def update_reimbursement_request(
     - **request_data**: Updated request data
     """
     try:
-        # Set employee ID from authentication
-        request_data.employee_id = employee_id
+        # Convert to update DTO (only amount and description can be updated)
+        update_data = ReimbursementRequestUpdateDTO(
+            amount=request_data.amount,
+            description=request_data.description
+        )
         
         result = await controller.update_reimbursement_request(
-            request_id, request_data, employee_id, hostname
+            request_id, update_data, current_user
         )
         return result
         
@@ -310,10 +416,9 @@ async def update_reimbursement_request(
 async def approve_reimbursement_request(
     request_id: str,
     approval_data: ReimbursementApprovalDTO,
-    employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname),
+    current_user: CurrentUser = Depends(get_current_user),
     role: str = Depends(role_checker(["manager", "admin", "superadmin"])),
-    controller: ReimbursementController = Depends(get_controller)
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
 ):
     """
     Approve a reimbursement request.
@@ -322,11 +427,8 @@ async def approve_reimbursement_request(
     - **approval_data**: Approval details and comments
     """
     try:
-        # Set approver ID from authentication
-        approval_data.approved_by = employee_id
-        
         result = await controller.approve_reimbursement_request(
-            request_id, approval_data, hostname
+            request_id, approval_data, current_user
         )
         return result
         
@@ -338,21 +440,21 @@ async def approve_reimbursement_request(
 @router.put("/requests/{request_id}/reject", response_model=ReimbursementResponseDTO)
 async def reject_reimbursement_request(
     request_id: str,
-    rejection_reason: str = Body(..., embed=True),
-    employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname),
+    comments: str = Body(..., embed=True),
+    current_user: CurrentUser = Depends(get_current_user),
     role: str = Depends(role_checker(["manager", "admin", "superadmin"])),
-    controller: ReimbursementController = Depends(get_controller)
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
 ):
     """
     Reject a reimbursement request.
     
     - **request_id**: ID of the reimbursement request
-    - **rejection_reason**: Reason for rejection
+    - **comments**: Reason for rejection
     """
     try:
+        rejection_data = ReimbursementRejectionDTO(comments=comments)
         result = await controller.reject_reimbursement_request(
-            request_id, rejection_reason, employee_id, hostname
+            request_id, rejection_data, current_user
         )
         return result
         
@@ -364,9 +466,8 @@ async def reject_reimbursement_request(
 @router.delete("/requests/{request_id}")
 async def delete_reimbursement_request(
     request_id: str,
-    employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname),
-    controller: ReimbursementController = Depends(get_controller)
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
 ):
     """
     Delete a reimbursement request.
@@ -374,8 +475,8 @@ async def delete_reimbursement_request(
     - **request_id**: ID of the reimbursement request
     """
     try:
-        await controller.delete_reimbursement_request(request_id, employee_id, hostname)
-        return {"message": "Reimbursement request deleted successfully"}
+        result = await controller.delete_reimbursement_request(request_id, current_user)
+        return result
         
     except Exception as e:
         logger.error(f"Error deleting reimbursement request: {str(e)}")
@@ -387,35 +488,36 @@ async def delete_reimbursement_request(
 @router.post("/types", response_model=ReimbursementTypeResponseDTO)
 async def create_reimbursement_type(
     type_data: ReimbursementTypeCreateRequestDTO,
-    employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname),
+    current_user: CurrentUser = Depends(get_current_user),
     role: str = Depends(role_checker(["admin", "superadmin"])),
-    controller: ReimbursementController = Depends(get_controller)
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
 ):
     """
     Create a new reimbursement type.
     
-    - **name**: Name of the reimbursement type
-    - **category**: Category (travel, medical, food, etc.)
-    - **max_limit**: Optional maximum limit per request
+    - **category_name**: Name of the reimbursement type
     - **description**: Optional description
+    - **max_limit**: Optional maximum limit per request
+    - **is_approval_required**: Whether approval is required
+    - **is_receipt_required**: Whether receipt is required
     """
     try:
-        result = await controller.create_reimbursement_type(type_data, employee_id, hostname)
+        result = await controller.create_reimbursement_type(type_data, current_user)
+        logger.info(f"Reimbursement type created: {result}")
         return result
         
     except ReimbursementValidationError as e:
-        raise HTTPException(status_code=400, detail=e.message)
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Error creating reimbursement type: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/types", response_model=List[ReimbursementTypeResponseDTO])
+@router.get("/types", response_model=List[ReimbursementTypeOptionsDTO])
 async def get_reimbursement_types(
     active_only: bool = Query(True, description="Return only active types"),
-    hostname: str = Depends(extract_hostname),
-    controller: ReimbursementController = Depends(get_controller)
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
 ):
     """
     Get all reimbursement types.
@@ -423,7 +525,10 @@ async def get_reimbursement_types(
     - **active_only**: Whether to return only active types
     """
     try:
-        result = await controller.get_reimbursement_types(active_only, hostname)
+        result = await controller.list_reimbursement_types(
+            include_inactive=not active_only, 
+            current_user=current_user
+        )
         return result
         
     except Exception as e:
@@ -434,8 +539,8 @@ async def get_reimbursement_types(
 @router.get("/types/{type_id}", response_model=ReimbursementTypeResponseDTO)
 async def get_reimbursement_type(
     type_id: str,
-    hostname: str = Depends(extract_hostname),
-    controller: ReimbursementController = Depends(get_controller)
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
 ):
     """
     Get a specific reimbursement type by ID.
@@ -443,7 +548,7 @@ async def get_reimbursement_type(
     - **type_id**: ID of the reimbursement type
     """
     try:
-        result = await controller.get_reimbursement_type(type_id, hostname)
+        result = await controller.get_reimbursement_type(type_id, current_user)
         return result
         
     except Exception as e:
@@ -455,10 +560,9 @@ async def get_reimbursement_type(
 async def update_reimbursement_type(
     type_id: str,
     type_data: ReimbursementTypeCreateRequestDTO,
-    employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname),
+    current_user: CurrentUser = Depends(get_current_user),
     role: str = Depends(role_checker(["admin", "superadmin"])),
-    controller: ReimbursementController = Depends(get_controller)
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
 ):
     """
     Update a reimbursement type.
@@ -467,8 +571,15 @@ async def update_reimbursement_type(
     - **type_data**: Updated type data
     """
     try:
+        # Convert to update DTO
+        update_data = ReimbursementTypeUpdateRequestDTO(
+            category_name=type_data.category_name,
+            description=type_data.description,
+            max_limit=type_data.max_limit
+        )
+        
         result = await controller.update_reimbursement_type(
-            type_id, type_data, employee_id, hostname
+            type_id, update_data, current_user
         )
         return result
         
@@ -480,10 +591,9 @@ async def update_reimbursement_type(
 @router.delete("/types/{type_id}")
 async def delete_reimbursement_type(
     type_id: str,
-    employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname),
+    current_user: CurrentUser = Depends(get_current_user),
     role: str = Depends(role_checker(["admin", "superadmin"])),
-    controller: ReimbursementController = Depends(get_controller)
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
 ):
     """
     Delete (deactivate) a reimbursement type.
@@ -491,8 +601,8 @@ async def delete_reimbursement_type(
     - **type_id**: ID of the reimbursement type
     """
     try:
-        await controller.delete_reimbursement_type(type_id, employee_id, hostname)
-        return {"message": "Reimbursement type deleted successfully"}
+        result = await controller.delete_reimbursement_type(type_id, current_user)
+        return result
         
     except Exception as e:
         logger.error(f"Error deleting reimbursement type: {str(e)}")
@@ -505,10 +615,9 @@ async def delete_reimbursement_type(
 async def get_reimbursement_analytics(
     start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
     end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
-    employee_id: str = Depends(extract_employee_id),
-    hostname: str = Depends(extract_hostname),
+    current_user: CurrentUser = Depends(get_current_user),
     role: str = Depends(role_checker(["manager", "admin", "superadmin"])),
-    controller: ReimbursementController = Depends(get_controller)
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
 ):
     """
     Get reimbursement analytics and summary.
@@ -521,13 +630,135 @@ async def get_reimbursement_analytics(
     """
     try:
         # For managers, filter by their managed employees
-        manager_id = employee_id if role == "manager" else None
+        manager_id = current_user.employee_id if role == "manager" else None
         
         result = await controller.get_reimbursement_analytics(
-            start_date, end_date, manager_id, hostname
+            start_date, end_date, current_user
         )
         return result
         
     except Exception as e:
         logger.error(f"Error getting reimbursement analytics: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/debug/requests/{request_id}/check")
+async def debug_check_request(
+    request_id: str,
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
+):
+    """
+    Debug endpoint to check if a request exists (no auth required).
+    """
+    try:
+        logger.info(f"DEBUG: Checking request existence for ID: {request_id}")
+        
+        # Use the existing service to trigger the debugging
+        from app.config.dependency_container import get_dependency_container
+        container = get_dependency_container()
+        service = container.get_reimbursement_service()
+        
+        # Create a fake current user for localhost
+        from app.auth.auth_dependencies import CurrentUser
+        fake_payload = {
+            "employee_id": "debug",
+            "username": "debug",
+            "hostname": "localhost",
+            "role": "admin"
+        }
+        fake_user = CurrentUser(fake_payload)
+        
+        # This will trigger our enhanced debugging in the service
+        try:
+            result = await service.get_reimbursement_request_by_id(request_id, fake_user)
+            logger.info(f"DEBUG: Service returned: {result is not None}")
+        except Exception as e:
+            logger.info(f"DEBUG: Service error: {e}")
+        
+        # Now get the collection directly for our own debugging
+        repository = container.get_reimbursement_repository()
+        collection = await repository._get_reimbursements_collection("localhost")
+        
+        # List ALL document IDs
+        all_docs = await collection.find({}, {"request_id": 1, "reimbursement_id": 1, "_id": 1, "employee_id": 1, "status": 1, "receipt_file_name": 1}).to_list(length=None)
+        logger.info(f"DEBUG: All document IDs in database:")
+        for i, doc in enumerate(all_docs, 1):
+            logger.info(f"  {i}. _id: {doc.get('_id')}")
+            logger.info(f"     request_id: {doc.get('request_id')}")
+            logger.info(f"     reimbursement_id: {doc.get('reimbursement_id')}")
+            logger.info(f"     employee_id: {doc.get('employee_id')}")
+            logger.info(f"     status: {doc.get('status')}")
+            logger.info(f"     receipt_file_name: {doc.get('receipt_file_name')}")
+        
+        # Check if the specific ID exists
+        by_request_id = await collection.find_one({"request_id": request_id})
+        by_reimbursement_id = await collection.find_one({"reimbursement_id": request_id})
+        by_id = await collection.find_one({"_id": request_id})
+        
+        logger.info(f"DEBUG: Found by request_id: {by_request_id is not None}")
+        logger.info(f"DEBUG: Found by reimbursement_id: {by_reimbursement_id is not None}")
+        logger.info(f"DEBUG: Found by _id: {by_id is not None}")
+        
+        return {
+            "request_id": request_id,
+            "found_by_request_id": by_request_id is not None,
+            "found_by_reimbursement_id": by_reimbursement_id is not None,
+            "found_by_id": by_id is not None,
+            "total_documents": len(all_docs),
+            "all_request_ids": [doc.get('request_id') for doc in all_docs],
+            "all_reimbursement_ids": [doc.get('reimbursement_id') for doc in all_docs]
+        }
+        
+    except Exception as e:
+        logger.error(f"DEBUG: Error checking request: {str(e)}")
+        return {"error": str(e)}
+
+@router.get("/requests/{request_id}/receipt/download")
+async def download_receipt(
+    request_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
+):
+    """
+    Download receipt for a reimbursement request.
+    
+    - **request_id**: ID of the reimbursement request
+    """
+    try:
+        logger.info(f"Starting receipt download for request: {request_id}")
+        
+        # Get the reimbursement request to check if receipt exists
+        reimbursement = await controller.get_reimbursement_request(request_id, current_user)
+        logger.info(f"Reimbursement found. Receipt file name: {reimbursement.receipt_file_name}")
+        
+        if not reimbursement.receipt_file_name:
+            logger.warning(f"No receipt file name found for request: {request_id}")
+            raise HTTPException(status_code=404, detail="No receipt found for this reimbursement request")
+        
+        # Get the receipt file path from the reimbursement
+        receipt_path = await controller.get_receipt_file_path(request_id, current_user)
+        logger.info(f"Receipt file path retrieved: {receipt_path}")
+        
+        if not receipt_path:
+            logger.warning(f"Receipt file path is None for request: {request_id}")
+            raise HTTPException(status_code=404, detail="Receipt file not found")
+        
+        # Check if file actually exists on filesystem
+        import os
+        if not os.path.exists(receipt_path):
+            logger.error(f"Receipt file does not exist on filesystem: {receipt_path}")
+            raise HTTPException(status_code=404, detail="Receipt file not found on filesystem")
+        
+        logger.info(f"Serving file: {receipt_path} as {reimbursement.receipt_file_name}")
+        
+        # Return the file as a streaming response
+        return FileResponse(
+            path=receipt_path,
+            filename=reimbursement.receipt_file_name,
+            media_type='application/octet-stream'
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error downloading receipt for request {request_id}: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error") 

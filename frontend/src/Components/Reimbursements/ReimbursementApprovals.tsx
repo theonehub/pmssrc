@@ -32,7 +32,7 @@ import PageLayout from '../../layout/PageLayout';
 
 // Define interfaces
 interface ReimbursementRequest {
-  id: string;
+  request_id: string;
   employee_id: string;
   employee_name: string;
   type_name: string;
@@ -65,8 +65,8 @@ const ReimbursementApprovals: React.FC = () => {
   const fetchRequests = (): void => {
     setLoading(true);
     Promise.all([
-      axios.get('/reimbursements/pending'),
-      axios.get('/reimbursements/approved')
+      axios.get('/api/v2/reimbursements/pending'),
+      axios.get('/api/v2/reimbursements/approved')
     ])
       .then(([pendingRes, approvedRes]) => {
         setPendingRequests(pendingRes.data || []);
@@ -94,10 +94,18 @@ const ReimbursementApprovals: React.FC = () => {
   const handleConfirm = (): void => {
     if (!selectedRequest) return;
 
-    axios.put(`/reimbursements/${selectedRequest.id}/status`, {
-      status: action.toUpperCase(),
-      comments: comment
-    })
+    const endpoint = action === 'approved' 
+      ? `/api/v2/reimbursements/requests/${selectedRequest.request_id}/approve`
+      : `/api/v2/reimbursements/requests/${selectedRequest.request_id}/reject`;
+
+    const payload = action === 'approved'
+      ? {
+          approved_amount: selectedRequest.amount,
+          comments: comment
+        }
+      : comment; // For reject, send just the comment string
+
+    axios.put(endpoint, payload)
       .then(() => {
         setDialogOpen(false);
         fetchRequests();
@@ -196,7 +204,7 @@ const ReimbursementApprovals: React.FC = () => {
           ) : requests.length > 0 ? (
             requests.map((req) => (
               <TableRow
-                key={req.id}
+                key={req.request_id}  
                 sx={{
                   '&:hover': {
                     backgroundColor: 'action.hover',

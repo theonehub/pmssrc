@@ -52,13 +52,13 @@ class GetReimbursementRequestsUseCase:
         self.reimbursement_type_repository = reimbursement_type_repository
         self.analytics_repository = analytics_repository
     
-    async def get_all_requests(self, include_drafts: bool = False) -> List[ReimbursementResponseDTO]:
+    async def get_all_requests(self, organisation_id: str = None, include_drafts: bool = False) -> List[ReimbursementResponseDTO]:
         """Get all reimbursement requests"""
         
         logger.info(f"Retrieving all reimbursement requests (include_drafts: {include_drafts})")
         
         try:
-            requests = await self.query_repository.get_all()
+            requests = await self.query_repository.get_all(organisation_id)
             
             # Filter out drafts if not requested
             if not include_drafts:
@@ -66,7 +66,7 @@ class GetReimbursementRequestsUseCase:
             
             response_dtos = []
             for request in requests:
-                reimbursement_type = await self._get_reimbursement_type_by_code(request.reimbursement_type.code)
+                reimbursement_type = await self._get_reimbursement_type_by_code(request.reimbursement_type.reimbursement_type_id, organisation_id)
                 if reimbursement_type:
                     response_dto = create_reimbursement_response_from_entity(request, reimbursement_type)
                     response_dtos.append(response_dto)
@@ -78,21 +78,21 @@ class GetReimbursementRequestsUseCase:
             logger.error(f"Error retrieving all reimbursement requests: {e}")
             raise GetReimbursementRequestsUseCaseError(f"Failed to retrieve requests: {str(e)}")
     
-    async def get_request_by_id(self, request_id: str) -> Optional[ReimbursementResponseDTO]:
+    async def get_request_by_id(self, request_id: str, organisation_id: str = None) -> Optional[ReimbursementResponseDTO]:
         """Get reimbursement request by ID"""
         
         logger.info(f"Retrieving reimbursement request: {request_id}")
         
         try:
-            request = await self.query_repository.get_by_id(request_id)
+            request = await self.query_repository.get_by_id(request_id, organisation_id)
             if not request:
                 logger.warning(f"Reimbursement request not found: {request_id}")
                 return None
             
-            reimbursement_type = await self._get_reimbursement_type_by_code(request.reimbursement_type.code)
+            reimbursement_type = await self._get_reimbursement_type_by_code(request.reimbursement_type.reimbursement_type_id, organisation_id)
             if not reimbursement_type:
-                logger.error(f"Reimbursement type not found: {request.reimbursement_type.code}")
-                raise GetReimbursementRequestsUseCaseError(f"Reimbursement type not found: {request.reimbursement_type.code}")
+                logger.error(f"Reimbursement type not found: {request.reimbursement_type.reimbursement_type_id}")
+                raise GetReimbursementRequestsUseCaseError(f"Reimbursement type not found: {request.reimbursement_type.reimbursement_type_id}")
             
             response_dto = create_reimbursement_response_from_entity(request, reimbursement_type)
             
@@ -103,17 +103,17 @@ class GetReimbursementRequestsUseCase:
             logger.error(f"Error retrieving reimbursement request {request_id}: {e}")
             raise GetReimbursementRequestsUseCaseError(f"Failed to retrieve request: {str(e)}")
     
-    async def get_requests_by_employee(self, employee_id: str) -> List[ReimbursementResponseDTO]:
+    async def get_requests_by_employee(self, employee_id: str, organisation_id: str = None) -> List[ReimbursementResponseDTO]:
         """Get reimbursement requests by employee ID"""
         
         logger.info(f"Retrieving reimbursement requests for employee: {employee_id}")
         
         try:
-            requests = await self.query_repository.get_by_employee_id(employee_id)
+            requests = await self.query_repository.get_by_employee_id(employee_id, organisation_id)
             
             response_dtos = []
             for request in requests:
-                reimbursement_type = await self._get_reimbursement_type_by_code(request.reimbursement_type.code)
+                reimbursement_type = await self._get_reimbursement_type_by_code(request.reimbursement_type.reimbursement_type_id, organisation_id)
                 if reimbursement_type:
                     response_dto = create_reimbursement_response_from_entity(request, reimbursement_type)
                     response_dtos.append(response_dto)
@@ -125,17 +125,17 @@ class GetReimbursementRequestsUseCase:
             logger.error(f"Error retrieving requests for employee {employee_id}: {e}")
             raise GetReimbursementRequestsUseCaseError(f"Failed to retrieve employee requests: {str(e)}")
     
-    async def get_requests_by_status(self, status: str) -> List[ReimbursementResponseDTO]:
+    async def get_requests_by_status(self, status: str, organisation_id: str = None) -> List[ReimbursementResponseDTO]:
         """Get reimbursement requests by status"""
         
         logger.info(f"Retrieving reimbursement requests with status: {status}")
         
         try:
-            requests = await self.query_repository.get_by_status(status)
+            requests = await self.query_repository.get_by_status(status, organisation_id)
             
             response_dtos = []
             for request in requests:
-                reimbursement_type = await self._get_reimbursement_type_by_code(request.reimbursement_type.code)
+                reimbursement_type = await self._get_reimbursement_type_by_code(request.reimbursement_type.reimbursement_type_id, organisation_id)
                 if reimbursement_type:
                     response_dto = create_reimbursement_response_from_entity(request, reimbursement_type)
                     response_dtos.append(response_dto)
@@ -147,17 +147,17 @@ class GetReimbursementRequestsUseCase:
             logger.error(f"Error retrieving requests by status {status}: {e}")
             raise GetReimbursementRequestsUseCaseError(f"Failed to retrieve requests by status: {str(e)}")
     
-    async def get_pending_approval_requests(self) -> List[ReimbursementResponseDTO]:
+    async def get_pending_approval_requests(self, organisation_id: str = None) -> List[ReimbursementResponseDTO]:
         """Get reimbursement requests pending approval"""
         
         logger.info("Retrieving reimbursement requests pending approval")
         
         try:
-            requests = await self.query_repository.get_pending_approval()
+            requests = await self.query_repository.get_pending_approval(organisation_id)
             
             response_dtos = []
             for request in requests:
-                reimbursement_type = await self._get_reimbursement_type_by_code(request.reimbursement_type.code)
+                reimbursement_type = await self._get_reimbursement_type_by_code(request.reimbursement_type.reimbursement_type_id, organisation_id)
                 if reimbursement_type:
                     response_dto = create_reimbursement_response_from_entity(request, reimbursement_type)
                     response_dtos.append(response_dto)
@@ -169,17 +169,17 @@ class GetReimbursementRequestsUseCase:
             logger.error(f"Error retrieving pending approval requests: {e}")
             raise GetReimbursementRequestsUseCaseError(f"Failed to retrieve pending requests: {str(e)}")
     
-    async def search_requests(self, filters: ReimbursementSearchFiltersDTO) -> List[ReimbursementResponseDTO]:
+    async def search_requests(self, filters: ReimbursementSearchFiltersDTO, organisation_id: str = None) -> List[ReimbursementResponseDTO]:
         """Search reimbursement requests with filters"""
         
         logger.info(f"Searching reimbursement requests with filters")
         
         try:
-            requests = await self.query_repository.search(filters)
+            requests = await self.query_repository.search(filters, organisation_id)
             
             response_dtos = []
             for request in requests:
-                reimbursement_type = await self._get_reimbursement_type_by_code(request.reimbursement_type.code)
+                reimbursement_type = await self._get_reimbursement_type_by_code(request.reimbursement_type.reimbursement_type_id, organisation_id)
                 if reimbursement_type:
                     response_dto = create_reimbursement_response_from_entity(request, reimbursement_type)
                     response_dtos.append(response_dto)
@@ -194,18 +194,19 @@ class GetReimbursementRequestsUseCase:
     async def get_requests_by_date_range(
         self,
         start_date: datetime,
-        end_date: datetime
+        end_date: datetime,
+        organisation_id: str = None
     ) -> List[ReimbursementResponseDTO]:
         """Get reimbursement requests within date range"""
         
         logger.info(f"Retrieving reimbursement requests from {start_date} to {end_date}")
         
         try:
-            requests = await self.query_repository.get_by_date_range(start_date, end_date)
+            requests = await self.query_repository.get_by_date_range(start_date, end_date, organisation_id)
             
             response_dtos = []
             for request in requests:
-                reimbursement_type = await self._get_reimbursement_type_by_code(request.reimbursement_type.code)
+                reimbursement_type = await self._get_reimbursement_type_by_code(request.reimbursement_type.reimbursement_type_id, organisation_id)
                 if reimbursement_type:
                     response_dto = create_reimbursement_response_from_entity(request, reimbursement_type)
                     response_dtos.append(response_dto)
@@ -217,25 +218,24 @@ class GetReimbursementRequestsUseCase:
             logger.error(f"Error retrieving requests by date range: {e}")
             raise GetReimbursementRequestsUseCaseError(f"Failed to retrieve requests by date range: {str(e)}")
     
-    async def get_employee_requests_summary(self, employee_id: str) -> List[ReimbursementSummaryDTO]:
+    async def get_employee_requests_summary(self, employee_id: str, organisation_id: str = None) -> List[ReimbursementSummaryDTO]:
         """Get summary of employee's reimbursement requests"""
         
         logger.info(f"Retrieving reimbursement summary for employee: {employee_id}")
         
         try:
-            requests = await self.query_repository.get_by_employee_id(employee_id)
+            requests = await self.query_repository.get_by_employee_id(employee_id, organisation_id)
             
             summary_dtos = []
             for request in requests:
                 summary_dto = ReimbursementSummaryDTO(
-                    request_id=request.request_id,
+                    request_id=request.reimbursement_id,
                     employee_id=request.employee_id.value,
-                    reimbursement_type_name=request.reimbursement_type.name,
-                    amount=request.amount.amount,
-                    currency=request.amount.currency,
+                    category_name=request.reimbursement_type.category_name,
+                    amount=request.amount,
                     status=request.status.value,
                     submitted_at=request.submitted_at,
-                    final_amount=request.get_final_amount().amount if request.is_approved() or request.is_paid() else None
+                    final_amount=request.get_final_amount() if request.is_approved() or request.is_paid() else None
                 )
                 summary_dtos.append(summary_dto)
             
@@ -248,6 +248,7 @@ class GetReimbursementRequestsUseCase:
     
     async def get_reimbursement_statistics(
         self,
+        organisation_id: str = None,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
     ) -> ReimbursementStatisticsDTO:
@@ -259,7 +260,7 @@ class GetReimbursementRequestsUseCase:
         logger.info("Retrieving reimbursement statistics")
         
         try:
-            statistics = await self.analytics_repository.get_statistics(start_date, end_date)
+            statistics = await self.analytics_repository.get_statistics(organisation_id, start_date, end_date)
             
             logger.info("Retrieved reimbursement statistics")
             return statistics
@@ -271,6 +272,7 @@ class GetReimbursementRequestsUseCase:
     async def get_employee_statistics(
         self,
         employee_id: str,
+        organisation_id: str = None,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
     ) -> Dict[str, Any]:
@@ -283,7 +285,7 @@ class GetReimbursementRequestsUseCase:
         
         try:
             statistics = await self.analytics_repository.get_employee_statistics(
-                employee_id, start_date, end_date
+                employee_id, organisation_id, start_date, end_date
             )
             
             logger.info(f"Retrieved statistics for employee: {employee_id}")
@@ -295,6 +297,7 @@ class GetReimbursementRequestsUseCase:
     
     async def get_category_wise_spending(
         self,
+        organisation_id: str = None,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
     ) -> Dict[str, float]:
@@ -306,7 +309,7 @@ class GetReimbursementRequestsUseCase:
         logger.info("Retrieving category-wise spending breakdown")
         
         try:
-            spending = await self.analytics_repository.get_category_wise_spending(start_date, end_date)
+            spending = await self.analytics_repository.get_category_wise_spending(organisation_id, start_date, end_date)
             
             # Convert Decimal to float for JSON serialization
             spending_dict = {category: float(amount) for category, amount in spending.items()}
@@ -318,7 +321,7 @@ class GetReimbursementRequestsUseCase:
             logger.error(f"Error retrieving category-wise spending: {e}")
             raise GetReimbursementRequestsUseCaseError(f"Failed to retrieve category spending: {str(e)}")
     
-    async def get_monthly_trends(self, months: int = 12) -> Dict[str, Dict[str, Any]]:
+    async def get_monthly_trends(self, organisation_id: str = None, months: int = 12) -> Dict[str, Dict[str, Any]]:
         """Get monthly spending trends"""
         
         if not self.analytics_repository:
@@ -327,7 +330,7 @@ class GetReimbursementRequestsUseCase:
         logger.info(f"Retrieving monthly trends for {months} months")
         
         try:
-            trends = await self.analytics_repository.get_monthly_trends(months)
+            trends = await self.analytics_repository.get_monthly_trends(organisation_id, months)
             
             logger.info(f"Retrieved monthly trends for {months} months")
             return trends
@@ -338,6 +341,7 @@ class GetReimbursementRequestsUseCase:
     
     async def get_top_spenders(
         self,
+        organisation_id: str = None,
         limit: int = 10,
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
@@ -350,7 +354,7 @@ class GetReimbursementRequestsUseCase:
         logger.info(f"Retrieving top {limit} spenders")
         
         try:
-            spenders = await self.analytics_repository.get_top_spenders(limit, start_date, end_date)
+            spenders = await self.analytics_repository.get_top_spenders(organisation_id, limit, start_date, end_date)
             
             logger.info(f"Retrieved top {len(spenders)} spenders")
             return spenders
@@ -359,10 +363,10 @@ class GetReimbursementRequestsUseCase:
             logger.error(f"Error retrieving top spenders: {e}")
             raise GetReimbursementRequestsUseCaseError(f"Failed to retrieve top spenders: {str(e)}")
     
-    async def _get_reimbursement_type_by_code(self, code: str):
+    async def _get_reimbursement_type_by_code(self, code: str, organisation_id: str = None):
         """Helper method to get reimbursement type by code"""
         try:
-            return await self.reimbursement_type_repository.get_by_code(code)
+            return await self.reimbursement_type_repository.get_by_code(code, organisation_id)
         except Exception as e:
             logger.error(f"Error retrieving reimbursement type by code {code}: {e}")
             return None 

@@ -1,259 +1,511 @@
 """
-SOLID-Compliant Reimbursement Controller
-Handles reimbursement-related HTTP operations with proper dependency injection
+Reimbursement Controller Implementation
+SOLID-compliant controller for reimbursement HTTP operations with organisation segregation
 """
 
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime
+from fastapi import HTTPException, UploadFile
 
+from app.application.interfaces.services.reimbursement_service import ReimbursementService
 from app.application.dto.reimbursement_dto import (
-    ReimbursementRequestCreateDTO,
     ReimbursementTypeCreateRequestDTO,
+    ReimbursementTypeUpdateRequestDTO,
+    ReimbursementRequestCreateDTO,
+    ReimbursementRequestUpdateDTO,
     ReimbursementApprovalDTO,
+    ReimbursementRejectionDTO,
     ReimbursementPaymentDTO,
     ReimbursementSearchFiltersDTO,
-    ReimbursementResponseDTO,
     ReimbursementTypeResponseDTO,
+    ReimbursementResponseDTO,
+    ReimbursementSummaryDTO,
+    ReimbursementListResponseDTO,
+    ReimbursementStatisticsDTO,
+    ReimbursementTypeOptionsDTO,
     ReimbursementValidationError,
-    ReimbursementBusinessRuleError
+    ReimbursementBusinessRuleError,
+    ReimbursementNotFoundError
 )
+from app.infrastructure.services.file_upload_service import FileUploadService, DocumentType
+from app.auth.auth_dependencies import CurrentUser
 
 logger = logging.getLogger(__name__)
 
 
 class ReimbursementController:
     """
-    Controller for reimbursement operations following SOLID principles.
+    Reimbursement controller following SOLID principles with organisation segregation.
     
-    This controller acts as a facade between the HTTP layer and business logic,
-    delegating operations to appropriate use cases.
+    - SRP: Only handles HTTP request/response concerns
+    - OCP: Can be extended with new endpoints
+    - LSP: Can be substituted with other controllers
+    - ISP: Focused interface for reimbursement HTTP operations
+    - DIP: Depends on abstractions (ReimbursementService, FileUploadService)
     """
     
     def __init__(
         self,
-        create_type_use_case=None,
-        create_request_use_case=None,
-        approve_request_use_case=None,
-        get_requests_use_case=None,
-        process_payment_use_case=None
+        reimbursement_service: ReimbursementService,
+        file_upload_service: FileUploadService
     ):
         """
-        Initialize the controller with use cases.
+        Initialize controller with dependencies.
         
         Args:
-            create_type_use_case: Use case for creating reimbursement types
-            create_request_use_case: Use case for creating reimbursement requests
-            approve_request_use_case: Use case for approving requests
-            get_requests_use_case: Use case for querying requests
-            process_payment_use_case: Use case for processing payments
+            reimbursement_service: Reimbursement service for business operations
+            file_upload_service: Service for file operations
         """
-        self.create_type_use_case = create_type_use_case
-        self.create_request_use_case = create_request_use_case
-        self.approve_request_use_case = approve_request_use_case
-        self.get_requests_use_case = get_requests_use_case
-        self.process_payment_use_case = process_payment_use_case
-        
-        # If use cases are not provided, we'll handle gracefully
-        self._initialized = all([
-            create_type_use_case is not None,
-            create_request_use_case is not None,
-            approve_request_use_case is not None,
-            get_requests_use_case is not None,
-            process_payment_use_case is not None
-        ])
-        
-        if not self._initialized:
-            logger.warning("ReimbursementController initialized without all required use cases")
+        self.reimbursement_service = reimbursement_service
+        self.file_upload_service = file_upload_service
+        self._initialized = True
     
-    async def create_reimbursement_type(self, request: ReimbursementTypeCreateRequestDTO, hostname: str) -> ReimbursementTypeResponseDTO:
-        """Create a new reimbursement type"""
+    async def health_check(self) -> Dict[str, Any]:
+        """Health check for reimbursement controller."""
+        return {
+            "service": "reimbursement_controller",
+            "status": "healthy", 
+            "controller": "ReimbursementController",
+            "initialized": self._initialized,
+            "timestamp": datetime.now().isoformat(),
+            "version": "2.0.0-organisation-segregated"
+        }
+    
+    # ==================== REIMBURSEMENT TYPE OPERATIONS ====================
+    
+    async def create_reimbursement_type(
+        self, 
+        request: ReimbursementTypeCreateRequestDTO,
+        current_user: CurrentUser
+    ) -> ReimbursementTypeResponseDTO:
+        """Create a new reimbursement type with organisation context."""
         try:
-            logger.info(f"Creating reimbursement type: {request.name}")
-            
-            if self.create_type_use_case:
-                return await self.create_type_use_case.execute(request, hostname)
+            logger.info(f"Creating reimbursement type: {request.category_name} in organisation: {current_user.hostname}")
+            return await self.reimbursement_service.create_reimbursement_type(request, current_user)
+        except ReimbursementValidationError as e:
+            logger.error(f"Validation error creating reimbursement type {request.category_name} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=400, detail=str(e))
+        except ReimbursementBusinessRuleError as e:
+            logger.error(f"Business rule error creating reimbursement type {request.category_name} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=422, detail=str(e))
+        except Exception as e:
+            logger.error(f"Error creating reimbursement type {request.category_name} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+    
+    async def get_reimbursement_type(
+        self, 
+        type_id: str,
+        current_user: CurrentUser
+    ) -> ReimbursementTypeResponseDTO:
+        """Get reimbursement type by ID with organisation context."""
+        try:
+            reimbursement_type = await self.reimbursement_service.get_reimbursement_type_by_id(type_id, current_user)
+            if not reimbursement_type:
+                raise HTTPException(status_code=404, detail="Reimbursement type not found")
+            return reimbursement_type
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error getting reimbursement type {type_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+    
+    async def list_reimbursement_types(
+        self,
+        include_inactive: bool = False,
+        current_user: CurrentUser = None
+    ) -> List[ReimbursementTypeOptionsDTO]:
+        """Get all reimbursement types with organisation context."""
+        try:
+            return await self.reimbursement_service.list_reimbursement_types(
+                include_inactive=include_inactive,
+                current_user=current_user
+            )
+        except Exception as e:
+            logger.error(f"Error getting reimbursement types in organisation {current_user.hostname if current_user else 'unknown'}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+    
+    async def update_reimbursement_type(
+        self, 
+        type_id: str,
+        request: ReimbursementTypeUpdateRequestDTO,
+        current_user: CurrentUser
+    ) -> ReimbursementTypeResponseDTO:
+        """Update reimbursement type with organisation context."""
+        try:
+            return await self.reimbursement_service.update_reimbursement_type(type_id, request, current_user)
+        except ReimbursementNotFoundError as e:
+            logger.error(f"Reimbursement type not found {type_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=404, detail=str(e))
+        except ReimbursementValidationError as e:
+            logger.error(f"Validation error updating reimbursement type {type_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=400, detail=str(e))
+        except ReimbursementBusinessRuleError as e:
+            logger.error(f"Business rule error updating reimbursement type {type_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=422, detail=str(e))
+        except Exception as e:
+            logger.error(f"Error updating reimbursement type {type_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+    
+    async def delete_reimbursement_type(
+        self, 
+        type_id: str,
+        current_user: CurrentUser
+    ) -> Dict[str, str]:
+        """Delete (deactivate) reimbursement type with organisation context."""
+        try:
+            success = await self.reimbursement_service.delete_reimbursement_type(type_id, current_user)
+            if success:
+                return {"message": "Reimbursement type deleted successfully"}
             else:
-                # Fallback implementation for development/testing
-                return self._create_mock_type_response(request)
-                
+                raise HTTPException(status_code=500, detail="Failed to delete reimbursement type")
+        except ReimbursementNotFoundError as e:
+            logger.error(f"Reimbursement type not found {type_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=404, detail=str(e))
+        except ReimbursementBusinessRuleError as e:
+            logger.error(f"Business rule error deleting reimbursement type {type_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=422, detail=str(e))
         except Exception as e:
-            logger.error(f"Error creating reimbursement type: {e}")
-            raise ReimbursementBusinessRuleError(f"Type creation failed: {str(e)}")
+            logger.error(f"Error deleting reimbursement type {type_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
     
-    async def get_reimbursement_types(self, filters, hostname: str) -> List[ReimbursementTypeResponseDTO]:
-        """Get reimbursement types"""
+    # ==================== REIMBURSEMENT REQUEST OPERATIONS ====================
+    
+    async def create_reimbursement_request(
+        self, 
+        request: ReimbursementRequestCreateDTO,
+        current_user: CurrentUser
+    ) -> ReimbursementResponseDTO:
+        """Create a new reimbursement request with organisation context."""
         try:
-            logger.info("Getting reimbursement types")
+            logger.info(f"Creating reimbursement request for employee: {request.employee_id} in organisation: {current_user.hostname}")
+            return await self.reimbursement_service.create_reimbursement_request(request, current_user)
+        except ReimbursementValidationError as e:
+            logger.error(f"Validation error creating reimbursement request for employee {request.employee_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=400, detail=str(e))
+        except ReimbursementBusinessRuleError as e:
+            logger.error(f"Business rule error creating reimbursement request for employee {request.employee_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=422, detail=str(e))
+        except Exception as e:
+            logger.error(f"Error creating reimbursement request for employee {request.employee_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+    
+    async def create_reimbursement_request_with_file(
+        self,
+        request: ReimbursementRequestCreateDTO,
+        receipt_file: UploadFile,
+        current_user: CurrentUser
+    ) -> ReimbursementResponseDTO:
+        """Create reimbursement request with file upload and organisation context."""
+        try:
+            logger.info(f"Creating reimbursement request with file for employee: {request.employee_id} in organisation: {current_user.hostname}")
             
-            if self.get_requests_use_case:
-                return await self.get_requests_use_case.get_types(filters, hostname)
+            # First create the reimbursement request
+            reimbursement_response = await self.reimbursement_service.create_reimbursement_request(request, current_user)
+            
+            # Handle file upload with organisation-specific path
+            receipt_path = await self.file_upload_service.upload_document(
+                receipt_file, DocumentType.RECEIPT, current_user.hostname
+            )
+            
+            # Add a small delay to ensure the document is available in the database
+            import asyncio
+            await asyncio.sleep(0.1)
+            
+            # Now attach the receipt to the created reimbursement with retry mechanism
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    success = await self.reimbursement_service.attach_receipt_to_request(
+                        reimbursement_response.request_id,
+                        receipt_path,
+                        receipt_file.filename or "receipt",
+                        receipt_file.size or 0,
+                        current_user.employee_id,
+                        current_user
+                    )
+                    
+                    if success:
+                        break
+                    else:
+                        logger.warning(f"Failed to attach receipt on attempt {attempt + 1}")
+                        if attempt < max_retries - 1:
+                            await asyncio.sleep(0.2)  # Wait before retry
+                        
+                except Exception as e:
+                    logger.warning(f"Error attaching receipt on attempt {attempt + 1}: {e}")
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(0.2)  # Wait before retry
+                    else:
+                        # If all retries failed, log the error but don't fail the entire request
+                        logger.error(f"Failed to attach receipt after {max_retries} attempts: {e}")
+                        # Return the reimbursement without receipt attachment
+                        return reimbursement_response
+            
+            # Return the updated reimbursement with receipt information
+            updated_response = await self.reimbursement_service.get_reimbursement_request_by_id(
+                reimbursement_response.request_id, current_user
+            )
+            
+            return updated_response or reimbursement_response
+            
+        except ReimbursementValidationError as e:
+            logger.error(f"Validation error creating reimbursement request with file for employee {request.employee_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=400, detail=str(e))
+        except ReimbursementBusinessRuleError as e:
+            logger.error(f"Business rule error creating reimbursement request with file for employee {request.employee_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=422, detail=str(e))
+        except Exception as e:
+            logger.error(f"Error creating reimbursement request with file for employee {request.employee_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+    
+    async def get_reimbursement_request(
+        self, 
+        request_id: str,
+        current_user: CurrentUser
+    ) -> ReimbursementResponseDTO:
+        """Get reimbursement request by ID with organisation context."""
+        try:
+            reimbursement_request = await self.reimbursement_service.get_reimbursement_request_by_id(request_id, current_user)
+            if not reimbursement_request:
+                raise HTTPException(status_code=404, detail="Reimbursement request not found")
+            return reimbursement_request
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error getting reimbursement request {request_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+    
+    async def get_receipt_file_path(
+        self,
+        request_id: str,
+        current_user: CurrentUser
+    ) -> Optional[str]:
+        """Get receipt file path for a reimbursement request."""
+        try:
+            return await self.reimbursement_service.get_receipt_file_path(request_id, current_user)
+        except Exception as e:
+            logger.error(f"Error getting receipt file path for request {request_id} in organisation {current_user.hostname}: {e}")
+            return None
+    
+    async def list_reimbursement_requests(
+        self,
+        filters: Optional[ReimbursementSearchFiltersDTO] = None,
+        current_user: CurrentUser = None
+    ) -> ReimbursementListResponseDTO:
+        """Get reimbursement requests with filters and organisation context."""
+        try:
+            return await self.reimbursement_service.list_reimbursement_requests(filters, current_user)
+        except Exception as e:
+            logger.error(f"Error listing reimbursement requests in organisation {current_user.hostname if current_user else 'unknown'}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+    
+    async def update_reimbursement_request(
+        self,
+        request_id: str,
+        request: ReimbursementRequestUpdateDTO,
+        current_user: CurrentUser
+    ) -> ReimbursementResponseDTO:
+        """Update reimbursement request with organisation context."""
+        try:
+            return await self.reimbursement_service.update_reimbursement_request(request_id, request, current_user)
+        except ReimbursementNotFoundError as e:
+            logger.error(f"Reimbursement request not found {request_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=404, detail=str(e))
+        except ReimbursementValidationError as e:
+            logger.error(f"Validation error updating reimbursement request {request_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=400, detail=str(e))
+        except ReimbursementBusinessRuleError as e:
+            logger.error(f"Business rule error updating reimbursement request {request_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=422, detail=str(e))
+        except Exception as e:
+            logger.error(f"Error updating reimbursement request {request_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+    
+    async def approve_reimbursement_request(
+        self, 
+        request_id: str,
+        approval: ReimbursementApprovalDTO,
+        current_user: CurrentUser
+    ) -> ReimbursementResponseDTO:
+        """Approve reimbursement request with organisation context."""
+        try:
+            logger.info(f"Approving reimbursement request: {request_id} in organisation: {current_user.hostname}")
+            return await self.reimbursement_service.approve_reimbursement_request(request_id, approval, current_user)
+        except ReimbursementNotFoundError as e:
+            logger.error(f"Reimbursement request not found {request_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=404, detail=str(e))
+        except ReimbursementValidationError as e:
+            logger.error(f"Validation error approving reimbursement request {request_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=400, detail=str(e))
+        except ReimbursementBusinessRuleError as e:
+            logger.error(f"Business rule error approving reimbursement request {request_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=422, detail=str(e))
+        except Exception as e:
+            logger.error(f"Error approving reimbursement request {request_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+    
+    async def reject_reimbursement_request(
+        self, 
+        request_id: str,
+        rejection: ReimbursementRejectionDTO,
+        current_user: CurrentUser
+    ) -> ReimbursementResponseDTO:
+        """Reject reimbursement request with organisation context."""
+        try:
+            logger.info(f"Rejecting reimbursement request: {request_id} in organisation: {current_user.hostname}")
+            return await self.reimbursement_service.reject_reimbursement_request(request_id, rejection, current_user)
+        except ReimbursementNotFoundError as e:
+            logger.error(f"Reimbursement request not found {request_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=404, detail=str(e))
+        except ReimbursementValidationError as e:
+            logger.error(f"Validation error rejecting reimbursement request {request_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=400, detail=str(e))
+        except ReimbursementBusinessRuleError as e:
+            logger.error(f"Business rule error rejecting reimbursement request {request_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=422, detail=str(e))
+        except Exception as e:
+            logger.error(f"Error rejecting reimbursement request {request_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+    
+    async def process_reimbursement_payment(
+        self,
+        request_id: str,
+        payment: ReimbursementPaymentDTO,
+        current_user: CurrentUser
+    ) -> ReimbursementResponseDTO:
+        """Process payment for reimbursement request with organisation context."""
+        try:
+            logger.info(f"Processing payment for reimbursement request: {request_id} in organisation: {current_user.hostname}")
+            return await self.reimbursement_service.process_reimbursement_payment(request_id, payment, current_user)
+        except ReimbursementNotFoundError as e:
+            logger.error(f"Reimbursement request not found {request_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=404, detail=str(e))
+        except ReimbursementValidationError as e:
+            logger.error(f"Validation error processing payment for reimbursement request {request_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=400, detail=str(e))
+        except ReimbursementBusinessRuleError as e:
+            logger.error(f"Business rule error processing payment for reimbursement request {request_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=422, detail=str(e))
+        except Exception as e:
+            logger.error(f"Error processing payment for reimbursement request {request_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+    
+    async def delete_reimbursement_request(
+        self, 
+        request_id: str,
+        current_user: CurrentUser
+    ) -> Dict[str, str]:
+        """Delete reimbursement request with organisation context."""
+        try:
+            success = await self.reimbursement_service.delete_reimbursement_request(request_id, current_user)
+            if success:
+                return {"message": "Reimbursement request deleted successfully"}
             else:
-                # Fallback implementation for development/testing
-                return self._create_mock_type_list()
-                
+                raise HTTPException(status_code=500, detail="Failed to delete reimbursement request")
+        except ReimbursementNotFoundError as e:
+            logger.error(f"Reimbursement request not found {request_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=404, detail=str(e))
+        except ReimbursementBusinessRuleError as e:
+            logger.error(f"Business rule error deleting reimbursement request {request_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=422, detail=str(e))
         except Exception as e:
-            logger.error(f"Error getting reimbursement types: {e}")
-            raise ReimbursementBusinessRuleError(f"Failed to get types: {str(e)}")
+            logger.error(f"Error deleting reimbursement request {request_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
     
-    async def create_reimbursement_request(self, request: ReimbursementRequestCreateDTO, hostname: str) -> ReimbursementResponseDTO:
-        """Create a new reimbursement request"""
+    # ==================== EMPLOYEE-SPECIFIC OPERATIONS ====================
+    
+    async def get_my_reimbursement_requests(
+        self,
+        current_user: CurrentUser
+    ) -> List[ReimbursementSummaryDTO]:
+        """Get reimbursement requests for current user with organisation context."""
         try:
-            logger.info(f"Creating reimbursement request for employee: {request.employee_id}")
-            
-            if self.create_request_use_case:
-                return await self.create_request_use_case.execute(request, hostname)
-            else:
-                # Fallback implementation for development/testing
-                return self._create_mock_request_response(request)
-                
+            return await self.reimbursement_service.get_reimbursement_requests_by_employee(
+                current_user.employee_id, current_user
+            )
         except Exception as e:
-            logger.error(f"Error creating reimbursement request: {e}")
-            raise ReimbursementBusinessRuleError(f"Request creation failed: {str(e)}")
+            logger.error(f"Error getting reimbursement requests for user {current_user.employee_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
     
-    async def create_reimbursement_request_with_file(self, request: ReimbursementRequestCreateDTO, file, hostname: str) -> ReimbursementResponseDTO:
-        """Create a new reimbursement request with file upload"""
+    async def get_pending_approvals(
+        self,
+        current_user: CurrentUser
+    ) -> List[ReimbursementSummaryDTO]:
+        """Get pending approvals for current user with organisation context."""
         try:
-            logger.info(f"Creating reimbursement request with file for employee: {request.employee_id}")
-            
-            # Handle file upload logic here
-            # For now, just create a request without the file
-            return await self.create_reimbursement_request(request, hostname)
-                
+            return await self.reimbursement_service.get_pending_approvals(
+                current_user.employee_id, current_user
+            )
         except Exception as e:
-            logger.error(f"Error creating reimbursement request with file: {e}")
-            raise ReimbursementBusinessRuleError(f"Request creation with file failed: {str(e)}")
+            logger.error(f"Error getting pending approvals for user {current_user.employee_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
     
-    async def get_reimbursement_requests(self, filters: ReimbursementSearchFiltersDTO, hostname: str) -> List[ReimbursementResponseDTO]:
-        """Get reimbursement requests with filters"""
+    # ==================== ANALYTICS OPERATIONS ====================
+    
+    async def get_reimbursement_statistics(
+        self, 
+        current_user: CurrentUser
+    ) -> ReimbursementStatisticsDTO:
+        """Get reimbursement statistics with organisation context."""
         try:
-            logger.info(f"Getting reimbursement requests with filters")
-            
-            if self.get_requests_use_case:
-                return await self.get_requests_use_case.execute(filters, hostname)
-            else:
-                # Fallback implementation for development/testing
-                return self._create_mock_request_list(filters)
-                
+            return await self.reimbursement_service.get_reimbursement_statistics(current_user)
         except Exception as e:
-            logger.error(f"Error getting reimbursement requests: {e}")
-            raise ReimbursementBusinessRuleError(f"Failed to get requests: {str(e)}")
+            logger.error(f"Error getting reimbursement statistics in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
     
-    async def approve_reimbursement_request(self, request_id: str, approval: ReimbursementApprovalDTO, hostname: str) -> ReimbursementResponseDTO:
-        """Approve a reimbursement request"""
+    async def get_reimbursement_analytics(
+        self,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        current_user: CurrentUser = None
+    ) -> Dict[str, Any]:
+        """Get reimbursement analytics with organisation context."""
         try:
-            logger.info(f"Approving reimbursement request: {request_id}")
+            # Convert string dates to datetime if provided
+            start_dt = datetime.fromisoformat(start_date) if start_date else None
+            end_dt = datetime.fromisoformat(end_date) if end_date else None
             
-            if self.approve_request_use_case:
-                return await self.approve_request_use_case.execute(request_id, approval, hostname)
-            else:
-                # Fallback implementation for development/testing
-                return self._create_mock_approved_response(request_id)
-                
+            return await self.reimbursement_service.get_reimbursement_analytics(
+                start_date=start_dt,
+                end_date=end_dt,
+                current_user=current_user
+            )
+        except ValueError as e:
+            logger.error(f"Invalid date format in analytics request: {e}")
+            raise HTTPException(status_code=400, detail="Invalid date format")
         except Exception as e:
-            logger.error(f"Error approving reimbursement request: {e}")
-            raise ReimbursementBusinessRuleError(f"Approval failed: {str(e)}")
-
-    async def reject_reimbursement_request(self, request_id: str, reason: str, hostname: str) -> ReimbursementResponseDTO:
-        """Reject a reimbursement request"""
-        try:
-            logger.info(f"Rejecting reimbursement request: {request_id}")
-            
-            if self.approve_request_use_case:
-                return await self.approve_request_use_case.reject(request_id, reason, hostname)
-            else:
-                # Fallback implementation for development/testing
-                return self._create_mock_rejected_response(request_id, reason)
-                
-        except Exception as e:
-            logger.error(f"Error rejecting reimbursement request: {e}")
-            raise ReimbursementBusinessRuleError(f"Rejection failed: {str(e)}")
+            logger.error(f"Error getting reimbursement analytics in organisation {current_user.hostname if current_user else 'unknown'}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
     
-    # Private helper methods for fallback implementations
+    # ==================== LEGACY COMPATIBILITY METHODS ====================
+    # These are for backward compatibility and should be deprecated
     
-    def _create_mock_type_response(self, request: ReimbursementTypeCreateRequestDTO) -> ReimbursementTypeResponseDTO:
-        """Create a mock reimbursement type response for development/testing"""
-        current_time = datetime.now()
-        
-        return ReimbursementTypeResponseDTO(
-            id=f"type_{request.name.lower().replace(' ', '_')}_{current_time.strftime('%Y%m%d')}",
-            name=request.name,
-            description=request.description or "",
-            category=request.category or "general",
-            max_amount=request.max_amount or 0.0,
-            is_active=True,
-            requires_receipt=request.requires_receipt or False,
-            created_at=current_time,
-            updated_at=current_time
-        )
+    async def create_reimbursement(
+        self, 
+        request: ReimbursementRequestCreateDTO,
+        employee_id: str,
+        current_user: CurrentUser
+    ) -> ReimbursementResponseDTO:
+        """Legacy method: Create reimbursement (alias for create_reimbursement_request)."""
+        request.employee_id = employee_id
+        return await self.create_reimbursement_request(request, current_user)
     
-    def _create_mock_type_list(self) -> List[ReimbursementTypeResponseDTO]:
-        """Create mock reimbursement type list for development/testing"""
-        logger.info("Returning empty reimbursement type list")
-        return []
+    async def get_reimbursement_types(
+        self,
+        filters: Optional[Dict[str, Any]] = None,
+        current_user: CurrentUser = None
+    ) -> List[ReimbursementTypeOptionsDTO]:
+        """Legacy method: Get reimbursement types."""
+        include_inactive = filters.get('include_inactive', False) if filters else False
+        return await self.list_reimbursement_types(include_inactive, current_user)
     
-    def _create_mock_request_response(self, request: ReimbursementRequestCreateDTO) -> ReimbursementResponseDTO:
-        """Create a mock reimbursement request response for development/testing"""
-        current_time = datetime.now()
-        
-        return ReimbursementResponseDTO(
-            id=f"req_{request.employee_id}_{current_time.strftime('%Y%m%d%H%M%S')}",
-            employee_id=request.employee_id,
-            reimbursement_type_id=request.reimbursement_type_id,
-            amount=request.amount,
-            description=request.description or "",
-            status="pending",
-            submitted_date=current_time,
-            receipt_url=None,
-            approval_date=None,
-            approved_by=None,
-            payment_date=None,
-            created_at=current_time,
-            updated_at=current_time
-        )
+    async def get_reimbursement_requests(
+        self, 
+        filters: ReimbursementSearchFiltersDTO,
+        current_user: CurrentUser
+    ) -> ReimbursementListResponseDTO:
+        """Legacy method: Get reimbursement requests."""
+        return await self.list_reimbursement_requests(filters, current_user)
     
-    def _create_mock_request_list(self, filters: ReimbursementSearchFiltersDTO) -> List[ReimbursementResponseDTO]:
-        """Create mock reimbursement request list for development/testing"""
-        # Return empty list for now - can be enhanced later
-        logger.info(f"Returning empty reimbursement request list for filters: {filters}")
-        return []
     
-    def _create_mock_approved_response(self, request_id: str) -> ReimbursementResponseDTO:
-        """Create mock approved reimbursement response for development/testing"""
-        current_time = datetime.now()
-        
-        return ReimbursementResponseDTO(
-            id=request_id,
-            employee_id="EMP001",
-            reimbursement_type_id="TYPE001",
-            amount=1000.0,
-            description="Mock approved reimbursement",
-            status="approved",
-            submitted_date=current_time,
-            receipt_url=None,
-            approval_date=current_time,
-            approved_by="ADMIN001",
-            payment_date=None,
-            created_at=current_time,
-            updated_at=current_time
-        )
-    
-    def _create_mock_rejected_response(self, request_id: str, reason: str) -> ReimbursementResponseDTO:
-        """Create mock rejected reimbursement response for development/testing"""
-        current_time = datetime.now()
-        
-        return ReimbursementResponseDTO(
-            id=request_id,
-            employee_id="EMP001",
-            reimbursement_type_id="TYPE001",
-            amount=1000.0,
-            description="Mock rejected reimbursement",
-            status="rejected",
-            submitted_date=current_time,
-            receipt_url=None,
-            approval_date=current_time,
-            approved_by="ADMIN001",
-            payment_date=None,
-            created_at=current_time,
-            updated_at=current_time
-        ) 

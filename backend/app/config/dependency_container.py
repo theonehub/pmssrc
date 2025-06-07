@@ -234,7 +234,8 @@ class DependencyContainer:
             # Reimbursement service  
             self._services['reimbursement'] = ReimbursementServiceImpl(
                 repository=self._repositories['reimbursement'],
-                notification_service=self._notification_service
+                notification_service=self._notification_service,
+                employee_repository=self._repositories['user']  # Use user repository as employee repository
             )
             
             # Project attributes service
@@ -429,10 +430,55 @@ class DependencyContainer:
         
         # Import here to avoid circular imports
         from app.api.controllers.organisation_controller import OrganisationController
+        from app.application.use_cases.organisation.create_organisation_use_case import CreateOrganisationUseCase
+        from app.application.use_cases.organisation.update_organisation_use_case import UpdateOrganisationUseCase
+        from app.application.use_cases.organisation.get_organisation_use_case import GetOrganisationUseCase
+        from app.application.use_cases.organisation.list_organisations_use_case import ListOrganisationsUseCase
+        from app.application.use_cases.organisation.delete_organisation_use_case import DeleteOrganisationUseCase
         
         if 'organisation' not in self._controllers:
+            # Get repositories
+            organisation_repository = self._repositories['organisation']
+            
+            # Get services (the OrganisationServiceImpl implements all service interfaces)
+            organisation_service = self._services['organisation']
+            
+            # Create use cases with proper dependencies
+            create_use_case = CreateOrganisationUseCase(
+                command_repository=organisation_repository,
+                query_repository=organisation_repository,
+                validation_service=organisation_service,
+                notification_service=organisation_service
+            )
+            
+            update_use_case = UpdateOrganisationUseCase(
+                command_repository=organisation_repository,
+                query_repository=organisation_repository,
+                validation_service=organisation_service,
+                notification_service=organisation_service
+            )
+            
+            get_use_case = GetOrganisationUseCase(
+                query_repository=organisation_repository
+            )
+            
+            list_use_case = ListOrganisationsUseCase(
+                query_repository=organisation_repository
+            )
+            
+            delete_use_case = DeleteOrganisationUseCase(
+                command_repository=organisation_repository,
+                query_repository=organisation_repository,
+                notification_service=organisation_service
+            )
+            
+            # Create controller with use cases
             self._controllers['organisation'] = OrganisationController(
-                organisation_service=self._services['organisation']
+                create_use_case=create_use_case,
+                update_use_case=update_use_case,
+                get_use_case=get_use_case,
+                list_use_case=list_use_case,
+                delete_use_case=delete_use_case
             )
         
         return self._controllers['organisation']
@@ -488,7 +534,8 @@ class DependencyContainer:
         
         if 'reimbursement' not in self._controllers:
             self._controllers['reimbursement'] = ReimbursementController(
-                reimbursement_service=self._services['reimbursement']
+                reimbursement_service=self._services['reimbursement'],
+                file_upload_service=self._file_upload_service
             )
         
         return self._controllers['reimbursement']

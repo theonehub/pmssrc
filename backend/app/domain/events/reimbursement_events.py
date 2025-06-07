@@ -153,7 +153,6 @@ class ReimbursementRequestApproved(DomainEvent):
     approved_amount: ReimbursementAmount
     approval_comments: Optional[str]
     approved_by: str
-    approval_level: str
     occurred_at: datetime
     
     def get_event_type(self) -> str:
@@ -174,7 +173,7 @@ class ReimbursementRequestRejected(DomainEvent):
     employee_id: str
     reimbursement_type: ReimbursementTypeVO
     amount: ReimbursementAmount
-    rejection_reason: str
+    rejection_comments: str
     rejected_by: str
     occurred_at: datetime
     

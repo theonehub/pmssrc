@@ -27,34 +27,28 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material';
-import axios from 'axios';
-import { getToken } from '../../utils/auth';
 import PageLayout from '../../layout/PageLayout';
-
-// Define interfaces
-interface ReimbursementType {
-  id: string;
-  reimbursement_type_name: string;
-  max_limit: number;
-  description: string;
-  is_active: boolean;
-}
+import reimbursementService, { ReimbursementType } from '../../services/reimbursementService';
 
 interface FormData {
-  reimbursement_type_name: string;
+  category_name: string;
   max_limit: number | string;
   description: string;
   is_active: boolean;
+  is_receipt_required: boolean;
+  is_approval_required: boolean;
 }
 
 const ReimbursementTypes: React.FC = () => {
   const [types, setTypes] = useState<ReimbursementType[]>([]);
   const [showModal, setShowModal] = useState<boolean>(false);
   const [formData, setFormData] = useState<FormData>({
-    reimbursement_type_name: '',
+    category_name: '',
     max_limit: 0,
     description: '',
     is_active: true,
+    is_approval_required: true,
+    is_receipt_required: true,
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -62,9 +56,7 @@ const ReimbursementTypes: React.FC = () => {
 
   const fetchTypes = async (): Promise<void> => {
     try {
-      const res = await axios.get('http://localhost:8000/reimbursement-types', {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await reimbursementService.getReimbursementTypes();
       setTypes(res.data);
     } catch (err: any) {
       if (process.env.NODE_ENV === 'development') {
@@ -86,16 +78,22 @@ const ReimbursementTypes: React.FC = () => {
     try {
       const submitData = {
         ...formData,
-        max_limit: Number(formData.max_limit)
+        max_limit: Number(formData.max_limit),
       };
 
       if (editingId) {
-        await axios.put(`http://localhost:8000/reimbursement-types/${editingId}`, submitData, {
-          headers: { Authorization: `Bearer ${getToken()}` },
+        await reimbursementService.updateReimbursementType(editingId, {
+          category_name: submitData.category_name,
+          description: submitData.description,
+          max_limit: submitData.max_limit
         });
       } else {
-        await axios.post('http://localhost:8000/reimbursement-types', submitData, {
-          headers: { Authorization: `Bearer ${getToken()}` },
+        await reimbursementService.createReimbursementType({
+          category_name: submitData.category_name,
+          description: submitData.description,
+          max_limit: submitData.max_limit,
+          is_receipt_required: submitData.is_receipt_required,
+          is_approval_required: submitData.is_approval_required
         });
       }
       handleCloseModal();
@@ -110,17 +108,22 @@ const ReimbursementTypes: React.FC = () => {
   };
 
   const handleEdit = (type: ReimbursementType): void => {
-    setFormData({ ...type });
-    setEditingId(type.id);
+    setFormData({ 
+      category_name: type.category_name,
+      description: type.description || '',
+      max_limit: type.max_limit || 0,
+      is_active: type.is_active,
+      is_receipt_required: type.is_receipt_required,
+      is_approval_required: type.is_approval_required
+    });
+    setEditingId(type.type_id);
     setShowModal(true);
   };
 
   const handleDelete = async (id: string): Promise<void> => {
     if (window.confirm('Are you sure you want to delete this reimbursement type?')) {
       try {
-        await axios.delete(`http://localhost:8000/reimbursement-types/${id}`, {
-          headers: { Authorization: `Bearer ${getToken()}` },
-        });
+        await reimbursementService.deleteReimbursementType(id);
         fetchTypes();
       } catch (err: any) {
         if (process.env.NODE_ENV === 'development') {
@@ -135,10 +138,12 @@ const ReimbursementTypes: React.FC = () => {
   const handleCloseModal = (): void => {
     setShowModal(false);
     setFormData({ 
-      reimbursement_type_name: '', 
+      category_name: '', 
       max_limit: 0, 
       description: '', 
-      is_active: true 
+      is_active: true,
+      is_receipt_required: true,
+      is_approval_required: true
     });
     setEditingId(null);
   };
@@ -176,6 +181,8 @@ const ReimbursementTypes: React.FC = () => {
                 <TableCell>Type Name</TableCell>
                 <TableCell>Description</TableCell>
                 <TableCell>Max Amount</TableCell>
+                <TableCell>Approval Required</TableCell>
+                <TableCell>Receipt Required</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
@@ -188,7 +195,7 @@ const ReimbursementTypes: React.FC = () => {
               ) : types.length > 0 ? (
                 types.map((type) => (
                   <TableRow 
-                    key={type.id}
+                    key={type.type_id}
                     sx={{ 
                       '&:hover': { 
                         backgroundColor: 'action.hover',
@@ -196,9 +203,41 @@ const ReimbursementTypes: React.FC = () => {
                       }
                     }}
                   >
-                    <TableCell>{type.reimbursement_type_name}</TableCell>
+                    <TableCell>{type.category_name}</TableCell>
                     <TableCell>{type.description}</TableCell>
-                    <TableCell>₹{type.max_limit.toLocaleString('en-IN')}</TableCell>
+                    <TableCell>{type.max_limit ? `₹${type.max_limit.toLocaleString('en-IN')}` : 'No Limit'}</TableCell>
+                    <TableCell>
+                      <Box
+                        component="span"
+                        sx={{
+                          display: 'inline-block',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          backgroundColor: type.is_approval_required ? 'success.main' : 'error.main',
+                          color: 'white',
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {type.is_approval_required ? 'Yes' : 'No'}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box
+                        component="span"
+                        sx={{
+                          display: 'inline-block',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          backgroundColor: type.is_receipt_required ? 'success.main' : 'error.main',
+                          color: 'white',
+                          fontSize: '0.75rem',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {type.is_receipt_required ? 'Yes' : 'No'}
+                      </Box>
+                    </TableCell>
                     <TableCell>
                       <Box
                         component="span"
@@ -230,7 +269,7 @@ const ReimbursementTypes: React.FC = () => {
                           <IconButton
                             color="error"
                             size="small"
-                            onClick={() => handleDelete(type.id)}
+                            onClick={() => handleDelete(type.type_id)}
                           >
                             <DeleteIcon />
                           </IconButton>
@@ -265,9 +304,9 @@ const ReimbursementTypes: React.FC = () => {
                   fullWidth
                   required
                   label="Name"
-                  value={formData.reimbursement_type_name}
+                  value={formData.category_name}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
-                    handleInputChange('reimbursement_type_name', e.target.value)
+                    handleInputChange('category_name', e.target.value)
                   }
                   sx={{ mb: 2 }}
                 />
@@ -294,17 +333,41 @@ const ReimbursementTypes: React.FC = () => {
                   }
                   sx={{ mb: 2 }}
                 />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={formData.is_active}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
-                        handleInputChange('is_active', e.target.checked)
-                      }
-                    />
-                  }
-                  label="Active"
-                />
+                <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={formData.is_active}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                          handleInputChange('is_active', e.target.checked)
+                        }
+                      />
+                    }
+                    label="Active"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={formData.is_approval_required}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                          handleInputChange('is_approval_required', e.target.checked)
+                        }
+                      />
+                    }
+                    label="Approval Required"
+                  />
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={formData.is_receipt_required}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                          handleInputChange('is_receipt_required', e.target.checked)
+                        }
+                      />
+                    }
+                    label="Receipt Required"
+                  />
+                </Box>
               </Box>
             </DialogContent>
             <DialogActions>

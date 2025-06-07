@@ -126,6 +126,39 @@ class UserServiceImpl(UserService):
             if request.manager_id is not None:
                 user.assign_manager(EmployeeId(request.manager_id))
             
+            # Update personal details if any personal fields are provided
+            if any([request.gender, request.date_of_birth, request.date_of_joining, 
+                   request.pan_number, request.aadhar_number, request.uan_number, request.esi_number]):
+                
+                # Create updated personal details
+                from app.domain.value_objects.personal_details import PersonalDetails
+                from app.domain.value_objects.user_credentials import Gender
+                from datetime import datetime
+                
+                # Get current personal details or create new ones
+                current_details = user.personal_details
+                
+                updated_personal_details = PersonalDetails(
+                    gender=Gender(request.gender.lower()) if request.gender else current_details.gender,
+                    date_of_birth=datetime.fromisoformat(request.date_of_birth).date() if request.date_of_birth else current_details.date_of_birth,
+                    date_of_joining=datetime.fromisoformat(request.date_of_joining).date() if request.date_of_joining else current_details.date_of_joining,
+                    mobile=request.mobile if request.mobile else current_details.mobile,
+                    pan_number=request.pan_number if request.pan_number is not None else current_details.pan_number,
+                    aadhar_number=request.aadhar_number if request.aadhar_number is not None else current_details.aadhar_number,
+                    uan_number=request.uan_number if request.uan_number is not None else current_details.uan_number,
+                    esi_number=request.esi_number if request.esi_number is not None else current_details.esi_number
+                )
+                
+                # Update the user's personal details
+                user.update_profile(
+                    personal_details=updated_personal_details,
+                    updated_by=request.updated_by
+                )
+                
+                # Also update the direct date_of_joining field on the User entity for consistency
+                if request.date_of_joining:
+                    user.date_of_joining = request.date_of_joining
+            
             # Save updated user
             updated_user = await self.user_repository.save(user, current_user.hostname)
             

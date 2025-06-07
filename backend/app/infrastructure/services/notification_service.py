@@ -83,6 +83,16 @@ class NotificationService(ABC):
     async def send_password_reset_email(self, email: str, temp_password: str) -> bool:
         """Send password reset email."""
         pass
+    
+    @abstractmethod
+    async def send_admin_notification(
+        self, 
+        subject: str, 
+        template: str = None,
+        data: Dict[str, Any] = None
+    ) -> bool:
+        """Send generic notification to administrators."""
+        pass
 
 
 class EmailNotificationService(NotificationService):
@@ -282,6 +292,46 @@ class EmailNotificationService(NotificationService):
             logger.error(f"Error sending status change notification: {e}")
             return False
     
+    async def send_admin_notification(
+        self, 
+        subject: str, 
+        template: str = None,
+        data: Dict[str, Any] = None
+    ) -> bool:
+        """Send generic notification to administrators."""
+        try:
+            # Create body from data if template specified
+            if template and data:
+                if template == "reimbursement_type_created":
+                    body = f"""
+                    Dear Administrator,
+                    
+                    A new reimbursement type has been created in the system:
+                    
+                    Type ID: {data.get('reimbursement_type_id', 'N/A')}
+                    Name: {data.get('category_name', 'N/A')}
+                    Max Limit: {data.get('max_limit', 'N/A')}
+                    Created by: {data.get('created_by', 'N/A')}
+                    
+                    Please review the new reimbursement type configuration.
+                    
+                    Best regards,
+                    PMS System
+                    """
+                else:
+                    # Generic template
+                    body = f"Notification: {subject}\n\nData: {data}"
+            else:
+                body = f"Administrative notification: {subject}"
+            
+            await self._send_email(self.admin_email, subject, body)
+            logger.info(f"Admin notification sent: {subject}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error sending admin notification: {e}")
+            return False
+    
     async def send_login_alert_notification(
         self, 
         user: User, 
@@ -435,6 +485,293 @@ class EmailNotificationService(NotificationService):
             logger.error(f"Error sending organisation updated notification: {e}")
             return False
     
+    # Missing abstract methods implementation
+    
+    async def send_notification(
+        self,
+        recipient: str,
+        subject: str,
+        message: str,
+        notification_type: str = "email",
+        template: Optional[str] = None,
+        template_data: Optional[Dict[str, Any]] = None
+    ) -> bool:
+        """Send generic notification."""
+        try:
+            await self._send_email(recipient, subject, message)
+            return True
+        except Exception as e:
+            logger.error(f"Error sending notification: {e}")
+            return False
+    
+    async def send_bulk_notification(
+        self,
+        recipients: List[str],
+        subject: str,
+        message: str,
+        notification_type: str = "email",
+        template: Optional[str] = None,
+        template_data: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, bool]:
+        """Send bulk notifications."""
+        results = {}
+        for recipient in recipients:
+            try:
+                success = await self.send_notification(recipient, subject, message, notification_type, template, template_data)
+                results[recipient] = success
+            except Exception as e:
+                logger.error(f"Error sending bulk notification to {recipient}: {e}")
+                results[recipient] = False
+        return results
+    
+    async def send_employee_welcome_notification(
+        self,
+        employee_email: str,
+        employee_name: str,
+        employee_id: str,
+        date_of_joining
+    ) -> bool:
+        """Send welcome notification to new employee."""
+        try:
+            subject = "Welcome to the Company!"
+            body = f"""
+            Dear {employee_name},
+            
+            Welcome to our company! Your account has been created.
+            
+            Employee ID: {employee_id}
+            Date of Joining: {date_of_joining}
+            
+            Please contact HR for your login credentials.
+            
+            Best regards,
+            HR Team
+            """
+            await self._send_email(employee_email, subject, body)
+            return True
+        except Exception as e:
+            logger.error(f"Error sending welcome notification: {e}")
+            return False
+    
+    async def send_leave_application_notification(
+        self,
+        manager_email: str,
+        employee_name: str,
+        leave_type: str,
+        start_date,
+        end_date,
+        reason: str
+    ) -> bool:
+        """Send leave application notification to manager."""
+        try:
+            subject = f"Leave Application from {employee_name}"
+            body = f"""
+            Dear Manager,
+            
+            {employee_name} has applied for leave:
+            
+            Leave Type: {leave_type}
+            Start Date: {start_date}
+            End Date: {end_date}
+            Reason: {reason}
+            
+            Please review and approve/reject the application.
+            
+            Best regards,
+            PMS System
+            """
+            await self._send_email(manager_email, subject, body)
+            return True
+        except Exception as e:
+            logger.error(f"Error sending leave application notification: {e}")
+            return False
+    
+    async def send_leave_approval_notification(
+        self,
+        employee_email: str,
+        employee_name: str,
+        leave_type: str,
+        start_date,
+        end_date,
+        status: str,
+        comments: Optional[str] = None
+    ) -> bool:
+        """Send leave approval/rejection notification to employee."""
+        try:
+            subject = f"Leave Application {status.title()}"
+            body = f"""
+            Dear {employee_name},
+            
+            Your leave application has been {status}:
+            
+            Leave Type: {leave_type}
+            Start Date: {start_date}
+            End Date: {end_date}
+            Status: {status.title()}
+            """
+            if comments:
+                body += f"\nComments: {comments}"
+            
+            body += """
+            
+            Best regards,
+            HR Team
+            """
+            await self._send_email(employee_email, subject, body)
+            return True
+        except Exception as e:
+            logger.error(f"Error sending leave approval notification: {e}")
+            return False
+    
+    async def send_reimbursement_notification(
+        self,
+        recipient_email: str,
+        employee_name: str,
+        reimbursement_type: str,
+        amount: float,
+        status: str,
+        comments: Optional[str] = None
+    ) -> bool:
+        """Send reimbursement notification."""
+        try:
+            subject = f"Reimbursement Request {status.title()}: {reimbursement_type}"
+            body = f"""
+            Dear {employee_name},
+            
+            Your reimbursement request has been {status}:
+            
+            Type: {reimbursement_type}
+            Amount: ₹{amount:,.2f}
+            Status: {status.title()}
+            """
+            if comments:
+                body += f"\nComments: {comments}"
+            
+            body += """
+            
+            Best regards,
+            Finance Team
+            """
+            await self._send_email(recipient_email, subject, body)
+            logger.info(f"Reimbursement notification sent to {recipient_email}")
+            return True
+        except Exception as e:
+            logger.error(f"Error sending reimbursement notification: {e}")
+            return False
+    
+    async def send_salary_change_notification(
+        self,
+        employee_email: str,
+        employee_name: str,
+        old_salary: float,
+        new_salary: float,
+        effective_date,
+        reason: str
+    ) -> bool:
+        """Send salary change notification."""
+        try:
+            subject = "Salary Change Notification"
+            body = f"""
+            Dear {employee_name},
+            
+            Your salary has been updated:
+            
+            Previous Salary: ₹{old_salary:,.2f}
+            New Salary: ₹{new_salary:,.2f}
+            Effective Date: {effective_date}
+            Reason: {reason}
+            
+            Best regards,
+            HR Team
+            """
+            await self._send_email(employee_email, subject, body)
+            return True
+        except Exception as e:
+            logger.error(f"Error sending salary change notification: {e}")
+            return False
+    
+    async def send_promotion_notification(
+        self,
+        employee_email: str,
+        employee_name: str,
+        old_designation: str,
+        new_designation: str,
+        new_salary: float,
+        effective_date
+    ) -> bool:
+        """Send promotion notification."""
+        try:
+            subject = "Congratulations on Your Promotion!"
+            body = f"""
+            Dear {employee_name},
+            
+            Congratulations! You have been promoted:
+            
+            Previous Designation: {old_designation}
+            New Designation: {new_designation}
+            New Salary: ₹{new_salary:,.2f}
+            Effective Date: {effective_date}
+            
+            Best regards,
+            HR Team
+            """
+            await self._send_email(employee_email, subject, body)
+            return True
+        except Exception as e:
+            logger.error(f"Error sending promotion notification: {e}")
+            return False
+    
+    async def send_attendance_reminder(
+        self,
+        employee_email: str,
+        employee_name: str,
+        reminder_type: str = "checkin"
+    ) -> bool:
+        """Send attendance reminder notification."""
+        try:
+            if reminder_type == "checkin":
+                subject = "Check-in Reminder"
+                body = f"""
+                Dear {employee_name},
+                
+                This is a reminder to check in for today.
+                
+                Best regards,
+                HR Team
+                """
+            else:
+                subject = "Check-out Reminder"
+                body = f"""
+                Dear {employee_name},
+                
+                This is a reminder to check out for today.
+                
+                Best regards,
+                HR Team
+                """
+            await self._send_email(employee_email, subject, body)
+            return True
+        except Exception as e:
+            logger.error(f"Error sending attendance reminder: {e}")
+            return False
+    
+    async def send_system_notification(
+        self,
+        recipient_email: str,
+        subject: str,
+        message: str,
+        priority: str = "normal"
+    ) -> bool:
+        """Send system notification."""
+        try:
+            priority_prefix = f"[{priority.upper()}] " if priority != "normal" else ""
+            full_subject = f"{priority_prefix}{subject}"
+            await self._send_email(recipient_email, full_subject, message)
+            return True
+        except Exception as e:
+            logger.error(f"Error sending system notification: {e}")
+            return False
+    
     async def _send_email(self, to_email: str, subject: str, body: str) -> bool:
         """
         Send email using configured email service.
@@ -543,6 +880,15 @@ class SMSNotificationService(NotificationService):
     
     async def send_password_reset_email(self, email: str, temp_password: str) -> bool:
         return True
+    
+    async def send_admin_notification(
+        self, 
+        subject: str, 
+        template: str = None,
+        data: Dict[str, Any] = None
+    ) -> bool:
+        """Send admin notification via SMS (placeholder)."""
+        return True
 
 
 class CompositeNotificationService(NotificationService):
@@ -615,4 +961,14 @@ class CompositeNotificationService(NotificationService):
     
     async def send_password_reset_email(self, email: str, temp_password: str) -> bool:
         results = [await service.send_password_reset_email(email, temp_password) for service in self.services]
+        return any(results)
+    
+    async def send_admin_notification(
+        self, 
+        subject: str, 
+        template: str = None,
+        data: Dict[str, Any] = None
+    ) -> bool:
+        """Send admin notification via all configured services."""
+        results = [await service.send_admin_notification(subject, template, data) for service in self.services]
         return any(results) 

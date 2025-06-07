@@ -95,19 +95,18 @@ class AuthController:
             
             await connector.connect(connection_string, **options)
             
+            db_name = "pms_"+request.hostname
             # Get users collection
-            users_collection = connector.get_collection('pms_'+request.hostname, 'users_info')
+            users_collection = connector.get_collection(db_name, 'users_info')
             
-            # Find user by username and hostname
+            # Find user by username and hostname (if hostname field exists)
             user = await users_collection.find_one({
-                "username": request.username,
-                "hostname": request.hostname
+                "username": request.username.upper()
             })
             
             if not user:
+                # Try global database as fallback
                 users_collection = connector.get_collection('pms_global_database', 'users_info')
-            
-                # Try without hostname for global users
                 user = await users_collection.find_one({
                     "username": request.username
                 })
@@ -115,7 +114,13 @@ class AuthController:
             await connector.disconnect()
             
             # Verify user exists and password is correct
-            if not user or not verify_password(request.password, user["password"]):
+            if not user:
+                logger.warning(f"User {request.username} not found in database")
+                raise ValueError("Invalid username or password")
+            
+            logger.info("Verifying password for user: " + request.username)
+            if not verify_password(request.password, user["password_hash"]):
+                logger.warning(f"Invalid password for user {request.username}")
                 raise ValueError("Invalid username or password")
             
             # Check if user is active

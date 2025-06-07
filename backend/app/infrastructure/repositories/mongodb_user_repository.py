@@ -165,7 +165,7 @@ class MongoDBUserRepository(UserRepository):
             "name": getattr(user, 'name', ''),
             "gender": safe_enum_value(safe_get_attr(user, 'personal_details.gender')),
             "date_of_birth": safe_date_conversion(safe_get_attr(user, 'personal_details.date_of_birth')),
-            "date_of_joining": safe_date_conversion(getattr(user, 'date_of_joining', None)),
+            "date_of_joining": safe_date_conversion(safe_get_attr(user, 'personal_details.date_of_joining') or getattr(user, 'date_of_joining', None)),
             "date_of_leaving": safe_date_conversion(getattr(user, 'date_of_leaving', None)),
             "mobile": safe_get_attr(user, 'personal_details.mobile'),
             "password_hash": safe_get_attr(user, 'password.hashed_value', ''),
@@ -258,6 +258,9 @@ class MongoDBUserRepository(UserRepository):
                     self.profile_completion_percentage = kwargs.get("profile_completion_percentage", 0.0)
                     self.version = kwargs.get("version", 1)
                     
+                    # Store is_active flag internally to avoid conflict with method
+                    self._is_active = kwargs.get("is_active", True)
+                    
                     # Password hash for authentication
                     self.password_hash = kwargs.get("password_hash", "")
                     
@@ -273,6 +276,17 @@ class MongoDBUserRepository(UserRepository):
                     
                 def clear_domain_events(self):
                     pass
+                
+                def is_active(self) -> bool:
+                    """Check if user is active - method to match Employee entity interface"""
+                    # Check both the is_active flag and status
+                    active_flag = getattr(self, '_is_active', True)  # Use internal property
+                    status_active = True
+                    if hasattr(self, 'status') and hasattr(self.status, 'value'):
+                        status_active = self.status.value == "active"
+                    elif hasattr(self, 'status') and isinstance(self.status, str):
+                        status_active = self.status == "active"
+                    return active_flag and status_active
             
             # Create the simple user object
             user = SimpleUser(

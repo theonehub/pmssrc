@@ -62,14 +62,14 @@ class MongoDBCompanyLeaveRepository(CompanyLeaveRepository):
         self._connection_string = connection_string
         self._client_options = client_options
         
-    async def _get_collection(self, organisation_id: Optional[str] = None):
+    async def _get_collection(self, organisation_id: str):
         """
         Get company leaves collection for specific organisation or global.
         
         Ensures database connection is established in the correct event loop.
         Uses global database for company leave data.
         """
-        db_name = "pms_"+organisation_id if organisation_id else "pms_"+self._collection_name
+        db_name = "pms_"+organisation_id
         
         # Ensure database is connected in the current event loop
         if not self.db_connector.is_connected:

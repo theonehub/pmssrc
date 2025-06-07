@@ -62,7 +62,8 @@ class ApproveReimbursementRequestUseCase:
         self,
         request_id: str,
         approval_request: ReimbursementApprovalDTO,
-        approved_by: str
+        approved_by: str,
+        hostname: str
     ) -> ReimbursementResponseDTO:
         """
         Execute reimbursement request approval workflow.
@@ -85,14 +86,14 @@ class ApproveReimbursementRequestUseCase:
             
             # Step 2: Check business rules and get entities
             reimbursement, reimbursement_type, employee = await self._check_business_rules(
-                request_id, approval_request, approved_by
+                request_id, approval_request, approved_by, hostname
             )
             
             # Step 3: Update domain objects
             await self._update_domain_objects(reimbursement, approval_request, approved_by)
             
             # Step 4: Persist to repository
-            saved_reimbursement = await self._persist_entity(reimbursement)
+            saved_reimbursement = await self._persist_entity(reimbursement, hostname)
             
             # Step 5: Publish domain events
             await self._publish_events(saved_reimbursement)
@@ -103,7 +104,7 @@ class ApproveReimbursementRequestUseCase:
             # Step 7: Return response
             response = create_reimbursement_response_from_entity(saved_reimbursement, reimbursement_type)
             
-            logger.info(f"Successfully approved reimbursement request: {saved_reimbursement.request_id}")
+            logger.info(f"Successfully approved reimbursement request: {saved_reimbursement.reimbursement_id}")
             return response
             
         except Exception as e:
@@ -121,7 +122,7 @@ class ApproveReimbursementRequestUseCase:
                 raise ReimbursementValidationError("Approved amount must be positive", "approved_amount")
             
             if approval_request.approved_amount > Decimal('9999999.99'):
-                raise ReimbursementValidationError("Approved amount cannot exceed ₹99,99,999.99", "approved_amount")
+                raise ReimbursementValidationError("Approved amount cannot exceed ₹99,99,99,999.99", "approved_amount")
         
         logger.debug("Approval request validation passed")
     
@@ -129,12 +130,13 @@ class ApproveReimbursementRequestUseCase:
         self,
         request_id: str,
         approval_request: ReimbursementApprovalDTO,
-        approved_by: str
+        approved_by: str,
+        hostname: str
     ):
         """Check business rules for reimbursement request approval"""
         
         # Rule 1: Reimbursement request must exist
-        reimbursement = await self.query_repository.get_by_id(request_id)
+        reimbursement = await self.query_repository.get_by_id(request_id, hostname)
         if not reimbursement:
             raise ReimbursementBusinessRuleError(
                 f"Reimbursement request with ID '{request_id}' not found",
@@ -149,21 +151,21 @@ class ApproveReimbursementRequestUseCase:
             )
         
         # Rule 3: Get reimbursement type for validation
-        reimbursement_type = await self.reimbursement_type_repository.get_by_code(
-            reimbursement.reimbursement_type.code
+        reimbursement_type = await self.reimbursement_type_repository.get_by_reimbursement_type_id(
+            reimbursement.reimbursement_type.reimbursement_type_id, hostname
         )
         if not reimbursement_type:
             raise ReimbursementBusinessRuleError(
-                f"Reimbursement type '{reimbursement.reimbursement_type.code}' not found",
+                f"Reimbursement type '{reimbursement.reimbursement_type.reimbursement_type_id}' not found",
                 "reimbursement_type_not_found"
             )
         
-        # Rule 4: Check approval authority
-        await self._check_approval_authority(reimbursement_type, approved_by, approval_request.approval_level)
+        # # Rule 4: Check approval authority
+        # await self._check_approval_authority(reimbursement_type, approved_by, approval_request.approval_level, hostname)
         
         # Rule 5: Validate approved amount
         if approval_request.approved_amount is not None:
-            approved_amount = ReimbursementAmount(approval_request.approved_amount, reimbursement.amount.currency)
+            approved_amount = ReimbursementAmount(approval_request.approved_amount)
             
             # Check if approved amount exceeds original request
             if approved_amount.is_greater_than(reimbursement.amount):
@@ -173,15 +175,14 @@ class ApproveReimbursementRequestUseCase:
                 )
             
             # Check if approved amount is within type limits
-            if not reimbursement_type.validate_amount(approved_amount):
-                limit_display = reimbursement_type.reimbursement_type.get_limit_display()
+            if reimbursement_type.max_limit is not None and approved_amount.amount > reimbursement_type.max_limit:
                 raise ReimbursementBusinessRuleError(
-                    f"Approved amount {approved_amount} exceeds the limit of {limit_display}",
+                    f"Approved amount {approved_amount} exceeds the limit of {reimbursement_type.max_limit}",
                     "approved_amount_exceeds_limit"
                 )
         
         # Rule 6: Get employee for notifications
-        employee = await self.employee_repository.get_by_id(reimbursement.employee_id)
+        employee = await self.employee_repository.get_by_id(reimbursement.employee_id, hostname)
         if not employee:
             raise ReimbursementBusinessRuleError(
                 f"Employee with ID '{reimbursement.employee_id.value}' not found",
@@ -195,37 +196,16 @@ class ApproveReimbursementRequestUseCase:
         self,
         reimbursement_type: ReimbursementTypeEntity,
         approved_by: str,
-        approval_level: str
+        hostname: str
     ):
         """Check if the approver has the required authority"""
         
         # Get approver details
-        approver = await self.employee_repository.get_by_id_string(approved_by)
+        approver = await self.employee_repository.get_by_id_string(approved_by, hostname)
         if not approver:
             raise ReimbursementBusinessRuleError(
                 f"Approver with ID '{approved_by}' not found",
                 "approver_not_found"
-            )
-        
-        # Check approval level requirements
-        required_approval = reimbursement_type.reimbursement_type.approval_level
-        
-        if required_approval.value == "manager" and approval_level not in ["manager", "admin", "finance"]:
-            raise ReimbursementBusinessRuleError(
-                "Manager level approval or higher is required for this reimbursement type",
-                "insufficient_approval_authority"
-            )
-        
-        if required_approval.value == "admin" and approval_level not in ["admin", "finance"]:
-            raise ReimbursementBusinessRuleError(
-                "Admin level approval or higher is required for this reimbursement type",
-                "insufficient_approval_authority"
-            )
-        
-        if required_approval.value == "finance" and approval_level != "finance":
-            raise ReimbursementBusinessRuleError(
-                "Finance level approval is required for this reimbursement type",
-                "insufficient_approval_authority"
             )
         
         # Additional business rule: Check if approver is not the same as requester
@@ -240,30 +220,26 @@ class ApproveReimbursementRequestUseCase:
     ):
         """Update domain objects with approval information"""
         
-        # Determine approved amount
+        # Determine approved amount - pass as Decimal to match approve_request signature
         approved_amount = None
         if approval_request.approved_amount is not None:
-            approved_amount = ReimbursementAmount(
-                approval_request.approved_amount,
-                reimbursement.amount.currency
-            )
+            approved_amount = approval_request.approved_amount  # Keep as Decimal
         
         # Approve the request
         reimbursement.approve_request(
             approved_by=approved_by,
             approved_amount=approved_amount,
-            approval_level=approval_request.approval_level,
             comments=approval_request.comments
         )
         
-        logger.debug(f"Updated domain object with approval: {reimbursement.request_id}")
+        logger.debug(f"Updated domain object with approval: {reimbursement.reimbursement_id}")
     
-    async def _persist_entity(self, reimbursement: Reimbursement) -> Reimbursement:
+    async def _persist_entity(self, reimbursement: Reimbursement, hostname: str) -> Reimbursement:
         """Persist entity to repository"""
         
         try:
-            saved_reimbursement = await self.command_repository.update(reimbursement)
-            logger.debug(f"Persisted approved entity: {saved_reimbursement.request_id}")
+            saved_reimbursement = await self.command_repository.update(reimbursement, hostname)
+            logger.debug(f"Persisted approved entity: {saved_reimbursement.reimbursement_id}")
             return saved_reimbursement
             
         except Exception as e:
@@ -306,44 +282,24 @@ class ApproveReimbursementRequestUseCase:
             # Get final approved amount
             final_amount = reimbursement.get_final_amount()
             
-            # Notify employee about approval
-            notification_data = {
-                "type": "reimbursement_request_approved",
-                "request_id": reimbursement.request_id,
-                "employee_id": reimbursement.employee_id.value,
-                "reimbursement_type": reimbursement_type.get_name(),
-                "requested_amount": str(reimbursement.amount),
-                "approved_amount": str(final_amount),
-                "approved_by": approved_by,
-                "approval_level": reimbursement.approval.approval_level if reimbursement.approval else "unknown",
-                "comments": reimbursement.approval.comments if reimbursement.approval else None,
-                "status": reimbursement.status.value
-            }
+            # Get employee email and name from SimpleUser object
+            employee_email = getattr(employee, "email", None) if employee else None
+            employee_name = getattr(employee, "name", "Employee") if employee else "Employee"
             
-            # Send notification to employee
-            await self.notification_service.send_employee_notification(
-                employee_id=reimbursement.employee_id.value,
-                subject=f"Reimbursement Request Approved: {reimbursement_type.get_name()}",
-                template="reimbursement_request_approved",
-                data=notification_data
-            )
-            
-            # Notify finance team for payment processing
-            await self.notification_service.send_finance_notification(
-                subject=f"Reimbursement Ready for Payment: {reimbursement_type.get_name()}",
-                template="reimbursement_payment_required",
-                data=notification_data
-            )
-            
-            # Notify approver about successful approval
-            await self.notification_service.send_employee_notification(
-                employee_id=approved_by,
-                subject=f"Reimbursement Request Approved Successfully: {reimbursement_type.get_name()}",
-                template="reimbursement_approval_confirmation",
-                data=notification_data
-            )
-            
-            logger.debug("Sent approval notifications")
+            if employee_email:
+                # Send notification to employee about approval
+                await self.notification_service.send_reimbursement_notification(
+                    recipient_email=employee_email,
+                    employee_name=employee_name,
+                    reimbursement_type=reimbursement_type.get_category_name(),
+                    amount=float(final_amount),
+                    status="approved",
+                    comments=reimbursement.approval.comments if reimbursement.approval else None
+                )
+                
+                logger.debug("Sent approval notification to employee")
+            else:
+                logger.warning("Employee email not found, skipping notification")
             
         except Exception as e:
             logger.error(f"Failed to send notifications: {str(e)}")

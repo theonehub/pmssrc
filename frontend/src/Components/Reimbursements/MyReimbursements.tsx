@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import api from '../../utils/apiUtils';
+import reimbursementService, { ReimbursementSummary, ReimbursementType, CreateReimbursementRequest } from '../../services/reimbursementService';
 import {
   Button,
   Dialog,
@@ -46,17 +46,19 @@ import {
   CloudUpload as CloudUploadIcon
 } from '@mui/icons-material';
 import PageLayout from '../../layout/PageLayout';
-import { 
-  MyReimbursementRequest, 
-  ReimbursementType, 
-  ReimbursementFormData, 
-  ToastState
-} from '../../types';
+import { ToastState } from '../../types';
+
+interface ReimbursementFormData {
+  reimbursement_type_id: string;
+  amount: string;
+  description: string;
+  file: File | null;
+}
 
 const MyReimbursements: React.FC = () => {
   // State management
-  const [requests, setRequests] = useState<MyReimbursementRequest[]>([]);
-  const [filteredRequests, setFilteredRequests] = useState<MyReimbursementRequest[]>([]);
+  const [requests, setRequests] = useState<ReimbursementSummary[]>([]);
+  const [filteredRequests, setFilteredRequests] = useState<ReimbursementSummary[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -66,11 +68,11 @@ const MyReimbursements: React.FC = () => {
   const [formData, setFormData] = useState<ReimbursementFormData>({
     reimbursement_type_id: '',
     amount: '',
-    note: '',
+    description: '',
     file: null
   });
   const [types, setTypes] = useState<ReimbursementType[]>([]);
-  const [editingRequest, setEditingRequest] = useState<MyReimbursementRequest | null>(null);
+  const [editingRequest, setEditingRequest] = useState<ReimbursementSummary | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>({
     open: false,
@@ -88,8 +90,8 @@ const MyReimbursements: React.FC = () => {
 
     try {
       const [reqRes, typesRes] = await Promise.all([
-        api.get('/reimbursements/my-requests'),
-        api.get('/reimbursement-types/')
+        reimbursementService.getMyReimbursements(),
+        reimbursementService.getReimbursementTypes()
       ]);
       setRequests(reqRes.data || []);
       setTypes(typesRes.data || []);
@@ -116,10 +118,9 @@ const MyReimbursements: React.FC = () => {
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(request =>
-        request.note?.toLowerCase().includes(searchLower) ||
         request.amount?.toString().includes(searchTerm) ||
         request.status?.toLowerCase().includes(searchLower) ||
-        types.find(type => type.id === request.reimbursement_type_id)?.name?.toLowerCase().includes(searchLower)
+        request.category_name?.toLowerCase().includes(searchLower)
       );
     }
 
@@ -157,47 +158,41 @@ const MyReimbursements: React.FC = () => {
     }
   };
 
-  const getTypeName = (typeId: string): string => {
-    const type = types.find(t => t.id === typeId);
-    return type?.name || 'Unknown';
+  const getTypeName = (request: ReimbursementSummary): string => {
+    return request.category_name || 'Unknown';
   };
 
-  const formatAmount = (amount: number): string => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
-    }).format(amount);
+  const getSelectedType = (): ReimbursementType | null => {
+    return types.find(type => type.type_id === formData.reimbursement_type_id) || null;
   };
 
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
+  const isReceiptRequired = (): boolean => {
+    const selectedType = getSelectedType();
+    return selectedType?.is_receipt_required || false;
   };
 
   // Event handlers
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     
+    // Validate receipt requirement
+    if (isReceiptRequired() && !formData.file) {
+      showToast('Receipt is required for this reimbursement type. Please upload a receipt.', 'error');
+      return;
+    }
+    
     try {
+      const requestData: CreateReimbursementRequest = {
+        employee_id: 'current_user', // This should come from auth context
+        reimbursement_type_id: formData.reimbursement_type_id,
+        amount: parseFloat(formData.amount),
+        description: formData.description
+      };
+
       if (formData.file) {
-        await api.upload(
-          '/reimbursements/with-file',
-          formData.file,
-          {
-            reimbursement_type_id: formData.reimbursement_type_id,
-            amount: formData.amount,
-            note: formData.note
-          }
-        );
+        await reimbursementService.createReimbursementRequestWithFile(requestData, formData.file);
       } else {
-        await api.post('/reimbursements', {
-          reimbursement_type_id: formData.reimbursement_type_id,
-          amount: parseFloat(formData.amount),
-          note: formData.note
-        });
+        await reimbursementService.createReimbursementRequest(requestData);
       }
       
       showToast('Reimbursement request submitted successfully!', 'success');
@@ -220,22 +215,15 @@ const MyReimbursements: React.FC = () => {
 
     try {
       if (formData.file) {
-        await api.upload(
-          `/reimbursements/${editingRequest.id}/with-file`,
-          formData.file,
-          {
-            reimbursement_type_id: formData.reimbursement_type_id,
-            amount: formData.amount,
-            note: formData.note
-          }
-        );
-      } else {
-        await api.put(`/reimbursements/${editingRequest.id}`, {
-          reimbursement_type_id: formData.reimbursement_type_id,
-          amount: parseFloat(formData.amount),
-          note: formData.note
-        });
+        // Note: File upload during edit is not supported by the backend
+        showToast('File upload during edit is not supported. Please create a new request with the file.', 'warning');
+        return;
       }
+      
+      await reimbursementService.updateReimbursementRequest(editingRequest.request_id, {
+        amount: parseFloat(formData.amount),
+        description: formData.description
+      });
       
       showToast('Reimbursement request updated successfully!', 'success');
       handleEditClose();
@@ -251,25 +239,23 @@ const MyReimbursements: React.FC = () => {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const file = e.target.files?.[0] || null;
-    
+    const file = e.target.files?.[0];
     if (file) {
-      // Check file size (5MB limit)
-      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
-      if (file.size > maxSize) {
+      // Validate file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
         showToast('File size must be less than 5MB', 'error');
         return;
       }
       
-      // Check file type
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
       if (!allowedTypes.includes(file.type)) {
-        showToast('Only JPEG, PNG, and PDF files are allowed', 'error');
+        showToast('Only JPG, PNG and PDF files are allowed', 'error');
         return;
       }
+      
+      setFormData(prev => ({ ...prev, file }));
     }
-    
-    setFormData({ ...formData, file });
   };
 
   const handleClose = (): void => {
@@ -277,7 +263,7 @@ const MyReimbursements: React.FC = () => {
     setFormData({
       reimbursement_type_id: '',
       amount: '',
-      note: '',
+      description: '',
       file: null
     });
   };
@@ -288,17 +274,19 @@ const MyReimbursements: React.FC = () => {
     setFormData({
       reimbursement_type_id: '',
       amount: '',
-      note: '',
+      description: '',
       file: null
     });
   };
 
-  const handleEdit = (request: MyReimbursementRequest): void => {
+  const handleEdit = (request: ReimbursementSummary): void => {
     setEditingRequest(request);
+    // For summary, we don't have reimbursement_type.type_id, so we'll need to find it
+    const matchingType = types.find(type => type.category_name === request.category_name);
     setFormData({
-      reimbursement_type_id: request.reimbursement_type_id,
+      reimbursement_type_id: matchingType?.type_id || '',
       amount: request.amount.toString(),
-      note: request.note || '',
+      description: '', // Summary doesn't have description, so we'll leave it empty
       file: null
     });
     setShowEditModal(true);
@@ -312,7 +300,7 @@ const MyReimbursements: React.FC = () => {
     if (!deleteConfirmId) return;
 
     try {
-      await api.delete(`/reimbursements/${deleteConfirmId}`);
+      await reimbursementService.deleteReimbursementRequest(deleteConfirmId);
       showToast('Reimbursement request deleted successfully!', 'success');
       setDeleteConfirmId(null);
       fetchData();
@@ -342,165 +330,164 @@ const MyReimbursements: React.FC = () => {
     fetchData(true);
   };
 
-  // Render helpers
   const renderTableSkeleton = (): React.ReactElement[] => (
-    Array.from({ length: 5 }).map((_, index) => (
+    Array.from({ length: 5 }, (_, index) => (
       <TableRow key={index}>
-        <TableCell><Skeleton /></TableCell>
-        <TableCell><Skeleton /></TableCell>
-        <TableCell><Skeleton /></TableCell>
-        <TableCell><Skeleton /></TableCell>
-        <TableCell><Skeleton /></TableCell>
-        <TableCell><Skeleton /></TableCell>
-        <TableCell><Skeleton width={120} /></TableCell>
+        {Array.from({ length: 7 }, (_, cellIndex) => (
+          <TableCell key={cellIndex}>
+            <Skeleton variant="text" width="100%" height={20} />
+          </TableCell>
+        ))}
       </TableRow>
     ))
   );
 
   const renderEmptyState = (): React.ReactElement => (
     <TableRow>
-      <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
-        <Box sx={{ textAlign: 'center' }}>
-          <ReceiptIcon 
-            sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} 
-          />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            {searchTerm || statusFilter !== 'all' ? 'No requests found' : 'No reimbursement requests yet'}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {searchTerm || statusFilter !== 'all'
-              ? 'Try adjusting your search or filter criteria'
-              : 'Get started by submitting your first reimbursement request'
+      <TableCell colSpan={7} align="center" sx={{ py: 8 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          gap: 2,
+          color: 'text.secondary'
+        }}>
+          <ReceiptIcon sx={{ fontSize: 64, opacity: 0.3 }} />
+          <Typography variant="h6" color="text.secondary">
+            {searchTerm || statusFilter !== 'all' 
+              ? 'No requests match your filters' 
+              : 'No reimbursement requests found'
             }
           </Typography>
-          {!searchTerm && statusFilter === 'all' && (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setShowModal(true)}
-            >
-              Submit Request
-            </Button>
-          )}
+          <Typography variant="body2" color="text.secondary">
+            {searchTerm || statusFilter !== 'all' 
+              ? 'Try adjusting your search criteria'
+              : 'Click the "+" button to create your first request'
+            }
+          </Typography>
         </Box>
       </TableCell>
     </TableRow>
   );
 
   const canEdit = (status?: string): boolean => {
-    return status?.toLowerCase() === 'pending';
+    return status?.toLowerCase() === 'draft' || status?.toLowerCase() === 'submitted';
   };
 
   const canDelete = (status?: string): boolean => {
-    return status?.toLowerCase() === 'pending';
+    return status?.toLowerCase() === 'draft';
   };
 
   return (
     <PageLayout title="My Reimbursements">
       <Box sx={{ p: 3 }}>
-        {/* Header */}
-        <Card elevation={1} sx={{ mb: 3 }}>
+        {/* Header with Actions */}
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          mb: 3 
+        }}>
+          <Typography variant="h4" component="h1" fontWeight="bold">
+            My Reimbursements
+          </Typography>
+          
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Tooltip title="Refresh" placement="top">
+              <IconButton 
+                onClick={handleRefresh}
+                disabled={refreshing}
+                color="primary"
+              >
+                <RefreshIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="New Request" placement="top">
+              <IconButton 
+                onClick={() => setShowModal(true)}
+                color="primary"
+                sx={{ 
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '&:hover': { bgcolor: 'primary.dark' }
+                }}
+              >
+                <AddIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Box>
+
+        {/* Filters */}
+        <Card sx={{ mb: 3 }}>
           <CardContent>
             <Box sx={{ 
-              display: 'grid', 
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, 
+              display: 'flex', 
               gap: 2, 
-              alignItems: 'center' 
+              flexWrap: 'wrap',
+              alignItems: 'center'
             }}>
-              <Box>
-                <Typography variant="h4" color="primary" gutterBottom>
-                  My Reimbursements
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Submit and track your reimbursement requests
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'flex-start', sm: 'flex-end' } }}>
-                <Tooltip title="Refresh">
-                  <IconButton 
-                    onClick={handleRefresh}
-                    disabled={refreshing}
-                    color="primary"
-                  >
-                    <RefreshIcon />
-                  </IconButton>
-                </Tooltip>
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={() => setShowModal(true)}
-                  size="large"
+              <TextField
+                size="small"
+                placeholder="Search requests..."
+                value={searchTerm}
+                onChange={handleSearchChange}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ minWidth: 250 }}
+              />
+              
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={statusFilter}
+                  label="Status"
+                  onChange={handleStatusFilterChange}
                 >
-                  Submit Request
-                </Button>
-              </Box>
+                  <MenuItem value="all">All Status</MenuItem>
+                  <MenuItem value="draft">Draft</MenuItem>
+                  <MenuItem value="submitted">Submitted</MenuItem>
+                  <MenuItem value="approved">Approved</MenuItem>
+                  <MenuItem value="rejected">Rejected</MenuItem>
+                </Select>
+              </FormControl>
+
+              {refreshing && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CircularProgress size={16} />
+                  <Typography variant="body2" color="text.secondary">
+                    Refreshing...
+                  </Typography>
+                </Box>
+              )}
             </Box>
           </CardContent>
         </Card>
 
-        {/* Search and Filters */}
-        <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: { xs: '1fr', md: '1fr 200px 200px' }, 
-            gap: 2, 
-            alignItems: 'center' 
-          }}>
-            <TextField
-              fullWidth
-              label="Search requests"
-              variant="outlined"
-              value={searchTerm}
-              onChange={handleSearchChange}
-              placeholder="Search by note, amount, or type..."
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <FormControl fullWidth>
-              <InputLabel>Status Filter</InputLabel>
-              <Select
-                value={statusFilter}
-                label="Status Filter"
-                onChange={handleStatusFilterChange}
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="pending">Pending</MenuItem>
-                <MenuItem value="approved">Approved</MenuItem>
-                <MenuItem value="rejected">Rejected</MenuItem>
-              </Select>
-            </FormControl>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                {loading ? 'Loading...' : `${filteredRequests.length} request${filteredRequests.length !== 1 ? 's' : ''}`}
-              </Typography>
-              {refreshing && <CircularProgress size={16} />}
-            </Box>
-          </Box>
-        </Paper>
-
-        {/* Table */}
-        <Paper elevation={1}>
+        {/* Requests Table */}
+        <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
           <TableContainer>
-            <Table stickyHeader>
+            <Table>
               <TableHead>
                 <TableRow sx={{ 
                   '& .MuiTableCell-head': { 
                     backgroundColor: 'primary.main',
                     color: 'white',
                     fontWeight: 'bold',
-                    fontSize: '0.875rem'
+                    fontSize: '0.875rem',
+                    padding: '16px'
                   }
                 }}>
                   <TableCell>Type</TableCell>
                   <TableCell>Amount</TableCell>
-                  <TableCell>Note</TableCell>
+                  <TableCell>Description</TableCell>
                   <TableCell>Status</TableCell>
-                  <TableCell>Submitted Date</TableCell>
+                  <TableCell>Date</TableCell>
                   <TableCell>Attachment</TableCell>
                   <TableCell align="center">Actions</TableCell>
                 </TableRow>
@@ -510,7 +497,7 @@ const MyReimbursements: React.FC = () => {
                   renderTableSkeleton()
                 ) : filteredRequests.length > 0 ? (
                   filteredRequests.map((request) => (
-                    <Fade in key={request.id} timeout={300}>
+                    <Fade in key={request.request_id} timeout={300}>
                       <TableRow 
                         hover
                         sx={{ 
@@ -532,18 +519,18 @@ const MyReimbursements: React.FC = () => {
                               <ReceiptIcon fontSize="small" />
                             </Avatar>
                             <Typography variant="subtitle2" fontWeight="medium">
-                              {getTypeName(request.reimbursement_type_id)}
+                              {getTypeName(request)}
                             </Typography>
                           </Box>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" fontWeight="medium" color="success.main">
-                            {formatAmount(request.amount)}
+                            {(request.amount)}
                           </Typography>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">
-                            {request.note || 'No description'}
+                            {request.description || 'No description'}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -556,19 +543,27 @@ const MyReimbursements: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2">
-                            {formatDate(request.created_at)}
+                            {request.created_at ? new Date(request.created_at).toLocaleDateString() : 'N/A'}
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          {request.file_path ? (
-                            <Tooltip title="View Attachment">
-                              <IconButton
+                          {request.receipt_file_name ? (
+                            <Tooltip title={`View Receipt: ${request.receipt_file_name}`}>
+                              <Chip
+                                label={request.receipt_file_name}
                                 size="small"
-                                color="primary"
-                                onClick={() => window.open(request.file_path, '_blank')}
-                              >
-                                <DescriptionIcon fontSize="small" />
-                              </IconButton>
+                                color="success"
+                                variant="outlined"
+                                icon={<DescriptionIcon fontSize="small" />}
+                                onClick={() => reimbursementService.downloadReceipt(request.request_id)}
+                                sx={{ 
+                                  cursor: 'pointer',
+                                  '&:hover': {
+                                    backgroundColor: 'success.light',
+                                    color: 'white'
+                                  }
+                                }}
+                              />
                             </Tooltip>
                           ) : (
                             <Typography variant="caption" color="text.secondary">
@@ -594,7 +589,7 @@ const MyReimbursements: React.FC = () => {
                                 <IconButton
                                   size="small"
                                   color="error"
-                                  onClick={() => handleDeleteClick(request.id)}
+                                  onClick={() => handleDeleteClick(request.request_id)}
                                 >
                                   <DeleteIcon fontSize="small" />
                                 </IconButton>
@@ -634,11 +629,21 @@ const MyReimbursements: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, reimbursement_type_id: e.target.value })}
                   >
                     {types.map((type) => (
-                      <MenuItem key={type.id} value={type.id}>
-                        {type.name}
+                      <MenuItem key={type.type_id} value={type.type_id}>
+                        {type.category_name}
+                        {type.is_receipt_required && (
+                          <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                            (Receipt Required)
+                          </Typography>
+                        )}
                       </MenuItem>
                     ))}
                   </Select>
+                  {formData.reimbursement_type_id && isReceiptRequired() && (
+                    <Typography variant="caption" color="warning.main" sx={{ mt: 0.5 }}>
+                      ⚠️ Receipt is required for this reimbursement type
+                    </Typography>
+                  )}
                 </FormControl>
                 <TextField
                   fullWidth
@@ -660,36 +665,38 @@ const MyReimbursements: React.FC = () => {
                   label="Note/Description"
                   multiline
                   rows={3}
-                  value={formData.note}
-                  onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Add details about your reimbursement request..."
                 />
-                <Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Button
-                      variant="outlined"
-                      component="label"
-                      startIcon={<CloudUploadIcon />}
-                      sx={{ minWidth: 150 }}
-                    >
-                      Upload File
-                      <input
-                        type="file"
-                        hidden
-                        accept=".jpg,.jpeg,.png,.pdf"
-                        onChange={handleFileChange}
-                      />
-                    </Button>
-                    {formData.file && (
-                      <Typography variant="body2" color="text.secondary">
-                        {formData.file.name}
-                      </Typography>
-                    )}
+                {isReceiptRequired() && (
+                  <Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Button
+                        variant="outlined"
+                        component="label"
+                        startIcon={<CloudUploadIcon />}
+                        sx={{ minWidth: 150 }}
+                      >
+                        Upload Receipt
+                        <input
+                          type="file"
+                          hidden
+                          accept=".jpg,.jpeg,.png,.pdf"
+                          onChange={handleFileChange}
+                        />
+                      </Button>
+                      {formData.file && (
+                        <Typography variant="body2" color="text.secondary">
+                          {formData.file.name}
+                        </Typography>
+                      )}
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      Receipt is required for this reimbursement type. Supported formats: JPG, PNG, PDF (Max 5MB)
+                    </Typography>
                   </Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    Supported formats: JPG, PNG, PDF (Max 5MB)
-                  </Typography>
-                </Box>
+                )}
               </Box>
             </form>
           </DialogContent>
@@ -700,7 +707,11 @@ const MyReimbursements: React.FC = () => {
             <Button 
               onClick={handleSubmit} 
               variant="contained"
-              disabled={!formData.reimbursement_type_id || !formData.amount}
+              disabled={
+                !formData.reimbursement_type_id || 
+                !formData.amount || 
+                (isReceiptRequired() && !formData.file)
+              }
             >
               Submit Request
             </Button>
@@ -728,11 +739,21 @@ const MyReimbursements: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, reimbursement_type_id: e.target.value })}
                   >
                     {types.map((type) => (
-                      <MenuItem key={type.id} value={type.id}>
-                        {type.name}
+                      <MenuItem key={type.type_id} value={type.type_id}>
+                        {type.category_name}
+                        {type.is_receipt_required && (
+                          <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                            (Receipt Required)
+                          </Typography>
+                        )}
                       </MenuItem>
                     ))}
                   </Select>
+                  {formData.reimbursement_type_id && isReceiptRequired() && (
+                    <Typography variant="caption" color="warning.main" sx={{ mt: 0.5 }}>
+                      ⚠️ Receipt is required for this reimbursement type
+                    </Typography>
+                  )}
                 </FormControl>
                 <TextField
                   fullWidth
@@ -754,36 +775,38 @@ const MyReimbursements: React.FC = () => {
                   label="Note/Description"
                   multiline
                   rows={3}
-                  value={formData.note}
-                  onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Add details about your reimbursement request..."
                 />
-                <Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Button
-                      variant="outlined"
-                      component="label"
-                      startIcon={<CloudUploadIcon />}
-                      sx={{ minWidth: 150 }}
-                    >
-                      Upload New File
-                      <input
-                        type="file"
-                        hidden
-                        accept=".jpg,.jpeg,.png,.pdf"
-                        onChange={handleFileChange}
-                      />
-                    </Button>
-                    {formData.file && (
-                      <Typography variant="body2" color="text.secondary">
-                        {formData.file.name}
-                      </Typography>
-                    )}
+                {isReceiptRequired() && (
+                  <Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Button
+                        variant="outlined"
+                        component="label"
+                        startIcon={<CloudUploadIcon />}
+                        sx={{ minWidth: 150 }}
+                      >
+                        Upload New Receipt
+                        <input
+                          type="file"
+                          hidden
+                          accept=".jpg,.jpeg,.png,.pdf"
+                          onChange={handleFileChange}
+                        />
+                      </Button>
+                      {formData.file && (
+                        <Typography variant="body2" color="text.secondary">
+                          {formData.file.name}
+                        </Typography>
+                      )}
+                    </Box>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      Note: File upload during edit is not supported. Please create a new request to upload receipts.
+                    </Typography>
                   </Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    Supported formats: JPG, PNG, PDF (Max 5MB)
-                  </Typography>
-                </Box>
+                )}
               </Box>
             </form>
           </DialogContent>
@@ -829,6 +852,7 @@ const MyReimbursements: React.FC = () => {
           <Alert 
             onClose={handleCloseToast} 
             severity={toast.severity}
+            variant="filled"
             sx={{ width: '100%' }}
           >
             {toast.message}

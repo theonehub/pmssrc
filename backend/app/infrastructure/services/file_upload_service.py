@@ -91,6 +91,11 @@ class LocalFileUploadService(FileUploadService):
                 "allowed_extensions": [".jpg", ".jpeg", ".png", ".pdf"],
                 "max_size_mb": 10,
                 "subfolder": "reimbursements"
+            },
+            "receipt": {
+                "allowed_extensions": [".jpg", ".jpeg", ".png", ".pdf"],
+                "max_size_mb": 10,
+                "subfolder": "receipts"
             }
         }
     
@@ -419,4 +424,5 @@ class DocumentType:
     PHOTO = "photo"
     PAN = "pan"
     AADHAR = "aadhar"
-    REIMBURSEMENT = "reimbursement" 
+    REIMBURSEMENT = "reimbursement"
+    RECEIPT = "receipt" 

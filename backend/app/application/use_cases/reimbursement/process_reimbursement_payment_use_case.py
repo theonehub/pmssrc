@@ -63,7 +63,8 @@ class ProcessReimbursementPaymentUseCase:
         self,
         request_id: str,
         payment_request: ReimbursementPaymentDTO,
-        processed_by: str
+        processed_by: str,
+        hostname: str
     ) -> ReimbursementResponseDTO:
         """
         Execute reimbursement payment processing workflow.
@@ -87,7 +88,7 @@ class ProcessReimbursementPaymentUseCase:
             
             # Step 2: Check business rules and get entities
             reimbursement, reimbursement_type, employee = await self._check_business_rules(
-                request_id, payment_request, processed_by
+                request_id, payment_request, processed_by, hostname
             )
             
             # Step 3: Process payment (if payment service available)
@@ -101,7 +102,7 @@ class ProcessReimbursementPaymentUseCase:
             )
             
             # Step 5: Persist to repository
-            saved_reimbursement = await self._persist_entity(reimbursement)
+            saved_reimbursement = await self._persist_entity(reimbursement, hostname)
             
             # Step 6: Publish domain events
             await self._publish_events(saved_reimbursement)
@@ -147,12 +148,13 @@ class ProcessReimbursementPaymentUseCase:
         self,
         request_id: str,
         payment_request: ReimbursementPaymentDTO,
-        processed_by: str
+        processed_by: str,
+        hostname: str
     ):
         """Check business rules for reimbursement payment processing"""
         
         # Rule 1: Reimbursement request must exist
-        reimbursement = await self.query_repository.get_by_id(request_id)
+        reimbursement = await self.query_repository.get_by_id(request_id, hostname)
         if not reimbursement:
             raise ReimbursementBusinessRuleError(
                 f"Reimbursement request with ID '{request_id}' not found",
@@ -175,7 +177,7 @@ class ProcessReimbursementPaymentUseCase:
         
         # Rule 4: Get reimbursement type for validation
         reimbursement_type = await self.reimbursement_type_repository.get_by_code(
-            reimbursement.reimbursement_type.code
+            reimbursement.reimbursement_type.code, hostname
         )
         if not reimbursement_type:
             raise ReimbursementBusinessRuleError(
@@ -184,10 +186,10 @@ class ProcessReimbursementPaymentUseCase:
             )
         
         # Rule 5: Check payment authority
-        await self._check_payment_authority(processed_by)
+        await self._check_payment_authority(processed_by, hostname)
         
         # Rule 6: Get employee for payment processing
-        employee = await self.employee_repository.get_by_id(reimbursement.employee_id)
+        employee = await self.employee_repository.get_by_id(reimbursement.employee_id, hostname)
         if not employee:
             raise ReimbursementBusinessRuleError(
                 f"Employee with ID '{reimbursement.employee_id.value}' not found",
@@ -205,11 +207,11 @@ class ProcessReimbursementPaymentUseCase:
         logger.debug("Business rules validation passed")
         return reimbursement, reimbursement_type, employee
     
-    async def _check_payment_authority(self, processed_by: str):
+    async def _check_payment_authority(self, processed_by: str, hostname: str):
         """Check if the processor has the required authority"""
         
         # Get processor details
-        processor = await self.employee_repository.get_by_id_string(processed_by)
+        processor = await self.employee_repository.get_by_id_string(processed_by, hostname)
         if not processor:
             raise ReimbursementBusinessRuleError(
                 f"Processor with ID '{processed_by}' not found",
@@ -291,11 +293,11 @@ class ProcessReimbursementPaymentUseCase:
         
         logger.debug(f"Updated domain object with payment: {reimbursement.request_id}")
     
-    async def _persist_entity(self, reimbursement: Reimbursement) -> Reimbursement:
+    async def _persist_entity(self, reimbursement: Reimbursement, hostname: str) -> Reimbursement:
         """Persist entity to repository"""
         
         try:
-            saved_reimbursement = await self.command_repository.update(reimbursement)
+            saved_reimbursement = await self.command_repository.update(reimbursement, hostname)
             logger.debug(f"Persisted paid entity: {saved_reimbursement.request_id}")
             return saved_reimbursement
             
@@ -344,7 +346,7 @@ class ProcessReimbursementPaymentUseCase:
                 "type": "reimbursement_payment_processed",
                 "request_id": reimbursement.request_id,
                 "employee_id": reimbursement.employee_id.value,
-                "reimbursement_type": reimbursement_type.get_name(),
+                "reimbursement_type": reimbursement_type.get_category_name(),
                 "paid_amount": str(final_amount),
                 "payment_method": reimbursement.payment.payment_method.value if reimbursement.payment else "unknown",
                 "payment_reference": reimbursement.payment.payment_reference if reimbursement.payment else None,
@@ -355,14 +357,14 @@ class ProcessReimbursementPaymentUseCase:
             # Send notification to employee
             await self.notification_service.send_employee_notification(
                 employee_id=reimbursement.employee_id.value,
-                subject=f"Reimbursement Payment Processed: {reimbursement_type.get_name()}",
+                subject=f"Reimbursement Payment Processed: {reimbursement_type.get_category_name()}",
                 template="reimbursement_payment_processed",
                 data=notification_data
             )
             
             # Notify finance team about successful payment
             await self.notification_service.send_finance_notification(
-                subject=f"Reimbursement Payment Completed: {reimbursement_type.get_name()}",
+                subject=f"Reimbursement Payment Completed: {reimbursement_type.get_category_name()}",
                 template="reimbursement_payment_completed",
                 data=notification_data
             )
@@ -370,7 +372,7 @@ class ProcessReimbursementPaymentUseCase:
             # Notify processor about successful payment
             await self.notification_service.send_employee_notification(
                 employee_id=processed_by,
-                subject=f"Reimbursement Payment Processed Successfully: {reimbursement_type.get_name()}",
+                subject=f"Reimbursement Payment Processed Successfully: {reimbursement_type.get_category_name()}",
                 template="reimbursement_payment_confirmation",
                 data=notification_data
             )

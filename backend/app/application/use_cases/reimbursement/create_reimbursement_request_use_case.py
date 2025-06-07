@@ -6,8 +6,9 @@ Business logic for creating reimbursement requests
 import logging
 from typing import Optional
 from decimal import Decimal
+from datetime import datetime
 
-from app.domain.entities.reimbursement import Reimbursement
+from app.domain.entities.reimbursement import Reimbursement, ReimbursementStatus
 from app.domain.entities.reimbursement_type_entity import ReimbursementTypeEntity
 from app.domain.value_objects.employee_id import EmployeeId
 from app.domain.value_objects.reimbursement_amount import ReimbursementAmount
@@ -62,6 +63,7 @@ class CreateReimbursementRequestUseCase:
     async def execute(
         self,
         request: ReimbursementRequestCreateDTO,
+        hostname: str,
         created_by: str = "system"
     ) -> ReimbursementResponseDTO:
         """
@@ -84,13 +86,13 @@ class CreateReimbursementRequestUseCase:
             await self._validate_request(request)
             
             # Step 2: Check business rules
-            employee, reimbursement_type = await self._check_business_rules(request)
+            employee, reimbursement_type = await self._check_business_rules(request, hostname)
             
             # Step 3: Create domain objects
-            reimbursement = await self._create_domain_objects(request, created_by)
+            reimbursement = await self._create_domain_objects(request, created_by, hostname)
             
             # Step 4: Persist to repository
-            saved_reimbursement = await self._persist_entity(reimbursement)
+            saved_reimbursement = await self._persist_entity(reimbursement, hostname)
             
             # Step 5: Publish domain events
             await self._publish_events(saved_reimbursement)
@@ -101,7 +103,7 @@ class CreateReimbursementRequestUseCase:
             # Step 7: Return response
             response = create_reimbursement_response_from_entity(saved_reimbursement, reimbursement_type)
             
-            logger.info(f"Successfully created reimbursement request: {saved_reimbursement.request_id}")
+            logger.info(f"Successfully created reimbursement request: {saved_reimbursement.reimbursement_id}")
             return response
             
         except Exception as e:
@@ -125,26 +127,26 @@ class CreateReimbursementRequestUseCase:
         
         logger.debug("Request validation passed")
     
-    async def _check_business_rules(self, request: ReimbursementRequestCreateDTO):
+    async def _check_business_rules(self, request: ReimbursementRequestCreateDTO, hostname: str):
         """Check business rules for reimbursement request creation"""
         
         # Rule 1: Employee must exist and be active
         employee_id = EmployeeId.from_string(request.employee_id)
-        employee = await self.employee_repository.get_by_id(employee_id)
+        employee = await self.employee_repository.get_by_id(employee_id, hostname)
         if not employee:
             raise ReimbursementBusinessRuleError(
                 f"Employee with ID '{request.employee_id}' not found",
                 "employee_not_found"
             )
         
-        if not employee.is_active():
-            raise ReimbursementBusinessRuleError(
-                f"Employee '{request.employee_id}' is not active",
-                "employee_inactive"
-            )
+        # if not employee.is_active():
+        #     raise ReimbursementBusinessRuleError(
+        #         f"Employee '{request.employee_id}' is not active",
+        #         "employee_inactive"
+        #     )
         
         # Rule 2: Reimbursement type must exist and be active
-        reimbursement_type = await self.reimbursement_type_repository.get_by_id(request.reimbursement_type_id)
+        reimbursement_type = await self.reimbursement_type_repository.get_by_id(request.reimbursement_type_id, hostname)
         if not reimbursement_type:
             raise ReimbursementBusinessRuleError(
                 f"Reimbursement type with ID '{request.reimbursement_type_id}' not found",
@@ -158,104 +160,74 @@ class CreateReimbursementRequestUseCase:
             )
         
         # Rule 3: Check amount limits
-        amount = ReimbursementAmount(request.amount, request.currency)
-        if not reimbursement_type.validate_amount(amount):
-            limit_display = reimbursement_type.reimbursement_type.get_limit_display()
+        if reimbursement_type.max_limit is not None and request.amount > reimbursement_type.max_limit:
             raise ReimbursementBusinessRuleError(
-                f"Amount {amount} exceeds the limit of {limit_display}",
+                f"Amount {request.amount} exceeds the limit of {reimbursement_type.max_limit}",
                 "amount_exceeds_limit"
             )
         
         # Rule 4: Check period-based limits (if applicable)
-        await self._check_period_limits(employee_id, reimbursement_type, amount)
+        # TODO: Implement period-based limits check if needed
+        # await self._check_period_limits(employee_id, reimbursement_type, amount)
         
         logger.debug("Business rules validation passed")
         return employee, reimbursement_type
     
-    async def _check_period_limits(
-        self,
-        employee_id: EmployeeId,
-        reimbursement_type: ReimbursementTypeEntity,
-        amount: ReimbursementAmount
-    ):
-        """Check period-based spending limits"""
-        
-        if not reimbursement_type.reimbursement_type.has_limit():
-            return
-        
-        from datetime import datetime, timedelta
-        
-        # Calculate period start based on frequency
-        frequency = reimbursement_type.reimbursement_type.frequency
-        now = datetime.utcnow()
-        
-        if frequency.value == "daily":
-            start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        elif frequency.value == "weekly":
-            start_date = now - timedelta(days=now.weekday())
-            start_date = start_date.replace(hour=0, minute=0, second=0, microsecond=0)
-        elif frequency.value == "monthly":
-            start_date = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        elif frequency.value == "quarterly":
-            quarter_start_month = ((now.month - 1) // 3) * 3 + 1
-            start_date = now.replace(month=quarter_start_month, day=1, hour=0, minute=0, second=0, microsecond=0)
-        elif frequency.value == "annually":
-            start_date = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-        else:
-            return  # No period limit for unlimited frequency
-        
-        # Get total spent in this period
-        total_spent = await self.query_repository.get_total_amount_by_employee_and_type(
-            employee_id.value,
-            reimbursement_type.type_id,
-            start_date,
-            now
-        )
-        
-        # Check if new amount would exceed limit
-        limit_amount = ReimbursementAmount(reimbursement_type.reimbursement_type.max_limit, amount.currency)
-        current_spent = ReimbursementAmount(total_spent, amount.currency)
-        total_with_new = current_spent.add(amount)
-        
-        if total_with_new.is_greater_than(limit_amount):
-            raise ReimbursementBusinessRuleError(
-                f"Adding this amount would exceed the {frequency.value} limit of {limit_amount}. "
-                f"Current spent: {current_spent}, Requested: {amount}",
-                "period_limit_exceeded"
-            )
-    
     async def _create_domain_objects(
         self,
         request: ReimbursementRequestCreateDTO,
-        created_by: str
+        created_by: str,
+        hostname: str
     ) -> Reimbursement:
         """Create domain objects from request"""
         
         employee_id = EmployeeId.from_string(request.employee_id)
         
-        # Get reimbursement type for domain object creation
-        reimbursement_type = await self.reimbursement_type_repository.get_by_id(request.reimbursement_type_id)
+        # Get reimbursement type entity for domain object creation
+        reimbursement_type_entity = await self.reimbursement_type_repository.get_by_id(request.reimbursement_type_id, hostname)
         
-        amount = ReimbursementAmount(request.amount, request.currency)
+        # Convert entity to value object for domain entity creation
+        from app.domain.value_objects.reimbursement_type import ReimbursementType as ReimbursementTypeVO
+        reimbursement_type_vo = ReimbursementTypeVO(
+            reimbursement_type_id=reimbursement_type_entity.reimbursement_type_id,
+            category_name=reimbursement_type_entity.category_name,
+            description=reimbursement_type_entity.description,
+            max_limit=reimbursement_type_entity.max_limit,
+            is_approval_required=reimbursement_type_entity.is_approval_required,
+            is_receipt_required=reimbursement_type_entity.is_receipt_required,
+            is_active=reimbursement_type_entity.is_active
+        )
         
-        # Create reimbursement entity
+        # Create reimbursement entity (amount should be Decimal, not ReimbursementAmount)
         reimbursement = Reimbursement.create_request(
             employee_id=employee_id,
-            reimbursement_type=reimbursement_type.reimbursement_type,
-            amount=amount,
+            reimbursement_type=reimbursement_type_vo,
+            amount=request.amount,  # Pass Decimal directly
             description=request.description,
             created_by=created_by
         )
         
-        logger.debug(f"Created domain entity: {reimbursement.request_id}")
+        # Submit the request immediately if no receipt is required
+        # If receipt is required, it will be submitted after receipt upload
+        if not reimbursement_type_entity.is_receipt_required:
+            reimbursement.submit_request(submitted_by=created_by)
+            logger.debug(f"Created and submitted domain entity: {reimbursement.reimbursement_id}")
+        else:
+            # For receipt-required types, set submitted_at manually since it's created for immediate submission
+            # but validation will prevent submit_request() from being called
+            reimbursement.status = ReimbursementStatus.SUBMITTED
+            reimbursement.submitted_at = datetime.now()
+            reimbursement.updated_at = datetime.now()
+            logger.debug(f"Created domain entity (pending receipt): {reimbursement.reimbursement_id}")
+        
         return reimbursement
     
-    async def _persist_entity(self, reimbursement: Reimbursement) -> Reimbursement:
+    async def _persist_entity(self, reimbursement: Reimbursement, hostname: str) -> Reimbursement:
         """Persist entity to repository"""
         
         try:
-            saved_reimbursement = await self.command_repository.save(reimbursement)
-            logger.debug(f"Persisted entity: {saved_reimbursement.request_id}")
+            saved_reimbursement = await self.command_repository.save(reimbursement, hostname)
+            logger.debug(f"Persisted entity: {saved_reimbursement.reimbursement_id}")
             return saved_reimbursement
             
         except Exception as e:
@@ -298,29 +270,29 @@ class CreateReimbursementRequestUseCase:
             # Notify employee about request creation
             notification_data = {
                 "type": "reimbursement_request_created",
-                "request_id": reimbursement.request_id,
+                "request_id": reimbursement.reimbursement_id,
                 "employee_id": reimbursement.employee_id.value,
-                "reimbursement_type": reimbursement_type.get_name(),
+                "reimbursement_type": reimbursement_type.get_category_name(),
                 "amount": str(reimbursement.amount),
                 "status": reimbursement.status.value,
                 "created_by": created_by,
-                "requires_receipt": reimbursement_type.requires_receipt(),
-                "auto_approved": reimbursement_type.is_auto_approved()
+                "is_receipt_required": reimbursement_type.is_receipt_required,
+                "auto_approved": not reimbursement_type.is_approval_required
             }
             
             # Send notification to employee
             await self.notification_service.send_employee_notification(
                 employee_id=reimbursement.employee_id.value,
-                subject=f"Reimbursement Request Created: {reimbursement_type.get_name()}",
+                subject=f"Reimbursement Request Created: {reimbursement_type.get_category_name()}",
                 template="reimbursement_request_created",
                 data=notification_data
             )
             
             # If requires approval, notify managers
-            if reimbursement_type.requires_manager_approval() or reimbursement_type.requires_admin_approval():
+            if reimbursement_type.is_approval_required:
                 await self.notification_service.send_manager_notification(
                     employee_id=reimbursement.employee_id.value,
-                    subject=f"Reimbursement Request Pending Approval: {reimbursement_type.get_name()}",
+                    subject=f"Reimbursement Request Pending Approval: {reimbursement_type.get_category_name()}",
                     template="reimbursement_approval_required",
                     data=notification_data
                 )

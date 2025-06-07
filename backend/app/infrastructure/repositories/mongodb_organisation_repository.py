@@ -80,17 +80,17 @@ class MongoDBOrganisationRepository(OrganisationRepository):
         
         # Ensure database is connected in the current event loop
         if not self.db_connector.is_connected:
-            logger.debug("Database not connected, establishing connection...")
+            logger.info("Database not connected, establishing connection...")
             
             try:
                 # Use stored connection configuration or fallback to config functions
                 if self._connection_string and self._client_options:
-                    logger.debug("Using stored connection parameters from repository configuration")
+                    logger.info("Using stored connection parameters from repository configuration")
                     connection_string = self._connection_string
                     options = self._client_options
                 else:
                     # Fallback to config functions if connection config not set
-                    logger.debug("Loading connection parameters from mongodb_config")
+                    logger.info("Loading connection parameters from mongodb_config")
                     connection_string = get_mongodb_connection_string()
                     options = get_mongodb_client_options()
                 
@@ -105,7 +105,7 @@ class MongoDBOrganisationRepository(OrganisationRepository):
         try:
             db = self.db_connector.get_database(db_name)
             collection = db[self._collection_name]
-            logger.debug(f"Successfully retrieved collection: {self._collection_name} from database: {db_name}")
+            logger.info(f"Successfully retrieved collection: {self._collection_name} from database: {db_name}")
             return collection
             
         except Exception as e:
@@ -350,7 +350,7 @@ class MongoDBOrganisationRepository(OrganisationRepository):
                     await self._publish_events(organisation.get_domain_events())
                     organisation.clear_domain_events()
                 
-                logger.debug(f"Updated organisation: {organisation.organisation_id}")
+                logger.info(f"Updated organisation: {organisation.organisation_id}")
                 return organisation
             else:
                 raise Exception(f"Organisation {organisation.organisation_id} not found for update")

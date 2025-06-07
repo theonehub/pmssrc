@@ -16,10 +16,11 @@ from app.application.dto.employee_leave_dto import (
 )
 from app.application.interfaces.repositories.employee_leave_repository import (
     EmployeeLeaveQueryRepository,
-    EmployeeLeaveAnalyticsRepository,
-    EmployeeLeaveBalanceRepository
+    EmployeeLeaveAnalyticsRepository
 )
-from app.domain.entities.employee_leave import EmployeeLeave, LeaveStatus
+from app.domain.entities.employee_leave import EmployeeLeave
+from app.application.dto.employee_leave_dto import LeaveStatus
+from datetime import date
 from app.domain.value_objects.employee_id import EmployeeId
 
 
@@ -38,12 +39,10 @@ class GetEmployeeLeavesUseCase:
     def __init__(
         self,
         query_repository: EmployeeLeaveQueryRepository,
-        analytics_repository: Optional[EmployeeLeaveAnalyticsRepository] = None,
-        balance_repository: Optional[EmployeeLeaveBalanceRepository] = None
+        analytics_repository: Optional[EmployeeLeaveAnalyticsRepository] = None
     ):
         self._query_repository = query_repository
         self._analytics_repository = analytics_repository
-        self._balance_repository = balance_repository
         self._logger = logging.getLogger(__name__)
     
     def get_employee_leave_by_id(self, leave_id: str) -> Optional[EmployeeLeaveResponseDTO]:
@@ -214,7 +213,7 @@ class GetEmployeeLeavesUseCase:
             self._logger.error(f"Failed to search employee leaves: {str(e)}")
             raise Exception(f"Failed to search employee leaves: {str(e)}")
     
-    def get_employee_leaves_by_month(
+    async def get_employee_leaves_by_month(
         self, 
         employee_id: str,
         month: int,
@@ -235,8 +234,8 @@ class GetEmployeeLeavesUseCase:
         try:
             self._logger.info(f"Retrieving leaves for employee {employee_id} in {month}/{year}")
             
-            employee_id = EmployeeId(employee_id)
-            employee_leaves = self._query_repository.get_by_month(employee_id, month, year)
+            # Call the repository method directly with string employee_id
+            employee_leaves = await self._query_repository.get_by_month(employee_id, month, year)
             
             return [
                 EmployeeLeaveResponseDTO.from_entity(leave)
@@ -261,11 +260,8 @@ class GetEmployeeLeavesUseCase:
         try:
             self._logger.info(f"Retrieving leave balance for employee: {employee_id}")
             
-            if not self._balance_repository:
-                raise Exception("Balance repository not available")
-            
-            employee_id = EmployeeId(employee_id)
-            leave_balances = self._balance_repository.get_leave_balance(employee_id)
+            # Balance repository not available in current implementation
+            raise Exception("Leave balance functionality not implemented")
             
             return EmployeeLeaveBalanceDTO(
                 employee_id=employee_id,
@@ -329,7 +325,7 @@ class GetEmployeeLeavesUseCase:
             self._logger.error(f"Failed to retrieve leave analytics: {str(e)}")
             raise Exception(f"Failed to retrieve leave analytics: {str(e)}")
     
-    def calculate_lwp_for_month(
+    async def calculate_lwp_for_month(
         self,
         employee_id: str,
         month: int,

@@ -59,7 +59,7 @@ class ImprovedBaseRepository(ABC, Generic[T]):
         """
         # Ensure database connection
         if not self.db_connector.is_connected:
-            logger.debug("Database not connected, establishing connection...")
+            logger.info("Database not connected, establishing connection...")
             
             try:
                 if self._connection_string and self._client_options:
@@ -84,7 +84,7 @@ class ImprovedBaseRepository(ABC, Generic[T]):
         try:
             db = self.db_connector.get_database(db_name)
             collection = db[self._collection_name]
-            logger.debug(f"Retrieved collection: {self._collection_name} from database: {db_name}")
+            logger.info(f"Retrieved collection: {self._collection_name} from database: {db_name}")
             return collection
             
         except Exception as e:
@@ -151,7 +151,7 @@ class ImprovedBaseRepository(ABC, Generic[T]):
                 await self._publish_events(entity.get_domain_events())
                 entity.clear_domain_events()
             
-            logger.debug(f"Saved entity: {type(entity).__name__}")
+            logger.info(f"Saved entity: {type(entity).__name__}")
             return entity
             
         except Exception as e:

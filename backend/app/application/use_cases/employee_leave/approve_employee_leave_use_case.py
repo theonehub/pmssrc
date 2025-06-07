@@ -15,15 +15,13 @@ from app.application.dto.employee_leave_dto import (
 )
 from app.application.interfaces.repositories.employee_leave_repository import (
     EmployeeLeaveCommandRepository,
-    EmployeeLeaveQueryRepository,
-    EmployeeLeaveBalanceRepository
+    EmployeeLeaveQueryRepository
 )
 from app.application.interfaces.services.event_publisher import EventPublisher
 from app.application.interfaces.services.email_service import EmailService
-from app.domain.entities.employee_leave import EmployeeLeave, LeaveStatus
-from app.infrastructure.services.legacy_migration_service import (
-    get_user_by_employee_id, update_user_leave_balance
-)
+from app.domain.entities.employee_leave import EmployeeLeave
+from app.application.dto.employee_leave_dto import LeaveStatus
+from app.auth.auth import get_user_by_employee_id
 
 
 class ApproveEmployeeLeaveUseCase:
@@ -42,13 +40,11 @@ class ApproveEmployeeLeaveUseCase:
         self,
         command_repository: EmployeeLeaveCommandRepository,
         query_repository: EmployeeLeaveQueryRepository,
-        balance_repository: EmployeeLeaveBalanceRepository,
-        event_publisher: EventPublisher,
+        event_publisher: Optional[EventPublisher] = None,
         email_service: Optional[EmailService] = None
     ):
         self._command_repository = command_repository
         self._query_repository = query_repository
-        self._balance_repository = balance_repository
         self._event_publisher = event_publisher
         self._email_service = email_service
         self._logger = logging.getLogger(__name__)
@@ -222,21 +218,11 @@ class ApproveEmployeeLeaveUseCase:
         """Deduct leave balance from employee"""
         
         try:
-            # Update leave balance using legacy service
-            success = await update_user_leave_balance(
-                str(employee_leave.employee_id),
-                employee_leave.leave_type.code,
-                -employee_leave.working_days_count,  # Negative to deduct
-                hostname
+            # TODO: Implement leave balance deduction
+            # For now, just log that the leave was approved
+            self._logger.info(
+                f"Leave approved - balance deduction not implemented for employee: {employee_leave.employee_id}"
             )
-            
-            if not success:
-                self._logger.warning(f"Failed to update leave balance for employee: {employee_leave.employee_id}")
-            else:
-                self._logger.info(
-                    f"Deducted {employee_leave.working_days_count} {employee_leave.leave_type.code} "
-                    f"days from employee: {employee_leave.employee_id}"
-                )
                 
         except Exception as e:
             self._logger.error(f"Error updating leave balance: {str(e)}")

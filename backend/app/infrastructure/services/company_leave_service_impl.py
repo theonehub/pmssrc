@@ -134,7 +134,7 @@ class CompanyLeaveServiceImpl(CompanyLeaveService):
             )
             
             # Save to database
-            success = await self.repository.save(company_leave)
+            success = await self.repository.save(company_leave, current_user.hostname)
             if not success:
                 raise Exception("Failed to save company leave to database")
             
@@ -254,7 +254,7 @@ class CompanyLeaveServiceImpl(CompanyLeaveService):
     ) -> Optional[CompanyLeaveResponseDTO]:
         """Get company leave by ID."""
         try:
-            self.logger.debug(f"Getting company leave {leave_id} from organisation {current_user.hostname}")
+            self.logger.info(f"Getting company leave {leave_id} from organisation {current_user.hostname}")
             # Using repository directly instead of use case
             leave = await self.repository.get_by_id(leave_id, current_user.hostname)
             return CompanyLeaveResponseDTO.from_entity(leave) if leave else None
@@ -269,7 +269,7 @@ class CompanyLeaveServiceImpl(CompanyLeaveService):
     ) -> Optional[CompanyLeaveResponseDTO]:
         """Get company leave by type."""
         try:
-            self.logger.debug(f"Getting company leave by type {leave_type} from organisation {current_user.hostname}")
+            self.logger.info(f"Getting company leave by type {leave_type} from organisation {current_user.hostname}")
             leave = await self.repository.get_by_leave_type(leave_type, current_user.hostname)
             return CompanyLeaveResponseDTO.from_entity(leave) if leave else None
         except Exception as e:
@@ -283,14 +283,14 @@ class CompanyLeaveServiceImpl(CompanyLeaveService):
     ) -> CompanyLeaveListResponseDTO:
         """List company leaves with optional filters."""
         try:
-            self.logger.debug(f"Listing company leaves in organisation {current_user.hostname if current_user else 'global'}")
+            self.logger.info(f"Listing company leaves in organisation {current_user.hostname if current_user else 'global'}")
             
             # Use filters if provided, otherwise get all active leaves
             if filters:
-                leaves = await self.repository.list_with_filters(filters)
-                total = await self.repository.count_with_filters(filters)
+                leaves = await self.repository.list_with_filters(filters, current_user.hostname)
+                total = await self.repository.count_with_filters(filters, current_user.hostname)
             else:
-                leaves = await self.repository.get_all_active()
+                leaves = await self.repository.get_all_active(current_user.hostname)
                 total = len(leaves)
             
             # Convert to response DTOs
@@ -318,7 +318,7 @@ class CompanyLeaveServiceImpl(CompanyLeaveService):
     ) -> List[CompanyLeaveResponseDTO]:
         """Get all active company leave policies."""
         try:
-            self.logger.debug(f"Getting active leaves from organisation {current_user.hostname}")
+            self.logger.info(f"Getting active leaves from organisation {current_user.hostname}")
             leaves = await self.repository.get_active_leaves(current_user.hostname)
             return [CompanyLeaveResponseDTO.from_entity(leave) for leave in leaves]
         except Exception as e:
@@ -332,7 +332,7 @@ class CompanyLeaveServiceImpl(CompanyLeaveService):
     ) -> List[CompanyLeaveResponseDTO]:
         """Get company leaves by category."""
         try:
-            self.logger.debug(f"Getting leaves by category {category} from organisation {current_user.hostname}")
+            self.logger.info(f"Getting leaves by category {category} from organisation {current_user.hostname}")
             leaves = await self.repository.get_by_category(category, current_user.hostname)
             return [CompanyLeaveResponseDTO.from_entity(leave) for leave in leaves]
         except Exception as e:
@@ -348,7 +348,7 @@ class CompanyLeaveServiceImpl(CompanyLeaveService):
         """Check if leave type already exists."""
         try:
             organisation_context = f" in organisation {current_user.hostname}" if current_user else ""
-            self.logger.debug(f"Checking leave existence for type {leave_type}{organisation_context}")
+            self.logger.info(f"Checking leave existence for type {leave_type}{organisation_context}")
             organisation_id = current_user.hostname if current_user else None
             return await self.repository.exists_by_leave_type(leave_type, exclude_id, organisation_id)
         except Exception as e:
@@ -587,7 +587,7 @@ class CompanyLeaveServiceImpl(CompanyLeaveService):
     ) -> CompanyLeaveStatisticsDTO:
         """Get comprehensive leave statistics."""
         try:
-            self.logger.debug(f"Getting leave statistics for organisation {current_user.hostname}")
+            self.logger.info(f"Getting leave statistics for organisation {current_user.hostname}")
             return await self.repository.get_leave_statistics(current_user.hostname)
         except Exception as e:
             self.logger.error(f"Error getting leave statistics for organisation {current_user.hostname}: {e}")
@@ -606,7 +606,7 @@ class CompanyLeaveServiceImpl(CompanyLeaveService):
     ) -> CompanyLeaveAnalyticsDTO:
         """Get detailed leave analytics."""
         try:
-            self.logger.debug(f"Getting leave analytics for organisation {current_user.hostname}")
+            self.logger.info(f"Getting leave analytics for organisation {current_user.hostname}")
             return await self.repository.get_leave_analytics(current_user.hostname)
         except Exception as e:
             self.logger.error(f"Error getting leave analytics for organisation {current_user.hostname}: {e}")
@@ -626,7 +626,7 @@ class CompanyLeaveServiceImpl(CompanyLeaveService):
     ) -> Dict[str, Any]:
         """Get leave usage report for a date range."""
         try:
-            self.logger.debug(f"Getting leave usage report for {start_date} to {end_date} in organisation {current_user.hostname}")
+            self.logger.info(f"Getting leave usage report for {start_date} to {end_date} in organisation {current_user.hostname}")
             return await self.repository.get_leave_usage_report(start_date, end_date, current_user.hostname)
         except Exception as e:
             self.logger.error(f"Error getting leave usage report for organisation {current_user.hostname}: {e}")
@@ -645,7 +645,7 @@ class CompanyLeaveServiceImpl(CompanyLeaveService):
     ) -> Dict[str, Any]:
         """Get leave type distribution report."""
         try:
-            self.logger.debug(f"Getting leave type distribution for organisation {current_user.hostname}")
+            self.logger.info(f"Getting leave type distribution for organisation {current_user.hostname}")
             return await self.repository.get_leave_type_distribution(current_user.hostname)
         except Exception as e:
             self.logger.error(f"Error getting leave type distribution for organisation {current_user.hostname}: {e}")

@@ -1,7 +1,8 @@
 import logging
 from datetime import datetime, timedelta
 from fastapi import HTTPException
-from app.models.leave_model import EmployeeLeave, LeaveStatus
+from app.domain.entities.employee_leave import EmployeeLeave
+from app.application.dto.employee_leave_dto import LeaveStatus
 #from app.database.database_connector import employee_leave_collection, user_collection, public_holidays_collection, attendance_collection
 from uuid import uuid4
 from app.infrastructure.services.legacy_migration_service import (

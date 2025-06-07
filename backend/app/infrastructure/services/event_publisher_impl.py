@@ -58,7 +58,7 @@ class EventPublisherImpl(EventPublisher):
             # For now, just log the event
             # In a real implementation, this would publish to a message queue
             logger.info(f"Publishing event: {event.__class__.__name__}")
-            logger.debug(f"Event details: {event}")
+            logger.info(f"Event details: {event}")
             
             # Notify any subscribers (legacy style)
             for subscriber in self.subscribers:
@@ -173,7 +173,7 @@ class EventPublisherImpl(EventPublisher):
         """
         # Simple implementation - return empty list
         # In a real implementation, this would query an event store
-        logger.debug(f"Event history requested for aggregate_id={aggregate_id}, event_type={event_type}")
+        logger.info(f"Event history requested for aggregate_id={aggregate_id}, event_type={event_type}")
         return []
     
     # Legacy methods for backward compatibility

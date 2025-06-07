@@ -56,19 +56,19 @@ class BaseRepository(ABC, Generic[T]):
         """
         # Ensure database is connected in the current event loop
         if not self._db_connector.is_connected:
-            logger.debug("Database not connected, establishing connection...")
+            logger.info("Database not connected, establishing connection...")
             
             try:
                 # Check if connection parameters are available from DI container
                 if hasattr(self._db_connector, '_connection_string') and self._db_connector._connection_string:
-                    logger.debug("Using stored connection parameters from dependency injection")
+                    logger.info("Using stored connection parameters from dependency injection")
                     await self._db_connector.connect(
                         self._db_connector._connection_string,
                         **getattr(self._db_connector, '_connection_params', {})
                     )
                 else:
                     # Fallback: load from mongodb_config
-                    logger.debug("Loading connection parameters from mongodb_config")
+                    logger.info("Loading connection parameters from mongodb_config")
                     from app.config.mongodb_config import get_mongodb_connection_string, get_mongodb_client_options
                     connection_string = get_mongodb_connection_string()
                     client_options = get_mongodb_client_options()
@@ -192,7 +192,7 @@ class BaseRepository(ABC, Generic[T]):
             cursor = collection.find(db_filter).sort(sort_params).skip(skip).limit(limit)
             documents = await cursor.to_list(length=limit)
             
-            logger.debug(f"Query executed: {len(documents)} documents found")
+            logger.info(f"Query executed: {len(documents)} documents found")
             return documents
             
         except Exception as e:
@@ -219,7 +219,7 @@ class BaseRepository(ABC, Generic[T]):
             db_filter = self._prepare_filter(filters)
             
             count = await collection.count_documents(db_filter)
-            logger.debug(f"Document count: {count}")
+            logger.info(f"Document count: {count}")
             return count
             
         except Exception as e:
@@ -250,7 +250,7 @@ class BaseRepository(ABC, Generic[T]):
             document.setdefault("updated_at", now)
             
             result = await collection.insert_one(document)
-            logger.debug(f"Document inserted with ID: {result.inserted_id}")
+            logger.info(f"Document inserted with ID: {result.inserted_id}")
             return str(result.inserted_id)
             
         except Exception as e:
@@ -289,7 +289,7 @@ class BaseRepository(ABC, Generic[T]):
                 upsert=upsert
             )
             
-            logger.debug(f"Documents updated: {result.modified_count}")
+            logger.info(f"Documents updated: {result.modified_count}")
             return result.modified_count > 0
             
         except Exception as e:
@@ -333,7 +333,7 @@ class BaseRepository(ABC, Generic[T]):
                 result = await collection.delete_many(db_filter)
                 deleted_count = result.deleted_count
             
-            logger.debug(f"Documents deleted: {deleted_count}")
+            logger.info(f"Documents deleted: {deleted_count}")
             return deleted_count > 0
             
         except Exception as e:
@@ -360,7 +360,7 @@ class BaseRepository(ABC, Generic[T]):
             cursor = collection.aggregate(pipeline)
             results = await cursor.to_list(length=None)
             
-            logger.debug(f"Aggregation executed: {len(results)} results")
+            logger.info(f"Aggregation executed: {len(results)} results")
             return results
             
         except Exception as e:

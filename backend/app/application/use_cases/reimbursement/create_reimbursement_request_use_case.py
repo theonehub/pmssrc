@@ -125,7 +125,7 @@ class CreateReimbursementRequestUseCase:
         if request.amount > Decimal('9999999.99'):
             raise ReimbursementValidationError("Amount cannot exceed ₹99,99,999.99", "amount")
         
-        logger.debug("Request validation passed")
+        logger.info("Request validation passed")
     
     async def _check_business_rules(self, request: ReimbursementRequestCreateDTO, hostname: str):
         """Check business rules for reimbursement request creation"""
@@ -170,7 +170,7 @@ class CreateReimbursementRequestUseCase:
         # TODO: Implement period-based limits check if needed
         # await self._check_period_limits(employee_id, reimbursement_type, amount)
         
-        logger.debug("Business rules validation passed")
+        logger.info("Business rules validation passed")
         return employee, reimbursement_type
     
     async def _create_domain_objects(
@@ -211,14 +211,14 @@ class CreateReimbursementRequestUseCase:
         # If receipt is required, it will be submitted after receipt upload
         if not reimbursement_type_entity.is_receipt_required:
             reimbursement.submit_request(submitted_by=created_by)
-            logger.debug(f"Created and submitted domain entity: {reimbursement.reimbursement_id}")
+            logger.info(f"Created and submitted domain entity: {reimbursement.reimbursement_id}")
         else:
             # For receipt-required types, set submitted_at manually since it's created for immediate submission
             # but validation will prevent submit_request() from being called
             reimbursement.status = ReimbursementStatus.SUBMITTED
             reimbursement.submitted_at = datetime.now()
             reimbursement.updated_at = datetime.now()
-            logger.debug(f"Created domain entity (pending receipt): {reimbursement.reimbursement_id}")
+            logger.info(f"Created domain entity (pending receipt): {reimbursement.reimbursement_id}")
         
         return reimbursement
     
@@ -227,7 +227,7 @@ class CreateReimbursementRequestUseCase:
         
         try:
             saved_reimbursement = await self.command_repository.save(reimbursement, hostname)
-            logger.debug(f"Persisted entity: {saved_reimbursement.reimbursement_id}")
+            logger.info(f"Persisted entity: {saved_reimbursement.reimbursement_id}")
             return saved_reimbursement
             
         except Exception as e:
@@ -245,7 +245,7 @@ class CreateReimbursementRequestUseCase:
             
             for event in events:
                 await self.event_publisher.publish(event)
-                logger.debug(f"Published event: {event.get_event_type()}")
+                logger.info(f"Published event: {event.get_event_type()}")
             
             # Clear events after publishing
             reimbursement.clear_domain_events()
@@ -297,7 +297,7 @@ class CreateReimbursementRequestUseCase:
                     data=notification_data
                 )
             
-            logger.debug("Sent creation notifications")
+            logger.info("Sent creation notifications")
             
         except Exception as e:
             logger.error(f"Failed to send notifications: {str(e)}")

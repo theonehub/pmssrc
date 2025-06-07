@@ -71,7 +71,7 @@ const AllLeaves: React.FC = () => {
 
   const fetchLeaves = async (): Promise<void> => {
     try {
-      const response = await axios.get('http://localhost:8000/leaves/all');
+      const response = await axios.get('http://localhost:8000/api/v2/leaves/all');
       setLeaves(response.data);
     } catch (error: any) {
       if (process.env.NODE_ENV === 'development') {
@@ -86,7 +86,7 @@ const AllLeaves: React.FC = () => {
 
   const fetchLeaveStats = async (): Promise<void> => {
     try {
-      const response = await axios.get('http://localhost:8000/leaves/stats');
+      const response = await axios.get('http://localhost:8000/api/v2/leaves/stats');
       setLeaveStats(response.data);
     } catch (error: any) {
       if (process.env.NODE_ENV === 'development') {
@@ -107,7 +107,7 @@ const AllLeaves: React.FC = () => {
 
     try {
       await axios.put(
-        `http://localhost:8000/leaves/${selectedLeave.leave_id}/status?status=${selectedLeave.action}`
+        `http://localhost:8000/api/v2/leaves/${selectedLeave.leave_id}/status?status=${selectedLeave.action}`
       );
       toast.success(`Leave ${selectedLeave.action} successfully`);
       fetchLeaves();

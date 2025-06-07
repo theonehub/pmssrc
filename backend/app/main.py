@@ -25,6 +25,7 @@ from app.api.routes.reimbursement_routes_v2 import router as reimbursement_route
 from app.api.routes.attendance_routes_v2 import router as attendance_routes_v2_router
 from app.api.routes.public_holiday_routes_v2 import router as public_holiday_routes_v2_router
 from app.api.routes.company_leave_routes_v2 import router as company_leave_routes_v2_router
+from app.api.routes.employee_leave_routes_v2 import router as employee_leave_routes_v2_router
 from app.api.routes.project_attributes_routes_v2 import router as project_attributes_routes_v2_router
 
 # Configure centralized logging
@@ -72,6 +73,7 @@ app.include_router(payslip_routes_v2_router, tags=["📄 Payslips V2 (SOLID)"])
 app.include_router(taxation_routes_v2_router, tags=["📊 Taxation V2 (SOLID)"])
 app.include_router(payout_routes_v2_router, tags=["💰 Payouts V2 (SOLID)"])
 app.include_router(company_leave_routes_v2_router, tags=["🏢 Company Leaves V2 (SOLID)"])
+app.include_router(employee_leave_routes_v2_router, tags=["🏖️ Employee Leaves V2 (SOLID)"])
 app.include_router(project_attributes_routes_v2_router, tags=["📊 Project Attributes V2 (SOLID)"])
 app.include_router(reimbursement_routes_v2_router, tags=["💳 Reimbursements V2 (SOLID)"])
 app.include_router(attendance_routes_v2_router, tags=["⏰ Attendance V2 (SOLID)"])

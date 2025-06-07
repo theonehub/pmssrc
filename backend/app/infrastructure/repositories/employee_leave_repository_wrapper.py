@@ -16,7 +16,7 @@ from app.application.interfaces.repositories.employee_leave_repository import (
 from app.domain.entities.employee_leave import EmployeeLeave
 from app.domain.value_objects.employee_id import EmployeeId
 from app.domain.value_objects.date_range import DateRange
-from models.leave_model import LeaveStatus
+from app.application.dto.employee_leave_dto import LeaveStatus
 from app.infrastructure.repositories.employee_leave_repository_impl import (
     EmployeeLeaveCommandRepositoryImpl,
     EmployeeLeaveQueryRepositoryImpl,

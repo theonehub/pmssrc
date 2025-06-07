@@ -62,7 +62,8 @@ async def list_company_leaves(
             accrual_type=accrual_type,
             sort_by=sort_by,
             sort_order=sort_order
-        )
+        ),
+        current_user
     )
 
 
@@ -74,7 +75,7 @@ async def get_company_leave(
 ):
     """Get company leave by ID"""
     try:
-        response = await controller.get_company_leave_by_id(company_leave_id)
+        response = await controller.get_company_leave_by_id(company_leave_id, current_user)
         
         if not response:
             raise HTTPException(status_code=404, detail="Company leave not found")
@@ -100,7 +101,7 @@ async def update_company_leave(
         response = await controller.update_company_leave(
             company_leave_id=company_leave_id,
             request=request,
-            updated_by=current_user.employee_id
+            current_user=current_user
         )
         
         return response
@@ -138,7 +139,7 @@ async def delete_company_leave(
         await controller.delete_company_leave(
             company_leave_id=company_leave_id,
             force=force,
-            deleted_by=current_user.employee_id
+            current_user=current_user
         )
         
         return {"message": "Company leave deleted successfully"}

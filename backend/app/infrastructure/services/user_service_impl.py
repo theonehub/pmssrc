@@ -373,7 +373,7 @@ class UserServiceImpl(UserService):
     async def get_user_by_id(self, employee_id: str, current_user: "CurrentUser") -> Optional[UserResponseDTO]:
         """Get user by ID."""
         try:
-            logger.debug(f"Getting user {employee_id} from organisation {current_user.hostname}")
+            logger.info(f"Getting user {employee_id} from organisation {current_user.hostname}")
             user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
             return UserResponseDTO.from_entity(user) if user else None
         except Exception as e:
@@ -383,7 +383,7 @@ class UserServiceImpl(UserService):
     async def get_user_by_email(self, email: str, current_user: "CurrentUser") -> Optional[UserResponseDTO]:
         """Get user by email."""
         try:
-            logger.debug(f"Getting user by email {email} from organisation {current_user.hostname}")
+            logger.info(f"Getting user by email {email} from organisation {current_user.hostname}")
             user = await self.user_repository.get_by_email(email, current_user.hostname)
             return UserResponseDTO.from_entity(user) if user else None
         except Exception as e:
@@ -393,7 +393,7 @@ class UserServiceImpl(UserService):
     async def get_user_by_mobile(self, mobile: str, current_user: "CurrentUser") -> Optional[UserResponseDTO]:
         """Get user by mobile."""
         try:
-            logger.debug(f"Getting user by mobile {mobile} from organisation {current_user.hostname}")
+            logger.info(f"Getting user by mobile {mobile} from organisation {current_user.hostname}")
             user = await self.user_repository.get_by_mobile(mobile, current_user.hostname)
             return UserResponseDTO.from_entity(user) if user else None
         except Exception as e:
@@ -410,7 +410,7 @@ class UserServiceImpl(UserService):
     ) -> UserListResponseDTO:
         """Get all users with pagination."""
         try:
-            logger.debug(f"Getting all users from organisation {current_user.hostname if current_user else 'global'}")
+            logger.info(f"Getting all users from organisation {current_user.hostname if current_user else 'global'}")
             users = await self.user_repository.get_all(
                 skip=skip, 
                 limit=limit,
@@ -449,7 +449,7 @@ class UserServiceImpl(UserService):
     async def search_users(self, filters: UserSearchFiltersDTO, current_user: "CurrentUser") -> UserListResponseDTO:
         """Search users with filters."""
         try:
-            logger.debug(f"Searching users in organisation {current_user.hostname}")
+            logger.info(f"Searching users in organisation {current_user.hostname}")
             users = await self.user_repository.search(filters, current_user.hostname)
             user_summaries = [UserSummaryDTO.from_entity(user) for user in users]
             
@@ -520,7 +520,7 @@ class UserServiceImpl(UserService):
         """Check if user exists by various identifiers."""
         try:
             organisation_context = f" in organisation {current_user.hostname}" if current_user else ""
-            logger.debug(f"Checking user existence{organisation_context}")
+            logger.info(f"Checking user existence{organisation_context}")
             
             result = {}
             exclude_employee_id = EmployeeId(exclude_id) if exclude_id else None
@@ -715,7 +715,7 @@ class UserServiceImpl(UserService):
             UserRole.MANAGER: [
                 "user:read", "employee:read", "team:manage"
             ],
-            UserRole.EMPLOYEE: [
+            UserRole.USER: [
                 "user:read_own", "profile:update_own"
             ]
         }
@@ -799,7 +799,7 @@ class UserServiceImpl(UserService):
     async def get_user_statistics(self, current_user: "CurrentUser") -> UserStatisticsDTO:
         """Get user statistics."""
         try:
-            logger.debug(f"Getting user statistics for organisation {current_user.hostname}")
+            logger.info(f"Getting user statistics for organisation {current_user.hostname}")
             organisation_id = current_user.hostname if current_user else None
             return await self.user_repository.get_statistics(organisation_id)
         except Exception as e:

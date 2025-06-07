@@ -8,6 +8,7 @@ from typing import Optional, List, Dict, Any
 from decimal import Decimal
 from pydantic import BaseModel, Field, validator, model_validator
 from enum import Enum
+from dataclasses import dataclass
 
 # ==================== ENUMS ====================
 
@@ -38,22 +39,15 @@ class AttendanceMarkingTypeEnum(str, Enum):
 class AttendanceCheckInRequestDTO(BaseModel):
     """DTO for check-in requests"""
     employee_id: Optional[str] = Field(None, description="Employee ID")
-    employee_id: Optional[str] = Field(None, description="Employee ID (alternate field name)")
     check_in_time: Optional[datetime] = Field(None, description="Check-in time (defaults to current time)")
     timestamp: Optional[datetime] = Field(None, description="Timestamp (alternate field name)")
     location: Optional[str] = Field(None, description="Check-in location")
-    hostname: Optional[str] = Field(None, description="Hostname")
     
     @model_validator(mode='after')
     def validate_employee_required(self):
-        """Final validation to ensure either employee_id or employee_id is provided"""
-        # Use employee_id if employee_id is not provided
-        if not self.employee_id and self.employee_id:
-            self.employee_id = str(self.employee_id).strip()
-        
+        """Final validation to ensure employee_id is provided"""
         if not self.employee_id or not str(self.employee_id).strip():
             raise ValueError("Employee ID is required")
-            
             
         # Use timestamp if check_in_time is not provided
         if not self.check_in_time and self.timestamp:
@@ -68,19 +62,13 @@ class AttendanceCheckInRequestDTO(BaseModel):
 class AttendanceCheckOutRequestDTO(BaseModel):
     """DTO for check-out requests"""
     employee_id: Optional[str] = Field(None, description="Employee ID")
-    employee_id: Optional[str] = Field(None, description="Employee ID (alternate field name)")
     check_out_time: Optional[datetime] = Field(None, description="Check-out time (defaults to current time)")
     timestamp: Optional[datetime] = Field(None, description="Timestamp (alternate field name)")
     location: Optional[str] = Field(None, description="Check-out location")
-    hostname: Optional[str] = Field(None, description="Hostname")
     
     @model_validator(mode='after')
     def validate_employee_required(self):
-        """Final validation to ensure either employee_id or employee_id is provided"""
-        # Use employee_id if employee_id is not provided
-        if not self.employee_id and self.employee_id:
-            self.employee_id = str(self.employee_id).strip()
-        
+        """Final validation to ensure employee_id is provided"""
         if not self.employee_id or not str(self.employee_id).strip():
             raise ValueError("Employee ID is required")
             
@@ -97,19 +85,13 @@ class AttendanceCheckOutRequestDTO(BaseModel):
 class AttendanceBreakRequestDTO(BaseModel):
     """DTO for break start/end requests"""
     employee_id: Optional[str] = Field(None, description="Employee ID")
-    employee_id: Optional[str] = Field(None, description="Employee ID (alternate field name)")
     break_time: Optional[datetime] = Field(None, description="Break time (defaults to current time)")
     timestamp: Optional[datetime] = Field(None, description="Timestamp (alternate field name)")
     break_type: str = Field("start", description="Break type: 'start' or 'end'")
-    hostname: Optional[str] = Field(None, description="Hostname")
     
     @model_validator(mode='after')
     def validate_employee_required(self):
-        """Final validation to ensure either employee_id or employee_id is provided"""
-        # Use employee_id if employee_id is not provided
-        if not self.employee_id and self.employee_id:
-            self.employee_id = str(self.employee_id).strip()
-        
+        """Final validation to ensure employee_id is provided"""
         if not self.employee_id or not str(self.employee_id).strip():
             raise ValueError("Employee ID is required")
             
@@ -193,7 +175,6 @@ class AttendanceCommentRequestDTO(BaseModel):
 class AttendanceSearchFiltersDTO(BaseModel):
     """DTO for attendance search filters"""
     employee_id: Optional[str] = Field(None, description="Filter by employee ID")
-    employee_id: Optional[str] = Field(None, description="Filter by employee ID (alternate field name)")
     employee_ids: Optional[List[str]] = Field(None, description="Filter by multiple employee IDs")
     manager_id: Optional[str] = Field(None, description="Filter by manager ID for team queries")
     status: Optional[AttendanceStatusEnum] = Field(None, description="Filter by status")
@@ -203,7 +184,6 @@ class AttendanceSearchFiltersDTO(BaseModel):
     date: Optional[int] = Field(None, ge=1, le=31, description="Specific date (1-31)")
     month: Optional[int] = Field(None, ge=1, le=12, description="Specific month (1-12)")
     year: Optional[int] = Field(None, ge=2000, le=3000, description="Specific year")
-    hostname: Optional[str] = Field(None, description="Filter by hostname")
     is_regularized: Optional[bool] = Field(None, description="Filter by regularization status")
     has_overtime: Optional[bool] = Field(None, description="Filter by overtime presence")
     marking_type: Optional[AttendanceMarkingTypeEnum] = Field(None, description="Filter by marking type")
@@ -438,4 +418,70 @@ class AttendanceBulkImportResultDTO(BaseModel):
     failed_imports: int = Field(0, description="Failed imports")
     validation_errors: List[str] = Field([], description="Validation errors")
     import_summary: Dict[str, Any] = Field({}, description="Import summary")
-    imported_ids: List[str] = Field([], description="Successfully imported attendance IDs") 
+    imported_ids: List[str] = Field([], description="Successfully imported attendance IDs")
+
+
+# ==================== LEGACY FRONTEND COMPATIBILITY DTOs ====================
+
+@dataclass
+class LegacyAttendanceRecordDTO:
+    """Legacy DTO to match frontend AttendanceRecord interface"""
+    checkin_time: str
+    checkout_time: Optional[str] = None
+    
+    @classmethod
+    def from_attendance_response(cls, response: AttendanceResponseDTO) -> 'LegacyAttendanceRecordDTO':
+        """Convert from V2 AttendanceResponseDTO to legacy format"""
+        checkin_time = ""
+        checkout_time = None
+        
+        if hasattr(response.working_hours, 'check_in_time') and response.working_hours.check_in_time:
+            checkin_time = response.working_hours.check_in_time.isoformat()
+        
+        if hasattr(response.working_hours, 'check_out_time') and response.working_hours.check_out_time:
+            checkout_time = response.working_hours.check_out_time.isoformat()
+        
+        return cls(
+            checkin_time=checkin_time,
+            checkout_time=checkout_time
+        )
+
+
+@dataclass
+class LegacyHolidayDTO:
+    """Legacy DTO to match frontend Holiday interface"""
+    date: str
+    name: str
+    
+    @classmethod
+    def from_public_holiday_response(cls, response) -> 'LegacyHolidayDTO':
+        """Convert from V2 PublicHolidayResponseDTO to legacy format"""
+        return cls(
+            date=response.holiday_date.isoformat() if hasattr(response, 'holiday_date') else response.get('holiday_date', ''),
+            name=response.name if hasattr(response, 'name') else response.get('name', '')
+        )
+
+
+@dataclass
+class LegacyLeaveRecordDTO:
+    """Legacy DTO to match frontend LeaveRecord interface"""
+    leave_name: str
+    status: str
+    start_date: str
+    end_date: str
+    leave_count: int
+    days_in_month: Optional[int] = None
+    reason: Optional[str] = None
+    
+    @classmethod
+    def from_employee_leave_response(cls, response) -> 'LegacyLeaveRecordDTO':
+        """Convert from V2 EmployeeLeaveResponseDTO to legacy format"""
+        return cls(
+            leave_name=response.leave_type_name if hasattr(response, 'leave_type_name') else response.get('leave_type_name', ''),
+            status=response.status.lower() if hasattr(response, 'status') else response.get('status', '').lower(),
+            start_date=response.start_date.isoformat() if hasattr(response, 'start_date') else response.get('start_date', ''),
+            end_date=response.end_date.isoformat() if hasattr(response, 'end_date') else response.get('end_date', ''),
+            leave_count=response.working_days if hasattr(response, 'working_days') else response.get('working_days', 0),
+            days_in_month=response.days_in_current_month if hasattr(response, 'days_in_current_month') else response.get('days_in_current_month'),
+            reason=response.reason if hasattr(response, 'reason') else response.get('reason')
+        ) 

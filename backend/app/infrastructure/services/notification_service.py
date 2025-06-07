@@ -93,6 +93,21 @@ class NotificationService(ABC):
     ) -> bool:
         """Send generic notification to administrators."""
         pass
+    
+    @abstractmethod
+    async def notify_holiday_created(self, holiday) -> bool:
+        """Send notification when a public holiday is created."""
+        pass
+    
+    @abstractmethod
+    async def notify_holiday_updated(self, holiday) -> bool:
+        """Send notification when a public holiday is updated."""
+        pass
+    
+    @abstractmethod
+    async def notify_holiday_deleted(self, holiday_id: str) -> bool:
+        """Send notification when a public holiday is deleted."""
+        pass
 
 
 class EmailNotificationService(NotificationService):
@@ -772,6 +787,85 @@ class EmailNotificationService(NotificationService):
             logger.error(f"Error sending system notification: {e}")
             return False
     
+    async def notify_holiday_created(self, holiday) -> bool:
+        """Send notification when a public holiday is created."""
+        try:
+            subject = "New Public Holiday Created"
+            body = f"""
+            A new public holiday has been created in the PMS system:
+            
+            Holiday Name: {holiday.name}
+            Date: {holiday.date if hasattr(holiday, 'date') else holiday.holiday_date}
+            Description: {holiday.description or 'N/A'}
+            
+            Please update your calendars accordingly.
+            
+            Best regards,
+            HR Team
+            """
+            
+            # Send notification to admin
+            await self._send_email(self.admin_email, subject, body)
+            
+            logger.info(f"Holiday created notification sent for: {holiday.name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error sending holiday created notification: {e}")
+            return False
+    
+    async def notify_holiday_updated(self, holiday) -> bool:
+        """Send notification when a public holiday is updated."""
+        try:
+            subject = "Public Holiday Updated"
+            body = f"""
+            A public holiday has been updated in the PMS system:
+            
+            Holiday Name: {holiday.name}
+            Date: {holiday.date if hasattr(holiday, 'date') else holiday.holiday_date}
+            Description: {holiday.description or 'N/A'}
+            
+            Please update your calendars accordingly.
+            
+            Best regards,
+            HR Team
+            """
+            
+            # Send notification to admin
+            await self._send_email(self.admin_email, subject, body)
+            
+            logger.info(f"Holiday updated notification sent for: {holiday.name}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error sending holiday updated notification: {e}")
+            return False
+    
+    async def notify_holiday_deleted(self, holiday_id: str) -> bool:
+        """Send notification when a public holiday is deleted."""
+        try:
+            subject = "Public Holiday Deleted"
+            body = f"""
+            A public holiday has been deleted from the PMS system:
+            
+            Holiday ID: {holiday_id}
+            
+            Please update your calendars accordingly.
+            
+            Best regards,
+            HR Team
+            """
+            
+            # Send notification to admin
+            await self._send_email(self.admin_email, subject, body)
+            
+            logger.info(f"Holiday deleted notification sent for ID: {holiday_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error sending holiday deleted notification: {e}")
+            return False
+    
     async def _send_email(self, to_email: str, subject: str, body: str) -> bool:
         """
         Send email using configured email service.
@@ -889,6 +983,33 @@ class SMSNotificationService(NotificationService):
     ) -> bool:
         """Send admin notification via SMS (placeholder)."""
         return True
+    
+    async def notify_holiday_created(self, holiday) -> bool:
+        """Send SMS notification when a public holiday is created."""
+        try:
+            message = f"New holiday created: {holiday.name} on {holiday.date if hasattr(holiday, 'date') else holiday.holiday_date}"
+            return await self._send_sms("admin_mobile", message)
+        except Exception as e:
+            logger.error(f"Error sending holiday created SMS: {e}")
+            return False
+    
+    async def notify_holiday_updated(self, holiday) -> bool:
+        """Send SMS notification when a public holiday is updated."""
+        try:
+            message = f"Holiday updated: {holiday.name} on {holiday.date if hasattr(holiday, 'date') else holiday.holiday_date}"
+            return await self._send_sms("admin_mobile", message)
+        except Exception as e:
+            logger.error(f"Error sending holiday updated SMS: {e}")
+            return False
+    
+    async def notify_holiday_deleted(self, holiday_id: str) -> bool:
+        """Send SMS notification when a public holiday is deleted."""
+        try:
+            message = f"Holiday deleted: {holiday_id}"
+            return await self._send_sms("admin_mobile", message)
+        except Exception as e:
+            logger.error(f"Error sending holiday deleted SMS: {e}")
+            return False
 
 
 class CompositeNotificationService(NotificationService):
@@ -971,4 +1092,40 @@ class CompositeNotificationService(NotificationService):
     ) -> bool:
         """Send admin notification via all configured services."""
         results = [await service.send_admin_notification(subject, template, data) for service in self.services]
+        return any(results)
+    
+    async def notify_holiday_created(self, holiday) -> bool:
+        """Send holiday created notification via all configured services."""
+        results = []
+        for service in self.services:
+            try:
+                result = await service.notify_holiday_created(holiday)
+                results.append(result)
+            except Exception as e:
+                logger.error(f"Error in notification service {type(service).__name__}: {e}")
+                results.append(False)
+        return any(results)
+    
+    async def notify_holiday_updated(self, holiday) -> bool:
+        """Send holiday updated notification via all configured services."""
+        results = []
+        for service in self.services:
+            try:
+                result = await service.notify_holiday_updated(holiday)
+                results.append(result)
+            except Exception as e:
+                logger.error(f"Error in notification service {type(service).__name__}: {e}")
+                results.append(False)
+        return any(results)
+    
+    async def notify_holiday_deleted(self, holiday_id: str) -> bool:
+        """Send holiday deleted notification via all configured services."""
+        results = []
+        for service in self.services:
+            try:
+                result = await service.notify_holiday_deleted(holiday_id)
+                results.append(result)
+            except Exception as e:
+                logger.error(f"Error in notification service {type(service).__name__}: {e}")
+                results.append(False)
         return any(results) 

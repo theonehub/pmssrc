@@ -655,7 +655,7 @@ const AdminPayouts: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     <Chip 
-                      label={user.role || 'Employee'}
+                      label={user.role || 'User'}
                       color={getRoleBadgeColor(user.role)}
                       size="small"
                     />

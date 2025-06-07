@@ -72,17 +72,17 @@ class MongoDBUserRepository(UserRepository):
         
         # Ensure database is connected in the current event loop
         if not self.db_connector.is_connected:
-            logger.debug("Database not connected, establishing connection...")
+            logger.info("Database not connected, establishing connection...")
             
             try:
                 # Use stored connection configuration or fallback to config functions
                 if self._connection_string and self._client_options:
-                    logger.debug("Using stored connection parameters from repository configuration")
+                    logger.info("Using stored connection parameters from repository configuration")
                     connection_string = self._connection_string
                     options = self._client_options
                 else:
                     # Fallback to config functions if connection config not set
-                    logger.debug("Loading connection parameters from mongodb_config")
+                    logger.info("Loading connection parameters from mongodb_config")
                     connection_string = get_mongodb_connection_string()
                     options = get_mongodb_client_options()
                 
@@ -97,7 +97,7 @@ class MongoDBUserRepository(UserRepository):
         try:
             db = self.db_connector.get_database('pms_'+db_name)
             collection = db[self._collection_name]
-            logger.debug(f"Successfully retrieved collection: {self._collection_name} from database: {'pms_'+db_name}")
+            logger.info(f"Successfully retrieved collection: {self._collection_name} from database: {'pms_'+db_name}")
             return collection
             
         except Exception as e:
@@ -217,7 +217,7 @@ class MongoDBUserRepository(UserRepository):
                     
                     # Status and credentials
                     self.gender = Gender(kwargs.get("gender", "male")) if kwargs.get("gender") else Gender.MALE
-                    self.role = UserRole(kwargs.get("role", "employee"))
+                    self.role = UserRole(kwargs.get("role", "user"))
                     self.status = UserStatus(kwargs.get("status", "active"))
                     
                     # Personal info
@@ -295,7 +295,7 @@ class MongoDBUserRepository(UserRepository):
                 email=document.get("email", ""),
                 name=document.get("name", ""),
                 gender=document.get("gender"),
-                role=document.get("role", "employee"),
+                role=document.get("role", "user"),
                 status=document.get("status", "active"),
                 date_of_birth=document.get("date_of_birth"),
                 date_of_joining=document.get("date_of_joining"),
@@ -1394,7 +1394,7 @@ class MongoDBUserRepository(UserRepository):
                     user_data['created_by'] = created_by
                     user_data['created_at'] = datetime.now()
                     user_data['is_active'] = True
-                    user_data['role'] = user_data.get('role', 'employee')
+                    user_data['role'] = user_data.get('role', 'user')
                     user_data['status'] = user_data.get('status', 'active')
                     
                     operations.append({

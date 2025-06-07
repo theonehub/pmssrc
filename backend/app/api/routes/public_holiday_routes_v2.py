@@ -228,4 +228,50 @@ async def get_public_holidays_by_date_range(
         
     except Exception as e:
         logger.error(f"Error getting public holidays by date range: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@router.get("/month/{month}/{year}", response_model=List[Dict[str, Any]])
+async def get_public_holidays_by_month_legacy(
+    month: int = Path(..., ge=1, le=12, description="Month (1-12)"),
+    year: int = Path(..., ge=2000, le=3000, description="Year"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: PublicHolidayController = Depends(get_public_holiday_controller)
+):
+    """
+    Get public holidays for a specific month (Legacy endpoint for frontend compatibility).
+    
+    This endpoint provides backward compatibility for the frontend while maintaining
+    the same business logic as the V2 API.
+    """
+    try:
+        logger.info(f"Getting public holidays for {month}/{year} (legacy endpoint)")
+        
+        # Calculate start and end dates for the month
+        import calendar
+        
+        start_date = date(year, month, 1)
+        last_day = calendar.monthrange(year, month)[1]
+        end_date = date(year, month, last_day)
+        
+        # Use the existing date range endpoint logic
+        v2_response = await controller.get_holidays_by_date_range(
+            start_date.strftime("%Y-%m-%d"),
+            end_date.strftime("%Y-%m-%d"),
+            current_user
+        )
+        
+        # Transform to legacy format
+        from app.application.dto.attendance_dto import LegacyHolidayDTO
+        legacy_response = []
+        for holiday in v2_response:
+            legacy_holiday = LegacyHolidayDTO.from_public_holiday_response(holiday)
+            legacy_response.append({
+                "date": legacy_holiday.date,
+                "name": legacy_holiday.name
+            })
+        
+        return legacy_response
+        
+    except Exception as e:
+        logger.error(f"Error getting public holidays by month: {e}")
         raise HTTPException(status_code=500, detail="Internal server error") 

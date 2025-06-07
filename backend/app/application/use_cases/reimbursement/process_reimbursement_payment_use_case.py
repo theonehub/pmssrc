@@ -142,7 +142,7 @@ class ProcessReimbursementPaymentUseCase:
                     "payment_reference"
                 )
         
-        logger.debug("Payment request validation passed")
+        logger.info("Payment request validation passed")
     
     async def _check_business_rules(
         self,
@@ -204,7 +204,7 @@ class ProcessReimbursementPaymentUseCase:
                     "missing_bank_details"
                 )
         
-        logger.debug("Business rules validation passed")
+        logger.info("Business rules validation passed")
         return reimbursement, reimbursement_type, employee
     
     async def _check_payment_authority(self, processed_by: str, hostname: str):
@@ -291,14 +291,14 @@ class ProcessReimbursementPaymentUseCase:
             bank_details=payment_request.bank_details
         )
         
-        logger.debug(f"Updated domain object with payment: {reimbursement.request_id}")
+        logger.info(f"Updated domain object with payment: {reimbursement.request_id}")
     
     async def _persist_entity(self, reimbursement: Reimbursement, hostname: str) -> Reimbursement:
         """Persist entity to repository"""
         
         try:
             saved_reimbursement = await self.command_repository.update(reimbursement, hostname)
-            logger.debug(f"Persisted paid entity: {saved_reimbursement.request_id}")
+            logger.info(f"Persisted paid entity: {saved_reimbursement.request_id}")
             return saved_reimbursement
             
         except Exception as e:
@@ -316,7 +316,7 @@ class ProcessReimbursementPaymentUseCase:
             
             for event in events:
                 await self.event_publisher.publish(event)
-                logger.debug(f"Published event: {event.get_event_type()}")
+                logger.info(f"Published event: {event.get_event_type()}")
             
             # Clear events after publishing
             reimbursement.clear_domain_events()
@@ -377,7 +377,7 @@ class ProcessReimbursementPaymentUseCase:
                 data=notification_data
             )
             
-            logger.debug("Sent payment notifications")
+            logger.info("Sent payment notifications")
             
         except Exception as e:
             logger.error(f"Failed to send notifications: {str(e)}")

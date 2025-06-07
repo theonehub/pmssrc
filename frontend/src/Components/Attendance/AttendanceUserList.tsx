@@ -64,7 +64,7 @@ const AttendanceUserList: React.FC = () => {
 
   const fetchUsers = useCallback(async (): Promise<void> => {
     try {
-      const response = await apiGet('/users', {
+      const response = await apiGet('/api/v2/users', {
         skip: (currentPage - 1) * pageSize,
         limit: pageSize
       });
@@ -89,7 +89,7 @@ const AttendanceUserList: React.FC = () => {
       const year = currentDate.getFullYear();
 
       const lwpPromises = users.map(user =>
-        apiGet(`/leaves/lwp/${user.employee_id}/${month}/${year}`)
+        apiGet(`/api/v2/employee-leave/lwp/${user.employee_id}/${month}/${year}`)
       );
 
       const lwpResponses = await Promise.all(lwpPromises);

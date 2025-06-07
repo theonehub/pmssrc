@@ -73,17 +73,17 @@ class MongoDBCompanyLeaveRepository(CompanyLeaveRepository):
         
         # Ensure database is connected in the current event loop
         if not self.db_connector.is_connected:
-            logger.debug("Database not connected, establishing connection...")
+            logger.info("Database not connected, establishing connection...")
             
             try:
                 # Use stored connection configuration or fallback to config functions
                 if self._connection_string and self._client_options:
-                    logger.debug("Using stored connection parameters from repository configuration")
+                    logger.info("Using stored connection parameters from repository configuration")
                     connection_string = self._connection_string
                     options = self._client_options
                 else:
                     # Fallback to config functions if connection config not set
-                    logger.debug("Loading connection parameters from mongodb_config")
+                    logger.info("Loading connection parameters from mongodb_config")
                     connection_string = get_mongodb_connection_string()
                     options = get_mongodb_client_options()
                 
@@ -98,7 +98,7 @@ class MongoDBCompanyLeaveRepository(CompanyLeaveRepository):
         try:
             db = self.db_connector.get_database(db_name)
             collection = db[self._collection_name]
-            logger.debug(f"Successfully retrieved collection: {self._collection_name} from database: {db_name}")
+            logger.info(f"Successfully retrieved collection: {self._collection_name} from database: {db_name}")
             return collection
             
         except Exception as e:
@@ -108,10 +108,10 @@ class MongoDBCompanyLeaveRepository(CompanyLeaveRepository):
                 self.db_connector._client = None
             raise RuntimeError(f"Collection access failed: {e}")
     
-    async def _ensure_indexes(self):
+    async def _ensure_indexes(self, hostname: str):
         """Ensure necessary indexes exist"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
             await collection.create_index([("company_leave_id", ASCENDING)], unique=True)
             await collection.create_index([("accrual_type", ASCENDING)])
             await collection.create_index([("is_active", ASCENDING)])
@@ -120,10 +120,10 @@ class MongoDBCompanyLeaveRepository(CompanyLeaveRepository):
         except Exception as e:
             self._logger.warning(f"Error creating indexes: {e}")
 
-    async def save(self, company_leave: CompanyLeave) -> bool:
+    async def save(self, company_leave: CompanyLeave, hostname: str) -> bool:
         """Save company leave record"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
             document = self._entity_to_document(company_leave)
             result = await collection.insert_one(document)
             
@@ -136,10 +136,10 @@ class MongoDBCompanyLeaveRepository(CompanyLeaveRepository):
             self._logger.error(f"Error saving company leave: {e}")
             return False
     
-    async def update(self, company_leave: CompanyLeave) -> bool:
+    async def update(self, company_leave: CompanyLeave, hostname: str) -> bool:
         """Update existing company leave record"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
             document = self._entity_to_document(company_leave)
             # Remove _id to avoid update conflicts
             document.pop('_id', None)
@@ -158,10 +158,10 @@ class MongoDBCompanyLeaveRepository(CompanyLeaveRepository):
             self._logger.error(f"Error updating company leave: {e}")
             return False
     
-    async def delete(self, company_leave_id: str) -> bool:
+    async def delete(self, company_leave_id: str, hostname: str) -> bool:
         """Delete company leave record (soft delete)"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
             result = await collection.update_one(
                 {"company_leave_id": company_leave_id},
                 {
@@ -181,10 +181,10 @@ class MongoDBCompanyLeaveRepository(CompanyLeaveRepository):
             self._logger.error(f"Error deleting company leave: {e}")
             return False
     
-    async def get_by_id(self, company_leave_id: str) -> Optional[CompanyLeave]:
+    async def get_by_id(self, company_leave_id: str, hostname: str) -> Optional[CompanyLeave]:
         """Get company leave by ID"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
             document = await collection.find_one({"company_leave_id": company_leave_id})
             if document:
                 return self._document_to_entity(document)
@@ -194,10 +194,10 @@ class MongoDBCompanyLeaveRepository(CompanyLeaveRepository):
             self._logger.error(f"Error retrieving company leave by ID: {e}")
             return None
     
-    async def get_all_active(self) -> List[CompanyLeave]:
+    async def get_all_active(self, hostname: str) -> List[CompanyLeave]:
         """Get all active company leaves"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
             cursor = collection.find({"is_active": True}).sort("created_at", DESCENDING)
             documents = await cursor.to_list(None)
             return [self._document_to_entity(doc) for doc in documents]
@@ -206,14 +206,14 @@ class MongoDBCompanyLeaveRepository(CompanyLeaveRepository):
             self._logger.error(f"Error retrieving active company leaves: {e}")
             return []
     
-    async def get_all(self, include_inactive: bool = False) -> List[CompanyLeave]:
+    async def get_all(self, hostname: str, include_inactive: bool = False) -> List[CompanyLeave]:
         """Get all company leaves"""
         try:
             logger.info(f"Retrieving all company leaves (include_inactive: {include_inactive})")
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
             query = {} if include_inactive else {"is_active": True}
             
-            logger.debug(f"Using query: {query}")
+            logger.info(f"Using query: {query}")
             cursor = collection.find(query).sort("created_at", DESCENDING)
             documents = await cursor.to_list(None)
             
@@ -227,11 +227,11 @@ class MongoDBCompanyLeaveRepository(CompanyLeaveRepository):
             logger.error(f"Error retrieving company leaves: {e}")
             return []
     
-    async def list_with_filters(self, filters: CompanyLeaveSearchFiltersDTO) -> List[CompanyLeave]:
+    async def list_with_filters(self, filters: CompanyLeaveSearchFiltersDTO, hostname: str) -> List[CompanyLeave]:
         """Get company leaves with filters and pagination"""
         try:
             logger.info(f"Retrieving company leaves with filters: {filters.to_dict()}")
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
             # Build query
             query = {}
             
@@ -241,16 +241,16 @@ class MongoDBCompanyLeaveRepository(CompanyLeaveRepository):
             if filters.accrual_type:
                 query["accrual_type"] = filters.accrual_type
             
-            logger.debug(f"MongoDB query: {query}")
+            logger.info(f"MongoDB query: {query}")
             
             # Calculate pagination
             skip = (filters.page - 1) * filters.page_size
-            logger.debug(f"Pagination: skip={skip}, limit={filters.page_size}")
+            logger.info(f"Pagination: skip={skip}, limit={filters.page_size}")
             
             # Build sort
             sort_direction = ASCENDING if filters.sort_order == "asc" else DESCENDING
             sort_field = filters.sort_by
-            logger.debug(f"Sort: field={sort_field}, direction={sort_direction}")
+            logger.info(f"Sort: field={sort_field}, direction={sort_direction}")
             
             cursor = (
                 collection
@@ -272,10 +272,10 @@ class MongoDBCompanyLeaveRepository(CompanyLeaveRepository):
             logger.error(f"Error retrieving filtered company leaves: {e}")
             return []
     
-    async def count_with_filters(self, filters: CompanyLeaveSearchFiltersDTO) -> int:
+    async def count_with_filters(self, filters: CompanyLeaveSearchFiltersDTO, hostname: str) -> int:
         """Count company leaves matching filters"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
             # Build query
             query = {}
             
@@ -291,10 +291,10 @@ class MongoDBCompanyLeaveRepository(CompanyLeaveRepository):
             self._logger.error(f"Error counting filtered company leaves: {e}")
             return 0
     
-    async def exists_by_id(self, company_leave_id: str) -> bool:
+    async def exists_by_id(self, company_leave_id: str, hostname: str) -> bool:
         """Check if company leave exists by ID"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
             count = await collection.count_documents({"company_leave_id": company_leave_id})
             return count > 0
             
@@ -302,10 +302,10 @@ class MongoDBCompanyLeaveRepository(CompanyLeaveRepository):
             self._logger.error(f"Error checking company leave existence: {e}")
             return False
     
-    async def count_active(self) -> int:
+    async def count_active(self, hostname: str) -> int:
         """Count active company leaves"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
             return await collection.count_documents({"is_active": True})
             
         except Exception as e:

@@ -57,7 +57,7 @@ class GetCompanyLeaveUseCase:
                 return None
             
             response = CompanyLeaveResponseDTO.from_entity(company_leave)
-            self._logger.debug(f"Successfully retrieved company leave: {company_leave_id}")
+            self._logger.info(f"Successfully retrieved company leave: {company_leave_id}")
             
             return response
             

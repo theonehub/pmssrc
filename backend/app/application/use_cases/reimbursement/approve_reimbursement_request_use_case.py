@@ -124,7 +124,7 @@ class ApproveReimbursementRequestUseCase:
             if approval_request.approved_amount > Decimal('9999999.99'):
                 raise ReimbursementValidationError("Approved amount cannot exceed ₹99,99,99,999.99", "approved_amount")
         
-        logger.debug("Approval request validation passed")
+        logger.info("Approval request validation passed")
     
     async def _check_business_rules(
         self,
@@ -189,7 +189,7 @@ class ApproveReimbursementRequestUseCase:
                 "employee_not_found"
             )
         
-        logger.debug("Business rules validation passed")
+        logger.info("Business rules validation passed")
         return reimbursement, reimbursement_type, employee
     
     async def _check_approval_authority(
@@ -232,14 +232,14 @@ class ApproveReimbursementRequestUseCase:
             comments=approval_request.comments
         )
         
-        logger.debug(f"Updated domain object with approval: {reimbursement.reimbursement_id}")
+        logger.info(f"Updated domain object with approval: {reimbursement.reimbursement_id}")
     
     async def _persist_entity(self, reimbursement: Reimbursement, hostname: str) -> Reimbursement:
         """Persist entity to repository"""
         
         try:
             saved_reimbursement = await self.command_repository.update(reimbursement, hostname)
-            logger.debug(f"Persisted approved entity: {saved_reimbursement.reimbursement_id}")
+            logger.info(f"Persisted approved entity: {saved_reimbursement.reimbursement_id}")
             return saved_reimbursement
             
         except Exception as e:
@@ -257,7 +257,7 @@ class ApproveReimbursementRequestUseCase:
             
             for event in events:
                 await self.event_publisher.publish(event)
-                logger.debug(f"Published event: {event.get_event_type()}")
+                logger.info(f"Published event: {event.get_event_type()}")
             
             # Clear events after publishing
             reimbursement.clear_domain_events()
@@ -297,7 +297,7 @@ class ApproveReimbursementRequestUseCase:
                     comments=reimbursement.approval.comments if reimbursement.approval else None
                 )
                 
-                logger.debug("Sent approval notification to employee")
+                logger.info("Sent approval notification to employee")
             else:
                 logger.warning("Employee email not found, skipping notification")
             

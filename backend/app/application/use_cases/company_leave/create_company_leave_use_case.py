@@ -130,7 +130,7 @@ class CreateCompanyLeaveUseCase:
             # TODO: Implement proper domain event creation and publishing
             # For now, just log the event instead of publishing
             logger.info(f"Would publish company_leave_created event for {company_leave.company_leave_id}")
-            logger.debug(f"Event data: leave_type={company_leave.leave_type}, created_by={company_leave.created_by}")
+            logger.info(f"Event data: leave_type={company_leave.leave_type}, created_by={company_leave.created_by}")
             
         except Exception as e:
             logger.warning(f"Failed to publish events for company leave {company_leave.company_leave_id}: {e}")

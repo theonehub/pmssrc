@@ -26,22 +26,22 @@ class AttendanceCommandRepository(ABC):
     """
     
     @abstractmethod
-    async def save(self, attendance: Attendance) -> Attendance:
+    async def save(self, attendance: Attendance, hostname: str) -> Attendance:
         """Save attendance record"""
         pass
     
     @abstractmethod
-    async def save_batch(self, attendances: List[Attendance]) -> List[Attendance]:
+    async def save_batch(self, attendances: List[Attendance], hostname: str) -> List[Attendance]:
         """Save multiple attendance records in batch"""
         pass
     
     @abstractmethod
-    async def delete(self, attendance_id: str) -> bool:
+    async def delete(self, attendance_id: str, hostname: str) -> bool:
         """Delete attendance record by ID"""
         pass
     
     @abstractmethod
-    async def delete_by_employee_and_date(self, employee_id: str, attendance_date: date) -> bool:
+    async def delete_by_employee_and_date(self, employee_id: str, attendance_date: date, hostname: str) -> bool:
         """Delete attendance record by employee and date"""
         pass
 
@@ -54,12 +54,12 @@ class AttendanceQueryRepository(ABC):
     """
     
     @abstractmethod
-    async def get_by_id(self, attendance_id: str) -> Optional[Attendance]:
+    async def get_by_id(self, attendance_id: str, hostname: str) -> Optional[Attendance]:
         """Get attendance record by ID"""
         pass
     
     @abstractmethod
-    async def get_by_employee_and_date(self, employee_id: str, attendance_date: date) -> Optional[Attendance]:
+    async def get_by_employee_and_date(self, employee_id: str, attendance_date: date, hostname: str) -> Optional[Attendance]:
         """Get attendance record by employee ID and date"""
         pass
     
@@ -67,6 +67,7 @@ class AttendanceQueryRepository(ABC):
     async def get_by_employee(
         self,
         employee_id: str,
+        hostname: str,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
         limit: Optional[int] = None,
@@ -79,7 +80,8 @@ class AttendanceQueryRepository(ABC):
     async def get_by_date(
         self,
         attendance_date: date,
-        employee_ids: Optional[List[str]] = None
+        hostname: str,
+        employee_ids: Optional[List[str]] = None,
     ) -> List[Attendance]:
         """Get attendance records by date with optional employee filter"""
         pass
@@ -89,6 +91,7 @@ class AttendanceQueryRepository(ABC):
         self,
         start_date: date,
         end_date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None
@@ -97,23 +100,24 @@ class AttendanceQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def search(self, filters: AttendanceSearchFiltersDTO) -> List[Attendance]:
+    async def search(self, filters: AttendanceSearchFiltersDTO, hostname: str) -> List[Attendance]:
         """Search attendance records with filters"""
         pass
     
     @abstractmethod
-    async def count_by_filters(self, filters: AttendanceSearchFiltersDTO) -> int:
+    async def count_by_filters(self, filters: AttendanceSearchFiltersDTO, hostname: str) -> int:
         """Count attendance records matching filters"""
         pass
     
     @abstractmethod
-    async def get_pending_check_outs(self, date: Optional[date] = None) -> List[Attendance]:
+    async def get_pending_check_outs(self, hostname: str, date: Optional[date] = None) -> List[Attendance]:
         """Get attendance records with check-in but no check-out"""
         pass
     
     @abstractmethod
     async def get_regularization_requests(
         self,
+        hostname: str,
         employee_ids: Optional[List[str]] = None,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None
@@ -122,7 +126,7 @@ class AttendanceQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def exists_by_employee_and_date(self, employee_id: str, attendance_date: date) -> bool:
+    async def exists_by_employee_and_date(self, employee_id: str, attendance_date: date, hostname: str) -> bool:
         """Check if attendance record exists for employee and date"""
         pass
 
@@ -139,7 +143,8 @@ class AttendanceAnalyticsRepository(ABC):
         self,
         employee_id: str,
         start_date: date,
-        end_date: date
+        end_date: date,
+        hostname: str
     ) -> AttendanceSummaryDTO:
         """Get attendance summary for an employee"""
         pass
@@ -149,13 +154,14 @@ class AttendanceAnalyticsRepository(ABC):
         self,
         employee_ids: List[str],
         start_date: date,
-        end_date: date
+        end_date: date,
+        hostname: str
     ) -> List[AttendanceSummaryDTO]:
         """Get attendance summaries for multiple employees"""
         pass
     
     @abstractmethod
-    async def get_daily_statistics(self, date: date) -> AttendanceStatisticsDTO:
+    async def get_daily_statistics(self, date: date, hostname: str) -> AttendanceStatisticsDTO:
         """Get daily attendance statistics"""
         pass
     
@@ -164,6 +170,7 @@ class AttendanceAnalyticsRepository(ABC):
         self,
         start_date: date,
         end_date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None
     ) -> AttendanceStatisticsDTO:
         """Get attendance statistics for a period"""
@@ -173,6 +180,7 @@ class AttendanceAnalyticsRepository(ABC):
     async def get_department_attendance(
         self,
         date: date,
+        hostname: str,
         department_ids: Optional[List[str]] = None
     ) -> List[DepartmentAttendanceDTO]:
         """Get department-wise attendance for a date"""
@@ -183,6 +191,7 @@ class AttendanceAnalyticsRepository(ABC):
         self,
         start_date: date,
         end_date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None
     ) -> List[AttendanceTrendDTO]:
         """Get attendance trends over a period"""
@@ -193,6 +202,7 @@ class AttendanceAnalyticsRepository(ABC):
         self,
         start_date: date,
         end_date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None
     ) -> List[Attendance]:
         """Get late arrival records"""
@@ -203,6 +213,7 @@ class AttendanceAnalyticsRepository(ABC):
         self,
         start_date: date,
         end_date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None,
         min_overtime_hours: Optional[Decimal] = None
     ) -> List[Attendance]:
@@ -213,6 +224,7 @@ class AttendanceAnalyticsRepository(ABC):
     async def get_absent_employees(
         self,
         date: date,
+        hostname: str,
         department_ids: Optional[List[str]] = None
     ) -> List[str]:
         """Get list of absent employee IDs for a date"""
@@ -223,6 +235,7 @@ class AttendanceAnalyticsRepository(ABC):
         self,
         start_date: date,
         end_date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None
     ) -> Dict[str, int]:
         """Get distribution of working hours (e.g., {0-4: 10, 4-8: 50, 8+: 40})"""
@@ -233,6 +246,7 @@ class AttendanceAnalyticsRepository(ABC):
         self,
         start_date: date,
         end_date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None
     ) -> Dict[str, float]:
         """Get attendance percentage by employee"""
@@ -243,6 +257,7 @@ class AttendanceAnalyticsRepository(ABC):
         self,
         year: int,
         month: int,
+        hostname: str,
         employee_ids: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """Get monthly attendance summary"""
@@ -260,6 +275,7 @@ class AttendanceReportsRepository(ABC):
     async def generate_daily_report(
         self,
         date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None,
         department_ids: Optional[List[str]] = None
     ) -> Dict[str, Any]:
@@ -270,6 +286,7 @@ class AttendanceReportsRepository(ABC):
     async def generate_weekly_report(
         self,
         start_date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None,
         department_ids: Optional[List[str]] = None
     ) -> Dict[str, Any]:
@@ -281,6 +298,7 @@ class AttendanceReportsRepository(ABC):
         self,
         year: int,
         month: int,
+        hostname: str,
         employee_ids: Optional[List[str]] = None,
         department_ids: Optional[List[str]] = None
     ) -> Dict[str, Any]:
@@ -292,6 +310,7 @@ class AttendanceReportsRepository(ABC):
         self,
         start_date: date,
         end_date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None,
         department_ids: Optional[List[str]] = None,
         include_summary: bool = True,
@@ -303,6 +322,7 @@ class AttendanceReportsRepository(ABC):
     @abstractmethod
     async def export_to_csv(
         self,
+        hostname: str,
         attendances: List[Attendance],
         include_summary: bool = False
     ) -> str:
@@ -312,6 +332,7 @@ class AttendanceReportsRepository(ABC):
     @abstractmethod
     async def export_to_excel(
         self,
+        hostname: str,
         attendances: List[Attendance],
         include_summary: bool = False,
         include_charts: bool = False
@@ -330,6 +351,7 @@ class AttendanceBulkOperationsRepository(ABC):
     @abstractmethod
     async def bulk_import(
         self,
+        hostname: str,
         attendance_data: List[Dict[str, Any]],
         import_mode: str = "create"  # create, update, upsert
     ) -> Dict[str, Any]:
@@ -339,6 +361,7 @@ class AttendanceBulkOperationsRepository(ABC):
     @abstractmethod
     async def bulk_update_status(
         self,
+        hostname: str,
         attendance_ids: List[str],
         new_status: str,
         updated_by: str,
@@ -350,6 +373,7 @@ class AttendanceBulkOperationsRepository(ABC):
     @abstractmethod
     async def bulk_regularize(
         self,
+        hostname: str,
         attendance_ids: List[str],
         reason: str,
         regularized_by: str
@@ -360,6 +384,7 @@ class AttendanceBulkOperationsRepository(ABC):
     @abstractmethod
     async def bulk_delete(
         self,
+        hostname: str,
         attendance_ids: List[str],
         deleted_by: str,
         reason: str
@@ -371,6 +396,7 @@ class AttendanceBulkOperationsRepository(ABC):
     async def auto_mark_absent(
         self,
         date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None,
         exclude_on_leave: bool = True,
         exclude_holidays: bool = True
@@ -382,6 +408,7 @@ class AttendanceBulkOperationsRepository(ABC):
     async def auto_mark_holidays(
         self,
         date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None
     ) -> int:
         """Auto-mark employees as on holiday for a date"""

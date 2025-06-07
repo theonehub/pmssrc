@@ -130,7 +130,7 @@ class DeleteCompanyLeaveUseCase:
             }
             
             await self._event_publisher.publish('company_leave_deleted', event_data)
-            logger.debug(f"Published company_leave_deleted event for {company_leave.company_leave_id}")
+            logger.info(f"Published company_leave_deleted event for {company_leave.company_leave_id}")
             
         except Exception as e:
             logger.warning(f"Failed to publish events for company leave {company_leave.company_leave_id}: {e}")

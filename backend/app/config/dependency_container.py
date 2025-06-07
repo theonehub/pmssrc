@@ -43,6 +43,7 @@ from app.config.mongodb_config import (
 )
 from app.utils.logger import get_logger
 from app.infrastructure.services.event_publisher_impl import EventPublisherImpl
+from app.infrastructure.services.attendance_service_impl import AttendanceServiceImpl
 
 logger = get_logger(__name__)
 
@@ -225,11 +226,16 @@ class DependencyContainer:
                 notification_service=self._notification_service
             )
             
-            # Attendance service
-            # self._services['attendance'] = AttendanceServiceImpl(
-            #     repository=self._repositories['attendance'],
-            #     notification_service=self._notification_service
-            # )
+            # Attendance service with use cases
+            attendance_use_cases = self._create_attendance_use_cases()
+            self._services['attendance'] = AttendanceServiceImpl(
+                repository=self._repositories['attendance'],
+                notification_service=self._notification_service,
+                checkin_use_case=attendance_use_cases['checkin'],
+                checkout_use_case=attendance_use_cases['checkout'],
+                query_use_case=attendance_use_cases['query'],
+                analytics_use_case=attendance_use_cases['analytics']
+            )
             
             # Reimbursement service  
             self._services['reimbursement'] = ReimbursementServiceImpl(
@@ -264,6 +270,68 @@ class DependencyContainer:
         except Exception as e:
             logger.error(f"Error setting up services: {e}")
             raise
+    
+    def _create_attendance_use_cases(self):
+        """Create and configure attendance use cases"""
+        try:
+            # Import use cases here to avoid circular imports
+            from app.application.use_cases.attendance.check_in_use_case import CheckInUseCase
+            from app.application.use_cases.attendance.check_out_use_case import CheckOutUseCase
+            from app.application.use_cases.attendance.attendance_query_use_case import AttendanceQueryUseCase
+            from app.application.use_cases.attendance.attendance_analytics_use_case import AttendanceAnalyticsUseCase
+            
+            # Get required dependencies
+            attendance_repository = self._repositories['attendance']
+            event_publisher = self._get_event_publisher()
+            
+            # Use user repository as employee repository (users are employees)
+            employee_repository = self._repositories['user']
+            
+            # Create use cases
+            checkin_use_case = CheckInUseCase(
+                attendance_command_repository=attendance_repository,
+                attendance_query_repository=attendance_repository,
+                employee_repository=employee_repository,
+                event_publisher=event_publisher,
+                notification_service=self._notification_service
+            )
+            
+            checkout_use_case = CheckOutUseCase(
+                attendance_command_repository=attendance_repository,
+                attendance_query_repository=attendance_repository,
+                employee_repository=employee_repository,
+                event_publisher=event_publisher,
+                notification_service=self._notification_service
+            )
+            
+            query_use_case = AttendanceQueryUseCase(
+                attendance_query_repository=attendance_repository,
+                employee_repository=employee_repository
+            )
+            
+            analytics_use_case = AttendanceAnalyticsUseCase(
+                attendance_query_repository=attendance_repository,
+                employee_repository=employee_repository
+            )
+            
+            logger.info("Attendance use cases created successfully")
+            
+            return {
+                'checkin': checkin_use_case,
+                'checkout': checkout_use_case,
+                'query': query_use_case,
+                'analytics': analytics_use_case
+            }
+            
+        except Exception as e:
+            logger.error(f"Error creating attendance use cases: {e}")
+            # Return None use cases to allow fallback behavior
+            return {
+                'checkin': None,
+                'checkout': None,
+                'query': None,
+                'analytics': None
+            }
     
     def _setup_controllers(self):
         """Setup controller implementations."""
@@ -347,9 +415,8 @@ class DependencyContainer:
     
     def get_attendance_service(self):
         """Get attendance service instance."""
-        # self.initialize()
-        # return self._services['attendance']
-        raise NotImplementedError("Attendance service temporarily disabled due to circular import")
+        self.initialize()
+        return self._services['attendance']
     
     def get_reimbursement_service(self) -> ReimbursementServiceImpl:
         """Get reimbursement service instance."""
@@ -405,7 +472,40 @@ class DependencyContainer:
     
     def _get_event_publisher(self):
         """Get event publisher instance."""
-        return EventPublisherImpl()
+        # Use enhanced event publisher with event store and handlers
+        from app.infrastructure.services.enhanced_event_publisher import EnhancedEventPublisher
+        from app.application.event_handlers.attendance_event_handlers import (
+            AttendanceNotificationHandler,
+            AttendanceAnalyticsHandler,
+            AttendanceAuditHandler,
+            AttendanceIntegrationHandler
+        )
+        
+        try:
+            # Create enhanced event publisher
+            enhanced_publisher = EnhancedEventPublisher(self._database_connector)
+            
+            # Register attendance event handlers
+            enhanced_publisher.register_handler(
+                AttendanceNotificationHandler(self._notification_service, priority=50)
+            )
+            enhanced_publisher.register_handler(
+                AttendanceAnalyticsHandler(priority=75)
+            )
+            enhanced_publisher.register_handler(
+                AttendanceAuditHandler(priority=90)
+            )
+            enhanced_publisher.register_handler(
+                AttendanceIntegrationHandler(priority=100)
+            )
+            
+            logger.info("Enhanced event publisher configured with attendance handlers")
+            return enhanced_publisher
+            
+        except Exception as e:
+            logger.warning(f"Failed to create enhanced event publisher: {e}")
+            # Fallback to simple implementation
+            return EventPublisherImpl()
     
     # ==================== CONTROLLER GETTERS ====================
     
@@ -560,10 +660,19 @@ class DependencyContainer:
         
         # Import here to avoid circular imports
         from app.api.controllers.employee_leave_controller import EmployeeLeaveController
+        from app.application.use_cases.employee_leave.get_employee_leaves_use_case import GetEmployeeLeavesUseCase
         
         if 'employee_leave' not in self._controllers:
+            # Create minimal use case for query operations
+            query_use_case = GetEmployeeLeavesUseCase(
+                query_repository=self._repositories['employee_leave']
+            )
+            
+            # Create a controller with fallback functionality
             self._controllers['employee_leave'] = EmployeeLeaveController(
-                employee_leave_service=self._services['employee_leave']
+                apply_use_case=None,  # Will be handled by fallback
+                approve_use_case=None,  # Will be handled by fallback
+                query_use_case=query_use_case
             )
         
         return self._controllers['employee_leave']

@@ -98,7 +98,7 @@ async def get_current_user(
         # Create current user object
         current_user = CurrentUser(payload)
         
-        logger.debug(f"Authenticated user: {current_user.employee_id} from organisation: {current_user.hostname}")
+        logger.info(f"Authenticated user: {current_user.employee_id} from organisation: {current_user.hostname}")
         
         return current_user
         

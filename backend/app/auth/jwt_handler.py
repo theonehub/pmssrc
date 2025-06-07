@@ -35,7 +35,7 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
         token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
         
         logger.info("Access token created for user: %s", data.get("sub", data.get("username", "unknown")))
-        logger.debug("Token expires at: %s", expire.isoformat())
+        logger.info("Token expires at: %s", expire.isoformat())
         
         return token
         
@@ -62,7 +62,7 @@ def decode_access_token(token: str):
         # Decode and validate the token
         decoded = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         
-        logger.debug("Token decoded successfully for user: %s", decoded.get("sub", "unknown"))
+        logger.info("Token decoded successfully for user: %s", decoded.get("sub", "unknown"))
         
         # Additional validation checks
         if "exp" not in decoded:
@@ -118,7 +118,7 @@ def get_token_claims(token: str) -> dict:
     try:
         # Decode without verification (for extracting claims from expired tokens)
         decoded = jwt.decode(token, options={"verify_signature": False})
-        logger.debug("Token claims extracted (unverified)")
+        logger.info("Token claims extracted (unverified)")
         return decoded
     except Exception as e:
         logger.error("Error extracting token claims: %s", e)

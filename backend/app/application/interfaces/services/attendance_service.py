@@ -4,29 +4,32 @@ Following Interface Segregation Principle for attendance business operations
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, TYPE_CHECKING
 from datetime import datetime, date
 
 from app.application.dto.attendance_dto import (
-    CheckInRequestDTO,
-    CheckOutRequestDTO,
+    AttendanceCheckInRequestDTO,
+    AttendanceCheckOutRequestDTO,
     AttendanceResponseDTO,
-    AttendanceListResponseDTO,
     AttendanceSearchFiltersDTO,
-    AttendanceAnalyticsDTO
+    AttendanceStatisticsDTO
 )
+
+# Import CurrentUser for organisation context
+if TYPE_CHECKING:
+    from app.auth.auth_dependencies import CurrentUser
 
 
 class AttendanceCommandService(ABC):
     """Service interface for attendance command operations."""
     
     @abstractmethod
-    async def check_in(self, request: CheckInRequestDTO) -> AttendanceResponseDTO:
+    async def check_in(self, request: AttendanceCheckInRequestDTO, current_user: "CurrentUser") -> AttendanceResponseDTO:
         """Process employee check-in."""
         pass
     
     @abstractmethod
-    async def check_out(self, request: CheckOutRequestDTO) -> AttendanceResponseDTO:
+    async def check_out(self, request: AttendanceCheckOutRequestDTO, current_user: "CurrentUser") -> AttendanceResponseDTO:
         """Process employee check-out."""
         pass
 
@@ -35,13 +38,28 @@ class AttendanceQueryService(ABC):
     """Service interface for attendance query operations."""
     
     @abstractmethod
-    async def get_attendance_by_id(self, attendance_id: str) -> Optional[AttendanceResponseDTO]:
-        """Get attendance record by ID."""
+    async def get_employee_attendance_by_month(self, filters: AttendanceSearchFiltersDTO, current_user: "CurrentUser") -> List[AttendanceResponseDTO]:
+        """Get employee attendance records for a specific month."""
         pass
     
     @abstractmethod
-    async def list_attendance(self, filters: Optional[AttendanceSearchFiltersDTO] = None) -> AttendanceListResponseDTO:
-        """List attendance records with optional filters."""
+    async def get_employee_attendance_by_year(self, filters: AttendanceSearchFiltersDTO, current_user: "CurrentUser") -> List[AttendanceResponseDTO]:
+        """Get employee attendance records for a specific year."""
+        pass
+    
+    @abstractmethod
+    async def get_team_attendance_by_date(self, filters: AttendanceSearchFiltersDTO, current_user: "CurrentUser") -> List[AttendanceResponseDTO]:
+        """Get team attendance records for a specific date."""
+        pass
+    
+    @abstractmethod
+    async def get_team_attendance_by_month(self, filters: AttendanceSearchFiltersDTO, current_user: "CurrentUser") -> List[AttendanceResponseDTO]:
+        """Get team attendance records for a specific month."""
+        pass
+    
+    @abstractmethod
+    async def get_team_attendance_by_year(self, filters: AttendanceSearchFiltersDTO, current_user: "CurrentUser") -> List[AttendanceResponseDTO]:
+        """Get team attendance records for a specific year."""
         pass
 
 
@@ -49,30 +67,15 @@ class AttendanceAnalyticsService(ABC):
     """Service interface for attendance analytics operations."""
     
     @abstractmethod
-    async def get_attendance_analytics(self, employee_id: str, start_date: date, end_date: date) -> AttendanceAnalyticsDTO:
-        """Get attendance analytics for an employee."""
-        pass
-
-
-class AttendanceValidationService(ABC):
-    """Service interface for attendance validation operations."""
-    
-    @abstractmethod
-    async def validate_check_in(self, request: CheckInRequestDTO) -> List[str]:
-        """Validate check-in request."""
-        pass
-    
-    @abstractmethod
-    async def validate_check_out(self, request: CheckOutRequestDTO) -> List[str]:
-        """Validate check-out request."""
+    async def get_todays_attendance_stats(self, current_user: "CurrentUser") -> AttendanceStatisticsDTO:
+        """Get today's attendance statistics."""
         pass
 
 
 class AttendanceService(
     AttendanceCommandService,
     AttendanceQueryService,
-    AttendanceAnalyticsService,
-    AttendanceValidationService
+    AttendanceAnalyticsService
 ):
     """Combined attendance service interface."""
     pass 

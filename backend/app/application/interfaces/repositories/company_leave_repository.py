@@ -24,7 +24,7 @@ class CompanyLeaveCommandRepository(ABC):
     """
     
     @abstractmethod
-    async def save(self, company_leave: CompanyLeave) -> bool:
+    async def save(self, company_leave: CompanyLeave, hostname: str) -> bool:
         """
         Save company leave record.
         
@@ -37,7 +37,7 @@ class CompanyLeaveCommandRepository(ABC):
         pass
     
     @abstractmethod
-    async def update(self, company_leave: CompanyLeave) -> bool:
+    async def update(self, company_leave: CompanyLeave, hostname: str) -> bool:
         """
         Update existing company leave record.
         
@@ -50,7 +50,7 @@ class CompanyLeaveCommandRepository(ABC):
         pass
     
     @abstractmethod
-    async def delete(self, company_leave_id: str) -> bool:
+    async def delete(self, company_leave_id: str, hostname: str) -> bool:
         """
         Delete company leave record.
         
@@ -69,7 +69,7 @@ class CompanyLeaveQueryRepository(ABC):
     """
     
     @abstractmethod
-    async def get_by_id(self, company_leave_id: str) -> Optional[CompanyLeave]:
+    async def get_by_id(self, company_leave_id: str, hostname: str) -> Optional[CompanyLeave]:
         """
         Get company leave by ID.
         
@@ -82,7 +82,7 @@ class CompanyLeaveQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_all_active(self) -> List[CompanyLeave]:
+    async def get_all_active(self, hostname: str) -> List[CompanyLeave]:
         """
         Get all active company leaves.
         
@@ -92,7 +92,7 @@ class CompanyLeaveQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_all(self, include_inactive: bool = False) -> List[CompanyLeave]:
+    async def get_all(self, hostname: str, include_inactive: bool = False) -> List[CompanyLeave]:
         """
         Get all company leaves.
         
@@ -105,7 +105,7 @@ class CompanyLeaveQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def list_with_filters(self, filters: CompanyLeaveSearchFiltersDTO) -> List[CompanyLeave]:
+    async def list_with_filters(self, filters: CompanyLeaveSearchFiltersDTO, hostname: str) -> List[CompanyLeave]:
         """
         Get company leaves with filters and pagination.
         
@@ -118,7 +118,7 @@ class CompanyLeaveQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def count_with_filters(self, filters: CompanyLeaveSearchFiltersDTO) -> int:
+    async def count_with_filters(self, filters: CompanyLeaveSearchFiltersDTO, hostname: str) -> int:
         """
         Count company leaves matching filters.
         
@@ -131,7 +131,7 @@ class CompanyLeaveQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def exists_by_id(self, company_leave_id: str) -> bool:
+    async def exists_by_id(self, company_leave_id: str, hostname: str) -> bool:
         """
         Check if company leave exists by ID.
         
@@ -144,7 +144,7 @@ class CompanyLeaveQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def count_active(self) -> int:
+    async def count_active(self, hostname: str) -> int:
         """
         Count active company leaves.
         

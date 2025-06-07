@@ -47,7 +47,7 @@ class PasswordService:
         
         try:
             hashed = self.pwd_context.hash(password)
-            logger.debug("Password hashed successfully")
+            logger.info("Password hashed successfully")
             return hashed
         except Exception as e:
             logger.error(f"Error hashing password: {e}")
@@ -69,7 +69,7 @@ class PasswordService:
         
         try:
             is_valid = self.pwd_context.verify(plain_password, hashed_password)
-            logger.debug(f"Password verification result: {is_valid}")
+            logger.info(f"Password verification result: {is_valid}")
             return is_valid
         except Exception as e:
             logger.error(f"Error verifying password: {e}")
@@ -115,7 +115,7 @@ class PasswordService:
             secrets.SystemRandom().shuffle(password_chars)
             
             password = ''.join(password_chars)
-            logger.debug(f"Generated temporary password of length {length}")
+            logger.info(f"Generated temporary password of length {length}")
             return password
             
         except Exception as e:

@@ -1,24 +1,23 @@
 """
-Check-In Use Case
-Handles employee check-in operations with business rules and validation
+Check-Out Use Case
+Handles employee check-out operations with business rules and validation
 """
 
 from datetime import datetime, date
 from typing import Optional, TYPE_CHECKING
+from decimal import Decimal
 
 from app.domain.entities.attendance import Attendance
 from app.domain.value_objects.employee_id import EmployeeId
 from app.domain.value_objects.attendance_status import AttendanceStatus, AttendanceMarkingType
 from app.domain.value_objects.working_hours import WorkingHours
 from app.application.dto.attendance_dto import (
-    AttendanceCheckInRequestDTO,
+    AttendanceCheckOutRequestDTO,
     AttendanceResponseDTO,
     AttendanceValidationError,
     AttendanceBusinessRuleError,
     WorkingHoursResponseDTO,
-    AttendanceStatusResponseDTO,
-    AttendanceStatusEnum,
-    AttendanceMarkingTypeEnum
+    AttendanceStatusResponseDTO
 )
 from app.application.interfaces.repositories.attendance_repository import (
     AttendanceCommandRepository,
@@ -36,12 +35,12 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-class CheckInUseCase:
+class CheckOutUseCase:
     """
-    Use case for employee check-in operations.
+    Use case for employee check-out operations.
     
     Follows SOLID principles:
-    - SRP: Handles only check-in operations
+    - SRP: Handles only check-out operations
     - OCP: Extensible through dependency injection
     - LSP: Can be substituted with enhanced versions
     - ISP: Depends on focused repository interfaces
@@ -49,11 +48,12 @@ class CheckInUseCase:
     
     Business Rules:
     1. Employee must exist and be active
-    2. Cannot check in if already checked in for the day
-    3. Check-in time cannot be in the future
-    4. Check-in time must be on the current date or specified date
-    5. Creates attendance record if none exists for the date
-    6. Updates existing attendance record if it exists
+    2. Must be checked in before checking out
+    3. Check-out time cannot be in the future
+    4. Check-out time must be after check-in time
+    5. Check-out time must be on the same date as attendance date
+    6. Updates existing attendance record
+    7. Calculates working hours and overtime
     """
     
     def __init__(
@@ -72,25 +72,25 @@ class CheckInUseCase:
     
     async def execute(
         self,
-        request: AttendanceCheckInRequestDTO,
+        request: AttendanceCheckOutRequestDTO,
         current_user: "CurrentUser"
     ) -> AttendanceResponseDTO:
         """
-        Execute check-in operation.
+        Execute check-out operation.
         
         Steps:
         1. Validate request data
         2. Verify employee exists and is active
-        3. Check business rules
-        4. Get or create attendance record
-        5. Perform check-in
+        3. Get existing attendance record
+        4. Check business rules
+        5. Perform check-out
         6. Save attendance record
         7. Publish domain events
         8. Send notifications
         9. Return response
         """
         try:
-            logger.info(f"Processing check-in for employee: {request.employee_id} in organisation: {current_user.hostname}")
+            logger.info(f"Processing check-out for employee: {request.employee_id} in organisation: {current_user.hostname}")
             
             # Step 1: Validate request data
             await self._validate_request(request)
@@ -98,23 +98,18 @@ class CheckInUseCase:
             # Step 2: Verify employee exists and is active
             employee = await self._verify_employee(request.employee_id, current_user)
             
-            # Step 3: Check business rules
-            check_in_time = request.check_in_time or datetime.now()
-            attendance_date = check_in_time.date()
+            # Step 3: Get existing attendance record
+            check_out_time = request.check_out_time or datetime.now()
+            attendance_date = check_out_time.date()
             
-            await self._validate_business_rules(request.employee_id, attendance_date, check_in_time, current_user)
+            attendance = await self._get_attendance_record(request.employee_id, attendance_date, current_user)
             
-            # Step 4: Get or create attendance record
-            attendance = await self._get_or_create_attendance(
-                request.employee_id,
-                attendance_date,
-                current_user.employee_id,
-                current_user
-            )
+            # Step 4: Check business rules
+            await self._validate_business_rules(attendance, check_out_time)
             
-            # Step 5: Perform check-in
-            attendance.check_in(
-                check_in_time=check_in_time,
+            # Step 5: Perform check-out
+            attendance.check_out(
+                check_out_time=check_out_time,
                 location=request.location,
                 marked_by=current_user.employee_id
             )
@@ -131,7 +126,7 @@ class CheckInUseCase:
             # Step 9: Return response
             response = self._create_response(saved_attendance)
             
-            logger.info(f"Check-in completed successfully for employee: {request.employee_id} in organisation: {current_user.hostname}")
+            logger.info(f"Check-out completed successfully for employee: {request.employee_id} in organisation: {current_user.hostname}")
             return response
             
         except AttendanceValidationError:
@@ -139,27 +134,27 @@ class CheckInUseCase:
         except AttendanceBusinessRuleError:
             raise
         except Exception as e:
-            logger.error(f"Unexpected error during check-in: {e}")
+            logger.error(f"Unexpected error during check-out: {e}")
             raise AttendanceBusinessRuleError(
-                f"Failed to process check-in: {str(e)}",
-                "CHECK_IN_FAILED"
+                f"Failed to process check-out: {str(e)}",
+                "CHECK_OUT_FAILED"
             )
     
-    async def _validate_request(self, request: AttendanceCheckInRequestDTO) -> None:
-        """Validate the check-in request"""
+    async def _validate_request(self, request: AttendanceCheckOutRequestDTO) -> None:
+        """Validate the check-out request"""
         if not request.employee_id or not request.employee_id.strip():
             raise AttendanceValidationError(
                 "Employee ID is required",
                 "MISSING_EMPLOYEE_ID"
             )
         
-        if request.check_in_time and request.check_in_time > datetime.now():
+        if request.check_out_time and request.check_out_time > datetime.now():
             raise AttendanceValidationError(
-                "Check-in time cannot be in the future",
-                "INVALID_CHECK_IN_TIME"
+                "Check-out time cannot be in the future",
+                "INVALID_CHECK_OUT_TIME"
             )
     
-    async def _verify_employee(self, employee_id: str, current_user: "CurrentUser"):
+    async def _verify_employee(self, employee_id: str, current_user: "CurrentUser") -> dict:
         """Verify employee exists and is active"""
         employee = await self.employee_repository.get_by_id(employee_id, current_user.hostname)
         
@@ -169,16 +164,12 @@ class CheckInUseCase:
                 "EMPLOYEE_NOT_FOUND"
             )
         
-        # Check if employee is active - handle both dict and object formats
-        is_active = True
-        if hasattr(employee, 'is_active') and callable(getattr(employee, 'is_active')):
-            is_active = employee.is_active()
-        elif hasattr(employee, 'is_active'):
-            is_active = employee.is_active
-        elif isinstance(employee, dict):
-            is_active = employee.get("is_active", True)
-        
-        if not is_active:
+        if hasattr(employee, 'is_active') and not employee.is_active:
+            raise AttendanceBusinessRuleError(
+                f"Employee {employee_id} is not active",
+                "EMPLOYEE_INACTIVE"
+            )
+        elif isinstance(employee, dict) and not employee.get("is_active", True):
             raise AttendanceBusinessRuleError(
                 f"Employee {employee_id} is not active",
                 "EMPLOYEE_INACTIVE"
@@ -186,106 +177,109 @@ class CheckInUseCase:
         
         return employee
     
-    async def _validate_business_rules(
+    async def _get_attendance_record(
         self,
         employee_id: str,
         attendance_date: date,
-        check_in_time: datetime,
-        current_user: "CurrentUser"
-    ) -> None:
-        """Validate business rules for check-in"""
-        
-        # Check if employee is already checked in for the date
-        existing_attendance = await self.attendance_query_repository.get_by_employee_and_date(
-            employee_id, attendance_date, current_user.hostname
-        )
-        
-        if existing_attendance and existing_attendance.working_hours.is_checked_in():
-            raise AttendanceBusinessRuleError(
-                f"Employee {employee_id} is already checked in for {attendance_date}",
-                "ALREADY_CHECKED_IN"
-            )
-        
-        # Check if check-in time is reasonable (not too far in the past)
-        time_diff = datetime.utcnow() - check_in_time
-        if time_diff.total_seconds() > 24 * 60 * 60:  # More than 24 hours ago
-            raise AttendanceBusinessRuleError(
-                "Check-in time cannot be more than 24 hours in the past",
-                "CHECK_IN_TIME_TOO_OLD"
-            )
-    
-    async def _get_or_create_attendance(
-        self,
-        employee_id: str,
-        attendance_date: date,
-        created_by: str,
         current_user: "CurrentUser"
     ) -> Attendance:
-        """Get existing attendance record or create new one"""
-        
-        # Try to get existing attendance record
+        """Get existing attendance record"""
         attendance = await self.attendance_query_repository.get_by_employee_and_date(
             employee_id, attendance_date, current_user.hostname
         )
         
-        if attendance:
-            return attendance
-        
-        # Create new attendance record
-        attendance = Attendance.create_new(
-            employee_id=EmployeeId(employee_id),
-            attendance_date=attendance_date,
-            created_by=created_by
-        )
+        if not attendance:
+            raise AttendanceBusinessRuleError(
+                f"No attendance record found for employee {employee_id} on {attendance_date}",
+                "ATTENDANCE_NOT_FOUND"
+            )
         
         return attendance
+    
+    async def _validate_business_rules(
+        self,
+        attendance: Attendance,
+        check_out_time: datetime
+    ) -> None:
+        """Validate business rules for check-out"""
+        
+        # Check if employee is checked in
+        if not attendance.working_hours.is_checked_in():
+            raise AttendanceBusinessRuleError(
+                f"Employee {attendance.employee_id.value} is not checked in",
+                "NOT_CHECKED_IN"
+            )
+        
+        # Check if already checked out
+        if attendance.working_hours.is_checked_out():
+            raise AttendanceBusinessRuleError(
+                f"Employee {attendance.employee_id.value} is already checked out",
+                "ALREADY_CHECKED_OUT"
+            )
+        
+        # Check if check-out time is after check-in time
+        if check_out_time <= attendance.working_hours.check_in_time:
+            raise AttendanceBusinessRuleError(
+                "Check-out time must be after check-in time",
+                "INVALID_CHECK_OUT_TIME"
+            )
+        
+        # Check if check-out time is on the same date
+        if check_out_time.date() != attendance.attendance_date:
+            raise AttendanceBusinessRuleError(
+                "Check-out time must be on the same date as attendance date",
+                "INVALID_CHECK_OUT_DATE"
+            )
+        
+        # Check if check-out time is reasonable (not too far in the future)
+        # Allow for timezone differences and clock skew
+        time_diff = check_out_time - datetime.utcnow()
+        if time_diff.total_seconds() > 6 * 60 * 60:  # More than 6 hours in the future
+            raise AttendanceBusinessRuleError(
+                "Check-out time cannot be more than 6 hours in the future",
+                "CHECK_OUT_TIME_TOO_FUTURE"
+            )
     
     async def _publish_events(self, attendance: Attendance) -> None:
         """Publish domain events"""
         try:
             if self.event_publisher:
-                # Publish check-in event
+                # Publish check-out event
                 await self.event_publisher.publish({
-                    "event_type": "attendance.checked_in",
+                    "event_type": "attendance.checked_out",
                     "employee_id": attendance.employee_id.value,
                     "attendance_date": attendance.attendance_date.isoformat(),
-                    "check_in_time": attendance.working_hours.check_in_time.isoformat(),
+                    "check_out_time": attendance.working_hours.check_out_time.isoformat(),
+                    "total_hours": float(attendance.working_hours.working_hours()),
                     "timestamp": datetime.utcnow().isoformat()
                 })
         except Exception as e:
-            logger.warning(f"Failed to publish check-in event: {e}")
+            logger.warning(f"Failed to publish check-out event: {e}")
     
-    async def _send_notifications(self, attendance: Attendance, employee) -> None:
-        """Send notifications for check-in"""
+    async def _send_notifications(self, attendance: Attendance, employee: dict) -> None:
+        """Send notifications for check-out"""
         try:
             if self.notification_service:
-                # Send notification to manager if late
-                if attendance.status.status.value == "late":
-                    # Handle both dict and object formats for employee
-                    employee_name = "Unknown"
-                    manager_id = None
+                # Send notification for overtime if applicable
+                if attendance.working_hours.overtime_hours > 0:
+                    employee_name = getattr(employee, 'name', None) or (employee.get("name", "Unknown") if isinstance(employee, dict) else "Unknown")
+                    manager_id = getattr(employee, 'manager_id', None) or (employee.get("manager_id") if isinstance(employee, dict) else None)
                     
-                    if isinstance(employee, dict):
-                        employee_name = employee.get("name", "Unknown")
-                        manager_id = employee.get("manager_id")
-                    else:
-                        # Handle object format
-                        employee_name = getattr(employee, 'name', "Unknown")
-                        manager_id = getattr(employee, 'manager_id', None)
-                        if hasattr(manager_id, 'value'):
-                            manager_id = manager_id.value
-                    
-                    await self.notification_service.send_late_arrival_notification(
+                    await self.notification_service.send_overtime_notification(
                         employee_id=attendance.employee_id.value,
                         employee_name=employee_name,
-                        check_in_time=attendance.working_hours.check_in_time,
+                        overtime_hours=attendance.working_hours.overtime_hours,
                         manager_id=manager_id
                     )
         except Exception as e:
-            logger.warning(f"Failed to send check-in notifications: {e}")
+            logger.warning(f"Failed to send check-out notifications: {e}")
     
     def _create_response(self, attendance: Attendance) -> AttendanceResponseDTO:
         """Create response DTO from attendance entity"""
+        from app.application.dto.attendance_dto import (
+            AttendanceStatusEnum,
+            AttendanceMarkingTypeEnum
+        )
         
         # Map domain enums to DTO enums
         status_mapping = {
@@ -319,17 +313,17 @@ class CheckInUseCase:
             check_in_time=attendance.working_hours.check_in_time,
             check_out_time=attendance.working_hours.check_out_time,
             total_hours=float(attendance.working_hours.working_hours()),
-            break_hours=float(attendance.working_hours.break_time_minutes() / 60),
+            break_hours=float(Decimal(attendance.working_hours.break_time_minutes()) / Decimal(60)),
             overtime_hours=float(attendance.working_hours.overtime_hours()),
             shortage_hours=float(attendance.working_hours.shortage_hours()),
-            expected_hours=float(attendance.working_hours.expected_hours),
-            is_complete_day=attendance.working_hours.is_complete_day(),
-            is_full_day=attendance.working_hours.is_full_day(),
-            is_half_day=attendance.working_hours.is_half_day()
+            expected_hours=attendance.working_hours.expected_hours,
+            is_complete_day=attendance.working_hours.is_complete_day,
+            is_full_day=attendance.working_hours.is_full_day,
+            is_half_day=attendance.working_hours.is_half_day
         )
         
         return AttendanceResponseDTO(
-            attendance_id=attendance.attendance_id,
+            attendance_id=attendance.attendance_id.value,
             employee_id=attendance.employee_id.value,
             attendance_date=attendance.attendance_date,
             status=status,

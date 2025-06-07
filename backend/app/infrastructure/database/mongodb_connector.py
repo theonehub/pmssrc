@@ -110,7 +110,7 @@ class MongoDBConnector(DatabaseConnector):
             
         if database_name not in self._databases:
             self._databases[database_name] = self._client[database_name]
-            logger.debug(f"Database '{database_name}' cached")
+            logger.info(f"Database '{database_name}' cached")
         
         return self._databases[database_name]
     

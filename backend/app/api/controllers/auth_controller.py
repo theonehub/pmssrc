@@ -81,7 +81,7 @@ class AuthController:
             Login response with token and user info
         """
         try:
-            logger.debug(f"Login attempt for user: {request.username} @ {request.hostname}")
+            logger.info(f"Login attempt for user: {request.username} @ {request.hostname}")
             
             # Get database connection
             from app.config.mongodb_config import get_mongodb_connection_string, get_mongodb_client_options
@@ -90,7 +90,7 @@ class AuthController:
             
             connector = MongoDBConnector()
             connection_string = get_mongodb_connection_string()
-            logger.debug(f"Connection string: {connection_string}")
+            logger.info(f"Connection string: {connection_string}")
             options = get_mongodb_client_options()
             
             await connector.connect(connection_string, **options)

@@ -98,5 +98,5 @@ async def get_user_by_employee_id(employee_id: str, hostname: str = None):
     # For now, return a mock user for testing
     return {
         "employee_id": employee_id,
-        "role": "employee"  # Default role
+        "role": "user"  # Default role
     }

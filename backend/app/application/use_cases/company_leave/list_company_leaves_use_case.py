@@ -74,7 +74,7 @@ class ListCompanyLeavesUseCase:
                 total_pages=total_pages
             )
             
-            logger.debug(f"Successfully listed {len(leave_dtos)} company leaves (total: {total_count})")
+            logger.info(f"Successfully listed {len(leave_dtos)} company leaves (total: {total_count})")
             
             return response
             

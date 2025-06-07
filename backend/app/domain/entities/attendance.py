@@ -4,7 +4,7 @@ Main entity for attendance management following DDD patterns
 """
 
 import uuid
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass, field
 
@@ -107,7 +107,8 @@ class Attendance:
         if check_in_time.date() != self.attendance_date:
             raise ValueError("Check-in time must be on the same date as attendance date")
         
-        if check_in_time > datetime.utcnow():
+        # Allow a small buffer for timezone differences (24 hours for development)
+        if check_in_time > datetime.utcnow() + timedelta(hours=24):
             raise ValueError("Cannot check in for future time")
         
         # Update working hours

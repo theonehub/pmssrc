@@ -32,33 +32,116 @@ class MongoDBPublicHolidayRepository(PublicHolidayRepository):
     MongoDB implementation of public holiday repository following User Module Architecture Guide.
     
     Handles organisation-based data segregation through database selection.
+    Follows SOLID principles:
+    - SRP: Only handles public holiday storage operations
+    - OCP: Can be extended with new storage features
+    - LSP: Can be substituted with other implementations
+    - ISP: Implements focused repository interface
+    - DIP: Depends on MongoDB abstractions
     """
     
     def __init__(self, database_connector: DatabaseConnector):
         """Initialize repository with database connector."""
         self.db_connector = database_connector
-        self.collection_name = "public_holidays"
+        self._collection_name = "public_holidays"
+        self._logger = logging.getLogger(__name__)
+        
+        # Connection configuration (will be set by dependency container)
+        self._connection_string = None
+        self._client_options = None
     
+    def set_connection_config(self, connection_string: str, client_options: Dict[str, Any]):
+        """
+        Set MongoDB connection configuration.
+        
+        Args:
+            connection_string: MongoDB connection string
+            client_options: MongoDB client options
+        """
+        self._connection_string = connection_string
+        self._client_options = client_options
+        
+    async def _get_collection(self, hostname: str):
+        """
+        Get public holidays collection for specific organisation.
+        
+        Ensures database connection is established in the correct event loop.
+        Uses organisation-specific database for public holiday data.
+        """
+        db_name = f"pms_{hostname}"
+        
+        # Ensure database is connected in the current event loop
+        if not self.db_connector.is_connected:
+            logger.info("Database not connected, establishing connection...")
+            
+            try:
+                # Use stored connection configuration or fallback to config functions
+                if self._connection_string and self._client_options:
+                    logger.info("Using stored connection parameters from repository configuration")
+                    connection_string = self._connection_string
+                    options = self._client_options
+                else:
+                    # Fallback to config functions if connection config not set
+                    logger.info("Loading connection parameters from mongodb_config")
+                    connection_string = get_mongodb_connection_string()
+                    options = get_mongodb_client_options()
+                
+                await self.db_connector.connect(connection_string, **options)
+                logger.info("MongoDB connection established successfully in current event loop")
+                
+            except Exception as e:
+                logger.error(f"Failed to establish database connection: {e}")
+                raise RuntimeError(f"Database connection failed: {e}")
+        
+        # Verify connection and get collection
+        try:
+            db = self.db_connector.get_database(db_name)
+            collection = db[self._collection_name]
+            logger.info(f"Successfully retrieved collection: {self._collection_name} from database: {db_name}")
+            return collection
+            
+        except Exception as e:
+            logger.error(f"Failed to get collection {self._collection_name}: {e}")
+            # Reset connection state to force reconnection on next call
+            if hasattr(self.db_connector, '_client'):
+                self.db_connector._client = None
+            raise RuntimeError(f"Collection access failed: {e}")
+    
+    async def _ensure_indexes(self, hostname: str):
+        """Ensure necessary indexes exist"""
+        try:
+            collection = await self._get_collection(hostname)
+            await collection.create_index([("id", ASCENDING)], unique=True)
+            await collection.create_index([("date", ASCENDING)])
+            await collection.create_index([("is_active", ASCENDING)])
+            await collection.create_index([("created_at", DESCENDING)])
+            self._logger.info("Public holiday indexes ensured")
+        except Exception as e:
+            self._logger.warning(f"Error creating indexes: {e}")
+
     async def save(self, holiday: PublicHoliday, hostname: str) -> PublicHoliday:
         """Save public holiday to organisation-specific database."""
         try:
-            database_name = f"pms_{hostname}"
-            db = await self.db_connector.get_database(database_name)
-            collection = db[self.collection_name]
-            
+            collection = await self._get_collection(hostname)
             holiday_dict = self._entity_to_dict(holiday)
             
-            if holiday.is_new():
-                # Insert new holiday
-                result = await collection.insert_one(holiday_dict)
-                holiday_dict["_id"] = result.inserted_id
-            else:
-                # Update existing holiday
-                await collection.replace_one(
-                    {"id": str(holiday.id)},
-                    holiday_dict
-                )
+            # if holiday.is_new():
+            #     # Insert new holiday
+            #     result = await collection.insert_one(holiday_dict)
+            #     holiday_dict["_id"] = result.inserted_id
+            #     self._logger.info(f"Saved new public holiday: {holiday.id}")
+            # else:
+            #     # Update existing holiday
+            #     result = await collection.replace_one(
+            #         {"id": str(holiday.id)},
+            #         holiday_dict
+            #     )
+            #     if result.matched_count > 0:
+            #         self._logger.info(f"Updated public holiday: {holiday.id}")
             
+            result = await collection.insert_one(holiday_dict)
+            holiday_dict["_id"] = result.inserted_id
+            self._logger.info(f"Saved new public holiday: {holiday.id}")
             return self._dict_to_entity(holiday_dict)
             
         except Exception as e:
@@ -68,10 +151,7 @@ class MongoDBPublicHolidayRepository(PublicHolidayRepository):
     async def get_by_id(self, holiday_id: PublicHolidayId, hostname: str) -> Optional[PublicHoliday]:
         """Get public holiday by ID from organisation-specific database."""
         try:
-            database_name = f"pms_{hostname}"
-            db = await self.db_connector.get_database(database_name)
-            collection = db[self.collection_name]
-            
+            collection = await self._get_collection(hostname)
             holiday_dict = await collection.find_one({"id": str(holiday_id)})
             
             if not holiday_dict:
@@ -90,9 +170,7 @@ class MongoDBPublicHolidayRepository(PublicHolidayRepository):
     ) -> Tuple[List[PublicHoliday], int]:
         """Find public holidays with filters from organisation-specific database."""
         try:
-            database_name = f"pms_{hostname}"
-            db = await self.db_connector.get_database(database_name)
-            collection = db[self.collection_name]
+            collection = await self._get_collection(hostname)
             
             # Build query
             query = {}
@@ -150,9 +228,7 @@ class MongoDBPublicHolidayRepository(PublicHolidayRepository):
     ) -> List[PublicHoliday]:
         """Find public holidays within date range from organisation-specific database."""
         try:
-            database_name = f"pms_{hostname}"
-            db = await self.db_connector.get_database(database_name)
-            collection = db[self.collection_name]
+            collection = await self._get_collection(hostname)
             
             # Convert dates to datetime for MongoDB query
             start_datetime = datetime.combine(start_date, datetime.min.time())
@@ -177,9 +253,7 @@ class MongoDBPublicHolidayRepository(PublicHolidayRepository):
     async def find_by_date(self, holiday_date: date, hostname: str) -> List[PublicHoliday]:
         """Find public holidays on specific date from organisation-specific database."""
         try:
-            database_name = f"pms_{hostname}"
-            db = await self.db_connector.get_database(database_name)
-            collection = db[self.collection_name]
+            collection = await self._get_collection(hostname)
             
             # Convert date to datetime for MongoDB query
             start_datetime = datetime.combine(holiday_date, datetime.min.time())
@@ -201,19 +275,86 @@ class MongoDBPublicHolidayRepository(PublicHolidayRepository):
             raise
     
     async def delete(self, holiday_id: PublicHolidayId, hostname: str) -> bool:
-        """Delete public holiday from organisation-specific database."""
+        """Delete public holiday from organisation-specific database (soft delete)."""
         try:
-            database_name = f"pms_{hostname}"
-            db = await self.db_connector.get_database(database_name)
-            collection = db[self.collection_name]
+            collection = await self._get_collection(hostname)
             
-            result = await collection.delete_one({"id": str(holiday_id)})
+            result = await collection.update_one(
+                {"id": str(holiday_id)},
+                {
+                    "$set": {
+                        "is_active": False,
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
             
-            return result.deleted_count > 0
+            success = result.matched_count > 0
+            if success:
+                self._logger.info(f"Deleted public holiday: {holiday_id}")
+            
+            return success
             
         except Exception as e:
             logger.error(f"Error deleting public holiday {holiday_id} from database {hostname}: {e}")
             raise
+    
+    async def get_all_active(self, hostname: str) -> List[PublicHoliday]:
+        """Get all active public holidays"""
+        try:
+            collection = await self._get_collection(hostname)
+            cursor = collection.find({"is_active": True}).sort("date", ASCENDING)
+            holiday_dicts = await cursor.to_list(length=None)
+            
+            return [self._dict_to_entity(holiday_dict) for holiday_dict in holiday_dicts]
+            
+        except Exception as e:
+            logger.error(f"Error getting active holidays from database {hostname}: {e}")
+            return []
+    
+    async def get_all(self, hostname: str, include_inactive: bool = False) -> List[PublicHoliday]:
+        """Get all public holidays"""
+        try:
+            collection = await self._get_collection(hostname)
+            
+            query = {} if include_inactive else {"is_active": True}
+            cursor = collection.find(query).sort("date", ASCENDING)
+            holiday_dicts = await cursor.to_list(length=None)
+            
+            return [self._dict_to_entity(holiday_dict) for holiday_dict in holiday_dicts]
+            
+        except Exception as e:
+            logger.error(f"Error getting all holidays from database {hostname}: {e}")
+            return []
+    
+    async def exists_on_date(self, holiday_date: date, hostname: str) -> bool:
+        """Check if any active holiday exists on a specific date."""
+        try:
+            collection = await self._get_collection(hostname)
+            # Convert date to datetime for MongoDB compatibility
+            start_datetime = datetime.combine(holiday_date, datetime.min.time())
+            end_datetime = datetime.combine(holiday_date, datetime.max.time())
+            
+            count = await collection.count_documents({
+                "date": {"$gte": start_datetime, "$lte": end_datetime},
+                "is_active": True
+            })
+            
+            return count > 0
+            
+        except Exception as e:
+            logger.error(f"Error checking if holiday exists on date in database {hostname}: {e}")
+            return False
+    
+    async def count_active(self, hostname: str) -> int:
+        """Count active public holidays."""
+        try:
+            collection = await self._get_collection(hostname)
+            return await collection.count_documents({"is_active": True})
+            
+        except Exception as e:
+            logger.error(f"Error counting active holidays in database {hostname}: {e}")
+            return 0
     
     def _entity_to_dict(self, holiday: PublicHoliday) -> dict:
         """Convert public holiday entity to dictionary."""
@@ -250,870 +391,4 @@ class MongoDBPublicHolidayRepository(PublicHolidayRepository):
             created_by=holiday_dict.get("created_by"),
             updated_by=holiday_dict.get("updated_by"),
             location_specific=holiday_dict.get("location_specific")
-        )
-
-
-# Legacy implementation for backward compatibility
-class LegacyMongoDBPublicHolidayRepository(
-    PublicHolidayCommandRepository,
-    PublicHolidayQueryRepository,
-    PublicHolidayAnalyticsRepository,
-    PublicHolidayCalendarRepository
-):
-    """
-    MongoDB implementation of public holiday repositories.
-    
-    Follows SOLID principles:
-    - SRP: Handles public holiday data operations
-    - OCP: Extensible through inheritance
-    - LSP: Substitutable for repository interfaces
-    - ISP: Implements focused interfaces
-    - DIP: Depends on abstractions
-    """
-    
-    def __init__(self, database_connector: DatabaseConnector):
-        """
-        Initialize repository with database connector.
-        
-        Args:
-            database_connector: Database connection abstraction
-        """
-        self.db_connector = database_connector
-        self._collection_name = "public_holidays"
-        
-        # Connection configuration (will be set by dependency container)
-        self._connection_string = None
-        self._client_options = None
-    
-    def set_connection_config(self, connection_string: str, client_options: Dict[str, Any]):
-        """
-        Set MongoDB connection configuration.
-        
-        Args:
-            connection_string: MongoDB connection string
-            client_options: MongoDB client options
-        """
-        self._connection_string = connection_string
-        self._client_options = client_options
-        
-    async def _get_collection(self, db_name: str = "pms_public_holiday_database"):
-        """
-        Get public holidays collection for specific public holiday or global.
-        
-        Ensures database connection is established in the correct event loop.
-        Uses global database for public holiday data.
-        """
-        # Ensure database is connected in the current event loop
-        if not self.db_connector.is_connected:
-            logger.debug("Database not connected, establishing connection...")
-            
-            try:
-                # Use stored connection configuration or fallback to config functions
-                if self._connection_string and self._client_options:
-                    logger.debug("Using stored connection parameters from repository configuration")
-                    connection_string = self._connection_string
-                    options = self._client_options
-                else:
-                    # Fallback to config functions if connection config not set
-                    logger.debug("Loading connection parameters from mongodb_config")
-                    connection_string = get_mongodb_connection_string()
-                    options = get_mongodb_client_options()
-                
-                await self.db_connector.connect(connection_string, **options)
-                logger.info("MongoDB connection established successfully in current event loop")
-                
-            except Exception as e:
-                logger.error(f"Failed to establish database connection: {e}")
-                raise RuntimeError(f"Database connection failed: {e}")
-        
-        # Verify connection and get collection
-        try:
-            db = self.db_connector.get_database(db_name)
-            collection = db[self._collection_name]
-            logger.debug(f"Successfully retrieved collection: {self._collection_name} from database: {db_name}")
-            return collection
-            
-        except Exception as e:
-            logger.error(f"Failed to get collection {self._collection_name}: {e}")
-            # Reset connection state to force reconnection on next call
-            if hasattr(self.db_connector, '_client'):
-                self.db_connector._client = None
-            raise RuntimeError(f"Collection access failed: {e}")
-        
-    async def _ensure_indexes(self, collection: Collection):
-        """Ensure necessary indexes exist."""
-        try:
-            indexes = [
-                ("holiday_id", ASCENDING),
-                ("holiday_date", ASCENDING),
-                ("holiday_name", ASCENDING),
-                ("is_active", ASCENDING),
-                ("created_at", DESCENDING)
-            ]
-            
-            for index in indexes:
-                await collection.create_index([index])
-                
-        except Exception as e:
-            logger.warning(f"Error creating indexes: {e}")
-    
-    def _holiday_to_document(self, holiday: PublicHoliday) -> Dict[str, Any]:
-        """Convert domain entity to MongoDB document."""
-        # Convert date to datetime for MongoDB compatibility
-        holiday_datetime = datetime.combine(holiday.holiday_date, datetime.min.time())
-        
-        return {
-            "holiday_id": holiday.holiday_id,
-            "holiday_name": holiday.holiday_name,
-            "holiday_date": holiday_datetime,
-            "is_active": holiday.is_active,
-            "created_at": holiday.created_at,
-            "updated_at": holiday.updated_at,
-            "created_by": holiday.created_by,
-            "updated_by": holiday.updated_by,
-            "description": holiday.description,
-            "location_specific": holiday.location_specific
-        }
-    
-    def _document_to_holiday(self, document: Dict[str, Any]) -> PublicHoliday:
-        """Convert MongoDB document to domain entity."""
-        try:
-            # Reconstruct holiday data
-            holiday_name = document.get("holiday_name", "")
-            holiday_date_value = document.get("holiday_date", "")
-            
-            # Convert datetime back to date if needed
-            if isinstance(holiday_date_value, datetime):
-                holiday_date = holiday_date_value.date()
-            elif isinstance(holiday_date_value, str):
-                # Handle string dates
-                from datetime import datetime as dt
-                holiday_date = dt.fromisoformat(holiday_date_value).date()
-            else:
-                holiday_date = holiday_date_value
-            
-            return PublicHoliday(
-                holiday_id=document.get("holiday_id"),
-                holiday_name=holiday_name,
-                holiday_date=holiday_date,
-                is_active=document.get("is_active", True),
-                created_at=document.get("created_at", datetime.now()),
-                updated_at=document.get("updated_at", datetime.now()),
-                created_by=document.get("created_by"),
-                updated_by=document.get("updated_by"),
-                description=document.get("description"),
-                location_specific=document.get("location_specific")
-            )
-            
-        except Exception as e:
-            logger.error(f"Error converting document to holiday: {e}")
-            raise
-    
-    # Command Repository Implementation
-    async def save(self, holiday: PublicHoliday) -> bool:
-        """Save a new public holiday."""
-        try:
-            collection = await self._get_collection()
-            document = self._holiday_to_document(holiday)
-            
-            result = await collection.insert_one(document)
-            success = result.inserted_id is not None
-            
-            if success:
-                logger.info(f"Saved public holiday: {holiday.holiday_id}")
-            
-            return success
-            
-        except DuplicateKeyError:
-            logger.warning(f"Holiday already exists: {holiday.holiday_id}")
-            return False
-        except Exception as e:
-            logger.error(f"Error saving public holiday: {e}")
-            raise
-    
-    async def update(self, holiday: PublicHoliday) -> bool:
-        """Update an existing public holiday."""
-        try:
-            collection = await self._get_collection()
-            document = self._holiday_to_document(holiday)
-            
-            result = await collection.update_one(
-                {"holiday_id": holiday.holiday_id},
-                {"$set": document}
-            )
-            
-            success = result.modified_count > 0
-            
-            if success:
-                logger.info(f"Updated public holiday: {holiday.holiday_id}")
-            
-            return success
-            
-        except Exception as e:
-            logger.error(f"Error updating holiday: {e}")
-            return False
-    
-    async def delete(self, holiday_id: str) -> bool:
-        """Delete a public holiday (soft delete)."""
-        try:
-            collection = await self._get_collection()
-            
-            result = await collection.update_one(
-                {"holiday_id": holiday_id},
-                {"$set": {"is_active": False, "updated_at": datetime.utcnow()}}
-            )
-            
-            success = result.modified_count > 0
-            
-            if success:
-                logger.info(f"Deleted public holiday: {holiday_id}")
-            
-            return success
-            
-        except Exception as e:
-            logger.error(f"Error deleting holiday: {e}")
-            return False
-    
-    async def save_batch(self, holidays: List[PublicHoliday]) -> Dict[str, bool]:
-        """Save multiple holidays in batch."""
-        results = {}
-        
-        try:
-            collection = await self._get_collection()
-            documents = [self._holiday_to_document(holiday) for holiday in holidays]
-            
-            for i, document in enumerate(documents):
-                try:
-                    await collection.insert_one(document)
-                    results[holidays[i].holiday_id] = True
-                except Exception:
-                    results[holidays[i].holiday_id] = False
-            
-            logger.info(f"Batch saved {sum(results.values())}/{len(holidays)} holidays")
-            
-        except Exception as e:
-            logger.error(f"Error in batch save: {e}")
-            for holiday in holidays:
-                results[holiday.holiday_id] = False
-        
-        return results
-    
-    # Query Repository Implementation
-    async def get_by_date(self, holiday_date: date) -> Optional[PublicHoliday]:
-        """Get public holiday by specific date."""
-        try:
-            collection = await self._get_collection()
-            # Convert date to datetime for MongoDB compatibility
-            holiday_datetime = datetime.combine(holiday_date, datetime.min.time())
-            
-            document = await collection.find_one({
-                "holiday_date": holiday_datetime,
-                "is_active": True
-            })
-            
-            if document:
-                return self._document_to_holiday(document)
-            
-            return None
-            
-        except Exception as e:
-            logger.error(f"Error getting holiday by date: {e}")
-            return None
-    
-    async def get_all_active(self) -> List[PublicHoliday]:
-        """Get all active public holidays."""
-        try:
-            collection = await self._get_collection()
-            cursor = collection.find({"is_active": True}).sort("holiday_date", ASCENDING)
-            documents = await cursor.to_list(length=None)
-            
-            return [self._document_to_holiday(doc) for doc in documents]
-            
-        except Exception as e:
-            logger.error(f"Error getting active holidays: {e}")
-            return []
-    
-    async def get_all(self, include_inactive: bool = False) -> List[PublicHoliday]:
-        """Get all public holidays."""
-        try:
-            collection = await self._get_collection()
-            
-            query = {} if include_inactive else {"is_active": True}
-            cursor = collection.find(query).sort("holiday_date", ASCENDING)
-            documents = await cursor.to_list(length=None)
-            
-            return [self._document_to_holiday(doc) for doc in documents]
-            
-        except Exception as e:
-            logger.error(f"Error getting all holidays: {e}")
-            return []
-    
-    async def get_by_year(self, year: int, include_inactive: bool = False) -> List[PublicHoliday]:
-        """Get public holidays for a specific year."""
-        try:
-            collection = await self._get_collection()
-            
-            start_datetime = datetime.combine(date(year, 1, 1), datetime.min.time())
-            end_datetime = datetime.combine(date(year, 12, 31), datetime.max.time())
-            
-            query = {
-                "holiday_date": {"$gte": start_datetime, "$lte": end_datetime}
-            }
-            
-            if not include_inactive:
-                query["is_active"] = True
-            
-            cursor = collection.find(query).sort("holiday_date", ASCENDING)
-            documents = await cursor.to_list(length=None)
-            
-            return [self._document_to_holiday(doc) for doc in documents]
-            
-        except Exception as e:
-            logger.error(f"Error getting holidays by year: {e}")
-            return []
-    
-    async def get_by_month(self, year: int, month: int, include_inactive: bool = False) -> List[PublicHoliday]:
-        """Get public holidays for a specific month."""
-        try:
-            collection = await self._get_collection()
-            
-            # Calculate month boundaries
-            from calendar import monthrange
-            _, last_day = monthrange(year, month)
-            
-            start_datetime = datetime.combine(date(year, month, 1), datetime.min.time())
-            end_datetime = datetime.combine(date(year, month, last_day), datetime.max.time())
-            
-            query = {
-                "holiday_date": {"$gte": start_datetime, "$lte": end_datetime}
-            }
-            
-            if not include_inactive:
-                query["is_active"] = True
-            
-            cursor = collection.find(query).sort("holiday_date", ASCENDING)
-            documents = await cursor.to_list(length=None)
-            
-            return [self._document_to_holiday(doc) for doc in documents]
-            
-        except Exception as e:
-            logger.error(f"Error getting holidays by month: {e}")
-            return []
-    
-    async def get_by_date_range(
-        self, 
-        start_date: date, 
-        end_date: date, 
-        include_inactive: bool = False
-    ) -> List[PublicHoliday]:
-        """Get public holidays within a date range."""
-        try:
-            collection = await self._get_collection()
-            
-            # Convert dates to datetime for MongoDB compatibility
-            start_datetime = datetime.combine(start_date, datetime.min.time())
-            end_datetime = datetime.combine(end_date, datetime.max.time())
-            
-            query = {
-                "holiday_date": {"$gte": start_datetime, "$lte": end_datetime}
-            }
-            
-            if not include_inactive:
-                query["is_active"] = True
-            
-            cursor = collection.find(query).sort("holiday_date", ASCENDING)
-            documents = await cursor.to_list(length=None)
-            
-            return [self._document_to_holiday(doc) for doc in documents]
-            
-        except Exception as e:
-            logger.error(f"Error getting holidays by date range: {e}")
-            return []
-    
-    async def get_by_category(
-        self, 
-        category: str, 
-        include_inactive: bool = False
-    ) -> List[PublicHoliday]:
-        """Get public holidays by category."""
-        try:
-            collection = await self._get_collection()
-            
-            query = {"holiday_type.category": category}
-            
-            if not include_inactive:
-                query["is_active"] = True
-            
-            cursor = collection.find(query).sort("date_range.start_date", ASCENDING)
-            documents = await cursor.to_list(length=None)
-            
-            return [self._document_to_holiday(doc) for doc in documents]
-            
-        except Exception as e:
-            logger.error(f"Error getting holidays by category: {e}")
-            return []
-    
-    async def get_upcoming_holidays(
-        self, 
-        days_ahead: int = 30,
-        include_inactive: bool = False
-    ) -> List[PublicHoliday]:
-        """Get upcoming holidays within specified days."""
-        try:
-            collection = await self._get_collection()
-            
-            today = date.today()
-            end_date = today + timedelta(days=days_ahead)
-            
-            # Convert dates to datetime for MongoDB compatibility
-            today_datetime = datetime.combine(today, datetime.min.time())
-            end_datetime = datetime.combine(end_date, datetime.max.time())
-            
-            query = {
-                "holiday_date": {"$gte": today_datetime, "$lte": end_datetime}
-            }
-            
-            if not include_inactive:
-                query["is_active"] = True
-            
-            cursor = collection.find(query).sort("holiday_date", ASCENDING)
-            documents = await cursor.to_list(length=None)
-            
-            return [self._document_to_holiday(doc) for doc in documents]
-            
-        except Exception as e:
-            logger.error(f"Error getting upcoming holidays: {e}")
-            return []
-    
-    async def search_holidays(
-        self,
-        search_term: Optional[str] = None,
-        category: Optional[str] = None,
-        observance: Optional[str] = None,
-        year: Optional[int] = None,
-        is_active: Optional[bool] = None
-    ) -> List[PublicHoliday]:
-        """Search holidays with multiple filters."""
-        try:
-            collection = await self._get_collection()
-            
-            query = {}
-            
-            # Text search
-            if search_term:
-                query["$or"] = [
-                    {"holiday_name": {"$regex": search_term, "$options": "i"}},
-                    {"description": {"$regex": search_term, "$options": "i"}}
-                ]
-            
-            # Year filter
-            if year:
-                start_datetime = datetime.combine(date(year, 1, 1), datetime.min.time())
-                end_datetime = datetime.combine(date(year, 12, 31), datetime.max.time())
-                query["holiday_date"] = {"$gte": start_datetime, "$lte": end_datetime}
-            
-            # Active filter
-            if is_active is not None:
-                query["is_active"] = is_active
-            
-            cursor = collection.find(query).sort("holiday_date", ASCENDING)
-            documents = await cursor.to_list(length=None)
-            
-            return [self._document_to_holiday(doc) for doc in documents]
-            
-        except Exception as e:
-            logger.error(f"Error searching holidays: {e}")
-            return []
-    
-    async def exists_on_date(self, holiday_date: date) -> bool:
-        """Check if any active holiday exists on a specific date."""
-        try:
-            collection = await self._get_collection()
-            # Convert date to datetime for MongoDB compatibility
-            holiday_datetime = datetime.combine(holiday_date, datetime.min.time())
-            
-            count = await collection.count_documents({
-                "holiday_date": holiday_datetime,
-                "is_active": True
-            })
-            
-            return count > 0
-            
-        except Exception as e:
-            logger.error(f"Error checking if holiday exists on date: {e}")
-            return False
-    
-    async def get_conflicts(self, holiday: PublicHoliday) -> List[PublicHoliday]:
-        """Get holidays that conflict with the given holiday."""
-        try:
-            collection = await self._get_collection()
-            
-            # Convert to datetime for MongoDB compatibility
-            holiday_datetime = datetime.combine(holiday.holiday_date, datetime.min.time())
-            
-            query = {
-                "holiday_id": {"$ne": holiday.holiday_id},
-                "is_active": True,
-                "holiday_date": holiday_datetime
-            }
-            
-            cursor = collection.find(query)
-            documents = await cursor.to_list(length=None)
-            
-            return [self._document_to_holiday(doc) for doc in documents]
-            
-        except Exception as e:
-            logger.error(f"Error getting holiday conflicts: {e}")
-            return []
-    
-    async def count_active(self) -> int:
-        """Count active public holidays."""
-        try:
-            collection = await self._get_collection()
-            return await collection.count_documents({"is_active": True})
-            
-        except Exception as e:
-            logger.error(f"Error counting active holidays: {e}")
-            return 0
-    
-    async def count_by_category(self, category: str) -> int:
-        """Count holidays by category."""
-        try:
-            collection = await self._get_collection()
-            return await collection.count_documents({
-                "holiday_type.category": category,
-                "is_active": True
-            })
-            
-        except Exception as e:
-            logger.error(f"Error counting holidays by category: {e}")
-            return 0
-    
-    # Additional methods for analytics and calendar functionality would go here...
-    # This is a substantial implementation, so I'm focusing on the core CRUD operations
-    
-    async def get_holiday_statistics(self, year: Optional[int] = None) -> Dict[str, Any]:
-        """Get comprehensive holiday statistics."""
-        try:
-            collection = await self._get_collection()
-            
-            # Build date filter for year if provided
-            match_filter = {"is_active": True}
-            if year:
-                start_datetime = datetime.combine(date(year, 1, 1), datetime.min.time())
-                end_datetime = datetime.combine(date(year, 12, 31), datetime.max.time())
-                match_filter["holiday_date"] = {"$gte": start_datetime, "$lte": end_datetime}
-            
-            pipeline = [
-                {"$match": match_filter},
-                {
-                    "$group": {
-                        "_id": None,
-                        "total_holidays": {"$sum": 1}
-                    }
-                }
-            ]
-            
-            result = await collection.aggregate(pipeline).to_list(length=1)
-            
-            if result:
-                stats = result[0]
-                return {
-                    "total_holidays": stats.get("total_holidays", 0),
-                    "year": year
-                }
-            
-            return {"total_holidays": 0, "year": year}
-            
-        except Exception as e:
-            logger.error(f"Error getting holiday statistics: {e}")
-            return {}
-
-    # Analytics Repository Implementation
-    async def get_category_distribution(self, year: Optional[int] = None) -> List[Dict[str, Any]]:
-        """Get distribution of holidays by category"""
-        try:
-            collection = await self._get_collection()
-            
-            match_filter = {"is_active": True}
-            if year:
-                start_datetime = datetime.combine(date(year, 1, 1), datetime.min.time())
-                end_datetime = datetime.combine(date(year, 12, 31), datetime.max.time())
-                match_filter["holiday_date"] = {"$gte": start_datetime, "$lte": end_datetime}
-            
-            # Since we simplified the structure, we'll just return basic stats
-            count = await collection.count_documents(match_filter)
-            
-            return [{"category": "national", "count": count}]
-            
-        except Exception as e:
-            logger.error(f"Error getting category distribution: {e}")
-            return []
-
-    async def get_monthly_distribution(self, year: Optional[int] = None) -> List[Dict[str, Any]]:
-        """Get distribution of holidays by month"""
-        try:
-            collection = await self._get_collection()
-            
-            match_filter = {"is_active": True}
-            if year:
-                start_datetime = datetime.combine(date(year, 1, 1), datetime.min.time())
-                end_datetime = datetime.combine(date(year, 12, 31), datetime.max.time())
-                match_filter["holiday_date"] = {"$gte": start_datetime, "$lte": end_datetime}
-            
-            pipeline = [
-                {"$match": match_filter},
-                {"$group": {"_id": {"$month": "$holiday_date"}, "count": {"$sum": 1}}},
-                {"$sort": {"_id": 1}}
-            ]
-            
-            results = await collection.aggregate(pipeline).to_list(length=None)
-            return [{"month": item["_id"], "count": item["count"]} for item in results]
-            
-        except Exception as e:
-            logger.error(f"Error getting monthly distribution: {e}")
-            return []
-
-    async def get_observance_analysis(self, year: Optional[int] = None) -> List[Dict[str, Any]]:
-        """Get analysis of holiday observance types"""
-        try:
-            collection = await self._get_collection()
-            
-            match_filter = {"is_active": True}
-            if year:
-                start_datetime = datetime.combine(date(year, 1, 1), datetime.min.time())
-                end_datetime = datetime.combine(date(year, 12, 31), datetime.max.time())
-                match_filter["holiday_date"] = {"$gte": start_datetime, "$lte": end_datetime}
-            
-            # Since we simplified the structure, we'll just return basic stats
-            count = await collection.count_documents(match_filter)
-            
-            return [{"observance": "mandatory", "count": count}]
-            
-        except Exception as e:
-            logger.error(f"Error getting observance analysis: {e}")
-            return []
-
-    async def get_holiday_trends(self, years: int = 5) -> List[Dict[str, Any]]:
-        """Get holiday trends over multiple years"""
-        try:
-            collection = await self._get_collection()
-            
-            current_year = date.today().year
-            start_year = current_year - years + 1
-            
-            start_datetime = datetime.combine(date(start_year, 1, 1), datetime.min.time())
-            end_datetime = datetime.combine(date(current_year, 12, 31), datetime.max.time())
-            
-            pipeline = [
-                {
-                    "$match": {
-                        "is_active": True,
-                        "holiday_date": {
-                            "$gte": start_datetime,
-                            "$lte": end_datetime
-                        }
-                    }
-                },
-                {
-                    "$group": {
-                        "_id": {"$year": "$holiday_date"},
-                        "count": {"$sum": 1}
-                    }
-                },
-                {"$sort": {"_id": 1}}
-            ]
-            
-            results = await collection.aggregate(pipeline).to_list(length=None)
-            return [{"year": item["_id"], "count": item["count"]} for item in results]
-            
-        except Exception as e:
-            logger.error(f"Error getting holiday trends: {e}")
-            return []
-
-    async def get_weekend_analysis(self, year: Optional[int] = None) -> Dict[str, Any]:
-        """Get weekend analysis"""
-        # Simplified implementation
-        return {"weekend_holidays": 0, "weekday_holidays": 0, "analysis": "Not implemented"}
-
-    async def get_long_weekend_opportunities(self, year: Optional[int] = None) -> List[Dict[str, Any]]:
-        """Get long weekend opportunities"""
-        # Simplified implementation
-        return []
-
-    async def get_holiday_calendar_summary(self, year: int, month: Optional[int] = None) -> Dict[str, Any]:
-        """Get holiday calendar summary"""
-        try:
-            holidays = await self.get_by_year(year) if month is None else await self.get_by_month(year, month)
-            return {
-                "year": year,
-                "month": month,
-                "total_holidays": len(holidays),
-                "holidays": [{"name": h.holiday_name, "date": h.holiday_date} for h in holidays]
-            }
-        except Exception as e:
-            logger.error(f"Error getting calendar summary: {e}")
-            return {}
-
-    async def get_compliance_report(self) -> Dict[str, Any]:
-        """Get compliance report"""
-        # Simplified implementation
-        return {"status": "compliant", "issues": []}
-
-    async def get_usage_metrics(self, from_date: Optional[datetime] = None, to_date: Optional[datetime] = None) -> List[Dict[str, Any]]:
-        """Get usage metrics"""
-        # Simplified implementation
-        return []
-
-    # Calendar Repository Implementation
-    async def generate_yearly_calendar(self, year: int, include_weekends: bool = True, include_optional: bool = True) -> Dict[str, Any]:
-        """Generate yearly calendar"""
-        try:
-            holidays = await self.get_by_year(year, include_inactive=not include_optional)
-            
-            calendar_data = {
-                "year": year,
-                "holidays": [],
-                "total_holidays": len(holidays)
-            }
-            
-            for holiday in holidays:
-                calendar_data["holidays"].append({
-                    "name": holiday.holiday_name,
-                    "date": holiday.holiday_date.isoformat(),
-                    "description": holiday.description or "",
-                    "is_active": holiday.is_active
-                })
-            
-            return calendar_data
-            
-        except Exception as e:
-            logger.error(f"Error generating yearly calendar: {e}")
-            return {"year": year, "holidays": [], "total_holidays": 0}
-
-    async def generate_monthly_calendar(self, year: int, month: int, include_weekends: bool = True, include_optional: bool = True) -> Dict[str, Any]:
-        """Generate monthly calendar"""
-        try:
-            holidays = await self.get_by_month(year, month, include_inactive=not include_optional)
-            
-            calendar_data = {
-                "year": year,
-                "month": month,
-                "holidays": [],
-                "total_holidays": len(holidays)
-            }
-            
-            for holiday in holidays:
-                calendar_data["holidays"].append({
-                    "name": holiday.holiday_name,
-                    "date": holiday.holiday_date.isoformat(),
-                    "description": holiday.description or "",
-                    "is_active": holiday.is_active
-                })
-            
-            return calendar_data
-            
-        except Exception as e:
-            logger.error(f"Error generating monthly calendar: {e}")
-            return {"year": year, "month": month, "holidays": [], "total_holidays": 0}
-
-    async def get_working_days_count(self, start_date: date, end_date: date, exclude_weekends: bool = True) -> int:
-        """Get working days count"""
-        try:
-            # Get holidays in the date range
-            holidays = await self.get_by_date_range(start_date, end_date)
-            holiday_dates = {h.holiday_date for h in holidays}
-            
-            # Count working days
-            current_date = start_date
-            working_days = 0
-            
-            while current_date <= end_date:
-                # Skip weekends if requested
-                if exclude_weekends and current_date.weekday() >= 5:  # Saturday = 5, Sunday = 6
-                    current_date += timedelta(days=1)
-                    continue
-                
-                # Skip holidays
-                if current_date not in holiday_dates:
-                    working_days += 1
-                
-                current_date += timedelta(days=1)
-            
-            return working_days
-            
-        except Exception as e:
-            logger.error(f"Error counting working days: {e}")
-            return 0
-
-    async def get_next_working_day(self, from_date: date, exclude_weekends: bool = True) -> date:
-        """Get next working day"""
-        try:
-            current_date = from_date + timedelta(days=1)
-            
-            while True:
-                # Skip weekends if requested
-                if exclude_weekends and current_date.weekday() >= 5:
-                    current_date += timedelta(days=1)
-                    continue
-                
-                # Check if it's a holiday
-                is_holiday = await self.exists_on_date(current_date)
-                if not is_holiday:
-                    return current_date
-                
-                current_date += timedelta(days=1)
-                
-                # Safety check to avoid infinite loop
-                if current_date > from_date + timedelta(days=365):
-                    return from_date + timedelta(days=1)
-            
-        except Exception as e:
-            logger.error(f"Error getting next working day: {e}")
-            return from_date + timedelta(days=1)
-
-    async def get_previous_working_day(self, from_date: date, exclude_weekends: bool = True) -> date:
-        """Get previous working day"""
-        try:
-            current_date = from_date - timedelta(days=1)
-            
-            while True:
-                # Skip weekends if requested
-                if exclude_weekends and current_date.weekday() >= 5:
-                    current_date -= timedelta(days=1)
-                    continue
-                
-                # Check if it's a holiday
-                is_holiday = await self.exists_on_date(current_date)
-                if not is_holiday:
-                    return current_date
-                
-                current_date -= timedelta(days=1)
-                
-                # Safety check to avoid infinite loop
-                if current_date < from_date - timedelta(days=365):
-                    return from_date - timedelta(days=1)
-            
-        except Exception as e:
-            logger.error(f"Error getting previous working day: {e}")
-            return from_date - timedelta(days=1)
-
-    async def is_working_day(self, check_date: date, exclude_weekends: bool = True) -> bool:
-        """Check if date is a working day"""
-        try:
-            # Check if it's a weekend
-            if exclude_weekends and check_date.weekday() >= 5:
-                return False
-            
-            # Check if it's a holiday
-            is_holiday = await self.exists_on_date(check_date)
-            return not is_holiday
-            
-        except Exception as e:
-            logger.error(f"Error checking if working day: {e}")
-            return True
-
-    async def get_holiday_bridges(self, year: int) -> List[Dict[str, Any]]:
-        """Get holiday bridges (opportunities for long weekends)"""
-        # Simplified implementation
-        return [] 
+        ) 

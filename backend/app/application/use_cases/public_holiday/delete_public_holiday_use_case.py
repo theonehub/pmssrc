@@ -114,7 +114,7 @@ class DeletePublicHolidayUseCase:
         # that are referenced by other systems, employee leave records, etc.
         # For now, we allow soft deletion of any active holiday
         
-        logger.debug(f"Business rule validation passed for holiday: {holiday.holiday_id}")
+        logger.info(f"Business rule validation passed for holiday: {holiday.holiday_id}")
     
     def _publish_domain_events(self, holiday: PublicHoliday):
         """Publish domain events"""
@@ -126,7 +126,7 @@ class DeletePublicHolidayUseCase:
             # Clear events after publishing
             holiday.clear_domain_events()
             
-            logger.debug(f"Published {len(events)} domain events for holiday: {holiday.holiday_id}")
+            logger.info(f"Published {len(events)} domain events for holiday: {holiday.holiday_id}")
             
         except Exception as e:
             # Non-critical error - log but don't fail the operation
@@ -138,7 +138,7 @@ class DeletePublicHolidayUseCase:
             if self.notification_service:
                 # Send notification to administrators about holiday deletion
                 self.notification_service.send_holiday_deleted_notification(holiday)
-                logger.debug(f"Sent deletion notification for holiday: {holiday.holiday_id}")
+                logger.info(f"Sent deletion notification for holiday: {holiday.holiday_id}")
         except Exception as e:
             # Non-critical error - log but don't fail the operation
             logger.warning(f"Failed to send notifications: {e}") 

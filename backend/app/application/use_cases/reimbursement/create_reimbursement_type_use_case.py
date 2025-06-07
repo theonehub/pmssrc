@@ -115,7 +115,7 @@ class CreateReimbursementTypeUseCase:
         if request.max_limit is not None and request.max_limit <= 0:
             raise ReimbursementValidationError("Maximum limit must be positive", "max_limit")
         
-        logger.debug("Request validation passed")
+        logger.info("Request validation passed")
     
     async def _check_business_rules(self, request: ReimbursementTypeCreateRequestDTO, organisation_id: str):
         """Check business rules for reimbursement type creation"""
@@ -134,7 +134,7 @@ class CreateReimbursementTypeUseCase:
                     "Auto-approve reimbursement types must have a maximum limit"
                 )
         
-        logger.debug("Business rules validation passed")
+        logger.info("Business rules validation passed")
     
     async def _create_domain_objects(
         self,
@@ -156,7 +156,7 @@ class CreateReimbursementTypeUseCase:
             updated_by=created_by
         )
         
-        logger.debug(f"Created domain entity: {entity.reimbursement_type_id}")
+        logger.info(f"Created domain entity: {entity.reimbursement_type_id}")
         return entity
     
     async def _persist_entity(self, entity: ReimbursementTypeEntity, organisation_id: str) -> ReimbursementTypeEntity:
@@ -164,7 +164,7 @@ class CreateReimbursementTypeUseCase:
         
         try:
             saved_entity = await self.command_repository.save(entity, organisation_id)
-            logger.debug(f"Persisted entity: {saved_entity.reimbursement_type_id}")
+            logger.info(f"Persisted entity: {saved_entity.reimbursement_type_id}")
             return saved_entity
             
         except Exception as e:
@@ -180,7 +180,7 @@ class CreateReimbursementTypeUseCase:
         try:
             # For now, we don't have domain events on the entity
             # This can be extended in the future if domain events are added
-            logger.debug("Domain events publishing skipped - not implemented on entity")
+            logger.info("Domain events publishing skipped - not implemented on entity")
             
         except Exception as e:
             logger.error(f"Failed to publish events: {str(e)}")
@@ -209,7 +209,7 @@ class CreateReimbursementTypeUseCase:
                 data=notification_data
             )
             
-            logger.debug("Sent creation notification")
+            logger.info("Sent creation notification")
             
         except Exception as e:
             logger.error(f"Failed to send notifications: {str(e)}")

@@ -44,6 +44,9 @@ def get_employee_leave_controller() -> EmployeeLeaveController:
 # Exception handlers
 def handle_employee_leave_exceptions(func):
     """Decorator to handle employee leave exceptions"""
+    from functools import wraps
+    
+    @wraps(func)
     async def wrapper(*args, **kwargs):
         try:
             return await func(*args, **kwargs)
@@ -468,4 +471,84 @@ async def health_check():
         "status": "healthy",
         "service": "employee-leave-v2",
         "version": "2.0.0"
+    }
+
+
+# Add these new legacy endpoints after the existing endpoints
+
+@router.get("/user/{employee_id}/{month}/{year}", response_model=List[Dict[str, Any]])
+@handle_employee_leave_exceptions
+async def get_user_leaves_by_month_legacy(
+    employee_id: str = Path(..., description="Employee ID"),
+    month: int = Path(..., ge=1, le=12, description="Month (1-12)"),
+    year: int = Path(..., ge=2000, le=3000, description="Year"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: EmployeeLeaveController = Depends(get_employee_leave_controller)
+):
+    """
+    Get user leaves for a specific month (Legacy endpoint for frontend compatibility).
+    
+    This endpoint provides backward compatibility for the frontend while maintaining
+    the same business logic as the V2 API.
+    """
+    logger.info(f"Getting leaves for employee {employee_id} for {month}/{year} (legacy endpoint)")
+    
+    # Authorization check
+    user_role = getattr(current_user, 'role', '').lower()
+    current_employee_id = current_user.employee_id
+    
+    if (user_role not in ["admin", "superadmin"] and 
+        employee_id != current_employee_id):
+        if user_role != "manager":
+            raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Use the existing monthly leaves method
+    v2_response = await controller.get_monthly_leaves(employee_id, month, year)
+    
+    # Transform to legacy format
+    from app.application.dto.attendance_dto import LegacyLeaveRecordDTO
+    legacy_response = []
+    for leave in v2_response:
+        legacy_leave = LegacyLeaveRecordDTO.from_employee_leave_response(leave)
+        legacy_response.append({
+            "leave_name": legacy_leave.leave_name,
+            "status": legacy_leave.status,
+            "start_date": legacy_leave.start_date,
+            "end_date": legacy_leave.end_date,
+            "leave_count": legacy_leave.leave_count,
+            "days_in_month": legacy_leave.days_in_month,
+            "reason": legacy_leave.reason
+        })
+    
+    return legacy_response
+
+
+@router.get("/lwp/{employee_id}/{month}/{year}", response_model=Dict[str, Any])
+@handle_employee_leave_exceptions
+async def get_user_lwp_legacy(
+    employee_id: str = Path(..., description="Employee ID"),
+    month: int = Path(..., ge=1, le=12, description="Month (1-12)"),
+    year: int = Path(..., ge=2000, le=3000, description="Year"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: EmployeeLeaveController = Depends(get_employee_leave_controller)
+):
+    """
+    Get user LWP data for a specific month (Legacy endpoint for frontend compatibility).
+    
+    This endpoint provides backward compatibility for the frontend while maintaining
+    the same business logic as the V2 API.
+    """
+    logger.info(f"Getting LWP for employee {employee_id} for {month}/{year} (legacy endpoint)")
+    
+    # Authorization check
+    user_role = getattr(current_user, 'role', '').lower()
+    if user_role not in ["admin", "superadmin", "manager"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Use the existing LWP calculation method
+    lwp_response = await controller.calculate_lwp(employee_id, month, year)
+    
+    # Transform to match frontend expectation
+    return {
+        "lwp_days": lwp_response.lwp_days if hasattr(lwp_response, 'lwp_days') else 0
     } 

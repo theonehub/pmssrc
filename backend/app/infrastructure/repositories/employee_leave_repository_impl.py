@@ -66,12 +66,12 @@ class EmployeeLeaveRepositoryImpl(EmployeeLeaveRepository):
         
         # Ensure database is connected in the current event loop
         if not self.db_connector.is_connected:
-            logger.debug("Database not connected, establishing connection...")
+            logger.info("Database not connected, establishing connection...")
             
             try:
                 # Use stored connection configuration
                 if self._connection_string and self._client_options:
-                    logger.debug("Using stored connection parameters from repository configuration")
+                    logger.info("Using stored connection parameters from repository configuration")
                     connection_string = self._connection_string
                     options = self._client_options
                 else:
@@ -89,7 +89,7 @@ class EmployeeLeaveRepositoryImpl(EmployeeLeaveRepository):
         try:
             db = self.db_connector.get_database('pms_'+db_name)
             collection = db[self._collection_name]
-            logger.debug(f"Successfully retrieved collection: {self._collection_name} from database: {'pms_'+db_name}")
+            logger.info(f"Successfully retrieved collection: {self._collection_name} from database: {'pms_'+db_name}")
             return collection
             
         except Exception as e:
@@ -468,6 +468,58 @@ class EmployeeLeaveRepositoryImpl(EmployeeLeaveRepository):
             
         except Exception as e:
             logger.error(f"Error getting employee leaves by date range: {e}")
+            raise
+
+    async def get_by_month(
+        self, 
+        employee_id: str, 
+        month: int, 
+        year: int, 
+        organisation_id: Optional[str] = None
+    ) -> List[EmployeeLeave]:
+        """Get employee leaves for a specific month."""
+        try:
+            collection = await self._get_collection(organisation_id)
+            
+            # Create month start and end dates
+            from datetime import datetime, timedelta
+            month_start = datetime(year, month, 1)
+            if month == 12:
+                month_end = datetime(year + 1, 1, 1) - timedelta(days=1)
+            else:
+                month_end = datetime(year, month + 1, 1) - timedelta(days=1)
+            
+            # Query for leaves that overlap with the month
+            cursor = collection.find({
+                "employee_id": employee_id,
+                "$or": [
+                    {
+                        "start_date": {
+                            "$gte": month_start.strftime("%Y-%m-%d"),
+                            "$lte": month_end.strftime("%Y-%m-%d")
+                        }
+                    },
+                    {
+                        "end_date": {
+                            "$gte": month_start.strftime("%Y-%m-%d"),
+                            "$lte": month_end.strftime("%Y-%m-%d")
+                        }
+                    },
+                    {
+                        "$and": [
+                            {"start_date": {"$lte": month_start.strftime("%Y-%m-%d")}},
+                            {"end_date": {"$gte": month_end.strftime("%Y-%m-%d")}}
+                        ]
+                    }
+                ],
+                "is_deleted": {"$ne": True}
+            }).sort("start_date", ASCENDING)
+            
+            documents = await cursor.to_list(length=None)
+            return [self._document_to_leave(doc) for doc in documents]
+            
+        except Exception as e:
+            logger.error(f"Error getting employee leaves by month {month}/{year}: {e}")
             raise
     
     async def get_all(

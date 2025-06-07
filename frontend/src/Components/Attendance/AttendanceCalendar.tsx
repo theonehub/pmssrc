@@ -58,13 +58,14 @@ const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ employee_id, sh
       const month = currentDate.getMonth() + 1;
       const year = currentDate.getFullYear();
       
-      const response = await axios.get<AttendanceRecord[]>(`/attendance/user/${employee_id}/${month}/${year}`);
+      // Use the legacy endpoints that match the expected data format
+      const response = await axios.get<AttendanceRecord[]>(`/api/v2/attendance/user/${employee_id}/${month}/${year}`);
       setAttendanceData(response.data);
       
-      const holidayResponse = await axios.get<Holiday[]>(`/public-holidays/month/${month}/${year}`);
+      const holidayResponse = await axios.get<Holiday[]>(`/api/v2/public-holidays/month/${month}/${year}`);
       setHolidays(holidayResponse.data);
       
-      const leaveResponse = await axios.get<LeaveRecord[]>(`/leaves/user/${employee_id}/${month}/${year}`);
+      const leaveResponse = await axios.get<LeaveRecord[]>(`/api/v2/employee-leave/user/${employee_id}/${month}/${year}`);
       setLeaves(leaveResponse.data);
       
       if (process.env.NODE_ENV === 'development') {

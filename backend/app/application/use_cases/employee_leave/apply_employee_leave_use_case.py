@@ -14,7 +14,7 @@ from app.application.interfaces.repositories.employee_leave_repository import (
 from app.application.interfaces.repositories.company_leave_repository import CompanyLeaveQueryRepository
 from app.application.interfaces.services.notification_service import NotificationService
 from app.application.dto.employee_leave_dto import (
-    ApplyEmployeeLeaveRequestDTO, EmployeeLeaveResponseDTO
+    EmployeeLeaveCreateRequestDTO, EmployeeLeaveResponseDTO
 )
 from app.domain.entities.employee_leave import EmployeeLeave
 from app.domain.entities.user import User
@@ -50,7 +50,7 @@ class ApplyEmployeeLeaveUseCase:
     
     async def execute(
         self,
-        request: ApplyEmployeeLeaveRequestDTO,
+        request: EmployeeLeaveCreateRequestDTO,
         current_user: User,
         organisation_id: Optional[str] = None
     ) -> EmployeeLeaveResponseDTO:
@@ -108,7 +108,7 @@ class ApplyEmployeeLeaveUseCase:
     
     async def _validate_leave_request(
         self,
-        request: ApplyEmployeeLeaveRequestDTO,
+        request: EmployeeLeaveCreateRequestDTO,
         current_user: User,
         organisation_id: Optional[str] = None
     ) -> None:
@@ -159,7 +159,7 @@ class ApplyEmployeeLeaveUseCase:
     
     async def _check_overlapping_leaves(
         self,
-        request: ApplyEmployeeLeaveRequestDTO,
+        request: EmployeeLeaveCreateRequestDTO,
         employee_id: str,
         organisation_id: Optional[str] = None
     ) -> None:
@@ -200,7 +200,7 @@ class ApplyEmployeeLeaveUseCase:
     
     async def _check_leave_balance(
         self,
-        request: ApplyEmployeeLeaveRequestDTO,
+        request: EmployeeLeaveCreateRequestDTO,
         current_user: User,
         organisation_id: Optional[str] = None
     ) -> None:
@@ -236,7 +236,7 @@ class ApplyEmployeeLeaveUseCase:
     
     async def _validate_business_rules(
         self,
-        request: ApplyEmployeeLeaveRequestDTO,
+        request: EmployeeLeaveCreateRequestDTO,
         current_user: User,
         company_leave: Any,
         organisation_id: Optional[str] = None

@@ -74,12 +74,12 @@ class MongoDBAttendanceRepository(AttendanceRepository):
         
         # Ensure database is connected in the current event loop
         if not self.db_connector.is_connected:
-            logger.debug("Database not connected, establishing connection...")
+            logger.info("Database not connected, establishing connection...")
             
             try:
                 # Use stored connection configuration
                 if self._connection_string and self._client_options:
-                    logger.debug("Using stored connection parameters from repository configuration")
+                    logger.info("Using stored connection parameters from repository configuration")
                     connection_string = self._connection_string
                     options = self._client_options
                 else:
@@ -97,7 +97,7 @@ class MongoDBAttendanceRepository(AttendanceRepository):
         try:
             db = self.db_connector.get_database('pms_'+db_name)
             collection = db[self._collection_name]
-            logger.debug(f"Successfully retrieved collection: {self._collection_name} from database: {'pms_'+db_name}")
+            logger.info(f"Successfully retrieved collection: {self._collection_name} from database: {'pms_'+db_name}")
             return collection
             
         except Exception as e:
@@ -158,35 +158,135 @@ class MongoDBAttendanceRepository(AttendanceRepository):
             except (AttributeError, TypeError):
                 return default
         
-        return {
-            "employee_id": str(attendance.employee_id)
+        # Build the document
+        document = {
+            # Identity
+            "attendance_id": str(attendance.attendance_id),
+            "employee_id": str(attendance.employee_id.value) if hasattr(attendance.employee_id, 'value') else str(attendance.employee_id),
+            "attendance_date": safe_date_conversion(attendance.attendance_date),
+            
+            # Core attributes - Status
+            "status": {
+                "status": safe_enum_value(attendance.status.status) if hasattr(attendance.status, 'status') else safe_enum_value(attendance.status),
+                "marking_type": safe_enum_value(attendance.status.marking_type) if hasattr(attendance.status, 'marking_type') else None,
+                "is_regularized": getattr(attendance.status, 'is_regularized', False) if hasattr(attendance.status, 'is_regularized') else False,
+                "regularization_reason": getattr(attendance.status, 'regularization_reason', None) if hasattr(attendance.status, 'regularization_reason') else None
+            },
+            
+            # Core attributes - Working Hours
+            "working_hours": {
+                "check_in_time": getattr(attendance.working_hours, 'check_in_time', None) if hasattr(attendance.working_hours, 'check_in_time') else None,
+                "check_out_time": getattr(attendance.working_hours, 'check_out_time', None) if hasattr(attendance.working_hours, 'check_out_time') else None,
+                "expected_hours": float(getattr(attendance.working_hours, 'expected_hours', 8.0)) if hasattr(attendance.working_hours, 'expected_hours') else 8.0,
+                "break_start_time": getattr(attendance.working_hours, 'break_start_time', None) if hasattr(attendance.working_hours, 'break_start_time') else None,
+                "break_end_time": getattr(attendance.working_hours, 'break_end_time', None) if hasattr(attendance.working_hours, 'break_end_time') else None,
+                "total_break_hours": float(getattr(attendance.working_hours, 'total_break_hours', 0.0)) if hasattr(attendance.working_hours, 'total_break_hours') else 0.0
+            },
+            
+            # Metadata
+            "created_at": attendance.created_at,
+            "created_by": attendance.created_by,
+            "updated_at": attendance.updated_at,
+            "updated_by": attendance.updated_by,
+            
+            # Location tracking (optional)
+            "check_in_location": attendance.check_in_location,
+            "check_out_location": attendance.check_out_location,
+            
+            # Comments and notes
+            "comments": attendance.comments,
+            "admin_notes": attendance.admin_notes,
+            
+            # System fields
+            "is_deleted": False,
+            "version": 1
         }
+        
+        return document
     
     def _document_to_attendance(self, document: Dict[str, Any]) -> Attendance:
         """Convert database document to domain entity."""
-        # Identity
+        from app.domain.value_objects.attendance_status import AttendanceStatusType, AttendanceMarkingType
+        
+        # Helper function to safely extract nested values
+        def safe_get(obj, key, default=None):
+            if isinstance(obj, dict):
+                return obj.get(key, default)
+            return default
+        
+        # Helper function to convert datetime back to date
+        def safe_date_conversion(date_value):
+            if date_value is None:
+                return None
+            if isinstance(date_value, datetime):
+                return date_value.date()
+            elif hasattr(date_value, 'year') and hasattr(date_value, 'month') and hasattr(date_value, 'day'):
+                return date_value
+            return date_value
+        
+        # Extract identity fields
         attendance_id = document.get("attendance_id")
         employee_id = EmployeeId(document.get("employee_id"))
-        attendance_date = document.get("attendance_date")
-    
-        # Core attributes
-        status = AttendanceStatus(document.get("status"))
-        working_hours = WorkingHours(document.get("working_hours"))
+        attendance_date = safe_date_conversion(document.get("attendance_date"))
         
-        # Metadata
+        # Extract status information
+        status_data = document.get("status", {})
+        status_value = safe_get(status_data, "status", "present")
+        marking_type_value = safe_get(status_data, "marking_type", "web_app")
+        is_regularized = safe_get(status_data, "is_regularized", False)
+        regularization_reason = safe_get(status_data, "regularization_reason")
+        
+        # Create status value object
+        try:
+            status_enum = AttendanceStatusType(status_value)
+        except (ValueError, AttributeError):
+            status_enum = AttendanceStatusType.PRESENT
+            
+        try:
+            marking_type_enum = AttendanceMarkingType(marking_type_value)
+        except (ValueError, AttributeError):
+            marking_type_enum = AttendanceMarkingType.WEB_APP
+        
+        status = AttendanceStatus(
+            status=status_enum,
+            marking_type=marking_type_enum,
+            is_regularized=is_regularized,
+            regularization_reason=regularization_reason
+        )
+        
+        # Extract working hours information
+        working_hours_data = document.get("working_hours", {})
+        check_in_time = safe_get(working_hours_data, "check_in_time")
+        check_out_time = safe_get(working_hours_data, "check_out_time")
+        expected_hours = safe_get(working_hours_data, "expected_hours", 8.0)
+        break_start_time = safe_get(working_hours_data, "break_start_time")
+        break_end_time = safe_get(working_hours_data, "break_end_time")
+        total_break_hours = safe_get(working_hours_data, "total_break_hours", 0.0)
+        
+        # Create working hours value object
+        from decimal import Decimal
+        working_hours = WorkingHours(
+            check_in_time=check_in_time,
+            check_out_time=check_out_time,
+            expected_hours=Decimal(str(expected_hours)),
+            break_slots=[]  # TODO: Convert break_start_time/break_end_time to TimeSlot objects
+        )
+        
+        # Extract metadata
         created_at = document.get("created_at")
         created_by = document.get("created_by")
         updated_at = document.get("updated_at")
         updated_by = document.get("updated_by")
         
-        # Location tracking (optional)
+        # Extract location tracking
         check_in_location = document.get("check_in_location")
         check_out_location = document.get("check_out_location")
         
-        # Comments and notes
+        # Extract comments and notes
         comments = document.get("comments")
         admin_notes = document.get("admin_notes")
-    
+        
+        # Create and return attendance entity
         return Attendance(
             attendance_id=attendance_id,
             employee_id=employee_id,
@@ -201,7 +301,7 @@ class MongoDBAttendanceRepository(AttendanceRepository):
             check_out_location=check_out_location,
             comments=comments,
             admin_notes=admin_notes
-    )
+        )
     
     async def _publish_events(self, events: List[Any]) -> None:
         """Publish domain events."""
@@ -210,10 +310,10 @@ class MongoDBAttendanceRepository(AttendanceRepository):
             logger.info(f"Publishing event: {type(event).__name__}")
     
     # Command Repository Implementation
-    async def save(self, attendance: Attendance) -> Attendance:
+    async def save(self, attendance: Attendance, hostname: str) -> Attendance:
         """Save a attendance (create or update)."""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
             document = self._attendance_to_document(attendance)
             
             # Use upsert based on employee_id for simplicity
@@ -229,24 +329,22 @@ class MongoDBAttendanceRepository(AttendanceRepository):
             events = []
             if result.upserted_id:
                 events.append(AttendanceCreatedEvent(
-                    event_id=f"attendance_created_{attendance.employee_id}_{datetime.utcnow().isoformat()}",
-                    occurred_at=datetime.utcnow(),
-                    attendance_id=str(attendance.employee_id),  # Using employee_id as attendance_id for now
+                    attendance_id=str(attendance.attendance_id),
                     employee_id=str(attendance.employee_id),
                     attendance_date=str(attendance.attendance_date) if hasattr(attendance, 'attendance_date') else datetime.utcnow().date().isoformat(),
                     initial_status=str(attendance.status) if hasattr(attendance, 'status') else "present",
-                    created_by="system"
+                    created_by="system",
+                    occurred_at=datetime.utcnow()
                 ))
                 logger.info(f"Created attendance: {attendance.employee_id}")
             else:
                 events.append(AttendanceUpdatedEvent(
-                    event_id=f"attendance_updated_{attendance.employee_id}_{datetime.utcnow().isoformat()}",
-                    occurred_at=datetime.utcnow(),
-                    attendance_id=str(attendance.employee_id),  # Using employee_id as attendance_id for now
+                    attendance_id=str(attendance.attendance_id),
                     employee_id=str(attendance.employee_id),
                     previous_status="unknown",  # Would need to fetch from DB in real implementation
                     new_status=str(attendance.status) if hasattr(attendance, 'status') else "present",
-                    updated_by="system"
+                    updated_by="system",
+                    occurred_at=datetime.utcnow()
                 ))
                 logger.info(f"Updated attendance: {attendance.employee_id}")
             
@@ -257,51 +355,41 @@ class MongoDBAttendanceRepository(AttendanceRepository):
             logger.error(f"Error saving attendance: {e}")
             raise
     
-    async def save_batch(self, attendances: List[Attendance]) -> List[Attendance]:
+    async def save_batch(self, attendances: List[Attendance], hostname: str) -> List[Attendance]:
         """Save multiple users in a batch operation."""
         try:
-            # Group users by organisation
-            attendances_by_org = {}
+            
+            collection = await self._get_collection(hostname)
+            
+            # Prepare bulk operations
+            operations = []
             for attendance in attendances:
-                org_id = attendance.organisation_id or "pms_global_database"
-                if org_id not in attendances_by_org:
-                    attendances_by_org[org_id] = []
-                attendances_by_org[org_id].append(attendance)
+                document = self._attendance_to_document(attendance)
+                operations.append({
+                    "replaceOne": {   
+                        "filter": {"attendance_id": str(attendance.attendance_id)},
+                        "replacement": document,
+                        "upsert": True
+                    }
+                })
             
-            saved_attendances = []
-            for org_id, org_attendances in attendances_by_org.items():
-                collection = await self._get_collection(org_id)
+            # Execute bulk write
+            if operations:
+                await collection.bulk_write(operations)
                 
-                # Prepare bulk operations
-                operations = []
-                for attendance in org_attendances:
-                    document = self._attendance_to_document(attendance)
-                    operations.append({
-                        "replaceOne": {
-                            "filter": {"attendance_id": str(attendance.attendance_id)},
-                            "replacement": document,
-                            "upsert": True
-                        }
-                    })
-                
-                # Execute bulk write
-                if operations:
-                    await collection.bulk_write(operations)
-                    saved_attendances.extend(org_attendances)
-                    
-                    # Publish events for all attendances
-                    for attendance in org_attendances:
-                        await self._publish_events(attendance.get_domain_events())
-                        attendance.clear_domain_events()
+                # Publish events for all attendances
+                for attendance in attendances:
+                    await self._publish_events(attendance.get_domain_events())
+                    attendance.clear_domain_events()
             
-            logger.info(f"Batch saved {len(saved_attendances)} attendances")
-            return saved_attendances
+            logger.info(f"Batch saved {len(attendances)} attendances")
+            return attendances
             
         except Exception as e:
             logger.error(f"Error in batch save: {e}")
             raise
     
-    async def delete(self, attendance_id: str, soft_delete: bool = True, hostname: Optional[str] = None) -> bool:
+    async def delete(self, attendance_id: str, hostname: str, soft_delete: bool = True) -> bool:
         """Delete a attendance by ID."""
         try:
             # For soft delete, we need to find the user first to get organisation
@@ -330,12 +418,11 @@ class MongoDBAttendanceRepository(AttendanceRepository):
             if result.modified_count > 0 or result.deleted_count > 0:
                 # Publish delete event
                 delete_event = AttendanceDeletedEvent(
-                    event_id=f"attendance_deleted_{attendance_id}_{datetime.utcnow().isoformat()}",
-                    occurred_at=datetime.utcnow(),
                     attendance_id=attendance_id,
                     employee_id=attendance.employee_id if attendance else "unknown",
                     deleted_by="system",
-                    deletion_reason="Soft delete" if soft_delete else "Hard delete"
+                    deletion_reason="Soft delete" if soft_delete else "Hard delete",
+                    occurred_at=datetime.utcnow()
                 )
                 await self._publish_events([delete_event])
                 
@@ -349,10 +436,10 @@ class MongoDBAttendanceRepository(AttendanceRepository):
             raise
     
     # Query Repository Implementation
-    async def get_by_id(self, attendance_id: str, organisation_id: Optional[str] = None) -> Optional[Attendance]:
+    async def get_by_id(self, attendance_id: str, hostname: str) -> Optional[Attendance]:
         """Get attendance by ID."""
         try:
-            collection = await self._get_collection(organisation_id)
+            collection = await self._get_collection(hostname)
             document = await collection.find_one({
                 "attendance_id": str(attendance_id),
                 "is_deleted": {"$ne": True}
@@ -607,13 +694,21 @@ class MongoDBAttendanceRepository(AttendanceRepository):
             logger.error(f"Error deleting attendance by employee and date: {e}")
             raise
 
-    async def get_by_employee_and_date(self, employee_id: str, attendance_date: date) -> Optional[Attendance]:
+    async def get_by_employee_and_date(self, employee_id: str, attendance_date: date, hostname: str) -> Optional[Attendance]:
         """Get attendance record by employee ID and date"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
+            
+            # Convert date to datetime range for MongoDB query
+            start_datetime = datetime.combine(attendance_date, datetime.min.time())
+            end_datetime = datetime.combine(attendance_date, datetime.max.time())
+            
             document = await collection.find_one({
                 "employee_id": employee_id,
-                "attendance_date": attendance_date.isoformat(),
+                "attendance_date": {
+                    "$gte": start_datetime,
+                    "$lte": end_datetime
+                },
                 "is_deleted": {"$ne": True}
             })
             
@@ -627,6 +722,7 @@ class MongoDBAttendanceRepository(AttendanceRepository):
     async def get_by_employee(
         self,
         employee_id: str,
+        hostname: str,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None,
         limit: Optional[int] = None,
@@ -634,18 +730,18 @@ class MongoDBAttendanceRepository(AttendanceRepository):
     ) -> List[Attendance]:
         """Get attendance records by employee ID with optional date range"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
             query = {"employee_id": employee_id, "is_deleted": {"$ne": True}}
             
             if start_date or end_date:
                 date_query = {}
                 if start_date:
-                    date_query["$gte"] = start_date.isoformat()
+                    date_query["$gte"] = datetime.combine(start_date, datetime.min.time())
                 if end_date:
-                    date_query["$lte"] = end_date.isoformat()
+                    date_query["$lte"] = datetime.combine(end_date, datetime.max.time())
                 query["attendance_date"] = date_query
             
-            cursor = collection.find(query)
+            cursor = collection.find(query).sort("attendance_date", DESCENDING)
             if offset:
                 cursor = cursor.skip(offset)
             if limit:
@@ -660,13 +756,22 @@ class MongoDBAttendanceRepository(AttendanceRepository):
     async def get_by_date(
         self,
         attendance_date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None
     ) -> List[Attendance]:
         """Get attendance records by date with optional employee filter"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
+            
+            # Convert date to datetime range for MongoDB query
+            start_datetime = datetime.combine(attendance_date, datetime.min.time())
+            end_datetime = datetime.combine(attendance_date, datetime.max.time())
+            
             query = {
-                "attendance_date": attendance_date.isoformat(),
+                "attendance_date": {
+                    "$gte": start_datetime,
+                    "$lte": end_datetime
+                },
                 "is_deleted": {"$ne": True}
             }
             
@@ -683,17 +788,23 @@ class MongoDBAttendanceRepository(AttendanceRepository):
         self,
         start_date: date,
         end_date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None
     ) -> List[Attendance]:
         """Get attendance records by date range with optional employee filter"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
+            
+            # Convert dates to datetime range for MongoDB query
+            start_datetime = datetime.combine(start_date, datetime.min.time())
+            end_datetime = datetime.combine(end_date, datetime.max.time())
+            
             query = {
                 "attendance_date": {
-                    "$gte": start_date.isoformat(),
-                    "$lte": end_date.isoformat()
+                    "$gte": start_datetime,
+                    "$lte": end_datetime
                 },
                 "is_deleted": {"$ne": True}
             }
@@ -701,7 +812,7 @@ class MongoDBAttendanceRepository(AttendanceRepository):
             if employee_ids:
                 query["employee_id"] = {"$in": employee_ids}
                 
-            cursor = collection.find(query)
+            cursor = collection.find(query).sort("attendance_date", DESCENDING)
             if offset:
                 cursor = cursor.skip(offset)
             if limit:
@@ -713,10 +824,10 @@ class MongoDBAttendanceRepository(AttendanceRepository):
             logger.error(f"Error getting attendance by date range: {e}")
             raise
 
-    async def count_by_filters(self, filters: AttendanceSearchFiltersDTO) -> int:
+    async def count_by_filters(self, filters: AttendanceSearchFiltersDTO, hostname: str) -> int:
         """Count attendance records matching filters"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
             
             # Build search query (reuse search logic)
             query = {}
@@ -740,10 +851,10 @@ class MongoDBAttendanceRepository(AttendanceRepository):
             logger.error(f"Error counting attendance by filters: {e}")
             raise
 
-    async def get_pending_check_outs(self, date: Optional[date] = None) -> List[Attendance]:
+    async def get_pending_check_outs(self, hostname: str, date: Optional[date] = None) -> List[Attendance]:
         """Get attendance records with check-in but no check-out"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
             query = {
                 "check_in_time": {"$exists": True, "$ne": None},
                 "check_out_time": {"$exists": False},
@@ -761,13 +872,14 @@ class MongoDBAttendanceRepository(AttendanceRepository):
 
     async def get_regularization_requests(
         self,
+        hostname: str,
         employee_ids: Optional[List[str]] = None,
         start_date: Optional[date] = None,
         end_date: Optional[date] = None
     ) -> List[Attendance]:
         """Get attendance records that need regularization"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
             query = {
                 "is_regularized": {"$ne": True},
                 "needs_regularization": True,
@@ -791,10 +903,10 @@ class MongoDBAttendanceRepository(AttendanceRepository):
             logger.error(f"Error getting regularization requests: {e}")
             raise
 
-    async def exists_by_employee_and_date(self, employee_id: str, attendance_date: date) -> bool:
+    async def exists_by_employee_and_date(self, employee_id: str, attendance_date: date, hostname: str) -> bool:
         """Check if attendance record exists for employee and date"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
             count = await collection.count_documents({
                 "employee_id": employee_id,
                 "attendance_date": attendance_date.isoformat(),
@@ -810,11 +922,12 @@ class MongoDBAttendanceRepository(AttendanceRepository):
         self,
         employee_id: str,
         start_date: date,
-        end_date: date
+        end_date: date,
+        hostname: str
     ) -> AttendanceSummaryDTO:
         """Get attendance summary for an employee"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
             # This is a placeholder implementation
             # You would implement actual aggregation logic here
             return AttendanceSummaryDTO(
@@ -840,37 +953,112 @@ class MongoDBAttendanceRepository(AttendanceRepository):
         self,
         employee_ids: List[str],
         start_date: date,
-        end_date: date
+        end_date: date,
+        hostname: str
     ) -> List[AttendanceSummaryDTO]:
         """Get attendance summaries for multiple employees"""
         try:
             summaries = []
             for employee_id in employee_ids:
-                summary = await self.get_employee_summary(employee_id, start_date, end_date)
+                summary = await self.get_employee_summary(employee_id, start_date, end_date, hostname)
                 summaries.append(summary)
             return summaries
         except Exception as e:
             logger.error(f"Error getting multiple employee summaries: {e}")
             raise
 
-    async def get_daily_statistics(self, date: date) -> AttendanceStatisticsDTO:
+    async def get_daily_statistics(self, date: date, hostname: str) -> AttendanceStatisticsDTO:
         """Get daily attendance statistics"""
         try:
-            # Placeholder implementation
+            collection = await self._get_collection(hostname)
+            
+            # Convert date to datetime range for MongoDB query
+            start_datetime = datetime.combine(date, datetime.min.time())
+            end_datetime = datetime.combine(date, datetime.max.time())
+            
+            # Base query for the date
+            base_query = {
+                "attendance_date": {
+                    "$gte": start_datetime,
+                    "$lte": end_datetime
+                },
+                "is_deleted": {"$ne": True}
+            }
+            
+            # Get all attendance records for the date
+            all_records = await collection.find(base_query).to_list(length=None)
+            
+            # Calculate statistics
+            total_records = len(all_records)
+            present_count = 0
+            absent_count = 0
+            late_count = 0
+            on_leave_count = 0
+            work_from_home_count = 0
+            checked_in_count = 0
+            checked_out_count = 0
+            total_working_hours = 0.0
+            total_overtime_hours = 0.0
+            
+            for record in all_records:
+                status_data = record.get("status", {})
+                status_value = status_data.get("status", "present")
+                
+                working_hours_data = record.get("working_hours", {})
+                check_in_time = working_hours_data.get("check_in_time")
+                check_out_time = working_hours_data.get("check_out_time")
+                
+                # Count by status
+                if status_value == "present":
+                    present_count += 1
+                elif status_value == "absent":
+                    absent_count += 1
+                elif status_value == "late":
+                    late_count += 1
+                elif status_value == "on_leave":
+                    on_leave_count += 1
+                elif status_value == "work_from_home":
+                    work_from_home_count += 1
+                
+                # Count check-ins and check-outs
+                if check_in_time:
+                    checked_in_count += 1
+                if check_out_time:
+                    checked_out_count += 1
+                
+                # Calculate working hours
+                if check_in_time and check_out_time:
+                    if isinstance(check_in_time, datetime) and isinstance(check_out_time, datetime):
+                        hours_worked = (check_out_time - check_in_time).total_seconds() / 3600
+                        total_working_hours += hours_worked
+                        
+                        # Calculate overtime (assuming 8 hours is standard)
+                        if hours_worked > 8:
+                            total_overtime_hours += (hours_worked - 8)
+            
+            # Calculate averages and percentages
+            average_working_hours = total_working_hours / max(checked_out_count, 1)
+            pending_check_out = checked_in_count - checked_out_count
+            
+            # For attendance percentage, we need total employees (this is a limitation without employee data)
+            # Using total_records as proxy for now
+            attendance_percentage = (present_count / max(total_records, 1)) * 100 if total_records > 0 else 0.0
+            
             return AttendanceStatisticsDTO(
-                total_employees=0,
-                present_today=0,
-                absent_today=0,
-                late_today=0,
-                on_leave_today=0,
-                work_from_home_today=0,
-                checked_in=0,
-                checked_out=0,
-                pending_check_out=0,
-                average_working_hours=0.0,
-                total_overtime_hours=0.0,
-                attendance_percentage=0.0
+                total_employees=total_records,  # This should ideally come from employee service
+                present_today=present_count,
+                absent_today=absent_count,
+                late_today=late_count,
+                on_leave_today=on_leave_count,
+                work_from_home_today=work_from_home_count,
+                checked_in=checked_in_count,
+                checked_out=checked_out_count,
+                pending_check_out=pending_check_out,
+                average_working_hours=round(average_working_hours, 2),
+                total_overtime_hours=round(total_overtime_hours, 2),
+                attendance_percentage=round(attendance_percentage, 2)
             )
+            
         except Exception as e:
             logger.error(f"Error getting daily statistics: {e}")
             raise
@@ -933,16 +1121,22 @@ class MongoDBAttendanceRepository(AttendanceRepository):
         self,
         start_date: date,
         end_date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None
     ) -> List[Attendance]:
         """Get late arrival records"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
+            
+            # Convert dates to datetime range for MongoDB query
+            start_datetime = datetime.combine(start_date, datetime.min.time())
+            end_datetime = datetime.combine(end_date, datetime.max.time())
+            
             query = {
-                "status": "late",
+                "status.status": "late",
                 "attendance_date": {
-                    "$gte": start_date.isoformat(),
-                    "$lte": end_date.isoformat()
+                    "$gte": start_datetime,
+                    "$lte": end_datetime
                 },
                 "is_deleted": {"$ne": True}
             }
@@ -960,29 +1154,50 @@ class MongoDBAttendanceRepository(AttendanceRepository):
         self,
         start_date: date,
         end_date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None,
         min_overtime_hours: Optional[Decimal] = None
     ) -> List[Attendance]:
         """Get overtime records"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
+            
+            # Convert dates to datetime range for MongoDB query
+            start_datetime = datetime.combine(start_date, datetime.min.time())
+            end_datetime = datetime.combine(end_date, datetime.max.time())
+            
+            # Build query to find records with overtime
             query = {
-                "overtime_hours": {"$gt": 0},
                 "attendance_date": {
-                    "$gte": start_date.isoformat(),
-                    "$lte": end_date.isoformat()
+                    "$gte": start_datetime,
+                    "$lte": end_datetime
                 },
                 "is_deleted": {"$ne": True}
             }
             
             if employee_ids:
                 query["employee_id"] = {"$in": employee_ids}
-                
-            if min_overtime_hours:
-                query["overtime_hours"]["$gte"] = float(min_overtime_hours)
-                
+            
+            # Get all records and filter for overtime in application logic
+            # since overtime calculation might be complex
             documents = await collection.find(query).to_list(length=None)
-            return [self._document_to_attendance(doc) for doc in documents]
+            
+            overtime_records = []
+            for doc in documents:
+                working_hours_data = doc.get("working_hours", {})
+                check_in_time = working_hours_data.get("check_in_time")
+                check_out_time = working_hours_data.get("check_out_time")
+                
+                if check_in_time and check_out_time:
+                    if isinstance(check_in_time, datetime) and isinstance(check_out_time, datetime):
+                        hours_worked = (check_out_time - check_in_time).total_seconds() / 3600
+                        overtime_hours = max(0, hours_worked - 8)  # Assuming 8 hours is standard
+                        
+                        if overtime_hours > 0:
+                            if min_overtime_hours is None or overtime_hours >= float(min_overtime_hours):
+                                overtime_records.append(self._document_to_attendance(doc))
+            
+            return overtime_records
         except Exception as e:
             logger.error(f"Error getting overtime records: {e}")
             raise
@@ -990,14 +1205,23 @@ class MongoDBAttendanceRepository(AttendanceRepository):
     async def get_absent_employees(
         self,
         date: date,
+        hostname: str,
         department_ids: Optional[List[str]] = None
     ) -> List[str]:
         """Get list of absent employee IDs for a date"""
         try:
-            collection = await self._get_collection()
+            collection = await self._get_collection(hostname)
+            
+            # Convert date to datetime range for MongoDB query
+            start_datetime = datetime.combine(date, datetime.min.time())
+            end_datetime = datetime.combine(date, datetime.max.time())
+            
             query = {
-                "status": "absent",
-                "attendance_date": date.isoformat(),
+                "status.status": "absent",
+                "attendance_date": {
+                    "$gte": start_datetime,
+                    "$lte": end_datetime
+                },
                 "is_deleted": {"$ne": True}
             }
             
@@ -1014,6 +1238,7 @@ class MongoDBAttendanceRepository(AttendanceRepository):
         self,
         start_date: date,
         end_date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None
     ) -> Dict[str, int]:
         """Get working hours distribution"""
@@ -1028,6 +1253,7 @@ class MongoDBAttendanceRepository(AttendanceRepository):
         self,
         start_date: date,
         end_date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None
     ) -> Dict[str, float]:
         """Get attendance percentage by employee"""
@@ -1042,6 +1268,7 @@ class MongoDBAttendanceRepository(AttendanceRepository):
         self,
         year: int,
         month: int,
+        hostname: str,
         employee_ids: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """Get monthly attendance summary"""
@@ -1056,6 +1283,7 @@ class MongoDBAttendanceRepository(AttendanceRepository):
     async def generate_daily_report(
         self,
         date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None,
         department_ids: Optional[List[str]] = None
     ) -> Dict[str, Any]:
@@ -1065,6 +1293,7 @@ class MongoDBAttendanceRepository(AttendanceRepository):
     async def generate_weekly_report(
         self,
         start_date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None,
         department_ids: Optional[List[str]] = None
     ) -> Dict[str, Any]:
@@ -1075,6 +1304,7 @@ class MongoDBAttendanceRepository(AttendanceRepository):
         self,
         year: int,
         month: int,
+        hostname: str,
         employee_ids: Optional[List[str]] = None,
         department_ids: Optional[List[str]] = None
     ) -> Dict[str, Any]:
@@ -1085,6 +1315,7 @@ class MongoDBAttendanceRepository(AttendanceRepository):
         self,
         start_date: date,
         end_date: date,
+        hostname: str,
         employee_ids: Optional[List[str]] = None,
         department_ids: Optional[List[str]] = None,
         include_summary: bool = True,

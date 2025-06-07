@@ -133,9 +133,9 @@ class PublicHolidayResponseDTO(BaseModel):
     def from_domain(cls, holiday) -> 'PublicHolidayResponseDTO':
         """Create DTO from domain entity"""
         return cls(
-            id=holiday.holiday_id,
-            name=holiday.holiday_name,
-            holiday_date=holiday.holiday_date,
+            id=str(holiday.id),
+            name=holiday.name,
+            holiday_date=holiday.date,
             description=holiday.description,
             category=HolidayCategory.NATIONAL,  # Default value for now
             observance=HolidayObservance.MANDATORY,  # Default value for now
@@ -188,9 +188,9 @@ class PublicHolidaySummaryDTO(BaseModel):
     def from_domain(cls, holiday) -> 'PublicHolidaySummaryDTO':
         """Create DTO from domain entity"""
         return cls(
-            id=holiday.holiday_id,
-            name=holiday.holiday_name,
-            holiday_date=holiday.holiday_date,
+            id=str(holiday.id),
+            name=holiday.name,
+            holiday_date=holiday.date,
             category=HolidayCategory.NATIONAL,  # Default value for now
             observance=HolidayObservance.MANDATORY,  # Default value for now
             is_active=holiday.is_active

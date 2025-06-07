@@ -501,7 +501,7 @@ class UserResponseDTO:
         
         # Create permissions
         permissions = UserPermissionsResponseDTO(
-            role=safe_enum_value(safe_get_attr(user, 'role')) or 'employee',
+            role=safe_enum_value(safe_get_attr(user, 'role')) or 'user',
             custom_permissions=safe_get_attr(user, 'custom_permissions', [])
         )
         
@@ -537,7 +537,7 @@ class UserResponseDTO:
             can_login=safe_bool_value(user, 'is_active', True) and not safe_bool_value(user, 'is_locked', False),
             profile_completion_percentage=safe_get_attr(user, 'profile_completion_percentage', 0.0),
             display_name=safe_get_attr(user, 'name', ''),
-            role_display=safe_enum_value(safe_get_attr(user, 'role')) or 'Employee',
+            role_display=safe_enum_value(safe_get_attr(user, 'role')) or 'User',
             status_display=safe_enum_value(safe_get_attr(user, 'status')) or 'Active'
         )
 
@@ -602,7 +602,7 @@ class UserSummaryDTO:
             employee_id=str(safe_get_attr(user, 'employee_id', '')),
             name=safe_get_attr(user, 'name', ''),
             email=safe_get_attr(user, 'email', ''),
-            role=safe_enum_value(safe_get_attr(user, 'role')) or 'employee',
+            role=safe_enum_value(safe_get_attr(user, 'role')) or 'user',
             status=safe_enum_value(safe_get_attr(user, 'status')) or 'active',
             mobile=safe_get_attr(user, 'mobile', ''),
             department=safe_get_attr(user, 'department'),

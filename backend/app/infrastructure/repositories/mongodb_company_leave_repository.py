@@ -193,6 +193,22 @@ class MongoDBCompanyLeaveRepository(CompanyLeaveRepository):
         except Exception as e:
             self._logger.error(f"Error retrieving company leave by ID: {e}")
             return None
+
+    async def get_by_leave_name(self, leave_name: str, hostname: str) -> Optional[CompanyLeave]:
+        """Get company leave by leave name"""
+        try:
+            collection = await self._get_collection(hostname)
+            document = await collection.find_one({
+                "leave_name": leave_name,
+                "is_active": True
+            })
+            if document:
+                return self._document_to_entity(document)
+            return None
+            
+        except Exception as e:
+            self._logger.error(f"Error retrieving company leave by name {leave_name}: {e}")
+            return None
     
     async def get_all_active(self, hostname: str) -> List[CompanyLeave]:
         """Get all active company leaves"""

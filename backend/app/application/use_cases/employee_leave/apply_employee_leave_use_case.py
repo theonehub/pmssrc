@@ -12,12 +12,15 @@ from app.application.interfaces.repositories.employee_leave_repository import (
     EmployeeLeaveCommandRepository, EmployeeLeaveQueryRepository
 )
 from app.application.interfaces.repositories.company_leave_repository import CompanyLeaveQueryRepository
+from app.application.interfaces.repositories.user_repository import UserQueryRepository
 from app.application.interfaces.services.notification_service import NotificationService
 from app.application.dto.employee_leave_dto import (
-    EmployeeLeaveCreateRequestDTO, EmployeeLeaveResponseDTO
+    EmployeeLeaveCreateRequestDTO, EmployeeLeaveResponseDTO, LeaveStatus
 )
 from app.domain.entities.employee_leave import EmployeeLeave
 from app.domain.entities.user import User
+from app.domain.value_objects.employee_id import EmployeeId
+from app.auth.auth_dependencies import CurrentUser
 
 
 logger = logging.getLogger(__name__)
@@ -40,18 +43,20 @@ class ApplyEmployeeLeaveUseCase:
         leave_command_repository: EmployeeLeaveCommandRepository,
         leave_query_repository: EmployeeLeaveQueryRepository,
         company_leave_repository: CompanyLeaveQueryRepository,
+        user_query_repository: UserQueryRepository,
         notification_service: NotificationService
     ):
         self._leave_command_repository = leave_command_repository
         self._leave_query_repository = leave_query_repository
         self._company_leave_repository = company_leave_repository
+        self._user_query_repository = user_query_repository
         self._notification_service = notification_service
         self._logger = logging.getLogger(__name__)
     
     async def execute(
         self,
         request: EmployeeLeaveCreateRequestDTO,
-        current_user: User,
+        current_user: CurrentUser,
         organisation_id: Optional[str] = None
     ) -> EmployeeLeaveResponseDTO:
         """
@@ -59,7 +64,7 @@ class ApplyEmployeeLeaveUseCase:
         
         Args:
             request: Leave application request data
-            current_user: Current user applying for leave
+            current_user: Current authenticated user applying for leave
             organisation_id: Organisation ID for leave policies
             
         Returns:
@@ -73,20 +78,27 @@ class ApplyEmployeeLeaveUseCase:
         try:
             self._logger.info(f"Processing leave application for employee {current_user.employee_id}")
             
+            # Get full user entity for validation and business logic
+            user_entity = await self._get_user_entity(current_user, organisation_id)
+            
             # Validate request
-            await self._validate_leave_request(request, current_user, organisation_id)
+            await self._validate_leave_request(request, user_entity, organisation_id)
+            
+            # Convert string dates to date objects
+            start_date = date.fromisoformat(request.start_date)
+            end_date = date.fromisoformat(request.end_date)
             
             # Create employee leave entity
             employee_leave = EmployeeLeave.create(
                 employee_id=current_user.employee_id,
                 organisation_id=organisation_id or current_user.hostname,
-                leave_name=request.leave_name,
-                start_date=request.start_date,
-                end_date=request.end_date,
+                leave_name=request.get_leave_type(),
+                start_date=start_date,
+                end_date=end_date,
                 reason=request.reason,
-                is_half_day=request.is_half_day,
-                is_compensatory=request.is_compensatory,
-                compensatory_work_date=request.compensatory_work_date,
+                is_half_day=getattr(request, 'is_half_day', False),
+                is_compensatory=getattr(request, 'is_compensatory', False),
+                compensatory_work_date=getattr(request, 'compensatory_work_date', None),
                 created_by=current_user.employee_id
             )
             
@@ -94,10 +106,26 @@ class ApplyEmployeeLeaveUseCase:
             saved_leave = await self._leave_command_repository.save(employee_leave, organisation_id)
             
             # Send notifications
-            await self._send_application_notifications(saved_leave, current_user)
+            await self._send_application_notifications(saved_leave, user_entity)
             
             # Create response
-            response = EmployeeLeaveResponseDTO.from_entity(saved_leave)
+            response = EmployeeLeaveResponseDTO(
+                leave_id=saved_leave.leave_id,
+                employee_id=saved_leave.employee_id,
+                employee_name=getattr(user_entity, 'name', None),
+                employee_email=getattr(user_entity, 'email', None),
+                leave_type=saved_leave.leave_name,
+                start_date=saved_leave.start_date.strftime("%Y-%m-%d"),
+                end_date=saved_leave.end_date.strftime("%Y-%m-%d"),
+                leave_count=saved_leave.applied_days or 0,
+                status=LeaveStatus(saved_leave.status),
+                applied_date=saved_leave.applied_at.strftime("%Y-%m-%d"),
+                approved_by=saved_leave.approved_by,
+                approved_date=saved_leave.approved_at.strftime("%Y-%m-%d") if saved_leave.approved_at else None,
+                reason=saved_leave.reason,
+                created_at=saved_leave.created_at,
+                updated_at=saved_leave.updated_at
+            )
             
             self._logger.info(f"Leave application submitted successfully: {saved_leave.leave_id}")
             return response
@@ -105,6 +133,28 @@ class ApplyEmployeeLeaveUseCase:
         except Exception as e:
             self._logger.error(f"Failed to apply employee leave: {str(e)}")
             raise Exception(f"Leave application failed: {str(e)}")
+    
+    async def _get_user_entity(self, current_user: CurrentUser, organisation_id: Optional[str] = None) -> User:
+        """
+        Get full user entity from current user.
+        
+        Args:
+            current_user: Current authenticated user
+            organisation_id: Organisation ID
+            
+        Returns:
+            Full User entity
+            
+        Raises:
+            ValueError: If user not found
+        """
+        employee_id_obj = EmployeeId(current_user.employee_id)
+        user = await self._user_query_repository.get_by_id(employee_id_obj, organisation_id or current_user.hostname)
+        
+        if not user:
+            raise ValueError(f"User not found: {current_user.employee_id}")
+        
+        return user
     
     async def _validate_leave_request(
         self,
@@ -130,26 +180,31 @@ class ApplyEmployeeLeaveUseCase:
             raise ValueError(f"Validation errors: {', '.join(errors)}")
         
         # Check if leave type exists and is active
+        leave_type = request.get_leave_type()
         company_leave = await self._company_leave_repository.get_by_leave_name(
-            request.leave_name, 
+            leave_type, 
             organisation_id
         )
         
         if not company_leave:
-            raise ValueError(f"Leave type '{request.leave_name}' not found")
+            raise ValueError(f"Leave type '{leave_type}' not found")
         
         if not company_leave.is_active:
-            raise ValueError(f"Leave type '{request.leave_name}' is not active")
+            raise ValueError(f"Leave type '{leave_type}' is not active")
+        
+        # Convert string dates to date objects for validation
+        start_date = date.fromisoformat(request.start_date)
+        end_date = date.fromisoformat(request.end_date)
         
         # Check date validation
-        if request.start_date > request.end_date:
+        if start_date > end_date:
             raise ValueError("Start date cannot be after end date")
         
-        if request.start_date < date.today():
+        if start_date < date.today():
             raise ValueError("Cannot apply for past dates")
         
         # Check for overlapping leaves
-        await self._check_overlapping_leaves(request, current_user.employee_id, organisation_id)
+        await self._check_overlapping_leaves(request, current_user.employee_id, organisation_id, start_date, end_date)
         
         # Check leave balance (simplified - in real implementation would check balances)
         await self._check_leave_balance(request, current_user, organisation_id)
@@ -161,7 +216,9 @@ class ApplyEmployeeLeaveUseCase:
         self,
         request: EmployeeLeaveCreateRequestDTO,
         employee_id: str,
-        organisation_id: Optional[str] = None
+        organisation_id: Optional[str] = None,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
     ) -> None:
         """
         Check for overlapping leave applications.
@@ -176,20 +233,22 @@ class ApplyEmployeeLeaveUseCase:
         """
         
         try:
+            # Use provided dates or convert from request
+            if start_date is None:
+                start_date = date.fromisoformat(request.start_date)
+            if end_date is None:
+                end_date = date.fromisoformat(request.end_date)
+                
             # Get leaves in the date range
             overlapping_leaves = await self._leave_query_repository.get_by_date_range(
-                request.start_date,
-                request.end_date,
-                organisation_id
+                start_date,
+                end_date,
+                organisation_id,
+                employee_id=employee_id
             )
             
-            # Filter for same employee and active status
-            employee_overlaps = [
-                leave for leave in overlapping_leaves
-                if leave.employee_id == employee_id and leave.status in ["pending", "approved"]
-            ]
-            
-            if employee_overlaps:
+            # Check if any overlapping leaves exist
+            if overlapping_leaves:
                 raise ValueError("You already have leave applications for overlapping dates")
                 
         except Exception as e:
@@ -218,15 +277,20 @@ class ApplyEmployeeLeaveUseCase:
         
         try:
             # Get user's leave balance
-            leave_balance = current_user.leave_balance.get(request.leave_name, 0)
+            leave_type = request.get_leave_type()
+            leave_balance = current_user.leave_balance.get(leave_type, 0)
+            
+            # Convert string dates to date objects for calculation
+            start_date = date.fromisoformat(request.start_date)
+            end_date = date.fromisoformat(request.end_date)
             
             # Calculate requested days
-            requested_days = (request.end_date - request.start_date).days + 1
-            if request.is_half_day:
+            requested_days = (end_date - start_date).days + 1
+            if getattr(request, 'is_half_day', False):
                 requested_days = 0.5
             
             if leave_balance < requested_days:
-                raise ValueError(f"Insufficient {request.leave_name} balance. Available: {leave_balance}, Requested: {requested_days}")
+                raise ValueError(f"Insufficient {leave_type} balance. Available: {leave_balance}, Requested: {requested_days}")
                 
         except Exception as e:
             if "Insufficient" in str(e):
@@ -257,26 +321,32 @@ class ApplyEmployeeLeaveUseCase:
         # Check probation restrictions
         if hasattr(company_leave, 'policy') and hasattr(company_leave.policy, 'available_during_probation'):
             if not company_leave.policy.available_during_probation and current_user.is_on_probation():
-                raise ValueError(f"{request.leave_name} is not allowed during probation period")
+                raise ValueError(f"{leave_type} is not allowed during probation period")
+        
+        # Convert string dates to date objects for validation
+        start_date = date.fromisoformat(request.start_date)
+        end_date = date.fromisoformat(request.end_date)
+        leave_type = request.get_leave_type()
         
         # Check minimum notice period
         if hasattr(company_leave, 'policy') and hasattr(company_leave.policy, 'minimum_notice_days'):
-            notice_days = (request.start_date - date.today()).days
+            notice_days = (start_date - date.today()).days
             if notice_days < company_leave.policy.minimum_notice_days:
-                raise ValueError(f"Minimum {company_leave.policy.minimum_notice_days} days notice required for {request.leave_name}")
+                raise ValueError(f"Minimum {company_leave.policy.minimum_notice_days} days notice required for {leave_type}")
         
         # Check maximum days per application
         if hasattr(company_leave, 'policy') and hasattr(company_leave.policy, 'max_days_per_application'):
-            requested_days = (request.end_date - request.start_date).days + 1
+            requested_days = (end_date - start_date).days + 1
             if requested_days > company_leave.policy.max_days_per_application:
-                raise ValueError(f"Maximum {company_leave.policy.max_days_per_application} days allowed per {request.leave_name} application")
+                raise ValueError(f"Maximum {company_leave.policy.max_days_per_application} days allowed per {leave_type} application")
         
         # Compensatory leave validation
-        if request.is_compensatory:
-            if not request.compensatory_work_date:
+        if getattr(request, 'is_compensatory', False):
+            compensatory_work_date = getattr(request, 'compensatory_work_date', None)
+            if not compensatory_work_date:
                 raise ValueError("Compensatory work date is required for compensatory leave")
             
-            if request.compensatory_work_date >= request.start_date:
+            if compensatory_work_date >= start_date:
                 raise ValueError("Compensatory work date must be before the leave start date")
     
     async def _send_application_notifications(

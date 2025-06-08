@@ -209,7 +209,7 @@ async def get_all_leaves(
         status=status,
         employee_name=employee_name,
         limit=limit,
-        manager_id=current_user.employee_id if user_role == "manager" else None
+        manager_id=current_user.employee_id
     )
     
     response = await controller.search_leaves(filters, current_user)
@@ -252,7 +252,7 @@ async def get_leave_stats(
     # Get analytics data
     analytics = await controller.get_leave_analytics(
         employee_id=None,
-        manager_id=current_user.employee_id if user_role == "manager" else None,
+        manager_id=current_user.employee_id,
         year=None,
         current_user=current_user
     )

@@ -286,7 +286,7 @@ class EmployeeLeaveController:
         try:
             self._logger.info(f"Searching leaves with filters in org: {current_user.hostname}")
             
-            response = self._query_use_case.search_employee_leaves(filters)
+            response = await self._query_use_case.search_employee_leaves(filters, current_user.hostname)
             
             return response
             
@@ -392,7 +392,7 @@ class EmployeeLeaveController:
             self._logger.info(f"Retrieving leave balance for {employee_id} in org: {current_user.hostname}")
             
             if self._query_use_case and hasattr(self._query_use_case, 'get_leave_balance'):
-                response = self._query_use_case.get_leave_balance(employee_id)
+                response = await self._query_use_case.get_leave_balance(employee_id, current_user.hostname)
             else:
                 # Fallback - return default balances
                 response = EmployeeLeaveBalanceDTO(
@@ -436,8 +436,8 @@ class EmployeeLeaveController:
             self._logger.info(f"Retrieving leave analytics in org: {current_user.hostname if current_user else 'unknown'}")
             
             if self._query_use_case and hasattr(self._query_use_case, 'get_leave_analytics'):
-                response = self._query_use_case.get_leave_analytics(
-                    employee_id, manager_id, year
+                response = await self._query_use_case.get_leave_analytics(
+                    current_user.hostname, employee_id, manager_id, year
                 )
             else:
                 # Fallback - return default analytics

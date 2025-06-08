@@ -36,7 +36,7 @@ class EmployeeLeave(BaseEntity):
     approved_days: Optional[int] = None
     
     # Metadata
-    applied_at: datetime = field(default_factory=datetime.utcnow)
+    applied_at: datetime = field(default_factory=datetime.now)
     approved_at: Optional[datetime] = None
     approved_by: Optional[str] = None
     rejected_at: Optional[datetime] = None
@@ -49,8 +49,8 @@ class EmployeeLeave(BaseEntity):
     compensatory_work_date: Optional[date] = None
     
     # Audit fields
-    created_at: datetime = field(default_factory=datetime.utcnow)
-    updated_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=datetime.now)
+    updated_at: datetime = field(default_factory=datetime.now)
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
     

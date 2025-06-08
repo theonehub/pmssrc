@@ -80,6 +80,20 @@ class CompanyLeaveQueryRepository(ABC):
             CompanyLeave entity if found, None otherwise
         """
         pass
+
+    @abstractmethod
+    async def get_by_leave_name(self, leave_name: str, hostname: str) -> Optional[CompanyLeave]:
+        """
+        Get company leave by leave name.
+        
+        Args:
+            leave_name: Leave name (e.g., "Casual Leave", "Sick Leave")
+            hostname: Organisation hostname
+            
+        Returns:
+            CompanyLeave entity if found, None otherwise
+        """
+        pass
     
     @abstractmethod
     async def get_all_active(self, hostname: str) -> List[CompanyLeave]:

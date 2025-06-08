@@ -4,12 +4,14 @@ MongoDB implementation of employee leave data access following DDD patterns
 """
 
 import logging
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from datetime import datetime, date
 from bson import ObjectId
 from pymongo import ASCENDING, DESCENDING
 from pymongo.errors import DuplicateKeyError
 from pymongo.collection import Collection
+
+from app.domain.value_objects.employee_id import EmployeeId
 
 from app.domain.entities.employee_leave import EmployeeLeave
 from app.application.interfaces.repositories.employee_leave_repository import (
@@ -252,8 +254,8 @@ class EmployeeLeaveRepositoryImpl(EmployeeLeaveRepository):
             # Publish events based on operation
             events = []
             if result.upserted_id:
-                events.append(EmployeeLeaveCreatedEvent(
-                    event_id=f"leave_created_{employee_leave.leave_id}_{datetime.utcnow().isoformat()}",
+                event = EmployeeLeaveCreatedEvent(
+                    aggregate_id=employee_leave.employee_id,
                     occurred_at=datetime.utcnow(),
                     employee_id=employee_leave.employee_id,
                     leave_id=employee_leave.leave_id,
@@ -262,17 +264,19 @@ class EmployeeLeaveRepositoryImpl(EmployeeLeaveRepository):
                     end_date=employee_leave.end_date,
                     applied_days=employee_leave.applied_days or 0,
                     created_by=employee_leave.created_by or "system"
-                ))
+                )
+                events.append(event)
                 logger.info(f"Created employee leave: {employee_leave.leave_id}")
             else:
-                events.append(EmployeeLeaveUpdatedEvent(
-                    event_id=f"leave_updated_{employee_leave.leave_id}_{datetime.utcnow().isoformat()}",
+                event = EmployeeLeaveUpdatedEvent(
+                    aggregate_id=employee_leave.employee_id,
                     occurred_at=datetime.utcnow(),
                     employee_id=employee_leave.employee_id,
                     leave_id=employee_leave.leave_id,
                     leave_name=employee_leave.leave_name,
                     updated_by=employee_leave.updated_by or "system"
-                ))
+                )
+                events.append(event)
                 logger.info(f"Updated employee leave: {employee_leave.leave_id}")
             
             await self._publish_events(events)
@@ -344,7 +348,7 @@ class EmployeeLeaveRepositoryImpl(EmployeeLeaveRepository):
             if result.modified_count > 0 or result.deleted_count > 0:
                 # Publish delete event
                 delete_event = EmployeeLeaveDeletedEvent(
-                    event_id=f"leave_deleted_{leave_id}_{datetime.utcnow().isoformat()}",
+                    aggregate_id=employee_leave.employee_id,
                     occurred_at=datetime.utcnow(),
                     employee_id=employee_leave.employee_id,
                     leave_id=leave_id,
@@ -382,10 +386,14 @@ class EmployeeLeaveRepositoryImpl(EmployeeLeaveRepository):
             logger.error(f"Error getting employee leave by ID {leave_id}: {e}")
             raise
     
-    async def get_by_employee_id(self, employee_id: str, organisation_id: Optional[str] = None) -> List[EmployeeLeave]:
+    async def get_by_employee_id(self, employee_id: Union[str, EmployeeId], organisation_id: Optional[str] = None) -> List[EmployeeLeave]:
         """Get employee leaves by employee ID."""
         try:
             collection = await self._get_collection(organisation_id)
+            
+            # Convert EmployeeId to string if needed
+            #employee_id_str = employee_id.value if hasattr(employee_id, 'value') else str(employee_id)
+            
             cursor = collection.find({
                 "employee_id": employee_id,
                 "is_deleted": {"$ne": True}
@@ -434,34 +442,49 @@ class EmployeeLeaveRepositoryImpl(EmployeeLeaveRepository):
         self, 
         start_date: date, 
         end_date: date, 
-        organisation_id: Optional[str] = None
+        organisation_id: Optional[str] = None,
+        employee_id: Optional[str] = None
     ) -> List[EmployeeLeave]:
         """Get employee leaves by date range."""
         try:
             collection = await self._get_collection(organisation_id)
-            cursor = collection.find({
-                "$or": [
+            # Build query
+            query = {
+                "$and": [
                     {
-                        "start_date": {
-                            "$gte": start_date.isoformat(),
-                            "$lte": end_date.isoformat()
-                        }
-                    },
-                    {
-                        "end_date": {
-                            "$gte": start_date.isoformat(),
-                            "$lte": end_date.isoformat()
-                        }
-                    },
-                    {
-                        "$and": [
-                            {"start_date": {"$lte": start_date.isoformat()}},
-                            {"end_date": {"$gte": end_date.isoformat()}}
+                        "$or": [
+                            {
+                                "start_date": {
+                                    "$gte": start_date.isoformat(),
+                                    "$lte": end_date.isoformat()
+                                }
+                            },
+                            {
+                                "end_date": {
+                                    "$gte": start_date.isoformat(),
+                                    "$lte": end_date.isoformat()
+                                }
+                            },
+                            {
+                                "$and": [
+                                    {"start_date": {"$lte": start_date.isoformat()}},
+                                    {"end_date": {"$gte": end_date.isoformat()}}
+                                ]
+                            }
                         ]
+                    },
+                    {
+                        "status": {"$in": ["pending", "approved"]},
+                        "is_deleted": {"$ne": True}
                     }
-                ],
-                "is_deleted": {"$ne": True}
-            }).sort("start_date", ASCENDING)
+                ]
+            }
+            
+            # Add employee_id filter if provided
+            if employee_id:
+                query["$and"].append({"employee_id": employee_id})
+            
+            cursor = collection.find(query).sort("start_date", ASCENDING)
             
             documents = await cursor.to_list(length=None)
             return [self._document_to_leave(doc) for doc in documents]
@@ -561,7 +584,7 @@ class EmployeeLeaveRepositoryImpl(EmployeeLeaveRepository):
             # Text search
             if filters.search_term:
                 query["$or"] = [
-                    {"employee_id": {"$regex": filters.search_term, "$options": "i"}},
+                    {"manager_id": {"$regex": filters.search_term, "$options": "i"}},
                     {"leave_name": {"$regex": filters.search_term, "$options": "i"}},
                     {"reason": {"$regex": filters.search_term, "$options": "i"}}
                 ]
@@ -570,9 +593,9 @@ class EmployeeLeaveRepositoryImpl(EmployeeLeaveRepository):
             if filters.employee_id:
                 query["employee_id"] = filters.employee_id
             
-            # Leave name filter
-            if filters.leave_name:
-                query["leave_name"] = {"$regex": filters.leave_name, "$options": "i"}
+            # Leave type filter
+            if filters.leave_type:
+                query["leave_name"] = {"$regex": filters.leave_type, "$options": "i"}
             
             # Status filter
             if filters.status:
@@ -655,4 +678,239 @@ class EmployeeLeaveRepositoryImpl(EmployeeLeaveRepository):
     
     def create_analytics_repository(self) -> EmployeeLeaveAnalyticsRepository:
         """Create analytics repository instance."""
-        return self 
+        return self
+    
+    # Analytics Repository Implementation
+    async def get_leave_statistics(
+        self,
+        employee_id: Optional[str] = None,
+        manager_id: Optional[str] = None,
+        year: Optional[int] = None,
+        organisation_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Get leave statistics."""
+        try:
+            collection = await self._get_collection(organisation_id)
+            
+            # Build base query
+            query = {   }
+            if employee_id:
+                query["employee_id"] = employee_id
+            if manager_id:
+                query["manager_id"] = manager_id
+            if year:
+                query["$expr"] = {
+                    "$eq": [{"$year": {"$toDate": "$start_date"}}, year]
+                }
+            
+            # Get total applications
+            total_applications = await collection.count_documents(query)
+            
+            # Get status breakdowns
+            status_queries = {
+                "approved": {**query, "status": "approved"},
+                "rejected": {**query, "status": "rejected"},
+                "pending": {**query, "status": "pending"}
+            }
+            
+            status_counts = {}
+            for status, status_query in status_queries.items():
+                status_counts[f"{status}_applications"] = await collection.count_documents(status_query)
+            
+            # Calculate total days taken
+            pipeline = [
+                {"$match": {**query, "status": "approved"}},
+                {"$group": {
+                    "_id": None,
+                    "total_days": {"$sum": "$applied_days"}
+                }}
+            ]
+            
+            days_result = await collection.aggregate(pipeline).to_list(length=1)
+            total_days = days_result[0]["total_days"] if days_result else 0
+            
+            return {
+                "total_applications": total_applications,
+                **status_counts,
+                "total_days_taken": total_days
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting leave statistics: {e}")
+            raise
+    
+    async def get_leave_type_breakdown(
+        self,
+        employee_id: Optional[str] = None,
+        manager_id: Optional[str] = None,
+        year: Optional[int] = None,
+        organisation_id: Optional[str] = None
+    ) -> Dict[str, int]:
+        """Get leave type breakdown."""
+        try:
+            collection = await self._get_collection(organisation_id)
+            
+            # Build base query
+            query = {"is_deleted": {"$ne": True}}
+            if employee_id:
+                query["employee_id"] = employee_id
+            if manager_id:
+                query["manager_id"] = manager_id
+            if year:
+                query["$expr"] = {
+                    "$eq": [{"$year": {"$toDate": "$start_date"}}, year]
+                }
+            
+            # Aggregate by leave type
+            pipeline = [
+                {"$match": query},
+                {"$group": {
+                    "_id": "$leave_name",
+                    "count": {"$sum": 1}
+                }}
+            ]
+            
+            results = await collection.aggregate(pipeline).to_list(length=None)
+            return {doc["_id"]: doc["count"] for doc in results}
+            
+        except Exception as e:
+            logger.error(f"Error getting leave type breakdown: {e}")
+            raise
+    
+    async def get_monthly_leave_trends(
+        self,
+        employee_id: Optional[str] = None,
+        manager_id: Optional[str] = None,
+        year: Optional[int] = None,
+        organisation_id: Optional[str] = None
+    ) -> Dict[str, int]:
+        """Get monthly leave trends."""
+        try:
+            collection = await self._get_collection(organisation_id)
+            
+            # Build base query
+            query = {"is_deleted": {"$ne": True}}
+            if employee_id:
+                query["employee_id"] = employee_id
+            if manager_id:
+                query["manager_id"] = manager_id
+            if year:
+                query["$expr"] = {
+                    "$eq": [{"$year": {"$toDate": "$start_date"}}, year]
+                }
+            
+            # Aggregate by month
+            pipeline = [
+                {"$match": query},
+                {"$group": {
+                    "_id": {"$month": {"$toDate": "$start_date"}},
+                    "count": {"$sum": 1}
+                }},
+                {"$sort": {"_id": 1}}
+            ]
+            
+            results = await collection.aggregate(pipeline).to_list(length=None)
+            return {str(doc["_id"]): doc["count"] for doc in results}
+            
+        except Exception as e:
+            logger.error(f"Error getting monthly leave trends: {e}")
+            raise
+    
+    async def get_team_leave_summary(
+        self,
+        manager_id: str,
+        month: Optional[int] = None,
+        year: Optional[int] = None,
+        organisation_id: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Get team leave summary for a manager."""
+        try:
+            collection = await self._get_collection(organisation_id)
+            
+            # Build base query
+            query = {
+                "manager_id": manager_id,
+                "is_deleted": {"$ne": True}
+            }
+            
+            if month and year:
+                query["$expr"] = {
+                    "$and": [
+                        {"$eq": [{"$month": {"$toDate": "$start_date"}}, month]},
+                        {"$eq": [{"$year": {"$toDate": "$start_date"}}, year]}
+                    ]
+                }
+            
+            # Get all leaves for the team
+            cursor = collection.find(query)
+            leaves = await cursor.to_list(length=None)
+            
+            # Group by employee
+            employee_summary = {}
+            for leave in leaves:
+                employee_id = leave["employee_id"]
+                if employee_id not in employee_summary:
+                    employee_summary[employee_id] = {
+                        "employee_id": employee_id,
+                        "total_leaves": 0,
+                        "approved_leaves": 0,
+                        "pending_leaves": 0,
+                        "rejected_leaves": 0,
+                        "total_days": 0
+                    }
+                
+                summary = employee_summary[employee_id]
+                summary["total_leaves"] += 1
+                summary["total_days"] += leave.get("number_of_days", 0)
+                
+                if leave["status"] == "approved":
+                    summary["approved_leaves"] += 1
+                elif leave["status"] == "pending":
+                    summary["pending_leaves"] += 1
+                elif leave["status"] == "rejected":
+                    summary["rejected_leaves"] += 1
+            
+            return list(employee_summary.values())
+            
+        except Exception as e:
+            logger.error(f"Error getting team leave summary: {e}")
+            raise
+    
+    async def calculate_lwp_for_employee(
+        self,
+        employee_id: str,
+        month: int,
+        year: int,
+        organisation_id: Optional[str] = None
+    ) -> int:
+        """Calculate Leave Without Pay (LWP) for an employee."""
+        try:
+            collection = await self._get_collection(organisation_id)
+            
+            # Get all leaves for the employee in the specified month
+            query = {
+                "employee_id": employee_id,
+                "is_deleted": {"$ne": True},
+                "$expr": {
+                    "$and": [
+                        {"$eq": [{"$month": {"$toDate": "$start_date"}}, month]},
+                        {"$eq": [{"$year": {"$toDate": "$start_date"}}, year]}
+                    ]
+                }
+            }
+            
+            cursor = collection.find(query)
+            leaves = await cursor.to_list(length=None)
+            
+            # Calculate total LWP days
+            lwp_days = 0
+            for leave in leaves:
+                if leave["leave_name"] == "lwp":  # Assuming LWP is a specific leave type
+                    lwp_days += leave.get("number_of_days", 0)
+            
+            return lwp_days
+            
+        except Exception as e:
+            logger.error(f"Error calculating LWP for employee: {e}")
+            raise 
+        

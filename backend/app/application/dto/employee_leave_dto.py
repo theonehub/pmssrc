@@ -138,6 +138,10 @@ class EmployeeLeaveSearchFiltersDTO(BaseModel):
     limit: int = Field(100, ge=1, le=1000, description="Maximum number of records to return")
     page: Optional[int] = Field(1, ge=1, description="Page number")
     page_size: Optional[int] = Field(100, ge=1, le=1000, description="Page size")
+    search_term: Optional[str] = Field(None, description="General search term for text search")
+    include_deleted: bool = Field(False, description="Whether to include soft-deleted records")
+    sort_by: Optional[str] = Field("created_at", description="Field to sort by")
+    sort_desc: bool = Field(True, description="Whether to sort in descending order")
     
     def get_status_enum(self) -> Optional[LeaveStatus]:
         """Convert string status to LeaveStatus enum"""
@@ -176,17 +180,15 @@ class EmployeeLeaveResponseDTO(BaseModel):
         """Create DTO from app.domain entity"""
         return cls(
             leave_id=entity.leave_id,
-            employee_id=entity.employee_id.value,
-            employee_name=entity.employee_name,
-            employee_email=entity.employee_email,
-            leave_type=entity.leave_type.code,
-            start_date=entity.date_range.start_date.strftime("%Y-%m-%d"),
-            end_date=entity.date_range.end_date.strftime("%Y-%m-%d"),
-            leave_count=entity.working_days_count,
+            employee_id=entity.employee_id,
+            leave_type=entity.leave_name,
+            start_date=entity.start_date.strftime("%Y-%m-%d"),
+            end_date=entity.end_date.strftime("%Y-%m-%d"),
+            leave_count=entity.applied_days,
             status=entity.status,
-            applied_date=entity.applied_date.strftime("%Y-%m-%d"),
+            applied_date=entity.applied_at.strftime("%Y-%m-%d"),
             approved_by=entity.approved_by,
-            approved_date=entity.approved_date.strftime("%Y-%m-%d") if entity.approved_date else None,
+            approved_date=entity.approved_at.strftime("%Y-%m-%d") if entity.approved_at else None,
             reason=entity.reason,
             created_at=entity.created_at,
             updated_at=entity.updated_at

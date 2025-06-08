@@ -684,17 +684,38 @@ class DependencyContainer:
         # Import here to avoid circular imports
         from app.api.controllers.employee_leave_controller import EmployeeLeaveController
         from app.application.use_cases.employee_leave.get_employee_leaves_use_case import GetEmployeeLeavesUseCase
+        from app.application.use_cases.employee_leave.apply_employee_leave_use_case import ApplyEmployeeLeaveUseCase
+        from app.application.use_cases.employee_leave.approve_employee_leave_use_case import ApproveEmployeeLeaveUseCase
         
         if 'employee_leave' not in self._controllers:
-            # Create minimal use case for query operations
+            # Create query use case
             query_use_case = GetEmployeeLeavesUseCase(
-                query_repository=self._repositories['employee_leave']
+                query_repository=self._repositories['employee_leave'],
+                user_query_repository=self._repositories['user'],
+                analytics_repository=self._repositories['employee_leave']  # Pass the same repository as it implements analytics interface
             )
             
-            # Create a controller with fallback functionality
+            # Create apply use case
+            apply_use_case = ApplyEmployeeLeaveUseCase(
+                leave_command_repository=self._repositories['employee_leave'],
+                leave_query_repository=self._repositories['employee_leave'],
+                company_leave_repository=self._repositories['company_leave'],
+                user_query_repository=self._repositories['user'],
+                notification_service=self._notification_service
+            )
+            
+            # Create approve use case
+            approve_use_case = ApproveEmployeeLeaveUseCase(
+                command_repository=self._repositories['employee_leave'],
+                query_repository=self._repositories['employee_leave'],
+                event_publisher=self._get_event_publisher(),
+                email_service=None  # Email service not implemented yet
+            )
+            
+            # Create controller with all use cases
             self._controllers['employee_leave'] = EmployeeLeaveController(
-                apply_use_case=None,  # Will be handled by fallback
-                approve_use_case=None,  # Will be handled by fallback
+                apply_use_case=apply_use_case,
+                approve_use_case=approve_use_case,
                 query_use_case=query_use_case
             )
         
@@ -945,7 +966,7 @@ def get_project_attributes_repository() -> ProjectAttributesRepositoryImpl:
 
 
 def get_employee_leave_controller():
-    """FastAPI dependency for employee leave controller."""
+    """Get employee leave controller instance."""
     container = get_dependency_container()
     return container.get_employee_leave_controller()
 

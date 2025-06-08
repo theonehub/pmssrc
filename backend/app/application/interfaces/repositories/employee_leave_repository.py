@@ -4,10 +4,11 @@ Repository abstractions for employee leave data access following SOLID principle
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from datetime import datetime, date
 
 from app.domain.entities.employee_leave import EmployeeLeave
+from app.domain.value_objects.employee_id import EmployeeId
 from app.application.dto.employee_leave_dto import EmployeeLeaveSearchFiltersDTO
 
 
@@ -87,12 +88,12 @@ class EmployeeLeaveQueryRepository(ABC):
         pass
     
     @abstractmethod
-    async def get_by_employee_id(self, employee_id: str, organisation_id: Optional[str] = None) -> List[EmployeeLeave]:
+    async def get_by_employee_id(self, employee_id: Union[str, EmployeeId], organisation_id: Optional[str] = None) -> List[EmployeeLeave]:
         """
         Get employee leaves by employee ID.
         
         Args:
-            employee_id: Employee identifier
+            employee_id: Employee identifier (string or EmployeeId)
             organisation_id: Organisation identifier
             
         Returns:
@@ -133,7 +134,8 @@ class EmployeeLeaveQueryRepository(ABC):
         self, 
         start_date: date, 
         end_date: date, 
-        organisation_id: Optional[str] = None
+        organisation_id: Optional[str] = None,
+        employee_id: Optional[str] = None
     ) -> List[EmployeeLeave]:
         """
         Get employee leaves by date range.
@@ -142,6 +144,7 @@ class EmployeeLeaveQueryRepository(ABC):
             start_date: Start date of range
             end_date: End date of range
             organisation_id: Organisation identifier
+            employee_id: Optional employee ID to filter by
             
         Returns:
             List of EmployeeLeave entities within the date range

@@ -22,11 +22,15 @@ class EmployeeLeaveCreatedEvent(DomainEvent):
     applied_days: int
     created_by: str
     
+    def get_event_type(self) -> str:
+        """Get the event type identifier"""
+        return "EmployeeLeaveCreated"
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert event to dictionary"""
         return {
             "event_id": self.event_id,
-            "event_type": "EmployeeLeaveCreated",
+            "event_type": self.get_event_type(),
             "occurred_at": self.occurred_at.isoformat(),
             "employee_id": self.employee_id,
             "leave_id": self.leave_id,
@@ -36,6 +40,23 @@ class EmployeeLeaveCreatedEvent(DomainEvent):
             "applied_days": self.applied_days,
             "created_by": self.created_by
         }
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'EmployeeLeaveCreatedEvent':
+        """Create event from dictionary representation"""
+        event = cls(
+            aggregate_id=data["employee_id"],
+            occurred_at=datetime.fromisoformat(data["occurred_at"]),
+            employee_id=data["employee_id"],
+            leave_id=data["leave_id"],
+            leave_name=data["leave_name"],
+            start_date=date.fromisoformat(data["start_date"]),
+            end_date=date.fromisoformat(data["end_date"]),
+            applied_days=data["applied_days"],
+            created_by=data["created_by"]
+        )
+        event.event_id = data["event_id"]
+        return event
 
 
 @dataclass
@@ -47,17 +68,35 @@ class EmployeeLeaveUpdatedEvent(DomainEvent):
     leave_name: str
     updated_by: str
     
+    def get_event_type(self) -> str:
+        """Get the event type identifier"""
+        return "EmployeeLeaveUpdated"
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert event to dictionary"""
         return {
             "event_id": self.event_id,
-            "event_type": "EmployeeLeaveUpdated",
+            "event_type": self.get_event_type(),
             "occurred_at": self.occurred_at.isoformat(),
             "employee_id": self.employee_id,
             "leave_id": self.leave_id,
             "leave_name": self.leave_name,
             "updated_by": self.updated_by
         }
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'EmployeeLeaveUpdatedEvent':
+        """Create event from dictionary representation"""
+        event = cls(
+            aggregate_id=data["employee_id"],
+            occurred_at=datetime.fromisoformat(data["occurred_at"]),
+            employee_id=data["employee_id"],
+            leave_id=data["leave_id"],
+            leave_name=data["leave_name"],
+            updated_by=data["updated_by"]
+        )
+        event.event_id = data["event_id"]
+        return event
 
 
 @dataclass
@@ -70,11 +109,15 @@ class EmployeeLeaveDeletedEvent(DomainEvent):
     deleted_by: str
     deletion_reason: Optional[str] = None
     
+    def get_event_type(self) -> str:
+        """Get the event type identifier"""
+        return "EmployeeLeaveDeleted"
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert event to dictionary"""
         return {
             "event_id": self.event_id,
-            "event_type": "EmployeeLeaveDeleted",
+            "event_type": self.get_event_type(),
             "occurred_at": self.occurred_at.isoformat(),
             "employee_id": self.employee_id,
             "leave_id": self.leave_id,
@@ -82,6 +125,21 @@ class EmployeeLeaveDeletedEvent(DomainEvent):
             "deleted_by": self.deleted_by,
             "deletion_reason": self.deletion_reason
         }
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'EmployeeLeaveDeletedEvent':
+        """Create event from dictionary representation"""
+        event = cls(
+            aggregate_id=data["employee_id"],
+            occurred_at=datetime.fromisoformat(data["occurred_at"]),
+            employee_id=data["employee_id"],
+            leave_id=data["leave_id"],
+            leave_name=data["leave_name"],
+            deleted_by=data["deleted_by"],
+            deletion_reason=data.get("deletion_reason")
+        )
+        event.event_id = data["event_id"]
+        return event
 
 
 @dataclass

@@ -98,7 +98,7 @@ const LeaveManagement: React.FC = () => {
 
   const fetchLeaveBalance = async (): Promise<void> => {
     try {
-      const response = await api.get('http://localhost:8000/api/v2/leaves/leave-balance');
+      const response = await api.get('/api/v2/leaves/leave-balance');
       setLeaveBalance(response.data);
     } catch (error: any) {
       setAlert({
@@ -111,7 +111,7 @@ const LeaveManagement: React.FC = () => {
 
   const fetchLeaves = async (): Promise<void> => {
     try {
-      const response = await api.get('http://localhost:8000/api/v2/leaves/my-leaves');
+      const response = await api.get('/api/v2/leaves/my-leaves');
       setLeaves(response.data);
     } catch (error: any) {
       setAlert({
@@ -153,14 +153,14 @@ const LeaveManagement: React.FC = () => {
       };
 
       if (editingLeave) {
-        await api.put(`http://localhost:8000/api/v2/leaves/${editingLeave._id}`, leaveData);
+        await api.put(`/api/v2/leaves/${editingLeave._id}`, leaveData);
         setAlert({
           open: true,
           message: 'Leave request updated successfully',
           severity: 'success'
         });
       } else {
-        await api.post('http://localhost:8000/api/v2/leaves/apply', leaveData);
+        await api.post('/api/v2/leaves/apply', leaveData);
         setAlert({
           open: true,
           message: 'Leave application submitted successfully',

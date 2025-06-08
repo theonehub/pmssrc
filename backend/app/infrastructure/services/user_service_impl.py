@@ -14,6 +14,7 @@ from app.application.interfaces.services.user_service import (
     UserService
 )
 from app.application.interfaces.repositories.user_repository import UserRepository
+from app.application.interfaces.repositories.company_leave_repository import CompanyLeaveQueryRepository
 from app.application.use_cases.user.create_user_use_case import CreateUserUseCase
 from app.application.use_cases.user.authenticate_user_use_case import AuthenticateUserUseCase
 from app.application.use_cases.user.get_user_use_case import GetUserUseCase
@@ -53,6 +54,7 @@ class UserServiceImpl(UserService):
     def __init__(
         self,
         user_repository: UserRepository,
+        company_leave_repository: CompanyLeaveQueryRepository,
         password_service: PasswordService,
         notification_service: NotificationService,
         file_upload_service: FileUploadService
@@ -62,18 +64,24 @@ class UserServiceImpl(UserService):
         
         Args:
             user_repository: User repository for data access
+            company_leave_repository: Company leave repository for data access
             password_service: Service for password operations
             notification_service: Service for sending notifications
             file_upload_service: Service for file operations
         """
         self.user_repository = user_repository
+        self.company_leave_repository = company_leave_repository
         self.password_service = password_service
         self.notification_service = notification_service
         self.file_upload_service = file_upload_service
         
         # Initialize use cases
         self._create_user_use_case = CreateUserUseCase(
-            user_repository, user_repository, self, self
+            command_repository=user_repository,
+            query_repository=user_repository,
+            validation_service=self,
+            notification_service=self,
+            company_leave_query_repository=self.company_leave_repository
         )
         self._authenticate_user_use_case = AuthenticateUserUseCase(
             user_repository, user_repository, self

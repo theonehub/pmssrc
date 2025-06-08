@@ -4,7 +4,7 @@ Handles the business logic for creating a new user
 """
 
 import logging
-from typing import List
+from typing import List, Dict
 from datetime import datetime
 
 from app.domain.entities.user import User
@@ -25,6 +25,9 @@ from app.application.dto.user_dto import (
 )
 from app.application.interfaces.repositories.user_repository import (
     UserCommandRepository, UserQueryRepository
+)
+from app.application.interfaces.repositories.company_leave_repository import (
+    CompanyLeaveQueryRepository
 )
 from app.application.interfaces.services.user_service import (
     UserValidationService, UserNotificationService
@@ -63,12 +66,14 @@ class CreateUserUseCase:
         command_repository: UserCommandRepository,
         query_repository: UserQueryRepository,
         validation_service: UserValidationService,
-        notification_service: UserNotificationService
+        notification_service: UserNotificationService,
+        company_leave_query_repository: CompanyLeaveQueryRepository
     ):
         self.command_repository = command_repository
         self.query_repository = query_repository
         self.validation_service = validation_service
         self.notification_service = notification_service
+        self.company_leave_query_repository = company_leave_query_repository
     
     async def execute(self, request: CreateUserRequestDTO, current_user: CurrentUser) -> UserResponseDTO:
         """
@@ -99,7 +104,7 @@ class CreateUserUseCase:
         documents = self._create_user_documents(request)
         
         # Step 3.5: Calculate initial leave balance based on company policies
-        initial_leave_balance = await self._calculate_initial_leave_balance(
+        initial_leave_balances = await self._calculate_initial_leave_balance(
             UserRole(request.role.lower()), current_user
         )
         
@@ -119,9 +124,11 @@ class CreateUserUseCase:
             created_by=request.created_by
         )
         
-        # Step 4.5: Set documents and leave balance after user creation
+        # Step 4.5: Set documents and leave balances after user creation
         user.update_documents(documents, user.created_by or "system")
-        user.update_leave_balance("annual", int(initial_leave_balance))
+        # Set initial leave balances for each leave type
+        for leave_name, balance in initial_leave_balances.items():
+            user.update_leave_balance(leave_name, int(balance))
         
         # Step 5: Validate business rules
         await self._validate_business_rules(user)
@@ -203,7 +210,7 @@ class CreateUserUseCase:
                 "business_rules"
             )
     
-    async def _calculate_initial_leave_balance(self, role: UserRole, current_user: CurrentUser) -> float:
+    async def _calculate_initial_leave_balance(self, role: UserRole, current_user: CurrentUser) -> Dict[str, float]:
         """
         Calculate initial leave balance based on company leave policies.
         
@@ -212,35 +219,39 @@ class CreateUserUseCase:
             current_user: Current authenticated user with organisation context
             
         Returns:
-            Initial leave balance in days
+            Dictionary with leave_name as key and computed_monthly_allocation as value
         """
         try:
-            # TODO: Implement proper leave balance calculation based on:
-            # - Company leave policies for the organisation
-            # - User role and designation
-            # - Joining date and pro-rata calculation
-            # - Leave type allocations (annual, sick, casual, etc.)
+            # Fetch active company leave policies for the organisation
+            company_leaves = await self.company_leave_query_repository.get_all_active(current_user.hostname)
             
-            # For now, set default leave balance based on role
-            default_leave_balances = {
-                UserRole.SUPERADMIN: 30.0,
-                UserRole.ADMIN: 25.0,
-                UserRole.MANAGER: 25.0,
-                UserRole.HR: 25.0,
-                UserRole.FINANCE: 25.0,
-                UserRole.USER: 20.0,
-                UserRole.READONLY: 15.0
-            }
+            initial_balances = {}
             
-            initial_balance = default_leave_balances.get(role, 20.0)
+            if company_leaves:
+                # Use company leave policies to set initial balances
+                for company_leave in company_leaves:
+                    # Use leave_name as key and computed_monthly_allocation as value
+                    initial_balances[company_leave.leave_name] = float(company_leave.computed_monthly_allocation)
+                
+                logger.info(f"Calculated initial leave balances from company policies for organisation {current_user.hostname}: {initial_balances}")
+            else:
+                # Fallback to default leave balances if no company policies found
+                logger.warning(f"No company leave policies found for organisation {current_user.hostname}, using default balances")
+                
+                initial_balances = {
+                    "Sick Leave": 0
+                }
             
-            logger.info(f"Calculated initial leave balance for role {role.value} in organisation {current_user.hostname}: {initial_balance} days")
-            return initial_balance
+            return initial_balances
             
         except Exception as e:
-            logger.warning(f"Error calculating initial leave balance, using default: {e}")
-            return 20.0  # Default fallback
+            logger.warning(f"Error calculating initial leave balances, using default: {e}")
+            # Default fallback with standard leave types
+            return {
+                "Sick Leave": 0
+            }
     
+
     def _convert_to_response_dto(self, user: User) -> UserResponseDTO:
         """Convert user entity to response DTO"""
         return UserResponseDTO(
@@ -312,4 +323,235 @@ class CreateUserUseCase:
             aadhar_document_path=documents.aadhar_document_path,
             completion_percentage=documents.get_document_completion_percentage(),
             missing_documents=documents.get_missing_documents()
-        ) 
+        )
+
+
+class MonthlyLeaveAllocationUseCase:
+    """
+    Use case for adding monthly leave allocation to users.
+    
+    This use case should be called by a scheduled job (e.g., monthly cron job)
+    to add the computed_monthly_allocation to each user's leave balance.
+    
+    Follows SOLID principles:
+    - SRP: Only handles monthly leave allocation logic
+    - OCP: Can be extended with new allocation rules
+    - LSP: Can be substituted with enhanced versions
+    - ISP: Depends on focused interfaces
+    - DIP: Depends on abstractions (repositories)
+    """
+    
+    def __init__(
+        self,
+        user_command_repository: UserCommandRepository,
+        user_query_repository: UserQueryRepository,
+        company_leave_query_repository: CompanyLeaveQueryRepository
+    ):
+        self.user_command_repository = user_command_repository
+        self.user_query_repository = user_query_repository
+        self.company_leave_query_repository = company_leave_query_repository
+    
+    async def execute_for_organisation(self, current_user: CurrentUser) -> Dict[str, int]:
+        """
+        Execute monthly leave allocation for all active users in an organisation.
+        
+        Args:
+            current_user: Current authenticated user with organisation context
+            
+        Returns:
+            Dictionary with statistics about the allocation process
+        """
+        logger.info(f"Starting monthly leave allocation for organisation: {current_user.hostname}")
+        
+        stats = {
+            "users_processed": 0,
+            "users_updated": 0,
+            "users_failed": 0,
+            "leave_types_processed": 0
+        }
+        
+        try:
+            # Fetch active company leave policies for the organisation
+            company_leaves = await self.company_leave_query_repository.get_all_active(current_user.hostname)
+            
+            if not company_leaves:
+                logger.warning(f"No company leave policies found for organisation {current_user.hostname}")
+                return stats
+            
+            stats["leave_types_processed"] = len(company_leaves)
+            
+            # Fetch all active users in the organisation
+            active_users = await self.user_query_repository.get_active_users(current_user.hostname)
+            
+            for user in active_users:
+                stats["users_processed"] += 1
+                
+                try:
+                    # Add monthly allocation for each leave type
+                    user_updated = False
+                    
+                    for company_leave in company_leaves:
+                        leave_name = company_leave.leave_name
+                        monthly_allocation = float(company_leave.computed_monthly_allocation)
+                        
+                        # Get current balance for this leave type
+                        current_balance = user.leave_balance.get(leave_name, 0)
+                        
+                        # Add monthly allocation
+                        new_balance = current_balance + monthly_allocation
+                        
+                        # Update user's leave balance
+                        user.update_leave_balance(leave_name, int(new_balance))
+                        user_updated = True
+                        
+                        logger.debug(f"Added monthly allocation for user {user.employee_id}, {leave_name}: "
+                                   f"{monthly_allocation} days. Previous: {current_balance}, New: {new_balance}")
+                    
+                    # Save the updated user
+                    if user_updated:
+                        await self.user_command_repository.save(user, current_user.hostname)
+                        stats["users_updated"] += 1
+                        logger.info(f"Successfully updated monthly leave allocation for user {user.employee_id}")
+                
+                except Exception as e:
+                    stats["users_failed"] += 1
+                    logger.error(f"Failed to update monthly leave allocation for user {user.employee_id}: {e}")
+                    continue
+            
+            logger.info(f"Monthly leave allocation completed for organisation {current_user.hostname}. Stats: {stats}")
+            return stats
+            
+        except Exception as e:
+            logger.error(f"Error during monthly leave allocation for organisation {current_user.hostname}: {e}")
+            raise
+    
+    async def execute_for_user(self, user_id: str, current_user: CurrentUser) -> bool:
+        """
+        Execute monthly leave allocation for a specific user.
+        
+        Args:
+            user_id: Employee ID of the user
+            current_user: Current authenticated user with organisation context
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            logger.info(f"Adding monthly leave allocation for user {user_id} in organisation {current_user.hostname}")
+            
+            # Fetch the user
+            user = await self.user_query_repository.get_by_employee_id(user_id, current_user.hostname)
+            if not user:
+                logger.error(f"User {user_id} not found in organisation {current_user.hostname}")
+                return False
+            
+            # Fetch active company leave policies for the organisation
+            company_leaves = await self.company_leave_query_repository.get_all_active(current_user.hostname)
+            
+            if not company_leaves:
+                logger.warning(f"No company leave policies found for organisation {current_user.hostname}")
+                return False
+            
+            # Add monthly allocation for each leave type
+            user_updated = False
+            
+            for company_leave in company_leaves:
+                leave_name = company_leave.leave_name
+                monthly_allocation = float(company_leave.computed_monthly_allocation)
+                
+                # Get current balance for this leave type
+                current_balance = user.leave_balance.get(leave_name, 0)
+                
+                # Add monthly allocation
+                new_balance = current_balance + monthly_allocation
+                
+                # Update user's leave balance
+                user.update_leave_balance(leave_name, int(new_balance))
+                user_updated = True
+                
+                logger.info(f"Added monthly allocation for user {user_id}, {leave_name}: "
+                           f"{monthly_allocation} days. Previous: {current_balance}, New: {new_balance}")
+            
+            # Save the updated user
+            if user_updated:
+                await self.user_command_repository.save(user, current_user.hostname)
+                logger.info(f"Successfully updated monthly leave allocation for user {user_id}")
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error adding monthly leave allocation for user {user_id}: {e}")
+            return False
+
+
+# Example usage for scheduled jobs:
+"""
+# Monthly Leave Allocation Scheduled Job Example
+
+from app.application.use_cases.user.create_user_use_case import MonthlyLeaveAllocationUseCase
+from app.config.dependency_container import get_dependency_container
+
+async def monthly_leave_allocation_job():
+    '''
+    Scheduled job to run monthly leave allocation for all organisations.
+    This should be called by a cron job or task scheduler.
+    '''
+    container = get_dependency_container()
+    
+    # Get repositories
+    user_command_repo = container.get_user_command_repository()
+    user_query_repo = container.get_user_query_repository()
+    company_leave_query_repo = container.get_company_leave_query_repository()
+    
+    # Create use case
+    monthly_allocation_use_case = MonthlyLeaveAllocationUseCase(
+        user_command_repository=user_command_repo,
+        user_query_repository=user_query_repo,
+        company_leave_query_repository=company_leave_query_repo
+    )
+    
+    # Example: Process for a specific organisation
+    # You would need to iterate through all organisations in your system
+    from app.auth.auth_dependencies import CurrentUser
+    
+    # Mock current user for organisation context
+    current_user = CurrentUser(
+        employee_id="SYSTEM",
+        hostname="example-org.com",  # Replace with actual organisation hostname
+        role="superadmin"
+    )
+    
+    try:
+        stats = await monthly_allocation_use_case.execute_for_organisation(current_user)
+        print(f"Monthly allocation completed for {current_user.hostname}: {stats}")
+    except Exception as e:
+        print(f"Error in monthly allocation for {current_user.hostname}: {e}")
+
+# For individual user allocation:
+async def add_monthly_allocation_for_user(user_id: str, organisation_hostname: str):
+    '''
+    Add monthly allocation for a specific user.
+    Useful for new joiners or manual adjustments.
+    '''
+    container = get_dependency_container()
+    
+    user_command_repo = container.get_user_command_repository()
+    user_query_repo = container.get_user_query_repository()
+    company_leave_query_repo = container.get_company_leave_query_repository()
+    
+    monthly_allocation_use_case = MonthlyLeaveAllocationUseCase(
+        user_command_repository=user_command_repo,
+        user_query_repository=user_query_repo,
+        company_leave_query_repository=company_leave_query_repo
+    )
+    
+    current_user = CurrentUser(
+        employee_id="SYSTEM",
+        hostname=organisation_hostname,
+        role="superadmin"
+    )
+    
+    success = await monthly_allocation_use_case.execute_for_user(user_id, current_user)
+    return success
+""" 

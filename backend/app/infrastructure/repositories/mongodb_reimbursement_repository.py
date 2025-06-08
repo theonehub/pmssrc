@@ -339,6 +339,38 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
         """Get reimbursements pending approval"""
         return await self.get_by_status("under_review", organisation_id)
     
+    async def get_pending_reimbursements(self, hostname: str) -> List[Reimbursement]:
+        """
+        Get all pending reimbursements for reporting purposes.
+        
+        Args:
+            hostname: Organisation hostname for database selection
+            
+        Returns:
+            List of pending reimbursements
+        """
+        try:
+            collection = await self._get_reimbursements_collection(hostname)
+            
+            # Query for pending statuses
+            pending_statuses = ["pending", "submitted", "under_review"]
+            cursor = collection.find({
+                "status": {"$in": pending_statuses}
+            }).sort("submitted_at", DESCENDING)
+            
+            reimbursements = []
+            async for document in cursor:
+                reimbursement = self._document_to_reimbursement(document)
+                if reimbursement:
+                    reimbursements.append(reimbursement)
+            
+            logger.info(f"Found {len(reimbursements)} pending reimbursements for organisation: {hostname}")
+            return reimbursements
+            
+        except Exception as e:
+            logger.error(f"Error getting pending reimbursements for organisation {hostname}: {e}")
+            return []
+    
     async def get_all(self, organisation_id: str) -> List[Reimbursement]:
         """Get all reimbursements"""
         try:

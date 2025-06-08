@@ -647,12 +647,9 @@ export interface DashboardStats {
   total_users: number;
   checkin_count: number;
   checkout_count: number;
-  hr: number;
-  lead: number;
-  user: number;
-  pending_leaves: number;
   pending_reimbursements: number;
 }
+
 
 // UsersList Component Types
 export interface UsersListResponse {

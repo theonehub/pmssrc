@@ -233,7 +233,7 @@ class CheckOutUseCase:
         
         # Check if check-out time is reasonable (not too far in the future)
         # Allow for timezone differences and clock skew
-        time_diff = check_out_time - datetime.utcnow()
+        time_diff = check_out_time - datetime.now()
         if time_diff.total_seconds() > 6 * 60 * 60:  # More than 6 hours in the future
             raise AttendanceBusinessRuleError(
                 "Check-out time cannot be more than 6 hours in the future",
@@ -251,7 +251,7 @@ class CheckOutUseCase:
                     "attendance_date": attendance.attendance_date.isoformat(),
                     "check_out_time": attendance.working_hours.check_out_time.isoformat(),
                     "total_hours": float(attendance.working_hours.working_hours()),
-                    "timestamp": datetime.utcnow().isoformat()
+                    "timestamp": datetime.now().isoformat()
                 })
         except Exception as e:
             logger.warning(f"Failed to publish check-out event: {e}")

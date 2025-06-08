@@ -1509,4 +1509,48 @@ class MongoDBUserRepository(UserRepository):
     
     def create_bulk_operations_repository(self) -> UserBulkOperationsRepository:
         """Create bulk operations repository instance."""
-        return self 
+        return self
+
+    async def find_with_filters(
+        self, 
+        filters: Optional[Dict[str, Any]] = None, 
+        hostname: Optional[str] = None
+    ) -> tuple[List[User], int]:
+        """
+        Find users with filters for reporting purposes.
+        
+        Args:
+            filters: Optional filters to apply
+            hostname: Organisation hostname for database selection
+            
+        Returns:
+            Tuple of (users list, total count)
+        """
+        try:
+            collection = await self._get_collection(hostname)
+            
+            # Build query
+            query = {"is_deleted": {"$ne": True}}
+            
+            if filters:
+                # Apply any additional filters if provided
+                for key, value in filters.items():
+                    if value is not None:
+                        query[key] = value
+            
+            # Get total count
+            total_count = await collection.count_documents(query)
+            
+            # Get all users (for reporting, we typically need all data)
+            cursor = collection.find(query).sort("created_at", DESCENDING)
+            documents = await cursor.to_list(length=None)
+            
+            users = [self._document_to_user(doc) for doc in documents if doc]
+            users = [user for user in users if user is not None]
+            
+            logger.info(f"Found {len(users)} users with filters for organisation: {hostname}")
+            return users, total_count
+            
+        except Exception as e:
+            logger.error(f"Error finding users with filters for organisation {hostname}: {e}")
+            return [], 0 

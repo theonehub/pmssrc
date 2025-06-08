@@ -25,6 +25,7 @@ from app.application.dto.employee_leave_dto import (
     InsufficientLeaveBalanceError
 )
 from app.application.dto.employee_leave_dto import LeaveStatus
+from app.auth.auth_dependencies import CurrentUser
 
 
 class EmployeeLeaveController:
@@ -53,16 +54,14 @@ class EmployeeLeaveController:
     async def apply_leave(
         self, 
         request: EmployeeLeaveCreateRequestDTO, 
-        employee_id: str,
-        hostname: str
+        current_user: CurrentUser
     ) -> EmployeeLeaveResponseDTO:
         """
         Apply for employee leave.
         
         Args:
             request: Leave application request
-            employee_id: Employee applying for leave
-            hostname: Organisation hostname
+            current_user: Current user applying for leave
             
         Returns:
             EmployeeLeaveResponseDTO with created leave details
@@ -74,9 +73,9 @@ class EmployeeLeaveController:
         """
         
         try:
-            self._logger.info(f"Processing leave application for employee: {employee_id}")
+            self._logger.info(f"Processing leave application for employee: {current_user.employee_id} in org: {current_user.hostname}")
             
-            response = await self._apply_use_case.execute(request, employee_id, hostname)
+            response = await self._apply_use_case.execute(request, current_user, current_user.hostname)
             
             self._logger.info(f"Successfully processed leave application: {response.leave_id}")
             return response
@@ -93,8 +92,7 @@ class EmployeeLeaveController:
         self, 
         leave_id: str,
         request: EmployeeLeaveApprovalRequestDTO, 
-        approver_id: str,
-        hostname: str
+        current_user: CurrentUser
     ) -> EmployeeLeaveResponseDTO:
         """
         Approve or reject employee leave.
@@ -102,8 +100,7 @@ class EmployeeLeaveController:
         Args:
             leave_id: Leave application identifier
             request: Approval/rejection request
-            approver_id: User approving/rejecting the leave
-            hostname: Organisation hostname
+            current_user: User approving/rejecting the leave
             
         Returns:
             EmployeeLeaveResponseDTO with updated leave details
@@ -115,10 +112,10 @@ class EmployeeLeaveController:
         """
         
         try:
-            self._logger.info(f"Processing leave approval: {leave_id} by {approver_id}")
+            self._logger.info(f"Processing leave approval: {leave_id} by {current_user.employee_id} in org: {current_user.hostname}")
             
             response = await self._approve_use_case.execute(
-                leave_id, request, approver_id, hostname
+                leave_id, request, current_user.employee_id, current_user.hostname
             )
             
             self._logger.info(f"Successfully processed leave approval: {leave_id}")
@@ -132,19 +129,20 @@ class EmployeeLeaveController:
             self._logger.error(f"Unexpected error in leave approval: {e}")
             raise Exception(f"Failed to process leave approval: {str(e)}")
     
-    async def get_leave_by_id(self, leave_id: str) -> Optional[EmployeeLeaveResponseDTO]:
+    async def get_leave_by_id(self, leave_id: str, current_user: CurrentUser) -> Optional[EmployeeLeaveResponseDTO]:
         """
         Get employee leave by ID.
         
         Args:
             leave_id: Leave application identifier
+            current_user: Current user context
             
         Returns:
             EmployeeLeaveResponseDTO if found, None otherwise
         """
         
         try:
-            self._logger.info(f"Retrieving leave: {leave_id}")
+            self._logger.info(f"Retrieving leave: {leave_id} in org: {current_user.hostname}")
             
             response = self._query_use_case.get_employee_leave_by_id(leave_id)
             
@@ -158,7 +156,8 @@ class EmployeeLeaveController:
         self, 
         employee_id: str,
         status_filter: Optional[str] = None,
-        limit: Optional[int] = None
+        limit: Optional[int] = None,
+        current_user: CurrentUser = None
     ) -> List[EmployeeLeaveResponseDTO]:
         """
         Get employee leaves by employee ID.
@@ -167,13 +166,14 @@ class EmployeeLeaveController:
             employee_id: Employee identifier
             status_filter: Optional status filter
             limit: Optional limit on results
+            current_user: Current user context for organization
             
         Returns:
             List of EmployeeLeaveResponseDTO
         """
         
         try:
-            self._logger.info(f"Retrieving leaves for employee: {employee_id}")
+            self._logger.info(f"Retrieving leaves for employee: {employee_id} in org: {current_user.hostname if current_user else 'unknown'}")
             
             status = None
             if status_filter:
@@ -182,8 +182,8 @@ class EmployeeLeaveController:
                 except ValueError:
                     raise EmployeeLeaveValidationError([f"Invalid status: {status_filter}"])
             
-            response = self._query_use_case.get_employee_leaves_by_employee_id(
-                employee_id, status, limit
+            response = await self._query_use_case.get_employee_leaves_by_employee_id(
+                employee_id, current_user.hostname if current_user else "default", status, limit
             )
             
             return response
@@ -198,22 +198,24 @@ class EmployeeLeaveController:
         self, 
         manager_id: str,
         status_filter: Optional[str] = None,
-        limit: Optional[int] = None
+        limit: Optional[int] = None,
+        current_user: CurrentUser = None
     ) -> List[EmployeeLeaveResponseDTO]:
         """
-        Get employee leaves by manager ID.
+        Get leaves for manager's team.
         
         Args:
             manager_id: Manager identifier
             status_filter: Optional status filter
             limit: Optional limit on results
+            current_user: Current user context for organization
             
         Returns:
-            List of EmployeeLeaveResponseDTO for employees under the manager
+            List of EmployeeLeaveResponseDTO
         """
         
         try:
-            self._logger.info(f"Retrieving leaves for manager: {manager_id}")
+            self._logger.info(f"Retrieving leaves for manager: {manager_id} in org: {current_user.hostname if current_user else 'unknown'}")
             
             status = None
             if status_filter:
@@ -237,23 +239,27 @@ class EmployeeLeaveController:
     async def get_pending_approvals(
         self, 
         manager_id: Optional[str] = None,
-        limit: Optional[int] = None
+        limit: Optional[int] = None,
+        current_user: CurrentUser = None
     ) -> List[EmployeeLeaveResponseDTO]:
         """
         Get pending leave approvals.
         
         Args:
-            manager_id: Optional manager filter
+            manager_id: Optional manager identifier for filtering
             limit: Optional limit on results
+            current_user: Current user context for organization
             
         Returns:
-            List of pending EmployeeLeaveResponseDTO
+            List of EmployeeLeaveResponseDTO with pending status
         """
         
         try:
-            self._logger.info(f"Retrieving pending approvals for manager: {manager_id}")
+            self._logger.info(f"Retrieving pending approvals for manager: {manager_id} in org: {current_user.hostname if current_user else 'unknown'}")
             
-            response = self._query_use_case.get_pending_approvals(manager_id, limit)
+            response = self._query_use_case.get_pending_approvals(
+                manager_id, limit
+            )
             
             return response
             
@@ -263,130 +269,142 @@ class EmployeeLeaveController:
     
     async def search_leaves(
         self, 
-        filters: EmployeeLeaveSearchFiltersDTO
+        filters: EmployeeLeaveSearchFiltersDTO,
+        current_user: CurrentUser
     ) -> List[EmployeeLeaveResponseDTO]:
         """
-        Search employee leaves with filters.
+        Search leaves with filters.
         
         Args:
             filters: Search filters
+            current_user: Current user context for organization
             
         Returns:
-            List of matching EmployeeLeaveResponseDTO
+            List of EmployeeLeaveResponseDTO matching filters
         """
         
         try:
-            self._logger.info(f"Searching employee leaves")
+            self._logger.info(f"Searching leaves with filters in org: {current_user.hostname}")
             
             response = self._query_use_case.search_employee_leaves(filters)
             
             return response
             
         except Exception as e:
-            self._logger.error(f"Error searching employee leaves: {e}")
-            raise Exception(f"Failed to search employee leaves: {str(e)}")
+            self._logger.error(f"Error searching leaves: {e}")
+            raise Exception(f"Failed to search leaves: {str(e)}")
     
     async def get_monthly_leaves(
         self, 
         employee_id: str,
         month: int,
-        year: int
+        year: int,
+        current_user: CurrentUser
     ) -> List[EmployeeLeaveResponseDTO]:
         """
-        Get employee leaves for a specific month.
+        Get monthly leaves for an employee.
         
         Args:
             employee_id: Employee identifier
             month: Month (1-12)
             year: Year
+            current_user: Current user context for organization
             
         Returns:
-            List of EmployeeLeaveResponseDTO for the month
+            List of EmployeeLeaveResponseDTO for the specified month
         """
         
         try:
-            self._logger.info(f"Retrieving monthly leaves for {employee_id}: {month}/{year}")
+            self._logger.info(f"Retrieving monthly leaves for {employee_id} ({month}/{year}) in org: {current_user.hostname}")
             
-            if not (1 <= month <= 12):
-                raise EmployeeLeaveValidationError(["Month must be between 1 and 12"])
-            
-            if not (2000 <= year <= 3000):
-                raise EmployeeLeaveValidationError(["Year must be between 2000 and 3000"])
-            
-            # Try to use the query use case if available
-            if self._query_use_case:
+            if self._query_use_case and hasattr(self._query_use_case, 'get_employee_leaves_by_month'):
                 response = await self._query_use_case.get_employee_leaves_by_month(
                     employee_id, month, year
                 )
-                return response
             else:
-                # Fallback to legacy service
-                return await self._get_monthly_leaves_fallback(employee_id, month, year)
+                # Fallback implementation
+                response = await self._get_monthly_leaves_fallback(employee_id, month, year, current_user)
             
-        except EmployeeLeaveValidationError:
-            raise
+            return response
+            
         except Exception as e:
             self._logger.error(f"Error retrieving monthly leaves: {e}")
-            # Try fallback on error
-            try:
-                return await self._get_monthly_leaves_fallback(employee_id, month, year)
-            except Exception as fallback_error:
-                self._logger.error(f"Fallback also failed: {fallback_error}")
-                return []  # Return empty list instead of raising exception
+            raise Exception(f"Failed to retrieve monthly leaves: {str(e)}")
     
     async def _get_monthly_leaves_fallback(
         self, 
         employee_id: str,
         month: int,
-        year: int
+        year: int,
+        current_user: CurrentUser
     ) -> List[EmployeeLeaveResponseDTO]:
-        """Fallback method using legacy service."""
-        from app.infrastructure.services.employee_leave_legacy_service import get_leaves_by_month_for_user
-        from datetime import datetime, date
+        """
+        Fallback implementation for monthly leaves.
+        
+        Args:
+            employee_id: Employee identifier
+            month: Month (1-12)
+            year: Year
+            current_user: Current user context for organization
+            
+        Returns:
+            List of EmployeeLeaveResponseDTO for the specified month
+        """
         
         try:
-            hostname = "default"  # Default hostname for now
-            legacy_leaves = get_leaves_by_month_for_user(employee_id, month, year, hostname)
+            # Create date range for the month
+            from datetime import date
+            start_date = date(year, month, 1)
             
-            # Convert legacy format to DTO format
-            response_leaves = []
-            for leave_dict in legacy_leaves:
-                # Create a basic EmployeeLeaveResponseDTO from legacy data
-                response_leave = EmployeeLeaveResponseDTO(
-                    leave_id=leave_dict.get('leave_id', ''),
-                    employee_id=leave_dict.get('employee_id', employee_id),
-                    leave_type_name=leave_dict.get('leave_name', ''),
-                    start_date=datetime.strptime(leave_dict.get('start_date', ''), '%Y-%m-%d').date() if leave_dict.get('start_date') else date.today(),
-                    end_date=datetime.strptime(leave_dict.get('end_date', ''), '%Y-%m-%d').date() if leave_dict.get('end_date') else date.today(),
-                    reason=leave_dict.get('reason', ''),
-                    status=leave_dict.get('status', 'pending'),
-                    working_days=leave_dict.get('leave_count', 0),
-                    applied_at=datetime.now(),
-                    days_in_current_month=leave_dict.get('leave_count', 0)
-                )
-                response_leaves.append(response_leave)
+            # Get last day of month
+            if month == 12:
+                end_date = date(year + 1, 1, 1) - date.resolution
+            else:
+                end_date = date(year, month + 1, 1) - date.resolution
             
-            return response_leaves
+            # Create search filters for the date range
+            filters = EmployeeLeaveSearchFiltersDTO(
+                employee_id=employee_id,
+                start_date=start_date,
+                end_date=end_date,
+                limit=100
+            )
+            
+            return await self.search_leaves(filters, current_user)
             
         except Exception as e:
-            self._logger.error(f"Legacy fallback failed: {e}")
+            self._logger.error(f"Error in monthly leaves fallback: {e}")
             return []
     
-    async def get_leave_balance(self, employee_id: str) -> EmployeeLeaveBalanceDTO:
+    async def get_leave_balance(self, employee_id: str, current_user: CurrentUser) -> EmployeeLeaveBalanceDTO:
         """
         Get leave balance for an employee.
         
         Args:
             employee_id: Employee identifier
+            current_user: Current user context for organization
             
         Returns:
-            EmployeeLeaveBalanceDTO with leave balances
+            EmployeeLeaveBalanceDTO with balance information
         """
         
         try:
-            self._logger.info(f"Retrieving leave balance for: {employee_id}")
+            self._logger.info(f"Retrieving leave balance for {employee_id} in org: {current_user.hostname}")
             
-            response = self._query_use_case.get_leave_balance(employee_id)
+            if self._query_use_case and hasattr(self._query_use_case, 'get_leave_balance'):
+                response = self._query_use_case.get_leave_balance(employee_id)
+            else:
+                # Fallback - return default balances
+                response = EmployeeLeaveBalanceDTO(
+                    employee_id=employee_id,
+                    balances={
+                        "casual_leave": 12,
+                        "sick_leave": 12,
+                        "earned_leave": 21,
+                        "maternity_leave": 180,
+                        "paternity_leave": 15
+                    }
+                )
             
             return response
             
@@ -398,34 +416,44 @@ class EmployeeLeaveController:
         self,
         employee_id: Optional[str] = None,
         manager_id: Optional[str] = None,
-        year: Optional[int] = None
+        year: Optional[int] = None,
+        current_user: CurrentUser = None
     ) -> EmployeeLeaveAnalyticsDTO:
         """
         Get leave analytics.
         
         Args:
-            employee_id: Optional employee filter
-            manager_id: Optional manager filter
+            employee_id: Optional employee identifier
+            manager_id: Optional manager identifier
             year: Optional year filter
+            current_user: Current user context for organization
             
         Returns:
             EmployeeLeaveAnalyticsDTO with analytics data
         """
         
         try:
-            self._logger.info(f"Retrieving leave analytics")
+            self._logger.info(f"Retrieving leave analytics in org: {current_user.hostname if current_user else 'unknown'}")
             
-            if year and not (2000 <= year <= 3000):
-                raise EmployeeLeaveValidationError(["Year must be between 2000 and 3000"])
-            
-            response = self._query_use_case.get_leave_analytics(
-                employee_id, manager_id, year
-            )
+            if self._query_use_case and hasattr(self._query_use_case, 'get_leave_analytics'):
+                response = self._query_use_case.get_leave_analytics(
+                    employee_id, manager_id, year
+                )
+            else:
+                # Fallback - return default analytics
+                response = EmployeeLeaveAnalyticsDTO(
+                    total_applications=0,
+                    pending_applications=0,
+                    approved_applications=0,
+                    rejected_applications=0,
+                    total_days_taken=0,
+                    average_days_per_application=0.0,
+                    most_common_leave_type="casual_leave",
+                    analytics_period=f"Year {year}" if year else "All time"
+                )
             
             return response
             
-        except EmployeeLeaveValidationError:
-            raise
         except Exception as e:
             self._logger.error(f"Error retrieving leave analytics: {e}")
             raise Exception(f"Failed to retrieve leave analytics: {str(e)}")
@@ -434,95 +462,101 @@ class EmployeeLeaveController:
         self,
         employee_id: str,
         month: int,
-        year: int
+        year: int,
+        current_user: CurrentUser
     ) -> LWPCalculationDTO:
         """
-        Calculate Leave Without Pay (LWP) for a specific month.
+        Calculate Loss of Pay (LWP) for an employee.
         
         Args:
             employee_id: Employee identifier
             month: Month (1-12)
             year: Year
+            current_user: Current user context for organization
             
         Returns:
             LWPCalculationDTO with LWP calculation details
         """
         
         try:
-            self._logger.info(f"Calculating LWP for {employee_id}: {month}/{year}")
+            self._logger.info(f"Calculating LWP for {employee_id} ({month}/{year}) in org: {current_user.hostname}")
             
-            if not (1 <= month <= 12):
-                raise EmployeeLeaveValidationError(["Month must be between 1 and 12"])
-            
-            if not (2000 <= year <= 3000):
-                raise EmployeeLeaveValidationError(["Year must be between 2000 and 3000"])
-            
-            # Try to use the query use case if available
-            if self._query_use_case:
+            if self._query_use_case and hasattr(self._query_use_case, 'calculate_lwp_for_month'):
                 response = await self._query_use_case.calculate_lwp_for_month(
                     employee_id, month, year
                 )
-                return response
             else:
-                # Fallback to legacy service
-                return await self._calculate_lwp_fallback(employee_id, month, year)
+                # Fallback implementation
+                response = await self._calculate_lwp_fallback(employee_id, month, year, current_user)
             
-        except EmployeeLeaveValidationError:
-            raise
+            return response
+            
         except Exception as e:
             self._logger.error(f"Error calculating LWP: {e}")
-            # Try fallback on error
-            try:
-                return await self._calculate_lwp_fallback(employee_id, month, year)
-            except Exception as fallback_error:
-                self._logger.error(f"LWP fallback also failed: {fallback_error}")
-                # Return zero LWP instead of raising exception
-                return LWPCalculationDTO(
-                    employee_id=employee_id,
-                    month=month,
-                    year=year,
-                    lwp_days=0,
-                    calculation_details={
-                        "calculated_at": date.today().isoformat(),
-                        "method": "fallback_zero",
-                        "error": str(fallback_error)
-                    }
-                )
+            raise Exception(f"Failed to calculate LWP: {str(e)}")
     
     async def _calculate_lwp_fallback(
         self,
         employee_id: str,
         month: int,
-        year: int
+        year: int,
+        current_user: CurrentUser
     ) -> LWPCalculationDTO:
-        """Fallback method for LWP calculation using legacy service."""
-        from app.infrastructure.services.employee_leave_legacy_service import calculate_lwp_for_month
-        from datetime import date
+        """
+        Fallback implementation for LWP calculation.
+        
+        Args:
+            employee_id: Employee identifier
+            month: Month (1-12)
+            year: Year
+            current_user: Current user context for organization
+            
+        Returns:
+            LWPCalculationDTO with basic LWP calculation
+        """
         
         try:
-            hostname = "default"  # Default hostname for now
-            lwp_days = calculate_lwp_for_month(employee_id, month, year, hostname)
+            # Get monthly leaves
+            monthly_leaves = await self.get_monthly_leaves(employee_id, month, year, current_user)
+            
+            # Calculate LWP days (simplified logic)
+            lwp_days = 0
+            for leave in monthly_leaves:
+                if hasattr(leave, 'leave_type') and leave.leave_type.lower() == 'lwp':
+                    lwp_days += leave.days_requested if hasattr(leave, 'days_requested') else 1
             
             return LWPCalculationDTO(
                 employee_id=employee_id,
                 month=month,
                 year=year,
                 lwp_days=lwp_days,
+                working_days=22,  # Assumed working days
+                lwp_amount=0.0,  # Would need salary info
                 calculation_details={
-                    "calculated_at": date.today().isoformat(),
-                    "method": "legacy_calculation"
+                    "total_leaves": len(monthly_leaves),
+                    "lwp_leaves": lwp_days,
+                    "calculation_method": "fallback"
                 }
             )
             
         except Exception as e:
-            self._logger.error(f"Legacy LWP calculation failed: {e}")
-            raise
+            self._logger.error(f"Error in LWP calculation fallback: {e}")
+            return LWPCalculationDTO(
+                employee_id=employee_id,
+                month=month,
+                year=year,
+                lwp_days=0,
+                working_days=22,
+                lwp_amount=0.0,
+                calculation_details={"error": str(e)}
+            )
     
     async def get_team_summary(
         self,
         manager_id: str,
         month: Optional[int] = None,
-        year: Optional[int] = None
+        year: Optional[int] = None,
+        current_user: CurrentUser = None
     ) -> List[dict]:
         """
         Get team leave summary for a manager.
@@ -531,53 +565,103 @@ class EmployeeLeaveController:
             manager_id: Manager identifier
             month: Optional month filter
             year: Optional year filter
+            current_user: Current user context for organization
             
         Returns:
             List of team member leave summaries
         """
         
         try:
-            self._logger.info(f"Retrieving team summary for manager: {manager_id}")
+            self._logger.info(f"Retrieving team summary for manager: {manager_id} in org: {current_user.hostname if current_user else 'unknown'}")
             
-            if month and not (1 <= month <= 12):
-                raise EmployeeLeaveValidationError(["Month must be between 1 and 12"])
+            # Get manager's team leaves
+            team_leaves = await self.get_manager_leaves(manager_id, None, None, current_user)
             
-            if year and not (2000 <= year <= 3000):
-                raise EmployeeLeaveValidationError(["Year must be between 2000 and 3000"])
+            # Group by employee and summarize
+            team_summary = {}
+            for leave in team_leaves:
+                emp_id = leave.employee_id
+                if emp_id not in team_summary:
+                    team_summary[emp_id] = {
+                        "employee_id": emp_id,
+                        "employee_name": getattr(leave, 'employee_name', 'Unknown'),
+                        "total_leaves": 0,
+                        "pending_leaves": 0,
+                        "approved_leaves": 0,
+                        "rejected_leaves": 0
+                    }
+                
+                team_summary[emp_id]["total_leaves"] += 1
+                if leave.status.lower() == "pending":
+                    team_summary[emp_id]["pending_leaves"] += 1
+                elif leave.status.lower() == "approved":
+                    team_summary[emp_id]["approved_leaves"] += 1
+                elif leave.status.lower() == "rejected":
+                    team_summary[emp_id]["rejected_leaves"] += 1
             
-            response = self._query_use_case.get_team_leave_summary(
-                manager_id, month, year
-            )
+            return list(team_summary.values())
             
-            return response
-            
-        except EmployeeLeaveValidationError:
-            raise
         except Exception as e:
             self._logger.error(f"Error retrieving team summary: {e}")
-            raise Exception(f"Failed to retrieve team summary: {str(e)}")
+            return []
     
     async def count_leaves(
         self, 
-        filters: EmployeeLeaveSearchFiltersDTO
+        filters: EmployeeLeaveSearchFiltersDTO,
+        current_user: CurrentUser
     ) -> int:
         """
-        Count employee leaves matching filters.
+        Count leaves matching filters.
         
         Args:
             filters: Search filters
+            current_user: Current user context for organization
             
         Returns:
-            Count of matching records
+            Count of matching leaves
         """
         
         try:
-            self._logger.info(f"Counting employee leaves")
+            self._logger.info(f"Counting leaves with filters in org: {current_user.hostname}")
             
-            count = self._query_use_case.count_employee_leaves(filters)
+            if self._query_use_case and hasattr(self._query_use_case, 'count_leaves'):
+                count = self._query_use_case.count_employee_leaves(filters)
+            else:
+                # Fallback - search and count
+                leaves = await self.search_leaves(filters, current_user)
+                count = len(leaves)
             
             return count
             
         except Exception as e:
-            self._logger.error(f"Error counting employee leaves: {e}")
-            raise Exception(f"Failed to count employee leaves: {str(e)}") 
+            self._logger.error(f"Error counting leaves: {e}")
+            return 0
+    
+    async def update_leave(
+        self,
+        leave_id: str,
+        request: EmployeeLeaveUpdateRequestDTO,
+        current_user: CurrentUser
+    ) -> EmployeeLeaveResponseDTO:
+        """
+        Update leave application.
+        
+        Args:
+            leave_id: Leave application identifier
+            request: Update request data
+            current_user: Current user context
+            
+        Returns:
+            EmployeeLeaveResponseDTO with updated leave details
+        """
+        
+        try:
+            self._logger.info(f"Updating leave: {leave_id} in org: {current_user.hostname}")
+            
+            # This would typically use an update use case
+            # For now, we'll raise not implemented
+            raise NotImplementedError("Update leave functionality not yet implemented")
+            
+        except Exception as e:
+            self._logger.error(f"Error updating leave {leave_id}: {e}")
+            raise Exception(f"Failed to update leave: {str(e)}") 

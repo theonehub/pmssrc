@@ -16,9 +16,7 @@ import {
 } from '@mui/material';
 import {
   People as PeopleIcon,
-  Work as HRIcon,
-  AccountTree as LeadIcon,
-  Person as UserIcon,
+  CurrencyRupee as RupeeIcon,
   Login as CheckInIcon,
   Logout as CheckOutIcon,
 } from '@mui/icons-material';
@@ -38,18 +36,11 @@ interface DashboardCard {
   icon: React.ReactElement;
 }
 
-interface AttendanceStats {
-  checkin_count: number;
-  checkout_count: number;
-}
 
 const Home: React.FC = () => {
-  const [usersStats, setUsersStats] = useState<Partial<DashboardStats>>({});
-  const [attendanceStats, setAttendanceStats] = useState<
-    Partial<AttendanceStats>
-  >({});
+  const [dashboardStats, setDashboardStats] = useState<Partial<DashboardStats>>({});
+
   const [loading, setLoading] = useState<boolean>(true);
-  const [attendanceLoading, setAttendanceLoading] = useState<boolean>(false);
   const [snackbar, setSnackbar] = useState<SnackbarState>({
     open: false,
     message: '',
@@ -62,24 +53,12 @@ const Home: React.FC = () => {
       try {
         setLoading(true);
 
-        // Fetch user statistics using v2 API
-        const usersResponse = await get<DashboardStats>('/api/v2/users/analytics/statistics');
-        if (usersResponse) {
-          setUsersStats(usersResponse);
-        }
-
-        // Fetch attendance statistics using v2 API
-        const attendanceResponse = await get<AttendanceStats>(
-          '/api/v2/attendance/stats/today'
-        );
-        if (attendanceResponse) {
-          setAttendanceStats(attendanceResponse);
+        // Fetch dashboard statistics using v2 API
+        const dashboardResponse = await get<DashboardStats>('/api/v2/reporting/dashboard/analytics/statistics');
+        if (dashboardResponse) {
+          setDashboardStats(dashboardResponse);
         }
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          // eslint-disable-next-line no-console
-          console.error('Error fetching stats:', error);
-        }
         setSnackbar({
           open: true,
           message: 'Failed to load dashboard data',
@@ -95,7 +74,7 @@ const Home: React.FC = () => {
 
   const handleCheckIn = async (): Promise<void> => {
     try {
-      setAttendanceLoading(true);
+      setLoading(true);
       await post('/api/v2/attendance/checkin');
 
       // If we get a response without error, consider it successful
@@ -115,13 +94,13 @@ const Home: React.FC = () => {
         severity: 'error',
       });
     } finally {
-      setAttendanceLoading(false);
+      setLoading(false);
     }
   };
 
   const handleCheckOut = async (): Promise<void> => {
     try {
-      setAttendanceLoading(true);
+      setLoading(true);
       await post('/api/v2/attendance/checkout');
 
       // If we get a response without error, consider it successful
@@ -141,7 +120,7 @@ const Home: React.FC = () => {
         severity: 'error',
       });
     } finally {
-      setAttendanceLoading(false);
+      setLoading(false);
     }
   };
 
@@ -153,39 +132,27 @@ const Home: React.FC = () => {
   const dashboardCards: DashboardCard[] = [
     {
       title: 'Total Users',
-      value: usersStats.total_users || 0,
+      value: dashboardStats.total_users || 0,
       color: theme.palette.primary.main,
       icon: <PeopleIcon fontSize='large' />,
     },
     {
       title: "Today's Check-Ins",
-      value: attendanceStats.checkin_count || 0,
+      value: dashboardStats.checkin_count || 0,
       color: theme.palette.success.main,
       icon: <CheckInIcon fontSize='large' />,
     },
     {
       title: "Today's Check-Outs",
-      value: attendanceStats.checkout_count || 0,
+      value: dashboardStats.checkout_count || 0,
       color: theme.palette.info.main,
       icon: <CheckOutIcon fontSize='large' />,
     },
     {
-      title: 'HR',
-      value: usersStats.hr || 0,
+      title: 'Pending Reimbursements Amount',
+      value: dashboardStats.pending_reimbursements || 0,
       color: theme.palette.warning.main,
-      icon: <HRIcon fontSize='large' />,
-    },
-    {
-      title: 'Leads',
-      value: usersStats.lead || 0,
-      color: theme.palette.secondary.main,
-      icon: <LeadIcon fontSize='large' />,
-    },
-    {
-      title: 'Users',
-      value: usersStats.user || 0,
-      color: theme.palette.grey[800],
-      icon: <UserIcon fontSize='large' />,
+      icon: <RupeeIcon fontSize='large' />, 
     },
   ];
 
@@ -219,9 +186,9 @@ const Home: React.FC = () => {
               size='large'
               startIcon={<CheckInIcon />}
               onClick={handleCheckIn}
-              disabled={attendanceLoading}
+              disabled={loading}
             >
-              {attendanceLoading ? 'Checking In...' : 'Check In'}
+              {loading ? 'Checking In...' : 'Check In'}
             </Button>
             <Button
               variant='contained'
@@ -229,9 +196,9 @@ const Home: React.FC = () => {
               size='large'
               startIcon={<CheckOutIcon />}
               onClick={handleCheckOut}
-              disabled={attendanceLoading}
+              disabled={loading}
             >
-              {attendanceLoading ? 'Checking Out...' : 'Check Out'}
+              {loading ? 'Checking Out...' : 'Check Out'}
             </Button>
           </Box>
         </Paper>

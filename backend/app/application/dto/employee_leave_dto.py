@@ -21,10 +21,16 @@ class LeaveStatus(str, Enum):
 class EmployeeLeaveCreateRequestDTO(BaseModel):
     """DTO for creating employee leave requests"""
     
-    leave_type: str = Field(..., description="Type of leave (e.g., 'CL', 'SL')")
+    leave_type: Optional[str] = Field(None, description="Type of leave (e.g., 'CL', 'SL')")
+    leave_name: Optional[str] = Field(None, description="Frontend field: Type of leave")
     start_date: str = Field(..., description="Leave start date in YYYY-MM-DD format")
     end_date: str = Field(..., description="Leave end date in YYYY-MM-DD format")
     reason: Optional[str] = Field(None, description="Reason for leave")
+    employee_id: Optional[str] = Field(None, description="Employee ID (auto-filled from auth)")
+    
+    def get_leave_type(self) -> str:
+        """Get leave type from either field"""
+        return self.leave_type or self.leave_name or ""
     
     @validator('start_date', 'end_date')
     def validate_date_format(cls, v):
@@ -49,7 +55,8 @@ class EmployeeLeaveCreateRequestDTO(BaseModel):
         """Validate the request data"""
         errors = []
         
-        if not self.leave_type or not self.leave_type.strip():
+        leave_type = self.get_leave_type()
+        if not leave_type or not leave_type.strip():
             errors.append("Leave type is required")
         
         if not self.start_date:
@@ -67,9 +74,15 @@ class EmployeeLeaveUpdateRequestDTO(BaseModel):
     """DTO for updating employee leave requests"""
     
     leave_type: Optional[str] = Field(None, description="Type of leave")
+    leave_name: Optional[str] = Field(None, description="Frontend field: Type of leave")
     start_date: Optional[str] = Field(None, description="Leave start date in YYYY-MM-DD format")
     end_date: Optional[str] = Field(None, description="Leave end date in YYYY-MM-DD format")
     reason: Optional[str] = Field(None, description="Reason for leave")
+    updated_by: Optional[str] = Field(None, description="User updating the leave")
+    
+    def get_leave_type(self) -> Optional[str]:
+        """Get leave type from either field"""
+        return self.leave_type or self.leave_name
     
     @validator('start_date', 'end_date')
     def validate_date_format(cls, v):
@@ -86,15 +99,27 @@ class EmployeeLeaveUpdateRequestDTO(BaseModel):
 class EmployeeLeaveApprovalRequestDTO(BaseModel):
     """DTO for approving/rejecting employee leave requests"""
     
-    status: LeaveStatus = Field(..., description="Approval status")
+    status: str = Field(..., description="Approval status (approved/rejected)")
     comments: Optional[str] = Field(None, description="Approval/rejection comments")
+    approved_by: Optional[str] = Field(None, description="User approving/rejecting the leave")
+    
+    def get_status(self) -> LeaveStatus:
+        """Convert string status to LeaveStatus enum"""
+        status_map = {
+            "approved": LeaveStatus.APPROVED,
+            "rejected": LeaveStatus.REJECTED,
+            "pending": LeaveStatus.PENDING,
+            "cancelled": LeaveStatus.CANCELLED
+        }
+        return status_map.get(self.status.lower(), LeaveStatus.PENDING)
     
     @validator('status')
     def validate_status(cls, v):
         """Validate status is either approved or rejected"""
-        if v not in [LeaveStatus.APPROVED, LeaveStatus.REJECTED]:
-            raise ValueError("Status must be either APPROVED or REJECTED")
-        return v
+        valid_statuses = ["approved", "rejected", "pending", "cancelled"]
+        if v.lower() not in valid_statuses:
+            raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
+        return v.lower()
 
 
 class EmployeeLeaveSearchFiltersDTO(BaseModel):
@@ -102,14 +127,29 @@ class EmployeeLeaveSearchFiltersDTO(BaseModel):
     
     employee_id: Optional[str] = Field(None, description="Filter by employee ID")
     manager_id: Optional[str] = Field(None, description="Filter by manager ID")
+    employee_name: Optional[str] = Field(None, description="Filter by employee name")
     leave_type: Optional[str] = Field(None, description="Filter by leave type")
-    status: Optional[LeaveStatus] = Field(None, description="Filter by status")
+    status: Optional[str] = Field(None, description="Filter by status")
     start_date: Optional[str] = Field(None, description="Filter from start date")
     end_date: Optional[str] = Field(None, description="Filter to end date")
     month: Optional[int] = Field(None, ge=1, le=12, description="Filter by month")
     year: Optional[int] = Field(None, ge=2000, le=3000, description="Filter by year")
     skip: int = Field(0, ge=0, description="Number of records to skip")
     limit: int = Field(100, ge=1, le=1000, description="Maximum number of records to return")
+    page: Optional[int] = Field(1, ge=1, description="Page number")
+    page_size: Optional[int] = Field(100, ge=1, le=1000, description="Page size")
+    
+    def get_status_enum(self) -> Optional[LeaveStatus]:
+        """Convert string status to LeaveStatus enum"""
+        if not self.status:
+            return None
+        status_map = {
+            "approved": LeaveStatus.APPROVED,
+            "rejected": LeaveStatus.REJECTED,
+            "pending": LeaveStatus.PENDING,
+            "cancelled": LeaveStatus.CANCELLED
+        }
+        return status_map.get(self.status.lower())
 
 
 class EmployeeLeaveResponseDTO(BaseModel):
@@ -161,11 +201,20 @@ class EmployeeLeaveBalanceDTO(BaseModel):
     """DTO for employee leave balance"""
     
     employee_id: str
-    leave_balances: Dict[str, int] = Field(default_factory=dict, description="Leave type to balance mapping")
+    balances: Dict[str, int] = Field(default_factory=dict, description="Leave type to balance mapping")
+    leave_balances: Dict[str, int] = Field(default_factory=dict, description="Backward compatibility field")
+    
+    def __init__(self, **data):
+        super().__init__(**data)
+        # Ensure both fields are populated for compatibility
+        if self.balances and not self.leave_balances:
+            self.leave_balances = self.balances
+        elif self.leave_balances and not self.balances:
+            self.balances = self.leave_balances
     
     def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary"""
-        return self.dict()
+        """Convert to dictionary - return just the balances for frontend"""
+        return self.balances or self.leave_balances or {}
 
 
 class EmployeeLeaveAnalyticsDTO(BaseModel):

@@ -70,17 +70,20 @@ class GetEmployeeLeavesUseCase:
             self._logger.error(f"Failed to retrieve employee leave {leave_id}: {str(e)}")
             raise Exception(f"Failed to retrieve employee leave: {str(e)}")
     
-    def get_employee_leaves_by_employee_id(
+    async def get_employee_leaves_by_employee_id(
         self, 
         employee_id: str,
+        organisation_id: str,
         status_filter: Optional[LeaveStatus] = None,
         limit: Optional[int] = None
+        
     ) -> List[EmployeeLeaveResponseDTO]:
         """
         Get employee leaves by employee ID.
         
         Args:
             employee_id: Employee identifier
+            organisation_id: Organisation identifier for multi-tenancy
             status_filter: Optional status filter
             limit: Optional limit on results
             
@@ -91,10 +94,18 @@ class GetEmployeeLeavesUseCase:
         try:
             self._logger.info(f"Retrieving leaves for employee: {employee_id}")
             
-            employee_id = EmployeeId(employee_id)
-            employee_leaves = self._query_repository.get_by_employee_id(
-                employee_id, status_filter, limit
+            # Get all leaves for the employee first
+            employee_leaves = await self._query_repository.get_by_employee_id(
+                employee_id, organisation_id
             )
+            
+            # Apply filters in memory (since repository doesn't support them)
+            if status_filter:
+                employee_leaves = [leave for leave in employee_leaves if leave.status == status_filter.value]
+            
+            # Apply limit
+            if limit:
+                employee_leaves = employee_leaves[:limit]
             
             return [
                 EmployeeLeaveResponseDTO.from_entity(leave)

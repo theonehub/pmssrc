@@ -14,6 +14,7 @@ from app.infrastructure.repositories.mongodb_company_leave_repository import Mon
 from app.infrastructure.repositories.mongodb_reimbursement_repository import MongoDBReimbursementRepository
 from app.infrastructure.repositories.project_attributes_repository_impl import ProjectAttributesRepositoryImpl
 from app.infrastructure.repositories.employee_leave_repository_impl import EmployeeLeaveRepositoryImpl
+from app.infrastructure.repositories.mongodb_reporting_repository import MongoDBReportingRepository
 
 # Service implementations
 from app.infrastructure.services.user_service_impl import UserServiceImpl
@@ -26,6 +27,7 @@ from app.infrastructure.services.project_attributes_service_impl import ProjectA
 from app.infrastructure.services.employee_leave_service_impl import EmployeeLeaveServiceImpl
 from app.infrastructure.services.payout_service_impl import PayoutServiceImpl
 from app.infrastructure.services.payslip_service_impl import PayslipServiceImpl
+from app.infrastructure.services.reporting_service_impl import ReportingServiceImpl
 
 # Infrastructure services
 from app.infrastructure.services.password_service import PasswordService
@@ -152,6 +154,7 @@ class DependencyContainer:
             reimbursement_repository = MongoDBReimbursementRepository(self._database_connector)
             project_attributes_repository = ProjectAttributesRepositoryImpl(self._database_connector)
             employee_leave_repository = EmployeeLeaveRepositoryImpl(self._database_connector)
+            reporting_repository = MongoDBReportingRepository(self._database_connector)
             
             # TODO: Add payout and payslip repositories when implemented
             # payout_repository = MongoDBPayoutRepository(self._database_connector)
@@ -167,6 +170,7 @@ class DependencyContainer:
                 reimbursement_repository,
                 project_attributes_repository,
                 employee_leave_repository,
+                reporting_repository,
             ]
             
             for repo in repositories:
@@ -185,6 +189,7 @@ class DependencyContainer:
             self._repositories['reimbursement'] = reimbursement_repository
             self._repositories['project_attributes'] = project_attributes_repository
             self._repositories['employee_leave'] = employee_leave_repository
+            self._repositories['reporting'] = reporting_repository
             
             # TODO: Store additional repositories when implemented
             # self._repositories['payout'] = payout_repository
@@ -202,6 +207,7 @@ class DependencyContainer:
             # User service
             self._services['user'] = UserServiceImpl(
                 user_repository=self._repositories['user'],
+                company_leave_repository=self._repositories['company_leave'],
                 password_service=self._password_service,
                 notification_service=self._notification_service,
                 file_upload_service=self._file_upload_service
@@ -252,6 +258,13 @@ class DependencyContainer:
             # Employee leave service
             self._services['employee_leave'] = EmployeeLeaveServiceImpl(
                 repository=self._repositories['employee_leave']
+            )
+            
+            # Reporting service
+            self._services['reporting'] = ReportingServiceImpl(
+                reporting_repository=self._repositories['reporting'],
+                user_repository=self._repositories['user'],
+                reimbursement_repository=self._repositories['reimbursement']
             )
             
             # TODO: Add services when repositories are implemented
@@ -380,6 +393,11 @@ class DependencyContainer:
         self.initialize()
         return self._repositories['employee_leave']
     
+    def get_reporting_repository(self) -> MongoDBReportingRepository:
+        """Get reporting repository instance."""
+        self.initialize()
+        return self._repositories['reporting']
+    
     # TODO: Add repository getters when implemented
     # def get_payout_repository(self) -> MongoDBPayoutRepository:
     #     """Get payout repository instance."""
@@ -432,6 +450,11 @@ class DependencyContainer:
         """Get employee leave service instance."""
         self.initialize()
         return self._services['employee_leave']
+    
+    def get_reporting_service(self) -> ReportingServiceImpl:
+        """Get reporting service instance."""
+        self.initialize()
+        return self._services['reporting']
     
     # TODO: Add service getters when implemented
     # def get_payout_service(self) -> PayoutServiceImpl:
@@ -676,6 +699,20 @@ class DependencyContainer:
             )
         
         return self._controllers['employee_leave']
+    
+    def get_reporting_controller(self):
+        """Get reporting controller instance."""
+        self.initialize()
+        
+        # Import here to avoid circular imports
+        from app.api.controllers.reporting_controller import ReportingController
+        
+        if 'reporting' not in self._controllers:
+            self._controllers['reporting'] = ReportingController(
+                reporting_service=self._services['reporting']
+            )
+        
+        return self._controllers['reporting']
     
     def get_payout_controller(self):
         """Get payout controller instance."""
@@ -963,4 +1000,22 @@ def get_database_config() -> dict:
 def get_attendance_repository():
     """FastAPI dependency for attendance repository."""
     container = get_dependency_container()
-    return container.get_attendance_repository() 
+    return container.get_attendance_repository()
+
+
+def get_reporting_controller():
+    """FastAPI dependency for reporting controller."""
+    container = get_dependency_container()
+    return container.get_reporting_controller()
+
+
+def get_reporting_service() -> ReportingServiceImpl:
+    """FastAPI dependency for reporting service."""
+    container = get_dependency_container()
+    return container.get_reporting_service()
+
+
+def get_reporting_repository() -> MongoDBReportingRepository:
+    """FastAPI dependency for reporting repository."""
+    container = get_dependency_container()
+    return container.get_reporting_repository() 

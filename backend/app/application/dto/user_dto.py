@@ -49,6 +49,14 @@ class CreateUserRequestDTO:
     pan_document_path: Optional[str] = None
     aadhar_document_path: Optional[str] = None
     
+    # Bank Details (optional)
+    bank_account_number: Optional[str] = None
+    bank_name: Optional[str] = None
+    ifsc_code: Optional[str] = None
+    account_holder_name: Optional[str] = None
+    branch_name: Optional[str] = None
+    account_type: Optional[str] = None
+    
     # Audit (optional)
     created_by: Optional[str] = None
     
@@ -118,6 +126,14 @@ class UpdateUserRequestDTO:
     location: Optional[str] = None
     manager_id: Optional[str] = None
     date_of_leaving: Optional[str] = None
+    
+    # Bank Details (optional)
+    bank_account_number: Optional[str] = None
+    bank_name: Optional[str] = None
+    ifsc_code: Optional[str] = None
+    account_holder_name: Optional[str] = None
+    branch_name: Optional[str] = None
+    account_type: Optional[str] = None
     
     # Audit
     updated_by: Optional[str] = None
@@ -387,6 +403,25 @@ class UserDocumentsResponseDTO:
 
 
 @dataclass
+class BankDetailsResponseDTO:
+    """DTO for bank details response"""
+    
+    account_number: Optional[str] = None
+    bank_name: Optional[str] = None
+    ifsc_code: Optional[str] = None
+    account_holder_name: Optional[str] = None
+    branch_name: Optional[str] = None
+    account_type: Optional[str] = None
+    
+    # Computed fields for security
+    masked_account_number: Optional[str] = None
+    formatted_account_number: Optional[str] = None
+    bank_code: Optional[str] = None
+    branch_code: Optional[str] = None
+    is_valid_for_payment: bool = False
+
+
+@dataclass
 class UserPermissionsResponseDTO:
     """DTO for user permissions response"""
     
@@ -430,6 +465,9 @@ class UserResponseDTO:
     
     # Documents
     documents: Optional[UserDocumentsResponseDTO] = None
+    
+    # Bank Details
+    bank_details: Optional[BankDetailsResponseDTO] = None
     
     # Leave Balance
     leave_balance: Optional[Dict[str, int]] = None
@@ -512,6 +550,24 @@ class UserResponseDTO:
             aadhar_document_path=safe_get_attr(user, 'aadhar_document_path')
         )
         
+        # Create bank details if available
+        bank_details = None
+        user_bank_details = safe_get_attr(user, 'bank_details')
+        if user_bank_details:
+            bank_details = BankDetailsResponseDTO(
+                account_number=safe_get_attr(user_bank_details, 'account_number'),
+                bank_name=safe_get_attr(user_bank_details, 'bank_name'),
+                ifsc_code=safe_get_attr(user_bank_details, 'ifsc_code'),
+                account_holder_name=safe_get_attr(user_bank_details, 'account_holder_name'),
+                branch_name=safe_get_attr(user_bank_details, 'branch_name'),
+                account_type=safe_get_attr(user_bank_details, 'account_type'),
+                masked_account_number=safe_get_attr(user_bank_details, 'get_masked_account_number') if callable(safe_get_attr(user_bank_details, 'get_masked_account_number')) else None,
+                formatted_account_number=safe_get_attr(user_bank_details, 'get_formatted_account_number') if callable(safe_get_attr(user_bank_details, 'get_formatted_account_number')) else None,
+                bank_code=safe_get_attr(user_bank_details, 'get_bank_code') if callable(safe_get_attr(user_bank_details, 'get_bank_code')) else None,
+                branch_code=safe_get_attr(user_bank_details, 'get_branch_code') if callable(safe_get_attr(user_bank_details, 'get_branch_code')) else None,
+                is_valid_for_payment=safe_get_attr(user_bank_details, 'is_valid_for_payment') if callable(safe_get_attr(user_bank_details, 'is_valid_for_payment')) else False
+            )
+        
         return cls(
             employee_id=str(safe_get_attr(user, 'employee_id', '')),
             name=safe_get_attr(user, 'name', ''),
@@ -526,6 +582,7 @@ class UserResponseDTO:
             date_of_leaving=format_datetime(safe_get_attr(user, 'date_of_leaving')),
             permissions=permissions,
             documents=documents,
+            bank_details=bank_details,
             leave_balance=safe_get_attr(user, 'leave_balance', {}),
             created_at=format_datetime(safe_get_attr(user, 'created_at')),
             updated_at=format_datetime(safe_get_attr(user, 'updated_at')),

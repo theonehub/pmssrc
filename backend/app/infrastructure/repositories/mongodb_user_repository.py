@@ -175,11 +175,11 @@ class MongoDBUserRepository(UserRepository):
             "designation": getattr(user, 'designation', None),
             "location": getattr(user, 'location', None),
             "manager_id": str(user.manager_id) if user.manager_id else None,
-            "salary": safe_get_attr(user, 'personal_details.salary'),
             "pan_number": safe_get_attr(user, 'personal_details.pan_number'),
             "aadhar_number": safe_get_attr(user, 'personal_details.aadhar_number'),
-            "bank_account_number": safe_get_attr(user, 'personal_details.bank_account_number'),
-            "ifsc_code": safe_get_attr(user, 'personal_details.ifsc_code'),
+            
+            # Bank details (new structure)
+            "bank_details": safe_get_attr(user, 'bank_details').to_dict() if safe_get_attr(user, 'bank_details') else None,
             "photo_path": safe_get_attr(user, 'documents.photo_path'),
             "pan_document_path": safe_get_attr(user, 'documents.pan_document_path'),
             "aadhar_document_path": safe_get_attr(user, 'documents.aadhar_document_path'),
@@ -231,11 +231,19 @@ class MongoDBUserRepository(UserRepository):
                     self.manager_id = EmployeeId(kwargs.get("manager_id")) if kwargs.get("manager_id") else None
                     
                     # Financial info
-                    self.salary = kwargs.get("salary")
                     self.pan_number = kwargs.get("pan_number")
                     self.aadhar_number = kwargs.get("aadhar_number")
-                    self.bank_account_number = kwargs.get("bank_account_number")
-                    self.ifsc_code = kwargs.get("ifsc_code")
+                    
+                    # Bank details (new structure)
+                    bank_details_data = kwargs.get("bank_details")
+                    if bank_details_data:
+                        from app.domain.value_objects.bank_details import BankDetails
+                        try:
+                            self.bank_details = BankDetails.from_dict(bank_details_data)
+                        except Exception:
+                            self.bank_details = None
+                    else:
+                        self.bank_details = None
                     
                     # Documents
                     self.photo_path = kwargs.get("photo_path")
@@ -305,11 +313,9 @@ class MongoDBUserRepository(UserRepository):
                 designation=document.get("designation"),
                 location=document.get("location"),
                 manager_id=document.get("manager_id"),
-                salary=document.get("salary"),
                 pan_number=document.get("pan_number"),
                 aadhar_number=document.get("aadhar_number"),
-                bank_account_number=document.get("bank_account_number"),
-                ifsc_code=document.get("ifsc_code"),
+                bank_details=document.get("bank_details"),
                 photo_path=document.get("photo_path"),
                 pan_document_path=document.get("pan_document_path"),
                 aadhar_document_path=document.get("aadhar_document_path"),

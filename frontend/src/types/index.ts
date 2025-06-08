@@ -54,6 +54,14 @@ export interface CreateUserRequest {
   uan_number?: string;
   esi_number?: string;
   location?: string;
+  
+  // Bank Details
+  bank_account_number?: string;
+  bank_name?: string;
+  ifsc_code?: string;
+  account_holder_name?: string;
+  branch_name?: string;
+  account_type?: string;
 }
 
 export interface UpdateUserRequest {
@@ -74,6 +82,14 @@ export interface UpdateUserRequest {
   uan_number?: string;
   esi_number?: string;
   location?: string;
+  
+  // Bank Details
+  bank_account_number?: string;
+  bank_name?: string;
+  ifsc_code?: string;
+  account_holder_name?: string;
+  branch_name?: string;
+  account_type?: string;
 }
 
 export interface UserSearchFilters {

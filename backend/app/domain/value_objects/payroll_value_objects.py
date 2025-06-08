@@ -9,6 +9,8 @@ from typing import Dict, Optional, List
 from decimal import Decimal
 from enum import Enum
 
+from app.domain.value_objects.bank_details import BankDetails
+
 
 class PaymentMethod(str, Enum):
     """Payment method enumeration"""
@@ -297,23 +299,7 @@ class TaxInfo:
         }
 
 
-@dataclass(frozen=True)
-class BankDetails:
-    """Value object for bank details"""
-    account_number: str
-    bank_name: str
-    ifsc_code: str
-    account_holder_name: str
-    
-    def __post_init__(self):
-        if not self.account_number or not self.account_number.strip():
-            raise ValueError("Account number is required")
-        if not self.bank_name or not self.bank_name.strip():
-            raise ValueError("Bank name is required")
-        if not self.ifsc_code or len(self.ifsc_code) != 11:
-            raise ValueError("IFSC code must be 11 characters")
-        if not self.account_holder_name or not self.account_holder_name.strip():
-            raise ValueError("Account holder name is required")
+# BankDetails is now imported from app.domain.value_objects.bank_details
 
 
 @dataclass(frozen=True)

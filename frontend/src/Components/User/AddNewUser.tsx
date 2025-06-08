@@ -28,7 +28,8 @@ import {
   LocationOn as LocationIcon,
   Numbers as NumbersIcon,
   Security as SecurityIcon,
-  ArrowBack as ArrowBackIcon
+  ArrowBack as ArrowBackIcon,
+  AccountBalance as AccountBalanceIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import dataService from '../../services/dataService';
@@ -53,6 +54,14 @@ interface UserFormData {
   designation: string;
   location: string;
   esi_number: string;
+  
+  // Bank Details
+  bank_account_number: string;
+  bank_name: string;
+  ifsc_code: string;
+  account_holder_name: string;
+  branch_name: string;
+  account_type: string;
 }
 
 interface FileState {
@@ -93,7 +102,15 @@ const EmptyUser: UserFormData = {
   department: '',
   designation: '',
   location: '',
-  esi_number: ''
+  esi_number: '',
+  
+  // Bank Details
+  bank_account_number: '',
+  bank_name: '',
+  ifsc_code: '',
+  account_holder_name: '',
+  branch_name: '',
+  account_type: ''
 };
 
 const FormSection: React.FC<FormSectionProps> = ({ title, children }) => (
@@ -226,6 +243,21 @@ const AddNewUser: React.FC = () => {
       case 'esi_number':
         if (value && !/^\d{10}$/.test(value.replace(/\D/g, ''))) {
           return 'ESI number must be 10 digits';
+        }
+        return '';
+      case 'bank_account_number':
+        if (value && (value.length < 9 || value.length > 18)) {
+          return 'Account number must be between 9 and 18 characters';
+        }
+        return '';
+      case 'ifsc_code':
+        if (value && !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(value.toUpperCase())) {
+          return 'Invalid IFSC code format (e.g., SBIN0001234)';
+        }
+        return '';
+      case 'account_holder_name':
+        if (value && !/^[A-Za-z\s\.\-]+$/.test(value)) {
+          return 'Account holder name can only contain letters, spaces, dots, and hyphens';
         }
         return '';
       default:
@@ -706,6 +738,111 @@ const AddNewUser: React.FC = () => {
                 ),
               }}
             />
+          </FormSection>
+
+          {/* Bank Details Section */}
+          <FormSection title="Bank Details (Optional)">
+            <TextField
+              fullWidth
+              label="Bank Account Number"
+              name="bank_account_number"
+              value={formData.bank_account_number}
+              onChange={handleChange}
+              error={!!errors.bank_account_number}
+              helperText={errors.bank_account_number}
+              placeholder="Enter account number"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <AccountBalanceIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+
+            <TextField
+              fullWidth
+              label="Bank Name"
+              name="bank_name"
+              value={formData.bank_name}
+              onChange={handleChange}
+              placeholder="e.g., State Bank of India"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <BusinessIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+
+            <TextField
+              fullWidth
+              label="IFSC Code"
+              name="ifsc_code"
+              value={formData.ifsc_code}
+              onChange={handleChange}
+              error={!!errors.ifsc_code}
+              helperText={errors.ifsc_code}
+              placeholder="SBIN0001234"
+              inputProps={{ style: { textTransform: 'uppercase' } }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <NumbersIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+
+            <TextField
+              fullWidth
+              label="Account Holder Name"
+              name="account_holder_name"
+              value={formData.account_holder_name}
+              onChange={handleChange}
+              error={!!errors.account_holder_name}
+              helperText={errors.account_holder_name}
+              placeholder="As per bank records"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PersonIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+
+            <TextField
+              fullWidth
+              label="Branch Name"
+              name="branch_name"
+              value={formData.branch_name}
+              onChange={handleChange}
+              placeholder="e.g., Main Branch"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LocationIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+
+            <FormControl fullWidth>
+              <InputLabel>Account Type</InputLabel>
+              <Select 
+                name="account_type" 
+                label="Account Type"
+                value={formData.account_type}
+                onChange={handleSelectChange}
+              >
+                <MenuItem value="">Select Account Type</MenuItem>
+                <MenuItem value="savings">Savings</MenuItem>
+                <MenuItem value="current">Current</MenuItem>
+                <MenuItem value="salary">Salary</MenuItem>
+              </Select>
+            </FormControl>
           </FormSection>
 
           {/* File Uploads Section */}

@@ -4,7 +4,7 @@ Handles the business logic for creating a new user
 """
 
 import logging
-from typing import List, Dict
+from typing import List, Dict, Optional
 from datetime import datetime
 
 from app.domain.entities.user import User
@@ -15,6 +15,7 @@ from app.domain.value_objects.user_credentials import (
 from app.domain.value_objects.user_permissions import UserPermissions
 from app.domain.value_objects.personal_details import PersonalDetails
 from app.domain.value_objects.user_documents import UserDocuments
+from app.domain.value_objects.bank_details import BankDetails
 from app.application.dto.user_dto import (
     CreateUserRequestDTO, UserResponseDTO,
     UserValidationError, UserConflictError,
@@ -102,6 +103,7 @@ class CreateUserUseCase:
         employee_id = EmployeeId(request.employee_id)
         personal_details = self._create_personal_details(request)
         documents = self._create_user_documents(request)
+        bank_details = self._create_bank_details(request)
         
         # Step 3.5: Calculate initial leave balance based on company policies
         initial_leave_balances = await self._calculate_initial_leave_balance(
@@ -121,6 +123,7 @@ class CreateUserUseCase:
             location=request.location,
             manager_id=EmployeeId(request.manager_id) if request.manager_id else None,
             date_of_joining=request.date_of_joining,
+            bank_details=bank_details,
             created_by=request.created_by
         )
         
@@ -128,7 +131,7 @@ class CreateUserUseCase:
         user.update_documents(documents, user.created_by or "system")
         # Set initial leave balances for each leave type
         for leave_name, balance in initial_leave_balances.items():
-            user.update_leave_balance(leave_name, int(balance))
+            user.update_leave_balance(leave_name, float(balance))
         
         # Step 5: Validate business rules
         await self._validate_business_rules(user)
@@ -199,6 +202,40 @@ class CreateUserUseCase:
             )
         except ValueError as e:
             raise UserValidationError(f"Invalid user documents: {e}")
+    
+    def _create_bank_details(self, request: CreateUserRequestDTO) -> Optional[BankDetails]:
+        """Create bank details value object if provided"""
+        # Check if any bank details are provided
+        if not any([
+            request.bank_account_number,
+            request.bank_name,
+            request.ifsc_code,
+            request.account_holder_name
+        ]):
+            return None
+        
+        # If some bank details are provided, validate that required fields are present
+        if not all([
+            request.bank_account_number,
+            request.bank_name,
+            request.ifsc_code,
+            request.account_holder_name
+        ]):
+            raise UserValidationError(
+                "If bank details are provided, account number, bank name, IFSC code, and account holder name are required"
+            )
+        
+        try:
+            return BankDetails(
+                account_number=request.bank_account_number,
+                bank_name=request.bank_name,
+                ifsc_code=request.ifsc_code,
+                account_holder_name=request.account_holder_name,
+                branch_name=request.branch_name,
+                account_type=request.account_type
+            )
+        except ValueError as e:
+            raise UserValidationError(f"Invalid bank details: {e}")
     
     async def _validate_business_rules(self, user: User) -> None:
         """Validate business rules"""
@@ -401,7 +438,7 @@ class MonthlyLeaveAllocationUseCase:
                         new_balance = current_balance + monthly_allocation
                         
                         # Update user's leave balance
-                        user.update_leave_balance(leave_name, int(new_balance))
+                        user.update_leave_balance(leave_name, float(new_balance))
                         user_updated = True
                         
                         logger.debug(f"Added monthly allocation for user {user.employee_id}, {leave_name}: "
@@ -466,7 +503,7 @@ class MonthlyLeaveAllocationUseCase:
                 new_balance = current_balance + monthly_allocation
                 
                 # Update user's leave balance
-                user.update_leave_balance(leave_name, int(new_balance))
+                user.update_leave_balance(leave_name, float(new_balance))
                 user_updated = True
                 
                 logger.info(f"Added monthly allocation for user {user_id}, {leave_name}: "

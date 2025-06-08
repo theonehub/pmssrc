@@ -37,7 +37,14 @@ const transformBackendToFrontend = (backendUser) => {
     profile_picture_url: backendUser.profile_picture_url || '',
     pan_document_path: backendUser.documents?.pan_document_path || backendUser.pan_document_path || '',
     aadhar_document_path: backendUser.documents?.aadhar_document_path || backendUser.aadhar_document_path || '',
-    photo_path: backendUser.documents?.photo_path || backendUser.photo_path || ''
+    photo_path: backendUser.documents?.photo_path || backendUser.photo_path || '',
+    // Bank Details
+    bank_account_number: backendUser.bank_details?.account_number || '',
+    bank_name: backendUser.bank_details?.bank_name || '',
+    ifsc_code: backendUser.bank_details?.ifsc_code || '',
+    account_holder_name: backendUser.bank_details?.account_holder_name || '',
+    branch_name: backendUser.bank_details?.branch_name || '',
+    account_type: backendUser.bank_details?.account_type || ''
   };
   
   return transformed;
@@ -65,6 +72,13 @@ const transformFrontendToBackend = (frontendUser) => {
     aadhar_number: frontendUser.aadhar_number,
     uan_number: frontendUser.uan_number,
     esi_number: frontendUser.esi_number,
+    // Bank Details
+    bank_account_number: frontendUser.bank_account_number,
+    bank_name: frontendUser.bank_name,
+    ifsc_code: frontendUser.ifsc_code,
+    account_holder_name: frontendUser.account_holder_name,
+    branch_name: frontendUser.branch_name,
+    account_type: frontendUser.account_type,
   };
 };
 

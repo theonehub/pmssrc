@@ -1291,11 +1291,12 @@ class UserServiceImpl(UserService):
             if request.email and not re.match(email_pattern, request.email):
                 errors.append("Invalid email format")
             
-            # Validate mobile format
+            # Validate mobile format (Indian mobile numbers)
             if request.mobile:
-                mobile_pattern = r'^\+?[1-9]\d{1,14}$'
+                # Allow Indian mobile formats: 10 digits, with optional +91 prefix or leading 0
+                mobile_pattern = r'^(\+91[6-9]\d{9}|[6-9]\d{9}|0[6-9]\d{9}|\d{10})$'
                 if not re.match(mobile_pattern, request.mobile):
-                    errors.append("Invalid mobile number format")
+                    errors.append("Invalid mobile number format (should be 10 digits)")
             
             # Validate PAN format
             if request.pan_number:
@@ -1343,12 +1344,13 @@ class UserServiceImpl(UserService):
                 if existing_user and str(getattr(existing_user, 'employee_id', getattr(existing_user, 'employee_id', ''))) != str(getattr(user, 'employee_id', getattr(user, 'employee_id', ''))):
                     errors.append("Email already in use by another user")
             
-            # Validate mobile format if provided
+            # Validate mobile format if provided (Indian mobile numbers)
             if request.mobile:
                 import re
-                mobile_pattern = r'^\+?[1-9]\d{1,14}$'
+                # Allow Indian mobile formats: 10 digits, with optional +91 prefix or leading 0
+                mobile_pattern = r'^(\+91[6-9]\d{9}|[6-9]\d{9}|0[6-9]\d{9}|\d{10})$'
                 if not re.match(mobile_pattern, request.mobile):
-                    errors.append("Invalid mobile number format")
+                    errors.append("Invalid mobile number format (should be 10 digits)")
                 
                 # Check mobile uniqueness
                 existing_user = await self.user_repository.get_by_mobile(request.mobile, current_user.hostname)

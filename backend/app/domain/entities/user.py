@@ -14,6 +14,7 @@ from app.domain.value_objects.user_credentials import (
 from app.domain.value_objects.user_permissions import UserPermissions
 from app.domain.value_objects.personal_details import PersonalDetails
 from app.domain.value_objects.user_documents import UserDocuments
+from app.domain.value_objects.bank_details import BankDetails
 from app.domain.events.user_events import (
     UserCreated, UserUpdated, UserStatusChanged, UserRoleChanged,
     UserPasswordChanged, UserLoggedIn, UserLoggedOut, 
@@ -68,6 +69,9 @@ class User:
     # Documents
     documents: UserDocuments = field(default_factory=lambda: UserDocuments())
     
+    # Bank Details (for payroll)
+    bank_details: Optional[BankDetails] = None
+    
     # Leave Balance (integration with leave system)
     leave_balance: Dict[str, int] = field(default_factory=dict)
     
@@ -119,6 +123,7 @@ class User:
         location: Optional[str] = None,
         manager_id: Optional[EmployeeId] = None,
         date_of_joining: Optional[str] = None,
+        bank_details: Optional[BankDetails] = None,
         created_by: Optional[str] = None
     ) -> 'User':
         """Factory method to create a new user"""
@@ -142,6 +147,7 @@ class User:
             location=location,
             manager_id=manager_id,
             date_of_joining=date_of_joining,
+            bank_details=bank_details,
             created_by=created_by
         )
         
@@ -526,13 +532,22 @@ class User:
         
         # Could publish a UserManagerAssigned event here
     
-    def update_leave_balance(self, leave_type: str, balance: int) -> None:
+    def update_leave_balance(self, leave_type: str, balance: float) -> None:
         """Update leave balance for specific leave type"""
         if balance < 0:
             raise ValueError("Leave balance cannot be negative")
         
         self.leave_balance[leave_type] = balance
         self.updated_at = datetime.utcnow()
+    
+    def update_bank_details(self, bank_details: BankDetails, updated_by: str) -> None:
+        """Update user bank details"""
+        if not isinstance(bank_details, BankDetails):
+            raise ValueError("Invalid bank details object")
+        
+        self.bank_details = bank_details
+        self.updated_at = datetime.utcnow()
+        self.updated_by = updated_by
     
     # ==================== DELETION ====================
     
@@ -607,7 +622,7 @@ class User:
     
     def get_profile_completion_percentage(self) -> float:
         """Get profile completion percentage"""
-        total_fields = 10
+        total_fields = 11  # Increased to include bank details
         completed_fields = 0
         
         # Required fields
@@ -618,6 +633,7 @@ class User:
         if self.designation: completed_fields += 1
         if self.location: completed_fields += 1
         if self.date_of_joining: completed_fields += 1
+        if self.bank_details: completed_fields += 1
         
         # Document fields
         completed_fields += (self.documents.get_document_completion_percentage() / 100) * 3

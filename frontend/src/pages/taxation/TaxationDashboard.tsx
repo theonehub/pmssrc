@@ -152,16 +152,16 @@ const TaxationDashboard: React.FC = () => {
   };
 
   const handleViewDetails = (empId: string): void => {
-    navigate(`/taxation/employee/${empId}`);
+    navigate(`/api/v2/taxation/employee/${empId}`);
   };
 
   const handleNewDeclaration = (): void => {
-    navigate('/taxation/declaration');
+    navigate('/api/v2/taxation/declaration');
   };
 
   const handleMyTaxDetail = (): void => {
     // Navigate to the current user's tax details
-    navigate(`/taxation/employee/${userId}`);
+    navigate(`/api/v2/taxation/employee/${userId}`);
   };
 
   // Get total value of perquisites
@@ -811,7 +811,7 @@ const TaxationDashboard: React.FC = () => {
               <Button 
                 variant="contained" 
                 color="primary" 
-                onClick={() => navigate('/taxation/employee-selection')} 
+                onClick={() => navigate('/api/v2/taxation/employee-selection')} 
                 sx={{ mr: 2 }}
               >
                 Manage Employee Declarations

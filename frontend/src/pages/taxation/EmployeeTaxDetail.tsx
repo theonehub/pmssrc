@@ -244,7 +244,7 @@ const EmployeeTaxDetail: React.FC = () => {
 
   // Handle navigating to edit page
   const handleEditDeclaration = (): void => {
-    navigate(`/taxation/declaration/${empId}`);
+    navigate(`/api/v2/taxation/declaration/${empId}`);
   };
 
   const handlePaymentAmountChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
@@ -271,7 +271,7 @@ const EmployeeTaxDetail: React.FC = () => {
         <Box sx={{ p: 3 }}>
           <Alert severity="error">{error}</Alert>
           <Box sx={{ mt: 2 }}>
-            <Button variant="outlined" onClick={() => navigate('/taxation')}>
+            <Button variant="outlined" onClick={() => navigate('/api/v2/taxation')}>
               Back to Dashboard
             </Button>
           </Box>
@@ -298,7 +298,7 @@ const EmployeeTaxDetail: React.FC = () => {
             <Button 
               variant="outlined" 
               color="primary" 
-              onClick={() => navigate('/taxation')}
+              onClick={() => navigate('/api/v2/taxation')}
               sx={{ mr: 1 }}
             >
               Back to Dashboard

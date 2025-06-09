@@ -42,7 +42,7 @@ const EmployeeSelection: React.FC = () => {
   // Redirect non-admin users to their own declaration page
   useEffect(() => {
     if (userRole !== 'admin' && userRole !== 'superadmin') {
-      navigate('/taxation/declaration');
+      navigate('/api/v2/taxation/declaration');
     }
   }, [userRole, navigate]);
 
@@ -86,11 +86,11 @@ const EmployeeSelection: React.FC = () => {
 
   // Handle view or edit actions
   const handleViewDeclaration = (empId: string): void => {
-    navigate(`/taxation/employee/${empId}`);
+    navigate(`/api/v2/taxation/employee/${empId}`);
   };
 
   const handleEditDeclaration = (empId: string): void => {
-    navigate(`/taxation/declaration/${empId}`);
+    navigate(`/api/v2/taxation/declaration/${empId}`);
   };
 
   // Format currency
@@ -139,7 +139,7 @@ const EmployeeSelection: React.FC = () => {
           <Button 
             variant="outlined" 
             color="primary" 
-            onClick={() => navigate('/taxation')}
+            onClick={() => navigate('/api/v2/taxation')}
           >
             Back to Dashboard
           </Button>
@@ -232,7 +232,7 @@ const EmployeeSelection: React.FC = () => {
           <Button 
             variant="contained" 
             color="primary" 
-            onClick={() => navigate('/taxation/declaration')}
+            onClick={() => navigate('/api/v2/taxation/declaration')}
           >
             Create New Declaration
           </Button>

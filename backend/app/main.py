@@ -17,7 +17,7 @@ from app.utils.logger import get_logger
 from app.api.routes.auth_routes_v2 import router as auth_routes_v2_router
 from app.api.routes.employee_salary_routes_v2 import router as employee_salary_routes_v2_router
 from app.api.routes.payslip_routes_v2 import router as payslip_routes_v2_router
-from app.api.routes.taxation_routes_v2_minimal import router as taxation_routes_v2_router
+from app.api.routes.taxation_routes_v2 import router as taxation_routes_v2_router
 from app.api.routes.payout_routes_v2_minimal import router as payout_routes_v2_router
 from app.api.routes.user_routes_v2 import router as user_routes_v2_router
 from app.api.routes.organisation_routes_v2 import organisation_v2_router

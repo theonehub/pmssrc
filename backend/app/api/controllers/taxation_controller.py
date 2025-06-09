@@ -6,6 +6,7 @@ Handles HTTP requests for taxation operations
 import logging
 from typing import Dict, Any, Optional, List
 from fastapi import HTTPException, status
+from datetime import datetime
 
 from app.application.dto.taxation_dto import (
     TaxationCreateRequestDTO,
@@ -629,4 +630,172 @@ class TaxationController:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to update filing status"
+            )
+    
+    async def get_all_taxation(
+        self,
+        tax_year: Optional[str] = None,
+        filing_status: Optional[str] = None,
+        hostname: str = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Get all taxation records with optional filters.
+        
+        Args:
+            tax_year: Optional tax year filter
+            filing_status: Optional filing status filter
+            hostname: Organisation hostname
+            
+        Returns:
+            List of taxation records
+        """
+        try:
+            logger.info(f"Getting all taxation records for organisation: {hostname}")
+            
+            # Create search filters
+            filters = TaxSearchFiltersDTO(
+                tax_year=tax_year,
+                filing_status=filing_status
+            )
+            
+            # Get records from repository
+            records = await self.query_repository.search_taxation_records(filters, hostname)
+            
+            # Convert to frontend-compatible format
+            return [
+                {
+                    "employee_id": record.employee_id,
+                    "employee_name": record.employee_name,
+                    "tax_year": record.tax_year,
+                    "filing_status": record.filing_status,
+                    "total_tax_liability": record.total_tax_liability,
+                    "salary_components": record.salary_components,
+                    "deductions": record.deductions,
+                    "regime": record.regime,
+                    "last_updated": record.updated_at.isoformat() if record.updated_at else None
+                }
+                for record in records
+            ]
+            
+        except Exception as e:
+            logger.error(f"Error getting all taxation records: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to retrieve taxation records"
+            )
+
+    async def get_my_taxation(
+        self,
+        current_user: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Get taxation data for the current user.
+        
+        Args:
+            current_user: Current authenticated user
+            
+        Returns:
+            Current user's taxation data
+        """
+        try:
+            employee_id = current_user.get("sub")
+            hostname = current_user.get("hostname")
+            
+            logger.info(f"Getting taxation data for current user {employee_id}")
+            
+            # Get current year taxation
+            taxation = await self.query_repository.get_current_taxation(
+                employee_id, hostname
+            )
+            
+            if not taxation:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="No taxation record found for current user"
+                )
+            
+            # Convert to frontend-compatible format
+            return {
+                "employee_id": taxation.employee_id,
+                "employee_name": taxation.employee_name,
+                "tax_year": taxation.tax_year,
+                "filing_status": taxation.filing_status,
+                "regime": taxation.regime,
+                "salary_components": taxation.salary_components,
+                "deductions": taxation.deductions,
+                "tax_calculation": {
+                    "total_tax_liability": taxation.total_tax_liability
+                },
+                "last_updated": taxation.updated_at.isoformat() if taxation.updated_at else None
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error getting my taxation data: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to retrieve taxation data"
+            )
+
+    async def save_taxation_data(
+        self,
+        taxation_data: Dict[str, Any],
+        current_user: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Save taxation data.
+        
+        Args:
+            taxation_data: Taxation data to save
+            current_user: Current authenticated user
+            
+        Returns:
+            Save operation result
+        """
+        try:
+            employee_id = taxation_data.get("employee_id")
+            hostname = current_user.get("hostname")
+            
+            logger.info(f"Saving taxation data for employee {employee_id}")
+            
+            # Convert to DTO
+            request = TaxationUpdateRequestDTO(
+                employee_id=employee_id,
+                tax_year=taxation_data.get("tax_year"),
+                regime=taxation_data.get("regime"),
+                salary_components=taxation_data.get("salary_components", {}),
+                deductions=taxation_data.get("deductions", {}),
+                updated_by=current_user.get("sub")
+            )
+            
+            # Save using repository
+            await self.command_repository.update_taxation(request, hostname)
+            
+            return {
+                "success": True,
+                "message": "Taxation data saved successfully",
+                "employee_id": employee_id,
+                "tax_year": taxation_data.get("tax_year"),
+                "updated_at": datetime.utcnow().isoformat(),
+                "updated_by": current_user.get("sub")
+            }
+            
+        except TaxationValidationError as e:
+            logger.warning(f"Validation error saving taxation data: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Validation error: {str(e)}"
+            )
+        except TaxationBusinessRuleError as e:
+            logger.warning(f"Business rule error saving taxation data: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Business rule violation: {str(e)}"
+            )
+        except Exception as e:
+            logger.error(f"Error saving taxation data: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to save taxation data"
             ) 

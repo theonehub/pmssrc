@@ -15,8 +15,6 @@ from app.application.dto.taxation_dto import (
     TaxationUpdateRequestDTO,
     TaxSearchFiltersDTO,
     TaxationResponseDTO,
-    TaxationSummaryDTO,
-    TaxationAnalyticsDTO,
     TaxationValidationError,
     TaxationBusinessRuleError,
     TaxationNotFoundError
@@ -69,7 +67,6 @@ async def calculate_taxation(
              description="Create a new taxation record for an employee")
 async def create_taxation(
     request: TaxationCreateRequestDTO = Body(..., description="Taxation creation details"),
-    hostname: str = Depends(get_hostname),
     current_user: str = Depends(get_current_user),
     controller: TaxationController = Depends()
 ) -> TaxationResponseDTO:
@@ -81,7 +78,7 @@ async def create_taxation(
     
     **Required permissions:** HR_ADMIN, PAYROLL_ADMIN
     """
-    return await controller.create_taxation(request, hostname, current_user)
+    return await controller.create_taxation(request, current_user.hostname, current_user)
 
 
 @router.post("/bulk",
@@ -91,7 +88,6 @@ async def create_taxation(
 async def bulk_create_taxation(
     employee_ids: List[str] = Body(..., description="List of employee IDs"),
     tax_year: str = Body(..., description="Tax year for records"),
-    hostname: str = Depends(get_hostname),
     current_user: str = Depends(get_current_user),
     controller: TaxationController = Depends()
 ) -> Dict[str, Any]:
@@ -104,7 +100,7 @@ async def bulk_create_taxation(
     **Required permissions:** HR_ADMIN, PAYROLL_ADMIN
     """
     return await controller.bulk_create_taxation(
-        employee_ids, tax_year, hostname, current_user
+        employee_ids, tax_year, current_user.hostname, current_user
     )
 
 
@@ -114,7 +110,6 @@ async def bulk_create_taxation(
              description="Calculate comprehensive tax with projections and adjustments")
 async def calculate_comprehensive_tax(
     employee_id: str = Path(..., description="Employee ID"),
-    hostname: str = Depends(get_hostname),
     current_user: str = Depends(get_current_user),
     controller: TaxationController = Depends()
 ) -> Dict[str, Any]:
@@ -130,7 +125,7 @@ async def calculate_comprehensive_tax(
     **Required permissions:** HR_ADMIN, PAYROLL_ADMIN, EMPLOYEE (own record)
     """
     return await controller.calculate_comprehensive_tax(
-        employee_id, hostname, current_user
+        employee_id, current_user.hostname, current_user
     )
 
 
@@ -141,7 +136,6 @@ async def calculate_comprehensive_tax(
 async def get_taxation_by_employee(
     employee_id: str = Path(..., description="Employee ID"),
     tax_year: str = Path(..., description="Tax year (YYYY-YYYY format)"),
-    hostname: str = Depends(get_hostname),
     current_user: str = Depends(get_current_user),
     controller: TaxationController = Depends()
 ) -> TaxationResponseDTO:
@@ -154,7 +148,7 @@ async def get_taxation_by_employee(
     **Required permissions:** HR_ADMIN, PAYROLL_ADMIN, EMPLOYEE (own record)
     """
     return await controller.get_taxation_by_employee(
-        employee_id, tax_year, hostname
+        employee_id, tax_year, current_user.hostname
     )
 
 
@@ -164,7 +158,6 @@ async def get_taxation_by_employee(
             description="Get current year taxation record for an employee")
 async def get_current_taxation(
     employee_id: str = Path(..., description="Employee ID"),
-    hostname: str = Depends(get_hostname),
     current_user: str = Depends(get_current_user),
     controller: TaxationController = Depends()
 ) -> TaxationResponseDTO:
@@ -176,7 +169,7 @@ async def get_current_taxation(
     
     **Required permissions:** HR_ADMIN, PAYROLL_ADMIN, EMPLOYEE (own record)
     """
-    return await controller.get_current_taxation(employee_id, hostname)
+    return await controller.get_current_taxation(employee_id, current_user.hostname)
 
 
 @router.get("/history/{employee_id}",
@@ -185,7 +178,6 @@ async def get_current_taxation(
             description="Get tax history for an employee across all years")
 async def get_employee_tax_history(
     employee_id: str = Path(..., description="Employee ID"),
-    hostname: str = Depends(get_hostname),
     current_user: str = Depends(get_current_user),
     controller: TaxationController = Depends()
 ) -> List[TaxationResponseDTO]:
@@ -197,7 +189,7 @@ async def get_employee_tax_history(
     
     **Required permissions:** HR_ADMIN, PAYROLL_ADMIN, EMPLOYEE (own record)
     """
-    return await controller.get_employee_tax_history(employee_id, hostname)
+    return await controller.get_employee_tax_history(employee_id, current_user.hostname)
 
 
 @router.post("/search",
@@ -206,7 +198,6 @@ async def get_employee_tax_history(
              description="Search taxation records with filters")
 async def search_taxation_records(
     filters: TaxSearchFiltersDTO = Body(..., description="Search filters"),
-    hostname: str = Depends(get_hostname),
     current_user: str = Depends(get_current_user),
     controller: TaxationController = Depends()
 ) -> List[TaxationResponseDTO]:
@@ -223,7 +214,7 @@ async def search_taxation_records(
     
     **Required permissions:** HR_ADMIN, PAYROLL_ADMIN
     """
-    return await controller.search_taxation_records(filters, hostname)
+    return await controller.search_taxation_records(filters, current_user.hostname)
 
 
 @router.put("/{employee_id}",
@@ -233,7 +224,6 @@ async def search_taxation_records(
 async def update_taxation(
     employee_id: str = Path(..., description="Employee ID"),
     request: TaxationUpdateRequestDTO = Body(..., description="Update details"),
-    hostname: str = Depends(get_hostname),
     current_user: str = Depends(get_current_user),
     controller: TaxationController = Depends()
 ) -> TaxationResponseDTO:
@@ -246,7 +236,7 @@ async def update_taxation(
     **Required permissions:** HR_ADMIN, PAYROLL_ADMIN
     """
     return await controller.update_taxation(
-        employee_id, request, hostname, current_user
+        employee_id, request, current_user.hostname, current_user
     )
 
 
@@ -257,7 +247,6 @@ async def update_taxation(
 async def delete_taxation(
     employee_id: str = Path(..., description="Employee ID"),
     tax_year: str = Path(..., description="Tax year"),
-    hostname: str = Depends(get_hostname),
     current_user: str = Depends(get_current_user),
     controller: TaxationController = Depends()
 ) -> Dict[str, Any]:
@@ -272,7 +261,7 @@ async def delete_taxation(
     **Required permissions:** HR_ADMIN, SYSTEM_ADMIN
     """
     return await controller.delete_taxation(
-        employee_id, tax_year, hostname, current_user
+        employee_id, tax_year, current_user.hostname, current_user
     )
 
 
@@ -488,4 +477,60 @@ async def get_deduction_limits(
         "standard_deduction": 50000
     }
     
-    return limits 
+    return limits
+
+# New endpoints
+@router.get("/all-taxation")
+async def get_all_taxation(
+    tax_year: Optional[str] = Query(None, description="Filter by tax year"),
+    filing_status: Optional[str] = Query(None, description="Filter by filing status"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: TaxationController = Depends(get_taxation_controller)
+) -> List[Dict[str, Any]]:
+    """
+    Get all taxation records with optional filters.
+    Frontend expects this endpoint for taxationService.getAllTaxation()
+    """
+    try:
+        logger.info(f"Getting all taxation records for organisation: {current_user.hostname}")
+        return await controller.get_all_taxation(
+            tax_year=tax_year,
+            filing_status=filing_status,
+            hostname=current_user.hostname
+        )
+    except Exception as e:
+        logger.error(f"Error getting all taxation records: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/my-taxation")
+async def get_my_taxation(
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: TaxationController = Depends(get_taxation_controller)
+) -> Dict[str, Any]:
+    """
+    Get taxation data for the current user.
+    Frontend expects this endpoint for taxationService.getMyTaxation()
+    """
+    try:
+        logger.info(f"Getting taxation data for current user in organisation: {current_user.hostname}")
+        return await controller.get_my_taxation(current_user)
+    except Exception as e:
+        logger.error(f"Error getting my taxation data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/save-taxation-data")
+async def save_taxation_data(
+    taxation_data: Dict[str, Any] = Body(..., description="Taxation data to save"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: TaxationController = Depends(get_taxation_controller)
+) -> Dict[str, Any]:
+    """
+    Save taxation data.
+    Frontend expects this endpoint for taxationService.saveTaxationData()
+    """
+    try:
+        logger.info(f"Saving taxation data in organisation: {current_user.hostname}")
+        return await controller.save_taxation_data(taxation_data, current_user)
+    except Exception as e:
+        logger.error(f"Error saving taxation data: {e}")
+        raise HTTPException(status_code=500, detail=str(e)) 

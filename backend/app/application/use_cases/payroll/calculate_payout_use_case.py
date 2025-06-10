@@ -25,10 +25,8 @@ from app.domain.value_objects.payroll_value_objects import (
     Money, SalaryComponents, DeductionComponents, 
     AttendanceInfo, TaxInfo, PayPeriod, PayoutSummary
 )
-from app.infrastructure.services.taxation_migration_service import TaxationMigrationService
-# Note: Legacy attendance service has been migrated to SOLID architecture
-# Using placeholder function until proper attendance repository is available
 from app.domain.entities.payout import PayoutCreate, PayoutStatus
+from app.infrastructure.services.employee_leave_legacy_service import get_employee_attendance
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +41,6 @@ class CalculatePayoutUseCase:
         self,
         payout_query_repo: PayoutQueryRepository,
         payout_command_repo: PayoutCommandRepository,
-        taxation_service: TaxationMigrationService
     ):
         """
         Initialize the use case with required dependencies
@@ -51,11 +48,9 @@ class CalculatePayoutUseCase:
         Args:
             payout_query_repo: Payout query repository
             payout_command_repo: Payout command repository
-            taxation_service: Taxation service for tax calculations
         """
         self.payout_query_repo = payout_query_repo
         self.payout_command_repo = payout_command_repo
-        self.taxation_service = taxation_service
     
     async def execute(
         self, 

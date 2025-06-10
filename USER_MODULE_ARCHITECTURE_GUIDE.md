@@ -1095,8 +1095,7 @@ async def delete_module(
     controller: ModuleController = Depends(get_module_controller)
 ):
     # Only users with module:delete permission can access
-    pass
-```
+    pass```
 
 ---
 

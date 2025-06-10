@@ -19,12 +19,6 @@ from app.domain.entities.salary_management import (
 #     TaxCalculationEngine, TaxCalculationContext, TaxCalculationResult
 # )
 from events.tax_events import TaxEventProcessor, EventFactory
-# MIGRATION: Replace legacy taxation_service imports with SOLID architecture
-from app.infrastructure.services.taxation_migration_service import (
-    TaxationMigrationService,
-    LegacyTaxationCalculationRepository
-)
-# PayoutService replaced by payroll migration service - using individual functions as needed
 
 logger = logging.getLogger(__name__)
 
@@ -105,13 +99,10 @@ class SalaryRevisionProfile:
 class EmployeeLifecycleService:
     """Service for handling employee lifecycle events"""
     
-    def __init__(self, taxation_service: TaxationMigrationService, 
+    def __init__(self,
                  hostname: str,  # Replace PayoutService with hostname for payroll functions
-                 tax_engine: TaxCalculationEngine,
                  event_processor: TaxEventProcessor):
-        self.taxation_service = taxation_service
         self.hostname = hostname
-        self.tax_engine = tax_engine
         self.event_processor = event_processor
         self.logger = logging.getLogger("EmployeeLifecycleService")
     

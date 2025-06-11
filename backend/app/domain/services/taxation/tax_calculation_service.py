@@ -1,0 +1,759 @@
+"""
+Tax Calculation Service
+Handles all tax calculations for Indian taxation
+"""
+
+from decimal import Decimal
+from typing import Dict, List, Any, Optional
+from dataclasses import dataclass
+
+from app.domain.value_objects.money import Money
+from app.domain.value_objects.taxation.tax_regime import TaxRegime, TaxRegimeType
+from app.domain.entities.taxation.taxation_record import TaxationRecord
+from app.domain.entities.taxation.salary_income import SalaryIncome
+from app.domain.entities.taxation.tax_deductions import TaxDeductions
+from app.domain.entities.taxation.perquisites import Perquisites
+from app.domain.entities.taxation.other_income import OtherIncome
+from app.domain.entities.taxation.house_property_income import HousePropertyIncome
+from app.domain.entities.taxation.capital_gains import CapitalGainsIncome
+from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
+
+
+@dataclass
+class TaxCalculationInput:
+    """Input for tax calculation."""
+    salary_income: SalaryIncome
+    perquisites: Perquisites
+    house_property_income: HousePropertyIncome
+    capital_gains_income: CapitalGainsIncome
+    retirement_benefits: RetirementBenefits
+    other_income: OtherIncome
+    tax_deductions: TaxDeductions
+    regime: TaxRegime
+    age: int
+    is_senior_citizen: bool
+    is_super_senior_citizen: bool
+    is_government_employee: bool
+
+
+@dataclass
+class TaxCalculationResult:
+    """Result of tax calculation."""
+    total_income: Money
+    total_exemptions: Money
+    total_deductions: Money
+    taxable_income: Money
+    tax_liability: Money
+    tax_breakdown: Dict[str, Any]
+    regime_comparison: Optional[Dict[str, Any]] = None
+
+
+class TaxCalculationService:
+    """Service for calculating taxes."""
+    
+    def calculate_tax(self, input_data: TaxCalculationInput) -> TaxCalculationResult:
+        """
+        Calculate tax based on input data.
+        
+        Args:
+            input_data: Tax calculation input data
+            
+        Returns:
+            TaxCalculationResult: Tax calculation result
+        """
+        # Calculate total income
+        total_income = self._calculate_total_income(input_data)
+        
+        # Calculate total exemptions
+        total_exemptions = self._calculate_total_exemptions(input_data)
+        
+        # Calculate total deductions
+        total_deductions = self._calculate_total_deductions(input_data)
+        
+        # Calculate taxable income
+        taxable_income = total_income - total_exemptions - total_deductions
+        
+        # Calculate tax liability
+        tax_liability = self._calculate_tax_liability(
+            taxable_income,
+            input_data.regime,
+            input_data.age,
+            input_data.is_senior_citizen,
+            input_data.is_super_senior_citizen
+        )
+        
+        # Get tax breakdown
+        tax_breakdown = self._get_tax_breakdown(
+            total_income,
+            total_exemptions,
+            total_deductions,
+            taxable_income,
+            tax_liability,
+            input_data
+        )
+        
+        # Get regime comparison if applicable
+        regime_comparison = None
+        if input_data.regime.regime_type == TaxRegimeType.OLD:
+            regime_comparison = self._get_regime_comparison(input_data)
+        
+        return TaxCalculationResult(
+            total_income=total_income,
+            total_exemptions=total_exemptions,
+            total_deductions=total_deductions,
+            taxable_income=taxable_income,
+            tax_liability=tax_liability,
+            tax_breakdown=tax_breakdown,
+            regime_comparison=regime_comparison
+        )
+    
+    def _calculate_total_income(self, input_data: TaxCalculationInput) -> Money:
+        """Calculate total income from all sources."""
+        # Salary income
+        salary_total = (
+            input_data.salary_income.basic_salary +
+            input_data.salary_income.dearness_allowance +
+            input_data.salary_income.house_rent_allowance +
+            input_data.salary_income.special_allowance +
+            input_data.salary_income.conveyance_allowance +
+            input_data.salary_income.medical_allowance +
+            input_data.salary_income.bonus +
+            input_data.salary_income.commission +
+            input_data.salary_income.overtime +
+            input_data.salary_income.arrears +
+            input_data.salary_income.gratuity +
+            input_data.salary_income.leave_encashment +
+            input_data.salary_income.other_allowances
+        )
+        
+        # Perquisites
+        perquisites_total = (
+            input_data.perquisites.rent_free_accommodation +
+            input_data.perquisites.concessional_accommodation +
+            input_data.perquisites.car_perquisite +
+            input_data.perquisites.driver_perquisite +
+            input_data.perquisites.fuel_perquisite +
+            input_data.perquisites.education_perquisite +
+            input_data.perquisites.domestic_servant_perquisite +
+            input_data.perquisites.utility_perquisite +
+            input_data.perquisites.loan_perquisite +
+            input_data.perquisites.esop_perquisite +
+            input_data.perquisites.club_membership_perquisite +
+            input_data.perquisites.other_perquisites
+        )
+        
+        # House property income
+        house_property_total = (
+            input_data.house_property_income.municipal_value +
+            input_data.house_property_income.fair_rental_value +
+            input_data.house_property_income.standard_rent +
+            input_data.house_property_income.actual_rent -
+            input_data.house_property_income.municipal_tax -
+            input_data.house_property_income.interest_on_loan -
+            input_data.house_property_income.pre_construction_interest -
+            input_data.house_property_income.other_deductions
+        )
+        
+        # Capital gains income
+        capital_gains_total = (
+            input_data.capital_gains_income.sale_price -
+            input_data.capital_gains_income.purchase_price -
+            input_data.capital_gains_income.transfer_expenses -
+            input_data.capital_gains_income.improvement_cost
+        )
+        
+        # Retirement benefits
+        retirement_total = (
+            input_data.retirement_benefits.gratuity_amount +
+            input_data.retirement_benefits.leave_encashment_amount +
+            input_data.retirement_benefits.pension_amount +
+            input_data.retirement_benefits.vrs_compensation +
+            input_data.retirement_benefits.other_retirement_benefits
+        )
+        
+        # Other income
+        other_income_total = (
+            input_data.other_income.bank_interest +
+            input_data.other_income.fixed_deposit_interest +
+            input_data.other_income.recurring_deposit_interest +
+            input_data.other_income.post_office_interest +
+            input_data.other_income.other_interest +
+            input_data.other_income.equity_dividend +
+            input_data.other_income.mutual_fund_dividend +
+            input_data.other_income.other_dividend +
+            input_data.other_income.house_property_rent +
+            input_data.other_income.commercial_property_rent +
+            input_data.other_income.other_rental +
+            input_data.other_income.business_income +
+            input_data.other_income.professional_income +
+            input_data.other_income.short_term_capital_gains +
+            input_data.other_income.long_term_capital_gains +
+            input_data.other_income.lottery_winnings +
+            input_data.other_income.horse_race_winnings +
+            input_data.other_income.crossword_puzzle_winnings +
+            input_data.other_income.card_game_winnings +
+            input_data.other_income.other_speculative_income +
+            input_data.other_income.agricultural_income +
+            input_data.other_income.share_of_profit_partnership +
+            input_data.other_income.interest_on_tax_free_bonds +
+            input_data.other_income.other_exempt_income
+        )
+        
+        return (
+            salary_total +
+            perquisites_total +
+            house_property_total +
+            capital_gains_total +
+            retirement_total +
+            other_income_total
+        )
+    
+    def _calculate_total_exemptions(self, input_data: TaxCalculationInput) -> Money:
+        """Calculate total exemptions."""
+        # HRA exemption
+        hra_exemption = self._calculate_hra_exemption(
+            input_data.salary_income.basic_salary,
+            input_data.salary_income.dearness_allowance,
+            input_data.salary_income.house_rent_allowance,
+            input_data.house_property_income.actual_rent
+        )
+        
+        # Gratuity exemption
+        gratuity_exemption = self._calculate_gratuity_exemption(
+            input_data.retirement_benefits.gratuity_amount,
+            input_data.retirement_benefits.years_of_service,
+            input_data.retirement_benefits.is_government_employee
+        )
+        
+        # Leave encashment exemption
+        leave_encashment_exemption = self._calculate_leave_encashment_exemption(
+            input_data.retirement_benefits.leave_encashment_amount,
+            input_data.retirement_benefits.leave_balance,
+            input_data.retirement_benefits.is_government_employee
+        )
+        
+        # Pension exemption
+        pension_exemption = self._calculate_pension_exemption(
+            input_data.retirement_benefits.pension_amount,
+            input_data.retirement_benefits.is_commuted_pension,
+            input_data.retirement_benefits.commutation_percentage,
+            input_data.retirement_benefits.is_government_employee
+        )
+        
+        # VRS compensation exemption
+        vrs_exemption = self._calculate_vrs_exemption(
+            input_data.retirement_benefits.vrs_compensation
+        )
+        
+        # Other exemptions
+        other_exemptions = (
+            input_data.other_income.interest_on_tax_free_bonds +
+            input_data.other_income.other_exempt_income
+        )
+        
+        return (
+            hra_exemption +
+            gratuity_exemption +
+            leave_encashment_exemption +
+            pension_exemption +
+            vrs_exemption +
+            other_exemptions
+        )
+    
+    def _calculate_total_deductions(self, input_data: TaxCalculationInput) -> Money:
+        """Calculate total deductions."""
+        if input_data.regime.regime_type == TaxRegimeType.NEW:
+            return Money(Decimal('0'))  # No deductions in new regime
+        
+        # Section 80C deductions
+        section_80c = (
+            input_data.tax_deductions.life_insurance_premium +
+            input_data.tax_deductions.elss_investments +
+            input_data.tax_deductions.public_provident_fund +
+            input_data.tax_deductions.employee_provident_fund +
+            input_data.tax_deductions.sukanya_samriddhi +
+            input_data.tax_deductions.national_savings_certificate +
+            input_data.tax_deductions.tax_saving_fixed_deposits +
+            input_data.tax_deductions.principal_repayment_home_loan +
+            input_data.tax_deductions.tuition_fees +
+            input_data.tax_deductions.other_80c_deductions
+        )
+        section_80c = min(section_80c, Money(Decimal('150000')))  # Max ₹1.5 lakh
+        
+        # Section 80D deductions
+        section_80d = (
+            input_data.tax_deductions.health_insurance_self +
+            input_data.tax_deductions.health_insurance_parents +
+            input_data.tax_deductions.preventive_health_checkup
+        )
+        section_80d = min(section_80d, Money(Decimal('25000')))  # Max ₹25,000
+        
+        # Section 80E deductions
+        section_80e = input_data.tax_deductions.education_loan_interest  # No limit
+        
+        # Section 80G deductions
+        section_80g = input_data.tax_deductions.donations_80g  # 50% or 100% of donation
+        
+        # Section 80TTA deductions
+        section_80tta = min(
+            input_data.tax_deductions.savings_account_interest,
+            Money(Decimal('10000'))
+        )  # Max ₹10,000
+        
+        # Section 80TTB deductions
+        section_80ttb = min(
+            input_data.tax_deductions.senior_citizen_interest,
+            Money(Decimal('50000'))
+        ) if input_data.is_senior_citizen else Money(Decimal('0'))  # Max ₹50,000
+        
+        # Section 80U deductions
+        section_80u = (
+            input_data.tax_deductions.disability_deduction +
+            input_data.tax_deductions.medical_treatment_deduction
+        )
+        
+        # Other deductions
+        other_deductions = (
+            input_data.tax_deductions.scientific_research_donation +
+            input_data.tax_deductions.political_donation +
+            input_data.tax_deductions.infrastructure_deduction +
+            input_data.tax_deductions.industrial_undertaking_deduction +
+            input_data.tax_deductions.special_category_state_deduction +
+            input_data.tax_deductions.hotel_deduction +
+            input_data.tax_deductions.north_eastern_state_deduction +
+            input_data.tax_deductions.employment_deduction +
+            input_data.tax_deductions.employment_generation_deduction +
+            input_data.tax_deductions.offshore_banking_deduction +
+            input_data.tax_deductions.co_operative_society_deduction +
+            input_data.tax_deductions.royalty_deduction +
+            input_data.tax_deductions.patent_deduction +
+            input_data.tax_deductions.interest_on_savings_deduction +
+            input_data.tax_deductions.disability_deduction_amount
+        )
+        
+        return (
+            section_80c +
+            section_80d +
+            section_80e +
+            section_80g +
+            section_80tta +
+            section_80ttb +
+            section_80u +
+            other_deductions
+        )
+    
+    def _calculate_tax_liability(self,
+                               taxable_income: Money,
+                               regime: TaxRegime,
+                               age: int,
+                               is_senior_citizen: bool,
+                               is_super_senior_citizen: bool) -> Money:
+        """Calculate tax liability based on tax slabs."""
+        # Get tax slabs
+        if regime.regime_type == TaxRegimeType.OLD:
+            slabs = self._get_old_regime_slabs(age, is_senior_citizen, is_super_senior_citizen)
+        else:
+            slabs = self._get_new_regime_slabs()
+        
+        # Calculate tax for each slab
+        tax_amount = Money(Decimal('0'))
+        remaining_income = taxable_income
+        
+        for slab in slabs:
+            if remaining_income <= Money(Decimal('0')):
+                break
+            
+            slab_min = Money(slab["min"])
+            slab_max = Money(slab["max"]) if slab["max"] is not None else remaining_income
+            slab_rate = Decimal(str(slab["rate"])) / Decimal('100')
+            
+            if remaining_income > slab_min:
+                taxable_in_slab = min(remaining_income - slab_min, slab_max - slab_min)
+                tax_amount += taxable_in_slab * slab_rate
+                remaining_income -= taxable_in_slab
+        
+        # Add surcharge if applicable
+        if taxable_income > Money(Decimal('5000000')):  # Above ₹50 lakh
+            surcharge_rate = Decimal('0.10')  # 10% surcharge
+            if taxable_income > Money(Decimal('10000000')):  # Above ₹1 crore
+                surcharge_rate = Decimal('0.15')  # 15% surcharge
+            if taxable_income > Money(Decimal('20000000')):  # Above ₹2 crore
+                surcharge_rate = Decimal('0.25')  # 25% surcharge
+            if taxable_income > Money(Decimal('50000000')):  # Above ₹5 crore
+                surcharge_rate = Decimal('0.37')  # 37% surcharge
+            
+            surcharge = tax_amount * surcharge_rate
+            tax_amount += surcharge
+        
+        # Add health and education cess
+        cess_rate = Decimal('0.04')  # 4% cess
+        cess = tax_amount * cess_rate
+        tax_amount += cess
+        
+        return tax_amount
+    
+    def _get_tax_breakdown(self,
+                          total_income: Money,
+                          total_exemptions: Money,
+                          total_deductions: Money,
+                          taxable_income: Money,
+                          tax_liability: Money,
+                          input_data: TaxCalculationInput) -> Dict[str, Any]:
+        """Get detailed tax calculation breakdown."""
+        return {
+            "income_breakdown": {
+                "salary_income": {
+                    "basic_salary": input_data.salary_income.basic_salary.to_float(),
+                    "dearness_allowance": input_data.salary_income.dearness_allowance.to_float(),
+                    "house_rent_allowance": input_data.salary_income.house_rent_allowance.to_float(),
+                    "special_allowance": input_data.salary_income.special_allowance.to_float(),
+                    "conveyance_allowance": input_data.salary_income.conveyance_allowance.to_float(),
+                    "medical_allowance": input_data.salary_income.medical_allowance.to_float(),
+                    "bonus": input_data.salary_income.bonus.to_float(),
+                    "commission": input_data.salary_income.commission.to_float(),
+                    "overtime": input_data.salary_income.overtime.to_float(),
+                    "arrears": input_data.salary_income.arrears.to_float(),
+                    "gratuity": input_data.salary_income.gratuity.to_float(),
+                    "leave_encashment": input_data.salary_income.leave_encashment.to_float(),
+                    "other_allowances": input_data.salary_income.other_allowances.to_float()
+                },
+                "perquisites": {
+                    "rent_free_accommodation": input_data.perquisites.rent_free_accommodation.to_float(),
+                    "concessional_accommodation": input_data.perquisites.concessional_accommodation.to_float(),
+                    "car_perquisite": input_data.perquisites.car_perquisite.to_float(),
+                    "driver_perquisite": input_data.perquisites.driver_perquisite.to_float(),
+                    "fuel_perquisite": input_data.perquisites.fuel_perquisite.to_float(),
+                    "education_perquisite": input_data.perquisites.education_perquisite.to_float(),
+                    "domestic_servant_perquisite": input_data.perquisites.domestic_servant_perquisite.to_float(),
+                    "utility_perquisite": input_data.perquisites.utility_perquisite.to_float(),
+                    "loan_perquisite": input_data.perquisites.loan_perquisite.to_float(),
+                    "esop_perquisite": input_data.perquisites.esop_perquisite.to_float(),
+                    "club_membership_perquisite": input_data.perquisites.club_membership_perquisite.to_float(),
+                    "other_perquisites": input_data.perquisites.other_perquisites.to_float()
+                },
+                "house_property_income": {
+                    "property_type": input_data.house_property_income.property_type,
+                    "municipal_value": input_data.house_property_income.municipal_value.to_float(),
+                    "fair_rental_value": input_data.house_property_income.fair_rental_value.to_float(),
+                    "standard_rent": input_data.house_property_income.standard_rent.to_float(),
+                    "actual_rent": input_data.house_property_income.actual_rent.to_float(),
+                    "municipal_tax": input_data.house_property_income.municipal_tax.to_float(),
+                    "interest_on_loan": input_data.house_property_income.interest_on_loan.to_float(),
+                    "pre_construction_interest": input_data.house_property_income.pre_construction_interest.to_float(),
+                    "other_deductions": input_data.house_property_income.other_deductions.to_float()
+                },
+                "capital_gains_income": {
+                    "asset_type": input_data.capital_gains_income.asset_type,
+                    "purchase_date": input_data.capital_gains_income.purchase_date.isoformat(),
+                    "sale_date": input_data.capital_gains_income.sale_date.isoformat(),
+                    "purchase_price": input_data.capital_gains_income.purchase_price.to_float(),
+                    "sale_price": input_data.capital_gains_income.sale_price.to_float(),
+                    "transfer_expenses": input_data.capital_gains_income.transfer_expenses.to_float(),
+                    "improvement_cost": input_data.capital_gains_income.improvement_cost.to_float()
+                },
+                "retirement_benefits": {
+                    "gratuity_amount": input_data.retirement_benefits.gratuity_amount.to_float(),
+                    "years_of_service": input_data.retirement_benefits.years_of_service,
+                    "is_government_employee": input_data.retirement_benefits.is_government_employee,
+                    "leave_encashment_amount": input_data.retirement_benefits.leave_encashment_amount.to_float(),
+                    "leave_balance": input_data.retirement_benefits.leave_balance,
+                    "pension_amount": input_data.retirement_benefits.pension_amount.to_float(),
+                    "is_commuted_pension": input_data.retirement_benefits.is_commuted_pension,
+                    "commutation_percentage": float(input_data.retirement_benefits.commutation_percentage),
+                    "vrs_compensation": input_data.retirement_benefits.vrs_compensation.to_float(),
+                    "other_retirement_benefits": input_data.retirement_benefits.other_retirement_benefits.to_float()
+                },
+                "other_income": {
+                    "bank_interest": input_data.other_income.bank_interest.to_float(),
+                    "fixed_deposit_interest": input_data.other_income.fixed_deposit_interest.to_float(),
+                    "recurring_deposit_interest": input_data.other_income.recurring_deposit_interest.to_float(),
+                    "post_office_interest": input_data.other_income.post_office_interest.to_float(),
+                    "other_interest": input_data.other_income.other_interest.to_float(),
+                    "equity_dividend": input_data.other_income.equity_dividend.to_float(),
+                    "mutual_fund_dividend": input_data.other_income.mutual_fund_dividend.to_float(),
+                    "other_dividend": input_data.other_income.other_dividend.to_float(),
+                    "house_property_rent": input_data.other_income.house_property_rent.to_float(),
+                    "commercial_property_rent": input_data.other_income.commercial_property_rent.to_float(),
+                    "other_rental": input_data.other_income.other_rental.to_float(),
+                    "business_income": input_data.other_income.business_income.to_float(),
+                    "professional_income": input_data.other_income.professional_income.to_float(),
+                    "short_term_capital_gains": input_data.other_income.short_term_capital_gains.to_float(),
+                    "long_term_capital_gains": input_data.other_income.long_term_capital_gains.to_float(),
+                    "lottery_winnings": input_data.other_income.lottery_winnings.to_float(),
+                    "horse_race_winnings": input_data.other_income.horse_race_winnings.to_float(),
+                    "crossword_puzzle_winnings": input_data.other_income.crossword_puzzle_winnings.to_float(),
+                    "card_game_winnings": input_data.other_income.card_game_winnings.to_float(),
+                    "other_speculative_income": input_data.other_income.other_speculative_income.to_float(),
+                    "agricultural_income": input_data.other_income.agricultural_income.to_float(),
+                    "share_of_profit_partnership": input_data.other_income.share_of_profit_partnership.to_float(),
+                    "interest_on_tax_free_bonds": input_data.other_income.interest_on_tax_free_bonds.to_float(),
+                    "other_exempt_income": input_data.other_income.other_exempt_income.to_float()
+                }
+            },
+            "exemptions_breakdown": {
+                "hra_exemption": self._calculate_hra_exemption(
+                    input_data.salary_income.basic_salary,
+                    input_data.salary_income.dearness_allowance,
+                    input_data.salary_income.house_rent_allowance,
+                    input_data.house_property_income.actual_rent
+                ).to_float(),
+                "gratuity_exemption": self._calculate_gratuity_exemption(
+                    input_data.retirement_benefits.gratuity_amount,
+                    input_data.retirement_benefits.years_of_service,
+                    input_data.retirement_benefits.is_government_employee
+                ).to_float(),
+                "leave_encashment_exemption": self._calculate_leave_encashment_exemption(
+                    input_data.retirement_benefits.leave_encashment_amount,
+                    input_data.retirement_benefits.leave_balance,
+                    input_data.retirement_benefits.is_government_employee
+                ).to_float(),
+                "pension_exemption": self._calculate_pension_exemption(
+                    input_data.retirement_benefits.pension_amount,
+                    input_data.retirement_benefits.is_commuted_pension,
+                    input_data.retirement_benefits.commutation_percentage,
+                    input_data.retirement_benefits.is_government_employee
+                ).to_float(),
+                "vrs_exemption": self._calculate_vrs_exemption(
+                    input_data.retirement_benefits.vrs_compensation
+                ).to_float(),
+                "other_exemptions": (
+                    input_data.other_income.interest_on_tax_free_bonds +
+                    input_data.other_income.other_exempt_income
+                ).to_float()
+            },
+            "deductions_breakdown": {
+                "section_80c": min(
+                    (
+                        input_data.tax_deductions.life_insurance_premium +
+                        input_data.tax_deductions.elss_investments +
+                        input_data.tax_deductions.public_provident_fund +
+                        input_data.tax_deductions.employee_provident_fund +
+                        input_data.tax_deductions.sukanya_samriddhi +
+                        input_data.tax_deductions.national_savings_certificate +
+                        input_data.tax_deductions.tax_saving_fixed_deposits +
+                        input_data.tax_deductions.principal_repayment_home_loan +
+                        input_data.tax_deductions.tuition_fees +
+                        input_data.tax_deductions.other_80c_deductions
+                    ).to_float(),
+                    150000.0  # Max ₹1.5 lakh
+                ),
+                "section_80d": min(
+                    (
+                        input_data.tax_deductions.health_insurance_self +
+                        input_data.tax_deductions.health_insurance_parents +
+                        input_data.tax_deductions.preventive_health_checkup
+                    ).to_float(),
+                    25000.0  # Max ₹25,000
+                ),
+                "section_80e": input_data.tax_deductions.education_loan_interest.to_float(),
+                "section_80g": input_data.tax_deductions.donations_80g.to_float(),
+                "section_80tta": min(
+                    input_data.tax_deductions.savings_account_interest.to_float(),
+                    10000.0  # Max ₹10,000
+                ),
+                "section_80ttb": min(
+                    input_data.tax_deductions.senior_citizen_interest.to_float(),
+                    50000.0  # Max ₹50,000
+                ) if input_data.is_senior_citizen else 0.0,
+                "section_80u": (
+                    input_data.tax_deductions.disability_deduction +
+                    input_data.tax_deductions.medical_treatment_deduction
+                ).to_float(),
+                "other_deductions": (
+                    input_data.tax_deductions.scientific_research_donation +
+                    input_data.tax_deductions.political_donation +
+                    input_data.tax_deductions.infrastructure_deduction +
+                    input_data.tax_deductions.industrial_undertaking_deduction +
+                    input_data.tax_deductions.special_category_state_deduction +
+                    input_data.tax_deductions.hotel_deduction +
+                    input_data.tax_deductions.north_eastern_state_deduction +
+                    input_data.tax_deductions.employment_deduction +
+                    input_data.tax_deductions.employment_generation_deduction +
+                    input_data.tax_deductions.offshore_banking_deduction +
+                    input_data.tax_deductions.co_operative_society_deduction +
+                    input_data.tax_deductions.royalty_deduction +
+                    input_data.tax_deductions.patent_deduction +
+                    input_data.tax_deductions.interest_on_savings_deduction +
+                    input_data.tax_deductions.disability_deduction_amount
+                ).to_float()
+            },
+            "tax_summary": {
+                "total_income": total_income.to_float(),
+                "total_exemptions": total_exemptions.to_float(),
+                "total_deductions": total_deductions.to_float(),
+                "taxable_income": taxable_income.to_float(),
+                "tax_liability": tax_liability.to_float(),
+                "regime": input_data.regime.regime_type.value
+            }
+        }
+    
+    def _get_regime_comparison(self, input_data: TaxCalculationInput) -> Dict[str, Any]:
+        """Compare tax liability under old and new regimes."""
+        # Calculate tax under old regime
+        old_regime_result = self.calculate_tax(input_data)
+        
+        # Calculate tax under new regime
+        new_regime_input = TaxCalculationInput(
+            salary_income=input_data.salary_income,
+            perquisites=input_data.perquisites,
+            house_property_income=input_data.house_property_income,
+            capital_gains_income=input_data.capital_gains_income,
+            retirement_benefits=input_data.retirement_benefits,
+            other_income=input_data.other_income,
+            tax_deductions=input_data.tax_deductions,
+            regime=TaxRegime(TaxRegimeType.NEW),
+            age=input_data.age,
+            is_senior_citizen=input_data.is_senior_citizen,
+            is_super_senior_citizen=input_data.is_super_senior_citizen,
+            is_government_employee=input_data.is_government_employee
+        )
+        new_regime_result = self.calculate_tax(new_regime_input)
+        
+        return {
+            "old_regime": {
+                "taxable_income": old_regime_result.taxable_income.to_float(),
+                "tax_liability": old_regime_result.tax_liability.to_float(),
+                "total_deductions": old_regime_result.total_deductions.to_float()
+            },
+            "new_regime": {
+                "taxable_income": new_regime_result.taxable_income.to_float(),
+                "tax_liability": new_regime_result.tax_liability.to_float(),
+                "total_deductions": new_regime_result.total_deductions.to_float()
+            },
+            "difference": {
+                "tax_liability": (
+                    new_regime_result.tax_liability - old_regime_result.tax_liability
+                ).to_float(),
+                "percentage": float(
+                    (new_regime_result.tax_liability - old_regime_result.tax_liability) /
+                    old_regime_result.tax_liability * Decimal('100')
+                ) if old_regime_result.tax_liability > Money(Decimal('0')) else 0.0
+            },
+            "recommended_regime": (
+                "new" if new_regime_result.tax_liability < old_regime_result.tax_liability
+                else "old"
+            )
+        }
+    
+    def _calculate_hra_exemption(self,
+                               basic_salary: Money,
+                               dearness_allowance: Money,
+                               hra: Money,
+                               rent_paid: Money) -> Money:
+        """Calculate HRA exemption."""
+        # HRA exemption is least of:
+        # 1. Actual HRA received
+        # 2. Rent paid - 10% of (Basic + DA)
+        # 3. 50% of (Basic + DA) for metro cities, 40% for others
+        basic_plus_da = basic_salary + dearness_allowance
+        rent_minus_10_percent = rent_paid - (basic_plus_da * Decimal('0.10'))
+        hra_percentage = Decimal('0.50')  # Assuming metro city
+        
+        return min(
+            hra,
+            rent_minus_10_percent,
+            basic_plus_da * hra_percentage
+        )
+    
+    def _calculate_gratuity_exemption(self,
+                                    gratuity_amount: Money,
+                                    years_of_service: int,
+                                    is_government_employee: bool) -> Money:
+        """Calculate gratuity exemption."""
+        if is_government_employee:
+            return gratuity_amount  # Fully exempt for government employees
+        
+        # For private employees, exemption is least of:
+        # 1. Actual gratuity received
+        # 2. ₹20 lakh
+        # 3. 15 days' salary × years of service
+        return min(
+            gratuity_amount,
+            Money(Decimal('2000000')),  # ₹20 lakh
+            Money(Decimal(str(years_of_service * 15)))  # 15 days' salary × years
+        )
+    
+    def _calculate_leave_encashment_exemption(self,
+                                            leave_encashment: Money,
+                                            leave_balance: int,
+                                            is_government_employee: bool) -> Money:
+        """Calculate leave encashment exemption."""
+        if is_government_employee:
+            return leave_encashment  # Fully exempt for government employees
+        
+        # For private employees, exemption is least of:
+        # 1. Actual leave encashment
+        # 2. ₹3 lakh
+        # 3. 10 months' average salary
+        return min(
+            leave_encashment,
+            Money(Decimal('300000')),  # ₹3 lakh
+            Money(Decimal(str(leave_balance * 10)))  # 10 months' salary
+        )
+    
+    def _calculate_pension_exemption(self,
+                                   pension_amount: Money,
+                                   is_commuted_pension: bool,
+                                   commutation_percentage: Decimal,
+                                   is_government_employee: bool) -> Money:
+        """Calculate pension exemption."""
+        if not is_commuted_pension:
+            return Money(Decimal('0'))  # No exemption for uncommuted pension
+        
+        if is_government_employee:
+            return pension_amount  # Fully exempt for government employees
+        
+        # For private employees, exemption is:
+        # 1/3 of commuted pension if gratuity is received
+        # 1/2 of commuted pension if gratuity is not received
+        if commutation_percentage > Decimal('0'):
+            exemption_percentage = Decimal('0.33')  # Assuming gratuity is received
+            return pension_amount * exemption_percentage
+        
+        return Money(Decimal('0'))
+    
+    def _calculate_vrs_exemption(self, vrs_compensation: Money) -> Money:
+        """Calculate VRS compensation exemption."""
+        # VRS compensation is exempt up to ₹5 lakh
+        return min(vrs_compensation, Money(Decimal('500000')))
+    
+    def _get_old_regime_slabs(self,
+                             age: int,
+                             is_senior_citizen: bool,
+                             is_super_senior_citizen: bool) -> List[Dict[str, Any]]:
+        """Get tax slabs for old regime."""
+        if is_super_senior_citizen:
+            # Super Senior Citizen (above 80 years)
+            return [
+                {"min": Decimal('0'), "max": Decimal('500000'), "rate": Decimal('0')},
+                {"min": Decimal('500000'), "max": Decimal('1000000'), "rate": Decimal('20')},
+                {"min": Decimal('1000000'), "max": None, "rate": Decimal('30')}
+            ]
+        elif is_senior_citizen:
+            # Senior Citizen (60-80 years)
+            return [
+                {"min": Decimal('0'), "max": Decimal('300000'), "rate": Decimal('0')},
+                {"min": Decimal('300000'), "max": Decimal('500000'), "rate": Decimal('5')},
+                {"min": Decimal('500000'), "max": Decimal('1000000'), "rate": Decimal('20')},
+                {"min": Decimal('1000000'), "max": None, "rate": Decimal('30')}
+            ]
+        else:
+            # Individual (below 60 years)
+            return [
+                {"min": Decimal('0'), "max": Decimal('250000'), "rate": Decimal('0')},
+                {"min": Decimal('250000'), "max": Decimal('500000'), "rate": Decimal('5')},
+                {"min": Decimal('500000'), "max": Decimal('1000000'), "rate": Decimal('20')},
+                {"min": Decimal('1000000'), "max": None, "rate": Decimal('30')}
+            ]
+    
+    def _get_new_regime_slabs(self) -> List[Dict[str, Any]]:
+        """Get tax slabs for new regime."""
+        # New regime slabs are same for all age groups
+        return [
+            {"min": Decimal('0'), "max": Decimal('300000'), "rate": Decimal('0')},
+            {"min": Decimal('300000'), "max": Decimal('600000'), "rate": Decimal('5')},
+            {"min": Decimal('600000'), "max": Decimal('900000'), "rate": Decimal('10')},
+            {"min": Decimal('900000'), "max": Decimal('1200000'), "rate": Decimal('15')},
+            {"min": Decimal('1200000'), "max": Decimal('1500000'), "rate": Decimal('20')},
+            {"min": Decimal('1500000'), "max": None, "rate": Decimal('30')}
+        ] 

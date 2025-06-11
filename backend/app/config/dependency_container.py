@@ -10,7 +10,7 @@ from app.infrastructure.repositories.mongodb_user_repository import MongoDBUserR
 from app.infrastructure.repositories.mongodb_organisation_repository import MongoDBOrganisationRepository
 from app.infrastructure.repositories.mongodb_public_holiday_repository import MongoDBPublicHolidayRepository
 from app.infrastructure.repositories.mongodb_company_leave_repository import MongoDBCompanyLeaveRepository
-# from app.infrastructure.repositories.mongodb_attendance_repository import MongoDBAttendanceRepository
+from app.infrastructure.repositories.taxation.mongodb_taxation_repository import MongoDBTaxationRepository
 from app.infrastructure.repositories.mongodb_reimbursement_repository import MongoDBReimbursementRepository
 from app.infrastructure.repositories.project_attributes_repository_impl import ProjectAttributesRepositoryImpl
 from app.infrastructure.repositories.employee_leave_repository_impl import EmployeeLeaveRepositoryImpl
@@ -21,13 +21,29 @@ from app.infrastructure.services.user_service_impl import UserServiceImpl
 from app.infrastructure.services.organisation_service_impl import OrganisationServiceImpl
 from app.infrastructure.services.company_leave_service_impl import CompanyLeaveServiceImpl
 from app.infrastructure.services.public_holiday_service_impl import PublicHolidayServiceImpl
-# from app.infrastructure.services.attendance_service_impl import AttendanceServiceImpl
+from app.infrastructure.services.tax_calculation_service_impl import TaxCalculationServiceImpl
+from app.infrastructure.services.regime_comparison_service_impl import RegimeComparisonServiceImpl
 from app.infrastructure.services.reimbursement_service_impl import ReimbursementServiceImpl
 from app.infrastructure.services.project_attributes_service_impl import ProjectAttributesServiceImpl
 from app.infrastructure.services.employee_leave_service_impl import EmployeeLeaveServiceImpl
 from app.infrastructure.services.payout_service_impl import PayoutServiceImpl
-from app.infrastructure.services.payslip_service_impl import PayslipServiceImpl
 from app.infrastructure.services.reporting_service_impl import ReportingServiceImpl
+
+# Command handlers
+from app.application.commands.taxation_commands import (
+    CreateTaxationRecordCommandHandler,
+    UpdateSalaryIncomeCommandHandler,
+    UpdateDeductionsCommandHandler,
+    ChangeRegimeCommandHandler,
+    CalculateTaxCommandHandler,
+    FinalizeRecordCommandHandler,
+    ReopenRecordCommandHandler,
+    DeleteTaxationRecordCommandHandler,
+    EnhancedTaxCalculationCommand,
+    MidYearJoinerCommand,
+    MidYearIncrementCommand,
+    ScenarioComparisonCommand
+)
 
 # Infrastructure services
 from app.infrastructure.services.password_service import PasswordService
@@ -146,6 +162,7 @@ class DependencyContainer:
             organisation_repository = MongoDBOrganisationRepository(self._database_connector)
             public_holiday_repository = MongoDBPublicHolidayRepository(self._database_connector)
             company_leave_repository = MongoDBCompanyLeaveRepository(self._database_connector)
+            taxation_repository = MongoDBTaxationRepository(self._database_connector)
             
             # Lazy import for attendance repository to avoid circular imports
             from app.infrastructure.repositories.mongodb_attendance_repository import MongoDBAttendanceRepository
@@ -156,16 +173,13 @@ class DependencyContainer:
             employee_leave_repository = EmployeeLeaveRepositoryImpl(self._database_connector)
             reporting_repository = MongoDBReportingRepository(self._database_connector)
             
-            # TODO: Add payout and payslip repositories when implemented
-            # payout_repository = MongoDBPayoutRepository(self._database_connector)
-            # payslip_repository = MongoDBPayslipRepository(self._database_connector)
-            
             # Configure connection for all repositories using centralized config
             repositories = [
                 user_repository,
                 organisation_repository,
                 public_holiday_repository,
                 company_leave_repository,
+                taxation_repository,
                 attendance_repository,
                 reimbursement_repository,
                 project_attributes_repository,
@@ -185,16 +199,13 @@ class DependencyContainer:
             self._repositories['organisation'] = organisation_repository
             self._repositories['public_holiday'] = public_holiday_repository
             self._repositories['company_leave'] = company_leave_repository
+            self._repositories['taxation'] = taxation_repository
             self._repositories['attendance'] = attendance_repository
             self._repositories['reimbursement'] = reimbursement_repository
             self._repositories['project_attributes'] = project_attributes_repository
             self._repositories['employee_leave'] = employee_leave_repository
             self._repositories['reporting'] = reporting_repository
             
-            # TODO: Store additional repositories when implemented
-            # self._repositories['payout'] = payout_repository
-            # self._repositories['payslip'] = payslip_repository
-
             logger.info("Repositories initialized with centralized MongoDB configuration")
             
         except Exception as e:
@@ -232,6 +243,14 @@ class DependencyContainer:
                 notification_service=self._notification_service
             )
             
+            # Tax calculation service
+            self._services['tax_calculation'] = TaxCalculationServiceImpl()
+            
+            # Regime comparison service
+            self._services['regime_comparison'] = RegimeComparisonServiceImpl(
+                tax_calculation_service=self._services['tax_calculation']
+            )
+            
             # Attendance service with use cases
             attendance_use_cases = self._create_attendance_use_cases()
             self._services['attendance'] = AttendanceServiceImpl(
@@ -267,17 +286,6 @@ class DependencyContainer:
                 reimbursement_repository=self._repositories['reimbursement']
             )
             
-            # TODO: Add services when repositories are implemented
-            # Payout service
-            # self._services['payout'] = PayoutServiceImpl(
-            #     repository=self._repositories['payout']
-            # )
-            
-            # Payslip service
-            # self._services['payslip'] = PayslipServiceImpl(
-            #     repository=self._repositories['payslip']
-            # )
-
             logger.info("Services initialized")
             
         except Exception as e:
@@ -398,16 +406,10 @@ class DependencyContainer:
         self.initialize()
         return self._repositories['reporting']
     
-    # TODO: Add repository getters when implemented
-    # def get_payout_repository(self) -> MongoDBPayoutRepository:
-    #     """Get payout repository instance."""
-    #     self.initialize()
-    #     return self._repositories['payout']
-    
-    # def get_payslip_repository(self) -> MongoDBPayslipRepository:
-    #     """Get payslip repository instance."""
-    #     self.initialize()
-    #     return self._repositories['payslip']
+    def get_taxation_repository(self) -> MongoDBTaxationRepository:
+        """Get taxation repository instance."""
+        self.initialize()
+        return self._repositories['taxation']
     
     # ==================== SERVICE GETTERS ====================
     
@@ -456,16 +458,15 @@ class DependencyContainer:
         self.initialize()
         return self._services['reporting']
     
-    # TODO: Add service getters when implemented
-    # def get_payout_service(self) -> PayoutServiceImpl:
-    #     """Get payout service instance."""
-    #     self.initialize()
-    #     return self._services['payout']
+    def get_tax_calculation_service(self) -> TaxCalculationServiceImpl:
+        """Get tax calculation service instance."""
+        self.initialize()
+        return self._services['tax_calculation']
     
-    # def get_payslip_service(self) -> PayslipServiceImpl:
-    #     """Get payslip service instance."""
-    #     self.initialize()
-    #     return self._services['payslip']
+    def get_regime_comparison_service(self) -> RegimeComparisonServiceImpl:
+        """Get regime comparison service instance."""
+        self.initialize()
+        return self._services['regime_comparison']
     
     # ==================== INFRASTRUCTURE SERVICE GETTERS ====================
     
@@ -761,6 +762,57 @@ class DependencyContainer:
         
         return self._controllers['payslip']
     
+    def get_taxation_controller(self):
+        """Get taxation controller instance."""
+        self.initialize()
+        
+        # Import here to avoid circular imports
+        from app.api.controllers.taxation_controller import UnifiedTaxationController
+        
+        if 'taxation' not in self._controllers:
+            # Create command handlers
+            create_handler = CreateTaxationRecordCommandHandler(
+                self._repositories['taxation']
+            )
+            update_salary_handler = UpdateSalaryIncomeCommandHandler(
+                self._repositories['taxation']
+            )
+            update_deductions_handler = UpdateDeductionsCommandHandler(
+                self._repositories['taxation']
+            )
+            change_regime_handler = ChangeRegimeCommandHandler(
+                self._repositories['taxation']
+            )
+            calculate_tax_handler = CalculateTaxCommandHandler(
+                self._repositories['taxation'],
+                self._services['tax_calculation']
+            )
+            finalize_handler = FinalizeRecordCommandHandler(
+                self._repositories['taxation']
+            )
+            reopen_handler = ReopenRecordCommandHandler(
+                self._repositories['taxation']
+            )
+            delete_handler = DeleteTaxationRecordCommandHandler(
+                self._repositories['taxation']
+            )
+            
+            # Create controller with all handlers and services
+            self._controllers['taxation'] = UnifiedTaxationController(
+                create_handler=create_handler,
+                update_salary_handler=update_salary_handler,
+                update_deductions_handler=update_deductions_handler,
+                change_regime_handler=change_regime_handler,
+                calculate_tax_handler=calculate_tax_handler,
+                finalize_handler=finalize_handler,
+                reopen_handler=reopen_handler,
+                delete_handler=delete_handler,
+                enhanced_tax_service=self._services['tax_calculation'],
+                payroll_tax_service=self._services['tax_calculation']  # Using tax calculation service for payroll tax
+            )
+        
+        return self._controllers['taxation']
+    
     # ==================== UTILITY METHODS ====================
     
     async def cleanup(self):
@@ -1039,4 +1091,22 @@ def get_reporting_service() -> ReportingServiceImpl:
 def get_reporting_repository() -> MongoDBReportingRepository:
     """FastAPI dependency for reporting repository."""
     container = get_dependency_container()
-    return container.get_reporting_repository() 
+    return container.get_reporting_repository()
+
+
+def get_tax_calculation_service() -> TaxCalculationServiceImpl:
+    """FastAPI dependency for tax calculation service."""
+    container = get_dependency_container()
+    return container.get_tax_calculation_service()
+
+
+def get_regime_comparison_service() -> RegimeComparisonServiceImpl:
+    """FastAPI dependency for regime comparison service."""
+    container = get_dependency_container()
+    return container.get_regime_comparison_service()
+
+
+def get_taxation_controller():
+    """FastAPI dependency for taxation controller."""
+    container = get_dependency_container()
+    return container.get_taxation_controller() 

@@ -102,3 +102,17 @@
 2025-06-11 22:30:50 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
 2025-06-11 22:30:50 [INFO] app.main:38 - lifespan(): Running startup tasks...
 2025-06-11 22:30:50 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-12 00:17:10 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-12 00:17:10 [INFO] uvicorn.error:93 - _serve(): Finished server process [6751]
+2025-06-12 00:17:32 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-12 00:17:42 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-12 00:17:42 [INFO] uvicorn.error:83 - _serve(): Started server process [8565]
+2025-06-12 00:17:42 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-12 00:17:42 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-12 00:17:42 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-12 19:39:37 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-12 19:39:51 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-12 19:39:51 [INFO] uvicorn.error:83 - _serve(): Started server process [27216]
+2025-06-12 19:39:51 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-12 19:39:51 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-12 19:39:51 [INFO] uvicorn.error:62 - startup(): Application startup complete.

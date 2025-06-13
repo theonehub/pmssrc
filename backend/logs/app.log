@@ -4807,3 +4807,58 @@ pymongo.errors.NetworkTimeout: SSL handshake failed: ac-uqkr9ns-shard-00-00.jhfj
 2025-06-13 23:54:09 [INFO] app.infrastructure.repositories.mongodb_organisation_repository:108 - _get_collection(): Successfully retrieved collection: organisation from database: pms_global_database
 2025-06-13 23:54:09 [INFO] app.application.use_cases.organisation.list_organisations_use_case:89 - execute(): Listed 1 organisations (total: 1)
 2025-06-13 23:54:09 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51274 - "GET /api/v2/organisations/?skip=0&limit=10 HTTP/1.1" 200
+2025-06-13 23:58:38 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51947 - "OPTIONS /api/v2/auth/login HTTP/1.1" 200
+2025-06-13 23:58:38 [INFO] app.api.routes.auth_routes_v2:73 - login(): Login request for user: superadmin @ localhost
+2025-06-13 23:58:38 [INFO] app.api.controllers.auth_controller:84 - login(): Login attempt for user: superadmin @ localhost
+2025-06-13 23:58:38 [INFO] app.api.controllers.auth_controller:93 - login(): Connection string: mongodb+srv://admin:test123@mongodbtest.jhfj7s3.mongodb.net/?appName=mongodbTest
+2025-06-13 23:58:39 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-13 23:58:39 [INFO] app.infrastructure.database.mongodb_connector:113 - get_database(): Database 'pms_localhost' cached
+2025-06-13 23:58:39 [INFO] app.infrastructure.database.mongodb_connector:113 - get_database(): Database 'pms_global_database' cached
+2025-06-13 23:58:39 [INFO] app.infrastructure.database.mongodb_connector:90 - disconnect(): MongoDB connections closed
+2025-06-13 23:58:39 [INFO] app.api.controllers.auth_controller:121 - login(): Verifying password for user: superadmin
+2025-06-13 23:58:39 [INFO] app.auth.password_handler:19 - verify_password(): Verifying password: admin123 with hashed password: $2b$12$tHFlJsUzWyg1gntEL.JwRu6V1.VO/UdyyJxzLECfapAaMLw3BGZTW
+2025-06-13 23:58:39 [WARNING] passlib.handlers.bcrypt:622 - _load_backend_mixin(): (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-06-13 23:58:40 [INFO] app.auth.password_handler:22 - verify_password(): Password verification succeeded.
+2025-06-13 23:58:40 [INFO] app.auth.jwt_handler:37 - create_access_token(): Access token created for user: superadmin
+2025-06-13 23:58:40 [INFO] app.auth.jwt_handler:38 - create_access_token(): Token expires at: 2025-06-14T02:28:40.055759
+2025-06-13 23:58:40 [INFO] app.api.controllers.auth_controller:165 - login(): User superadmin logged in successfully
+2025-06-13 23:58:40 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51947 - "POST /api/v2/auth/login HTTP/1.1" 200
+2025-06-13 23:58:40 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51947 - "OPTIONS /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 200
+2025-06-13 23:58:40 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51949 - "OPTIONS /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 200
+2025-06-13 23:58:40 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-13 23:58:40 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-13 23:58:40 [INFO] app.api.controllers.reporting_controller:256 - get_dashboard_analytics(): Getting dashboard analytics for user: superadmin
+2025-06-13 23:58:40 [INFO] app.infrastructure.services.reporting_service_impl:261 - get_dashboard_analytics(): Getting dashboard analytics for organisation: localhost
+2025-06-13 23:58:40 [INFO] app.application.use_cases.reporting.get_dashboard_analytics_use_case:51 - execute(): Getting dashboard analytics for organisation: localhost
+2025-06-13 23:58:40 [INFO] app.infrastructure.repositories.mongodb_user_repository:100 - _get_collection(): Successfully retrieved collection: users_info from database: pms_localhost
+2025-06-13 23:58:40 [INFO] app.infrastructure.repositories.mongodb_user_repository:1557 - find_with_filters(): Found 5 users with filters for organisation: localhost
+2025-06-13 23:58:40 [INFO] app.infrastructure.repositories.mongodb_reimbursement_repository:104 - _get_collection(): Successfully retrieved collection: reimbursements from database: pms_localhost
+2025-06-13 23:58:40 [INFO] app.infrastructure.repositories.mongodb_reimbursement_repository:367 - get_pending_reimbursements(): Found 0 pending reimbursements for organisation: localhost
+2025-06-13 23:58:40 [INFO] app.infrastructure.repositories.mongodb_user_repository:100 - _get_collection(): Successfully retrieved collection: users_info from database: pms_localhost
+2025-06-13 23:58:40 [INFO] app.infrastructure.repositories.mongodb_user_repository:1557 - find_with_filters(): Found 5 users with filters for organisation: localhost
+2025-06-13 23:58:40 [INFO] app.infrastructure.repositories.mongodb_attendance_repository:100 - _get_collection(): Successfully retrieved collection: attendance_info from database: pms_localhost
+2025-06-13 23:58:40 [INFO] app.application.use_cases.reporting.get_dashboard_analytics_use_case:98 - execute(): Successfully generated dashboard analytics for organisation: localhost
+2025-06-13 23:58:40 [INFO] app.infrastructure.services.reporting_service_impl:266 - get_dashboard_analytics(): Successfully generated dashboard analytics for organisation: localhost
+2025-06-13 23:58:40 [INFO] app.api.controllers.reporting_controller:260 - get_dashboard_analytics(): Successfully retrieved dashboard analytics
+2025-06-13 23:58:40 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51947 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 200
+2025-06-13 23:58:40 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-13 23:58:40 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-13 23:58:40 [INFO] app.api.controllers.reporting_controller:256 - get_dashboard_analytics(): Getting dashboard analytics for user: superadmin
+2025-06-13 23:58:40 [INFO] app.infrastructure.services.reporting_service_impl:261 - get_dashboard_analytics(): Getting dashboard analytics for organisation: localhost
+2025-06-13 23:58:40 [INFO] app.application.use_cases.reporting.get_dashboard_analytics_use_case:51 - execute(): Getting dashboard analytics for organisation: localhost
+2025-06-13 23:58:40 [INFO] app.infrastructure.repositories.mongodb_user_repository:100 - _get_collection(): Successfully retrieved collection: users_info from database: pms_localhost
+2025-06-13 23:58:40 [INFO] app.infrastructure.repositories.mongodb_user_repository:1557 - find_with_filters(): Found 5 users with filters for organisation: localhost
+2025-06-13 23:58:40 [INFO] app.infrastructure.repositories.mongodb_reimbursement_repository:104 - _get_collection(): Successfully retrieved collection: reimbursements from database: pms_localhost
+2025-06-13 23:58:40 [INFO] app.infrastructure.repositories.mongodb_reimbursement_repository:367 - get_pending_reimbursements(): Found 0 pending reimbursements for organisation: localhost
+2025-06-13 23:58:40 [INFO] app.infrastructure.repositories.mongodb_user_repository:100 - _get_collection(): Successfully retrieved collection: users_info from database: pms_localhost
+2025-06-13 23:58:40 [INFO] app.infrastructure.repositories.mongodb_user_repository:1557 - find_with_filters(): Found 5 users with filters for organisation: localhost
+2025-06-13 23:58:40 [INFO] app.infrastructure.repositories.mongodb_attendance_repository:100 - _get_collection(): Successfully retrieved collection: attendance_info from database: pms_localhost
+2025-06-13 23:58:40 [INFO] app.application.use_cases.reporting.get_dashboard_analytics_use_case:98 - execute(): Successfully generated dashboard analytics for organisation: localhost
+2025-06-13 23:58:40 [INFO] app.infrastructure.services.reporting_service_impl:266 - get_dashboard_analytics(): Successfully generated dashboard analytics for organisation: localhost
+2025-06-13 23:58:40 [INFO] app.api.controllers.reporting_controller:260 - get_dashboard_analytics(): Successfully retrieved dashboard analytics
+2025-06-13 23:58:40 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51947 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 200

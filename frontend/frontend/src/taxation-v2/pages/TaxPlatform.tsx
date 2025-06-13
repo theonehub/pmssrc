@@ -1,1 +1,0 @@
-// TaxPlatform component

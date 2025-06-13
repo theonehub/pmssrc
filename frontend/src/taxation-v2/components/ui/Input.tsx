@@ -159,7 +159,7 @@ export const Input: React.FC<InputProps> = (props) => {
       case 'currency':
         const currencyResult = validators.currency(val);
         if (!currencyResult.isValid) {
-          setValidationError(currencyResult.error || 'Invalid currency amount');
+          setValidationError(currencyResult.message || 'Invalid currency amount');
         } else {
           setValidationError('');
         }
@@ -185,9 +185,9 @@ export const Input: React.FC<InputProps> = (props) => {
         break;
       
       case 'email':
-        const emailResult = validators.required(val); // We can expand this with email validation
+        const emailResult = validators.required()(val); // We can expand this with email validation
         if (!emailResult.isValid) {
-          setValidationError(emailResult.error || 'Invalid email address');
+          setValidationError(emailResult.message || 'Invalid email address');
         } else {
           setValidationError('');
         }

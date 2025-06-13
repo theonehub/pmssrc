@@ -116,3 +116,1871 @@
 2025-06-12 19:39:51 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
 2025-06-12 19:39:51 [INFO] app.main:38 - lifespan(): Running startup tasks...
 2025-06-12 19:39:51 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-13 02:52:17 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-13 02:52:36 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-13 02:52:36 [INFO] uvicorn.error:83 - _serve(): Started server process [36444]
+2025-06-13 02:52:36 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-13 02:52:36 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-13 02:52:36 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-13 02:52:52 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51928 - "OPTIONS /api/v2/auth/login HTTP/1.1" 200
+2025-06-13 02:52:52 [INFO] app.api.routes.auth_routes_v2:73 - login(): Login request for user: superadmin @ localhost
+2025-06-13 02:52:52 [INFO] app.api.controllers.auth_controller:84 - login(): Login attempt for user: superadmin @ localhost
+2025-06-13 02:52:52 [INFO] app.api.controllers.auth_controller:93 - login(): Connection string: mongodb+srv://admin:test123@mongodbtest.jhfj7s3.mongodb.net/?appName=mongodbTest
+2025-06-13 02:52:59 [ERROR] app.infrastructure.database.mongodb_connector:72 - connect(): Failed to connect to MongoDB: SSL handshake failed: ac-uqkr9ns-shard-00-01.jhfj7s3.mongodb.net:27017: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1028) (configured timeouts: socketTimeoutMS: 10000.0ms, connectTimeoutMS: 10000.0ms),SSL handshake failed: ac-uqkr9ns-shard-00-00.jhfj7s3.mongodb.net:27017: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1028) (configured timeouts: socketTimeoutMS: 10000.0ms, connectTimeoutMS: 10000.0ms),SSL handshake failed: ac-uqkr9ns-shard-00-02.jhfj7s3.mongodb.net:27017: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1028) (configured timeouts: socketTimeoutMS: 10000.0ms, connectTimeoutMS: 10000.0ms), Timeout: 5.0s, Topology Description: <TopologyDescription id: 684b452e9dd7f3f28c0486e0, topology_type: ReplicaSetNoPrimary, servers: [<ServerDescription ('ac-uqkr9ns-shard-00-00.jhfj7s3.mongodb.net', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('SSL handshake failed: ac-uqkr9ns-shard-00-00.jhfj7s3.mongodb.net:27017: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1028) (configured timeouts: socketTimeoutMS: 10000.0ms, connectTimeoutMS: 10000.0ms)')>, <ServerDescription ('ac-uqkr9ns-shard-00-01.jhfj7s3.mongodb.net', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('SSL handshake failed: ac-uqkr9ns-shard-00-01.jhfj7s3.mongodb.net:27017: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1028) (configured timeouts: socketTimeoutMS: 10000.0ms, connectTimeoutMS: 10000.0ms)')>, <ServerDescription ('ac-uqkr9ns-shard-00-02.jhfj7s3.mongodb.net', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('SSL handshake failed: ac-uqkr9ns-shard-00-02.jhfj7s3.mongodb.net:27017: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1028) (configured timeouts: socketTimeoutMS: 10000.0ms, connectTimeoutMS: 10000.0ms)')>]>
+2025-06-13 02:52:59 [ERROR] app.api.controllers.auth_controller:178 - login(): Login error: SSL handshake failed: ac-uqkr9ns-shard-00-01.jhfj7s3.mongodb.net:27017: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1028) (configured timeouts: socketTimeoutMS: 10000.0ms, connectTimeoutMS: 10000.0ms),SSL handshake failed: ac-uqkr9ns-shard-00-00.jhfj7s3.mongodb.net:27017: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1028) (configured timeouts: socketTimeoutMS: 10000.0ms, connectTimeoutMS: 10000.0ms),SSL handshake failed: ac-uqkr9ns-shard-00-02.jhfj7s3.mongodb.net:27017: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1028) (configured timeouts: socketTimeoutMS: 10000.0ms, connectTimeoutMS: 10000.0ms), Timeout: 5.0s, Topology Description: <TopologyDescription id: 684b452e9dd7f3f28c0486e0, topology_type: ReplicaSetNoPrimary, servers: [<ServerDescription ('ac-uqkr9ns-shard-00-00.jhfj7s3.mongodb.net', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('SSL handshake failed: ac-uqkr9ns-shard-00-00.jhfj7s3.mongodb.net:27017: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1028) (configured timeouts: socketTimeoutMS: 10000.0ms, connectTimeoutMS: 10000.0ms)')>, <ServerDescription ('ac-uqkr9ns-shard-00-01.jhfj7s3.mongodb.net', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('SSL handshake failed: ac-uqkr9ns-shard-00-01.jhfj7s3.mongodb.net:27017: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1028) (configured timeouts: socketTimeoutMS: 10000.0ms, connectTimeoutMS: 10000.0ms)')>, <ServerDescription ('ac-uqkr9ns-shard-00-02.jhfj7s3.mongodb.net', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('SSL handshake failed: ac-uqkr9ns-shard-00-02.jhfj7s3.mongodb.net:27017: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1028) (configured timeouts: socketTimeoutMS: 10000.0ms, connectTimeoutMS: 10000.0ms)')>]>
+2025-06-13 02:52:59 [ERROR] app.api.routes.auth_routes_v2:83 - login(): Login error for user superadmin: SSL handshake failed: ac-uqkr9ns-shard-00-01.jhfj7s3.mongodb.net:27017: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1028) (configured timeouts: socketTimeoutMS: 10000.0ms, connectTimeoutMS: 10000.0ms),SSL handshake failed: ac-uqkr9ns-shard-00-00.jhfj7s3.mongodb.net:27017: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1028) (configured timeouts: socketTimeoutMS: 10000.0ms, connectTimeoutMS: 10000.0ms),SSL handshake failed: ac-uqkr9ns-shard-00-02.jhfj7s3.mongodb.net:27017: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1028) (configured timeouts: socketTimeoutMS: 10000.0ms, connectTimeoutMS: 10000.0ms), Timeout: 5.0s, Topology Description: <TopologyDescription id: 684b452e9dd7f3f28c0486e0, topology_type: ReplicaSetNoPrimary, servers: [<ServerDescription ('ac-uqkr9ns-shard-00-00.jhfj7s3.mongodb.net', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('SSL handshake failed: ac-uqkr9ns-shard-00-00.jhfj7s3.mongodb.net:27017: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1028) (configured timeouts: socketTimeoutMS: 10000.0ms, connectTimeoutMS: 10000.0ms)')>, <ServerDescription ('ac-uqkr9ns-shard-00-01.jhfj7s3.mongodb.net', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('SSL handshake failed: ac-uqkr9ns-shard-00-01.jhfj7s3.mongodb.net:27017: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1028) (configured timeouts: socketTimeoutMS: 10000.0ms, connectTimeoutMS: 10000.0ms)')>, <ServerDescription ('ac-uqkr9ns-shard-00-02.jhfj7s3.mongodb.net', 27017) server_type: Unknown, rtt: None, error=AutoReconnect('SSL handshake failed: ac-uqkr9ns-shard-00-02.jhfj7s3.mongodb.net:27017: [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1028) (configured timeouts: socketTimeoutMS: 10000.0ms, connectTimeoutMS: 10000.0ms)')>]>
+2025-06-13 02:52:59 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51928 - "POST /api/v2/auth/login HTTP/1.1" 500
+2025-06-13 02:56:52 [INFO] app.api.routes.auth_routes_v2:73 - login(): Login request for user: superadmin @ localhost
+2025-06-13 02:56:52 [INFO] app.api.controllers.auth_controller:84 - login(): Login attempt for user: superadmin @ localhost
+2025-06-13 02:56:52 [INFO] app.api.controllers.auth_controller:93 - login(): Connection string: mongodb+srv://admin:test123@mongodbtest.jhfj7s3.mongodb.net/?appName=mongodbTest
+2025-06-13 02:56:52 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-13 02:56:52 [INFO] app.infrastructure.database.mongodb_connector:113 - get_database(): Database 'pms_localhost' cached
+2025-06-13 02:56:53 [INFO] app.infrastructure.database.mongodb_connector:113 - get_database(): Database 'pms_global_database' cached
+2025-06-13 02:56:53 [INFO] app.infrastructure.database.mongodb_connector:90 - disconnect(): MongoDB connections closed
+2025-06-13 02:56:53 [INFO] app.api.controllers.auth_controller:121 - login(): Verifying password for user: superadmin
+2025-06-13 02:56:53 [INFO] app.auth.password_handler:19 - verify_password(): Verifying password: admin123 with hashed password: $2b$12$tHFlJsUzWyg1gntEL.JwRu6V1.VO/UdyyJxzLECfapAaMLw3BGZTW
+2025-06-13 02:56:53 [WARNING] passlib.handlers.bcrypt:622 - _load_backend_mixin(): (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-06-13 02:56:53 [INFO] app.auth.password_handler:22 - verify_password(): Password verification succeeded.
+2025-06-13 02:56:53 [INFO] app.auth.jwt_handler:37 - create_access_token(): Access token created for user: superadmin
+2025-06-13 02:56:53 [INFO] app.auth.jwt_handler:38 - create_access_token(): Token expires at: 2025-06-13T05:26:53.769402
+2025-06-13 02:56:53 [INFO] app.api.controllers.auth_controller:165 - login(): User superadmin logged in successfully
+2025-06-13 02:56:53 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53104 - "POST /api/v2/auth/login HTTP/1.1" 200
+2025-06-13 02:56:54 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53104 - "OPTIONS /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 200
+2025-06-13 02:56:54 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-13 02:56:54 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-13 02:56:54 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53127 - "OPTIONS /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 200
+2025-06-13 02:56:54 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-13 02:56:54 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-13 02:56:54 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-13 02:56:54 [ERROR] app.config.dependency_container:212 - _setup_repositories(): Error setting up repositories: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 02:56:54 [ERROR] app.config.dependency_container:107 - initialize(): Error initializing dependency container: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 02:56:54 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53104 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 500
+2025-06-13 02:56:54 [ERROR] uvicorn.error:408 - run_asgi(): Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/routing.py", line 291, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 640, in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    result = context.run(func, *args)
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 1082, in get_reporting_controller
+    return container.get_reporting_controller()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 727, in get_reporting_controller
+    self.initialize()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 99, in initialize
+    self._setup_repositories()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 165, in _setup_repositories
+    taxation_repository = MongoDBTaxationRepository(self._database_connector)
+TypeError: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 02:56:54 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-13 02:56:54 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-13 02:56:54 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-13 02:56:54 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-13 02:56:54 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-13 02:56:54 [ERROR] app.config.dependency_container:212 - _setup_repositories(): Error setting up repositories: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 02:56:54 [ERROR] app.config.dependency_container:107 - initialize(): Error initializing dependency container: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 02:56:54 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53127 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 500
+2025-06-13 02:56:54 [ERROR] uvicorn.error:408 - run_asgi(): Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/routing.py", line 291, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 640, in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    result = context.run(func, *args)
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 1082, in get_reporting_controller
+    return container.get_reporting_controller()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 727, in get_reporting_controller
+    self.initialize()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 99, in initialize
+    self._setup_repositories()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 165, in _setup_repositories
+    taxation_repository = MongoDBTaxationRepository(self._database_connector)
+TypeError: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 02:56:55 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-13 02:56:55 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-13 02:56:55 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-13 02:56:55 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-13 02:56:55 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-13 02:56:55 [ERROR] app.config.dependency_container:212 - _setup_repositories(): Error setting up repositories: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 02:56:55 [ERROR] app.config.dependency_container:107 - initialize(): Error initializing dependency container: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 02:56:55 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53129 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 500
+2025-06-13 02:56:55 [ERROR] uvicorn.error:408 - run_asgi(): Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/routing.py", line 291, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 640, in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    result = context.run(func, *args)
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 1082, in get_reporting_controller
+    return container.get_reporting_controller()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 727, in get_reporting_controller
+    self.initialize()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 99, in initialize
+    self._setup_repositories()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 165, in _setup_repositories
+    taxation_repository = MongoDBTaxationRepository(self._database_connector)
+TypeError: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 02:56:55 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-13 02:56:55 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-13 02:56:55 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-13 02:56:55 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-13 02:56:55 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-13 02:56:55 [ERROR] app.config.dependency_container:212 - _setup_repositories(): Error setting up repositories: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 02:56:55 [ERROR] app.config.dependency_container:107 - initialize(): Error initializing dependency container: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 02:56:55 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53133 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 500
+2025-06-13 02:56:55 [ERROR] uvicorn.error:408 - run_asgi(): Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/routing.py", line 291, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 640, in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    result = context.run(func, *args)
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 1082, in get_reporting_controller
+    return container.get_reporting_controller()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 727, in get_reporting_controller
+    self.initialize()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 99, in initialize
+    self._setup_repositories()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 165, in _setup_repositories
+    taxation_repository = MongoDBTaxationRepository(self._database_connector)
+TypeError: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 02:56:57 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-13 02:56:57 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-13 02:56:57 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-13 02:56:57 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-13 02:56:57 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-13 02:56:57 [ERROR] app.config.dependency_container:212 - _setup_repositories(): Error setting up repositories: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 02:56:57 [ERROR] app.config.dependency_container:107 - initialize(): Error initializing dependency container: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 02:56:57 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53141 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 500
+2025-06-13 02:56:57 [ERROR] uvicorn.error:408 - run_asgi(): Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/routing.py", line 291, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 640, in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    result = context.run(func, *args)
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 1082, in get_reporting_controller
+    return container.get_reporting_controller()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 727, in get_reporting_controller
+    self.initialize()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 99, in initialize
+    self._setup_repositories()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 165, in _setup_repositories
+    taxation_repository = MongoDBTaxationRepository(self._database_connector)
+TypeError: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 02:56:57 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-13 02:56:57 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-13 02:56:57 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-13 02:56:57 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-13 02:56:57 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-13 02:56:57 [ERROR] app.config.dependency_container:212 - _setup_repositories(): Error setting up repositories: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 02:56:57 [ERROR] app.config.dependency_container:107 - initialize(): Error initializing dependency container: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 02:56:57 [INFO] uvicorn.access:473 - send(): 127.0.0.1:53144 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 500
+2025-06-13 02:56:57 [ERROR] uvicorn.error:408 - run_asgi(): Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/routing.py", line 291, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 640, in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    result = context.run(func, *args)
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 1082, in get_reporting_controller
+    return container.get_reporting_controller()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 727, in get_reporting_controller
+    self.initialize()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 99, in initialize
+    self._setup_repositories()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 165, in _setup_repositories
+    taxation_repository = MongoDBTaxationRepository(self._database_connector)
+TypeError: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 14:42:26 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51938 - "OPTIONS /api/v2/auth/login HTTP/1.1" 200
+2025-06-13 14:42:26 [INFO] app.api.routes.auth_routes_v2:73 - login(): Login request for user: superadmin @ localhost
+2025-06-13 14:42:26 [INFO] app.api.controllers.auth_controller:84 - login(): Login attempt for user: superadmin @ localhost
+2025-06-13 14:42:26 [INFO] app.api.controllers.auth_controller:93 - login(): Connection string: mongodb+srv://admin:test123@mongodbtest.jhfj7s3.mongodb.net/?appName=mongodbTest
+2025-06-13 14:42:26 [ERROR] app.infrastructure.database.mongodb_connector:75 - connect(): Unexpected error connecting to MongoDB: All nameservers failed to answer the query _mongodb._tcp.mongodbtest.jhfj7s3.mongodb.net. IN SRV: Server Do53:2401:4900:50:9::7dd@53 answered [Errno 65] No route to host; Server Do53:2401:4900:50:9::8@53 answered [Errno 65] No route to host; Server Do53:192.168.1.1@53 answered [Errno 51] Network is unreachable
+2025-06-13 14:42:26 [ERROR] app.api.controllers.auth_controller:178 - login(): Login error: All nameservers failed to answer the query _mongodb._tcp.mongodbtest.jhfj7s3.mongodb.net. IN SRV: Server Do53:2401:4900:50:9::7dd@53 answered [Errno 65] No route to host; Server Do53:2401:4900:50:9::8@53 answered [Errno 65] No route to host; Server Do53:192.168.1.1@53 answered [Errno 51] Network is unreachable
+2025-06-13 14:42:26 [ERROR] app.api.routes.auth_routes_v2:83 - login(): Login error for user superadmin: All nameservers failed to answer the query _mongodb._tcp.mongodbtest.jhfj7s3.mongodb.net. IN SRV: Server Do53:2401:4900:50:9::7dd@53 answered [Errno 65] No route to host; Server Do53:2401:4900:50:9::8@53 answered [Errno 65] No route to host; Server Do53:192.168.1.1@53 answered [Errno 51] Network is unreachable
+2025-06-13 14:42:26 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51940 - "POST /api/v2/auth/login HTTP/1.1" 500
+2025-06-13 14:44:18 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-13 14:44:18 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-13 14:44:18 [INFO] app.main:40 - lifespan(): Running shutdown tasks...
+2025-06-13 14:44:18 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-13 14:44:18 [INFO] uvicorn.error:93 - _serve(): Finished server process [36444]
+2025-06-13 14:44:27 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-13 14:44:40 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-13 14:44:45 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-13 14:44:45 [INFO] uvicorn.error:83 - _serve(): Started server process [47492]
+2025-06-13 14:44:45 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-13 14:44:45 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-13 14:44:45 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-13 14:51:46 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-13 14:51:46 [INFO] uvicorn.error:93 - _serve(): Finished server process [47492]
+2025-06-13 15:58:30 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-13 15:59:01 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-13 15:59:01 [INFO] uvicorn.error:83 - _serve(): Started server process [1024]
+2025-06-13 15:59:01 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-13 15:59:01 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-13 15:59:01 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-13 16:02:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:49687 - "OPTIONS /api/v2/auth/login HTTP/1.1" 200
+2025-06-13 16:02:56 [INFO] app.api.routes.auth_routes_v2:73 - login(): Login request for user: superadmin @ localhost
+2025-06-13 16:02:56 [INFO] app.api.controllers.auth_controller:84 - login(): Login attempt for user: superadmin @ localhost
+2025-06-13 16:02:56 [INFO] app.api.controllers.auth_controller:93 - login(): Connection string: mongodb+srv://admin:test123@mongodbtest.jhfj7s3.mongodb.net/?appName=mongodbTest
+2025-06-13 16:02:58 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-13 16:02:58 [INFO] app.infrastructure.database.mongodb_connector:113 - get_database(): Database 'pms_localhost' cached
+2025-06-13 16:02:58 [INFO] app.infrastructure.database.mongodb_connector:113 - get_database(): Database 'pms_global_database' cached
+2025-06-13 16:02:58 [INFO] app.infrastructure.database.mongodb_connector:90 - disconnect(): MongoDB connections closed
+2025-06-13 16:02:58 [INFO] app.api.controllers.auth_controller:121 - login(): Verifying password for user: superadmin
+2025-06-13 16:02:58 [INFO] app.auth.password_handler:19 - verify_password(): Verifying password: admin123 with hashed password: $2b$12$tHFlJsUzWyg1gntEL.JwRu6V1.VO/UdyyJxzLECfapAaMLw3BGZTW
+2025-06-13 16:02:58 [WARNING] passlib.handlers.bcrypt:622 - _load_backend_mixin(): (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-06-13 16:02:58 [INFO] app.auth.password_handler:22 - verify_password(): Password verification succeeded.
+2025-06-13 16:02:58 [INFO] app.auth.jwt_handler:37 - create_access_token(): Access token created for user: superadmin
+2025-06-13 16:02:58 [INFO] app.auth.jwt_handler:38 - create_access_token(): Token expires at: 2025-06-13T18:32:58.891708
+2025-06-13 16:02:58 [INFO] app.api.controllers.auth_controller:165 - login(): User superadmin logged in successfully
+2025-06-13 16:02:58 [INFO] uvicorn.access:473 - send(): 127.0.0.1:49689 - "POST /api/v2/auth/login HTTP/1.1" 200
+2025-06-13 16:02:59 [INFO] uvicorn.access:473 - send(): 127.0.0.1:49689 - "OPTIONS /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 200
+2025-06-13 16:02:59 [INFO] uvicorn.access:473 - send(): 127.0.0.1:49687 - "OPTIONS /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 200
+2025-06-13 16:02:59 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-13 16:02:59 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-13 16:02:59 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-13 16:02:59 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-13 16:02:59 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-13 16:02:59 [ERROR] app.config.dependency_container:212 - _setup_repositories(): Error setting up repositories: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 16:02:59 [ERROR] app.config.dependency_container:107 - initialize(): Error initializing dependency container: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 16:02:59 [INFO] uvicorn.access:473 - send(): 127.0.0.1:49689 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 500
+2025-06-13 16:02:59 [ERROR] uvicorn.error:408 - run_asgi(): Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/routing.py", line 291, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 640, in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    result = context.run(func, *args)
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 1082, in get_reporting_controller
+    return container.get_reporting_controller()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 727, in get_reporting_controller
+    self.initialize()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 99, in initialize
+    self._setup_repositories()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 165, in _setup_repositories
+    taxation_repository = MongoDBTaxationRepository(self._database_connector)
+TypeError: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 16:02:59 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-13 16:02:59 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-13 16:02:59 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-13 16:02:59 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-13 16:02:59 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-13 16:02:59 [ERROR] app.config.dependency_container:212 - _setup_repositories(): Error setting up repositories: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 16:02:59 [ERROR] app.config.dependency_container:107 - initialize(): Error initializing dependency container: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 16:02:59 [INFO] uvicorn.access:473 - send(): 127.0.0.1:49687 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 500
+2025-06-13 16:02:59 [ERROR] uvicorn.error:408 - run_asgi(): Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/routing.py", line 291, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 640, in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    result = context.run(func, *args)
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 1082, in get_reporting_controller
+    return container.get_reporting_controller()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 727, in get_reporting_controller
+    self.initialize()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 99, in initialize
+    self._setup_repositories()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 165, in _setup_repositories
+    taxation_repository = MongoDBTaxationRepository(self._database_connector)
+TypeError: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 16:03:00 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-13 16:03:00 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-13 16:03:00 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-13 16:03:00 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-13 16:03:00 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-13 16:03:00 [ERROR] app.config.dependency_container:212 - _setup_repositories(): Error setting up repositories: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 16:03:00 [ERROR] app.config.dependency_container:107 - initialize(): Error initializing dependency container: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 16:03:00 [INFO] uvicorn.access:473 - send(): 127.0.0.1:49707 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 500
+2025-06-13 16:03:00 [ERROR] uvicorn.error:408 - run_asgi(): Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/routing.py", line 291, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 640, in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    result = context.run(func, *args)
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 1082, in get_reporting_controller
+    return container.get_reporting_controller()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 727, in get_reporting_controller
+    self.initialize()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 99, in initialize
+    self._setup_repositories()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 165, in _setup_repositories
+    taxation_repository = MongoDBTaxationRepository(self._database_connector)
+TypeError: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 16:03:00 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-13 16:03:00 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-13 16:03:00 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-13 16:03:00 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-13 16:03:00 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-13 16:03:00 [ERROR] app.config.dependency_container:212 - _setup_repositories(): Error setting up repositories: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 16:03:00 [ERROR] app.config.dependency_container:107 - initialize(): Error initializing dependency container: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 16:03:00 [INFO] uvicorn.access:473 - send(): 127.0.0.1:49710 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 500
+2025-06-13 16:03:00 [ERROR] uvicorn.error:408 - run_asgi(): Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/routing.py", line 291, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 640, in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    result = context.run(func, *args)
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 1082, in get_reporting_controller
+    return container.get_reporting_controller()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 727, in get_reporting_controller
+    self.initialize()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 99, in initialize
+    self._setup_repositories()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 165, in _setup_repositories
+    taxation_repository = MongoDBTaxationRepository(self._database_connector)
+TypeError: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 16:03:02 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-13 16:03:02 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-13 16:03:02 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-13 16:03:02 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-13 16:03:02 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-13 16:03:02 [ERROR] app.config.dependency_container:212 - _setup_repositories(): Error setting up repositories: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 16:03:02 [ERROR] app.config.dependency_container:107 - initialize(): Error initializing dependency container: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 16:03:02 [INFO] uvicorn.access:473 - send(): 127.0.0.1:49712 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 500
+2025-06-13 16:03:02 [ERROR] uvicorn.error:408 - run_asgi(): Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/routing.py", line 291, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 640, in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    result = context.run(func, *args)
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 1082, in get_reporting_controller
+    return container.get_reporting_controller()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 727, in get_reporting_controller
+    self.initialize()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 99, in initialize
+    self._setup_repositories()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 165, in _setup_repositories
+    taxation_repository = MongoDBTaxationRepository(self._database_connector)
+TypeError: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 16:03:02 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-13 16:03:02 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-13 16:03:02 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-13 16:03:02 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-13 16:03:02 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-13 16:03:02 [ERROR] app.config.dependency_container:212 - _setup_repositories(): Error setting up repositories: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 16:03:02 [ERROR] app.config.dependency_container:107 - initialize(): Error initializing dependency container: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 16:03:02 [INFO] uvicorn.access:473 - send(): 127.0.0.1:49714 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 500
+2025-06-13 16:03:02 [ERROR] uvicorn.error:408 - run_asgi(): Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/routing.py", line 291, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 640, in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    result = context.run(func, *args)
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 1082, in get_reporting_controller
+    return container.get_reporting_controller()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 727, in get_reporting_controller
+    self.initialize()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 99, in initialize
+    self._setup_repositories()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 165, in _setup_repositories
+    taxation_repository = MongoDBTaxationRepository(self._database_connector)
+TypeError: MongoDBTaxationRepository.__init__() missing 1 required positional argument: 'database_name'
+2025-06-13 16:05:07 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-13 16:05:07 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-13 16:05:07 [INFO] app.main:40 - lifespan(): Running shutdown tasks...
+2025-06-13 16:05:07 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-13 16:05:07 [INFO] uvicorn.error:93 - _serve(): Finished server process [1024]
+2025-06-13 16:05:15 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-13 16:05:23 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-13 16:05:23 [INFO] uvicorn.error:83 - _serve(): Started server process [1237]
+2025-06-13 16:05:23 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-13 16:05:23 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-13 16:05:23 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-13 16:05:25 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-13 16:05:25 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-13 16:05:25 [INFO] app.main:40 - lifespan(): Running shutdown tasks...
+2025-06-13 16:05:25 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-13 16:05:25 [INFO] uvicorn.error:93 - _serve(): Finished server process [1237]
+2025-06-13 16:05:30 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-13 16:05:38 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-13 16:05:38 [INFO] uvicorn.error:83 - _serve(): Started server process [1263]
+2025-06-13 16:05:38 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-13 16:05:38 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-13 16:05:38 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-13 16:05:43 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-13 16:05:55 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-13 16:05:55 [INFO] uvicorn.error:83 - _serve(): Started server process [1282]
+2025-06-13 16:05:55 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-13 16:05:55 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-13 16:05:55 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-13 16:06:00 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-13 16:06:09 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-13 16:06:09 [INFO] uvicorn.error:83 - _serve(): Started server process [1309]
+2025-06-13 16:06:09 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-13 16:06:09 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-13 16:06:09 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-13 16:06:13 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-13 16:06:21 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-13 16:06:21 [INFO] uvicorn.error:83 - _serve(): Started server process [1332]
+2025-06-13 16:06:21 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-13 16:06:21 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-13 16:06:21 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-13 16:06:25 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-13 16:06:32 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-13 16:06:32 [INFO] uvicorn.error:83 - _serve(): Started server process [1346]
+2025-06-13 16:06:32 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-13 16:06:32 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-13 16:06:32 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-13 16:06:37 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-13 16:06:45 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-13 16:06:45 [INFO] uvicorn.error:83 - _serve(): Started server process [1359]
+2025-06-13 16:06:45 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-13 16:06:45 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-13 16:06:45 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-13 16:06:50 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-13 16:06:57 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-13 16:06:57 [INFO] uvicorn.error:83 - _serve(): Started server process [1377]
+2025-06-13 16:06:57 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-13 16:06:57 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-13 16:06:57 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-13 16:07:04 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-13 16:07:04 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-13 16:07:04 [INFO] app.main:40 - lifespan(): Running shutdown tasks...
+2025-06-13 16:07:04 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-13 16:07:04 [INFO] uvicorn.error:93 - _serve(): Finished server process [1377]
+2025-06-13 16:07:08 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-13 16:07:17 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-13 16:07:17 [INFO] uvicorn.error:83 - _serve(): Started server process [1395]
+2025-06-13 16:07:17 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-13 16:07:17 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-13 16:07:17 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-13 16:07:21 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-13 16:07:30 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-13 16:07:30 [INFO] uvicorn.error:83 - _serve(): Started server process [1411]
+2025-06-13 16:07:30 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-13 16:07:30 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-13 16:07:30 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-13 16:07:35 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-13 16:07:43 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-13 16:07:43 [INFO] uvicorn.error:83 - _serve(): Started server process [1426]
+2025-06-13 16:07:43 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-13 16:07:43 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-13 16:07:43 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-13 16:07:47 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-13 16:07:57 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-13 16:07:57 [INFO] uvicorn.error:83 - _serve(): Started server process [1451]
+2025-06-13 16:07:57 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-13 16:07:57 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-13 16:07:57 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-13 16:08:02 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-13 16:08:10 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-13 16:08:10 [INFO] uvicorn.error:83 - _serve(): Started server process [1468]
+2025-06-13 16:08:10 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-13 16:08:10 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-13 16:08:10 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-13 16:08:14 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-13 16:08:21 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-13 16:08:21 [INFO] uvicorn.error:83 - _serve(): Started server process [1489]
+2025-06-13 16:08:21 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-13 16:08:21 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-13 16:08:21 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-13 16:08:27 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-13 16:08:33 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-13 16:08:33 [INFO] uvicorn.error:83 - _serve(): Started server process [1502]
+2025-06-13 16:08:33 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-13 16:08:33 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-13 16:08:33 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-13 16:08:37 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-13 16:08:48 [INFO] app.main:83 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-13 16:08:48 [INFO] uvicorn.error:83 - _serve(): Started server process [1639]
+2025-06-13 16:08:48 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-13 16:08:48 [INFO] app.main:38 - lifespan(): Running startup tasks...
+2025-06-13 16:08:48 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-13 16:20:27 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51262 - "OPTIONS /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 200
+2025-06-13 16:20:27 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51264 - "OPTIONS /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 200
+2025-06-13 16:20:27 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-13 16:20:27 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-13 16:20:27 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-13 16:20:27 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-13 16:20:27 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-13 16:20:27 [INFO] app.config.dependency_container:209 - _setup_repositories(): Repositories initialized with centralized MongoDB configuration
+2025-06-13 16:20:27 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceNotificationHandler
+2025-06-13 16:20:27 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAnalyticsHandler
+2025-06-13 16:20:27 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAuditHandler
+2025-06-13 16:20:27 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceIntegrationHandler
+2025-06-13 16:20:27 [INFO] app.config.dependency_container:526 - _get_event_publisher(): Enhanced event publisher configured with attendance handlers
+2025-06-13 16:20:27 [ERROR] app.config.dependency_container:292 - _setup_services(): Error setting up services: RegimeComparisonServiceImpl.__init__() got an unexpected keyword argument 'tax_calculation_service'
+2025-06-13 16:20:27 [ERROR] app.config.dependency_container:107 - initialize(): Error initializing dependency container: RegimeComparisonServiceImpl.__init__() got an unexpected keyword argument 'tax_calculation_service'
+2025-06-13 16:20:27 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51262 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 500
+2025-06-13 16:20:27 [ERROR] uvicorn.error:408 - run_asgi(): Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/routing.py", line 291, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 640, in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    result = context.run(func, *args)
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 1082, in get_reporting_controller
+    return container.get_reporting_controller()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 727, in get_reporting_controller
+    self.initialize()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 100, in initialize
+    self._setup_services()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 250, in _setup_services
+    self._services['regime_comparison'] = RegimeComparisonServiceImpl(
+                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        tax_calculation_service=self._services['tax_calculation']
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+TypeError: RegimeComparisonServiceImpl.__init__() got an unexpected keyword argument 'tax_calculation_service'
+2025-06-13 16:20:27 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-13 16:20:28 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-13 16:20:28 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-13 16:20:28 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-13 16:20:28 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-13 16:20:28 [INFO] app.config.dependency_container:209 - _setup_repositories(): Repositories initialized with centralized MongoDB configuration
+2025-06-13 16:20:28 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceNotificationHandler
+2025-06-13 16:20:28 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAnalyticsHandler
+2025-06-13 16:20:28 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAuditHandler
+2025-06-13 16:20:28 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceIntegrationHandler
+2025-06-13 16:20:28 [INFO] app.config.dependency_container:526 - _get_event_publisher(): Enhanced event publisher configured with attendance handlers
+2025-06-13 16:20:28 [ERROR] app.config.dependency_container:292 - _setup_services(): Error setting up services: RegimeComparisonServiceImpl.__init__() got an unexpected keyword argument 'tax_calculation_service'
+2025-06-13 16:20:28 [ERROR] app.config.dependency_container:107 - initialize(): Error initializing dependency container: RegimeComparisonServiceImpl.__init__() got an unexpected keyword argument 'tax_calculation_service'
+2025-06-13 16:20:28 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51264 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 500
+2025-06-13 16:20:28 [ERROR] uvicorn.error:408 - run_asgi(): Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/routing.py", line 291, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 640, in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    result = context.run(func, *args)
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 1082, in get_reporting_controller
+    return container.get_reporting_controller()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 727, in get_reporting_controller
+    self.initialize()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 100, in initialize
+    self._setup_services()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 250, in _setup_services
+    self._services['regime_comparison'] = RegimeComparisonServiceImpl(
+                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        tax_calculation_service=self._services['tax_calculation']
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+TypeError: RegimeComparisonServiceImpl.__init__() got an unexpected keyword argument 'tax_calculation_service'
+2025-06-13 16:20:28 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-13 16:20:28 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-13 16:20:28 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-13 16:20:28 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-13 16:20:28 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-13 16:20:28 [INFO] app.config.dependency_container:209 - _setup_repositories(): Repositories initialized with centralized MongoDB configuration
+2025-06-13 16:20:28 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceNotificationHandler
+2025-06-13 16:20:28 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAnalyticsHandler
+2025-06-13 16:20:28 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAuditHandler
+2025-06-13 16:20:28 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceIntegrationHandler
+2025-06-13 16:20:28 [INFO] app.config.dependency_container:526 - _get_event_publisher(): Enhanced event publisher configured with attendance handlers
+2025-06-13 16:20:28 [ERROR] app.config.dependency_container:292 - _setup_services(): Error setting up services: RegimeComparisonServiceImpl.__init__() got an unexpected keyword argument 'tax_calculation_service'
+2025-06-13 16:20:28 [ERROR] app.config.dependency_container:107 - initialize(): Error initializing dependency container: RegimeComparisonServiceImpl.__init__() got an unexpected keyword argument 'tax_calculation_service'
+2025-06-13 16:20:28 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51268 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 500
+2025-06-13 16:20:28 [ERROR] uvicorn.error:408 - run_asgi(): Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/routing.py", line 291, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 640, in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    result = context.run(func, *args)
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 1082, in get_reporting_controller
+    return container.get_reporting_controller()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 727, in get_reporting_controller
+    self.initialize()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 100, in initialize
+    self._setup_services()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 250, in _setup_services
+    self._services['regime_comparison'] = RegimeComparisonServiceImpl(
+                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        tax_calculation_service=self._services['tax_calculation']
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+TypeError: RegimeComparisonServiceImpl.__init__() got an unexpected keyword argument 'tax_calculation_service'
+2025-06-13 16:20:29 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-13 16:20:29 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-13 16:20:29 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-13 16:20:29 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-13 16:20:29 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-13 16:20:29 [INFO] app.config.dependency_container:209 - _setup_repositories(): Repositories initialized with centralized MongoDB configuration
+2025-06-13 16:20:29 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceNotificationHandler
+2025-06-13 16:20:29 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAnalyticsHandler
+2025-06-13 16:20:29 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAuditHandler
+2025-06-13 16:20:29 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceIntegrationHandler
+2025-06-13 16:20:29 [INFO] app.config.dependency_container:526 - _get_event_publisher(): Enhanced event publisher configured with attendance handlers
+2025-06-13 16:20:29 [ERROR] app.config.dependency_container:292 - _setup_services(): Error setting up services: RegimeComparisonServiceImpl.__init__() got an unexpected keyword argument 'tax_calculation_service'
+2025-06-13 16:20:29 [ERROR] app.config.dependency_container:107 - initialize(): Error initializing dependency container: RegimeComparisonServiceImpl.__init__() got an unexpected keyword argument 'tax_calculation_service'
+2025-06-13 16:20:29 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51270 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 500
+2025-06-13 16:20:29 [ERROR] uvicorn.error:408 - run_asgi(): Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/routing.py", line 291, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 640, in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    result = context.run(func, *args)
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 1082, in get_reporting_controller
+    return container.get_reporting_controller()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 727, in get_reporting_controller
+    self.initialize()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 100, in initialize
+    self._setup_services()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 250, in _setup_services
+    self._services['regime_comparison'] = RegimeComparisonServiceImpl(
+                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        tax_calculation_service=self._services['tax_calculation']
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+TypeError: RegimeComparisonServiceImpl.__init__() got an unexpected keyword argument 'tax_calculation_service'
+2025-06-13 16:20:30 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-13 16:20:30 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-13 16:20:30 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-13 16:20:30 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-13 16:20:30 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-13 16:20:30 [INFO] app.config.dependency_container:209 - _setup_repositories(): Repositories initialized with centralized MongoDB configuration
+2025-06-13 16:20:30 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceNotificationHandler
+2025-06-13 16:20:30 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAnalyticsHandler
+2025-06-13 16:20:30 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAuditHandler
+2025-06-13 16:20:30 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceIntegrationHandler
+2025-06-13 16:20:30 [INFO] app.config.dependency_container:526 - _get_event_publisher(): Enhanced event publisher configured with attendance handlers
+2025-06-13 16:20:30 [ERROR] app.config.dependency_container:292 - _setup_services(): Error setting up services: RegimeComparisonServiceImpl.__init__() got an unexpected keyword argument 'tax_calculation_service'
+2025-06-13 16:20:30 [ERROR] app.config.dependency_container:107 - initialize(): Error initializing dependency container: RegimeComparisonServiceImpl.__init__() got an unexpected keyword argument 'tax_calculation_service'
+2025-06-13 16:20:30 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51272 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 500
+2025-06-13 16:20:30 [ERROR] uvicorn.error:408 - run_asgi(): Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/routing.py", line 291, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 640, in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    result = context.run(func, *args)
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 1082, in get_reporting_controller
+    return container.get_reporting_controller()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 727, in get_reporting_controller
+    self.initialize()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 100, in initialize
+    self._setup_services()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 250, in _setup_services
+    self._services['regime_comparison'] = RegimeComparisonServiceImpl(
+                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        tax_calculation_service=self._services['tax_calculation']
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+TypeError: RegimeComparisonServiceImpl.__init__() got an unexpected keyword argument 'tax_calculation_service'
+2025-06-13 16:20:31 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-13 16:20:31 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-13 16:20:31 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-13 16:20:31 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-13 16:20:31 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-13 16:20:31 [INFO] app.config.dependency_container:209 - _setup_repositories(): Repositories initialized with centralized MongoDB configuration
+2025-06-13 16:20:31 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceNotificationHandler
+2025-06-13 16:20:31 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAnalyticsHandler
+2025-06-13 16:20:31 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAuditHandler
+2025-06-13 16:20:31 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceIntegrationHandler
+2025-06-13 16:20:31 [INFO] app.config.dependency_container:526 - _get_event_publisher(): Enhanced event publisher configured with attendance handlers
+2025-06-13 16:20:31 [ERROR] app.config.dependency_container:292 - _setup_services(): Error setting up services: RegimeComparisonServiceImpl.__init__() got an unexpected keyword argument 'tax_calculation_service'
+2025-06-13 16:20:31 [ERROR] app.config.dependency_container:107 - initialize(): Error initializing dependency container: RegimeComparisonServiceImpl.__init__() got an unexpected keyword argument 'tax_calculation_service'
+2025-06-13 16:20:31 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51274 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 500
+2025-06-13 16:20:31 [ERROR] uvicorn.error:408 - run_asgi(): Exception in ASGI application
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/protocols/http/h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/applications.py", line 112, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 187, in __call__
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 714, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 734, in app
+    await route.handle(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/routing.py", line 291, in app
+    solved_result = await solve_dependencies(
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/fastapi/dependencies/utils.py", line 640, in solve_dependencies
+    solved = await run_in_threadpool(call, **solved_result.values)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/starlette/concurrency.py", line 37, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/to_thread.py", line 56, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 2470, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/anyio/_backends/_asyncio.py", line 967, in run
+    result = context.run(func, *args)
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 1082, in get_reporting_controller
+    return container.get_reporting_controller()
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 727, in get_reporting_controller
+    self.initialize()
+    ~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 100, in initialize
+    self._setup_services()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/ankit/Downloads/code/pmssrc/backend/app/config/dependency_container.py", line 250, in _setup_services
+    self._services['regime_comparison'] = RegimeComparisonServiceImpl(
+                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        tax_calculation_service=self._services['tax_calculation']
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+TypeError: RegimeComparisonServiceImpl.__init__() got an unexpected keyword argument 'tax_calculation_service'

@@ -6,7 +6,6 @@ MongoDB implementation of the taxation repository
 from typing import List, Optional
 from datetime import date
 from decimal import Decimal
-from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
 
 from app.domain.repositories.taxation_repository import TaxationRepository
@@ -20,22 +19,71 @@ from app.domain.entities.taxation.house_property_income import HousePropertyInco
 from app.domain.entities.taxation.capital_gains import CapitalGainsIncome
 from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 from app.domain.value_objects.money import Money
+from app.infrastructure.database.database_connector import DatabaseConnector
 
 
 class MongoDBTaxationRepository(TaxationRepository):
     """MongoDB implementation of the taxation repository."""
     
-    def __init__(self, client: AsyncIOMotorClient, database_name: str):
+    def __init__(self, database_connector: DatabaseConnector):
         """
         Initialize the repository.
         
         Args:
-            client: MongoDB client
-            database_name: Database name
+            database_connector: Database connection abstraction
         """
-        self.client = client
-        self.db = client[database_name]
-        self.collection = self.db.taxation_records
+        self.db_connector = database_connector
+        self._collection_name = "taxation_records"
+        
+        # Connection configuration (will be set by dependency container)
+        self._connection_string = None
+        self._client_options = None
+        
+    def set_connection_config(self, connection_string: str, client_options: dict):
+        """
+        Set MongoDB connection configuration.
+        
+        Args:
+            connection_string: MongoDB connection string
+            client_options: MongoDB client options
+        """
+        self._connection_string = connection_string
+        self._client_options = client_options
+        
+    async def _get_collection(self, organisation_id: str = None):
+        """
+        Get taxation collection for specific organisation or global.
+        
+        Ensures database connection is established in the correct event loop.
+        """
+        db_name = organisation_id if organisation_id else "pms_global_database"
+        
+        # Ensure database is connected in the current event loop
+        if not self.db_connector.is_connected:
+            try:
+                # Use stored connection configuration or fallback to config functions
+                if self._connection_string and self._client_options:
+                    connection_string = self._connection_string
+                    options = self._client_options
+                else:
+                    # Fallback to config functions if connection config not set
+                    from app.config.mongodb_config import get_mongodb_connection_string, get_mongodb_client_options
+                    connection_string = get_mongodb_connection_string()
+                    options = get_mongodb_client_options()
+                
+                await self.db_connector.connect(connection_string, **options)
+                
+            except Exception as e:
+                raise RuntimeError(f"Database connection failed: {e}")
+        
+        # Get collection
+        try:
+            db = self.db_connector.get_database('pms_'+db_name)
+            collection = db[self._collection_name]
+            return collection
+            
+        except Exception as e:
+            raise RuntimeError(f"Collection access failed: {e}")
     
     async def save_taxation_record(self, record: TaxationRecord) -> None:
         """
@@ -44,23 +92,27 @@ class MongoDBTaxationRepository(TaxationRepository):
         Args:
             record: Taxation record to save
         """
+        collection = await self._get_collection(getattr(record, 'organisation_id', None))
         document = self._convert_to_document(record)
-        await self.collection.insert_one(document)
+        await collection.insert_one(document)
     
     async def get_taxation_record(self, 
                                 employee_id: str,
-                                financial_year: int) -> Optional[TaxationRecord]:
+                                financial_year: int,
+                                organisation_id: str = None) -> Optional[TaxationRecord]:
         """
         Get a taxation record.
         
         Args:
             employee_id: Employee ID
             financial_year: Financial year
+            organisation_id: Organisation ID for database selection
             
         Returns:
             Optional[TaxationRecord]: Taxation record if found, None otherwise
         """
-        document = await self.collection.find_one({
+        collection = await self._get_collection(organisation_id)
+        document = await collection.find_one({
             "employee_id": employee_id,
             "financial_year": financial_year
         })
@@ -72,7 +124,8 @@ class MongoDBTaxationRepository(TaxationRepository):
     async def get_taxation_records(self,
                                  employee_id: str,
                                  start_year: Optional[int] = None,
-                                 end_year: Optional[int] = None) -> List[TaxationRecord]:
+                                 end_year: Optional[int] = None,
+                                 organisation_id: str = None) -> List[TaxationRecord]:
         """
         Get taxation records for an employee.
         
@@ -80,10 +133,12 @@ class MongoDBTaxationRepository(TaxationRepository):
             employee_id: Employee ID
             start_year: Start financial year (optional)
             end_year: End financial year (optional)
+            organisation_id: Organisation ID for database selection
             
         Returns:
             List[TaxationRecord]: List of taxation records
         """
+        collection = await self._get_collection(organisation_id)
         query = {"employee_id": employee_id}
         
         if start_year and end_year:
@@ -93,25 +148,28 @@ class MongoDBTaxationRepository(TaxationRepository):
         elif end_year:
             query["financial_year"] = {"$lte": end_year}
         
-        cursor = self.collection.find(query)
+        cursor = collection.find(query)
         documents = await cursor.to_list(length=None)
         
         return [self._convert_to_entity(doc) for doc in documents]
     
     async def get_taxation_records_by_regime(self,
                                            regime: TaxRegimeType,
-                                           financial_year: int) -> List[TaxationRecord]:
+                                           financial_year: int,
+                                           organisation_id: str = None) -> List[TaxationRecord]:
         """
         Get taxation records by regime.
         
         Args:
             regime: Tax regime
             financial_year: Financial year
+            organisation_id: Organisation ID for database selection
             
         Returns:
             List[TaxationRecord]: List of taxation records
         """
-        cursor = self.collection.find({
+        collection = await self._get_collection(organisation_id)
+        cursor = collection.find({
             "regime.regime_type": regime.value,
             "financial_year": financial_year
         })
@@ -132,7 +190,8 @@ class MongoDBTaxationRepository(TaxationRepository):
         Returns:
             List[TaxationRecord]: List of taxation records
         """
-        cursor = self.collection.find({
+        collection = await self._get_collection(organisation_id)
+        cursor = collection.find({
             "organisation_id": organisation_id,
             "financial_year": financial_year
         })
@@ -142,15 +201,18 @@ class MongoDBTaxationRepository(TaxationRepository):
     
     async def delete_taxation_record(self,
                                    employee_id: str,
-                                   financial_year: int) -> None:
+                                   financial_year: int,
+                                   organisation_id: str = None) -> None:
         """
         Delete a taxation record.
         
         Args:
             employee_id: Employee ID
             financial_year: Financial year
+            organisation_id: Organisation ID for database selection
         """
-        await self.collection.delete_one({
+        collection = await self._get_collection(organisation_id)
+        await collection.delete_one({
             "employee_id": employee_id,
             "financial_year": financial_year
         })
@@ -162,8 +224,9 @@ class MongoDBTaxationRepository(TaxationRepository):
         Args:
             record: Taxation record to update
         """
+        collection = await self._get_collection(getattr(record, 'organisation_id', None))
         document = self._convert_to_document(record)
-        await self.collection.replace_one(
+        await collection.replace_one(
             {
                 "employee_id": record.employee_id,
                 "financial_year": record.financial_year
@@ -173,18 +236,21 @@ class MongoDBTaxationRepository(TaxationRepository):
     
     async def get_taxation_records_by_date_range(self,
                                                start_date: date,
-                                               end_date: date) -> List[TaxationRecord]:
+                                               end_date: date,
+                                               organisation_id: str = None) -> List[TaxationRecord]:
         """
         Get taxation records by date range.
         
         Args:
             start_date: Start date
             end_date: End date
+            organisation_id: Organisation ID for database selection
             
         Returns:
             List[TaxationRecord]: List of taxation records
         """
-        cursor = self.collection.find({
+        collection = await self._get_collection(organisation_id)
+        cursor = collection.find({
             "created_at": {
                 "$gte": start_date,
                 "$lte": end_date
@@ -197,7 +263,8 @@ class MongoDBTaxationRepository(TaxationRepository):
     async def get_taxation_records_by_tax_liability_range(self,
                                                         min_tax: float,
                                                         max_tax: float,
-                                                        financial_year: int) -> List[TaxationRecord]:
+                                                        financial_year: int,
+                                                        organisation_id: str = None) -> List[TaxationRecord]:
         """
         Get taxation records by tax liability range.
         
@@ -205,11 +272,13 @@ class MongoDBTaxationRepository(TaxationRepository):
             min_tax: Minimum tax liability
             max_tax: Maximum tax liability
             financial_year: Financial year
+            organisation_id: Organisation ID for database selection
             
         Returns:
             List[TaxationRecord]: List of taxation records
         """
-        cursor = self.collection.find({
+        collection = await self._get_collection(organisation_id)
+        cursor = collection.find({
             "tax_liability": {
                 "$gte": min_tax,
                 "$lte": max_tax
@@ -223,7 +292,8 @@ class MongoDBTaxationRepository(TaxationRepository):
     async def get_taxation_records_by_income_range(self,
                                                  min_income: float,
                                                  max_income: float,
-                                                 financial_year: int) -> List[TaxationRecord]:
+                                                 financial_year: int,
+                                                 organisation_id: str = None) -> List[TaxationRecord]:
         """
         Get taxation records by income range.
         
@@ -231,11 +301,13 @@ class MongoDBTaxationRepository(TaxationRepository):
             min_income: Minimum income
             max_income: Maximum income
             financial_year: Financial year
+            organisation_id: Organisation ID for database selection
             
         Returns:
             List[TaxationRecord]: List of taxation records
         """
-        cursor = self.collection.find({
+        collection = await self._get_collection(organisation_id)
+        cursor = collection.find({
             "total_income": {
                 "$gte": min_income,
                 "$lte": max_income
@@ -249,7 +321,8 @@ class MongoDBTaxationRepository(TaxationRepository):
     async def get_taxation_records_by_deduction_range(self,
                                                     min_deduction: float,
                                                     max_deduction: float,
-                                                    financial_year: int) -> List[TaxationRecord]:
+                                                    financial_year: int,
+                                                    organisation_id: str = None) -> List[TaxationRecord]:
         """
         Get taxation records by deduction range.
         
@@ -257,11 +330,13 @@ class MongoDBTaxationRepository(TaxationRepository):
             min_deduction: Minimum deduction
             max_deduction: Maximum deduction
             financial_year: Financial year
+            organisation_id: Organisation ID for database selection
             
         Returns:
             List[TaxationRecord]: List of taxation records
         """
-        cursor = self.collection.find({
+        collection = await self._get_collection(organisation_id)
+        cursor = collection.find({
             "total_deductions": {
                 "$gte": min_deduction,
                 "$lte": max_deduction
@@ -275,7 +350,8 @@ class MongoDBTaxationRepository(TaxationRepository):
     async def get_taxation_records_by_exemption_range(self,
                                                     min_exemption: float,
                                                     max_exemption: float,
-                                                    financial_year: int) -> List[TaxationRecord]:
+                                                    financial_year: int,
+                                                    organisation_id: str = None) -> List[TaxationRecord]:
         """
         Get taxation records by exemption range.
         
@@ -283,11 +359,13 @@ class MongoDBTaxationRepository(TaxationRepository):
             min_exemption: Minimum exemption
             max_exemption: Maximum exemption
             financial_year: Financial year
+            organisation_id: Organisation ID for database selection
             
         Returns:
             List[TaxationRecord]: List of taxation records
         """
-        cursor = self.collection.find({
+        collection = await self._get_collection(organisation_id)
+        cursor = collection.find({
             "total_exemptions": {
                 "$gte": min_exemption,
                 "$lte": max_exemption

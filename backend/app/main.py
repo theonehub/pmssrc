@@ -26,6 +26,7 @@ from app.api.routes.public_holiday_routes_v2 import router as public_holiday_rou
 from app.api.routes.company_leave_routes_v2 import router as company_leave_routes_v2_router
 from app.api.routes.employee_leave_routes_v2 import router as employee_leave_routes_v2_router
 from app.api.routes.leaves_routes_v2 import router as leaves_routes_v2_router
+from app.api.routes.lwp_routes import router as lwp_routes_router
 from app.api.routes.project_attributes_routes_v2 import router as project_attributes_routes_v2_router
 from app.api.routes.reporting_routes_v2 import router as reporting_routes_v2_router
 
@@ -75,6 +76,7 @@ app.include_router(payout_routes_v2_router, tags=["💰 Payouts V2 (SOLID)"])
 app.include_router(company_leave_routes_v2_router, tags=["🏢 Company Leaves V2 (SOLID)"])
 app.include_router(employee_leave_routes_v2_router, tags=["🏖️ Employee Leaves V2 (SOLID)"])
 app.include_router(leaves_routes_v2_router, tags=["🏖️ Leaves V2 (Frontend Compatible)"])
+app.include_router(lwp_routes_router, tags=["📋 LWP Management"])
 app.include_router(project_attributes_routes_v2_router, tags=["📊 Project Attributes V2 (SOLID)"])
 app.include_router(reimbursement_routes_v2_router, tags=["💳 Reimbursements V2 (SOLID)"])
 app.include_router(attendance_routes_v2_router, tags=["⏰ Attendance V2 (SOLID)"])

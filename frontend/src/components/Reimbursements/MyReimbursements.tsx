@@ -32,26 +32,33 @@ import {
   FormControl,
   InputLabel,
   Avatar,
-  SelectChangeEvent
+  SelectChangeEvent,
+  AlertColor
 } from '@mui/material';
 import {
   Add as AddIcon,
   Search as SearchIcon,
   Refresh as RefreshIcon,
   Receipt as ReceiptIcon,
-  AttachMoney as MoneyIcon,
   Description as DescriptionIcon,
-  CloudUpload as CloudUploadIcon
+  CloudUpload as CloudUploadIcon,
+  Visibility as VisibilityIcon,
+  Edit as EditIcon
 } from '@mui/icons-material';
-import PageLayout from '../../layout/PageLayout';
-import { ToastState } from '../../shared/types';
 import { reimbursementApi, ReimbursementRequest } from '../../shared/api/reimbursementApi';
 
+// Define interfaces
 interface ReimbursementFormData {
   reimbursement_type_id: string;
   amount: string;
   description: string;
   file: File | null;
+}
+
+interface ToastState {
+  open: boolean;
+  message: string;
+  severity: AlertColor;
 }
 
 const MyReimbursements: React.FC = () => {
@@ -113,7 +120,7 @@ const MyReimbursements: React.FC = () => {
   };
 
   const handleCloseToast = (): void => {
-    setToast(prev => ({ ...prev, open: false }));
+    setToast((prev: ToastState) => ({ ...prev, open: false }));
   };
 
   const getStatusColor = (status?: string): 'success' | 'warning' | 'error' | 'default' => {
@@ -261,69 +268,58 @@ const MyReimbursements: React.FC = () => {
   );
 
   return (
-    <PageLayout title="My Reimbursements">
-      <Box sx={{ p: 3 }}>
-        {/* Header with Actions */}
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          mb: 3 
-        }}>
-          <Typography variant="h4" component="h1" fontWeight="bold">
-            My Reimbursements
-          </Typography>
-          
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Tooltip title="Refresh" placement="top">
-              <IconButton 
-                onClick={handleRefresh}
-                disabled={refreshing}
-                color="primary"
-              >
-                <RefreshIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="New Request" placement="top">
-              <IconButton 
+    <Box>
+      {/* Header with Actions */}
+      <Card elevation={1} sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+            <Box>
+              <Typography variant="body2" color="text.secondary">
+                Manage your reimbursement requests
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Tooltip title="Refresh" placement="top">
+                <IconButton 
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  color="primary"
+                >
+                  <RefreshIcon />
+                </IconButton>
+              </Tooltip>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
                 onClick={() => setShowModal(true)}
-                color="primary"
-                sx={{ 
-                  bgcolor: 'primary.main',
-                  color: 'white',
-                  '&:hover': { bgcolor: 'primary.dark' }
-                }}
               >
-                <AddIcon />
-              </IconButton>
-            </Tooltip>
+                NEW REQUEST
+              </Button>
+            </Box>
           </Box>
-        </Box>
+        </CardContent>
+      </Card>
 
-        {/* Filters */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Box sx={{ 
-              display: 'flex', 
-              gap: 2, 
-              flexWrap: 'wrap',
-              alignItems: 'center'
-            }}>
-              <TextField
-                size="small"
-                placeholder="Search requests..."
-                value={searchTerm}
-                onChange={handleSearchChange}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon color="action" />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{ minWidth: 250 }}
-              />
-              
+      {/* Filters */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+            <TextField
+              size="small"
+              placeholder="Search requests..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              sx={{ minWidth: 300, flexGrow: 1, maxWidth: 500 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon color="action" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            
+            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
               <FormControl size="small" sx={{ minWidth: 150 }}>
                 <InputLabel>Status</InputLabel>
                 <Select
@@ -348,262 +344,261 @@ const MyReimbursements: React.FC = () => {
                 </Box>
               )}
             </Box>
-          </CardContent>
-        </Card>
+          </Box>
+        </CardContent>
+      </Card>
 
-        {/* Requests Table */}
-        <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow sx={{ 
-                  '& .MuiTableCell-head': { 
-                    backgroundColor: 'primary.main',
-                    color: 'white',
-                    fontWeight: 'bold',
-                    fontSize: '0.875rem',
-                    padding: '16px'
-                  }
-                }}>
-                  <TableCell>Type</TableCell>
-                  <TableCell>Amount</TableCell>
-                  <TableCell>Description</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Attachment</TableCell>
-                  <TableCell align="center">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {isLoading ? (
-                  renderTableSkeleton()
-                ) : filteredRequests.length > 0 ? (
-                  filteredRequests.map((request: any) => (
-                    <Fade in key={request.request_id} timeout={300}>
-                      <TableRow 
-                        hover
-                        sx={{ 
-                          '&:hover': { 
-                            backgroundColor: 'action.hover' 
-                          }
-                        }}
-                      >
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Avatar 
+      {/* Requests Table */}
+      <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ 
+                '& .MuiTableCell-head': { 
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '0.875rem',
+                  padding: '16px'
+                }
+              }}>
+                <TableCell>Type</TableCell>
+                <TableCell>Amount</TableCell>
+                <TableCell>Description</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Date</TableCell>
+                <TableCell>Attachment</TableCell>
+                <TableCell align="center">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {isLoading ? (
+                renderTableSkeleton()
+              ) : filteredRequests.length > 0 ? (
+                filteredRequests.map((request: any) => (
+                  <Fade in key={request.request_id} timeout={300}>
+                    <TableRow 
+                      hover
+                      sx={{ 
+                        '&:hover': { 
+                          backgroundColor: 'action.hover' 
+                        }
+                      }}
+                    >
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Avatar 
+                            sx={{ 
+                              width: 32, 
+                              height: 32, 
+                              bgcolor: 'primary.main',
+                              fontSize: '0.75rem'
+                            }}
+                          >
+                            <ReceiptIcon fontSize="small" />
+                          </Avatar>
+                          <Typography variant="subtitle2" fontWeight="medium">
+                            {getTypeName(request)}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="medium" color="success.main">
+                          ₹{request.amount}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {request.description || 'No description'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={request.status}
+                          color={getStatusColor(request.status)}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {request.created_at ? new Date(request.created_at).toLocaleDateString() : 'N/A'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        {request.receipt_file_name ? (
+                          <Tooltip title={`View Receipt: ${request.receipt_file_name}`}>
+                            <Chip
+                              label={request.receipt_file_name}
+                              size="small"
+                              color="success"
+                              variant="outlined"
+                              icon={<DescriptionIcon fontSize="small" />}
+                              onClick={() => reimbursementApi.downloadReceipt(request.request_id)}
                               sx={{ 
-                                width: 32, 
-                                height: 32, 
-                                bgcolor: 'primary.main',
-                                fontSize: '0.75rem'
+                                cursor: 'pointer',
+                                '&:hover': {
+                                  backgroundColor: 'success.light',
+                                  color: 'white'
+                                }
                               }}
+                            />
+                          </Tooltip>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">
+                            No file
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell align="center">
+                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                          <Tooltip title="View Details">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => {/* Add view details logic */}}
                             >
-                              <ReceiptIcon fontSize="small" />
-                            </Avatar>
-                            <Typography variant="subtitle2" fontWeight="medium">
-                              {getTypeName(request)}
-                            </Typography>
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" fontWeight="medium" color="success.main">
-                            ₹{request.amount}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" color="text.secondary">
-                            {request.description || 'No description'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={request.status}
-                            color={getStatusColor(request.status)}
-                            size="small"
-                            variant="outlined"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {request.created_at ? new Date(request.created_at).toLocaleDateString() : 'N/A'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          {request.receipt_file_name ? (
-                            <Tooltip title={`View Receipt: ${request.receipt_file_name}`}>
-                              <Chip
-                                label={request.receipt_file_name}
-                                size="small"
-                                color="success"
-                                variant="outlined"
-                                icon={<DescriptionIcon fontSize="small" />}
-                                onClick={() => reimbursementApi.downloadReceipt(request.request_id)}
-                                sx={{ 
-                                  cursor: 'pointer',
-                                  '&:hover': {
-                                    backgroundColor: 'success.light',
-                                    color: 'white'
-                                  }
-                                }}
-                              />
-                            </Tooltip>
-                          ) : (
-                            <Typography variant="caption" color="text.secondary">
-                              No file
-                            </Typography>
-                          )}
-                        </TableCell>
-                        <TableCell align="center">
-                          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-                            <Tooltip title="View Details">
+                              <VisibilityIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          {request.status === 'draft' && (
+                            <Tooltip title="Edit">
                               <IconButton
                                 size="small"
                                 color="primary"
+                                onClick={() => {/* Add edit logic */}}
                               >
-                                <ReceiptIcon fontSize="small" />
+                                <EditIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    </Fade>
-                  ))
-                ) : (
-                  renderEmptyState()
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
+                          )}
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  </Fade>
+                ))
+              ) : (
+                renderEmptyState()
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
 
-        {/* Submit Request Dialog */}
-        <Dialog open={showModal} onClose={handleClose} maxWidth="sm" fullWidth>
-          <DialogTitle>
-            <Typography variant="h5" component="div">
-              Submit Reimbursement Request
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Fill in the details for your reimbursement request
-            </Typography>
-          </DialogTitle>
+      {/* New Request Modal */}
+      <Dialog 
+        open={showModal} 
+        onClose={handleClose}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          New Reimbursement Request
+        </DialogTitle>
+        <form onSubmit={handleSubmit}>
           <DialogContent>
-            <form onSubmit={handleSubmit}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
-                <FormControl fullWidth required>
-                  <InputLabel>Reimbursement Type</InputLabel>
-                  <Select
-                    value={formData.reimbursement_type_id}
-                    label="Reimbursement Type"
-                    onChange={(e) => setFormData({ ...formData, reimbursement_type_id: e.target.value })}
-                  >
-                    {types.map((type: any) => (
-                      <MenuItem key={type.type_id} value={type.type_id}>
-                        {type.category_name}
-                        {type.is_receipt_required && (
-                          <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                            (Receipt Required)
-                          </Typography>
-                        )}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {formData.reimbursement_type_id && isReceiptRequired() && (
-                    <Typography variant="caption" color="warning.main" sx={{ mt: 0.5 }}>
-                      ⚠️ Receipt is required for this reimbursement type
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
+              <FormControl fullWidth required>
+                <InputLabel>Reimbursement Type</InputLabel>
+                <Select
+                  value={formData.reimbursement_type_id}
+                  label="Reimbursement Type"
+                  onChange={(e) => setFormData(prev => ({ ...prev, reimbursement_type_id: e.target.value }))}
+                >
+                  {types.map((type: any) => (
+                    <MenuItem key={type.type_id} value={type.type_id}>
+                      {type.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <TextField
+                fullWidth
+                required
+                label="Amount"
+                type="number"
+                value={formData.amount}
+                onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                }}
+              />
+
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                label="Description"
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Describe your reimbursement request..."
+              />
+
+              {isReceiptRequired() && (
+                <Box>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Receipt Upload {isReceiptRequired() && <span style={{ color: 'red' }}>*</span>}
+                  </Typography>
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={handleFileChange}
+                    style={{ display: 'none' }}
+                    id="receipt-upload"
+                  />
+                  <label htmlFor="receipt-upload">
+                    <Button
+                      variant="outlined"
+                      component="span"
+                      fullWidth
+                      startIcon={<CloudUploadIcon />}
+                      sx={{ py: 2 }}
+                    >
+                      {formData.file ? formData.file.name : 'Choose Receipt File'}
+                    </Button>
+                  </label>
+                  {isReceiptRequired() && (
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                      Receipt is required for this reimbursement type
                     </Typography>
                   )}
-                </FormControl>
-                <TextField
-                  fullWidth
-                  label="Amount"
-                  type="number"
-                  value={formData.amount}
-                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  required
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <MoneyIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-                <TextField
-                  fullWidth
-                  label="Note/Description"
-                  multiline
-                  rows={3}
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Add details about your reimbursement request..."
-                />
-                {isReceiptRequired() && (
-                  <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Button
-                        variant="outlined"
-                        component="label"
-                        startIcon={<CloudUploadIcon />}
-                        sx={{ minWidth: 150 }}
-                      >
-                        Upload Receipt
-                        <input
-                          type="file"
-                          hidden
-                          accept=".jpg,.jpeg,.png,.pdf"
-                          onChange={handleFileChange}
-                        />
-                      </Button>
-                      {formData.file && (
-                        <Typography variant="body2" color="text.secondary">
-                          {formData.file.name}
-                        </Typography>
-                      )}
-                    </Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                      Receipt is required for this reimbursement type. Supported formats: JPG, PNG, PDF (Max 5MB)
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
-            </form>
+                </Box>
+              )}
+            </Box>
           </DialogContent>
-          <DialogActions sx={{ p: 3 }}>
-            <Button onClick={handleClose} color="inherit">
+          <DialogActions>
+            <Button onClick={handleClose}>
               Cancel
             </Button>
             <Button 
-              onClick={handleSubmit} 
+              type="submit" 
               variant="contained"
-              disabled={
-                !formData.reimbursement_type_id || 
-                !formData.amount || 
-                (isReceiptRequired() && !formData.file)
-              }
+              disabled={!formData.reimbursement_type_id || !formData.amount || (isReceiptRequired() && !formData.file)}
             >
               Submit Request
             </Button>
           </DialogActions>
-        </Dialog>
+        </form>
+      </Dialog>
 
-        {/* Toast Notifications */}
-        <Snackbar
-          open={toast.open}
-          autoHideDuration={6000}
-          onClose={handleCloseToast}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      {/* Toast Notifications */}
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={6000}
+        onClose={handleCloseToast}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseToast} 
+          severity={toast.severity}
+          sx={{ width: '100%' }}
+          variant="filled"
         >
-          <Alert 
-            onClose={handleCloseToast} 
-            severity={toast.severity}
-            sx={{ width: '100%' }}
-            variant="filled"
-          >
-            {toast.message}
-          </Alert>
-        </Snackbar>
-      </Box>
-    </PageLayout>
+          {toast.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 };
 

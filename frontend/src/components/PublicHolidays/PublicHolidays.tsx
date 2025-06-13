@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -41,26 +41,18 @@ import {
 import AddHolidayDialog from './AddHolidayDialog';
 import ImportHolidaysDialog from './ImportHolidaysDialog';
 import EditHolidayDialog from './EditHolidayDialog';
-import PageLayout from '../../layout/PageLayout';
-import api from '../../shared/utils/apiUtils';
+import {
+  usePublicHolidaysQuery,
+  useCreatePublicHolidayMutation,
+  useUpdatePublicHolidayMutation,
+  useDeletePublicHolidayMutation,
+  useImportPublicHolidaysMutation,
+  PublicHoliday,
+  HolidayFormData,
+  PublicHolidayFilters
+} from '../../shared/hooks/usePublicHolidays';
 
-// Define interfaces
-interface PublicHoliday {
-  holiday_id: string | number;
-  name: string;
-  holiday_date: string;
-  description?: string;
-  created_by?: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-interface HolidayFormData {
-  name: string;
-  holiday_date: string;
-  description?: string;
-}
-
+// Define interfaces for local state
 interface AlertState {
   open: boolean;
   message: string;
@@ -73,9 +65,7 @@ interface FormattedDate {
 }
 
 const PublicHolidays: React.FC = () => {
-  // State management with proper typing
-  const [holidays, setHolidays] = useState<PublicHoliday[]>([]);
-  const [filteredHolidays, setFilteredHolidays] = useState<PublicHoliday[]>([]);
+  // Local state for UI
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [openAddDialog, setOpenAddDialog] = useState<boolean>(false);
   const [openImportDialog, setOpenImportDialog] = useState<boolean>(false);
@@ -86,51 +76,35 @@ const PublicHolidays: React.FC = () => {
     message: '', 
     severity: 'success' 
   });
-  const [loading, setLoading] = useState<boolean>(true);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | number | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [filters] = useState<PublicHolidayFilters>({
+    limit: 100,
+    sort_by: 'holiday_date',
+    sort_order: 'asc'
+  });
 
-  // Memoized fetch function
-  const fetchHolidays = useCallback(async (showRefreshLoader = false): Promise<void> => {
-    if (showRefreshLoader) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
+  // React Query hooks
+  const { 
+    data: holidaysResponse, 
+    isLoading, 
+    error, 
+    refetch,
+    isFetching 
+  } = usePublicHolidaysQuery(filters);
 
-    try {
-      const response = await api.get('/api/v2/public-holidays');
-      setHolidays(response.data || []);
-    } catch (error: any) {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.error('Error fetching holidays:', error);
-      }
-      showAlert('Failed to fetch holidays. Please try again.', 'error');
-      setHolidays([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  const createMutation = useCreatePublicHolidayMutation();
+  const updateMutation = useUpdatePublicHolidayMutation();
+  const deleteMutation = useDeletePublicHolidayMutation();
+  const importMutation = useImportPublicHolidaysMutation();
 
-  // Filter holidays based on search term
-  useEffect(() => {
-    if (!searchTerm.trim()) {
-      setFilteredHolidays(holidays);
-    } else {
-      const filtered = holidays.filter(holiday =>
-        holiday.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        holiday.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        new Date(holiday.holiday_date).toLocaleDateString().includes(searchTerm)
-      );
-      setFilteredHolidays(filtered);
-    }
-  }, [holidays, searchTerm]);
-
-  useEffect(() => {
-    fetchHolidays();
-  }, [fetchHolidays]);
+  // Derived state
+  const holidays = holidaysResponse?.holidays || [];
+  const filteredHolidays = holidays.filter(holiday =>
+    !searchTerm.trim() || 
+    holiday.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    holiday.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    new Date(holiday.holiday_date).toLocaleDateString().includes(searchTerm)
+  );
 
   // Helper functions
   const showAlert = (message: string, severity: AlertColor = 'success'): void => {
@@ -144,40 +118,30 @@ const PublicHolidays: React.FC = () => {
   // Event handlers
   const handleAddHoliday = async (holidayData: HolidayFormData): Promise<void> => {
     try {
-      await api.post('/api/v2/public-holidays/', holidayData);
-      fetchHolidays();
+      await createMutation.mutateAsync(holidayData);
       setOpenAddDialog(false);
       showAlert('Holiday added successfully!', 'success');
     } catch (error: any) {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.error('Error adding holiday:', error);
-      }
       const errorMessage = error.response?.data?.detail || error.message || 'Failed to add holiday';
       showAlert(errorMessage, 'error');
       throw error;
     }
   };
 
-  const handleEditHoliday = async (holidayId: string | number, holidayData: HolidayFormData): Promise<void> => {
+  const handleEditHoliday = async (holidayId: string, holidayData: HolidayFormData): Promise<void> => {
     try {
-      await api.put(`/api/v2/public-holidays/${holidayId}`, holidayData);
-      fetchHolidays();
+      await updateMutation.mutateAsync({ id: holidayId, data: holidayData });
       setOpenEditDialog(false);
       setSelectedHoliday(null);
       showAlert('Holiday updated successfully!', 'success');
     } catch (error: any) {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.error('Error updating holiday:', error);
-      }
       const errorMessage = error.response?.data?.detail || error.message || 'Failed to update holiday';
       showAlert(errorMessage, 'error');
       throw error;
     }
   };
 
-  const handleDeleteClick = (holidayId: string | number): void => {
+  const handleDeleteClick = (holidayId: string): void => {
     setDeleteConfirmId(holidayId);
   };
 
@@ -185,14 +149,9 @@ const PublicHolidays: React.FC = () => {
     if (!deleteConfirmId) return;
 
     try {
-      await api.delete(`/api/v2/public-holidays/${deleteConfirmId}`);
-      fetchHolidays();
+      await deleteMutation.mutateAsync(deleteConfirmId);
       showAlert('Holiday deleted successfully!', 'success');
     } catch (error: any) {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.error('Error deleting holiday:', error);
-      }
       const errorMessage = error.response?.data?.detail || error.message || 'Failed to delete holiday';
       showAlert(errorMessage, 'error');
     } finally {
@@ -206,16 +165,12 @@ const PublicHolidays: React.FC = () => {
 
   const handleImportHolidays = async (file: File): Promise<void> => {
     try {
-      await api.upload('/api/v2/public-holidays/import/with-file', file);
-      fetchHolidays();
+      await importMutation.mutateAsync(file);
       setOpenImportDialog(false);
       showAlert('Holidays imported successfully!', 'success');
     } catch (error: any) {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.error('Error importing holidays:', error);
-      }
-      showAlert('Failed to import holidays. Please check your file format.', 'error');
+      const errorMessage = error.response?.data?.detail || error.message || 'Failed to import holidays';
+      showAlert(errorMessage, 'error');
       throw error;
     }
   };
@@ -225,13 +180,20 @@ const PublicHolidays: React.FC = () => {
   };
 
   const handleRefresh = (): void => {
-    fetchHolidays(true);
+    refetch();
   };
 
   const handleEditClick = (holiday: PublicHoliday): void => {
     setSelectedHoliday(holiday);
     setOpenEditDialog(true);
   };
+
+  // Handle React Query error
+  useEffect(() => {
+    if (error) {
+      showAlert('Failed to fetch holidays. Please try again.', 'error');
+    }
+  }, [error]);
 
   // Render helpers
   const renderTableSkeleton = (): React.ReactElement[] => (
@@ -292,262 +254,257 @@ const PublicHolidays: React.FC = () => {
   };
 
   return (
-    <PageLayout title="Public Holidays">
-      <Box sx={{ p: 3 }}>
-        {/* Header */}
-        <Card elevation={1} sx={{ mb: 3 }}>
-          <CardContent>
-            <Box sx={{ 
-              display: 'grid', 
-              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, 
-              gap: 2, 
-              alignItems: 'center' 
-            }}>
-              <Box>
-                <Typography variant="h4" color="primary" gutterBottom>
-                  Public Holidays
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Manage public holidays and special dates
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'flex-start', sm: 'flex-end' }, flexWrap: 'wrap' }}>
-                <Tooltip title="Refresh">
-                  <IconButton 
-                    onClick={handleRefresh}
-                    disabled={refreshing}
-                    color="primary"
-                  >
-                    <RefreshIcon />
-                  </IconButton>
-                </Tooltip>
-                <Button
-                  variant="outlined"
-                  startIcon={<UploadFileIcon />}
-                  onClick={() => setOpenImportDialog(true)}
-                  size="large"
-                >
-                  Import
-                </Button>
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={() => setOpenAddDialog(true)}
-                  size="large"
-                >
-                  Add Holiday
-                </Button>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-
-        {/* Search */}
-        <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
-          <Box sx={{ 
-            display: 'grid', 
-            gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, 
-            gap: 2, 
-            alignItems: 'center' 
-          }}>
-            <TextField
-              fullWidth
-              label="Search holidays"
-              variant="outlined"
-              value={searchTerm}
-              onChange={handleSearchChange}
-              placeholder="Search by name, description, or date..."
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                {loading ? 'Loading...' : `${filteredHolidays.length} holiday${filteredHolidays.length !== 1 ? 's' : ''}`}
+    <Box>
+      {/* Header */}
+      <Card elevation={1} sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+            <Box>
+              <Typography variant="h4" color="primary" gutterBottom>
+                Public Holidays
               </Typography>
-              {refreshing && <CircularProgress size={16} />}
+              <Typography variant="body2" color="text.secondary">
+                Manage public holidays and special dates
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              <Tooltip title="Refresh">
+                <IconButton 
+                  onClick={handleRefresh}
+                  disabled={isFetching}
+                  color="primary"
+                >
+                  <RefreshIcon />
+                </IconButton>
+              </Tooltip>
+              <Button
+                variant="outlined"
+                startIcon={<UploadFileIcon />}
+                onClick={() => setOpenImportDialog(true)}
+                size="large"
+              >
+                IMPORT
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => setOpenAddDialog(true)}
+                size="large"
+              >
+                ADD HOLIDAY
+              </Button>
             </Box>
           </Box>
-        </Paper>
+        </CardContent>
+      </Card>
 
-        {/* Table */}
-        <Paper elevation={1}>
-          <TableContainer>
-            <Table stickyHeader>
-              <TableHead>
-                <TableRow sx={{ 
-                  '& .MuiTableCell-head': { 
-                    backgroundColor: 'primary.main',
-                    color: 'white',
-                    fontWeight: 'bold',
-                    fontSize: '0.875rem'
-                  }
-                }}>
-                  <TableCell>Holiday Name</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Description</TableCell>
-                  <TableCell>Created By</TableCell>
-                  <TableCell align="center">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {loading ? (
-                  renderTableSkeleton()
-                ) : filteredHolidays.length > 0 ? (
-                  filteredHolidays.map((holiday) => {
-                    const { formatted: formattedDate, isUpcoming } = formatDate(holiday.holiday_date);
-                    return (
-                      <Fade in key={holiday.holiday_id} timeout={300}>
-                        <TableRow 
-                          hover
-                          sx={{ 
-                            '&:hover': { 
-                              backgroundColor: 'action.hover' 
-                            }
-                          }}
-                        >
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <EventIcon color="action" sx={{ fontSize: 20 }} />
-                              <Typography variant="subtitle2" fontWeight="medium">
-                                {holiday.name}
-                              </Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography variant="body2">
-                                {formattedDate}
-                              </Typography>
-                              {isUpcoming && (
-                                <Chip 
-                                  label="Upcoming" 
-                                  size="small" 
-                                  color="primary" 
-                                  variant="outlined" 
-                                />
-                              )}
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2" color="text.secondary">
-                              {holiday.description || 'No description'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {holiday.created_by || 'System'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell align="center">
-                            <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-                              <Tooltip title="Edit">
-                                <IconButton
-                                  size="small"
-                                  color="primary"
-                                  onClick={() => handleEditClick(holiday)}
-                                >
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Delete">
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() => handleDeleteClick(holiday.holiday_id)}
-                                >
-                                  <DeleteIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      </Fade>
-                    );
-                  })
-                ) : (
-                  renderEmptyState()
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
-
-        {/* Dialogs */}
-        <AddHolidayDialog
-          open={openAddDialog}
-          onClose={() => setOpenAddDialog(false)}
-          onSubmit={handleAddHoliday}
-        />
-
-        <ImportHolidaysDialog
-          open={openImportDialog}
-          onClose={() => setOpenImportDialog(false)}
-          onSubmit={handleImportHolidays}
-        />
-
-        <EditHolidayDialog
-          open={openEditDialog}
-          onClose={() => {
-            setOpenEditDialog(false);
-            setSelectedHoliday(null);
-          }}
-          onSubmit={handleEditHoliday}
-          holiday={selectedHoliday}
-        />
-
-        {/* Delete Confirmation Dialog */}
-        <Dialog
-          open={!!deleteConfirmId}
-          onClose={handleDeleteCancel}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle color="error.main">
-            Confirm Deletion
-          </DialogTitle>
-          <DialogContent>
-            <Typography>
-              Are you sure you want to delete this holiday? This action cannot be undone.
+      {/* Search */}
+      <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          flexWrap: 'wrap',
+          gap: 2 
+        }}>
+          <TextField
+            fullWidth
+            label="Search holidays"
+            variant="outlined"
+            value={searchTerm}
+            onChange={handleSearchChange}
+            placeholder="Search by name, description, or date..."
+            sx={{ maxWidth: { xs: '100%', md: '400px' } }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              {isLoading ? 'Loading...' : `${filteredHolidays.length} holiday${filteredHolidays.length !== 1 ? 's' : ''}`}
             </Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleDeleteCancel}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleDeleteConfirm} 
-              color="error" 
-              variant="contained"
-              autoFocus
-            >
-              Delete
-            </Button>
-          </DialogActions>
-        </Dialog>
+            {isFetching && <CircularProgress size={16} />}
+          </Box>
+        </Box>
+      </Paper>
 
-        {/* Toast Notifications */}
-        <Snackbar 
-          open={alert.open} 
-          autoHideDuration={6000} 
-          onClose={handleCloseAlert}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        >
-          <Alert 
-            onClose={handleCloseAlert} 
-            severity={alert.severity}
-            sx={{ width: '100%' }}
-            variant="filled"
+      {/* Table */}
+      <Paper elevation={1}>
+        <TableContainer>
+          <Table stickyHeader>
+            <TableHead>
+              <TableRow sx={{ 
+                '& .MuiTableCell-head': { 
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '0.875rem'
+                }
+              }}>
+                <TableCell>Holiday Name</TableCell>
+                <TableCell>Date</TableCell>
+                <TableCell>Description</TableCell>
+                <TableCell>Created By</TableCell>
+                <TableCell align="center">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {isLoading ? (
+                renderTableSkeleton()
+              ) : filteredHolidays.length > 0 ? (
+                filteredHolidays.map((holiday) => {
+                  const { formatted: formattedDate, isUpcoming } = formatDate(holiday.holiday_date);
+                  return (
+                    <Fade in key={holiday.id} timeout={300}>
+                      <TableRow 
+                        hover
+                        sx={{ 
+                          '&:hover': { 
+                            backgroundColor: 'action.hover' 
+                          }
+                        }}
+                      >
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <EventIcon color="action" sx={{ fontSize: 20 }} />
+                            <Typography variant="subtitle2" fontWeight="medium">
+                              {holiday.name}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="body2">
+                              {formattedDate}
+                            </Typography>
+                            {isUpcoming && (
+                              <Chip 
+                                label="Upcoming" 
+                                size="small" 
+                                color="primary" 
+                                variant="outlined" 
+                              />
+                            )}
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" color="text.secondary">
+                            {holiday.description || 'No description'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {holiday.created_by || 'System'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                            <Tooltip title="Edit">
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => handleEditClick(holiday)}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleDeleteClick(holiday.id)}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    </Fade>
+                  );
+                })
+              ) : (
+                renderEmptyState()
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
+
+      {/* Dialogs */}
+      <AddHolidayDialog
+        open={openAddDialog}
+        onClose={() => setOpenAddDialog(false)}
+        onSubmit={handleAddHoliday}
+      />
+
+      <ImportHolidaysDialog
+        open={openImportDialog}
+        onClose={() => setOpenImportDialog(false)}
+        onSubmit={handleImportHolidays}
+      />
+
+      <EditHolidayDialog
+        open={openEditDialog}
+        onClose={() => {
+          setOpenEditDialog(false);
+          setSelectedHoliday(null);
+        }}
+        onSubmit={handleEditHoliday}
+        holiday={selectedHoliday}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={!!deleteConfirmId}
+        onClose={handleDeleteCancel}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle color="error.main">
+          Confirm Deletion
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete this holiday? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleDeleteConfirm} 
+            color="error" 
+            variant="contained"
+            autoFocus
           >
-            {alert.message}
-          </Alert>
-        </Snackbar>
-      </Box>
-    </PageLayout>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Toast Notifications */}
+      <Snackbar 
+        open={alert.open} 
+        autoHideDuration={6000} 
+        onClose={handleCloseAlert}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseAlert} 
+          severity={alert.severity}
+          sx={{ width: '100%' }}
+          variant="filled"
+        >
+          {alert.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 };
 

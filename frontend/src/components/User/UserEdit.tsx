@@ -36,7 +36,6 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import dataService from '../../shared/services/dataService';
-import PageLayout from '../../layout/PageLayout';
 
 // Define interfaces
 interface User {
@@ -387,616 +386,608 @@ const UserEdit: React.FC = () => {
 
   if (loading) {
     return (
-      <PageLayout title="Edit User">
-        <Box sx={{ p: 3 }}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                <Skeleton variant="circular" width={60} height={60} sx={{ mr: 2 }} />
-                <Box>
-                  <Skeleton variant="text" width={200} height={32} />
-                  <Skeleton variant="text" width={100} height={24} />
-                </Box>
+      <Box>
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+              <Skeleton variant="circular" width={60} height={60} sx={{ mr: 2 }} />
+              <Box>
+                <Skeleton variant="text" width={200} height={32} />
+                <Skeleton variant="text" width={100} height={24} />
               </Box>
-              <Box sx={{ 
-                display: 'grid', 
-                gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
-                gap: 3 
-              }}>
-                {Array.from({ length: 12 }).map((_, index) => (
-                  <Skeleton key={index} variant="text" width="100%" height={56} />
-                ))}
-              </Box>
-            </CardContent>
-          </Card>
-        </Box>
-      </PageLayout>
+            </Box>
+            <Box sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
+              gap: 3 
+            }}>
+              {Array.from({ length: 12 }).map((_, index) => (
+                <Skeleton key={index} variant="text" width="100%" height={56} />
+              ))}
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
     );
   }
 
   if (error) {
     return (
-      <PageLayout title="Edit User">
-        <Box sx={{ p: 3 }}>
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-          <Button
-            variant="contained"
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate('/users')}
-          >
-            Back to Users
-          </Button>
-        </Box>
-      </PageLayout>
+      <Box>
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+        <Button
+          variant="contained"
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/users')}
+        >
+          Back to Users
+        </Button>
+      </Box>
     );
   }
 
   if (!user) {
     return (
-      <PageLayout title="Edit User">
-        <Box sx={{ p: 3 }}>
-          <Alert severity="warning" sx={{ mb: 3 }}>
-            User not found
-          </Alert>
-          <Button
-            variant="contained"
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate('/users')}
-          >
-            Back to Users
-          </Button>
-        </Box>
-      </PageLayout>
+      <Box>
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          User not found
+        </Alert>
+        <Button
+          variant="contained"
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/users')}
+        >
+          Back to Users
+        </Button>
+      </Box>
     );
   }
 
   return (
-    <PageLayout title={`Edit User: ${user.name}`}>
-      <Box sx={{ p: 3 }}>
-        {/* Header */}
-        <Card elevation={1} sx={{ mb: 3 }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <IconButton 
-                  onClick={() => navigate(`/users/emp/${empId}`)}
-                  color="primary"
-                >
-                  <ArrowBackIcon />
-                </IconButton>
-                <Avatar 
-                  sx={{ 
-                    width: 60, 
-                    height: 60, 
-                    fontSize: '1.25rem',
-                    bgcolor: 'primary.main'
-                  }}
-                >
-                  {getInitials(formData.name)}
-                </Avatar>
-                <Box>
-                  <Typography variant="h4" color="primary" gutterBottom>
-                    Edit User: {user.name}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Employee ID: {user.employee_id}
-                  </Typography>
-                </Box>
+    <Box>
+      {/* Header */}
+      <Card elevation={1} sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <IconButton 
+                onClick={() => navigate(`/users/emp/${empId}`)}
+                color="primary"
+              >
+                <ArrowBackIcon />
+              </IconButton>
+              <Avatar 
+                sx={{ 
+                  width: 60, 
+                  height: 60, 
+                  fontSize: '1.25rem',
+                  bgcolor: 'primary.main'
+                }}
+              >
+                {getInitials(formData.name)}
+              </Avatar>
+              <Box>
+                <Typography variant="h4" color="primary" gutterBottom>
+                  Edit User: {user.name}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Employee ID: {user.employee_id}
+                </Typography>
               </Box>
             </Box>
-          </CardContent>
-        </Card>
-
-        <form onSubmit={handleSubmit}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {/* Basic Information */}
-            <Card elevation={1}>
-              <CardContent>
-                <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <PersonIcon />
-                  Basic Information
-                </Typography>
-                <Divider sx={{ mb: 3 }} />
-                
-                <Box sx={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
-                  gap: 3 
-                }}>
-                  <TextField
-                    fullWidth
-                    label="Employee ID"
-                    value={formData.employee_id}
-                    onChange={(e) => handleChange('employee_id', e.target.value)}
-                    disabled
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <BadgeIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  
-                  <TextField
-                    fullWidth
-                    label="Full Name"
-                    value={formData.name}
-                    onChange={(e) => handleChange('name', e.target.value)}
-                    error={!!errors.name}
-                    helperText={errors.name}
-                    required
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <PersonIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  
-                  <TextField
-                    fullWidth
-                    label="Email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => handleChange('email', e.target.value)}
-                    error={!!errors.email}
-                    helperText={errors.email}
-                    required
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <EmailIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  
-                  <TextField
-                    fullWidth
-                    label="Mobile"
-                    value={formData.mobile}
-                    onChange={(e) => handleChange('mobile', e.target.value)}
-                    error={!!errors.mobile}
-                    helperText={errors.mobile}
-                    required
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <PhoneIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  
-                  <FormControl fullWidth>
-                    <InputLabel>Gender</InputLabel>
-                    <Select
-                      value={formData.gender}
-                      label="Gender"
-                      onChange={(e) => handleSelectChange(e, 'gender')}
-                    >
-                      <MenuItem value="Male">Male</MenuItem>
-                      <MenuItem value="Female">Female</MenuItem>
-                      <MenuItem value="Other">Other</MenuItem>
-                    </Select>
-                  </FormControl>
-                  
-                  <TextField
-                    fullWidth
-                    label="Date of Birth"
-                    type="date"
-                    value={formData.date_of_birth}
-                    onChange={(e) => handleChange('date_of_birth', e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <DateRangeIcon color="action" />
-                        </InputAdornment>
-                      )
-                    }}
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-
-            {/* Work Information */}
-            <Card elevation={1}>
-              <CardContent>
-                <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <BusinessIcon />
-                  Work Information
-                </Typography>
-                <Divider sx={{ mb: 3 }} />
-                
-                <Box sx={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
-                  gap: 3 
-                }}>
-                  <TextField
-                    fullWidth
-                    label="Date of Joining"
-                    type="date"
-                    value={formData.date_of_joining}
-                    onChange={(e) => handleChange('date_of_joining', e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <DateRangeIcon color="action" />
-                        </InputAdornment>
-                      )
-                    }}
-                  />
-                  
-                  <FormControl fullWidth>
-                    <InputLabel>Role</InputLabel>
-                    <Select
-                      value={formData.role}
-                      label="Role"
-                      onChange={(e) => handleSelectChange(e, 'role')}
-                    >
-                      <MenuItem value="employee">Employee</MenuItem>
-                      <MenuItem value="manager">Manager</MenuItem>
-                      <MenuItem value="hr">HR</MenuItem>
-                      <MenuItem value="admin">Admin</MenuItem>
-                    </Select>
-                  </FormControl>
-                  
-                  <TextField
-                    fullWidth
-                    label="Department"
-                    value={formData.department}
-                    onChange={(e) => handleChange('department', e.target.value)}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <BusinessIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  
-                  <TextField
-                    fullWidth
-                    label="Designation"
-                    value={formData.designation}
-                    onChange={(e) => handleChange('designation', e.target.value)}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <BadgeIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  
-                  <TextField
-                    fullWidth
-                    label="Manager ID"
-                    value={formData.manager_id}
-                    onChange={(e) => handleChange('manager_id', e.target.value)}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <PersonIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  
-                  <TextField
-                    fullWidth
-                    label="Location"
-                    value={formData.location}
-                    onChange={(e) => handleChange('location', e.target.value)}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <LocationIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-
-            {/* Additional Information */}
-            <Card elevation={1}>
-              <CardContent>
-                <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <NumbersIcon />
-                  Additional Information
-                </Typography>
-                <Divider sx={{ mb: 3 }} />
-                
-                <Box sx={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
-                  gap: 3 
-                }}>
-                  <TextField
-                    fullWidth
-                    label="PAN Number"
-                    value={formData.pan_number}
-                    onChange={(e) => handleChange('pan_number', e.target.value)}
-                    placeholder="ABCDE1234F"
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <NumbersIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  
-                  <TextField
-                    fullWidth
-                    label="Aadhar Number"
-                    value={formData.aadhar_number}
-                    onChange={(e) => handleChange('aadhar_number', e.target.value)}
-                    placeholder="1234 5678 9012"
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <NumbersIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  
-                  <TextField
-                    fullWidth
-                    label="UAN Number"
-                    value={formData.uan_number}
-                    onChange={(e) => handleChange('uan_number', e.target.value)}
-                    placeholder="123456789012"
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <NumbersIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  
-                  <TextField
-                    fullWidth
-                    label="ESI Number"
-                    value={formData.esi_number}
-                    onChange={(e) => handleChange('esi_number', e.target.value)}
-                    placeholder="1234567890"
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <NumbersIcon color="action" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Box>
-              </CardContent>
-            </Card>
-
-            {/* Document Uploads */}
-            <Card elevation={1}>
-              <CardContent>
-                <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CloudUploadIcon />
-                  📎 Document Uploads - COMPLETELY OPTIONAL
-                </Typography>
-                <Divider sx={{ mb: 3 }} />
-                
-                <Alert severity="success" sx={{ mb: 3 }}>
-                  <Typography variant="body2">
-                    <strong>✅ No file uploads required!</strong> You can update the user information without uploading any documents. 
-                    Document uploads are completely optional.
-                  </Typography>
-                </Alert>
-                
-                <Box sx={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, 
-                  gap: 3 
-                }}>
-                  <Box sx={{ border: '1px dashed #ccc', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: '#f9f9f9' }}>
-                    <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                      📄 PAN Card Document (Optional)
-                    </Typography>
-                    {files.panFile ? (
-                      <Box>
-                        <Typography variant="body2" color="success.main">
-                          {files.panFile.name}
-                        </Typography>
-                        <Button 
-                          size="small" 
-                          color="error" 
-                          onClick={() => handleFileRemove('panFile')}
-                          sx={{ mt: 1 }}
-                        >
-                          Remove
-                        </Button>
-                      </Box>
-                    ) : (
-                      <Box>
-                        <input
-                          type="file"
-                          accept="image/*,.pdf"
-                          onChange={(e) => {
-                            if (e.target.files?.[0]) {
-                              handleFileSelect('panFile', e.target.files[0]);
-                            }
-                          }}
-                          style={{ display: 'none' }}
-                          id="pan-file-input-edit"
-                        />
-                        <label htmlFor="pan-file-input-edit">
-                          <Button variant="outlined" component="span" size="small">
-                            Choose File (Optional)
-                          </Button>
-                        </label>
-                        <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 1 }}>
-                          PNG, JPG, PDF up to 5MB
-                        </Typography>
-                      </Box>
-                    )}
-                    {fileErrors.panFile && (
-                      <Alert severity="error" sx={{ mt: 1 }} variant="outlined">
-                        {fileErrors.panFile}
-                      </Alert>
-                    )}
-                  </Box>
-
-                  <Box sx={{ border: '1px dashed #ccc', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: '#f9f9f9' }}>
-                    <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                      📄 Aadhar Card Document (Optional)
-                    </Typography>
-                    {files.aadharFile ? (
-                      <Box>
-                        <Typography variant="body2" color="success.main">
-                          {files.aadharFile.name}
-                        </Typography>
-                        <Button 
-                          size="small" 
-                          color="error" 
-                          onClick={() => handleFileRemove('aadharFile')}
-                          sx={{ mt: 1 }}
-                        >
-                          Remove
-                        </Button>
-                      </Box>
-                    ) : (
-                      <Box>
-                        <input
-                          type="file"
-                          accept="image/*,.pdf"
-                          onChange={(e) => {
-                            if (e.target.files?.[0]) {
-                              handleFileSelect('aadharFile', e.target.files[0]);
-                            }
-                          }}
-                          style={{ display: 'none' }}
-                          id="aadhar-file-input-edit"
-                        />
-                        <label htmlFor="aadhar-file-input-edit">
-                          <Button variant="outlined" component="span" size="small">
-                            Choose File (Optional)
-                          </Button>
-                        </label>
-                        <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 1 }}>
-                          PNG, JPG, PDF up to 5MB
-                        </Typography>
-                      </Box>
-                    )}
-                    {fileErrors.aadharFile && (
-                      <Alert severity="error" sx={{ mt: 1 }} variant="outlined">
-                        {fileErrors.aadharFile}
-                      </Alert>
-                    )}
-                  </Box>
-
-                  <Box sx={{ border: '1px dashed #ccc', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: '#f9f9f9' }}>
-                    <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                      📷 Profile Photo (Optional)
-                    </Typography>
-                    {files.photo ? (
-                      <Box>
-                        <Typography variant="body2" color="success.main">
-                          {files.photo.name}
-                        </Typography>
-                        <Button 
-                          size="small" 
-                          color="error" 
-                          onClick={() => handleFileRemove('photo')}
-                          sx={{ mt: 1 }}
-                        >
-                          Remove
-                        </Button>
-                      </Box>
-                    ) : (
-                      <Box>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            if (e.target.files?.[0]) {
-                              handleFileSelect('photo', e.target.files[0]);
-                            }
-                          }}
-                          style={{ display: 'none' }}
-                          id="photo-file-input-edit"
-                        />
-                        <label htmlFor="photo-file-input-edit">
-                          <Button variant="outlined" component="span" size="small">
-                            Choose File (Optional)
-                          </Button>
-                        </label>
-                        <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 1 }}>
-                          PNG, JPG up to 2MB
-                        </Typography>
-                      </Box>
-                    )}
-                    {fileErrors.photo && (
-                      <Alert severity="error" sx={{ mt: 1 }} variant="outlined">
-                        {fileErrors.photo}
-                      </Alert>
-                    )}
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-
-            {/* Action Buttons */}
-            <Card elevation={1}>
-              <CardContent>
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                  <Button 
-                    onClick={() => navigate(`/users/emp/${empId}`)}
-                    size="large"
-                    disabled={saving}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    variant="contained"
-                    size="large"
-                    disabled={saving}
-                    startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
-                    sx={{ minWidth: 120 }}
-                  >
-                    {saving ? 'Saving...' : 'Save Changes'}
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
           </Box>
-        </form>
+        </CardContent>
+      </Card>
 
-        {/* Toast Notifications */}
-        <Snackbar 
-          open={toast.open} 
-          autoHideDuration={6000} 
-          onClose={handleCloseToast}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      <form onSubmit={handleSubmit}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {/* Basic Information */}
+          <Card elevation={1}>
+            <CardContent>
+              <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <PersonIcon />
+                Basic Information
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+              
+              <Box sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
+                gap: 3 
+              }}>
+                <TextField
+                  fullWidth
+                  label="Employee ID"
+                  value={formData.employee_id}
+                  onChange={(e) => handleChange('employee_id', e.target.value)}
+                  disabled
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <BadgeIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Full Name"
+                  value={formData.name}
+                  onChange={(e) => handleChange('name', e.target.value)}
+                  error={!!errors.name}
+                  helperText={errors.name}
+                  required
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <PersonIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleChange('email', e.target.value)}
+                  error={!!errors.email}
+                  helperText={errors.email}
+                  required
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <EmailIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Mobile"
+                  value={formData.mobile}
+                  onChange={(e) => handleChange('mobile', e.target.value)}
+                  error={!!errors.mobile}
+                  helperText={errors.mobile}
+                  required
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <PhoneIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                
+                <FormControl fullWidth>
+                  <InputLabel>Gender</InputLabel>
+                  <Select
+                    value={formData.gender}
+                    label="Gender"
+                    onChange={(e) => handleSelectChange(e, 'gender')}
+                  >
+                    <MenuItem value="Male">Male</MenuItem>
+                    <MenuItem value="Female">Female</MenuItem>
+                    <MenuItem value="Other">Other</MenuItem>
+                  </Select>
+                </FormControl>
+                
+                <TextField
+                  fullWidth
+                  label="Date of Birth"
+                  type="date"
+                  value={formData.date_of_birth}
+                  onChange={(e) => handleChange('date_of_birth', e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <DateRangeIcon color="action" />
+                      </InputAdornment>
+                    )
+                  }}
+                />
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* Work Information */}
+          <Card elevation={1}>
+            <CardContent>
+              <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <BusinessIcon />
+                Work Information
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+              
+              <Box sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
+                gap: 3 
+              }}>
+                <TextField
+                  fullWidth
+                  label="Date of Joining"
+                  type="date"
+                  value={formData.date_of_joining}
+                  onChange={(e) => handleChange('date_of_joining', e.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <DateRangeIcon color="action" />
+                      </InputAdornment>
+                    )
+                  }}
+                />
+                
+                <FormControl fullWidth>
+                  <InputLabel>Role</InputLabel>
+                  <Select
+                    value={formData.role}
+                    label="Role"
+                    onChange={(e) => handleSelectChange(e, 'role')}
+                  >
+                    <MenuItem value="employee">Employee</MenuItem>
+                    <MenuItem value="manager">Manager</MenuItem>
+                    <MenuItem value="hr">HR</MenuItem>
+                    <MenuItem value="admin">Admin</MenuItem>
+                  </Select>
+                </FormControl>
+                
+                <TextField
+                  fullWidth
+                  label="Department"
+                  value={formData.department}
+                  onChange={(e) => handleChange('department', e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <BusinessIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Designation"
+                  value={formData.designation}
+                  onChange={(e) => handleChange('designation', e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <BadgeIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Manager ID"
+                  value={formData.manager_id}
+                  onChange={(e) => handleChange('manager_id', e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <PersonIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Location"
+                  value={formData.location}
+                  onChange={(e) => handleChange('location', e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LocationIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* Additional Information */}
+          <Card elevation={1}>
+            <CardContent>
+              <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <NumbersIcon />
+                Additional Information
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+              
+              <Box sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
+                gap: 3 
+              }}>
+                <TextField
+                  fullWidth
+                  label="PAN Number"
+                  value={formData.pan_number}
+                  onChange={(e) => handleChange('pan_number', e.target.value)}
+                  placeholder="ABCDE1234F"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <NumbersIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Aadhar Number"
+                  value={formData.aadhar_number}
+                  onChange={(e) => handleChange('aadhar_number', e.target.value)}
+                  placeholder="1234 5678 9012"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <NumbersIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="UAN Number"
+                  value={formData.uan_number}
+                  onChange={(e) => handleChange('uan_number', e.target.value)}
+                  placeholder="123456789012"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <NumbersIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="ESI Number"
+                  value={formData.esi_number}
+                  onChange={(e) => handleChange('esi_number', e.target.value)}
+                  placeholder="1234567890"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <NumbersIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* Document Uploads */}
+          <Card elevation={1}>
+            <CardContent>
+              <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CloudUploadIcon />
+                📎 Document Uploads - COMPLETELY OPTIONAL
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+              
+              <Alert severity="success" sx={{ mb: 3 }}>
+                <Typography variant="body2">
+                  <strong>✅ No file uploads required!</strong> You can update the user information without uploading any documents. 
+                  Document uploads are completely optional.
+                </Typography>
+              </Alert>
+              
+              <Box sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, 
+                gap: 3 
+              }}>
+                <Box sx={{ border: '1px dashed #ccc', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: '#f9f9f9' }}>
+                  <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                    📄 PAN Card Document (Optional)
+                  </Typography>
+                  {files.panFile ? (
+                    <Box>
+                      <Typography variant="body2" color="success.main">
+                        {files.panFile.name}
+                      </Typography>
+                      <Button 
+                        size="small" 
+                        color="error" 
+                        onClick={() => handleFileRemove('panFile')}
+                        sx={{ mt: 1 }}
+                      >
+                        Remove
+                      </Button>
+                    </Box>
+                  ) : (
+                    <Box>
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            handleFileSelect('panFile', e.target.files[0]);
+                          }
+                        }}
+                        style={{ display: 'none' }}
+                        id="pan-file-input-edit"
+                      />
+                      <label htmlFor="pan-file-input-edit">
+                        <Button variant="outlined" component="span" size="small">
+                          Choose File (Optional)
+                        </Button>
+                      </label>
+                      <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 1 }}>
+                        PNG, JPG, PDF up to 5MB
+                      </Typography>
+                    </Box>
+                  )}
+                  {fileErrors.panFile && (
+                    <Alert severity="error" sx={{ mt: 1 }} variant="outlined">
+                      {fileErrors.panFile}
+                    </Alert>
+                  )}
+                </Box>
+
+                <Box sx={{ border: '1px dashed #ccc', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: '#f9f9f9' }}>
+                  <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                    📄 Aadhar Card Document (Optional)
+                  </Typography>
+                  {files.aadharFile ? (
+                    <Box>
+                      <Typography variant="body2" color="success.main">
+                        {files.aadharFile.name}
+                      </Typography>
+                      <Button 
+                        size="small" 
+                        color="error" 
+                        onClick={() => handleFileRemove('aadharFile')}
+                        sx={{ mt: 1 }}
+                      >
+                        Remove
+                      </Button>
+                    </Box>
+                  ) : (
+                    <Box>
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            handleFileSelect('aadharFile', e.target.files[0]);
+                          }
+                        }}
+                        style={{ display: 'none' }}
+                        id="aadhar-file-input-edit"
+                      />
+                      <label htmlFor="aadhar-file-input-edit">
+                        <Button variant="outlined" component="span" size="small">
+                          Choose File (Optional)
+                        </Button>
+                      </label>
+                      <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 1 }}>
+                        PNG, JPG, PDF up to 5MB
+                      </Typography>
+                    </Box>
+                  )}
+                  {fileErrors.aadharFile && (
+                    <Alert severity="error" sx={{ mt: 1 }} variant="outlined">
+                      {fileErrors.aadharFile}
+                    </Alert>
+                  )}
+                </Box>
+
+                <Box sx={{ border: '1px dashed #ccc', borderRadius: 2, p: 2, textAlign: 'center', bgcolor: '#f9f9f9' }}>
+                  <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                    📷 Profile Photo (Optional)
+                  </Typography>
+                  {files.photo ? (
+                    <Box>
+                      <Typography variant="body2" color="success.main">
+                        {files.photo.name}
+                      </Typography>
+                      <Button 
+                        size="small" 
+                        color="error" 
+                        onClick={() => handleFileRemove('photo')}
+                        sx={{ mt: 1 }}
+                      >
+                        Remove
+                      </Button>
+                    </Box>
+                  ) : (
+                    <Box>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            handleFileSelect('photo', e.target.files[0]);
+                          }
+                        }}
+                        style={{ display: 'none' }}
+                        id="photo-file-input-edit"
+                      />
+                      <label htmlFor="photo-file-input-edit">
+                        <Button variant="outlined" component="span" size="small">
+                          Choose File (Optional)
+                        </Button>
+                      </label>
+                      <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 1 }}>
+                        PNG, JPG up to 2MB
+                      </Typography>
+                    </Box>
+                  )}
+                  {fileErrors.photo && (
+                    <Alert severity="error" sx={{ mt: 1 }} variant="outlined">
+                      {fileErrors.photo}
+                    </Alert>
+                  )}
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* Action Buttons */}
+          <Card elevation={1}>
+            <CardContent>
+              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                <Button 
+                  onClick={() => navigate(`/users/emp/${empId}`)}
+                  size="large"
+                  disabled={saving}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  variant="contained"
+                  size="large"
+                  disabled={saving}
+                  startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
+                  sx={{ minWidth: 120 }}
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Box>
+      </form>
+
+      {/* Toast Notifications */}
+      <Snackbar 
+        open={toast.open} 
+        autoHideDuration={6000} 
+        onClose={handleCloseToast}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseToast} 
+          severity={toast.severity}
+          sx={{ width: '100%' }}
+          variant="filled"
         >
-          <Alert 
-            onClose={handleCloseToast} 
-            severity={toast.severity}
-            sx={{ width: '100%' }}
-            variant="filled"
-          >
-            {toast.message}
-          </Alert>
-        </Snackbar>
-      </Box>
-    </PageLayout>
+          {toast.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 };
 

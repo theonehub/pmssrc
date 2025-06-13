@@ -29,6 +29,7 @@ import {
   Avatar,
   TableSortLabel,
   AlertColor,
+  DialogActions,
 } from '@mui/material';
 import { 
   Add as AddIcon, 
@@ -41,7 +42,6 @@ import {
   Visibility as VisibilityIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import PageLayout from '../../layout/PageLayout';
 import { useUsersQuery } from '../../shared/hooks/useUsers';
 import { User, SortConfig, AlertState, UserRole } from '../../shared/types';
 import dataService from '../../shared/services/dataService';
@@ -280,324 +280,320 @@ const UsersList: React.FC = () => {
   const filteredUsers = getSortedAndFilteredUsers();
 
   return (
-    <PageLayout title="Users Management">
-      <Box sx={{ p: 3 }}>
-        {/* Header */}
-        <Card elevation={1} sx={{ mb: 3 }}>
-          <CardContent>
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-                gap: 2,
-                alignItems: 'center',
-              }}
-            >
-              <Box>
-                <Typography variant="h4" color="primary" gutterBottom>
-                  Users Management
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Manage user accounts and permissions
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                <Tooltip title="Refresh">
-                  <IconButton 
-                    onClick={handleRefresh}
-                    disabled={refreshing}
-                    color="primary"
-                  >
-                    <RefreshIcon />
-                  </IconButton>
-                </Tooltip>
-                <Button
-                  variant="outlined"
-                  startIcon={<UploadFileIcon />}
-                  onClick={() => setShowImportModal(true)}
-                  size="large"
-                >
-                  Import
-                </Button>
-                <Button
-                  variant="contained"
-                  startIcon={<AddIcon />}
-                  onClick={() => navigate('/users/add')}
-                  size="large"
-                >
-                  Add User
-                </Button>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-
-        {/* Search and Controls */}
-        <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' },
-              gap: 2,
-              alignItems: 'center',
-            }}
-          >
-            <TextField
-              fullWidth
-              label="Search users"
-              variant="outlined"
-              value={searchTerm}
-              onChange={handleSearchChange}
-              placeholder="Search by ID, name, email, role, or mobile..."
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+    <Box>
+      {/* Header */}
+      <Card elevation={1} sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+            <Box>
               <Typography variant="body2" color="text.secondary">
-                {isLoading ? 'Loading...' : `${filteredUsers.length} user${filteredUsers.length !== 1 ? 's' : ''}`}
+                Manage user accounts and permissions
               </Typography>
-              {refreshing && <CircularProgress size={16} />}
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Tooltip title="Refresh">
+                <IconButton 
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  color="primary"
+                >
+                  <RefreshIcon />
+                </IconButton>
+              </Tooltip>
+              <Button
+                variant="outlined"
+                startIcon={<UploadFileIcon />}
+                onClick={() => setShowImportModal(true)}
+              >
+                IMPORT
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => navigate('/users/add')}
+              >
+                ADD USER
+              </Button>
             </Box>
           </Box>
-        </Paper>
+        </CardContent>
+      </Card>
 
-        {/* Table */}
-        <Paper elevation={1}>
-          <TableContainer>
-            <Table stickyHeader>
-              <TableHead>
-                <TableRow sx={{ 
-                  '& .MuiTableCell-head': { 
-                    backgroundColor: 'primary.main',
-                    color: 'white',
-                    fontWeight: 'bold',
-                    fontSize: '0.875rem'
-                  }
-                }}>
-                  <TableCell>
-                    <TableSortLabel
-                      active={sortConfig.key === 'employee_id'}
-                      direction={sortConfig.direction}
-                      onClick={() => requestSort('employee_id')}
-                      sx={{ color: 'inherit', '&:hover': { color: 'inherit' } }}
+      {/* Search and Controls */}
+      <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+          <TextField
+            sx={{ minWidth: 300, flexGrow: 1, maxWidth: 500 }}
+            label="Search users"
+            variant="outlined"
+            size="small"
+            value={searchTerm}
+            onChange={handleSearchChange}
+            placeholder="Search by ID, name, email, role, or mobile..."
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              {isLoading ? 'Loading...' : `${filteredUsers.length} user${filteredUsers.length !== 1 ? 's' : ''}`}
+            </Typography>
+            {refreshing && <CircularProgress size={16} />}
+          </Box>
+        </Box>
+      </Paper>
+
+      {/* Table */}
+      <Paper elevation={1}>
+        <TableContainer>
+          <Table stickyHeader>
+            <TableHead>
+              <TableRow sx={{ 
+                '& .MuiTableCell-head': { 
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '0.875rem'
+                }
+              }}>
+                <TableCell>
+                  <TableSortLabel
+                    active={sortConfig.key === 'employee_id'}
+                    direction={sortConfig.direction}
+                    onClick={() => requestSort('employee_id')}
+                    sx={{ color: 'inherit', '&:hover': { color: 'inherit' } }}
+                  >
+                    Employee ID
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell>
+                  <TableSortLabel
+                    active={sortConfig.key === 'name'}
+                    direction={sortConfig.direction}
+                    onClick={() => requestSort('name')}
+                    sx={{ color: 'inherit', '&:hover': { color: 'inherit' } }}
+                  >
+                    Name
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Role</TableCell>
+                <TableCell>Gender</TableCell>
+                <TableCell>Mobile</TableCell>
+                <TableCell>
+                  <TableSortLabel
+                    active={sortConfig.key === 'date_of_joining'}
+                    direction={sortConfig.direction}
+                    onClick={() => requestSort('date_of_joining')}
+                    sx={{ color: 'inherit', '&:hover': { color: 'inherit' } }}
+                  >
+                    Joining Date
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell align="center">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {isLoading ? (
+                renderTableSkeleton()
+              ) : filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <Fade in key={user.employee_id} timeout={300}>
+                    <TableRow 
+                      hover
+                      sx={{ 
+                        '&:hover': { 
+                          backgroundColor: 'action.hover' 
+                        }
+                      }}
                     >
-                      Employee ID
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell>
-                    <TableSortLabel
-                      active={sortConfig.key === 'name'}
-                      direction={sortConfig.direction}
-                      onClick={() => requestSort('name')}
-                      sx={{ color: 'inherit', '&:hover': { color: 'inherit' } }}
-                    >
-                      Name
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Role</TableCell>
-                  <TableCell>Gender</TableCell>
-                  <TableCell>Mobile</TableCell>
-                  <TableCell>
-                    <TableSortLabel
-                      active={sortConfig.key === 'date_of_joining'}
-                      direction={sortConfig.direction}
-                      onClick={() => requestSort('date_of_joining')}
-                      sx={{ color: 'inherit', '&:hover': { color: 'inherit' } }}
-                    >
-                      Joining Date
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell align="center">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {isLoading ? (
-                  renderTableSkeleton()
-                ) : filteredUsers.length > 0 ? (
-                  filteredUsers.map((user) => (
-                    <Fade in key={user.employee_id} timeout={300}>
-                      <TableRow 
-                        hover
-                        sx={{ 
-                          '&:hover': { 
-                            backgroundColor: 'action.hover' 
-                          }
-                        }}
-                      >
-                        <TableCell>
-                          <Typography variant="body2" fontWeight="medium">
-                            {user.employee_id}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Avatar 
-                              sx={{ 
-                                width: 32, 
-                                height: 32, 
-                                fontSize: '0.875rem',
-                                bgcolor: 'primary.main'
-                              }}
-                            >
-                              {getInitials(user.name)}
-                            </Avatar>
-                            <Box>
-                              <Typography variant="subtitle2" fontWeight="medium">
-                                {user.name}
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="medium">
+                          {user.employee_id}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Avatar 
+                            sx={{ 
+                              width: 32, 
+                              height: 32, 
+                              fontSize: '0.875rem',
+                              bgcolor: 'primary.main'
+                            }}
+                          >
+                            {getInitials(user.name)}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="subtitle2" fontWeight="medium">
+                              {user.name}
+                            </Typography>
+                            {user.designation && (
+                              <Typography variant="caption" color="text.secondary">
+                                {user.designation}
                               </Typography>
-                              {user.designation && (
-                                <Typography variant="caption" color="text.secondary">
-                                  {user.designation}
-                                </Typography>
-                              )}
-                            </Box>
+                            )}
                           </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {user.email}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={user.role}
-                            color={getRoleBadgeColor(user.role)}
-                            size="small"
-                            variant="outlined"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {user.gender}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {user.mobile}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {formatDate(user.date_of_joining || '')}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="center">
-                          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-                            <Tooltip title="View Details">
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => navigate(`/users/emp/${user.employee_id}`)}
-                              >
-                                <VisibilityIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Edit User">
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => navigate(`/users/emp/${user.employee_id}/edit`)}
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    </Fade>
-                  ))
-                ) : (
-                  renderEmptyState()
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {user.email}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={user.role}
+                          color={getRoleBadgeColor(user.role)}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {user.gender}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {user.mobile}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {user.date_of_joining ? formatDate(user.date_of_joining) : 'N/A'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                          <Tooltip title="View Details">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => navigate(`/users/emp/${user.employee_id}`)}
+                            >
+                              <VisibilityIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Edit">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => navigate(`/users/emp/${user.employee_id}/edit`)}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  </Fade>
+                ))
+              ) : (
+                renderEmptyState()
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
 
-          {/* Pagination */}
-          {totalUsers > 0 && (
-            <TablePagination
-              component="div"
-              count={totalUsers}
-              page={page}
-              onPageChange={handlePageChange}
-              rowsPerPage={rowsPerPage}
-              onRowsPerPageChange={handleRowsPerPageChange}
-              rowsPerPageOptions={[5, 10, 25, 50]}
-              showFirstButton
-              showLastButton
-            />
-          )}
-        </Paper>
+        {/* Pagination */}
+        {totalUsers > 0 && (
+          <TablePagination
+            component="div"
+            count={totalUsers}
+            page={page}
+            onPageChange={handlePageChange}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={handleRowsPerPageChange}
+            rowsPerPageOptions={[5, 10, 25, 50]}
+            showFirstButton
+            showLastButton
+          />
+        )}
+      </Paper>
 
-        {/* Import Modal */}
-        <Dialog
-          open={showImportModal}
-          onClose={() => setShowImportModal(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>
-            Import Users
-          </DialogTitle>
+      {/* Import Modal */}
+      <Dialog
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Import Users</DialogTitle>
+        <form onSubmit={handleImport}>
           <DialogContent>
-            <form onSubmit={handleImport}>
-              <Box sx={{ mb: 2 }}>
-                <Button
-                  variant="outlined"
-                  startIcon={<DownloadIcon />}
-                  onClick={handleDownloadTemplate}
-                  fullWidth
-                  sx={{ mb: 2 }}
-                >
-                  Download Template
-                </Button>
-              </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Upload a CSV file to import multiple users at once.
+            </Typography>
+            
+            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>
+              <Button
+                variant="outlined"
+                onClick={handleDownloadTemplate}
+                startIcon={<DownloadIcon />}
+              >
+                Download Template
+              </Button>
+            </Box>
+
+            <Box sx={{ mt: 3 }}>
               <input
                 type="file"
-                accept=".xlsx,.xls,.csv"
+                accept=".csv"
                 onChange={handleFileChange}
-                style={{ width: '100%', padding: '8px' }}
+                style={{ display: 'none' }}
+                id="csv-upload"
               />
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 3 }}>
-                <Button onClick={() => setShowImportModal(false)}>
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  variant="contained"
-                  disabled={importing || !importFile}
+              <label htmlFor="csv-upload">
+                <Button
+                  variant="outlined"
+                  component="span"
+                  fullWidth
+                  startIcon={<UploadFileIcon />}
+                  sx={{ py: 2 }}
                 >
-                  {importing ? 'Importing...' : 'Import'}
+                  {importFile ? importFile.name : 'Choose CSV File'}
                 </Button>
-              </Box>
-            </form>
+              </label>
+            </Box>
           </DialogContent>
-        </Dialog>
+          <DialogActions>
+            <Button onClick={() => setShowImportModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={!importFile || importing}
+              startIcon={importing ? <CircularProgress size={20} /> : <UploadFileIcon />}
+            >
+              {importing ? 'Importing...' : 'Import'}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
 
-        {/* Toast Notifications */}
-        <Snackbar 
-          open={alert.open} 
-          autoHideDuration={6000} 
-          onClose={handleCloseAlert}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      {/* Alert */}
+      <Snackbar
+        open={alert.open}
+        autoHideDuration={6000}
+        onClose={handleCloseAlert}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseAlert} 
+          severity={alert.severity}
+          sx={{ width: '100%' }}
+          variant="filled"
         >
-          <Alert 
-            onClose={handleCloseAlert} 
-            severity={alert.severity}
-            sx={{ width: '100%' }}
-            variant="filled"
-          >
-            {alert.message}
-          </Alert>
-        </Snackbar>
-      </Box>
-    </PageLayout>
+          {alert.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 };
 

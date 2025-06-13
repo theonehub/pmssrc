@@ -5,11 +5,12 @@ Aggregates data from all modules to provide consolidated dashboard analytics
 
 import logging
 from typing import Dict, Any, TYPE_CHECKING
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 from app.application.dto.reporting_dto import DashboardAnalyticsDTO
 from app.application.interfaces.repositories.user_repository import UserRepository
 from app.application.interfaces.repositories.reimbursement_repository import ReimbursementRepository
+from app.application.interfaces.repositories.attendance_repository import AttendanceRepository
 
 if TYPE_CHECKING:
     from app.auth.auth_dependencies import CurrentUser
@@ -28,11 +29,13 @@ class GetDashboardAnalyticsUseCase:
     def __init__(
         self,
         user_repository: UserRepository,
-        reimbursement_repository: ReimbursementRepository
+        reimbursement_repository: ReimbursementRepository,
+        attendance_repository: AttendanceRepository = None
     ):
         """Initialize use case with dependencies."""
         self.user_repository = user_repository
         self.reimbursement_repository = reimbursement_repository
+        self.attendance_repository = attendance_repository
     
     async def execute(self, current_user: "CurrentUser") -> DashboardAnalyticsDTO:
         """
@@ -55,6 +58,9 @@ class GetDashboardAnalyticsUseCase:
             
             # Get department and role distributions
             distributions = await self._get_distributions(current_user)
+
+            # Get attendance statistics
+            attendance_stats = await self._get_attendance_statistics(current_user)
             
             # Combine all statistics
             dashboard_analytics = DashboardAnalyticsDTO(
@@ -64,9 +70,9 @@ class GetDashboardAnalyticsUseCase:
                 inactive_users=user_stats.get("inactive_users", 0),
                 recent_joiners_count=user_stats.get("recent_joiners_count", 0),
                 
-                # Attendance metrics (placeholder)
-                checkin_count=0,
-                checkout_count=0,
+                # Attendance metrics
+                checkin_count=attendance_stats.get("checkin_count", 0),
+                checkout_count=attendance_stats.get("checkout_count", 0),
                 
                 # Reimbursement metrics
                 pending_reimbursements=reimbursement_stats.get("pending_count", 0),
@@ -157,6 +163,32 @@ class GetDashboardAnalyticsUseCase:
                 "pending_amount": 0.0
             }
     
+    async def _get_attendance_statistics(self, current_user: "CurrentUser") -> Dict[str, Any]:
+        """Get attendance-related statistics."""
+        try:
+            if not self.attendance_repository:
+                logger.warning("Attendance repository not available, returning default values")
+                return {
+                    "checkin_count": 0,
+                    "checkout_count": 0
+                }
+            
+            # Get today's attendance statistics
+            today = date.today()
+            stats = await self.attendance_repository.get_daily_statistics(today, current_user.hostname)
+            
+            return {
+                "checkin_count": stats.checked_in,
+                "checkout_count": stats.checked_out
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting attendance statistics: {e}")
+            return {
+                "checkin_count": 0,
+                "checkout_count": 0
+            }
+    
     async def _get_distributions(self, current_user: "CurrentUser") -> Dict[str, Any]:
         """Get department and role distributions."""
         try:
@@ -176,7 +208,7 @@ class GetDashboardAnalyticsUseCase:
                 department_distribution[dept] = department_distribution.get(dept, 0) + 1
                 
                 # Role distribution
-                role = user.permissions.role.value if user.permissions else "user"
+                role = user.role.value if hasattr(user, 'role') and user.role else "user"
                 role_distribution[role] = role_distribution.get(role, 0) + 1
             
             return {

@@ -316,10 +316,10 @@ class CheckOutUseCase:
             break_hours=float(Decimal(attendance.working_hours.break_time_minutes()) / Decimal(60)),
             overtime_hours=float(attendance.working_hours.overtime_hours()),
             shortage_hours=float(attendance.working_hours.shortage_hours()),
-            expected_hours=attendance.working_hours.expected_hours,
-            is_complete_day=attendance.working_hours.is_complete_day,
-            is_full_day=attendance.working_hours.is_full_day,
-            is_half_day=attendance.working_hours.is_half_day
+            expected_hours=float(attendance.working_hours.expected_hours),
+            is_complete_day=attendance.working_hours.is_complete_day(),
+            is_full_day=attendance.working_hours.is_full_day(),
+            is_half_day=attendance.working_hours.is_half_day()
         )
         
         return AttendanceResponseDTO(

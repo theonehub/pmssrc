@@ -247,9 +247,7 @@ class DependencyContainer:
             self._services['tax_calculation'] = TaxCalculationServiceImpl()
             
             # Regime comparison service
-            self._services['regime_comparison'] = RegimeComparisonServiceImpl(
-                tax_calculation_service=self._services['tax_calculation']
-            )
+            self._services['regime_comparison'] = RegimeComparisonServiceImpl()
             
             # Attendance service with use cases
             attendance_use_cases = self._create_attendance_use_cases()
@@ -283,7 +281,8 @@ class DependencyContainer:
             self._services['reporting'] = ReportingServiceImpl(
                 reporting_repository=self._repositories['reporting'],
                 user_repository=self._repositories['user'],
-                reimbursement_repository=self._repositories['reimbursement']
+                reimbursement_repository=self._repositories['reimbursement'],
+                attendance_repository=self._repositories['attendance']
             )
             
             logger.info("Services initialized")

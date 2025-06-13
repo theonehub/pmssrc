@@ -32,7 +32,7 @@ interface FormErrors {
 }
 
 interface Holiday {
-  holiday_id: string | number;
+  id: string;
   name: string;
   holiday_date: string;
   description?: string;
@@ -47,7 +47,7 @@ interface HolidayUpdateData {
 interface EditHolidayDialogProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (holidayId: string | number, data: HolidayUpdateData) => Promise<void>;
+  onSubmit: (holidayId: string, data: HolidayUpdateData) => Promise<void>;
   holiday: Holiday | null;
 }
 
@@ -114,7 +114,7 @@ const EditHolidayDialog: React.FC<EditHolidayDialogProps> = ({
         description: formData.description.trim() || ''
       };
       
-      await onSubmit(holiday.holiday_id, formattedData);
+      await onSubmit(holiday.id, formattedData);
       handleClose();
     } catch (error: any) {
       if (process.env.NODE_ENV === 'development') {

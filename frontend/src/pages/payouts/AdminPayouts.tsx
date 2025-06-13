@@ -132,7 +132,7 @@ const AdminPayouts: React.FC = () => {
 
   return (
     <PageLayout title="Admin Payouts">
-      <Box sx={{ p: 3 }}>
+      <Box>
         <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
           <FormControl size="small">
             <InputLabel>Financial Year</InputLabel>

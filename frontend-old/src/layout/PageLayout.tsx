@@ -209,7 +209,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({ title, children }) => {
           sx={{
             flexGrow: 1,
             width: '100%',
-            p: 3,
+            p: { xs: 2, sm: 3 },
             overflow: 'auto',
             ml: `${mainContentMargin}px`,
             backgroundColor: theme.palette.background.default,

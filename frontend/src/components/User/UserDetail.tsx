@@ -31,7 +31,6 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import dataService from '../../shared/services/dataService';
-import PageLayout from '../../layout/PageLayout';
 
 // Define interfaces
 interface User {
@@ -200,454 +199,446 @@ const UserDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <PageLayout title="User Details">
-        <Box sx={{ p: 3 }}>
-          <Card>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                <Skeleton variant="circular" width={80} height={80} sx={{ mr: 2 }} />
-                <Box>
-                  <Skeleton variant="text" width={200} height={32} />
-                  <Skeleton variant="text" width={100} height={24} />
-                </Box>
+      <Box>
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+              <Skeleton variant="circular" width={80} height={80} sx={{ mr: 2 }} />
+              <Box>
+                <Skeleton variant="text" width={200} height={32} />
+                <Skeleton variant="text" width={100} height={24} />
               </Box>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {Array.from({ length: 8 }).map((_, index) => (
-                  <Skeleton key={index} variant="text" width="100%" height={60} />
-                ))}
-              </Box>
-            </CardContent>
-          </Card>
-        </Box>
-      </PageLayout>
+            </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {Array.from({ length: 8 }).map((_, index) => (
+                <Skeleton key={index} variant="text" width="100%" height={60} />
+              ))}
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
     );
   }
 
   if (error) {
     return (
-      <PageLayout title="User Details">
-        <Box sx={{ p: 3 }}>
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-          <Button
-            variant="contained"
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate('/users')}
-          >
-            Back to Users
-          </Button>
-        </Box>
-      </PageLayout>
+      <Box>
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+        <Button
+          variant="contained"
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/users')}
+        >
+          Back to Users
+        </Button>
+      </Box>
     );
   }
 
   if (!user) {
     return (
-      <PageLayout title="User Details">
-        <Box sx={{ p: 3 }}>
-          <Alert severity="warning" sx={{ mb: 3 }}>
-            User not found
-          </Alert>
-          <Button
-            variant="contained"
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate('/users')}
-          >
-            Back to Users
-          </Button>
-        </Box>
-      </PageLayout>
+      <Box>
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          User not found
+        </Alert>
+        <Button
+          variant="contained"
+          startIcon={<ArrowBackIcon />}
+          onClick={() => navigate('/users')}
+        >
+          Back to Users
+        </Button>
+      </Box>
     );
   }
 
   return (
-    <PageLayout title={`User Details - ${user.name}`}>
-      <Box sx={{ p: 3 }}>
-        {/* Header */}
-        <Card elevation={1} sx={{ mb: 3 }}>
-          <CardContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <IconButton 
-                  onClick={() => navigate('/users')}
-                  color="primary"
-                >
-                  <ArrowBackIcon />
-                </IconButton>
-                <Avatar 
-                  sx={{ 
-                    width: 80, 
-                    height: 80, 
-                    fontSize: '1.5rem',
-                    bgcolor: 'primary.main'
-                  }}
-                >
-                  {getInitials(user.name)}
-                </Avatar>
+    <Box>
+      {/* Header */}
+      <Card elevation={1} sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <IconButton 
+                onClick={() => navigate('/users')}
+                color="primary"
+              >
+                <ArrowBackIcon />
+              </IconButton>
+              <Avatar 
+                sx={{ 
+                  width: 80, 
+                  height: 80, 
+                  fontSize: '1.5rem',
+                  bgcolor: 'primary.main'
+                }}
+              >
+                {getInitials(user.name)}
+              </Avatar>
+              <Box>
+                <Typography variant="h4" color="primary" gutterBottom>
+                  {user.name}
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <Chip
+                    label={user.role}
+                    color={getRoleBadgeColor(user.role)}
+                    variant="outlined"
+                  />
+                  {user.designation && (
+                    <Typography variant="body2" color="text.secondary">
+                      • {user.designation}
+                    </Typography>
+                  )}
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  Employee ID: {user.employee_id}
+                </Typography>
+              </Box>
+            </Box>
+            <Tooltip title="Edit User">
+              <Button
+                variant="contained"
+                startIcon={<EditIcon />}
+                onClick={() => navigate(`/users/emp/${user.employee_id}/edit`)}
+              >
+                Edit
+              </Button>
+            </Tooltip>
+          </Box>
+        </CardContent>
+      </Card>
+
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
+        {/* Personal Information */}
+        <Box sx={{ flex: 1 }}>
+          <Card elevation={1}>
+            <CardContent>
+              <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <PersonIcon />
+                Personal Information
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <Box>
-                  <Typography variant="h4" color="primary" gutterBottom>
-                    {user.name}
-                  </Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <Chip
-                      label={user.role}
-                      color={getRoleBadgeColor(user.role)}
-                      variant="outlined"
-                    />
-                    {user.designation && (
-                      <Typography variant="body2" color="text.secondary">
-                        • {user.designation}
-                      </Typography>
-                    )}
+                    <EmailIcon color="action" fontSize="small" />
+                    <Typography variant="body2" color="text.secondary">
+                      Email
+                    </Typography>
                   </Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Employee ID: {user.employee_id}
+                  <Typography variant="body1" fontWeight="medium">
+                    {user.email}
+                  </Typography>
+                </Box>
+                
+                <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <PhoneIcon color="action" fontSize="small" />
+                    <Typography variant="body2" color="text.secondary">
+                      Mobile
+                    </Typography>
+                  </Box>
+                  <Typography variant="body1" fontWeight="medium">
+                    {user.mobile || 'N/A'}
+                  </Typography>
+                </Box>
+                
+                <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <PersonIcon color="action" fontSize="small" />
+                    <Typography variant="body2" color="text.secondary">
+                      Gender
+                    </Typography>
+                  </Box>
+                  <Typography variant="body1" fontWeight="medium">
+                    {user.gender || 'N/A'}
+                  </Typography>
+                </Box>
+                
+                <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <CalendarIcon color="action" fontSize="small" />
+                    <Typography variant="body2" color="text.secondary">
+                      Date of Birth
+                    </Typography>
+                  </Box>
+                  <Typography variant="body1" fontWeight="medium">
+                    {formatDate(user.date_of_birth)}
                   </Typography>
                 </Box>
               </Box>
-              <Tooltip title="Edit User">
-                <Button
-                  variant="contained"
-                  startIcon={<EditIcon />}
-                  onClick={() => navigate(`/users/emp/${user.employee_id}/edit`)}
-                >
-                  Edit
-                </Button>
-              </Tooltip>
-            </Box>
-          </CardContent>
-        </Card>
-
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
-          {/* Personal Information */}
-          <Box sx={{ flex: 1 }}>
-            <Card elevation={1}>
-              <CardContent>
-                <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <PersonIcon />
-                  Personal Information
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-                
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <EmailIcon color="action" fontSize="small" />
-                      <Typography variant="body2" color="text.secondary">
-                        Email
-                      </Typography>
-                    </Box>
-                    <Typography variant="body1" fontWeight="medium">
-                      {user.email}
-                    </Typography>
-                  </Box>
-                  
-                  <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <PhoneIcon color="action" fontSize="small" />
-                      <Typography variant="body2" color="text.secondary">
-                        Mobile
-                      </Typography>
-                    </Box>
-                    <Typography variant="body1" fontWeight="medium">
-                      {user.mobile || 'N/A'}
-                    </Typography>
-                  </Box>
-                  
-                  <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <PersonIcon color="action" fontSize="small" />
-                      <Typography variant="body2" color="text.secondary">
-                        Gender
-                      </Typography>
-                    </Box>
-                    <Typography variant="body1" fontWeight="medium">
-                      {user.gender || 'N/A'}
-                    </Typography>
-                  </Box>
-                  
-                  <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <CalendarIcon color="action" fontSize="small" />
-                      <Typography variant="body2" color="text.secondary">
-                        Date of Birth
-                      </Typography>
-                    </Box>
-                    <Typography variant="body1" fontWeight="medium">
-                      {formatDate(user.date_of_birth)}
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Box>
-
-          {/* Work Information */}
-          <Box sx={{ flex: 1 }}>
-            <Card elevation={1}>
-              <CardContent>
-                <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <BusinessIcon />
-                  Work Information
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-                
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <CalendarIcon color="action" fontSize="small" />
-                      <Typography variant="body2" color="text.secondary">
-                        Date of Joining
-                      </Typography>
-                    </Box>
-                    <Typography variant="body1" fontWeight="medium">
-                      {formatDate(user.date_of_joining)}
-                    </Typography>
-                  </Box>
-                  
-                  <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <BusinessIcon color="action" fontSize="small" />
-                      <Typography variant="body2" color="text.secondary">
-                        Department
-                      </Typography>
-                    </Box>
-                    <Typography variant="body1" fontWeight="medium">
-                      {user.department || 'N/A'}
-                    </Typography>
-                  </Box>
-                  
-                  <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <BadgeIcon color="action" fontSize="small" />
-                      <Typography variant="body2" color="text.secondary">
-                        Manager ID
-                      </Typography>
-                    </Box>
-                    <Typography variant="body1" fontWeight="medium">
-                      {user.manager_id || 'N/A'}
-                    </Typography>
-                  </Box>
-                  
-                  <Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <LocationIcon color="action" fontSize="small" />
-                      <Typography variant="body2" color="text.secondary">
-                        Location
-                      </Typography>
-                    </Box>
-                    <Typography variant="body1" fontWeight="medium">
-                      {user.location || 'N/A'}
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Box>
+            </CardContent>
+          </Card>
         </Box>
 
-        {/* Additional Information */}
-        {(user.pan_number || user.aadhar_number || user.uan_number || user.esi_number) && (
-          <Box sx={{ mt: 3 }}>
-            <Card elevation={1}>
-              <CardContent>
-                <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <BadgeIcon />
-                  Additional Information
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-                
-                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
-                  {user.pan_number && (
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        PAN Number
-                      </Typography>
-                      <Typography variant="body1" fontWeight="medium">
-                        {user.pan_number}
-                      </Typography>
-                    </Box>
-                  )}
-                  
-                  {user.aadhar_number && (
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        Aadhar Number
-                      </Typography>
-                      <Typography variant="body1" fontWeight="medium">
-                        {user.aadhar_number}
-                      </Typography>
-                    </Box>
-                  )}
-                  
-                  {user.uan_number && (
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        UAN Number
-                      </Typography>
-                      <Typography variant="body1" fontWeight="medium">
-                        {user.uan_number}
-                      </Typography>
-                    </Box>
-                  )}
-                  
-                  {user.esi_number && (
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        ESI Number
-                      </Typography>
-                      <Typography variant="body1" fontWeight="medium">
-                        {user.esi_number}
-                      </Typography>
-                    </Box>
-                  )}
+        {/* Work Information */}
+        <Box sx={{ flex: 1 }}>
+          <Card elevation={1}>
+            <CardContent>
+              <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <BusinessIcon />
+                Work Information
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <CalendarIcon color="action" fontSize="small" />
+                    <Typography variant="body2" color="text.secondary">
+                      Date of Joining
+                    </Typography>
+                  </Box>
+                  <Typography variant="body1" fontWeight="medium">
+                    {formatDate(user.date_of_joining)}
+                  </Typography>
                 </Box>
-              </CardContent>
-            </Card>
-          </Box>
-        )}
-
-        {/* Uploaded Documents */}
-        {(user.pan_document_path || user.aadhar_document_path || user.photo_path) && (
-          <Box sx={{ mt: 3 }}>
-            <Card elevation={1}>
-              <CardContent>
-                <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <DescriptionIcon />
-                  Uploaded Documents
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
                 
-                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 3 }}>
-                  {user.pan_document_path && (
-                    <Box sx={{ flex: 1 }}>
-                      <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
-                        <Box sx={{ textAlign: 'center' }}>
-                          <DescriptionIcon 
-                            sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} 
-                          />
-                          <Typography variant="subtitle2" gutterBottom>
-                            PAN Card Document
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-                            {user.pan_document_path.split('/').pop()}
-                          </Typography>
-                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                            <Tooltip title="View Document">
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => handleViewFile(user.pan_document_path, 'PAN Card')}
-                              >
-                                <VisibilityIcon />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Download Document">
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => handleDownloadFile(user.pan_document_path)}
-                              >
-                                <DownloadIcon />
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                        </Box>
-                      </Card>
-                    </Box>
-                  )}
-
-                  {user.aadhar_document_path && (
-                    <Box sx={{ flex: 1 }}>
-                      <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
-                        <Box sx={{ textAlign: 'center' }}>
-                          <DescriptionIcon 
-                            sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} 
-                          />
-                          <Typography variant="subtitle2" gutterBottom>
-                            Aadhar Card Document
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-                            {user.aadhar_document_path.split('/').pop()}
-                          </Typography>
-                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                            <Tooltip title="View Document">
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => handleViewFile(user.aadhar_document_path, 'Aadhar Card')}
-                              >
-                                <VisibilityIcon />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Download Document">
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => handleDownloadFile(user.aadhar_document_path)}
-                              >
-                                <DownloadIcon />
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                        </Box>
-                      </Card>
-                    </Box>
-                  )}
-
-                  {user.photo_path && (
-                    <Box sx={{ flex: 1 }}>
-                      <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
-                        <Box sx={{ textAlign: 'center' }}>
-                          <PhotoCameraIcon 
-                            sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} 
-                          />
-                          <Typography variant="subtitle2" gutterBottom>
-                            Profile Photo
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-                            {user.photo_path.split('/').pop()}
-                          </Typography>
-                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                            <Tooltip title="View Photo">
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => handleViewFile(user.photo_path, 'Profile Photo')}
-                              >
-                                <VisibilityIcon />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Download Photo">
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => handleDownloadFile(user.photo_path)}
-                              >
-                                <DownloadIcon />
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                        </Box>
-                      </Card>
-                    </Box>
-                  )}
+                <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <BusinessIcon color="action" fontSize="small" />
+                    <Typography variant="body2" color="text.secondary">
+                      Department
+                    </Typography>
+                  </Box>
+                  <Typography variant="body1" fontWeight="medium">
+                    {user.department || 'N/A'}
+                  </Typography>
                 </Box>
-              </CardContent>
-            </Card>
-          </Box>
-        )}
-
-        {/* Toast Notifications */}
-        <Snackbar 
-          open={toast.open}
-          autoHideDuration={6000}
-          onClose={handleCloseToast}
-          message={toast.message}
-        />
+                
+                <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <BadgeIcon color="action" fontSize="small" />
+                    <Typography variant="body2" color="text.secondary">
+                      Manager ID
+                    </Typography>
+                  </Box>
+                  <Typography variant="body1" fontWeight="medium">
+                    {user.manager_id || 'N/A'}
+                  </Typography>
+                </Box>
+                
+                <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <LocationIcon color="action" fontSize="small" />
+                    <Typography variant="body2" color="text.secondary">
+                      Location
+                    </Typography>
+                  </Box>
+                  <Typography variant="body1" fontWeight="medium">
+                    {user.location || 'N/A'}
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Box>
       </Box>
-    </PageLayout>
+
+      {/* Additional Information */}
+      {(user.pan_number || user.aadhar_number || user.uan_number || user.esi_number) && (
+        <Box sx={{ mt: 3 }}>
+          <Card elevation={1}>
+            <CardContent>
+              <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <BadgeIcon />
+                Additional Information
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              
+              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
+                {user.pan_number && (
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      PAN Number
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium">
+                      {user.pan_number}
+                    </Typography>
+                  </Box>
+                )}
+                
+                {user.aadhar_number && (
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      Aadhar Number
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium">
+                      {user.aadhar_number}
+                    </Typography>
+                  </Box>
+                )}
+                
+                {user.uan_number && (
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      UAN Number
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium">
+                      {user.uan_number}
+                    </Typography>
+                  </Box>
+                )}
+                
+                {user.esi_number && (
+                  <Box sx={{ flex: 1 }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      ESI Number
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium">
+                      {user.esi_number}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        </Box>
+      )}
+
+      {/* Uploaded Documents */}
+      {(user.pan_document_path || user.aadhar_document_path || user.photo_path) && (
+        <Box sx={{ mt: 3 }}>
+          <Card elevation={1}>
+            <CardContent>
+              <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <DescriptionIcon />
+                Uploaded Documents
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              
+              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 3 }}>
+                {user.pan_document_path && (
+                  <Box sx={{ flex: 1 }}>
+                    <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <DescriptionIcon 
+                          sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} 
+                        />
+                        <Typography variant="subtitle2" gutterBottom>
+                          PAN Card Document
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+                          {user.pan_document_path.split('/').pop()}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                          <Tooltip title="View Document">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleViewFile(user.pan_document_path, 'PAN Card')}
+                            >
+                              <VisibilityIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Download Document">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleDownloadFile(user.pan_document_path)}
+                            >
+                              <DownloadIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </Box>
+                    </Card>
+                  </Box>
+                )}
+
+                {user.aadhar_document_path && (
+                  <Box sx={{ flex: 1 }}>
+                    <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <DescriptionIcon 
+                          sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} 
+                        />
+                        <Typography variant="subtitle2" gutterBottom>
+                          Aadhar Card Document
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+                          {user.aadhar_document_path.split('/').pop()}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                          <Tooltip title="View Document">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleViewFile(user.aadhar_document_path, 'Aadhar Card')}
+                            >
+                              <VisibilityIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Download Document">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleDownloadFile(user.aadhar_document_path)}
+                            >
+                              <DownloadIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </Box>
+                    </Card>
+                  </Box>
+                )}
+
+                {user.photo_path && (
+                  <Box sx={{ flex: 1 }}>
+                    <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <PhotoCameraIcon 
+                          sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} 
+                        />
+                        <Typography variant="subtitle2" gutterBottom>
+                          Profile Photo
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+                          {user.photo_path.split('/').pop()}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                          <Tooltip title="View Photo">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleViewFile(user.photo_path, 'Profile Photo')}
+                            >
+                              <VisibilityIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Download Photo">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleDownloadFile(user.photo_path)}
+                            >
+                              <DownloadIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </Box>
+                    </Card>
+                  </Box>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        </Box>
+      )}
+
+      {/* Toast Notifications */}
+      <Snackbar 
+        open={toast.open}
+        autoHideDuration={6000}
+        onClose={handleCloseToast}
+        message={toast.message}
+      />
+    </Box>
   );
 };
 

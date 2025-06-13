@@ -38,7 +38,6 @@ import {
   Category as CategoryIcon,
   AttachMoney as MoneyIcon
 } from '@mui/icons-material';
-import PageLayout from '../../layout/PageLayout';
 import { useReimbursementsQuery } from '../../shared/hooks/useReimbursements';
 import { ReimbursementType } from '../../shared/types';
 // Note: reimbursementApi would be used for CRUD operations when backend endpoints are implemented
@@ -202,291 +201,285 @@ const ReimbursementTypes: React.FC = () => {
   );
 
   return (
-    <PageLayout title="Reimbursement Types">
-      <Box sx={{ p: 3 }}>
-        {/* Header with Actions */}
+    <Box>
+      {/* Header */}
+      <Card elevation={1} sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+            <Box>
+              <Typography variant="h4" color="primary" gutterBottom>
+                Reimbursement Types
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Manage reimbursement categories and configurations
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Tooltip title="Refresh" placement="top">
+                <IconButton 
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  color="primary"
+                >
+                  <RefreshIcon />
+                </IconButton>
+              </Tooltip>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => setShowModal(true)}
+              >
+                ADD TYPE
+              </Button>
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Search */}
+      <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
         <Box sx={{ 
           display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          mb: 3 
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 2
         }}>
-          <Typography variant="h4" component="h1" fontWeight="bold">
-            Reimbursement Types
-          </Typography>
-          
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Tooltip title="Refresh" placement="top">
-              <IconButton 
-                onClick={handleRefresh}
-                disabled={refreshing}
-                color="primary"
-              >
-                <RefreshIcon />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="New Type" placement="top">
-              <IconButton 
-                onClick={() => setShowModal(true)}
-                color="primary"
-                sx={{ 
-                  bgcolor: 'primary.main',
-                  color: 'white',
-                  '&:hover': { bgcolor: 'primary.dark' }
-                }}
-              >
-                <AddIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        </Box>
+          <TextField
+            size="small"
+            placeholder="Search types..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            sx={{ minWidth: 250 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon color="action" />
+                </InputAdornment>
+              ),
+            }}
+          />
 
-        {/* Filters */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Box sx={{ 
-              display: 'flex', 
-              gap: 2, 
-              flexWrap: 'wrap',
-              alignItems: 'center'
-            }}>
+          {refreshing && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CircularProgress size={16} />
+              <Typography variant="body2" color="text.secondary">
+                Refreshing...
+              </Typography>
+            </Box>
+          )}
+        </Box>
+      </Paper>
+
+      {/* Types Table */}
+      <Paper elevation={1}>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ 
+                '& .MuiTableCell-head': { 
+                  backgroundColor: 'primary.main',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  fontSize: '0.875rem',
+                  padding: '16px'
+                }
+              }}>
+                <TableCell>Type Name</TableCell>
+                <TableCell>Description</TableCell>
+                <TableCell>Max Amount</TableCell>
+                <TableCell>Receipt Required</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell align="center">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {isLoading ? (
+                renderTableSkeleton()
+              ) : filteredTypes.length > 0 ? (
+                filteredTypes.map((type: any) => (
+                  <Fade in key={type.type_id} timeout={300}>
+                    <TableRow 
+                      hover
+                      sx={{ 
+                        '&:hover': { 
+                          backgroundColor: 'action.hover' 
+                        }
+                      }}
+                    >
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <CategoryIcon color="primary" />
+                          <Typography variant="subtitle2" fontWeight="medium">
+                            {type.category_name}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {type.description || 'No description'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontWeight="medium">
+                          {type.max_amount ? `₹${type.max_amount}` : 'No limit'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={type.is_receipt_required ? 'Required' : 'Optional'}
+                          color={type.is_receipt_required ? 'warning' : 'default'}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={type.is_active ? 'Active' : 'Inactive'}
+                          color={type.is_active ? 'success' : 'default'}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                          <Tooltip title="Edit Type">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete Type">
+                            <IconButton
+                              size="small"
+                              color="error"
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  </Fade>
+                ))
+              ) : (
+                renderEmptyState()
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
+
+      {/* Create Type Dialog */}
+      <Dialog open={showModal} onClose={handleClose} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Typography variant="h5" component="div">
+            Create Reimbursement Type
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Define a new reimbursement category
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <form onSubmit={handleSubmit}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
               <TextField
-                size="small"
-                placeholder="Search types..."
-                value={searchTerm}
-                onChange={handleSearchChange}
+                fullWidth
+                label="Type Name"
+                value={formData.category_name}
+                onChange={(e) => setFormData({ ...formData, category_name: e.target.value })}
+                required
+                placeholder="e.g., Travel, Meals, Office Supplies"
+              />
+              <TextField
+                fullWidth
+                label="Description"
+                multiline
+                rows={3}
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Describe what this reimbursement type covers..."
+              />
+              <TextField
+                fullWidth
+                label="Maximum Amount (Optional)"
+                type="number"
+                value={formData.max_amount}
+                onChange={(e) => setFormData({ ...formData, max_amount: e.target.value })}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon color="action" />
+                      <MoneyIcon color="action" />
                     </InputAdornment>
                   ),
                 }}
-                sx={{ minWidth: 250 }}
+                placeholder="Leave empty for no limit"
               />
-
-              {refreshing && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CircularProgress size={16} />
-                  <Typography variant="body2" color="text.secondary">
-                    Refreshing...
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-          </CardContent>
-        </Card>
-
-        {/* Types Table */}
-        <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow sx={{ 
-                  '& .MuiTableCell-head': { 
-                    backgroundColor: 'primary.main',
-                    color: 'white',
-                    fontWeight: 'bold',
-                    fontSize: '0.875rem',
-                    padding: '16px'
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.is_receipt_required}
+                      onChange={(e) => setFormData({ ...formData, is_receipt_required: e.target.checked })}
+                    />
                   }
-                }}>
-                  <TableCell>Type Name</TableCell>
-                  <TableCell>Description</TableCell>
-                  <TableCell>Max Amount</TableCell>
-                  <TableCell>Receipt Required</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="center">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {isLoading ? (
-                  renderTableSkeleton()
-                ) : filteredTypes.length > 0 ? (
-                  filteredTypes.map((type: any) => (
-                    <Fade in key={type.type_id} timeout={300}>
-                      <TableRow 
-                        hover
-                        sx={{ 
-                          '&:hover': { 
-                            backgroundColor: 'action.hover' 
-                          }
-                        }}
-                      >
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <CategoryIcon color="primary" />
-                            <Typography variant="subtitle2" fontWeight="medium">
-                              {type.category_name}
-                            </Typography>
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" color="text.secondary">
-                            {type.description || 'No description'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" fontWeight="medium">
-                            {type.max_amount ? `₹${type.max_amount}` : 'No limit'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={type.is_receipt_required ? 'Required' : 'Optional'}
-                            color={type.is_receipt_required ? 'warning' : 'default'}
-                            size="small"
-                            variant="outlined"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={type.is_active ? 'Active' : 'Inactive'}
-                            color={type.is_active ? 'success' : 'default'}
-                            size="small"
-                            variant="outlined"
-                          />
-                        </TableCell>
-                        <TableCell align="center">
-                          <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-                            <Tooltip title="Edit Type">
-                              <IconButton
-                                size="small"
-                                color="primary"
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Delete Type">
-                              <IconButton
-                                size="small"
-                                color="error"
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    </Fade>
-                  ))
-                ) : (
-                  renderEmptyState()
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
-
-        {/* Create Type Dialog */}
-        <Dialog open={showModal} onClose={handleClose} maxWidth="sm" fullWidth>
-          <DialogTitle>
-            <Typography variant="h5" component="div">
-              Create Reimbursement Type
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Define a new reimbursement category
-            </Typography>
-          </DialogTitle>
-          <DialogContent>
-            <form onSubmit={handleSubmit}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
-                <TextField
-                  fullWidth
-                  label="Type Name"
-                  value={formData.category_name}
-                  onChange={(e) => setFormData({ ...formData, category_name: e.target.value })}
-                  required
-                  placeholder="e.g., Travel, Meals, Office Supplies"
+                  label="Receipt Required"
                 />
-                <TextField
-                  fullWidth
-                  label="Description"
-                  multiline
-                  rows={3}
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Describe what this reimbursement type covers..."
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.is_approval_required}
+                      onChange={(e) => setFormData({ ...formData, is_approval_required: e.target.checked })}
+                    />
+                  }
+                  label="Approval Required"
                 />
-                <TextField
-                  fullWidth
-                  label="Maximum Amount (Optional)"
-                  type="number"
-                  value={formData.max_amount}
-                  onChange={(e) => setFormData({ ...formData, max_amount: e.target.value })}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <MoneyIcon color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                  placeholder="Leave empty for no limit"
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={formData.is_active}
+                      onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                    />
+                  }
+                  label="Active"
                 />
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={formData.is_receipt_required}
-                        onChange={(e) => setFormData({ ...formData, is_receipt_required: e.target.checked })}
-                      />
-                    }
-                    label="Receipt Required"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={formData.is_approval_required}
-                        onChange={(e) => setFormData({ ...formData, is_approval_required: e.target.checked })}
-                      />
-                    }
-                    label="Approval Required"
-                  />
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={formData.is_active}
-                        onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                      />
-                    }
-                    label="Active"
-                  />
-                </Box>
               </Box>
-            </form>
-          </DialogContent>
-          <DialogActions sx={{ p: 3 }}>
-            <Button onClick={handleClose} color="inherit">
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSubmit} 
-              variant="contained"
-              disabled={!formData.category_name}
-            >
-              Create Type
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Toast Notifications */}
-        <Snackbar
-          open={toast.open}
-          autoHideDuration={6000}
-          onClose={handleCloseToast}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        >
-          <Alert 
-            onClose={handleCloseToast} 
-            severity={toast.severity}
-            sx={{ width: '100%' }}
-            variant="filled"
+            </Box>
+          </form>
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={handleClose} color="inherit">
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained"
+            disabled={!formData.category_name}
           >
-            {toast.message}
-          </Alert>
-        </Snackbar>
-      </Box>
-    </PageLayout>
+            Create Type
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Toast Notifications */}
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={6000}
+        onClose={handleCloseToast}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseToast} 
+          severity={toast.severity}
+          sx={{ width: '100%' }}
+          variant="filled"
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 };
 

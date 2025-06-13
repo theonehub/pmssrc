@@ -79,6 +79,8 @@ class EmployeeLeaveUpdateRequestDTO(BaseModel):
     end_date: Optional[str] = Field(None, description="Leave end date in YYYY-MM-DD format")
     reason: Optional[str] = Field(None, description="Reason for leave")
     updated_by: Optional[str] = Field(None, description="User updating the leave")
+    present_days: Optional[int] = Field(None, description="Present days for LWP calculation")
+    is_deleted: Optional[bool] = Field(None, description="Soft delete flag")
     
     def get_leave_type(self) -> Optional[str]:
         """Get leave type from either field"""
@@ -242,6 +244,8 @@ class LWPCalculationDTO(BaseModel):
     month: int
     year: int
     lwp_days: int
+    working_days: int = Field(default=22, description="Working days in the month")
+    lwp_amount: float = Field(default=0.0, description="LWP amount deduction")
     calculation_details: Dict[str, Any] = Field(default_factory=dict)
     
     def to_dict(self) -> Dict[str, Any]:

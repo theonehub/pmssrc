@@ -91,6 +91,54 @@ def handle_employee_leave_exceptions(func):
 
 # Employee Leave Application Routes
 
+@router.get("/", response_model=List[EmployeeLeaveResponseDTO])
+@handle_employee_leave_exceptions
+async def get_all_employee_leaves(
+    status: Optional[str] = Query(None, description="Filter by status"),
+    employee_id: Optional[str] = Query(None, description="Filter by employee ID"),
+    limit: Optional[int] = Query(100, description="Limit results"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: EmployeeLeaveController = Depends(get_employee_leave_controller)
+):
+    """Get all employee leaves with optional filters."""
+    
+    logger.info(f"Retrieving all employee leaves by: {current_user.employee_id}")
+    
+    # Authorization check and filter adjustment
+    user_role = getattr(current_user, 'role', '').lower()
+    current_employee_id = current_user.employee_id
+    
+    if user_role not in ["admin", "superadmin"]:
+        if user_role == "manager":
+            # Managers can view their team's leaves
+            from app.application.dto.employee_leave_dto import EmployeeLeaveSearchFiltersDTO
+            filters = EmployeeLeaveSearchFiltersDTO(
+                status=status,
+                manager_id=current_employee_id,
+                limit=limit
+            )
+        else:
+            # Regular employees can only view their own leaves
+            employee_id = current_employee_id
+            from app.application.dto.employee_leave_dto import EmployeeLeaveSearchFiltersDTO
+            filters = EmployeeLeaveSearchFiltersDTO(
+                status=status,
+                employee_id=employee_id,
+                limit=limit
+            )
+    else:
+        # Admins can view all leaves
+        from app.application.dto.employee_leave_dto import EmployeeLeaveSearchFiltersDTO
+        filters = EmployeeLeaveSearchFiltersDTO(
+            status=status,
+            employee_id=employee_id,
+            limit=limit
+        )
+    
+    response = await controller.search_leaves(filters, current_user)
+    
+    return response
+
 @router.post("/apply", response_model=EmployeeLeaveResponseDTO)
 @handle_employee_leave_exceptions
 async def apply_employee_leave(
@@ -463,7 +511,7 @@ async def count_employee_leaves(
     return count
 
 
-# Health check endpoint
+# Health check endpoint (public)
 @router.get("/health")
 async def health_check():
     """Health check endpoint for employee leave service."""
@@ -506,18 +554,16 @@ async def get_user_leaves_by_month_legacy(
     v2_response = await controller.get_monthly_leaves(employee_id, month, year)
     
     # Transform to legacy format
-    from app.application.dto.attendance_dto import LegacyLeaveRecordDTO
     legacy_response = []
     for leave in v2_response:
-        legacy_leave = LegacyLeaveRecordDTO.from_employee_leave_response(leave)
         legacy_response.append({
-            "leave_name": legacy_leave.leave_name,
-            "status": legacy_leave.status,
-            "start_date": legacy_leave.start_date,
-            "end_date": legacy_leave.end_date,
-            "leave_count": legacy_leave.leave_count,
-            "days_in_month": legacy_leave.days_in_month,
-            "reason": legacy_leave.reason
+            "leave_name": leave.leave_type,
+            "status": leave.status,
+            "start_date": leave.start_date,
+            "end_date": leave.end_date,
+            "leave_count": leave.leave_count if hasattr(leave, 'leave_count') else 1,
+            "days_in_month": leave.leave_count if hasattr(leave, 'leave_count') else 1,
+            "reason": leave.reason if hasattr(leave, 'reason') else ""
         })
     
     return legacy_response

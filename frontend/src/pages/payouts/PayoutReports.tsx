@@ -259,7 +259,7 @@ const PayoutReports: React.FC = () => {
 
   return (
     <PageLayout title="Payout Reports">
-      <Box sx={{ p: 3 }}>
+      <Box>
         {/* Filters */}
         <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
           <FormControl size="small">

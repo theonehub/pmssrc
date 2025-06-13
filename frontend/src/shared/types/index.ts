@@ -498,14 +498,21 @@ export interface SortConfig {
 
 // Dashboard statistics
 export interface DashboardStats {
-  totalUsers: number;
-  totalOrganizations: number;
-  totalReimbursements: number;
-  totalLeaves: number;
-  pendingApprovals: number;
-  monthlyPayouts: number;
-  activeEmployees: number;
-  inactiveEmployees: number;
+  total_users: number;
+  active_users: number;
+  inactive_users: number;
+  checkin_count: number;
+  checkout_count: number;
+  pending_reimbursements: number;
+  pending_reimbursements_amount: number;
+  pending_leaves: number;
+  total_departments: number;
+  recent_joiners_count: number;
+  generated_at: string;
+  department_distribution: Record<string, number>;
+  role_distribution: Record<string, number>;
+  attendance_trends: Record<string, any>;
+  leave_trends: Record<string, any>;
 }
 
 // Organisation interface

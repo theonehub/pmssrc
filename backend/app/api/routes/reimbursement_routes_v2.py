@@ -59,6 +59,31 @@ async def health_check(
     return await controller.health_check()
 
 # Reimbursement CRUD endpoints
+@router.get("", response_model=List[ReimbursementSummaryDTO])
+@router.get("/", response_model=List[ReimbursementSummaryDTO])
+async def get_reimbursements(
+    status: Optional[str] = Query(None, description="Filter by status"),
+    limit: int = Query(50, ge=1, le=100, description="Number of requests to return"),
+    offset: int = Query(0, ge=0, description="Number of requests to skip"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: ReimbursementController = Depends(get_reimbursement_controller)
+) -> List[ReimbursementSummaryDTO]:
+    """Get reimbursement requests with optional filtering."""
+    try:
+        filters = ReimbursementSearchFiltersDTO(
+            employee_id=current_user.employee_id,
+            status=status,
+            page=offset // limit + 1,
+            page_size=limit
+        )
+        
+        result = await controller.list_reimbursement_requests(filters, current_user)
+        return result.reimbursements
+        
+    except Exception as e:
+        logger.error(f"Error getting reimbursement requests: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
 @router.post("", response_model=ReimbursementResponseDTO)
 async def create_reimbursement(
     request: ReimbursementRequestCreateDTO,

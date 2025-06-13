@@ -28,7 +28,6 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { getToken } from '../../shared/utils/auth';
-import PageLayout from '../../layout/PageLayout';
 import { useOrganisationsQuery } from '../../shared/hooks/useOrganisations';
 
 const API_BASE_URL = 'http://localhost:8000/api/v2';
@@ -367,362 +366,355 @@ const AddNewOrganisation: React.FC = () => {
   };
 
   return (
-    <PageLayout title={isEditing ? "Edit Organisation" : "Add New Organisation"}>
-      <Box sx={{ p: 3 }}>
-        {/* Header */}
-        <Card elevation={1} sx={{ mb: 3 }}>
-          <CardContent>
-            <Box sx={{ 
-              display: 'grid', 
-              gridTemplateColumns: { xs: '1fr', sm: '1fr' }, 
-              gap: 2, 
-              alignItems: 'center' 
-            }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Button
-                  startIcon={<ArrowBackIcon />}
-                  onClick={() => navigate('/organisations')}
-                  variant="outlined"
-                  size="small"
-                >
-                  Back
-                </Button>
-                <Box>
-                  <Typography variant="h4" color="primary" gutterBottom>
-                    {isEditing ? 'Edit Organisation' : 'Add New Organisation'}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {isEditing 
-                      ? 'Update the organisation details below'
-                      : 'Fill in the organisation details to create a new organisation'
-                    }
-                  </Typography>
-                </Box>
+    <Box>
+      {/* Header */}
+      <Card elevation={1} sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Button
+                startIcon={<ArrowBackIcon />}
+                onClick={() => navigate('/organisations')}
+                variant="outlined"
+                size="small"
+              >
+                Back
+              </Button>
+              <Box>
+                <Typography variant="h4" color="primary" gutterBottom>
+                  {isEditing ? 'Edit Organisation' : 'Add New Organisation'}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {isEditing 
+                    ? 'Update the organisation details below'
+                    : 'Fill in the organisation details to create a new organisation'
+                  }
+                </Typography>
               </Box>
             </Box>
-          </CardContent>
-        </Card>
+          </Box>
+        </CardContent>
+      </Card>
 
-        <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 900, mx: 'auto' }}>
-          {/* Basic Information Section */}
-          <FormSection title="Basic Information">
+      <Box component="form" onSubmit={handleSubmit} sx={{ maxWidth: 900, mx: 'auto' }}>
+        {/* Basic Information Section */}
+        <FormSection title="Basic Information">
+          <TextField
+            fullWidth
+            label="Organisation Name"
+            value={name}
+            onChange={(e) => handleFieldChange('name', e.target.value, setName)}
+            error={!!errors.name}
+            helperText={errors.name}
+            required
+            InputProps={{
+              startAdornment: <BusinessIcon color="action" sx={{ mr: 1 }} />,
+            }}
+          />
+
+          <TextField
+            fullWidth
+            label="Hostname"
+            value={hostname}
+            onChange={(e) => handleFieldChange('hostname', e.target.value, setHostname)}
+            error={!!errors.hostname}
+            helperText={errors.hostname}
+            required
+            placeholder="e.g., company.com"
+            InputProps={{
+              startAdornment: <LanguageIcon color="action" sx={{ mr: 1 }} />,
+            }}
+          />
+
+          <TextField
+            select
+            fullWidth
+            label="Organisation Type"
+            value={organisationType}
+            onChange={(e) => setOrganisationType(e.target.value)}
+          >
+            <MenuItem value="private_limited">Private Limited</MenuItem>
+            <MenuItem value="public_limited">Public Limited</MenuItem>
+            <MenuItem value="partnership">Partnership</MenuItem>
+            <MenuItem value="sole_proprietorship">Sole Proprietorship</MenuItem>
+            <MenuItem value="llp">Limited Liability Partnership</MenuItem>
+          </TextField>
+
+          <TextField
+            select
+            fullWidth
+            label="Status"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            <MenuItem value="active">Active</MenuItem>
+            <MenuItem value="inactive">Inactive</MenuItem>
+            <MenuItem value="suspended">Suspended</MenuItem>
+            <MenuItem value="deleted">Deleted</MenuItem>
+          </TextField>
+
+          <TextField
+            fullWidth
+            label="Employee Strength"
+            type="number"
+            value={employeeStrength}
+            onChange={(e) => handleFieldChange('employeeStrength', e.target.value, setEmployeeStrength)}
+            error={!!errors.employeeStrength}
+            helperText={errors.employeeStrength}
+            required
+            inputProps={{ min: 1 }}
+            InputProps={{
+              startAdornment: <NumbersIcon color="action" sx={{ mr: 1 }} />,
+            }}
+          />
+
+          <Box sx={{ gridColumn: '1 / -1' }}>
             <TextField
               fullWidth
-              label="Organisation Name"
-              value={name}
-              onChange={(e) => handleFieldChange('name', e.target.value, setName)}
-              error={!!errors.name}
-              helperText={errors.name}
-              required
+              label="Description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              multiline
+              rows={3}
+              placeholder="Brief description of the organisation..."
               InputProps={{
-                startAdornment: <BusinessIcon color="action" sx={{ mr: 1 }} />,
+                startAdornment: <DescriptionIcon color="action" sx={{ mr: 1, alignSelf: 'flex-start', mt: 1 }} />,
               }}
             />
+          </Box>
 
+          <Box sx={{ gridColumn: '1 / -1' }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={isActive}
+                  onChange={(e) => setIsActive(e.target.checked)}
+                  color="primary"
+                />
+              }
+              label="Organisation is active"
+            />
+          </Box>
+        </FormSection>
+
+        {/* Contact Information Section */}
+        <FormSection title="Contact Information">
+          <TextField
+            fullWidth
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => handleFieldChange('email', e.target.value, setEmail)}
+            error={!!errors.email}
+            helperText={errors.email}
+            InputProps={{
+              startAdornment: <EmailIcon color="action" sx={{ mr: 1 }} />,
+            }}
+          />
+
+          <TextField
+            fullWidth
+            label="Phone"
+            value={phone}
+            onChange={(e) => handleFieldChange('phone', e.target.value, setPhone)}
+            error={!!errors.phone}
+            helperText={errors.phone}
+            InputProps={{
+              startAdornment: <PhoneIcon color="action" sx={{ mr: 1 }} />,
+            }}
+          />
+
+          <Box sx={{ gridColumn: '1 / -1' }}>
             <TextField
               fullWidth
-              label="Hostname"
-              value={hostname}
-              onChange={(e) => handleFieldChange('hostname', e.target.value, setHostname)}
-              error={!!errors.hostname}
-              helperText={errors.hostname}
-              required
-              placeholder="e.g., company.com"
+              label="Website"
+              value={website}
+              onChange={(e) => handleFieldChange('website', e.target.value, setWebsite)}
+              error={!!errors.website}
+              helperText={errors.website}
+              placeholder="https://www.example.com"
               InputProps={{
                 startAdornment: <LanguageIcon color="action" sx={{ mr: 1 }} />,
               }}
             />
+          </Box>
+        </FormSection>
 
-            <TextField
-              select
-              fullWidth
-              label="Organisation Type"
-              value={organisationType}
-              onChange={(e) => setOrganisationType(e.target.value)}
-            >
-              <MenuItem value="private_limited">Private Limited</MenuItem>
-              <MenuItem value="public_limited">Public Limited</MenuItem>
-              <MenuItem value="partnership">Partnership</MenuItem>
-              <MenuItem value="sole_proprietorship">Sole Proprietorship</MenuItem>
-              <MenuItem value="llp">Limited Liability Partnership</MenuItem>
-            </TextField>
-
-            <TextField
-              select
-              fullWidth
-              label="Status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <MenuItem value="active">Active</MenuItem>
-              <MenuItem value="inactive">Inactive</MenuItem>
-              <MenuItem value="suspended">Suspended</MenuItem>
-              <MenuItem value="deleted">Deleted</MenuItem>
-            </TextField>
-
+        {/* Address Information Section */}
+        <FormSection title="Address Information">
+          <Box sx={{ gridColumn: '1 / -1' }}>
             <TextField
               fullWidth
-              label="Employee Strength"
-              type="number"
-              value={employeeStrength}
-              onChange={(e) => handleFieldChange('employeeStrength', e.target.value, setEmployeeStrength)}
-              error={!!errors.employeeStrength}
-              helperText={errors.employeeStrength}
+              label="Address"
+              value={address}
+              onChange={(e) => handleFieldChange('address', e.target.value, setAddress)}
+              error={!!errors.address}
+              helperText={errors.address}
+              multiline
+              rows={2}
               required
-              inputProps={{ min: 1 }}
               InputProps={{
-                startAdornment: <NumbersIcon color="action" sx={{ mr: 1 }} />,
+                startAdornment: <LocationIcon color="action" sx={{ mr: 1, alignSelf: 'flex-start', mt: 1 }} />,
               }}
             />
-
-            <Box sx={{ gridColumn: '1 / -1' }}>
-              <TextField
-                fullWidth
-                label="Description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                multiline
-                rows={3}
-                placeholder="Brief description of the organisation..."
-                InputProps={{
-                  startAdornment: <DescriptionIcon color="action" sx={{ mr: 1, alignSelf: 'flex-start', mt: 1 }} />,
-                }}
-              />
-            </Box>
-
-            <Box sx={{ gridColumn: '1 / -1' }}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={isActive}
-                    onChange={(e) => setIsActive(e.target.checked)}
-                    color="primary"
-                  />
-                }
-                label="Organisation is active"
-              />
-            </Box>
-          </FormSection>
-
-          {/* Contact Information Section */}
-          <FormSection title="Contact Information">
-            <TextField
-              fullWidth
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e) => handleFieldChange('email', e.target.value, setEmail)}
-              error={!!errors.email}
-              helperText={errors.email}
-              InputProps={{
-                startAdornment: <EmailIcon color="action" sx={{ mr: 1 }} />,
-              }}
-            />
-
-            <TextField
-              fullWidth
-              label="Phone"
-              value={phone}
-              onChange={(e) => handleFieldChange('phone', e.target.value, setPhone)}
-              error={!!errors.phone}
-              helperText={errors.phone}
-              InputProps={{
-                startAdornment: <PhoneIcon color="action" sx={{ mr: 1 }} />,
-              }}
-            />
-
-            <Box sx={{ gridColumn: '1 / -1' }}>
-              <TextField
-                fullWidth
-                label="Website"
-                value={website}
-                onChange={(e) => handleFieldChange('website', e.target.value, setWebsite)}
-                error={!!errors.website}
-                helperText={errors.website}
-                placeholder="https://www.example.com"
-                InputProps={{
-                  startAdornment: <LanguageIcon color="action" sx={{ mr: 1 }} />,
-                }}
-              />
-            </Box>
-          </FormSection>
-
-          {/* Address Information Section */}
-          <FormSection title="Address Information">
-            <Box sx={{ gridColumn: '1 / -1' }}>
-              <TextField
-                fullWidth
-                label="Address"
-                value={address}
-                onChange={(e) => handleFieldChange('address', e.target.value, setAddress)}
-                error={!!errors.address}
-                helperText={errors.address}
-                multiline
-                rows={2}
-                required
-                InputProps={{
-                  startAdornment: <LocationIcon color="action" sx={{ mr: 1, alignSelf: 'flex-start', mt: 1 }} />,
-                }}
-              />
-            </Box>
-
-            <TextField
-              fullWidth
-              label="City"
-              value={city}
-              onChange={(e) => handleFieldChange('city', e.target.value, setCity)}
-              error={!!errors.city}
-              helperText={errors.city}
-              required
-            />
-
-            <TextField
-              fullWidth
-              label="State/Province"
-              value={state}
-              onChange={(e) => setState(e.target.value)}
-            />
-
-            <TextField
-              fullWidth
-              label="Country"
-              value={country}
-              onChange={(e) => handleFieldChange('country', e.target.value, setCountry)}
-              error={!!errors.country}
-              helperText={errors.country}
-              required
-            />
-
-            <TextField
-              fullWidth
-              label="Pin Code"
-              value={pinCode}
-              onChange={(e) => handleFieldChange('pinCode', e.target.value, setPinCode)}
-              error={!!errors.pinCode}
-              helperText={errors.pinCode}
-              placeholder="123456"
-            />
-          </FormSection>
-
-          {/* Tax Information Section */}
-          <FormSection title="Tax & Legal Information">
-            <TextField
-              fullWidth
-              label="PAN Number"
-              value={panNumber}
-              onChange={(e) => handleFieldChange('panNumber', e.target.value, setPanNumber)}
-              error={!!errors.panNumber}
-              helperText={errors.panNumber}
-              placeholder="ABCDE1234F"
-              required
-              inputProps={{ style: { textTransform: 'uppercase' } }}
-              InputProps={{
-                startAdornment: <NumbersIcon color="action" sx={{ mr: 1 }} />,
-              }}
-            />
-
-            <TextField
-              fullWidth
-              label="GST Number"
-              value={gstNumber}
-              onChange={(e) => handleFieldChange('gstNumber', e.target.value, setGstNumber)}
-              error={!!errors.gstNumber}
-              helperText={errors.gstNumber}
-              placeholder="22AAAAA0000A1Z5"
-              inputProps={{ style: { textTransform: 'uppercase' } }}
-              InputProps={{
-                startAdornment: <NumbersIcon color="action" sx={{ mr: 1 }} />,
-              }}
-            />
-
-            <TextField
-              fullWidth
-              label="TAN Number"
-              value={tanNumber}
-              onChange={(e) => handleFieldChange('tanNumber', e.target.value, setTanNumber)}
-              error={!!errors.tanNumber}
-              helperText={errors.tanNumber}
-              placeholder="ABCD12345E"
-              inputProps={{ style: { textTransform: 'uppercase' } }}
-              InputProps={{
-                startAdornment: <NumbersIcon color="action" sx={{ mr: 1 }} />,
-              }}
-            />
-          </FormSection>
-
-          {/* Submit Button */}
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-            <Button 
-              onClick={() => navigate('/organisations')}
-              size="large"
-              sx={{ minWidth: 120 }}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              variant="contained" 
-              size="large"
-              disabled={isSubmitting}
-              sx={{ minWidth: 120 }}
-            >
-              {isSubmitting 
-                ? (isEditing ? 'Updating...' : 'Creating...') 
-                : (isEditing ? 'Update Organisation' : 'Create Organisation')
-              }
-            </Button>
           </Box>
 
-          {/* Developer Help Section - Only show in development */}
-          {/* {process.env.NODE_ENV === 'development' && (
-            <Paper 
-              elevation={1} 
-              sx={{ 
-                p: 3, 
-                mt: 3, 
-                backgroundColor: '#f8f9fa',
-                border: '1px solid #e9ecef'
-              }}
-            >
-              <Typography variant="h6" color="primary" gutterBottom>
-                🔧 Developer Information
-              </Typography>
-              <Typography variant="body2" color="text.secondary" paragraph>
-                If you encounter a <strong>500 Internal Server Error</strong> when creating organisations, 
-                this is due to a backend type mismatch issue:
-              </Typography>
-              <Box sx={{ backgroundColor: '#f1f3f4', p: 2, borderRadius: 1, fontFamily: 'monospace', fontSize: '0.875rem' }}>
-                <Typography variant="body2" sx={{ fontFamily: 'inherit' }}>
-                  <strong>File:</strong> backend/app/api/routes/organisation_routes_v2.py<br/>
-                  <strong>Issue:</strong> Line 37 expects <code>current_user.employee_id - expects CurrentUser object</code> but receives <code>CurrentUser</code> object<br/>
-                  <strong>Fix:</strong> Change line 37 to <code>current_user: CurrentUser</code>
-                </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                This form is ready and will work once the backend type annotation is corrected.
-              </Typography>
-            </Paper>
-          )} */}
+          <TextField
+            fullWidth
+            label="City"
+            value={city}
+            onChange={(e) => handleFieldChange('city', e.target.value, setCity)}
+            error={!!errors.city}
+            helperText={errors.city}
+            required
+          />
+
+          <TextField
+            fullWidth
+            label="State/Province"
+            value={state}
+            onChange={(e) => setState(e.target.value)}
+          />
+
+          <TextField
+            fullWidth
+            label="Country"
+            value={country}
+            onChange={(e) => handleFieldChange('country', e.target.value, setCountry)}
+            error={!!errors.country}
+            helperText={errors.country}
+            required
+          />
+
+          <TextField
+            fullWidth
+            label="Pin Code"
+            value={pinCode}
+            onChange={(e) => handleFieldChange('pinCode', e.target.value, setPinCode)}
+            error={!!errors.pinCode}
+            helperText={errors.pinCode}
+            placeholder="123456"
+          />
+        </FormSection>
+
+        {/* Tax Information Section */}
+        <FormSection title="Tax & Legal Information">
+          <TextField
+            fullWidth
+            label="PAN Number"
+            value={panNumber}
+            onChange={(e) => handleFieldChange('panNumber', e.target.value, setPanNumber)}
+            error={!!errors.panNumber}
+            helperText={errors.panNumber}
+            placeholder="ABCDE1234F"
+            required
+            inputProps={{ style: { textTransform: 'uppercase' } }}
+            InputProps={{
+              startAdornment: <NumbersIcon color="action" sx={{ mr: 1 }} />,
+            }}
+          />
+
+          <TextField
+            fullWidth
+            label="GST Number"
+            value={gstNumber}
+            onChange={(e) => handleFieldChange('gstNumber', e.target.value, setGstNumber)}
+            error={!!errors.gstNumber}
+            helperText={errors.gstNumber}
+            placeholder="22AAAAA0000A1Z5"
+            inputProps={{ style: { textTransform: 'uppercase' } }}
+            InputProps={{
+              startAdornment: <NumbersIcon color="action" sx={{ mr: 1 }} />,
+            }}
+          />
+
+          <TextField
+            fullWidth
+            label="TAN Number"
+            value={tanNumber}
+            onChange={(e) => handleFieldChange('tanNumber', e.target.value, setTanNumber)}
+            error={!!errors.tanNumber}
+            helperText={errors.tanNumber}
+            placeholder="ABCD12345E"
+            inputProps={{ style: { textTransform: 'uppercase' } }}
+            InputProps={{
+              startAdornment: <NumbersIcon color="action" sx={{ mr: 1 }} />,
+            }}
+          />
+        </FormSection>
+
+        {/* Submit Button */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+          <Button 
+            onClick={() => navigate('/organisations')}
+            size="large"
+            sx={{ minWidth: 120 }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            variant="contained" 
+            size="large"
+            disabled={isSubmitting}
+            sx={{ minWidth: 120 }}
+          >
+            {isSubmitting 
+              ? (isEditing ? 'Updating...' : 'Creating...') 
+              : (isEditing ? 'Update Organisation' : 'Create Organisation')
+            }
+          </Button>
         </Box>
 
-        {/* Toast Notifications */}
-        <Snackbar 
-          open={toast.open} 
-          autoHideDuration={6000} 
-          onClose={handleCloseToast}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        >
-          <Alert 
-            onClose={handleCloseToast} 
-            severity={toast.severity}
-            sx={{ width: '100%' }}
-            variant="filled"
+        {/* Developer Help Section - Only show in development */}
+        {/* {process.env.NODE_ENV === 'development' && (
+          <Paper 
+            elevation={1} 
+            sx={{ 
+              p: 3, 
+              mt: 3, 
+              backgroundColor: '#f8f9fa',
+              border: '1px solid #e9ecef'
+            }}
           >
-            {toast.message}
-          </Alert>
-        </Snackbar>
+            <Typography variant="h6" color="primary" gutterBottom>
+              🔧 Developer Information
+            </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              If you encounter a <strong>500 Internal Server Error</strong> when creating organisations, 
+              this is due to a backend type mismatch issue:
+            </Typography>
+            <Box sx={{ backgroundColor: '#f1f3f4', p: 2, borderRadius: 1, fontFamily: 'monospace', fontSize: '0.875rem' }}>
+              <Typography variant="body2" sx={{ fontFamily: 'inherit' }}>
+                <strong>File:</strong> backend/app/api/routes/organisation_routes_v2.py<br/>
+                <strong>Issue:</strong> Line 37 expects <code>current_user.employee_id - expects CurrentUser object</code> but receives <code>CurrentUser</code> object<br/>
+                <strong>Fix:</strong> Change line 37 to <code>current_user: CurrentUser</code>
+              </Typography>
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+              This form is ready and will work once the backend type annotation is corrected.
+            </Typography>
+          </Paper>
+        )} */}
       </Box>
-    </PageLayout>
+
+      {/* Toast Notifications */}
+      <Snackbar 
+        open={toast.open} 
+        autoHideDuration={6000} 
+        onClose={handleCloseToast}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseToast} 
+          severity={toast.severity}
+          sx={{ width: '100%' }}
+          variant="filled"
+        >
+          {toast.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 };
 

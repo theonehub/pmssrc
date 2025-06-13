@@ -35,7 +35,6 @@ import { useLeavesQuery } from '../../shared/hooks/useLeaves';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import PageLayout from '../../layout/PageLayout';
 import { styled } from '@mui/material/styles';
 import { LeaveRequest, LeaveBalanceData, AlertState } from '../../shared/types';
 import { apiClient } from '../../shared/api';
@@ -237,26 +236,37 @@ const LeaveManagement: React.FC = () => {
   };
 
   return (
-    <PageLayout title="Leave Management">
-      <Box sx={{ p: 3 }}>
-        {/* Header with Apply Button */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-          <Typography variant="h4">Leave Management</Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setShowModal(true)}
-          >
-            Apply for Leave
-          </Button>
-        </Box>
+    <Box>
+      {/* Header */}
+      <Card elevation={1} sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+            <Box>
+              <Typography variant="h4" color="primary" gutterBottom>
+                Leave Management
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Apply for leaves and track your leave history
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setShowModal(true)}
+            >
+              APPLY FOR LEAVE
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
 
-        {/* Leave Balance Cards */}
+      {/* Leave Balance Cards */}
+      <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
+        <Typography variant="h6" sx={{ mb: 2 }}>Leave Balance</Typography>
         <Box sx={{ 
           display: 'grid', 
           gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, 
-          gap: 2, 
-          mb: 4 
+          gap: 2
         }}>
           {Object.entries(leaveBalance).map(([type, balance]) => (
             <Card 
@@ -279,225 +289,226 @@ const LeaveManagement: React.FC = () => {
             </Card>
           ))}
         </Box>
+      </Paper>
 
-        {/* Leave History Table */}
-        <Card>
-          <CardContent>
-            {isLeavesLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
-                <CircularProgress color="primary" />
-              </Box>
-            ) : (
-              <TableContainer component={Paper}>
-                <Table>
-                  <TableHead>
-                    <TableRow sx={{ 
-                      '& .MuiTableCell-head': { 
-                        backgroundColor: 'primary.main',
-                        color: 'white',
-                        fontWeight: 'bold',
-                        fontSize: '0.875rem',
-                        padding: '12px 16px'
-                      }
-                    }}>
-                      <TableCell>Leave Type</TableCell>
-                      <TableCell>Start Date</TableCell>
-                      <TableCell>End Date</TableCell>
-                      <TableCell>Used Days</TableCell>
-                      <TableCell>Reason</TableCell>
-                      <TableCell>Status</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {isLeavesLoading ? (
-                      <TableRow>
-                        <TableCell colSpan={6} align="center">
-                          <CircularProgress />
-                        </TableCell>
-                      </TableRow>
-                    ) : leaves.length > 0 ? (
-                      leaves.map((leave: LeaveRequest) => (
-                        <TableRow 
-                          key={leave.id}
-                          sx={{ 
-                            '&:hover': { 
-                              backgroundColor: 'action.hover',
-                              cursor: 'pointer'
-                            }
+      {/* Leave History Table */}
+      <Paper elevation={1}>
+        <Box sx={{ p: 2 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Leave History</Typography>
+        </Box>
+        {isLeavesLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
+            <CircularProgress color="primary" />
+          </Box>
+        ) : (
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ 
+                  '& .MuiTableCell-head': { 
+                    backgroundColor: 'primary.main',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    fontSize: '0.875rem',
+                    padding: '12px 16px'
+                  }
+                }}>
+                  <TableCell>Leave Type</TableCell>
+                  <TableCell>Start Date</TableCell>
+                  <TableCell>End Date</TableCell>
+                  <TableCell>Used Days</TableCell>
+                  <TableCell>Reason</TableCell>
+                  <TableCell>Status</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {isLeavesLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center">
+                      <CircularProgress />
+                    </TableCell>
+                  </TableRow>
+                ) : leaves.length > 0 ? (
+                  leaves.map((leave: LeaveRequest) => (
+                    <TableRow 
+                      key={leave.id}
+                      sx={{ 
+                        '&:hover': { 
+                          backgroundColor: 'action.hover',
+                          cursor: 'pointer'
+                        }
+                      }}
+                    >
+                      <TableCell>{leave.leave_name}</TableCell>
+                      <TableCell>{leave.start_date}</TableCell>
+                      <TableCell>{leave.end_date}</TableCell>
+                      <TableCell>{leave.leave_count}</TableCell>
+                      <TableCell>{leave.reason}</TableCell>
+                      <TableCell>
+                        <Box
+                          component="span"
+                          sx={{
+                            display: 'inline-block',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            backgroundColor: leave.status === 'approved' ? 'success.main' : 'error.main',
+                            color: 'white',
+                            fontSize: '0.75rem',
+                            fontWeight: 'bold'
                           }}
                         >
-                          <TableCell>{leave.leave_name}</TableCell>
-                          <TableCell>{leave.start_date}</TableCell>
-                          <TableCell>{leave.end_date}</TableCell>
-                          <TableCell>{leave.leave_count}</TableCell>
-                          <TableCell>{leave.reason}</TableCell>
-                          <TableCell>
-                            <Box
-                              component="span"
-                              sx={{
-                                display: 'inline-block',
-                                padding: '4px 8px',
-                                borderRadius: '4px',
-                                backgroundColor: leave.status === 'approved' ? 'success.main' : 'error.main',
-                                color: 'white',
-                                fontSize: '0.75rem',
-                                fontWeight: 'bold'
-                              }}
-                            >
-                              {leave.status.toUpperCase()}
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={6} align="center">No leaves found</TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </CardContent>
-        </Card>
+                          {leave.status.toUpperCase()}
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center">No leaves found</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </Paper>
 
-        {/* Leave Application Dialog */}
-        <Dialog 
-          open={showModal} 
-          onClose={() => {
-            setShowModal(false);
-            resetForm();
-          }}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>
-            {editingLeave ? 'Update Leave Request' : 'Apply for Leave'}
-          </DialogTitle>
-          <DialogContent>
-            <Box 
-              component="form" 
-              onSubmit={handleSubmit} 
-              sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: 2, 
-                mt: 2 
-              }}
-            >
-              <LocalizationProvider dateAdapter={AdapterDateFns}>
-                <StyledDatePicker
-                  label="Start Date"
-                  value={startDate}
-                  onChange={(date) => setStartDate(date)}
-                  slotProps={{ 
-                    textField: { 
-                      fullWidth: true, 
-                      required: true 
-                    } 
-                  }}
-                  minDate={new Date()}
-                />
-              </LocalizationProvider>
-
-              <LocalizationProvider dateAdapter={AdapterDateFns}>
-                <StyledDatePicker
-                  label="End Date"
-                  value={endDate}
-                  onChange={(date) => setEndDate(date)}
-                  slotProps={{ 
-                    textField: { 
-                      fullWidth: true, 
-                      required: true 
-                    } 
-                  }}
-                  minDate={startDate || new Date()}
-                />
-              </LocalizationProvider>
-
-              <FormControl fullWidth>
-                <InputLabel id="leave-type-label">Leave Type</InputLabel>
-                <Select
-                  labelId="leave-type-label"
-                  value={leaveType}
-                  onChange={handleLeaveTypeChange}
-                  label="Leave Type"
-                  required
-                >
-                  <MenuItem value="">Select Leave Type</MenuItem>
-                  {Object.keys(leaveBalance).map((type) => (
-                    <MenuItem key={type} value={type}>
-                      {type.replace('_', ' ')}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <TextField
-                label="Reason"
-                value={reason}
-                onChange={handleReasonChange}
-                fullWidth
-                multiline
-                rows={3}
-              />
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button 
-              onClick={() => {
-                setShowModal(false);
-                resetForm();
-              }}
-            >
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSubmit} 
-              variant="contained" 
-              disabled={!leaveType || !startDate || !endDate}
-            >
-              {editingLeave ? 'Update' : 'Submit'}
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Delete Confirmation Dialog */}
-        <Dialog
-          open={showDeleteConfirm}
-          onClose={() => setShowDeleteConfirm(false)}
-        >
-          <DialogTitle>Confirm Delete</DialogTitle>
-          <DialogContent>
-            Are you sure you want to delete this leave request?
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setShowDeleteConfirm(false)}>
-              Cancel
-            </Button>
-            <Button onClick={confirmDelete} color="error">
-              Delete
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Alert Snackbar */}
-        <Snackbar 
-          open={alert.open} 
-          autoHideDuration={6000} 
-          onClose={handleCloseAlert}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        >
-          <Alert 
-            onClose={handleCloseAlert} 
-            severity={alert.severity}
-            sx={{ width: '100%' }}
+      {/* Leave Application Dialog */}
+      <Dialog 
+        open={showModal} 
+        onClose={() => {
+          setShowModal(false);
+          resetForm();
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          {editingLeave ? 'Update Leave Request' : 'Apply for Leave'}
+        </DialogTitle>
+        <DialogContent>
+          <Box 
+            component="form" 
+            onSubmit={handleSubmit} 
+            sx={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: 2, 
+              mt: 2 
+            }}
           >
-            {alert.message}
-          </Alert>
-        </Snackbar>
-      </Box>
-    </PageLayout>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <StyledDatePicker
+                label="Start Date"
+                value={startDate}
+                onChange={(date) => setStartDate(date)}
+                slotProps={{ 
+                  textField: { 
+                    fullWidth: true, 
+                    required: true 
+                  } 
+                }}
+                minDate={new Date()}
+              />
+            </LocalizationProvider>
+
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <StyledDatePicker
+                label="End Date"
+                value={endDate}
+                onChange={(date) => setEndDate(date)}
+                slotProps={{ 
+                  textField: { 
+                    fullWidth: true, 
+                    required: true 
+                  } 
+                }}
+                minDate={startDate || new Date()}
+              />
+            </LocalizationProvider>
+
+            <FormControl fullWidth>
+              <InputLabel id="leave-type-label">Leave Type</InputLabel>
+              <Select
+                labelId="leave-type-label"
+                value={leaveType}
+                onChange={handleLeaveTypeChange}
+                label="Leave Type"
+                required
+              >
+                <MenuItem value="">Select Leave Type</MenuItem>
+                {Object.keys(leaveBalance).map((type) => (
+                  <MenuItem key={type} value={type}>
+                    {type.replace('_', ' ')}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <TextField
+              label="Reason"
+              value={reason}
+              onChange={handleReasonChange}
+              fullWidth
+              multiline
+              rows={3}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => {
+              setShowModal(false);
+              resetForm();
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained" 
+            disabled={!leaveType || !startDate || !endDate}
+          >
+            {editingLeave ? 'Update' : 'Submit'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+      >
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          Are you sure you want to delete this leave request?
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowDeleteConfirm(false)}>
+            Cancel
+          </Button>
+          <Button onClick={confirmDelete} color="error">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Alert Snackbar */}
+      <Snackbar 
+        open={alert.open} 
+        autoHideDuration={6000} 
+        onClose={handleCloseAlert}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseAlert} 
+          severity={alert.severity}
+          sx={{ width: '100%' }}
+        >
+          {alert.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 };
 

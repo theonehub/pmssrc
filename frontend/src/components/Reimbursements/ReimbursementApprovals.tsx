@@ -19,7 +19,8 @@ import {
   Alert,
   CircularProgress,
   Tooltip,
-  Divider
+  Card,
+  CardContent
 } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
@@ -28,7 +29,6 @@ import {
   Visibility as VisibilityIcon
 } from '@mui/icons-material';
 import { useReimbursementsQuery } from '../../shared/hooks/useReimbursements';
-import PageLayout from '../../layout/PageLayout';
 
 // Define interfaces
 interface ReimbursementRequest {
@@ -262,120 +262,138 @@ const ReimbursementApprovals: React.FC = () => {
   );
 
   return (
-    <PageLayout title="Reimbursement Approvals">
-      <Box sx={{ mt: 4 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h4">Reimbursement Approvals</Typography>
-        </Box>
-
-        {error && (
-          <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-
-        <Typography variant="h5" sx={{ mb: 2 }}>Pending Requests</Typography>
-        {renderRequestsTable(pendingRequests, true)}
-
-        <Divider sx={{ my: 4 }} />
-        
-        <Typography variant="h5" sx={{ mb: 2 }}>Approved Requests</Typography>
-        {renderRequestsTable(approvedRequests)}
-
-        {/* Action Confirmation Dialog */}
-        <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
-          <DialogTitle>
-            {action === 'approved' ? 'Approve Reimbursement' : 'Reject Reimbursement'}
-          </DialogTitle>
-          <DialogContent>
-            <Box sx={{ mt: 2, minWidth: 400 }}>
-              <Typography variant="body1" sx={{ mb: 2 }}>
-                {action === 'approved' 
-                  ? 'Are you sure you want to approve this reimbursement request?' 
-                  : 'Are you sure you want to reject this reimbursement request?'}
+    <Box>
+      {/* Header */}
+      <Card elevation={1} sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+            <Box>
+              <Typography variant="h4" color="primary" gutterBottom>
+                Reimbursement Approvals
               </Typography>
-              <TextField
-                fullWidth
-                multiline
-                rows={3}
-                label="Comments"
-                value={comment}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setComment(e.target.value)}
-                sx={{ mb: 2 }}
-              />
+              <Typography variant="body2" color="text.secondary">
+                Review and approve reimbursement requests
+              </Typography>
             </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button 
-              variant="contained" 
-              color={action === 'approved' ? 'success' : 'error'}
-              onClick={handleConfirm}
-            >
-              {action === 'approved' ? 'Approve' : 'Reject'}
-            </Button>
-          </DialogActions>
-        </Dialog>
+          </Box>
+        </CardContent>
+      </Card>
 
-        {/* File Viewer Dialog */}
-        <Dialog 
-          open={fileDialogOpen} 
-          onClose={() => setFileDialogOpen(false)}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle>View File</DialogTitle>
-          <DialogContent>
-            <Box sx={{ height: '70vh', width: '100%', overflow: 'auto' }}>
-              {viewFileUrl && viewFileUrl.match(/\.(jpeg|jpg|png|gif)$/i) ? (
-                <img 
-                  src={viewFileUrl} 
-                  alt="Reimbursement file" 
-                  style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }}
-                />
-              ) : viewFileUrl && viewFileUrl.match(/\.(pdf)$/i) ? (
-                <iframe 
-                  src={viewFileUrl} 
-                  title="PDF Viewer" 
-                  width="100%" 
-                  height="100%" 
-                  style={{ border: 'none' }}
-                />
-              ) : (
-                <Box sx={{ textAlign: 'center', py: 4 }}>
-                  <Typography variant="body1">
-                    This file type cannot be previewed. Please download it to view.
-                  </Typography>
-                  <Button 
-                    variant="contained" 
-                    startIcon={<DownloadIcon />} 
-                    sx={{ mt: 2 }}
-                    onClick={() => handleDownloadFile(viewFileUrl)}
-                  >
-                    Download File
-                  </Button>
-                </Box>
-              )}
-            </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button 
-              variant="outlined" 
-              onClick={() => setFileDialogOpen(false)}
-            >
-              Close
-            </Button>
-            <Button 
-              variant="contained" 
-              startIcon={<DownloadIcon />}
-              onClick={() => handleDownloadFile(viewFileUrl)}
-            >
-              Download
-            </Button>
-          </DialogActions>
-        </Dialog>
-      </Box>
-    </PageLayout>
+      {error && (
+        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Pending Requests */}
+      <Paper elevation={1} sx={{ mb: 3 }}>
+        <Box sx={{ p: 2 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Pending Requests</Typography>
+        </Box>
+        {renderRequestsTable(pendingRequests, true)}
+      </Paper>
+
+      {/* Approved Requests */}
+      <Paper elevation={1}>
+        <Box sx={{ p: 2 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Approved Requests</Typography>
+        </Box>
+        {renderRequestsTable(approvedRequests)}
+      </Paper>
+
+      {/* Action Confirmation Dialog */}
+      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
+        <DialogTitle>
+          {action === 'approved' ? 'Approve Reimbursement' : 'Reject Reimbursement'}
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2, minWidth: 400 }}>
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              {action === 'approved' 
+                ? 'Are you sure you want to approve this reimbursement request?' 
+                : 'Are you sure you want to reject this reimbursement request?'}
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Comments"
+              value={comment}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setComment(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogOpen(false)}>Cancel</Button>
+          <Button 
+            variant="contained" 
+            color={action === 'approved' ? 'success' : 'error'}
+            onClick={handleConfirm}
+          >
+            {action === 'approved' ? 'Approve' : 'Reject'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* File Viewer Dialog */}
+      <Dialog 
+        open={fileDialogOpen} 
+        onClose={() => setFileDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>View File</DialogTitle>
+        <DialogContent>
+          <Box sx={{ height: '70vh', width: '100%', overflow: 'auto' }}>
+            {viewFileUrl && viewFileUrl.match(/\.(jpeg|jpg|png|gif)$/i) ? (
+              <img 
+                src={viewFileUrl} 
+                alt="Reimbursement file" 
+                style={{ maxWidth: '100%', display: 'block', margin: '0 auto' }}
+              />
+            ) : viewFileUrl && viewFileUrl.match(/\.(pdf)$/i) ? (
+              <iframe 
+                src={viewFileUrl} 
+                title="PDF Viewer" 
+                width="100%" 
+                height="100%" 
+                style={{ border: 'none' }}
+              />
+            ) : (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body1">
+                  This file type cannot be previewed. Please download it to view.
+                </Typography>
+                <Button 
+                  variant="contained" 
+                  startIcon={<DownloadIcon />} 
+                  sx={{ mt: 2 }}
+                  onClick={() => handleDownloadFile(viewFileUrl)}
+                >
+                  Download File
+                </Button>
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            variant="outlined" 
+            onClick={() => setFileDialogOpen(false)}
+          >
+            Close
+          </Button>
+          <Button 
+            variant="contained" 
+            startIcon={<DownloadIcon />}
+            onClick={() => handleDownloadFile(viewFileUrl)}
+          >
+            Download
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
 

@@ -11,6 +11,7 @@ from app.application.interfaces.services.reporting_service import ReportingServi
 from app.application.interfaces.repositories.reporting_repository import ReportingRepository
 from app.application.interfaces.repositories.user_repository import UserRepository
 from app.application.interfaces.repositories.reimbursement_repository import ReimbursementRepository
+from app.application.interfaces.repositories.attendance_repository import AttendanceRepository
 from app.application.dto.reporting_dto import (
     CreateReportRequestDTO, UpdateReportRequestDTO, ReportSearchFiltersDTO,
     ReportResponseDTO, ReportListResponseDTO, DashboardAnalyticsDTO,
@@ -45,17 +46,20 @@ class ReportingServiceImpl(ReportingService):
         self,
         reporting_repository: ReportingRepository,
         user_repository: UserRepository,
-        reimbursement_repository: ReimbursementRepository
+        reimbursement_repository: ReimbursementRepository,
+        attendance_repository: AttendanceRepository = None
     ):
         """Initialize service with dependencies."""
         self.reporting_repository = reporting_repository
         self.user_repository = user_repository
         self.reimbursement_repository = reimbursement_repository
+        self.attendance_repository = attendance_repository
         
         # Initialize use cases
         self._dashboard_analytics_use_case = GetDashboardAnalyticsUseCase(
             user_repository=user_repository,
-            reimbursement_repository=reimbursement_repository
+            reimbursement_repository=reimbursement_repository,
+            attendance_repository=attendance_repository
         )
     
     async def create_report(
@@ -294,7 +298,7 @@ class ReportingServiceImpl(ReportingService):
                 department_distribution[dept] = department_distribution.get(dept, 0) + 1
                 
                 # Role distribution
-                role = user.permissions.role.value if user.permissions else "user"
+                role = user.role.value if hasattr(user, 'role') and user.role else "user"
                 role_distribution[role] = role_distribution.get(role, 0) + 1
             
             # Get recent joiners (last 30 days)

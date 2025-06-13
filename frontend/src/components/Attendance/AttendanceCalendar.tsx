@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useAttendanceQuery } from '../../shared/hooks/useAttendance';
-import './AttendanceCalendar.css';
 import {
   Modal,
   Box,
@@ -11,16 +10,56 @@ import {
   Paper,
   SxProps,
   Theme,
-  CircularProgress
+  CircularProgress,
+  Card,
+  CardContent,
+  Chip,
+  Divider,
+  Avatar,
+  Stack
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import {
+  Close as CloseIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  CheckCircle as CheckCircleIcon,
+  Cancel as CancelIcon,
+  Event as EventIcon,
+  AccessTime as AccessTimeIcon,
+  CalendarMonth as CalendarMonthIcon
+} from '@mui/icons-material';
 
 // Define types for the component
 interface AttendanceRecord {
-  checkin_time: string;
-  checkout_time?: string;
+  attendance_id: string;
+  employee_id: string;
+  attendance_date: string;
+  status: {
+    status: string;
+    marking_type: string;
+    is_regularized: boolean;
+    regularization_reason: string | null;
+  };
+  working_hours: {
+    check_in_time: string;
+    check_out_time: string;
+    total_hours: number;
+    break_hours: number;
+    overtime_hours: number;
+    shortage_hours: number;
+    expected_hours: number;
+    is_complete_day: boolean;
+    is_full_day: boolean;
+    is_half_day: boolean;
+  };
+  check_in_location: string | null;
+  check_out_location: string | null;
+  comments: string | null;
+  admin_notes: string | null;
+  created_at: string;
+  created_by: string;
+  updated_at: string;
+  updated_by: string;
 }
 
 interface LeaveRecord {
@@ -43,19 +82,18 @@ type AttendanceStatus = 'empty' | 'present' | 'absent' | 'public_holiday' | 'app
 
 const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ employee_id, show, onHide }) => {
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
-  // Use React Query for attendance
-  const { data: attendanceData, isLoading, error: attendanceError } = useAttendanceQuery({ employee_id, month: currentDate.getMonth() + 1, year: currentDate.getFullYear() });
-  // For now, treat attendanceData as the main data source; holidays/leaves can be migrated in a later pass
-  // const holidays = ...; const leaves = ...;
+  const { data: attendanceData, isLoading } = useAttendanceQuery({ 
+    employee_id, 
+    month: currentDate.getMonth() + 1, 
+    year: currentDate.getFullYear() 
+  });
 
-  // Data fetching for holidays/leaves can be migrated in a later pass
+  // Debug logging
   React.useEffect(() => {
-    if (attendanceError) {
-      // Optionally show error UI
-      // toast.error(attendanceError.message || 'Failed to fetch attendance data');
+    if (attendanceData) {
+      console.log('AttendanceCalendar - Raw attendance data:', attendanceData);
     }
-    // eslint-disable-next-line
-  }, [attendanceError]);
+  }, [attendanceData]);
 
   const getDaysInMonth = (date: Date): (Date | null)[] => {
     const year = date.getFullYear();
@@ -82,12 +120,16 @@ const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ employee_id, sh
   const getAttendanceStatus = (date: Date | null): AttendanceRecord | null => {
     if (!date) return null;
     const records = Array.isArray(attendanceData) ? attendanceData : (attendanceData?.data || []);
+    
     const attendance = records.find(
-      (a: any) => 
-        new Date(a.checkin_time).getDate() === date.getDate() &&
-        new Date(a.checkin_time).getMonth() === date.getMonth() &&
-        new Date(a.checkin_time).getFullYear() === date.getFullYear()
+      (a: any) => {
+        const attendanceDate = new Date(a.attendance_date);
+        return attendanceDate.getDate() === date.getDate() &&
+               attendanceDate.getMonth() === date.getMonth() &&
+               attendanceDate.getFullYear() === date.getFullYear();
+      }
     );
+    
     return attendance || null;
   };
 
@@ -95,12 +137,10 @@ const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ employee_id, sh
     if (!date) return null;
     
     const records = Array.isArray(attendanceData) ? attendanceData : (attendanceData?.data || []);
-    // Find any leave that includes this date
     return records.find((leave: any) => {
       const startDate = new Date(leave.start_date);
       const endDate = new Date(leave.end_date);
       
-      // Check if the date is within the leave period (inclusive)
       return date >= startDate && date <= endDate;
     }) || null;
   };
@@ -110,7 +150,7 @@ const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ employee_id, sh
     
     const records = Array.isArray(attendanceData) ? attendanceData : (attendanceData?.data || []);
     return records.some((holiday: any) => {
-      const holidayDate = new Date(holiday.checkin_time);
+      const holidayDate = new Date(holiday.attendance_date);
       return holidayDate.getDate() === date.getDate() &&
              holidayDate.getMonth() === date.getMonth() &&
              holidayDate.getFullYear() === date.getFullYear();
@@ -123,50 +163,172 @@ const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ employee_id, sh
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
 
-  const renderTooltipContent = (date: Date | null): React.ReactElement | string => {
-    if (!date) return "No data";
-    
+  const getStatusColor = (status: AttendanceStatus): string => {
+    switch (status) {
+      case 'present': return '#4caf50';
+      case 'absent': return '#f44336';
+      case 'pending': return '#ff9800';
+      case 'approved': return '#2196f3';
+      case 'rejected': return '#e91e63';
+      case 'public_holiday': return '#9c27b0';
+      default: return '#e0e0e0';
+    }
+  };
+
+  const getStatusIcon = (status: AttendanceStatus) => {
+    switch (status) {
+      case 'present': return <CheckCircleIcon sx={{ fontSize: 16 }} />;
+      case 'absent': return <CancelIcon sx={{ fontSize: 16 }} />;
+      case 'public_holiday': return <EventIcon sx={{ fontSize: 16 }} />;
+      default: return null;
+    }
+  };
+
+  const renderDayCell = (date: Date | null, index: number) => {
+    if (!date) {
+      return (
+        <Box
+          key={index}
+          sx={{
+            aspectRatio: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: 60,
+            backgroundColor: 'transparent'
+          }}
+        />
+      );
+    }
+
+    let status: AttendanceStatus = 'empty';
     const attendance = getAttendanceStatus(date);
-    const records = Array.isArray(attendanceData) ? attendanceData : (attendanceData?.data || []);
-    const holiday = records.find((h: any) => {
-      const holidayDate = new Date(h.checkin_time);
-      return holidayDate.getDate() === date.getDate() &&
-             holidayDate.getMonth() === date.getMonth() &&
-             holidayDate.getFullYear() === date.getFullYear();
-    });
     const leave = getLeaveStatus(date);
-    
-    if (holiday) {
-      return (
-        <Typography>
-          <strong>Holiday:</strong> {holiday.name}
-        </Typography>
-      );
+    const isHoliday = isPublicHoliday(date);
+
+    if (isHoliday) {
+      status = 'public_holiday';
+    } else if (leave) {
+      status = leave.status.toLowerCase() as AttendanceStatus;
+    } else if (attendance) {
+      const attendanceStatus = attendance.status?.status?.toLowerCase();
+      status = attendanceStatus === 'present' ? 'present' : attendanceStatus === 'absent' ? 'absent' : 'present';
+    } else {
+      status = 'absent';
     }
-    
-    if (leave) {
-      return (
-        <>
-          <Typography><strong>Leave:</strong> {leave.leave_name}</Typography>
-          <Typography><strong>Status:</strong> {leave.status}</Typography>
-          <Typography><strong>Duration:</strong> {new Date(leave.start_date).toLocaleDateString()} - {new Date(leave.end_date).toLocaleDateString()}</Typography>
-          <Typography><strong>Working Days:</strong> {leave.leave_count}</Typography>
-          {leave.days_in_month && <Typography><strong>Days in current month:</strong> {leave.days_in_month}</Typography>}
-          <Typography><strong>Reason:</strong> {leave.reason || 'Not specified'}</Typography>
-        </>
-      );
-    }
-    
-    if (attendance) {
-      return (
-        <>
-          <Typography><strong>Check-in:</strong> {formatTime(attendance.checkin_time)}</Typography>
-          <Typography><strong>Check-out:</strong> {formatTime(attendance.checkout_time)}</Typography>
-        </>
-      );
-    }
-    
-    return "Absent";
+
+    const isToday = new Date().toDateString() === date.toDateString();
+    const statusColor = getStatusColor(status);
+
+    return (
+      <Tooltip
+        key={index}
+        title={
+          <Box sx={{ p: 1 }}>
+            {isHoliday && (
+              <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                🎉 Public Holiday
+              </Typography>
+            )}
+            {leave && (
+              <>
+                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                  📅 {leave.leave_name}
+                </Typography>
+                <Typography variant="caption">Status: {leave.status}</Typography>
+                <Typography variant="caption" display="block">
+                  {new Date(leave.start_date).toLocaleDateString()} - {new Date(leave.end_date).toLocaleDateString()}
+                </Typography>
+              </>
+            )}
+            {attendance && (
+              <>
+                <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                  ⏰ Attendance Details
+                </Typography>
+                <Typography variant="caption" display="block">
+                  Check-in: {formatTime(attendance.working_hours?.check_in_time)}
+                </Typography>
+                <Typography variant="caption" display="block">
+                  Check-out: {formatTime(attendance.working_hours?.check_out_time)}
+                </Typography>
+                <Typography variant="caption" display="block">
+                  Total Hours: {attendance.working_hours?.total_hours || 0}h
+                </Typography>
+                {attendance.working_hours?.shortage_hours > 0 && (
+                  <Typography variant="caption" display="block" color="error">
+                    Shortage: {attendance.working_hours.shortage_hours}h
+                  </Typography>
+                )}
+              </>
+            )}
+            {!attendance && !leave && !isHoliday && (
+              <Typography variant="body2" color="error">
+                ❌ Absent
+              </Typography>
+            )}
+          </Box>
+        }
+        arrow
+        placement="top"
+      >
+        <Card
+          sx={{
+            aspectRatio: 1,
+            minHeight: 60,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease-in-out',
+            border: isToday ? '2px solid #1976d2' : '1px solid #e0e0e0',
+            backgroundColor: statusColor + '20',
+            position: 'relative',
+            '&:hover': {
+              transform: 'scale(1.05)',
+              boxShadow: 3,
+              backgroundColor: statusColor + '40'
+            }
+          }}
+        >
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 4,
+              right: 4,
+              color: statusColor
+            }}
+          >
+            {getStatusIcon(status)}
+          </Box>
+          
+          <Typography
+            variant="body1"
+            sx={{
+              fontWeight: isToday ? 'bold' : 'normal',
+              color: isToday ? '#1976d2' : 'text.primary',
+              fontSize: '1rem'
+            }}
+          >
+            {date.getDate()}
+          </Typography>
+          
+          {attendance?.working_hours?.total_hours && (
+            <Typography
+              variant="caption"
+              sx={{
+                color: statusColor,
+                fontWeight: 'bold',
+                fontSize: '0.7rem'
+              }}
+            >
+              {attendance.working_hours.total_hours}h
+            </Typography>
+          )}
+        </Card>
+      </Tooltip>
+    );
   };
 
   const changeMonth = (increment: number): void => {
@@ -174,7 +336,11 @@ const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ employee_id, sh
   };
 
   const days = getDaysInMonth(currentDate);
-  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
   const modalStyle: SxProps<Theme> = {
     position: 'absolute',
@@ -183,11 +349,11 @@ const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ employee_id, sh
     transform: 'translate(-50%, -50%)',
     width: {
       xs: '95%',
-      sm: '85%',
-      md: '75%',
-      lg: '70%'
+      sm: '90%',
+      md: '85%',
+      lg: '80%'
     },
-    maxWidth: '1000px',
+    maxWidth: '1200px',
     maxHeight: {
       xs: '95vh',
       sm: '90vh',
@@ -195,165 +361,206 @@ const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ employee_id, sh
     },
     bgcolor: 'background.paper',
     boxShadow: 24,
-    borderRadius: 2,
+    borderRadius: 3,
     overflow: 'hidden',
     display: 'flex',
     flexDirection: 'column'
   };
 
-  const headerStyle: SxProps<Theme> = {
-    px: 2,
-    py: 1.5,
-    borderBottom: 1,
-    borderColor: 'divider'
-  };
-
-  const contentStyle: SxProps<Theme> = {
-    p: {
-      xs: 1,
-      sm: 1.5,
-      md: 2
-    },
-    flex: 1,
-    overflow: 'auto'
-  };
-
-  const footerStyle: SxProps<Theme> = {
-    p: 2,
-    borderTop: 1,
-    borderColor: 'divider',
-    display: 'flex',
-    justifyContent: 'flex-end'
-  };
+  // Calculate attendance statistics
+  const records = Array.isArray(attendanceData) ? attendanceData : (attendanceData?.data || []);
+  const presentDays = records.filter((r: any) => r.status?.status?.toLowerCase() === 'present').length;
+  const absentDays = records.filter((r: any) => r.status?.status?.toLowerCase() === 'absent').length;
+  const totalWorkingDays = presentDays + absentDays;
 
   return (
     <Modal
       open={show}
       onClose={onHide}
       aria-labelledby="attendance-calendar-modal"
-      sx={{
-        zIndex: (theme: Theme) => theme.zIndex.drawer + 2
-      }}
+      sx={{ zIndex: (theme: Theme) => theme.zIndex.drawer + 2 }}
     >
       <Box sx={modalStyle}>
         {/* Header */}
-        <Box sx={headerStyle}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography 
-              variant="h6" 
-              component="h2"
-              sx={{ 
-                fontSize: { 
-                  xs: '1rem',
-                  sm: '1.1rem',
-                  md: '1.25rem' 
-                } 
-              }}
-            >
-              Attendance Calendar - {employee_id}
-            </Typography>
-            <IconButton onClick={onHide} size="small">
+        <Box sx={{ 
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          p: 3
+        }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)' }}>
+                <CalendarMonthIcon />
+              </Avatar>
+              <Box>
+                <Typography variant="h5" component="h2" sx={{ fontWeight: 'bold' }}>
+                  Attendance Calendar
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                  Employee: {employee_id}
+                </Typography>
+              </Box>
+            </Box>
+            <IconButton onClick={onHide} sx={{ color: 'white' }}>
               <CloseIcon />
             </IconButton>
           </Box>
           
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1.5 }}>
-            <IconButton onClick={() => changeMonth(-1)} size="small">
+          {/* Month Navigation */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <IconButton onClick={() => changeMonth(-1)} sx={{ color: 'white' }}>
               <ChevronLeftIcon />
             </IconButton>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                fontSize: { 
-                  xs: '0.9rem',
-                  sm: '1rem',
-                  md: '1.1rem' 
-                } 
-              }}
-            >
+            <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
               {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
             </Typography>
-            <IconButton onClick={() => changeMonth(1)} size="small">
+            <IconButton onClick={() => changeMonth(1)} sx={{ color: 'white' }}>
               <ChevronRightIcon />
             </IconButton>
+          </Box>
+
+          {/* Statistics */}
+          <Box sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(3, 1fr)', 
+            gap: 2 
+          }}>
+            <Card sx={{ bgcolor: 'rgba(255,255,255,0.1)', color: 'white' }}>
+              <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  {presentDays}
+                </Typography>
+                <Typography variant="caption">Present Days</Typography>
+              </CardContent>
+            </Card>
+            <Card sx={{ bgcolor: 'rgba(255,255,255,0.1)', color: 'white' }}>
+              <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  {absentDays}
+                </Typography>
+                <Typography variant="caption">Absent Days</Typography>
+              </CardContent>
+            </Card>
+            <Card sx={{ bgcolor: 'rgba(255,255,255,0.1)', color: 'white' }}>
+              <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                  {totalWorkingDays > 0 ? Math.round((presentDays / totalWorkingDays) * 100) : 0}%
+                </Typography>
+                <Typography variant="caption">Attendance</Typography>
+              </CardContent>
+            </Card>
           </Box>
         </Box>
 
         {/* Content */}
-        <Box sx={contentStyle}>
-          <Paper 
-            elevation={3} 
-            sx={{ 
-              p: { xs: 0.5, sm: 1, md: 1.5 },
-              height: '100%',
-              display: 'flex',
-              flexDirection: 'column'
-            }}
-          >
-            {isLoading ? (
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                height: '200px' 
-              }}>
-                <CircularProgress color="primary" />
+        <Box sx={{ p: 3, flex: 1, overflow: 'auto' }}>
+          {isLoading ? (
+            <Box sx={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              height: '300px',
+              flexDirection: 'column',
+              gap: 2
+            }}>
+              <CircularProgress size={60} />
+              <Typography variant="h6" color="text.secondary">
+                Loading attendance data...
+              </Typography>
+            </Box>
+          ) : (
+            <>
+              {/* Legend */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
+                  Legend
+                </Typography>
+                <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
+                  <Chip
+                    icon={<CheckCircleIcon />}
+                    label="Present"
+                    sx={{ bgcolor: '#4caf5020', color: '#4caf50', border: '1px solid #4caf50' }}
+                  />
+                  <Chip
+                    icon={<CancelIcon />}
+                    label="Absent"
+                    sx={{ bgcolor: '#f4433620', color: '#f44336', border: '1px solid #f44336' }}
+                  />
+                  <Chip
+                    icon={<EventIcon />}
+                    label="Holiday"
+                    sx={{ bgcolor: '#9c27b020', color: '#9c27b0', border: '1px solid #9c27b0' }}
+                  />
+                  <Chip
+                    icon={<AccessTimeIcon />}
+                    label="Leave"
+                    sx={{ bgcolor: '#ff980020', color: '#ff9800', border: '1px solid #ff9800' }}
+                  />
+                </Stack>
               </Box>
-            ) : (
-              <div className="calendar-grid">
-                <div className="calendar-header">
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                    <div key={day} className="calendar-cell header-cell">
-                      {day}
-                    </div>
-                  ))}
-                </div>
-                <div className="calendar-body">
-                  {days.map((date, index) => {
-                    let status: AttendanceStatus = 'empty';
-                    if (date) {
-                      if (isPublicHoliday(date)) {
-                        status = 'public_holiday';
-                      } else {
-                        const attendance = getAttendanceStatus(date);
-                        const leave = getLeaveStatus(date);
-                        if (leave) {
-                          status = leave.status.toLowerCase() as AttendanceStatus;
-                        } else {
-                          status = attendance ? 'present' : 'absent';
-                        }
-                      }
-                    }
-                    
-                    return (
-                      <Tooltip
-                        key={index}
-                        title={
-                          <Box>
-                            {renderTooltipContent(date)}
-                          </Box>
-                        }
-                        arrow
-                        placement="top"
+
+              <Divider sx={{ mb: 3 }} />
+
+              {/* Calendar Grid */}
+              <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
+                {/* Day Headers */}
+                <Box sx={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(7, 1fr)', 
+                  gap: 1, 
+                  mb: 1 
+                }}>
+                  {dayNames.map((day) => (
+                    <Box key={day} sx={{ display: 'flex', justifyContent: 'center' }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{
+                          fontWeight: 'bold',
+                          color: 'primary.main',
+                          textAlign: 'center',
+                          p: 1
+                        }}
                       >
-                        <div className={`calendar-cell ${status}`}>
-                          {date ? date.getDate() : ''}
-                        </div>
-                      </Tooltip>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </Paper>
+                        {day.substring(0, 3)}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+
+                {/* Calendar Days */}
+                <Box sx={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: 'repeat(7, 1fr)', 
+                  gap: 1 
+                }}>
+                  {days.map((date, index) => (
+                    <Box key={index} sx={{ display: 'flex', justifyContent: 'center' }}>
+                      {renderDayCell(date, index)}
+                    </Box>
+                  ))}
+                </Box>
+              </Paper>
+            </>
+          )}
         </Box>
 
         {/* Footer */}
-        <Box sx={footerStyle}>
+        <Box sx={{ 
+          p: 2, 
+          borderTop: 1, 
+          borderColor: 'divider',
+          display: 'flex',
+          justifyContent: 'flex-end',
+          bgcolor: 'grey.50'
+        }}>
           <Button 
             variant="contained" 
             onClick={onHide}
-            size="small"
+            size="large"
+            sx={{
+              borderRadius: 2,
+              px: 4
+            }}
           >
             Close
           </Button>
@@ -363,4 +570,4 @@ const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ employee_id, sh
   );
 };
 
-export default AttendanceCalendar; 
+export default AttendanceCalendar;

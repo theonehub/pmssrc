@@ -170,7 +170,7 @@ const MyPayslips: React.FC = () => {
 
   return (
     <PageLayout title="My Payslips">
-      <Box sx={{ p: 3 }}>
+      <Box>
         <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
           <FormControl size="small">
             <InputLabel>Financial Year</InputLabel>

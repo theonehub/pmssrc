@@ -917,6 +917,71 @@ class MongoDBAttendanceRepository(AttendanceRepository):
             logger.error(f"Error checking attendance existence: {e}")
             raise
 
+    async def get_by_employee_and_month(
+        self,
+        employee_id: str,
+        month: int,
+        year: int,
+        hostname: str
+    ) -> List[Attendance]:
+        """Get attendance records by employee ID for a specific month"""
+        try:
+            collection = await self._get_collection(hostname)
+            
+            # Create date range for the month
+            from calendar import monthrange
+            _, last_day = monthrange(year, month)
+            start_date = datetime(year, month, 1)
+            end_date = datetime(year, month, last_day, 23, 59, 59)
+            
+            query = {
+                "employee_id": employee_id,
+                "attendance_date": {
+                    "$gte": start_date,
+                    "$lte": end_date
+                },
+                "is_deleted": {"$ne": True}
+            }
+            
+            cursor = collection.find(query).sort("attendance_date", ASCENDING)
+            documents = await cursor.to_list(length=None)
+            
+            return [self._document_to_attendance(doc) for doc in documents]
+        except Exception as e:
+            logger.error(f"Error getting attendance by employee and month: {e}")
+            raise
+
+    async def get_by_employee_and_year(
+        self,
+        employee_id: str,
+        year: int,
+        hostname: str
+    ) -> List[Attendance]:
+        """Get attendance records by employee ID for a specific year"""
+        try:
+            collection = await self._get_collection(hostname)
+            
+            # Create date range for the year
+            start_date = datetime(year, 1, 1)
+            end_date = datetime(year, 12, 31, 23, 59, 59)
+            
+            query = {
+                "employee_id": employee_id,
+                "attendance_date": {
+                    "$gte": start_date,
+                    "$lte": end_date
+                },
+                "is_deleted": {"$ne": True}
+            }
+            
+            cursor = collection.find(query).sort("attendance_date", ASCENDING)
+            documents = await cursor.to_list(length=None)
+            
+            return [self._document_to_attendance(doc) for doc in documents]
+        except Exception as e:
+            logger.error(f"Error getting attendance by employee and year: {e}")
+            raise
+
     # Analytics Repository Implementation
     async def get_employee_summary(
         self,

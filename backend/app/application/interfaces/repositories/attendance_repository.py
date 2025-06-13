@@ -129,6 +129,27 @@ class AttendanceQueryRepository(ABC):
     async def exists_by_employee_and_date(self, employee_id: str, attendance_date: date, hostname: str) -> bool:
         """Check if attendance record exists for employee and date"""
         pass
+    
+    @abstractmethod
+    async def get_by_employee_and_month(
+        self,
+        employee_id: str,
+        month: int,
+        year: int,
+        hostname: str
+    ) -> List[Attendance]:
+        """Get attendance records by employee ID for a specific month"""
+        pass
+    
+    @abstractmethod
+    async def get_by_employee_and_year(
+        self,
+        employee_id: str,
+        year: int,
+        hostname: str
+    ) -> List[Attendance]:
+        """Get attendance records by employee ID for a specific year"""
+        pass
 
 
 class AttendanceAnalyticsRepository(ABC):

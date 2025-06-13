@@ -132,25 +132,25 @@ const Home: React.FC = () => {
   const dashboardCards: DashboardCard[] = [
     {
       title: 'Total Users',
-      value: dashboardStats.totalUsers || 0,
+      value: dashboardStats.total_users || 0,
       color: theme.palette.primary.main,
       icon: <PeopleIcon fontSize='large' />,
     },
     {
       title: "Today's Check-Ins",
-      value: dashboardStats.activeEmployees || 0,
+      value: dashboardStats.checkin_count || 0,
       color: theme.palette.success.main,
       icon: <CheckInIcon fontSize='large' />,
     },
     {
       title: "Today's Check-Outs",
-      value: dashboardStats.inactiveEmployees || 0,
+      value: dashboardStats.checkout_count || 0,
       color: theme.palette.info.main,
       icon: <CheckOutIcon fontSize='large' />,
     },
     {
       title: 'Pending Reimbursements Amount',
-      value: dashboardStats.totalReimbursements || 0,
+      value: dashboardStats.pending_reimbursements_amount || 0,
       color: theme.palette.warning.main,
       icon: <RupeeIcon fontSize='large' />, 
     },

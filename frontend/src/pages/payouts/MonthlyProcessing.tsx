@@ -120,7 +120,7 @@ const MonthlyProcessing: React.FC = () => {
 
   return (
     <PageLayout title="Monthly Processing">
-      <Box sx={{ p: 3 }}>
+      <Box>
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
             {error}

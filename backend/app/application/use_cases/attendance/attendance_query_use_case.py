@@ -125,13 +125,13 @@ class AttendanceQueryUseCase:
             # Get attendance records for all team members
             attendances = []
             for member in team_members:
-                member_attendances = await self.attendance_query_repository.get_by_employee_and_date(
+                member_attendance = await self.attendance_query_repository.get_by_employee_and_date(
                     employee_id=member.employee_id,
-                    date=date(filters.year, filters.month, filters.date),
+                    attendance_date=date(filters.year, filters.month, filters.date),
                     hostname=current_user.hostname
                 )
-                if member_attendances:
-                    attendances.extend(member_attendances)
+                if member_attendance:
+                    attendances.append(member_attendance)
             
             # Convert to response DTOs
             response_dtos = [self._create_response_dto(attendance) for attendance in attendances]
@@ -290,19 +290,19 @@ class AttendanceQueryUseCase:
         working_hours = WorkingHoursResponseDTO(
             check_in_time=attendance.working_hours.check_in_time,
             check_out_time=attendance.working_hours.check_out_time,
-            total_hours=attendance.working_hours.total_hours,
-            break_hours=attendance.working_hours.break_hours,
-            overtime_hours=attendance.working_hours.overtime_hours,
-            shortage_hours=attendance.working_hours.shortage_hours,
-            expected_hours=attendance.working_hours.expected_hours,
-            is_complete_day=attendance.working_hours.is_complete_day,
-            is_full_day=attendance.working_hours.is_full_day,
-            is_half_day=attendance.working_hours.is_half_day
+            total_hours=float(attendance.working_hours.working_hours()),
+            break_hours=float(attendance.working_hours.break_time_minutes() / 60),
+            overtime_hours=float(attendance.working_hours.overtime_hours()),
+            shortage_hours=float(attendance.working_hours.shortage_hours()),
+            expected_hours=float(attendance.working_hours.expected_hours),
+            is_complete_day=attendance.working_hours.is_complete_day(),
+            is_full_day=attendance.working_hours.is_full_day(),
+            is_half_day=attendance.working_hours.is_half_day()
         )
         
         return AttendanceResponseDTO(
-            attendance_id=attendance.attendance_id.value,
-            employee_id=attendance.employee_id.value,
+            attendance_id=attendance.attendance_id,
+            employee_id=attendance.employee_id.value if hasattr(attendance.employee_id, 'value') else str(attendance.employee_id),
             attendance_date=attendance.attendance_date,
             status=status,
             working_hours=working_hours,

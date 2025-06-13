@@ -233,63 +233,69 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           onFocus={(e) => handleTextFieldFocus('salary', 'rural_allowance', e)}
         />
 
-        <TextField 
-          fullWidth 
-          label="Proctorship Allowance" 
-          type="text" 
-          value={formatSalaryValue(taxationData.salary?.proctorship_allowance)} 
+        {/* Proctorship Allowance */}
+        <TextField
+          fullWidth
+          label="Proctorship Allowance"
+          type="text"
+          value={formatSalaryValue(taxationData.salary?.proctorship_allowance)}
           onChange={(e) => handleTextFieldChange('salary', 'proctorship_allowance', e)}
-          InputProps={{ startAdornment: '₹' }} 
+          InputProps={{ startAdornment: '₹' }}
           onFocus={(e) => handleTextFieldFocus('salary', 'proctorship_allowance', e)}
         />
 
-        <TextField 
-          fullWidth 
-          label="Wardenship Allowance" 
-          type="text" 
-          value={formatSalaryValue(taxationData.salary?.wardenship_allowance)} 
+        {/* Wardenship Allowance */}
+        <TextField
+          fullWidth
+          label="Wardenship Allowance"
+          type="text"
+          value={formatSalaryValue(taxationData.salary?.wardenship_allowance)}
           onChange={(e) => handleTextFieldChange('salary', 'wardenship_allowance', e)}
-          InputProps={{ startAdornment: '₹' }} 
+          InputProps={{ startAdornment: '₹' }}
           onFocus={(e) => handleTextFieldFocus('salary', 'wardenship_allowance', e)}
         />
 
-        <TextField 
-          fullWidth 
-          label="Project Allowance" 
-          type="text" 
-          value={formatSalaryValue(taxationData.salary?.project_allowance)} 
+        {/* Project Allowance */}
+        <TextField
+          fullWidth
+          label="Project Allowance"
+          type="text"
+          value={formatSalaryValue(taxationData.salary?.project_allowance)}
           onChange={(e) => handleTextFieldChange('salary', 'project_allowance', e)}
-          InputProps={{ startAdornment: '₹' }} 
+          InputProps={{ startAdornment: '₹' }}
           onFocus={(e) => handleTextFieldFocus('salary', 'project_allowance', e)}
         />
 
-        <TextField 
-          fullWidth 
-          label="Deputation Allowance" 
-          type="text" 
-          value={formatSalaryValue(taxationData.salary?.deputation_allowance)} 
+        {/* Deputation Allowance */}
+        <TextField
+          fullWidth
+          label="Deputation Allowance"
+          type="text"
+          value={formatSalaryValue(taxationData.salary?.deputation_allowance)}
           onChange={(e) => handleTextFieldChange('salary', 'deputation_allowance', e)}
-          InputProps={{ startAdornment: '₹' }} 
+          InputProps={{ startAdornment: '₹' }}
           onFocus={(e) => handleTextFieldFocus('salary', 'deputation_allowance', e)}
         />
 
-        <TextField 
-          fullWidth 
-          label="Interim Relief" 
-          type="text" 
-          value={formatSalaryValue(taxationData.salary?.interim_relief)} 
+        {/* Interim Relief */}
+        <TextField
+          fullWidth
+          label="Interim Relief"
+          type="text"
+          value={formatSalaryValue(taxationData.salary?.interim_relief)}
           onChange={(e) => handleTextFieldChange('salary', 'interim_relief', e)}
-          InputProps={{ startAdornment: '₹' }} 
+          InputProps={{ startAdornment: '₹' }}
           onFocus={(e) => handleTextFieldFocus('salary', 'interim_relief', e)}
         />
 
-        <TextField 
-          fullWidth 
-          label="Tiffin Allowance" 
-          type="text" 
-          value={formatSalaryValue(taxationData.salary?.tiffin_allowance)} 
+        {/* Tiffin Allowance */}
+        <TextField
+          fullWidth
+          label="Tiffin Allowance"
+          type="text"
+          value={formatSalaryValue(taxationData.salary?.tiffin_allowance)}
           onChange={(e) => handleTextFieldChange('salary', 'tiffin_allowance', e)}
-          InputProps={{ startAdornment: '₹' }} 
+          InputProps={{ startAdornment: '₹' }}
           onFocus={(e) => handleTextFieldFocus('salary', 'tiffin_allowance', e)}
         />
 
@@ -315,13 +321,14 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           onFocus={(e) => handleTextFieldFocus('salary', 'overtime_allowance', e)}
         />
 
-        <TextField 
-          fullWidth 
-          label="Servant Allowance" 
-          type="text" 
-          value={formatSalaryValue(taxationData.salary?.servant_allowance)} 
+        {/* Servant Allowance */}
+        <TextField
+          fullWidth
+          label="Servant Allowance"
+          type="text"
+          value={formatSalaryValue(taxationData.salary?.servant_allowance)}
           onChange={(e) => handleTextFieldChange('salary', 'servant_allowance', e)}
-          InputProps={{ startAdornment: '₹' }} 
+          InputProps={{ startAdornment: '₹' }}
           onFocus={(e) => handleTextFieldFocus('salary', 'servant_allowance', e)}
         />
 

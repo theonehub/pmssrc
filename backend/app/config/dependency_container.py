@@ -796,6 +796,25 @@ class DependencyContainer:
                 self._repositories['taxation']
             )
             
+            # Create use cases
+            from app.application.use_cases.taxation.get_employees_for_selection_use_case import GetEmployeesForSelectionUseCase
+            get_employees_for_selection_use_case = GetEmployeesForSelectionUseCase(
+                user_query_service=self._services['user'],
+                taxation_repository=self._repositories['taxation']
+            )
+            
+            from app.application.use_cases.taxation.get_taxation_record_by_employee_use_case import GetTaxationRecordByEmployeeUseCase
+            get_taxation_record_by_employee_use_case = GetTaxationRecordByEmployeeUseCase(
+                taxation_repository=self._repositories['taxation']
+            )
+            
+            from app.application.use_cases.taxation.get_comprehensive_taxation_record_use_case import GetComprehensiveTaxationRecordUseCase
+            get_comprehensive_taxation_record_use_case = GetComprehensiveTaxationRecordUseCase(
+                taxation_repository=self._repositories['taxation'],
+                user_repository=self._repositories['user'],
+                organisation_repository=self._repositories['organisation']
+            )
+            
             # Create controller with all handlers and services
             self._controllers['taxation'] = UnifiedTaxationController(
                 create_handler=create_handler,
@@ -807,7 +826,9 @@ class DependencyContainer:
                 reopen_handler=reopen_handler,
                 delete_handler=delete_handler,
                 enhanced_tax_service=self._services['tax_calculation'],
-                payroll_tax_service=self._services['tax_calculation']  # Using tax calculation service for payroll tax
+                get_employees_for_selection_use_case=get_employees_for_selection_use_case,
+                get_taxation_record_by_employee_use_case=get_taxation_record_by_employee_use_case,
+                get_comprehensive_taxation_record_use_case=get_comprehensive_taxation_record_use_case
             )
         
         return self._controllers['taxation']
@@ -1107,5 +1128,11 @@ def get_regime_comparison_service() -> RegimeComparisonServiceImpl:
 
 def get_taxation_controller():
     """FastAPI dependency for taxation controller."""
+    container = get_dependency_container()
+    return container.get_taxation_controller()
+
+
+def get_comprehensive_taxation_controller():
+    """FastAPI dependency for comprehensive taxation controller (same as taxation controller)."""
     container = get_dependency_container()
     return container.get_taxation_controller() 

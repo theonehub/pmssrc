@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import PageLayout from '../../layout/PageLayout';
 import {
   Box,
   Container,
   Stepper,
-  Step,
+  Step, 
   StepLabel,
   Button,
   Typography,
@@ -284,7 +283,6 @@ const TaxDeclaration: React.FC = () => {
   }
 
   return (
-    <PageLayout title="Tax Declaration">
       <Container maxWidth="lg" sx={{ mb: 8 }}>
         <Paper 
           elevation={0} 
@@ -422,7 +420,6 @@ const TaxDeclaration: React.FC = () => {
         {/* Validation Dialog */}
         {renderValidationDialog()}
       </Container>
-    </PageLayout>
   );
 };
 

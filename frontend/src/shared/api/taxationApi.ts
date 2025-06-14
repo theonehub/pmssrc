@@ -156,7 +156,7 @@ class TaxationAPI {
     input: Types.ComprehensiveTaxInputDTO
   ): Promise<Types.PeriodicTaxCalculationResponseDTO> {
     try {
-      return await this.baseApi.post('/api/v1/taxation/calculate-comprehensive', input);
+      return await this.baseApi.post('/api/v2/taxation/calculate-comprehensive', input);
     } catch (error) {
       console.error('Error calculating comprehensive tax:', error);
       throw error;
@@ -176,7 +176,7 @@ class TaxationAPI {
   ): Promise<any> {
     try {
       return await this.baseApi.post(
-        `/api/v1/taxation/perquisites/calculate?regime_type=${regimeType}`,
+        `/api/v2/taxation/perquisites/calculate?regime_type=${regimeType}`,
         perquisites
       );
     } catch (error) {
@@ -194,7 +194,7 @@ class TaxationAPI {
   ): Promise<any> {
     try {
       return await this.baseApi.post(
-        `/api/v1/taxation/house-property/calculate?regime_type=${regimeType}`,
+        `/api/v2/taxation/house-property/calculate?regime_type=${regimeType}`,
         houseProperty
       );
     } catch (error) {
@@ -212,7 +212,7 @@ class TaxationAPI {
   ): Promise<any> {
     try {
       return await this.baseApi.post(
-        `/api/v1/taxation/capital-gains/calculate?regime_type=${regimeType}`,
+        `/api/v2/taxation/capital-gains/calculate?regime_type=${regimeType}`,
         capitalGains
       );
     } catch (error) {
@@ -232,7 +232,7 @@ class TaxationAPI {
     request: Types.CreateTaxationRecordRequest
   ): Promise<Types.CreateTaxationRecordResponse> {
     try {
-      return await this.baseApi.post('/api/v1/taxation/records', request);
+      return await this.baseApi.post('/api/v2/taxation/records', request);
     } catch (error) {
       console.error('Error creating taxation record:', error);
       throw error;
@@ -255,7 +255,7 @@ class TaxationAPI {
         }, {} as Record<string, string>)
       ) : undefined;
 
-      const url = params ? `/api/v1/taxation/records?${params}` : '/api/v1/taxation/records';
+      const url = params ? `/api/v2/taxation/records?${params}` : '/api/v2/taxation/records';
       return await this.baseApi.get<Types.TaxationRecordListResponse>(url);
     } catch (error) {
       console.error('Error listing taxation records:', error);
@@ -268,7 +268,7 @@ class TaxationAPI {
    */
   async getRecord(taxationId: string): Promise<Types.TaxationRecordSummaryDTO> {
     try {
-      return await this.baseApi.get<Types.TaxationRecordSummaryDTO>(`/api/v1/taxation/records/${taxationId}`);
+      return await this.baseApi.get<Types.TaxationRecordSummaryDTO>(`/api/v2/taxation/records/${taxationId}`);
     } catch (error) {
       console.error('Error getting taxation record:', error);
       throw error;
@@ -284,7 +284,7 @@ class TaxationAPI {
    */
   async getTaxRegimeComparison(): Promise<any> {
     try {
-      return await this.baseApi.get('/api/v1/taxation/tax-regimes/comparison');
+      return await this.baseApi.get('/api/v2/taxation/tax-regimes/comparison');
     } catch (error) {
       console.error('Error getting tax regime comparison:', error);
       throw error;
@@ -296,7 +296,7 @@ class TaxationAPI {
    */
   async getAvailableTaxYears(): Promise<Types.TaxYearInfoDTO[]> {
     try {
-      return await this.baseApi.get('/api/v1/taxation/tax-years');
+      return await this.baseApi.get('/api/v2/taxation/tax-years');
     } catch (error) {
       console.error('Error getting available tax years:', error);
       throw error;
@@ -308,9 +308,54 @@ class TaxationAPI {
    */
   async healthCheck(): Promise<Types.HealthCheckResponse> {
     try {
-      return await this.baseApi.get('/api/v1/taxation/health');
+      return await this.baseApi.get('/api/v2/taxation/health');
     } catch (error) {
       console.error('Error checking taxation service health:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get employees for selection in taxation module
+   */
+  async getEmployeesForSelection(
+    query?: Types.EmployeeSelectionQuery
+  ): Promise<Types.EmployeeSelectionResponse> {
+    try {
+      const params = new URLSearchParams();
+      
+      if (query?.skip !== undefined) params.append('skip', query.skip.toString());
+      if (query?.limit !== undefined) params.append('limit', query.limit.toString());
+      if (query?.search) params.append('search', query.search);
+      if (query?.department) params.append('department', query.department);
+      if (query?.role) params.append('role', query.role);
+      if (query?.status) params.append('status', query.status);
+      if (query?.has_tax_record !== undefined) params.append('has_tax_record', query.has_tax_record.toString());
+      if (query?.tax_year) params.append('tax_year', query.tax_year);
+
+      const url = `/api/v2/taxation/employee-selection${params.toString() ? `?${params.toString()}` : ''}`;
+      return await this.baseApi.get(url);
+    } catch (error) {
+      console.error('Error fetching employees for selection:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get detailed taxation record by employee ID
+   */
+  async getEmployeeTaxationRecord(
+    employeeId: string,
+    taxYear?: string
+  ): Promise<Types.TaxationRecordSummaryDTO> {
+    try {
+      const params = new URLSearchParams();
+      if (taxYear) params.append('tax_year', taxYear);
+
+      const url = `/api/v2/taxation/records/employee/${employeeId}${params.toString() ? `?${params.toString()}` : ''}`;
+      return await this.baseApi.get(url);
+    } catch (error) {
+      console.error('Error fetching employee taxation record:', error);
       throw error;
     }
   }
@@ -320,7 +365,7 @@ class TaxationAPI {
    */
   async calculateTax(inputData: TaxInputData): Promise<TaxCalculationResult> {
     try {
-      const response = await this.baseApi.post<TaxCalculationResult>('/api/v1/taxation/calculate', inputData);
+      const response = await this.baseApi.post<TaxCalculationResult>('/api/v2/taxation/calculate', inputData);
       return response;
     } catch (error: any) {
       console.error('Error calculating tax:', error);
@@ -333,7 +378,7 @@ class TaxationAPI {
    */
   async calculateTaxComparison(inputData: Omit<TaxInputData, 'tax_regime'>): Promise<TaxCalculationResult> {
     try {
-      const response = await this.baseApi.post<TaxCalculationResult>('/api/v1/taxation/calculate/compare', inputData);
+      const response = await this.baseApi.post<TaxCalculationResult>('/api/v2/taxation/calculate/compare', inputData);
       return response;
     } catch (error: any) {
       console.error('Error calculating tax comparison:', error);
@@ -346,7 +391,7 @@ class TaxationAPI {
    */
   async getOptimizationSuggestions(inputData: TaxInputData): Promise<TaxOptimizationResponse> {
     try {
-      const response = await this.baseApi.post<TaxOptimizationResponse>('/api/v1/taxation/optimize', inputData);
+      const response = await this.baseApi.post<TaxOptimizationResponse>('/api/v2/taxation/optimize', inputData);
       return response;
     } catch (error: any) {
       console.error('Error getting optimization suggestions:', error);
@@ -359,7 +404,7 @@ class TaxationAPI {
    */
   async createTaxRecord(recordData: CreateTaxRecordRequest): Promise<TaxRecord> {
     try {
-      const response = await this.baseApi.post<TaxRecord>('/api/v1/taxation/records', recordData);
+      const response = await this.baseApi.post<TaxRecord>('/api/v2/taxation/records', recordData);
       return response;
     } catch (error: any) {
       console.error('Error creating tax record:', error);
@@ -391,7 +436,7 @@ class TaxationAPI {
       if (is_finalized !== undefined) params.is_finalized = is_finalized;
       if (search) params.search = search;
 
-      const response = await this.baseApi.get<TaxRecordListResponse>('/api/v1/taxation/records', { params });
+      const response = await this.baseApi.get<TaxRecordListResponse>('/api/v2/taxation/records', { params });
       return response;
     } catch (error: any) {
       console.error('Error fetching tax records:', error);
@@ -404,7 +449,7 @@ class TaxationAPI {
    */
   async getTaxRecordById(recordId: string): Promise<TaxRecord> {
     try {
-      const response = await this.baseApi.get<TaxRecord>(`/api/v1/taxation/records/${recordId}`);
+      const response = await this.baseApi.get<TaxRecord>(`/api/v2/taxation/records/${recordId}`);
       return response;
     } catch (error: any) {
       console.error('Error fetching tax record:', error);
@@ -417,7 +462,7 @@ class TaxationAPI {
    */
   async updateTaxRecord(recordId: string, updateData: UpdateTaxRecordRequest): Promise<TaxRecord> {
     try {
-      const response = await this.baseApi.patch<TaxRecord>(`/api/v1/taxation/records/${recordId}`, updateData);
+      const response = await this.baseApi.patch<TaxRecord>(`/api/v2/taxation/records/${recordId}`, updateData);
       return response;
     } catch (error: any) {
       console.error('Error updating tax record:', error);
@@ -430,7 +475,7 @@ class TaxationAPI {
    */
   async deleteTaxRecord(recordId: string): Promise<{ message: string }> {
     try {
-      const response = await this.baseApi.delete<{ message: string }>(`/api/v1/taxation/records/${recordId}`);
+      const response = await this.baseApi.delete<{ message: string }>(`/api/v2/taxation/records/${recordId}`);
       return response;
     } catch (error: any) {
       console.error('Error deleting tax record:', error);
@@ -443,7 +488,7 @@ class TaxationAPI {
    */
   async finalizeTaxRecord(recordId: string): Promise<TaxRecord> {
     try {
-      const response = await this.baseApi.patch<TaxRecord>(`/api/v1/taxation/records/${recordId}/finalize`);
+      const response = await this.baseApi.patch<TaxRecord>(`/api/v2/taxation/records/${recordId}/finalize`);
       return response;
     } catch (error: any) {
       console.error('Error finalizing tax record:', error);
@@ -457,7 +502,7 @@ class TaxationAPI {
   async getTaxAnalytics(financialYear?: string): Promise<TaxAnalytics> {
     try {
       const params = financialYear ? { financial_year: financialYear } : {};
-      const response = await this.baseApi.get<TaxAnalytics>('/api/v1/taxation/analytics', { params });
+      const response = await this.baseApi.get<TaxAnalytics>('/api/v2/taxation/analytics', { params });
       return response;
     } catch (error: any) {
       console.error('Error fetching tax analytics:', error);
@@ -474,7 +519,7 @@ class TaxationAPI {
   ): Promise<Blob> {
     try {
       const params = { ...filters, format };
-      const response = await this.baseApi.download('/api/v1/taxation/records/export', { params });
+      const response = await this.baseApi.download('/api/v2/taxation/records/export', { params });
       return response;
     } catch (error: any) {
       console.error('Error exporting tax records:', error);
@@ -491,7 +536,7 @@ class TaxationAPI {
       formData.append('file', file);
 
       const response = await this.baseApi.upload<{ message: string; imported_count: number; errors?: any[] }>(
-        '/api/v1/taxation/records/import',
+        '/api/v2/taxation/records/import',
         formData
       );
       return response;
@@ -506,7 +551,7 @@ class TaxationAPI {
    */
   async getTaxTemplates(): Promise<{ templates: TaxInputData[] }> {
     try {
-      const response = await this.baseApi.get<{ templates: TaxInputData[] }>('/api/v1/taxation/templates');
+      const response = await this.baseApi.get<{ templates: TaxInputData[] }>('/api/v2/taxation/templates');
       return response;
     } catch (error: any) {
       console.error('Error fetching tax templates:', error);
@@ -519,7 +564,7 @@ class TaxationAPI {
    */
   async saveTaxTemplate(templateData: TaxInputData & { name: string }): Promise<{ message: string }> {
     try {
-      const response = await this.baseApi.post<{ message: string }>('/api/v1/taxation/templates', templateData);
+      const response = await this.baseApi.post<{ message: string }>('/api/v2/taxation/templates', templateData);
       return response;
     } catch (error: any) {
       console.error('Error saving tax template:', error);
@@ -533,7 +578,7 @@ class TaxationAPI {
   async getCurrentFinancialYear(): Promise<{ financial_year: string; start_date: string; end_date: string }> {
     try {
       const response = await this.baseApi.get<{ financial_year: string; start_date: string; end_date: string }>(
-        '/api/v1/taxation/financial-year/current'
+        '/api/v2/taxation/financial-year/current'
       );
       return response;
     } catch (error: any) {
@@ -555,7 +600,7 @@ class TaxationAPI {
     }>;
   }> {
     try {
-      const response = await this.baseApi.get(`/api/v1/taxation/tax-slabs`, {
+        const response = await this.baseApi.get(`/api/v2/taxation/tax-slabs`, {
         params: { financial_year: financialYear, regime }
       });
       return response;
@@ -575,7 +620,7 @@ class TaxationAPI {
       if (filingStatus) params.append('filing_status', filingStatus);
       
       const queryString = params.toString();
-      const url = queryString ? `/api/v1/taxation/all?${queryString}` : '/api/v1/taxation/all';
+      const url = queryString ? `/api/v2/taxation/all?${queryString}` : '/api/v2/taxation/all';
       
       return await this.baseApi.get(url);
     } catch (error: any) {
@@ -589,7 +634,7 @@ class TaxationAPI {
    */
   async getMyTaxation(): Promise<any> {
     try {
-      return await this.baseApi.get('/api/v1/taxation/my');
+      return await this.baseApi.get('/api/v2/taxation/my');
     } catch (error: any) {
       console.error('Error getting my taxation data:', error);
       throw new Error(error.response?.data?.detail || 'Failed to get my taxation data');

@@ -3,7 +3,7 @@ Comprehensive Taxation API Routes
 Production-ready REST API endpoints for all taxation operations and income types
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 from datetime import datetime
@@ -13,6 +13,7 @@ from app.application.dto.taxation_dto import (
     # Comprehensive DTOs
     ComprehensiveTaxInputDTO,
     PeriodicTaxCalculationResponseDTO,
+    ComprehensiveTaxOutputDTO,
     PerquisitesDTO,
     HousePropertyIncomeDTO,
     MultipleHousePropertiesDTO,
@@ -33,7 +34,11 @@ from app.application.dto.taxation_dto import (
     TaxationRecordSummaryDTO,
     TaxationRecordListResponse,
     TaxationRecordQuery,
-    UpdateResponse
+    UpdateResponse,
+    
+    # Employee Selection DTOs
+    EmployeeSelectionQuery,
+    EmployeeSelectionResponse
 )
 from app.api.controllers.taxation_controller import UnifiedTaxationController
 from app.config.dependency_container import (
@@ -49,7 +54,7 @@ from app.domain.exceptions.taxation_exceptions import (
 )
 
 
-router = APIRouter(prefix="/api/v1/taxation", tags=["taxation"])
+router = APIRouter(prefix="/api/v2/taxation", tags=["taxation"])
 
 
 # =============================================================================
@@ -237,7 +242,7 @@ async def calculate_payroll_tax(
         }
         
         response = await controller.calculate_payroll_tax(
-            payroll, deductions_data, regime_type, age, current_user.organization_id
+            payroll, deductions_data, regime_type, age, current_user.hostname
         )
         return response
         
@@ -281,7 +286,7 @@ async def calculate_mid_year_joiner(
         )
         
         response = await controller.calculate_comprehensive_tax(
-            comprehensive_request, current_user.organization_id
+            comprehensive_request, current_user.hostname
         )
         return response
         
@@ -321,7 +326,7 @@ async def calculate_mid_year_increment(
         )
         
         response = await controller.calculate_comprehensive_tax(
-            comprehensive_request, current_user.organization_id
+            comprehensive_request, current_user.hostname
         )
         return response
         
@@ -352,7 +357,7 @@ async def compare_scenarios(
     try:
         # Calculate base scenario
         base_result = await controller.calculate_comprehensive_tax(
-            request.base_request, current_user.organization_id
+            request.base_request, current_user.hostname
         )
         
         # Build comparison response
@@ -401,7 +406,7 @@ async def create_taxation_record(
     
     try:
         response = await controller.create_taxation_record(
-            request, current_user.organization_id
+            request, current_user.hostname
         )
         return response
         
@@ -435,7 +440,7 @@ async def list_taxation_records(
     
     try:
         response = await controller.list_taxation_records(
-            query, current_user.organization_id
+            query, current_user.hostname
         )
         return response
         
@@ -443,6 +448,30 @@ async def list_taxation_records(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to list taxation records: {str(e)}"
+        )
+
+@router.get("/records/employee/{employee_id}",
+            response_model=ComprehensiveTaxOutputDTO,
+            summary="Get comprehensive taxation record by employee ID",
+            description="Get comprehensive taxation record by employee ID and optional tax year with computed values")
+async def get_taxation_record_by_employee(
+    employee_id: str,
+    tax_year: Optional[str] = Query(None, description="Tax year (e.g., '2024-25')"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> ComprehensiveTaxOutputDTO:
+    """Get comprehensive taxation record by employee ID and optional tax year."""
+    
+    try:
+        response = await controller.get_taxation_record_by_employee(
+            employee_id, current_user.hostname, tax_year
+        )
+        return response
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get comprehensive taxation record: {str(e)}"
         )
 
 
@@ -459,7 +488,7 @@ async def get_taxation_record(
     
     try:
         response = await controller.get_taxation_record(
-            taxation_id, current_user.organization_id
+            taxation_id, current_user.hostname
         )
         return response
         
@@ -472,6 +501,53 @@ async def get_taxation_record(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get taxation record: {str(e)}"
+        )
+
+
+# =============================================================================
+# EMPLOYEE SELECTION ENDPOINTS
+# =============================================================================
+
+@router.get("/employee-selection",
+            response_model=EmployeeSelectionResponse,
+            summary="Get employees for taxation selection",
+            description="Get list of employees with tax information for admin selection interface")
+async def get_employees_for_selection(
+    skip: int = Query(0, description="Number of records to skip"),
+    limit: int = Query(20, description="Maximum number of records to return", le=100),
+    search: Optional[str] = Query(None, description="Search term for employee name or email"),
+    department: Optional[str] = Query(None, description="Filter by department"),
+    role: Optional[str] = Query(None, description="Filter by role"),
+    employee_status: Optional[str] = Query(None, description="Filter by employee status"),
+    has_tax_record: Optional[bool] = Query(None, description="Filter by tax record availability"),
+    tax_year: Optional[str] = Query(None, description="Filter by tax year"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> EmployeeSelectionResponse:
+    """Get employees for taxation selection with filtering and pagination."""
+    
+    try:
+        # Create query object
+        query = EmployeeSelectionQuery(
+            skip=skip,
+            limit=limit,
+            search=search,
+            department=department,
+            role=role,
+            status=employee_status,
+            has_tax_record=has_tax_record,
+            tax_year=tax_year
+        )
+        
+        response = await controller.get_employees_for_selection(
+            query, current_user
+        )
+        return response
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get employees for selection: {str(e)}"
         )
 
 

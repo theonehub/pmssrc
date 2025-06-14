@@ -97,7 +97,7 @@ class EmployeeLeaveQueryRepositoryWrapper(EmployeeLeaveQueryRepository):
     def get_by_employee_id(
         self, 
         employee_id: EmployeeId,
-        oranisation_id: str
+        oranisation_id: str,
         status_filter: Optional[LeaveStatus] = None,
         limit: Optional[int] = None
     ) -> List[EmployeeLeave]:

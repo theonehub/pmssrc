@@ -27,17 +27,17 @@ import PageLayout from './layout/PageLayout';
 import { UserRole } from './shared/types';
 
 // Taxation Pages
-import TaxationDashboard from './pages/taxation/TaxationDashboard';
-import TaxDeclaration from './pages/taxation/TaxDeclaration';
-import EmployeeTaxDetail from './pages/taxation/EmployeeTaxDetail';
-import EmployeeSelection from './pages/taxation/EmployeeSelection';
+import TaxationDashboard from './components/taxation/TaxationDashboard';
+import TaxDeclaration from './components/taxation/TaxDeclaration';
+import EmployeeTaxDetail from './components/taxation/EmployeeTaxDetail';
+import EmployeeSelection from './components/taxation/EmployeeSelection';
 
 // Payout Pages
-import MySalaryDetails from './pages/payouts/MySalaryDetails';
-import MyPayslips from './pages/payouts/MyPayslips';
-import AdminPayouts from './pages/payouts/AdminPayouts';
-import PayoutReports from './pages/payouts/PayoutReports';
-import MonthlyProcessing from './pages/payouts/MonthlyProcessing';
+import MySalaryDetails from './components/payouts/MySalaryDetails';
+import MyPayslips from './components/payouts/MyPayslips';
+import AdminPayouts from './components/payouts/AdminPayouts';
+import PayoutReports from './components/payouts/PayoutReports';
+import MonthlyProcessing from './components/payouts/MonthlyProcessing';
 
 const AppContent: React.FC = () => {
   const { isCalculatorOpen, closeCalculator } = useCalculatorStore();

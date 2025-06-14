@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -22,7 +22,12 @@ import {
   Fade,
   Snackbar,
   Chip,
-  TablePagination
+  TablePagination,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  SelectChangeEvent
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -35,12 +40,12 @@ import {
   ArrowBack as ArrowBackIcon
 } from '@mui/icons-material';
 import { getUserRole } from '../../shared/utils/auth';
-import PageLayout from '../../layout/PageLayout';
-import { TaxationData, UserRole, FilingStatus } from '../../shared/types';
+import { UserRole } from '../../shared/types';
+import { EmployeeSelectionDTO, EmployeeSelectionQuery, FilingStatus } from '../../shared/types/api';
+import { useEmployeeSelection, useRefreshEmployeeSelection } from '../../shared/hooks/useEmployeeSelection';
 
-interface EmployeeRecord extends TaxationData {
-  user_name?: string;
-  total_tax: number;
+interface EmployeeRecord extends EmployeeSelectionDTO {
+  // Additional fields if needed
 }
 
 interface ToastState {
@@ -49,18 +54,45 @@ interface ToastState {
   severity: 'success' | 'error' | 'warning' | 'info';
 }
 
+// Helper function to get current tax year
+const getCurrentTaxYear = (): string => {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11
+  
+  // Tax year starts from April 1st
+  if (currentMonth >= 4) {
+    return `${currentYear}-${(currentYear + 1).toString().slice(-2)}`;
+  } else {
+    return `${currentYear - 1}-${currentYear.toString().slice(-2)}`;
+  }
+};
+
+// Helper function to generate available tax years (current + last 5 years)
+const getAvailableTaxYears = (): string[] => {
+  const currentTaxYear = getCurrentTaxYear();
+  const yearParts = currentTaxYear.split('-');
+  const currentStartYear = parseInt(yearParts[0] || '2024');
+  const years: string[] = [];
+  
+  for (let i = 0; i <= 5; i++) {
+    const startYear = currentStartYear - i;
+    const endYear = startYear + 1;
+    years.push(`${startYear}-${endYear.toString().slice(-2)}`);
+  }
+  
+  return years;
+};
+
 /**
  * EmployeeSelection Component - Admin interface for selecting employees to manage tax declarations
  */
 const EmployeeSelection: React.FC = () => {
-  const [loading, setLoading] = useState<boolean>(true);
-  const [employees, setEmployees] = useState<EmployeeRecord[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<EmployeeRecord[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [error, setError] = useState<string | null>(null);
+  const [selectedTaxYear, setSelectedTaxYear] = useState<string>(getCurrentTaxYear());
   const [page, setPage] = useState<number>(0);
   const [rowsPerPage, setRowsPerPage] = useState<number>(10);
-  const [refreshing, setRefreshing] = useState<boolean>(false);
   const [toast, setToast] = useState<ToastState>({ 
     show: false, 
     message: '', 
@@ -69,6 +101,49 @@ const EmployeeSelection: React.FC = () => {
   
   const navigate = useNavigate();
   const userRole: UserRole | null = getUserRole();
+  
+  // Check if selected year is current year
+  const isCurrentYear = selectedTaxYear === getCurrentTaxYear();
+  const availableTaxYears = getAvailableTaxYears();
+  
+  // React Query hooks
+  const query: EmployeeSelectionQuery = {
+    skip: 0,
+    limit: 100, // Get all employees for now
+    tax_year: selectedTaxYear
+  };
+  
+  const { 
+    data: employeeResponse, 
+    isLoading: loading, 
+    error: queryError, 
+    refetch 
+  } = useEmployeeSelection(query);
+  
+  const refreshEmployeeSelection = useRefreshEmployeeSelection();
+  
+  // Transform API response to local format
+  const employees: EmployeeRecord[] = useMemo(() => 
+    employeeResponse?.employees?.map(emp => ({
+      ...emp,
+      // Ensure all required fields are present with defaults
+      user_name: emp.user_name || 'Unknown',
+      email: emp.email || '',
+      department: emp.department || 'N/A',
+      role: emp.role || 'N/A',
+      status: emp.status || 'active',
+      joining_date: emp.joining_date || '',
+      current_salary: emp.current_salary || 0,
+      has_tax_record: emp.has_tax_record || false,
+      tax_year: emp.tax_year || selectedTaxYear,
+      filing_status: (emp.filing_status as FilingStatus) || 'pending',
+      total_tax: emp.total_tax || 0,
+      regime: emp.regime || 'new',
+      last_updated: emp.last_updated || ''
+    })) || [], [employeeResponse?.employees, selectedTaxYear]);
+  
+  // Convert React Query error to string
+  const error = queryError ? 'Failed to load employees data. Please try again later.' : null;
 
   // Helper functions
   const showToast = (message: string, severity: ToastState['severity'] = 'success'): void => {
@@ -82,231 +157,29 @@ const EmployeeSelection: React.FC = () => {
   // Redirect non-admin users to their own declaration page
   useEffect(() => {
     if (userRole !== 'admin' && userRole !== 'superadmin') {
-      navigate('/api/v2/taxation/declaration');
+      navigate(`/taxation`);
     }
   }, [userRole, navigate]);
 
-  // Fetch employees data
+  // Show success toast when data loads successfully
   useEffect(() => {
-    const fetchEmployees = async (): Promise<void> => {
-      try {
-        setLoading(true);
-        setError(null);
-        // Mock implementation since getAllTaxation is not available
-        const mockEmployeeData: EmployeeRecord[] = [
-          {
-            employee_id: 'EMP001',
-            user_name: 'John Doe',
-            tax_year: '2023-24',
-            regime: 'new',
-            total_tax: 50000,
-            filing_status: 'filed',
-            basic_salary: 600000,
-            hra: 240000,
-            da: 0,
-            medical_allowance: 15000,
-            transport_allowance: 12000,
-            other_allowances: 10000,
-            bonus: 50000,
-            pf_employee: 21600,
-            esi_employee: 0,
-            professional_tax: 2400,
-            tds: 48000,
-            other_income: 0,
-            house_property_income: 0,
-            capital_gains: 0,
-            section_80c: 150000,
-            section_80d: 25000,
-            section_80g: 0,
-            section_80e: 0,
-            section_80tta: 0,
-            perquisites: {
-              accommodation_type: 'none',
-              accommodation_value: 0,
-              car_provided: false,
-              car_cc: 0,
-              car_owned_by: 'employee',
-              car_used_for_business: 0,
-              car_value: 0,
-              driver_salary: 0,
-              fuel_provided: false,
-              fuel_value: 0,
-              gas_electricity_water: 0,
-              medical_reimbursement: 0,
-              lta_claimed: 0,
-              lta_exempt: 0,
-              education_provided: false,
-              education_value: 0,
-              loan_amount: 0,
-              loan_interest_rate: 0,
-              loan_interest_benefit: 0,
-              movable_assets_value: 0,
-              esop_value: 0,
-              esop_exercise_price: 0,
-              esop_market_price: 0,
-              other_perquisites: 0,
-              total_perquisites: 0
-            },
-            separation_benefits: 0,
-            gross_total_income: 927000,
-            total_deductions: 175000,
-            taxable_income: 752000,
-            tax_before_relief: 50000,
-            tax_relief: 0,
-            tax_payable: 50000,
-            advance_tax_paid: 0,
-            tds_deducted: 48000,
-            self_assessment_tax: 2000
-          },
-          {
-            employee_id: 'EMP002',
-            user_name: 'Jane Smith',
-            tax_year: '2023-24',
-            regime: 'old',
-            total_tax: 75000,
-            filing_status: 'pending',
-            basic_salary: 800000,
-            hra: 320000,
-            da: 0,
-            medical_allowance: 15000,
-            transport_allowance: 12000,
-            other_allowances: 15000,
-            bonus: 80000,
-            pf_employee: 21600,
-            esi_employee: 0,
-            professional_tax: 2400,
-            tds: 72000,
-            other_income: 0,
-            house_property_income: 0,
-            capital_gains: 0,
-            section_80c: 150000,
-            section_80d: 25000,
-            section_80g: 0,
-            section_80e: 0,
-            section_80tta: 0,
-            perquisites: {
-              accommodation_type: 'none',
-              accommodation_value: 0,
-              car_provided: false,
-              car_cc: 0,
-              car_owned_by: 'employee',
-              car_used_for_business: 0,
-              car_value: 0,
-              driver_salary: 0,
-              fuel_provided: false,
-              fuel_value: 0,
-              gas_electricity_water: 0,
-              medical_reimbursement: 0,
-              lta_claimed: 0,
-              lta_exempt: 0,
-              education_provided: false,
-              education_value: 0,
-              loan_amount: 0,
-              loan_interest_rate: 0,
-              loan_interest_benefit: 0,
-              movable_assets_value: 0,
-              esop_value: 0,
-              esop_exercise_price: 0,
-              esop_market_price: 0,
-              other_perquisites: 0,
-              total_perquisites: 0
-            },
-            separation_benefits: 0,
-            gross_total_income: 1242000,
-            total_deductions: 175000,
-            taxable_income: 1067000,
-            tax_before_relief: 75000,
-            tax_relief: 0,
-            tax_payable: 75000,
-            advance_tax_paid: 0,
-            tds_deducted: 72000,
-            self_assessment_tax: 3000
-          },
-          {
-            employee_id: 'EMP003',
-            user_name: 'Mike Johnson',
-            tax_year: '2023-24',
-            regime: 'new',
-            total_tax: 25000,
-            filing_status: 'draft',
-            basic_salary: 450000,
-            hra: 180000,
-            da: 0,
-            medical_allowance: 15000,
-            transport_allowance: 12000,
-            other_allowances: 8000,
-            bonus: 30000,
-            pf_employee: 21600,
-            esi_employee: 0,
-            professional_tax: 2400,
-            tds: 24000,
-            other_income: 0,
-            house_property_income: 0,
-            capital_gains: 0,
-            section_80c: 100000,
-            section_80d: 15000,
-            section_80g: 0,
-            section_80e: 0,
-            section_80tta: 0,
-            perquisites: {
-              accommodation_type: 'none',
-              accommodation_value: 0,
-              car_provided: false,
-              car_cc: 0,
-              car_owned_by: 'employee',
-              car_used_for_business: 0,
-              car_value: 0,
-              driver_salary: 0,
-              fuel_provided: false,
-              fuel_value: 0,
-              gas_electricity_water: 0,
-              medical_reimbursement: 0,
-              lta_claimed: 0,
-              lta_exempt: 0,
-              education_provided: false,
-              education_value: 0,
-              loan_amount: 0,
-              loan_interest_rate: 0,
-              loan_interest_benefit: 0,
-              movable_assets_value: 0,
-              esop_value: 0,
-              esop_exercise_price: 0,
-              esop_market_price: 0,
-              other_perquisites: 0,
-              total_perquisites: 0
-            },
-            separation_benefits: 0,
-            gross_total_income: 695000,
-            total_deductions: 115000,
-            taxable_income: 580000,
-            tax_before_relief: 25000,
-            tax_relief: 0,
-            tax_payable: 25000,
-            advance_tax_paid: 0,
-            tds_deducted: 24000,
-            self_assessment_tax: 1000
-          }
-        ];
-        setEmployees(mockEmployeeData);
-        setFilteredEmployees(mockEmployeeData);
-        showToast('Employee data loaded successfully', 'success');
-      } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          // eslint-disable-next-line no-console
-          console.error('Error fetching employees:', error);
-        }
-        const errorMessage = 'Failed to load employees data. Please try again later.';
-        setError(errorMessage);
-        showToast(errorMessage, 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchEmployees();
-  }, []);
+    if (employeeResponse?.employees && !loading) {
+      showToast(`Loaded ${employeeResponse.employees.length} employees for ${selectedTaxYear}`, 'success');
+    }
+  }, [employeeResponse, loading, selectedTaxYear]);
 
-  // Handle search
+  // Show error toast when there's an error
+  useEffect(() => {
+    if (queryError) {
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.error('Error fetching employees:', queryError);
+      }
+      showToast('Failed to load employees data. Please try again later.', 'error');
+    }
+  }, [queryError]);
+
+  // Handle search with API integration
   useEffect(() => {
     if (searchTerm.trim() === '') {
       setFilteredEmployees(employees);
@@ -314,7 +187,9 @@ const EmployeeSelection: React.FC = () => {
       const searchTermLower = searchTerm.toLowerCase();
       const filtered = employees.filter(emp => 
         emp.employee_id.toLowerCase().includes(searchTermLower) || 
-        (emp.user_name && emp.user_name.toLowerCase().includes(searchTermLower))
+        (emp.user_name && emp.user_name.toLowerCase().includes(searchTermLower)) ||
+        (emp.email && emp.email.toLowerCase().includes(searchTermLower)) ||
+        (emp.department && emp.department.toLowerCase().includes(searchTermLower))
       );
       setFilteredEmployees(filtered);
     }
@@ -323,15 +198,58 @@ const EmployeeSelection: React.FC = () => {
 
   // Event handlers
   const handleViewDeclaration = (empId: string): void => {
-    navigate(`/api/v2/taxation/employee/${empId}`);
+    navigate(`/taxation/employee/${empId}?year=${selectedTaxYear}`);
   };
 
-  const handleEditDeclaration = (empId: string): void => {
-    navigate(`/api/v2/taxation/declaration/${empId}`);
+  const handleEditDeclaration = async (empId: string): Promise<void> => {
+    if (!isCurrentYear) {
+      showToast('Cannot edit declarations for previous years', 'warning');
+      return;
+    }
+
+    try {
+      showToast('Loading employee taxation details...', 'info');
+      
+      // Fetch detailed taxation record for the employee
+      const taxationApi = (await import('../../shared/api/taxationApi')).default;
+      const detailedRecord = await taxationApi.getEmployeeTaxationRecord(empId, selectedTaxYear);
+      
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.log('Fetched detailed taxation record:', detailedRecord);
+      }
+      
+      // Navigate to edit page with the employee ID and tax year
+      // Use the correct route that exists in App.tsx
+      navigate(`/taxation/declaration/${empId}?year=${selectedTaxYear}`);
+      
+      showToast('Taxation details loaded successfully', 'success');
+      
+    } catch (error: any) {
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.error('Error fetching taxation details:', error);
+      }
+      
+      // If no record exists, still allow navigation to create new record
+      if (error.response?.status === 404) {
+        showToast('No existing record found. Creating new declaration...', 'info');
+        navigate(`/taxation/declaration/${empId}?year=${selectedTaxYear}`);
+      } else {
+        showToast('Failed to load taxation details. Please try again.', 'error');
+      }
+    }
   };
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
     setSearchTerm(event.target.value);
+  };
+
+  const handleTaxYearChange = (event: SelectChangeEvent<string>): void => {
+    const newTaxYear = event.target.value;
+    setSelectedTaxYear(newTaxYear);
+    setSearchTerm(''); // Clear search when changing year
+    setPage(0); // Reset pagination
   };
 
   const handlePageChange = (_event: unknown, newPage: number): void => {
@@ -343,13 +261,17 @@ const EmployeeSelection: React.FC = () => {
     setPage(0);
   };
 
-  const handleRefresh = (): void => {
-    setRefreshing(true);
-    // Simulate refresh
-    setTimeout(() => {
-      setRefreshing(false);
-      showToast('Data refreshed successfully', 'success');
-    }, 1000);
+  const handleRefresh = async (): Promise<void> => {
+    try {
+      // Use React Query's refetch method
+      await refetch();
+      // Also invalidate the query cache for fresh data
+      refreshEmployeeSelection(query);
+      showToast(`Employee data refreshed for ${selectedTaxYear}`, 'success');
+    } catch (error) {
+      console.error('Error refreshing employees:', error);
+      showToast('Failed to refresh employee data', 'error');
+    }
   };
 
   // Format currency
@@ -409,19 +331,19 @@ const EmployeeSelection: React.FC = () => {
             sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} 
           />
           <Typography variant="h6" color="text.secondary" gutterBottom>
-            {searchTerm ? 'No employees found' : 'No employees yet'}
+            {searchTerm ? 'No employees found' : `No employees for ${selectedTaxYear}`}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             {searchTerm 
-              ? `No employees match "${searchTerm}"`
-              : 'No employee tax records available'
+              ? `No employees match "${searchTerm}" for ${selectedTaxYear}`
+              : `No employee tax records available for ${selectedTaxYear}`
             }
           </Typography>
-          {!searchTerm && (
+          {!searchTerm && isCurrentYear && (
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              onClick={() => navigate('/api/v2/taxation/declaration')}
+              onClick={() => navigate(`/taxation/declaration?year=${selectedTaxYear}`)}
             >
               Create New Declaration
             </Button>
@@ -439,16 +361,13 @@ const EmployeeSelection: React.FC = () => {
 
   if (loading) {
     return (
-      <PageLayout title="Employee Selection">
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '70vh' }}>
           <CircularProgress size={40} />
         </Box>
-      </PageLayout>
     );
   }
 
   return (
-    <PageLayout title="Employee Selection">
       <Box>
         {/* Header Card */}
         <Card elevation={1} sx={{ mb: 3 }}>
@@ -459,14 +378,37 @@ const EmployeeSelection: React.FC = () => {
                   Employee Tax Declaration Management
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Select employees to view or manage their tax declarations
+                  Select employees to view or manage their tax declarations for {selectedTaxYear}
+                  {!isCurrentYear && (
+                    <Chip 
+                      label="Previous Year - Read Only" 
+                      color="warning" 
+                      size="small" 
+                      sx={{ ml: 1 }} 
+                    />
+                  )}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <FormControl size="small" sx={{ minWidth: 140 }}>
+                  <InputLabel>Tax Year</InputLabel>
+                  <Select
+                    value={selectedTaxYear}
+                    label="Tax Year"
+                    onChange={handleTaxYearChange}
+                  >
+                    {availableTaxYears.map((year) => (
+                      <MenuItem key={year} value={year}>
+                        {year}
+                        {year === getCurrentTaxYear() && ' (Current)'}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
                 <Tooltip title="Refresh">
                   <IconButton 
                     onClick={handleRefresh}
-                    disabled={refreshing}
+                    disabled={loading}
                     color="primary"
                   >
                     <RefreshIcon />
@@ -475,17 +417,19 @@ const EmployeeSelection: React.FC = () => {
                 <Button 
                   variant="outlined" 
                   startIcon={<ArrowBackIcon />}
-                  onClick={() => navigate('/api/v2/taxation')}
+                  onClick={() => navigate('/taxation')}
                 >
                   BACK TO DASHBOARD
                 </Button>
-                <Button 
-                  variant="contained" 
-                  startIcon={<AddIcon />} 
-                  onClick={() => navigate('/api/v2/taxation/declaration')}
-                >
-                  NEW DECLARATION
-                </Button>
+                {isCurrentYear && (
+                  <Button 
+                    variant="contained" 
+                    startIcon={<AddIcon />} 
+                    onClick={() => navigate(`/taxation/declaration?year=${selectedTaxYear}`)}
+                  >
+                    NEW DECLARATION
+                  </Button>
+                )}
               </Box>
             </Box>
           </CardContent>
@@ -512,9 +456,9 @@ const EmployeeSelection: React.FC = () => {
             />
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography variant="body2" color="text.secondary">
-                {filteredEmployees.length} employee{filteredEmployees.length !== 1 ? 's' : ''}
+                {filteredEmployees.length} employee{filteredEmployees.length !== 1 ? 's' : ''} for {selectedTaxYear}
               </Typography>
-              {refreshing && <CircularProgress size={16} />}
+              {loading && <CircularProgress size={16} />}
             </Box>
           </Box>
         </Paper>
@@ -593,7 +537,7 @@ const EmployeeSelection: React.FC = () => {
                           </Typography>
                         </TableCell>
                         <TableCell align="center">
-                          {renderStatusChip(employee.filing_status)}
+                          {renderStatusChip(employee.filing_status as FilingStatus)}
                         </TableCell>
                         <TableCell align="center">
                           <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
@@ -606,14 +550,17 @@ const EmployeeSelection: React.FC = () => {
                                 <VisibilityIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
-                            <Tooltip title="Edit Declaration">
-                              <IconButton
-                                size="small"
-                                color="secondary"
-                                onClick={() => handleEditDeclaration(employee.employee_id)}
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
+                            <Tooltip title={isCurrentYear ? "Edit Declaration" : "Cannot edit previous year data"}>
+                              <span>
+                                <IconButton
+                                  size="small"
+                                  color="secondary"
+                                  disabled={!isCurrentYear}
+                                  onClick={() => handleEditDeclaration(employee.employee_id)}
+                                >
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </span>
                             </Tooltip>
                           </Box>
                         </TableCell>
@@ -660,7 +607,6 @@ const EmployeeSelection: React.FC = () => {
           </Alert>
         </Snackbar>
       </Box>
-    </PageLayout>
   );
 };
 

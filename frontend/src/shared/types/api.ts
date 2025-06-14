@@ -455,4 +455,44 @@ export interface HealthCheckResponse {
   version: string;
   features: string[];
   timestamp: string;
+}
+
+// =============================================================================
+// EMPLOYEE SELECTION TYPES
+// =============================================================================
+
+export interface EmployeeSelectionDTO {
+  employee_id: string;
+  user_name: string;
+  email: string;
+  department?: string;
+  role?: string;
+  status?: string;
+  joining_date?: string;
+  current_salary?: number;
+  has_tax_record: boolean;
+  tax_year?: string;
+  filing_status?: string;
+  total_tax?: number;
+  regime?: string;
+  last_updated?: string;
+}
+
+export interface EmployeeSelectionQuery {
+  skip?: number;
+  limit?: number;
+  search?: string;
+  department?: string;
+  role?: string;
+  status?: string;
+  has_tax_record?: boolean;
+  tax_year?: string;
+}
+
+export interface EmployeeSelectionResponse {
+  total: number;
+  employees: EmployeeSelectionDTO[];
+  skip: number;
+  limit: number;
+  has_more: boolean;
 } 

@@ -32,55 +32,15 @@ import {
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
 import { useLeavesQuery } from '../../shared/hooks/useLeaves';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { styled } from '@mui/material/styles';
 import { LeaveRequest, LeaveBalanceData, AlertState } from '../../shared/types';
 import { apiClient } from '../../shared/api';
 
-// Add custom styled components
-const StyledDatePicker = styled(DatePicker)`
-  width: 100%;
-  
-  .react-datepicker-wrapper {
-    width: 100%;
-  }
-
-  .react-datepicker-popper {
-    z-index: 9999;
-  }
-
-  .react-datepicker {
-    font-size: 1rem;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  }
-
-  .react-datepicker__header {
-    background-color: #1976d2;
-    color: white;
-    border-radius: 8px 8px 0 0;
-  }
-
-  .react-datepicker__current-month {
-    color: white;
-    font-weight: 500;
-  }
-
-  .react-datepicker__day-name {
-    color: white;
-  }
-
-  .react-datepicker__day--selected {
-    background-color: #1976d2;
-  }
-`;
+// Add custom styled components for consistent styling
 
 const LeaveManagement: React.FC = () => {
   const [leaveBalance, setLeaveBalance] = useState<LeaveBalanceData>({});
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   const [leaveType, setLeaveType] = useState<string>('');
   const [reason, setReason] = useState<string>('');
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -134,18 +94,10 @@ const LeaveManagement: React.FC = () => {
     }
 
     try {
-      // Format dates to YYYY-MM-DD without timezone issues
-      const formatDate = (date: Date): string => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      };
-
       const leaveData = {
         leave_name: leaveType,
-        start_date: formatDate(startDate),
-        end_date: formatDate(endDate),
+        start_date: startDate,
+        end_date: endDate,
         reason
       };
 
@@ -200,8 +152,8 @@ const LeaveManagement: React.FC = () => {
 
   const resetForm = (): void => {
     setEditingLeave(null);
-    setStartDate(null);
-    setEndDate(null);
+    setStartDate('');
+    setEndDate('');
     setLeaveType('');
     setReason('');
   };
@@ -397,35 +349,31 @@ const LeaveManagement: React.FC = () => {
               mt: 2 
             }}
           >
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <StyledDatePicker
-                label="Start Date"
-                value={startDate}
-                onChange={(date) => setStartDate(date)}
-                slotProps={{ 
-                  textField: { 
-                    fullWidth: true, 
-                    required: true 
-                  } 
-                }}
-                minDate={new Date()}
-              />
-            </LocalizationProvider>
+            <TextField
+              label="Start Date"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              fullWidth
+              required
+              InputLabelProps={{ shrink: true }}
+              inputProps={{
+                min: new Date().toISOString().split('T')[0] // Today's date as minimum
+              }}
+            />
 
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <StyledDatePicker
-                label="End Date"
-                value={endDate}
-                onChange={(date) => setEndDate(date)}
-                slotProps={{ 
-                  textField: { 
-                    fullWidth: true, 
-                    required: true 
-                  } 
-                }}
-                minDate={startDate || new Date()}
-              />
-            </LocalizationProvider>
+            <TextField
+              label="End Date"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              fullWidth
+              required
+              InputLabelProps={{ shrink: true }}
+              inputProps={{
+                min: startDate || new Date().toISOString().split('T')[0] // Start date or today as minimum
+              }}
+            />
 
             <FormControl fullWidth>
               <InputLabel id="leave-type-label">Leave Type</InputLabel>

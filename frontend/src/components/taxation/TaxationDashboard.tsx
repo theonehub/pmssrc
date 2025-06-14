@@ -24,7 +24,6 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { getUserRole, getUserId } from '../../shared/utils/auth';
-import PageLayout from '../../layout/PageLayout';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { 
   TaxationDashboardData, 
@@ -160,12 +159,12 @@ const TaxationDashboard: React.FC = () => {
   };
 
   const handleNewDeclaration = (): void => {
-    navigate('/api/v2/taxation/declaration');
+    navigate('/taxation/declaration');
   };
 
   const handleMyTaxDetail = (): void => {
     // Navigate to the current user's tax details
-    navigate(`/api/v2/taxation/employee/${userId}`);
+    navigate(`/taxation/employee/${userId}`);
   };
 
   // Get total value of perquisites
@@ -720,7 +719,6 @@ const TaxationDashboard: React.FC = () => {
   };
 
   return (
-    <PageLayout title="Taxation Dashboard">
       <Box>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h4" component="h1">
@@ -826,7 +824,7 @@ const TaxationDashboard: React.FC = () => {
               <Button 
                 variant="contained" 
                 color="primary" 
-                onClick={() => navigate('/api/v2/taxation/employee-selection')} 
+                onClick={() => navigate('/taxation/employee-selection')} 
                 sx={{ mr: 2 }}
               >
                 Manage Employee Declarations
@@ -835,7 +833,6 @@ const TaxationDashboard: React.FC = () => {
           </Paper>
         )}
       </Box>
-    </PageLayout>
   );
 };
 

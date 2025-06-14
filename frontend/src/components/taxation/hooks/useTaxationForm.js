@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getTaxationByEmpId, saveTaxationData, calculateTax, computeVrsValue } from '../../../shared/api/taxationService';
 import { getDefaultTaxationState, parseIndianNumber } from '../utils/taxationUtils';
 
@@ -10,44 +11,108 @@ import { getDefaultTaxationState, parseIndianNumber } from '../utils/taxationUti
 const useTaxationForm = (empId) => {
   const [taxationData, setTaxationData] = useState(getDefaultTaxationState(empId));
   const [calculatedTax, setCalculatedTax] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [cityForHRA, setCityForHRA] = useState('Others');
   const [autoComputeHRA, setAutoComputeHRA] = useState(true);
   const [taxBreakup, setTaxBreakup] = useState(null);
+  
+  const queryClient = useQueryClient();
 
-  const fetchTaxationData = useCallback(async () => {
-    if (!empId) return;
-    
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getTaxationByEmpId(empId);
-      setTaxationData(data);
+  // React Query for fetching taxation data
+  const {
+    data: fetchedData,
+    isLoading: loading,
+    error: queryError,
+    refetch: refetchTaxationData
+  } = useQuery({
+    queryKey: ['taxation', empId],
+    queryFn: async () => {
+      if (!empId) throw new Error('Employee ID is required');
+      return await getTaxationByEmpId(empId);
+    },
+    enabled: !!empId,
+    retry: (failureCount, error) => {
+      // Don't retry on 404 errors (no record found)
+      if (error?.response?.status === 404) {
+        return false;
+      }
+      return failureCount < 2;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes cache time
+  });
+
+  // Handle data population when query succeeds or fails
+  useEffect(() => {
+    if (fetchedData) {
+      // Successfully fetched data - populate form with server data
+      setTaxationData(prevData => {
+        const updatedData = {
+          ...fetchedData,
+          // Ensure employee_id is set
+          employee_id: empId,
+          
+          // Populate Employee Age if available from server
+          emp_age: fetchedData.emp_age || fetchedData.age || prevData.emp_age || 0,
+          
+          // Populate Government Employee status if available from server
+          is_govt_employee: fetchedData.is_govt_employee !== undefined 
+            ? fetchedData.is_govt_employee 
+            : prevData.is_govt_employee || false,
+            
+          // Populate Tax Regime if available from server
+          regime: fetchedData.regime || fetchedData.regime_type || prevData.regime || 'old',
+        };
+        
+        if (process.env.NODE_ENV === 'development') {
+          // eslint-disable-next-line no-console
+          console.log('Populated taxation data:', {
+            emp_age: updatedData.emp_age,
+            is_govt_employee: updatedData.is_govt_employee,
+            regime: updatedData.regime,
+            employee_id: updatedData.employee_id
+          });
+        }
+        
+        return updatedData;
+      });
       
       // Set city for HRA if available
-      if (data.salary && data.salary.hra_city) {
-        setCityForHRA(data.salary.hra_city);
+      if (fetchedData.salary && fetchedData.salary.hra_city) {
+        setCityForHRA(fetchedData.salary.hra_city);
       }
       
-      // Reset calculated tax
+      // Reset calculated tax when new data is loaded
       setCalculatedTax(null);
-    } catch (err) {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.error('Error fetching taxation data:', err);
+      setError(null);
+    } else if (queryError) {
+      // Handle query error
+      if (queryError.response && queryError.response.status === 404) {
+        // No existing record found - initialize with default values
+        if (process.env.NODE_ENV === 'development') {
+          // eslint-disable-next-line no-console
+          console.log('No existing taxation record found, initializing with defaults');
+        }
+        const defaultData = getDefaultTaxationState(empId);
+        setTaxationData(defaultData);
+        setError(null);
+      } else {
+        // Other errors
+        if (process.env.NODE_ENV === 'development') {
+          // eslint-disable-next-line no-console
+          console.error('Error fetching taxation data:', queryError);
+        }
+        setError('Failed to load taxation data');
       }
-      setError('Failed to load taxation data');
-    } finally {
-      setLoading(false);
     }
-  }, [empId]);
+  }, [fetchedData, queryError, empId]);
 
-  useEffect(() => {
-    fetchTaxationData();
-  }, [fetchTaxationData]);
+  // Legacy fetchTaxationData function for backward compatibility
+  const fetchTaxationData = useCallback(async () => {
+    return refetchTaxationData();
+  }, [refetchTaxationData]);
 
   // Handle input change for non-nested fields
   const handleInputChange = (section, field, value) => {
@@ -317,7 +382,7 @@ const useTaxationForm = (empId) => {
   };
 
   const resetForm = () => {
-    fetchTaxationData();
+    refetchTaxationData();
     setError(null);
     setSuccess(null);
     setTaxBreakup(null);
@@ -360,7 +425,12 @@ const useTaxationForm = (empId) => {
     calculateTaxBreakup,
     resetForm,
     clearMessages,
-    refetch: fetchTaxationData
+    refetch: fetchTaxationData,
+    // React Query specific properties
+    queryClient,
+    refetchTaxationData,
+    isLoading: loading,
+    queryError
   };
 };
 

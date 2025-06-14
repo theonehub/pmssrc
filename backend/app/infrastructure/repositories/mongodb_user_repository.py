@@ -595,13 +595,15 @@ class MongoDBUserRepository(UserRepository):
             # Build search query
             query = {}
             
-            # Text search
-            if filters.search_term:
+            # Text search - check both name and email fields
+            if filters.name:
                 query["$or"] = [
-                    {"name": {"$regex": filters.search_term, "$options": "i"}},
-                    {"email": {"$regex": filters.search_term, "$options": "i"}},
-                    {"employee_id": {"$regex": filters.search_term, "$options": "i"}}
+                    {"name": {"$regex": filters.name, "$options": "i"}},
+                    {"email": {"$regex": filters.name, "$options": "i"}},
+                    {"employee_id": {"$regex": filters.name, "$options": "i"}}
                 ]
+            elif filters.email:
+                query["email"] = {"$regex": filters.email, "$options": "i"}
             
             # Role filter
             if filters.role:
@@ -619,33 +621,33 @@ class MongoDBUserRepository(UserRepository):
             if filters.manager_id:
                 query["manager_id"] = filters.manager_id
             
-            # Date range filters
-            if filters.date_joined_from or filters.date_joined_to:
+                        # Date range filters
+            if filters.joined_after or filters.joined_before:
                 date_filter = {}
-                if filters.date_joined_from:
-                    date_filter["$gte"] = filters.date_joined_from
-                if filters.date_joined_to:
-                    date_filter["$lte"] = filters.date_joined_to
+                if filters.joined_after:
+                    date_filter["$gte"] = filters.joined_after
+                if filters.joined_before:
+                    date_filter["$lte"] = filters.joined_before
                 query["date_of_joining"] = date_filter
-            
-            # Active/deleted filters
-            if not filters.include_deleted:
-                query["is_deleted"] = {"$ne": True}
-            if not filters.include_inactive:
-                query["is_active"] = True
+
+            # Active/deleted filters - use is_active field from DTO
+            query["is_deleted"] = {"$ne": True}  # Always exclude deleted
+            if filters.is_active is not None:
+                query["is_active"] = filters.is_active
             
             # Execute query with pagination
             cursor = collection.find(query)
             
-            # Apply sorting
+                        # Apply sorting
             if filters.sort_by:
-                sort_direction = DESCENDING if filters.sort_desc else ASCENDING
+                sort_direction = DESCENDING if filters.sort_order == "desc" else ASCENDING
                 cursor = cursor.sort(filters.sort_by, sort_direction)
-            
-            # Apply pagination
-            cursor = cursor.skip(filters.skip).limit(filters.limit)
-            
-            documents = await cursor.to_list(length=filters.limit)
+
+            # Apply pagination - convert page/page_size to skip/limit
+            skip = (filters.page - 1) * filters.page_size if filters.page > 0 else 0
+            cursor = cursor.skip(skip).limit(filters.page_size)
+
+            documents = await cursor.to_list(length=filters.page_size)
             users = [self._document_to_user(doc) for doc in documents]
             
             logger.info(f"Search returned {len(users)} users")

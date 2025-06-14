@@ -1168,4 +1168,76 @@ class ComprehensiveTaxInputDTO(BaseModel):
     def validate_regime(cls, v):
         if v.lower() not in ["old", "new"]:
             raise ValueError("Regime type must be 'old' or 'new'")
-        return v.lower() 
+        return v.lower()
+
+
+class ComprehensiveTaxOutputDTO(BaseModel):
+    """Complete tax output DTO including all income sources."""
+    
+    # Basic details
+    tax_year: str = Field(..., description="Tax year (e.g., '2024-25')")
+    regime_type: str = Field(..., description="Tax regime type ('old' or 'new')")
+    age: int = Field(..., ge=18, le=100, description="Taxpayer age")
+    is_govt_employee: bool = False
+    employee_id: str = Field(..., description="Employee ID")
+    
+    # Income sources
+    salary_income: Optional[SalaryIncomeDTO] = None
+    periodic_salary_income: Optional[PeriodicSalaryIncomeDTO] = None
+    perquisites: Optional[PerquisitesDTO] = None
+    house_property_income: Optional[HousePropertyIncomeDTO] = None
+    multiple_house_properties: Optional[MultipleHousePropertiesDTO] = None
+    capital_gains_income: Optional[CapitalGainsIncomeDTO] = None
+    retirement_benefits: Optional[RetirementBenefitsDTO] = None
+    other_income: Optional[OtherIncomeDTO] = None
+    monthly_payroll: Optional[AnnualPayrollWithLWPDTO] = None
+    
+    # Deductions
+    deductions: Optional[TaxDeductionsDTO] = None
+
+# =============================================================================
+# EMPLOYEE SELECTION DTOs
+# =============================================================================
+
+class EmployeeSelectionDTO(BaseModel):
+    """
+    DTO for employee selection in taxation module.
+    Provides basic employee information needed for tax management.
+    """
+    employee_id: str
+    user_name: str
+    email: str
+    department: Optional[str] = None
+    role: Optional[str] = None
+    status: Optional[str] = None
+    joining_date: Optional[str] = None
+    current_salary: Optional[float] = None
+    
+    # Tax-related information if available
+    has_tax_record: bool = False
+    tax_year: Optional[str] = None
+    filing_status: Optional[str] = None
+    total_tax: Optional[float] = None
+    regime: Optional[str] = None
+    last_updated: Optional[str] = None
+
+
+class EmployeeSelectionQuery(BaseModel):
+    """Query parameters for employee selection"""
+    skip: int = 0
+    limit: int = 20
+    search: Optional[str] = None
+    department: Optional[str] = None
+    role: Optional[str] = None
+    status: Optional[str] = None
+    has_tax_record: Optional[bool] = None
+    tax_year: Optional[str] = None
+
+
+class EmployeeSelectionResponse(BaseModel):
+    """Response for employee selection endpoint"""
+    total: int
+    employees: List[EmployeeSelectionDTO]
+    skip: int
+    limit: int
+    has_more: bool 

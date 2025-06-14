@@ -27,6 +27,7 @@ from app.application.dto.taxation_dto import (
     
     # Comprehensive DTOs
     ComprehensiveTaxInputDTO,
+    ComprehensiveTaxOutputDTO,
     PerquisitesDTO,
     HousePropertyIncomeDTO,
     MultipleHousePropertiesDTO,
@@ -46,6 +47,10 @@ from app.application.dto.taxation_dto import (
     ScenarioComparisonResponseDTO,
     TaxOptimizationSuggestionDTO,
     ErrorResponse,
+    
+    # Employee Selection DTOs
+    EmployeeSelectionQuery,
+    EmployeeSelectionResponse,
 )
 
 # Import command handlers
@@ -91,11 +96,14 @@ from app.domain.entities.other_income import OtherIncome, InterestIncome
 from app.domain.entities.monthly_payroll import MonthlyPayroll, AnnualPayrollWithLWP, LWPDetails
 
 # Import services
-from app.domain.services.tax_calculation_service import (
+from app.domain.services.taxation.tax_calculation_service import (
     TaxCalculationService, TaxCalculationInput, TaxCalculationResult
 )
-from app.domain.services.payroll_tax_service import PayrollTaxService
 
+# Import use cases
+from app.application.use_cases.taxation.get_employees_for_selection_use_case import GetEmployeesForSelectionUseCase
+from app.application.use_cases.taxation.get_taxation_record_by_employee_use_case import GetTaxationRecordByEmployeeUseCase
+from app.application.use_cases.taxation.get_comprehensive_taxation_record_use_case import GetComprehensiveTaxationRecordUseCase
 
 logger = logging.getLogger(__name__)
 
@@ -132,7 +140,11 @@ class UnifiedTaxationController:
                  
                  # Services for comprehensive calculations
                  enhanced_tax_service: TaxCalculationService,
-                 payroll_tax_service: PayrollTaxService):
+                 
+                 # Use cases
+                 get_employees_for_selection_use_case: GetEmployeesForSelectionUseCase,
+                 get_taxation_record_by_employee_use_case: GetTaxationRecordByEmployeeUseCase,
+                 get_comprehensive_taxation_record_use_case: GetComprehensiveTaxationRecordUseCase):
         
         # Basic operation handlers
         self.create_handler = create_handler
@@ -146,7 +158,49 @@ class UnifiedTaxationController:
         
         # Enhanced calculation services
         self.enhanced_tax_service = enhanced_tax_service
-        self.payroll_tax_service = payroll_tax_service
+        
+        # Use cases
+        self.get_employees_for_selection_use_case = get_employees_for_selection_use_case
+        self.get_taxation_record_by_employee_use_case = get_taxation_record_by_employee_use_case
+        self.get_comprehensive_taxation_record_use_case = get_comprehensive_taxation_record_use_case
+    
+    # =============================================================================
+    # EMPLOYEE SELECTION OPERATIONS
+    # =============================================================================
+    
+    async def get_employees_for_selection(
+        self,
+        query: EmployeeSelectionQuery,
+        current_user
+    ) -> EmployeeSelectionResponse:
+        """
+        Get employees for taxation selection.
+        
+        This method leverages the user service to fetch employee data
+        and enriches it with tax record information for admin selection interface.
+        
+        Args:
+            query: Query parameters for filtering and pagination
+            current_user: Current authenticated user with organization context
+            
+        Returns:
+            Employee selection response with enriched data
+        """
+        
+        logger.info(f"Getting employees for selection with query: {query}")
+        
+        try:
+            # Execute the use case to get employees
+            response = await self.get_employees_for_selection_use_case.execute(
+                query, current_user
+            )
+            
+            logger.info(f"Retrieved {len(response.employees)} employees for selection")
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error getting employees for selection: {str(e)}")
+            raise
     
     # =============================================================================
     # BASIC TAXATION RECORD OPERATIONS
@@ -213,7 +267,27 @@ class UnifiedTaxationController:
             page=query.page,
             page_size=query.page_size
         )
-    
+
+    async def get_taxation_record_by_employee(self,
+                                employee_id: str,
+                                organization_id: str,
+                                tax_year: Optional[str] = None) -> ComprehensiveTaxOutputDTO:
+        """Get comprehensive taxation record by employee ID and optional tax year."""
+        
+        logger.info(f"Getting comprehensive taxation record for employee {employee_id}, tax_year: {tax_year}")
+        
+        try:
+            # Execute the use case to get the comprehensive taxation record
+            response = await self.get_comprehensive_taxation_record_use_case.execute(
+                employee_id, organization_id, tax_year
+            )
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error getting comprehensive taxation record for employee {employee_id}: {str(e)}")
+            raise
+
     async def get_taxation_record(self,
                                 taxation_id: str,
                                 organization_id: str) -> TaxationRecordSummaryDTO:
@@ -690,7 +764,7 @@ class UnifiedTaxationController:
             regime = TaxRegime(TaxRegimeType.OLD if regime_type.lower() == "old" else TaxRegimeType.NEW)
             
             # Calculate payroll tax
-            result = self.payroll_tax_service.calculate_annual_payroll_tax(
+            result = self.enhanced_tax_service.calculate_annual_payroll_tax(
                 payroll_entity, regime, age, deductions_data
             )
             

@@ -18,6 +18,8 @@ class SalaryIncome:
     basic_salary: Money
     dearness_allowance: Money
     house_rent_allowance: Money
+    hra_received: Money
+    hra_city_type: str
     special_allowance: Money
     conveyance_allowance: Money
     medical_allowance: Money
@@ -30,6 +32,7 @@ class SalaryIncome:
     gratuity: Money = Money.zero()
     leave_encashment: Money = Money.zero()
     other_allowances: Money = Money.zero()
+    lta_received: Money = Money.zero()
     
     # Exemptions
     hra_exemption: Money = Money.zero()
@@ -54,6 +57,7 @@ class SalaryIncome:
             .add(self.gratuity)
             .add(self.leave_encashment)
             .add(self.other_allowances)
+            .add(self.lta_received)
         )
     
     def get_total_exemptions(self) -> Money:

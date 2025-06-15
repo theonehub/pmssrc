@@ -70,10 +70,10 @@ const OtherIncomeSection: React.FC<OtherIncomeSectionProps> = ({
             fullWidth
             label="Other Income"
             type="text"
-            value={formatIndianNumber(taxationData.other_income || 0)}
-            onChange={(e) => handleTextFieldChange('other_income', 'other_income', e)}
+            value={formatIndianNumber(taxationData.other_income?.other_miscellaneous_income || 0)}
+            onChange={(e) => handleTextFieldChange('other_income', 'other_miscellaneous_income', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('other_income', 'other_income', e)}
+            onFocus={(e) => handleTextFieldFocus('other_income', 'other_miscellaneous_income', e)}
           />
           
           {/* House Property Income - Use actual property from TaxationData */}
@@ -81,10 +81,10 @@ const OtherIncomeSection: React.FC<OtherIncomeSectionProps> = ({
             fullWidth
             label="House Property Income"
             type="text"
-            value={formatIndianNumber(taxationData.house_property_income || 0)}
-            onChange={(e) => handleTextFieldChange('house_property', 'house_property_income', e)}
+            value={formatIndianNumber(taxationData.house_property_income?.net_income || 0)}
+            onChange={(e) => handleTextFieldChange('house_property_income', 'net_income', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('house_property', 'house_property_income', e)}
+            onFocus={(e) => handleTextFieldFocus('house_property_income', 'net_income', e)}
           />
           
           {/* Capital Gains - Use actual property from TaxationData */}
@@ -92,10 +92,10 @@ const OtherIncomeSection: React.FC<OtherIncomeSectionProps> = ({
             fullWidth
             label="Capital Gains"
             type="text"
-            value={formatIndianNumber(typeof taxationData.capital_gains === 'number' ? taxationData.capital_gains : 0)}
-            onChange={(e) => handleTextFieldChange('capital_gains', 'capital_gains', e)}
+            value={formatIndianNumber((taxationData.capital_gains_income?.stcg_111a_equity_stt || 0) + (taxationData.capital_gains_income?.ltcg_112a_equity_stt || 0))}
+            onChange={(e) => handleTextFieldChange('capital_gains_income', 'stcg_111a_equity_stt', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('capital_gains', 'capital_gains', e)}
+            onFocus={(e) => handleTextFieldFocus('capital_gains_income', 'stcg_111a_equity_stt', e)}
           />
           
           {/* Interest Income - placeholder since not in TaxationData */}

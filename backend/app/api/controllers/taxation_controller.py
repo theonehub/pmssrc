@@ -76,9 +76,9 @@ from app.application.commands.taxation_commands import (
 # Import domain entities and value objects
 from app.domain.value_objects.money import Money
 from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
-from app.domain.entities.salary_income import SalaryIncome, SpecificAllowances
+from app.domain.entities.taxation.salary_income import SalaryIncome
 from app.domain.entities.periodic_salary_income import PeriodicSalaryIncome, PeriodicSalaryData
-from app.domain.entities.tax_deductions import TaxDeductions, DeductionSection80C, DeductionSection80D, OtherDeductions
+from app.domain.entities.taxation.tax_deductions import TaxDeductions
 from app.domain.entities.perquisites import (
     Perquisites, AccommodationPerquisite, CarPerquisite, AccommodationType,
     CityPopulation, CarUseType, AssetType, MedicalReimbursement, LTAPerquisite,
@@ -214,7 +214,22 @@ class UnifiedTaxationController:
         logger.info(f"Creating taxation record for user {request.user_id}, year {request.tax_year}")
         
         # Convert core DTO to domain entities
-        salary_income = self._convert_salary_dto_to_entity(request.salary_income)
+        # Handle case when salary_income is null - create default with zero values
+        if request.salary_income:
+            salary_income = self._convert_salary_dto_to_entity(request.salary_income)
+        else:
+            # Create default salary income with zero values
+            salary_income = SalaryIncome(
+                basic_salary=Money.zero(),
+                dearness_allowance=Money.zero(),
+                house_rent_allowance=Money.zero(),
+                hra_received=Money.zero(),
+                hra_city_type="non_metro",
+                special_allowance=Money.zero(),
+                conveyance_allowance=Money.zero(),
+                medical_allowance=Money.zero()
+            )
+        
         deductions = self._convert_deductions_dto_to_entity(request.deductions)
         
         # Convert comprehensive income components
@@ -230,24 +245,43 @@ class UnifiedTaxationController:
             deductions = self._convert_comprehensive_deductions_dto_to_entity(request.comprehensive_deductions)
         
         # Create command with comprehensive income support
-        command = CreateTaxationRecordCommand(
-            user_id=request.user_id,
-            organization_id=organization_id,
-            tax_year=request.tax_year,
-            regime=request.regime,
-            age=request.age,
-            salary_income=salary_income,
-            deductions=deductions,
-            perquisites=perquisites,
-            house_property_income=house_property_income,
-            capital_gains_income=capital_gains_income,
-            retirement_benefits=retirement_benefits,
-            other_income=other_income,
-            monthly_payroll=monthly_payroll
-        )
+        logger.info("🔍 Creating CreateTaxationRecordCommand...")
+        logger.info(f"🔍 salary_income type: {type(salary_income)}")
+        logger.info(f"🔍 salary_income basic_salary: {salary_income.basic_salary}")
+        logger.info(f"🔍 salary_income hra_received: {salary_income.hra_received}")
+        logger.info(f"🔍 salary_income hra_city_type: {salary_income.hra_city_type}")
+        
+        try:
+            command = CreateTaxationRecordCommand(
+                user_id=request.user_id,
+                organization_id=organization_id,
+                tax_year=request.tax_year,
+                regime=request.regime,
+                age=request.age,
+                salary_income=salary_income,
+                deductions=deductions,
+                perquisites=perquisites,
+                house_property_income=house_property_income,
+                capital_gains_income=capital_gains_income,
+                retirement_benefits=retirement_benefits,
+                other_income=other_income,
+                monthly_payroll=monthly_payroll
+            )
+            logger.info("✅ CreateTaxationRecordCommand created successfully")
+        except Exception as e:
+            logger.error(f"❌ Failed to create CreateTaxationRecordCommand: {str(e)}")
+            logger.error(f"❌ Error type: {type(e)}")
+            raise
         
         # Execute command
-        response = await self.create_handler.handle(command)
+        logger.info("🔍 Executing command handler...")
+        try:
+            response = await self.create_handler.handle(command, organization_id)
+            logger.info("✅ Command handler executed successfully")
+        except Exception as e:
+            logger.error(f"❌ Command handler failed: {str(e)}")
+            logger.error(f"❌ Error type: {type(e)}")
+            raise
         
         logger.info(f"Created taxation record with comprehensive income: {response.taxation_id}")
         return response
@@ -789,14 +823,17 @@ class UnifiedTaxationController:
         return SalaryIncome(
             basic_salary=Money.from_decimal(salary_dto.basic_salary),
             dearness_allowance=Money.from_decimal(salary_dto.dearness_allowance),
+            house_rent_allowance=Money.from_decimal(salary_dto.hra_received),  # Map hra_received to house_rent_allowance
             hra_received=Money.from_decimal(salary_dto.hra_received),
             hra_city_type=salary_dto.hra_city_type,
-            actual_rent_paid=Money.from_decimal(salary_dto.actual_rent_paid),
             special_allowance=Money.from_decimal(salary_dto.special_allowance),
-            other_allowances=Money.from_decimal(salary_dto.other_allowances),
-            lta_received=Money.from_decimal(salary_dto.lta_received),
+            conveyance_allowance=Money.from_decimal(salary_dto.conveyance_allowance),
             medical_allowance=Money.from_decimal(salary_dto.medical_allowance),
-            conveyance_allowance=Money.from_decimal(salary_dto.conveyance_allowance)
+            # Optional components with defaults
+            bonus=Money.from_decimal(getattr(salary_dto, 'bonus', 0)),
+            commission=Money.from_decimal(getattr(salary_dto, 'commission', 0)),
+            other_allowances=Money.from_decimal(getattr(salary_dto, 'other_allowances', 0)),
+            lta_received=Money.from_decimal(getattr(salary_dto, 'lta_received', 0))
         )
     
     def _convert_periodic_salary_dto_to_entity(self, periodic_dto) -> PeriodicSalaryIncome:
@@ -814,6 +851,8 @@ class UnifiedTaxationController:
                 actual_rent_paid=float(period_dto.actual_rent_paid),
                 special_allowance=float(period_dto.special_allowance),
                 other_allowances=float(period_dto.other_allowances),
+                bonus=float(period_dto.bonus),
+                commission=float(period_dto.commission),
                 lta_received=float(period_dto.lta_received),
                 medical_allowance=float(period_dto.medical_allowance),
                 conveyance_allowance=float(period_dto.conveyance_allowance)
@@ -825,53 +864,41 @@ class UnifiedTaxationController:
     def _convert_deductions_dto_to_entity(self, deductions_dto) -> TaxDeductions:
         """Convert deductions DTO to domain entity."""
         
-        # Convert Section 80C
-        section_80c = None
-        if deductions_dto and deductions_dto.section_80c:
+        # Initialize with default values
+        tax_deductions = TaxDeductions()
+        
+        if not deductions_dto:
+            return tax_deductions
+        
+        # Map Section 80C fields directly
+        if deductions_dto.section_80c:
             sec_80c_dto = deductions_dto.section_80c
-            section_80c = DeductionSection80C(
-                life_insurance_premium=Money.from_decimal(sec_80c_dto.life_insurance_premium),
-                epf_contribution=Money.from_decimal(sec_80c_dto.epf_contribution),
-                ppf_contribution=Money.from_decimal(sec_80c_dto.ppf_contribution),
-                nsc_investment=Money.from_decimal(sec_80c_dto.nsc_investment),
-                tax_saving_fd=Money.from_decimal(sec_80c_dto.tax_saving_fd),
-                elss_investment=Money.from_decimal(sec_80c_dto.elss_investment),
-                home_loan_principal=Money.from_decimal(sec_80c_dto.home_loan_principal),
-                tuition_fees=Money.from_decimal(sec_80c_dto.tuition_fees),
-                ulip_premium=Money.from_decimal(sec_80c_dto.ulip_premium),
-                sukanya_samriddhi=Money.from_decimal(sec_80c_dto.sukanya_samriddhi),
-                other_80c_investments=Money.from_decimal(sec_80c_dto.other_80c_investments)
-            )
+            tax_deductions.life_insurance_premium = Money.from_decimal(sec_80c_dto.life_insurance_premium)
+            tax_deductions.employee_provident_fund = Money.from_decimal(sec_80c_dto.epf_contribution)
+            tax_deductions.public_provident_fund = Money.from_decimal(sec_80c_dto.ppf_contribution)
+            tax_deductions.national_savings_certificate = Money.from_decimal(sec_80c_dto.nsc_investment)
+            tax_deductions.tax_saving_fixed_deposits = Money.from_decimal(sec_80c_dto.tax_saving_fd)
+            tax_deductions.elss_investments = Money.from_decimal(sec_80c_dto.elss_investment)
+            tax_deductions.principal_repayment_home_loan = Money.from_decimal(sec_80c_dto.home_loan_principal)
+            tax_deductions.tuition_fees = Money.from_decimal(sec_80c_dto.tuition_fees)
+            tax_deductions.sukanya_samriddhi = Money.from_decimal(sec_80c_dto.sukanya_samriddhi)
+            tax_deductions.other_80c_deductions = Money.from_decimal(sec_80c_dto.other_80c_investments)
         
-        # Convert Section 80D
-        section_80d = None
-        if deductions_dto and deductions_dto.section_80d:
+        # Map Section 80D fields directly
+        if deductions_dto.section_80d:
             sec_80d_dto = deductions_dto.section_80d
-            section_80d = DeductionSection80D(
-                self_family_premium=Money.from_decimal(sec_80d_dto.self_family_premium),
-                parent_premium=Money.from_decimal(sec_80d_dto.parent_premium),
-                preventive_health_checkup=Money.from_decimal(sec_80d_dto.preventive_health_checkup),
-                employee_age=sec_80d_dto.employee_age,
-                parent_age=sec_80d_dto.parent_age
-            )
+            tax_deductions.health_insurance_self = Money.from_decimal(sec_80d_dto.self_family_premium)
+            tax_deductions.health_insurance_parents = Money.from_decimal(sec_80d_dto.parent_premium)
+            tax_deductions.preventive_health_checkup = Money.from_decimal(sec_80d_dto.preventive_health_checkup)
         
-        # Convert Other Deductions
-        other_deductions = None
-        if deductions_dto and deductions_dto.other_deductions:
+        # Map Other Deductions fields directly
+        if deductions_dto.other_deductions:
             other_dto = deductions_dto.other_deductions
-            other_deductions = OtherDeductions(
-                education_loan_interest=Money.from_decimal(other_dto.education_loan_interest),
-                charitable_donations=Money.from_decimal(other_dto.charitable_donations),
-                savings_interest=Money.from_decimal(other_dto.savings_interest),
-                nps_contribution=Money.from_decimal(other_dto.nps_contribution),
-                other_deductions=Money.from_decimal(other_dto.other_deductions)
-            )
+            tax_deductions.education_loan_interest = Money.from_decimal(other_dto.education_loan_interest)
+            tax_deductions.donations_80g = Money.from_decimal(other_dto.charitable_donations)
+            tax_deductions.savings_account_interest = Money.from_decimal(other_dto.savings_interest)
         
-        return TaxDeductions(
-            section_80c=section_80c,
-            section_80d=section_80d,
-            other_deductions=other_deductions
-        )
+        return tax_deductions
     
     def _convert_comprehensive_deductions_dto_to_entity(self, comp_deductions_dto) -> TaxDeductions:
         """Convert comprehensive deductions DTO to entity."""
@@ -1253,20 +1280,23 @@ class UnifiedTaxationController:
     
     def _convert_periodic_salary_data_to_salary_income(self, salary_data_dto):
         """Convert PeriodicSalaryDataDTO to SalaryIncome entity."""
-        from app.domain.entities.salary_income import SalaryIncome
+        from app.domain.entities.taxation.salary_income import SalaryIncome
         from app.domain.value_objects.money import Money
         
         return SalaryIncome(
             basic_salary=Money.from_decimal(salary_data_dto.basic_salary),
             dearness_allowance=Money.from_decimal(salary_data_dto.dearness_allowance),
+            house_rent_allowance=Money.from_decimal(salary_data_dto.hra_received),  # Map hra_received to house_rent_allowance
             hra_received=Money.from_decimal(salary_data_dto.hra_received),
             hra_city_type=salary_data_dto.hra_city_type,
-            actual_rent_paid=Money.from_decimal(salary_data_dto.actual_rent_paid),
             special_allowance=Money.from_decimal(salary_data_dto.special_allowance),
-            other_allowances=Money.from_decimal(salary_data_dto.other_allowances),
-            lta_received=Money.from_decimal(salary_data_dto.lta_received),
+            conveyance_allowance=Money.from_decimal(salary_data_dto.conveyance_allowance),
             medical_allowance=Money.from_decimal(salary_data_dto.medical_allowance),
-            conveyance_allowance=Money.from_decimal(salary_data_dto.conveyance_allowance)
+            # Optional components with defaults
+            bonus=Money.from_decimal(getattr(salary_data_dto, 'bonus', 0)),
+            commission=Money.from_decimal(getattr(salary_data_dto, 'commission', 0)),
+            other_allowances=Money.from_decimal(getattr(salary_data_dto, 'other_allowances', 0)),
+            lta_received=Money.from_decimal(getattr(salary_data_dto, 'lta_received', 0))
         )
     
     def _create_comprehensive_from_periodic_salary(self, periodic_salary, regime_type: str, age: int, deductions: Dict[str, float], tax_year: str):
@@ -1320,6 +1350,8 @@ class UnifiedTaxationController:
                 hra_city_type=period_data.salary_income.hra_city_type,
                 actual_rent_paid=period_data.salary_income.actual_rent_paid.to_float(),
                 special_allowance=period_data.salary_income.special_allowance.to_float(),
+                bonus=period_data.salary_income.bonus.to_float(),
+                commission=period_data.salary_income.commission.to_float(),
                 other_allowances=period_data.salary_income.other_allowances.to_float(),
                 lta_received=period_data.salary_income.lta_received.to_float(),
                 medical_allowance=period_data.salary_income.medical_allowance.to_float(),

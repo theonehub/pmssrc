@@ -7,21 +7,23 @@ basic taxation records, enhanced calculations, mid-year scenarios, and compariso
 from dataclasses import dataclass
 from datetime import datetime, date
 from typing import Optional, Dict, Any, List
+from decimal import Decimal
+import logging
 
 from app.domain.value_objects.employee_id import EmployeeId
 from app.domain.value_objects.money import Money
 from app.domain.value_objects.tax_year import TaxYear
 from app.domain.value_objects.tax_regime import TaxRegime
 from app.domain.value_objects.employment_period import EmploymentPeriod
-from app.domain.entities.salary_income import SalaryIncome
+from app.domain.entities.taxation.salary_income import SalaryIncome
 from app.domain.entities.periodic_salary_income import PeriodicSalaryIncome, PeriodicSalaryData
-from app.domain.entities.tax_deductions import TaxDeductions
-from app.domain.entities.taxation_record import TaxationRecord
-from app.domain.entities.perquisites import Perquisites
-from app.domain.entities.house_property_income import HousePropertyIncome
-from app.domain.entities.capital_gains import CapitalGainsIncome
-from app.domain.entities.retirement_benefits import RetirementBenefits
-from app.domain.entities.other_income import OtherIncome
+from app.domain.entities.taxation.tax_deductions import TaxDeductions
+from app.domain.entities.taxation.taxation_record import TaxationRecord
+from app.domain.entities.taxation.perquisites import Perquisites
+from app.domain.entities.taxation.house_property_income import HousePropertyIncome
+from app.domain.entities.taxation.capital_gains import CapitalGainsIncome
+from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
+from app.domain.entities.taxation.other_income import OtherIncome
 from app.domain.entities.monthly_payroll import AnnualPayrollWithLWP
 from app.domain.services.taxation.tax_calculation_service import TaxCalculationService, TaxCalculationResult
 from app.application.interfaces.repositories.taxation_repository import TaxationRepository
@@ -78,7 +80,7 @@ class CreateTaxationRecordCommandHandler:
     def __init__(self, taxation_repository: TaxationRepository):
         self.taxation_repository = taxation_repository
     
-    async def handle(self, command: CreateTaxationRecordCommand) -> CreateTaxationRecordResponse:
+    async def handle(self, command: CreateTaxationRecordCommand, organization_id: str) -> CreateTaxationRecordResponse:
         """
         Handle taxation record creation.
         
@@ -89,10 +91,16 @@ class CreateTaxationRecordCommandHandler:
             CreateTaxationRecordResponse: Creation result
         """
         
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"Starting taxation record creation for user {command.user_id}")
+        
         # Parse and validate inputs
         user_id = EmployeeId.from_string(command.user_id)
         tax_year = TaxYear.from_string(command.tax_year)
         regime = TaxRegime.from_string(command.regime)
+        
+        logger.info(f"Parsed inputs - user_id: {user_id}, tax_year: {tax_year}, regime: {regime}")
         
         # Check if record already exists
         existing_record = await self.taxation_repository.get_by_user_and_year(
@@ -104,36 +112,81 @@ class CreateTaxationRecordCommandHandler:
                 f"Taxation record already exists for user {command.user_id} in {command.tax_year}"
             )
         
-        # Create new taxation record with comprehensive income support
-        taxation_record = TaxationRecord(
-            taxation_id="",  # Will be auto-generated
-            user_id=user_id,
-            organization_id=command.organization_id,
-            tax_year=tax_year,
-            salary_income=command.salary_income,
-            deductions=command.deductions,
-            regime=regime,
-            age=command.age,
-            # Comprehensive income components
-            perquisites=command.perquisites,
-            house_property_income=command.house_property_income,
-            capital_gains_income=command.capital_gains_income,
-            retirement_benefits=command.retirement_benefits,
-            other_income=command.other_income,
-            monthly_payroll=command.monthly_payroll
+        logger.info(f"No existing record found, proceeding with creation")
+        logger.info(f"Salary income type: {type(command.salary_income)}")
+        logger.info(f"Salary income basic_salary: {command.salary_income.basic_salary}")
+        logger.info(f"Salary income hra_received: {command.salary_income.hra_received}")
+        logger.info(f"Salary income hra_city_type: {command.salary_income.hra_city_type}")
+        
+        # Create default entities for optional components
+        logger.info("Creating default Perquisites entity...")
+        default_perquisites = command.perquisites or Perquisites()
+        logger.info("✅ Perquisites entity created successfully")
+        
+        logger.info("Creating default HousePropertyIncome entity...")
+        default_house_property = command.house_property_income or HousePropertyIncome(
+            property_type="self_occupied",
+            municipal_value=Money.zero(),
+            fair_rental_value=Money.zero(),
+            standard_rent=Money.zero(),
+            actual_rent=Money.zero()
         )
+        logger.info("✅ HousePropertyIncome entity created successfully")
+        
+        logger.info("Creating default CapitalGainsIncome entity...")
+        default_capital_gains = command.capital_gains_income or CapitalGainsIncome(
+            asset_type="equity",
+            purchase_date=date(2020, 1, 1),
+            sale_date=date(2023, 1, 1),
+            purchase_price=Money.zero(),
+            sale_price=Money.zero()
+        )
+        logger.info("✅ CapitalGainsIncome entity created successfully")
+        
+        logger.info("Creating default RetirementBenefits entity...")
+        default_retirement_benefits = command.retirement_benefits or RetirementBenefits()
+        logger.info("✅ RetirementBenefits entity created successfully")
+        
+        logger.info("Creating default OtherIncome entity...")
+        default_other_income = command.other_income or OtherIncome()
+        logger.info("✅ OtherIncome entity created successfully")
+        
+        # Create new taxation record with comprehensive income support
+        logger.info("Creating TaxationRecord entity...")
+        try:
+            taxation_record = TaxationRecord(
+                employee_id=command.user_id,
+                financial_year=tax_year.start_year,
+                assessment_year=tax_year.end_year,
+                salary_income=command.salary_income,
+                perquisites=default_perquisites,
+                house_property_income=default_house_property,
+                capital_gains_income=default_capital_gains,
+                retirement_benefits=default_retirement_benefits,
+                other_income=default_other_income,
+                tax_deductions=command.deductions,
+                regime=regime,
+                age=command.age
+            )
+            logger.info("✅ TaxationRecord entity created successfully")
+        except Exception as e:
+            logger.error(f"❌ Failed to create TaxationRecord entity: {str(e)}")
+            logger.error(f"Error type: {type(e)}")
+            raise
         
         # Save to repository
-        saved_record = await self.taxation_repository.save(taxation_record)
+        logger.info("Saving taxation record to repository...")
+        saved_record = await self.taxation_repository.save(taxation_record, organization_id)
+        logger.info("✅ Taxation record saved successfully")
         
         return CreateTaxationRecordResponse(
-            taxation_id=saved_record.taxation_id,
+            taxation_id=f"{saved_record.employee_id}_{saved_record.financial_year}",  # Generate ID from employee and year
             user_id=command.user_id,
             tax_year=command.tax_year,
             regime=command.regime,
             status="created",
             message="Taxation record created successfully",
-            created_at=saved_record.created_at
+            created_at=datetime.utcnow()  # Use current time since entity may not have created_at
         )
 
 
@@ -166,7 +219,7 @@ class UpdateSalaryIncomeCommandHandler:
         taxation_record.update_salary(command.salary_income)
         
         # Save updated record
-        await self.taxation_repository.save(taxation_record)
+        await self.taxation_repository.save(taxation_record, command.organization_id)
 
 
 @dataclass
@@ -198,7 +251,7 @@ class UpdateDeductionsCommandHandler:
         taxation_record.update_deductions(command.deductions)
         
         # Save updated record
-        await self.taxation_repository.save(taxation_record)
+        await self.taxation_repository.save(taxation_record, command.organization_id)
 
 
 @dataclass
@@ -233,7 +286,7 @@ class ChangeRegimeCommandHandler:
         taxation_record.change_regime(new_regime)
         
         # Save updated record
-        await self.taxation_repository.save(taxation_record)
+        await self.taxation_repository.save(taxation_record, command.organization_id)
 
 
 @dataclass
@@ -283,7 +336,7 @@ class CalculateTaxCommandHandler:
             calculation_result = taxation_record.calculate_tax(self.tax_calculation_service)
             
             # Save updated record
-            await self.taxation_repository.save(taxation_record)
+            await self.taxation_repository.save(taxation_record, command.organization_id)
         else:
             calculation_result = taxation_record.calculation_result
         
@@ -328,7 +381,7 @@ class FinalizeRecordCommandHandler:
         taxation_record.finalize_record()
         
         # Save updated record
-        await self.taxation_repository.save(taxation_record)
+        await self.taxation_repository.save(taxation_record, command.organization_id)
 
 
 @dataclass
@@ -359,7 +412,7 @@ class ReopenRecordCommandHandler:
         taxation_record.reopen_record()
         
         # Save updated record
-        await self.taxation_repository.save(taxation_record)
+        await self.taxation_repository.save(taxation_record, command.organization_id)
 
 
 @dataclass
@@ -469,6 +522,8 @@ class EnhancedTaxCalculationCommand:
                 actual_rent_paid=Money.from_decimal(period_dto.actual_rent_paid),
                 special_allowance=Money.from_decimal(period_dto.special_allowance),
                 other_allowances=Money.from_decimal(period_dto.other_allowances),
+                bonus=Money.from_decimal(period_dto.bonus),
+                commission=Money.from_decimal(period_dto.commission),
                 lta_received=Money.from_decimal(period_dto.lta_received),
                 medical_allowance=Money.from_decimal(period_dto.medical_allowance),
                 conveyance_allowance=Money.from_decimal(period_dto.conveyance_allowance)
@@ -596,6 +651,8 @@ class MidYearJoinerCommand:
             actual_rent_paid=Money.from_decimal(request.salary_details.actual_rent_paid),
             special_allowance=Money.from_decimal(request.salary_details.special_allowance),
             other_allowances=Money.from_decimal(request.salary_details.other_allowances),
+            bonus=Money.from_decimal(request.salary_details.bonus),
+            commission=Money.from_decimal(request.salary_details.commission),
             lta_received=Money.from_decimal(request.salary_details.lta_received),
             medical_allowance=Money.from_decimal(request.salary_details.medical_allowance),
             conveyance_allowance=Money.from_decimal(request.salary_details.conveyance_allowance)
@@ -662,6 +719,8 @@ class MidYearIncrementCommand:
             hra_received=Money.from_decimal(request.pre_increment_salary.hra_received),
             hra_city_type=request.pre_increment_salary.hra_city_type,
             actual_rent_paid=Money.from_decimal(request.pre_increment_salary.actual_rent_paid),
+            bonus=Money.from_decimal(request.pre_increment_salary.bonus),
+            commission=Money.from_decimal(request.pre_increment_salary.commission),
             special_allowance=Money.from_decimal(request.pre_increment_salary.special_allowance),
             other_allowances=Money.from_decimal(request.pre_increment_salary.other_allowances),
             lta_received=Money.from_decimal(request.pre_increment_salary.lta_received),
@@ -677,6 +736,8 @@ class MidYearIncrementCommand:
             hra_city_type=request.post_increment_salary.hra_city_type,
             actual_rent_paid=Money.from_decimal(request.post_increment_salary.actual_rent_paid),
             special_allowance=Money.from_decimal(request.post_increment_salary.special_allowance),
+            bonus=Money.from_decimal(request.post_increment_salary.bonus),
+            commission=Money.from_decimal(request.post_increment_salary.commission),
             other_allowances=Money.from_decimal(request.post_increment_salary.other_allowances),
             lta_received=Money.from_decimal(request.post_increment_salary.lta_received),
             medical_allowance=Money.from_decimal(request.post_increment_salary.medical_allowance),

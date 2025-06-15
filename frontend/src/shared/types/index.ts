@@ -92,91 +92,8 @@ export interface UserFilters {
 
 export type UserRole = 'admin' | 'hr' | 'employee' | 'manager' | 'superadmin' | 'user';
 
-// Taxation types
-export interface TaxationData {
-  employee_id: string;
-  tax_year: string;
-  regime: TaxRegime;
-  filing_status: FilingStatus;
-  total_tax: number;
-  user_name?: string;
-  
-  // Add missing properties that are being accessed in the code
-  salary?: SalaryComponents;
-  other_sources?: OtherSources;
-  capital_gains?: CapitalGains | number; // Allow both object and number for backward compatibility
-  leave_encashment?: LeaveEncashment;
-  house_property?: HouseProperty;
-  pension?: Pension;
-  voluntary_retirement?: VoluntaryRetirement;
-  gratuity?: Gratuity;
-  retrenchment_compensation?: RetrenchmentCompensation;
-  deductions?: Deductions;
-  is_govt_employee?: boolean;
-  emp_age?: number; // Add missing emp_age property
-  
-  // Tax calculation fields
-  tax_breakup?: {
-    gross_total_income: number;
-    total_deductions: number;
-    taxable_income: number;
-    tax_before_relief: number;
-    tax_relief: number;
-    tax_payable: number;
-  };
-  
-  tax_paid?: number;
-  tax_due?: number;
-  tax_refundable?: number;
-  tax_pending?: number;
-  
-  // Basic salary information
-  basic_salary: number;
-  hra: number;
-  da: number;
-  medical_allowance: number;
-  transport_allowance: number;
-  other_allowances: number;
-  bonus: number;
-  
-  // Deductions
-  pf_employee: number;
-  esi_employee: number;
-  professional_tax: number;
-  tds: number;
-  
-  // Other income
-  other_income: number;
-  house_property_income: number;
-  
-  // Deductions under various sections
-  section_80c: number;
-  section_80d: number;
-  section_80g: number;
-  section_80e: number;
-  section_80tta: number;
-  
-  // Perquisites
-  perquisites: Perquisites;
-  
-  // Separation benefits
-  separation_benefits: number;
-  
-  // Tax calculations
-  gross_total_income: number;
-  total_deductions: number;
-  taxable_income: number;
-  tax_before_relief: number;
-  tax_relief: number;
-  tax_payable: number;
-  advance_tax_paid: number;
-  tds_deducted: number;
-  self_assessment_tax: number;
-  
-  // Status and metadata
-  created_at?: string;
-  updated_at?: string;
-}
+// Import taxation types from dedicated file
+export * from './taxation';
 
 export interface Perquisites {
   // Accommodation
@@ -324,21 +241,7 @@ export interface ExtendedTaxBreakup {
   cess?: number;
 }
 
-// API Response types
-export interface TaxationResponse {
-  data: TaxationData;
-  message: string;
-  success: boolean;
-}
-
-export interface TaxationListResponse {
-  records: TaxationData[];
-  total: number;
-  page: number;
-  limit: number;
-  message: string;
-  success: boolean;
-}
+// TaxationResponse and TaxationListResponse are now imported from ./taxation
 
 // Form validation types
 export interface ValidationError {
@@ -630,6 +533,7 @@ export interface LeaveEncashment {
 }
 
 export interface HouseProperty {
+  property_type?: string; // Add missing property_type field
   annual_rent: number;
   municipal_tax: number;
   standard_deduction: number;
@@ -742,7 +646,7 @@ export interface TaxationDashboardData {
   deductions?: Deductions;
   
   // Array format for list views
-  records?: TaxationData[];
+  records?: any[]; // Using any[] temporarily to avoid circular dependency
   total?: number;
   summary?: {
     total_tax: number;

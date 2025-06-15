@@ -55,25 +55,32 @@ const SeparationSection: React.FC<SeparationSectionProps> = ({
   };
 
   // Safe access to nested objects with defaults
-  const gratuity = taxationData.gratuity || { gratuity_income: 0 };
-  const leaveEncashment = taxationData.leave_encashment || { 
+  const gratuity = taxationData.retirement_benefits?.gratuity || { gratuity_received: 0, exemption_limit: 0, taxable_amount: 0 };
+  const leaveEncashment = taxationData.retirement_benefits?.leave_encashment || { 
     leave_encashment_income_received: 0, 
-    leave_encashed: 0, 
+    leave_encashment_exemption: 0,
+    leave_encashment_taxable: 0,
     during_employment: false, 
     is_deceased: false 
   };
-  const voluntaryRetirement = taxationData.voluntary_retirement || { 
+  const voluntaryRetirement = taxationData.retirement_benefits?.vrs || { 
     is_vrs_requested: false, 
-    voluntary_retirement_amount: 0 
+    compensation_received: 0,
+    exemption_limit: 0,
+    taxable_amount: 0
   };
-  const retrenchmentCompensation = taxationData.retrenchment_compensation || { 
+  const retrenchmentCompensation = taxationData.retirement_benefits?.retrenchment_compensation || { 
     is_provided: false, 
-    retrenchment_amount: 0 
+    compensation_received: 0,
+    exemption_limit: 0,
+    taxable_amount: 0
   };
-  const pension = taxationData.pension || { 
-    total_pension_income: 0, 
-    computed_pension_percentage: 0, 
-    uncomputed_pension_amount: 0 
+  const pension = taxationData.retirement_benefits?.pension || { 
+    pension_received: 0, 
+    commuted_pension: 0, 
+    uncommuted_pension: 0,
+    computed_pension_percentage: 0,
+    uncomputed_pension_amount: 0
   };
 
   return (
@@ -101,10 +108,10 @@ const SeparationSection: React.FC<SeparationSectionProps> = ({
             fullWidth
             label="Gratuity Income"
             type="text"
-            value={formatSafeValue(gratuity.gratuity_income)}
-            onChange={(e) => handleTextFieldChange('gratuity', 'gratuity_income', e)}
+            value={formatSafeValue(gratuity.gratuity_received)}
+            onChange={(e) => handleTextFieldChange('gratuity', 'gratuity_received', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('gratuity', 'gratuity_income', e)}
+            onFocus={(e) => handleTextFieldFocus('gratuity', 'gratuity_received', e)}
           />
         </Box>
       </Paper>
@@ -132,7 +139,7 @@ const SeparationSection: React.FC<SeparationSectionProps> = ({
                   const newStatus = e.target.checked;
                   handleCheckboxChange('leave_encashment', 'during_employment', e);
                   if (newStatus === true) {
-                    handleInputChange('leave_encashment', 'leave_encashed', 0);
+                    handleInputChange('leave_encashment', 'leave_encashment_exemption', 0);
                   }
                 }}
               />
@@ -162,12 +169,12 @@ const SeparationSection: React.FC<SeparationSectionProps> = ({
           
           <TextField
             fullWidth
-            label="Leave Encashed"
+            label="Leave Encashment Exemption"
             type="text"
-            value={formatSafeValue(leaveEncashment.leave_encashed)}
-            onChange={(e) => handleTextFieldChange('leave_encashment', 'leave_encashed', e)}
+            value={formatSafeValue(leaveEncashment.leave_encashment_exemption)}
+            onChange={(e) => handleTextFieldChange('leave_encashment', 'leave_encashment_exemption', e)}
             disabled={Boolean(leaveEncashment.during_employment)}
-            onFocus={(e) => handleTextFieldFocus('leave_encashment', 'leave_encashed', e)}
+            onFocus={(e) => handleTextFieldFocus('leave_encashment', 'leave_encashment_exemption', e)}
           />
         </Box>
       </Paper>
@@ -193,10 +200,10 @@ const SeparationSection: React.FC<SeparationSectionProps> = ({
                 checked={Boolean(voluntaryRetirement.is_vrs_requested)}
                 onChange={(e) => {
                   const newStatus = e.target.checked;
-                  handleCheckboxChange('voluntary_retirement', 'is_vrs_requested', e);
+                  handleCheckboxChange('vrs', 'is_vrs_requested', e);
                   if (!newStatus) {
                     // Reset amount when unchecked
-                    handleInputChange('voluntary_retirement', 'voluntary_retirement_amount', 0);
+                    handleInputChange('vrs', 'compensation_received', 0);
                   }
                 }}
               />
@@ -206,12 +213,12 @@ const SeparationSection: React.FC<SeparationSectionProps> = ({
 
           <TextField
             fullWidth
-            label="VRS Amount"
+            label="VRS Compensation Received"
             type="text"
-            value={formatSafeValue(voluntaryRetirement.voluntary_retirement_amount)}
-            onChange={(e) => handleTextFieldChange('voluntary_retirement', 'voluntary_retirement_amount', e)}
+            value={formatSafeValue(voluntaryRetirement.compensation_received)}
+            onChange={(e) => handleTextFieldChange('vrs', 'compensation_received', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('voluntary_retirement', 'voluntary_retirement_amount', e)}
+            onFocus={(e) => handleTextFieldFocus('vrs', 'compensation_received', e)}
           />
           
           <Button 
@@ -253,12 +260,12 @@ const SeparationSection: React.FC<SeparationSectionProps> = ({
           {retrenchmentCompensation.is_provided && (
             <TextField
               fullWidth
-              label="Retrenchment Amount"
+              label="Retrenchment Compensation Received"
               type="text"
-              value={formatSafeValue(retrenchmentCompensation.retrenchment_amount)}
-              onChange={(e) => handleTextFieldChange('retrenchment_compensation', 'retrenchment_amount', e)}
+              value={formatSafeValue(retrenchmentCompensation.compensation_received)}
+              onChange={(e) => handleTextFieldChange('retrenchment_compensation', 'compensation_received', e)}
               InputProps={{ startAdornment: '₹' }}
-              onFocus={(e) => handleTextFieldFocus('retrenchment_compensation', 'retrenchment_amount', e)}
+              onFocus={(e) => handleTextFieldFocus('retrenchment_compensation', 'compensation_received', e)}
             />
           )}
         </Box>
@@ -283,10 +290,10 @@ const SeparationSection: React.FC<SeparationSectionProps> = ({
             fullWidth
             label="Pension Income"
             type="text"
-            value={formatSafeValue(pension.total_pension_income)}
-            onChange={(e) => handleTextFieldChange('pension', 'total_pension_income', e)}
+            value={formatSafeValue(pension.pension_received)}
+            onChange={(e) => handleTextFieldChange('pension', 'pension_received', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('pension', 'total_pension_income', e)}
+            onFocus={(e) => handleTextFieldFocus('pension', 'pension_received', e)}
           />
 
           <TextField
@@ -301,8 +308,8 @@ const SeparationSection: React.FC<SeparationSectionProps> = ({
 
           <FormControl fullWidth>
             <Select
-              value={(pension as any).uncomputed_pension_frequency || 'Monthly'}
-              onChange={(e) => handleSelectChange('pension', 'uncomputed_pension_frequency', e)}
+              value={(pension as any).uncommuted_pension_frequency || 'Monthly'}
+              onChange={(e) => handleSelectChange('pension', 'uncommuted_pension_frequency', e)}
               displayEmpty
             >
               {['Monthly', 'Quarterly', 'Annually'].map((frequency) => (
@@ -315,12 +322,12 @@ const SeparationSection: React.FC<SeparationSectionProps> = ({
 
           <TextField
             fullWidth
-            label="Uncomputed Pension Amount"
+            label="Uncommuted Pension Amount"
             type="text"
-            value={formatSafeValue(pension.uncomputed_pension_amount)}
-            onChange={(e) => handleTextFieldChange('pension', 'uncomputed_pension_amount', e)}
+            value={formatSafeValue(pension.uncommuted_pension)}
+            onChange={(e) => handleTextFieldChange('pension', 'uncommuted_pension', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('pension', 'uncomputed_pension_amount', e)}
+            onFocus={(e) => handleTextFieldFocus('pension', 'uncommuted_pension', e)}
           />
         </Box>
       </Paper>

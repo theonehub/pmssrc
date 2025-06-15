@@ -80,10 +80,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="LIC Premium"
             type="text"
-            value={formatIndianNumber(taxationData.section_80c || 0)}
-            onChange={(e) => handleTextFieldChange('section_80c', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80c?.life_insurance_premium || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80c.life_insurance_premium', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80c', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80c.life_insurance_premium', e)}
           />
           
           {/* EPF */}
@@ -91,10 +91,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="EPF Contribution"
             type="text"
-            value={formatIndianNumber(taxationData.pf_employee || 0)}
-            onChange={(e) => handleTextFieldChange('pf_employee', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80c?.epf_contribution || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80c.epf_contribution', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('pf_employee', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80c.epf_contribution', e)}
           />
           
           {/* PPF */}
@@ -288,10 +288,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="Health Insurance - Self & Family"
             type="text"
-            value={formatIndianNumber(taxationData.section_80d || 0)}
-            onChange={(e) => handleTextFieldChange('section_80d', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80d?.self_family_premium || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80d.self_family_premium', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80d', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80d.self_family_premium', e)}
           />
           
           {/* Preventive Health Checkup */}
@@ -444,10 +444,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
               fullWidth
               label="Section 80E - Educational Loan"
               type="text"
-              value={formatIndianNumber(taxationData.section_80e || 0)}
-              onChange={(e) => handleTextFieldChange('section_80e', e)}
+              value={formatIndianNumber(taxationData.deductions?.section_80e?.education_loan_interest || 0)}
+              onChange={(e) => handleTextFieldChange('deductions.section_80e.education_loan_interest', e)}
               InputProps={{ startAdornment: '₹' }}
-              onFocus={(e) => handleTextFieldFocus('section_80e', e)}
+              onFocus={(e) => handleTextFieldFocus('deductions.section_80e.education_loan_interest', e)}
             />
           </Tooltip>
 

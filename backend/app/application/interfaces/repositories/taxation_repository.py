@@ -19,7 +19,7 @@ class TaxationRepository(ABC):
     """
     
     @abstractmethod
-    async def save(self, taxation_record: TaxationRecord) -> TaxationRecord:
+    async def save(self, taxation_record: TaxationRecord, organization_id: str) -> TaxationRecord:
         """
         Save or update a taxation record.
         

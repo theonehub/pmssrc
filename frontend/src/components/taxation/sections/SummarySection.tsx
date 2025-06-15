@@ -33,10 +33,10 @@ const SummarySection: React.FC<SummarySectionProps> = ({
 
   // Get city name for display
   const getCityName = (): string => {
-    switch (taxationData.salary?.hra_city) {
-      case 'Metro':
+    switch (taxationData.salary_income?.hra_city_type) {
+      case 'metro':
         return 'Metro (Delhi, Mumbai, Kolkata, Chennai)';
-      case 'Non-Metro':
+      case 'non_metro':
         return 'Non-Metro (Tier 1 cities)';
       default:
         return 'Others (Tier 2 & 3 cities)';
@@ -76,19 +76,19 @@ const SummarySection: React.FC<SummarySectionProps> = ({
                 }}
               >
                 <Typography>Basic Salary:</Typography>
-                <Typography align="right">{formatSafeCurrency(taxationData.salary?.basic)}</Typography>
+                <Typography align="right">{formatSafeCurrency(taxationData.salary_income?.basic_salary)}</Typography>
                 
                 <Typography>Dearness Allowance (DA):</Typography>
-                <Typography align="right">{formatSafeCurrency(taxationData.salary?.dearness_allowance)}</Typography>
+                <Typography align="right">{formatSafeCurrency(taxationData.salary_income?.dearness_allowance)}</Typography>
                 
                 <Typography>HRA ({getCityName()}):</Typography>
-                <Typography align="right">{formatSafeCurrency(taxationData.salary?.hra)}</Typography>
+                <Typography align="right">{formatSafeCurrency(taxationData.salary_income?.hra_received)}</Typography>
                 
                 <Typography>Special Allowance:</Typography>
-                <Typography align="right">{formatSafeCurrency(taxationData.salary?.special_allowance)}</Typography>
+                <Typography align="right">{formatSafeCurrency(taxationData.salary_income?.special_allowance)}</Typography>
                 
                 <Typography>Bonus:</Typography>
-                <Typography align="right">{formatSafeCurrency(taxationData.salary?.bonus)}</Typography>
+                <Typography align="right">{formatSafeCurrency(taxationData.salary_income?.other_allowances)}</Typography>
               </Box>
             </CardContent>
           </Card>
@@ -109,49 +109,45 @@ const SummarySection: React.FC<SummarySectionProps> = ({
                 <Typography>Interest (All Sources):</Typography>
                 <Typography align="right">
                   {formatSafeCurrency(
-                    (taxationData.other_sources?.interest_savings || 0) + 
-                    (taxationData.other_sources?.interest_fd || 0) + 
-                    (taxationData.other_sources?.interest_rd || 0) +
-                    (taxationData.other_sources?.other_interest || 0)
+                    (taxationData.other_income?.interest_income?.savings_account_interest || 0) + 
+                    (taxationData.other_income?.interest_income?.fixed_deposit_interest || 0) + 
+                    (taxationData.other_income?.interest_income?.recurring_deposit_interest || 0) +
+                    (taxationData.other_income?.interest_income?.other_interest || 0)
                   )}
                 </Typography>
                 
                 <Typography>Dividend Income:</Typography>
-                <Typography align="right">{formatSafeCurrency(taxationData.other_sources?.dividend_income)}</Typography>
+                <Typography align="right">{formatSafeCurrency(taxationData.other_income?.dividend_income)}</Typography>
                 
                 <Typography>Gifts:</Typography>
-                <Typography align="right">{formatSafeCurrency(taxationData.other_sources?.gifts)}</Typography>
+                <Typography align="right">{formatSafeCurrency(taxationData.other_income?.gifts_received)}</Typography>
                 
                 <Typography>Business & Professional Income:</Typography>
-                <Typography align="right">{formatSafeCurrency(taxationData.other_sources?.business_professional_income)}</Typography>
+                <Typography align="right">{formatSafeCurrency(taxationData.other_income?.business_professional_income)}</Typography>
                 
                 <Typography>Other Income:</Typography>
-                <Typography align="right">{formatSafeCurrency(taxationData.other_sources?.other_income)}</Typography>
+                <Typography align="right">{formatSafeCurrency(taxationData.other_income?.other_miscellaneous_income)}</Typography>
                 
                 <Typography>Leave Encashment Income:</Typography>
                 <Typography align="right">
-                  {formatSafeCurrency(taxationData.leave_encashment?.leave_encashment_income_received)}
+                  {formatSafeCurrency(taxationData.retirement_benefits?.leave_encashment?.leave_encashment_income_received)}
                 </Typography>
                 
                 <Typography>Short Term Capital Gains:</Typography>
                 <Typography align="right">
                   {formatSafeCurrency(
-                    (typeof taxationData.capital_gains === 'object' ? 
-                      (taxationData.capital_gains?.stcg_111a || 0) + 
-                      (taxationData.capital_gains?.stcg_any_other_asset || 0) +
-                      (taxationData.capital_gains?.stcg_debt_mutual_fund || 0)
-                      : 0)
+                    (taxationData.capital_gains_income?.stcg_111a_equity_stt || 0) + 
+                    (taxationData.capital_gains_income?.stcg_other_assets || 0) +
+                    (taxationData.capital_gains_income?.stcg_debt_mutual_fund || 0)
                   )}
                 </Typography>
                 
                 <Typography>Long Term Capital Gains:</Typography>
                 <Typography align="right">
                   {formatSafeCurrency(
-                    (typeof taxationData.capital_gains === 'object' ? 
-                      (taxationData.capital_gains?.ltcg_112a || 0) + 
-                      (taxationData.capital_gains?.ltcg_any_other_asset || 0) +
-                      (taxationData.capital_gains?.ltcg_debt_mutual_fund || 0)
-                      : 0)
+                    (taxationData.capital_gains_income?.ltcg_112a_equity_stt || 0) + 
+                    (taxationData.capital_gains_income?.ltcg_other_assets || 0) +
+                    (taxationData.capital_gains_income?.ltcg_debt_mf || 0)
                   )}
                 </Typography>
               </Box>
@@ -177,33 +173,33 @@ const SummarySection: React.FC<SummarySectionProps> = ({
                 >
                   <Typography>Section 80C (Total):</Typography>
                   <Typography align="right">{formatSafeCurrency(
-                    (taxationData.deductions?.section_80c_lic || 0) +
-                    (taxationData.deductions?.section_80c_epf || 0) +
-                    (taxationData.deductions?.section_80c_ssp || 0) +
-                    (taxationData.deductions?.section_80c_nsc || 0) +
-                    (taxationData.deductions?.section_80c_ulip || 0) +
-                    (taxationData.deductions?.section_80c_tsmf || 0) +
-                    (taxationData.deductions?.section_80c_tffte2c || 0) +
-                    (taxationData.deductions?.section_80c_paphl || 0) +
-                    (taxationData.deductions?.section_80c_sdpphp || 0) +
-                    (taxationData.deductions?.section_80c_tsfdsb || 0) +
-                    (taxationData.deductions?.section_80c_scss || 0) +
-                    (taxationData.deductions?.section_80c_others || 0)
+                    (taxationData.deductions?.section_80c?.life_insurance_premium || 0) +
+                    (taxationData.deductions?.section_80c?.epf_contribution || 0) +
+                    (taxationData.deductions?.section_80c?.ssp_contribution || 0) +
+                    (taxationData.deductions?.section_80c?.nsc_investment || 0) +
+                    (taxationData.deductions?.section_80c?.ulip_investment || 0) +
+                    (taxationData.deductions?.section_80c?.tax_saver_mutual_fund || 0) +
+                    (taxationData.deductions?.section_80c?.tuition_fees_for_two_children || 0) +
+                    (taxationData.deductions?.section_80c?.principal_amount_paid_home_loan || 0) +
+                    (taxationData.deductions?.section_80c?.sukanya_deposit_plan_for_girl_child || 0) +
+                    (taxationData.deductions?.section_80c?.tax_saver_fixed_deposit_5_years_bank || 0) +
+                    (taxationData.deductions?.section_80c?.senior_citizen_savings_scheme || 0) +
+                    (taxationData.deductions?.section_80c?.others || 0)
                   )}</Typography>
                   
                   <Typography>Section 80CCC/CCD (NPS):</Typography>
                   <Typography align="right">{formatSafeCurrency(
-                    (taxationData.deductions?.section_80ccc_ppic || 0) +
-                    (taxationData.deductions?.section_80ccd_1_nps || 0) +
-                    (taxationData.deductions?.section_80ccd_1b_additional || 0) +
-                    (taxationData.deductions?.section_80ccd_2_enps || 0)
+                    (taxationData.deductions?.section_80ccc?.pension_plan_insurance_company || 0) +
+                    (taxationData.deductions?.section_80ccd?.nps_contribution_10_percent || 0) +
+                    (taxationData.deductions?.section_80ccd?.additional_nps_50k || 0) +
+                    (taxationData.deductions?.section_80ccd?.employer_nps_contribution || 0)
                   )}</Typography>
                   
                   <Typography>Section 80D (Health):</Typography>
                   <Typography align="right">{formatSafeCurrency(
-                    (taxationData.deductions?.section_80d_hisf || 0) +
-                    (taxationData.deductions?.section_80d_phcs || 0) +
-                    (taxationData.deductions?.section_80d_hi_parent || 0)
+                    (taxationData.deductions?.section_80d?.self_family_premium || 0) +
+                    (taxationData.deductions?.section_80d?.preventive_health_checkup_self || 0) +
+                    (taxationData.deductions?.section_80d?.parent_premium || 0)
                   )}</Typography>
                   
                   <Typography>Section 24B (Home Loan):</Typography>
@@ -212,14 +208,16 @@ const SummarySection: React.FC<SummarySectionProps> = ({
                   <Typography>Other Deductions:</Typography>
                   <Typography align="right">
                     {formatSafeCurrency(
-                      (taxationData.deductions?.section_80dd || 0) +
-                      (taxationData.deductions?.section_80ddb || 0) +
-                      (taxationData.deductions?.section_80e_interest || 0) +
-                      (taxationData.deductions?.section_80eeb || 0) +
-                      (taxationData.deductions?.section_80g_100_wo_ql || 0) +
-                      (taxationData.deductions?.section_80g_50_wo_ql || 0) +
-                      (taxationData.deductions?.section_80ggc || 0) +
-                      (taxationData.deductions?.section_80u || 0)
+                      (taxationData.deductions?.section_80dd?.amount || 0) +
+                      (taxationData.deductions?.section_80ddb?.amount || 0) +
+                      (taxationData.deductions?.section_80e?.education_loan_interest || 0) +
+                      (taxationData.deductions?.section_80eeb?.amount || 0) +
+                      (taxationData.deductions?.section_80g?.donation_100_percent_without_limit || 0) +
+                      (taxationData.deductions?.section_80g?.donation_50_percent_without_limit || 0) +
+                      (taxationData.deductions?.section_80g?.donation_100_percent_with_limit || 0) +
+                      (taxationData.deductions?.section_80g?.donation_50_percent_with_limit || 0) +
+                      (taxationData.deductions?.section_80ggc?.amount || 0) +
+                      (taxationData.deductions?.section_80u?.amount || 0)
                     )}
                   </Typography>
                 </Box>

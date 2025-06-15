@@ -67,7 +67,7 @@ const MovableAssetsSection: React.FC<MovableAssetsSectionProps> = ({
         <FormControl fullWidth>
           <InputLabel>Asset Ownership</InputLabel>
           <Select
-            value={taxationData.salary?.perquisites?.mau_ownership || 'Employer-Owned'}
+            value={taxationData.perquisites?.movable_assets?.mau_ownership || 'Employer-Owned'}
             label="Asset Ownership"
             onChange={(e) => handleSelectChange('movable_asset_ownership', e)}
           >
@@ -81,7 +81,7 @@ const MovableAssetsSection: React.FC<MovableAssetsSectionProps> = ({
           fullWidth
           label="Asset Value to Employer"
           type="text"
-          value={formatIndianNumber(taxationData.salary?.perquisites?.mau_value_to_employer || 0)}
+          value={formatIndianNumber(taxationData.perquisites?.movable_assets?.mau_value_to_employer || 0)}
           onChange={(e) => handleTextFieldChange('mau_value_to_employer', e)}
           InputProps={{ startAdornment: '₹' }}
           onFocus={(e) => handleTextFieldFocus('mau_value_to_employer', e)}
@@ -92,7 +92,7 @@ const MovableAssetsSection: React.FC<MovableAssetsSectionProps> = ({
           fullWidth
           label="Amount Paid by Employee"
           type="text"
-          value={formatIndianNumber(taxationData.salary?.perquisites?.mau_value_to_employee || 0)}
+          value={formatIndianNumber(taxationData.perquisites?.movable_assets?.mau_value_to_employee || 0)}
           onChange={(e) => handleTextFieldChange('mau_value_to_employee', e)}
           InputProps={{ startAdornment: '₹' }}
           onFocus={(e) => handleTextFieldFocus('mau_value_to_employee', e)}
@@ -128,7 +128,7 @@ const MovableAssetsSection: React.FC<MovableAssetsSectionProps> = ({
             placement="top"
           >
             <Select
-              value={taxationData.salary?.perquisites?.mat_type || 'Electronics'}
+              value={taxationData.perquisites?.movable_assets?.mat_type || 'Electronics'}
               label="Asset Type"
               onChange={(e) => handleSelectChange('mat_type', e)}
             >
@@ -144,7 +144,7 @@ const MovableAssetsSection: React.FC<MovableAssetsSectionProps> = ({
           fullWidth
           label="Asset Value to Employer"
           type="text"
-          value={formatIndianNumber(taxationData.salary?.perquisites?.mat_value_to_employer || 0)}
+          value={formatIndianNumber(taxationData.perquisites?.movable_assets?.mat_value_to_employer || 0)}
           onChange={(e) => handleTextFieldChange('mat_value_to_employer', e)}
           InputProps={{ startAdornment: '₹' }}
           onFocus={(e) => handleTextFieldFocus('mat_value_to_employer', e)}
@@ -155,7 +155,7 @@ const MovableAssetsSection: React.FC<MovableAssetsSectionProps> = ({
           fullWidth
           label="Amount Paid by Employee"
           type="text"
-          value={formatIndianNumber(taxationData.salary?.perquisites?.mat_value_to_employee || 0)}
+          value={formatIndianNumber(taxationData.perquisites?.movable_assets?.mat_value_to_employee || 0)}
           onChange={(e) => handleTextFieldChange('mat_value_to_employee', e)}
           InputProps={{ startAdornment: '₹' }}
           onFocus={(e) => handleTextFieldFocus('mat_value_to_employee', e)}
@@ -167,7 +167,7 @@ const MovableAssetsSection: React.FC<MovableAssetsSectionProps> = ({
           label="Number of Completed Years of Use"
           type="number"
           inputProps={{ min: 0 }}
-          value={taxationData.salary?.perquisites?.mat_number_of_completed_years_of_use || 0}
+          value={taxationData.perquisites?.movable_assets?.mat_number_of_completed_years_of_use || 0}
           onChange={(e) => handleTextFieldChange('mat_number_of_completed_years_of_use', e)}
           onFocus={(e) => handleTextFieldFocus('mat_number_of_completed_years_of_use', e)}
         />

@@ -35,11 +35,11 @@ const OtherPerquisitesSection: React.FC<OtherPerquisitesSectionProps> = ({
   handleNestedFocus
 }) => {
   const handleTextFieldChange = (field: string, event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
-    handleNestedInputChange('salary', 'perquisites', field, event.target.value);
+    handleNestedInputChange('perquisites', 'other_perquisites', field, event.target.value);
   };
 
   const handleTextFieldFocus = (field: string, event: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
-    handleNestedFocus('salary', 'perquisites', field, event.target.value);
+    handleNestedFocus('perquisites', 'other_perquisites', field, event.target.value);
   };
 
   return (
@@ -77,7 +77,7 @@ const OtherPerquisitesSection: React.FC<OtherPerquisitesSectionProps> = ({
             fullWidth
             label="Domestic Help Amount Paid by Employer"
             type="text"
-            value={formatIndianNumber(taxationData.salary?.perquisites?.domestic_help_amount_paid_by_employer || 0)}
+            value={formatIndianNumber(taxationData.perquisites?.other_perquisites?.domestic_help_amount_paid_by_employer || 0)}
             onChange={(e) => handleTextFieldChange('domestic_help_amount_paid_by_employer', e)}
             InputProps={{ startAdornment: '₹' }}
             onFocus={(e) => handleTextFieldFocus('domestic_help_amount_paid_by_employer', e)}
@@ -93,7 +93,7 @@ const OtherPerquisitesSection: React.FC<OtherPerquisitesSectionProps> = ({
             fullWidth
             label="Domestic Help Amount Paid by Employee"
             type="text"
-            value={formatIndianNumber(taxationData.salary?.perquisites?.domestic_help_amount_paid_by_employee || 0)}
+            value={formatIndianNumber(taxationData.perquisites?.other_perquisites?.domestic_help_amount_paid_by_employee || 0)}
             onChange={(e) => handleTextFieldChange('domestic_help_amount_paid_by_employee', e)}
             InputProps={{ startAdornment: '₹' }}
             onFocus={(e) => handleTextFieldFocus('domestic_help_amount_paid_by_employee', e)}
@@ -132,7 +132,7 @@ const OtherPerquisitesSection: React.FC<OtherPerquisitesSectionProps> = ({
             fullWidth
             label="Amount Paid by Employer"
             type="text"
-            value={formatIndianNumber(taxationData.salary?.perquisites?.lunch_amount_paid_by_employer || 0)}
+            value={formatIndianNumber(taxationData.perquisites?.other_perquisites?.lunch_amount_paid_by_employer || 0)}
             onChange={(e) => handleTextFieldChange('lunch_amount_paid_by_employer', e)}
             InputProps={{ startAdornment: '₹' }}
             onFocus={(e) => handleTextFieldFocus('lunch_amount_paid_by_employer', e)}
@@ -148,7 +148,7 @@ const OtherPerquisitesSection: React.FC<OtherPerquisitesSectionProps> = ({
             fullWidth
             label="Amount recovered from employee"
             type="text"
-            value={formatIndianNumber(taxationData.salary?.perquisites?.lunch_amount_paid_by_employee || 0)}
+            value={formatIndianNumber(taxationData.perquisites?.other_perquisites?.lunch_amount_paid_by_employee || 0)}
             onChange={(e) => handleTextFieldChange('lunch_amount_paid_by_employee', e)}
             InputProps={{ startAdornment: '₹' }}
             onFocus={(e) => handleTextFieldFocus('lunch_amount_paid_by_employee', e)}
@@ -187,7 +187,7 @@ const OtherPerquisitesSection: React.FC<OtherPerquisitesSectionProps> = ({
             fullWidth
             label="Amount Paid by Employer"
             type="text"
-            value={formatIndianNumber(taxationData.salary?.perquisites?.monetary_amount_paid_by_employer || 0)}
+            value={formatIndianNumber(taxationData.perquisites?.other_perquisites?.monetary_amount_paid_by_employer || 0)}
             onChange={(e) => handleTextFieldChange('monetary_amount_paid_by_employer', e)}
             InputProps={{ startAdornment: '₹' }}
             onFocus={(e) => handleTextFieldFocus('monetary_amount_paid_by_employer', e)}
@@ -203,7 +203,7 @@ const OtherPerquisitesSection: React.FC<OtherPerquisitesSectionProps> = ({
             fullWidth
             label="Official Purpose Usage"
             type="text"
-            value={formatIndianNumber(taxationData.salary?.perquisites?.expenditure_for_offical_purpose || 0)}
+            value={formatIndianNumber(taxationData.perquisites?.other_perquisites?.expenditure_for_offical_purpose || 0)}
             onChange={(e) => handleTextFieldChange('expenditure_for_offical_purpose', e)}
             InputProps={{ startAdornment: '₹' }}
             onFocus={(e) => handleTextFieldFocus('expenditure_for_offical_purpose', e)}
@@ -219,7 +219,7 @@ const OtherPerquisitesSection: React.FC<OtherPerquisitesSectionProps> = ({
             fullWidth
             label="Amount recovered by employee"
             type="text"
-            value={formatIndianNumber(taxationData.salary?.perquisites?.monetary_benefits_amount_paid_by_employee || 0)}
+            value={formatIndianNumber(taxationData.perquisites?.other_perquisites?.monetary_benefits_amount_paid_by_employee || 0)}
             onChange={(e) => handleTextFieldChange('monetary_benefits_amount_paid_by_employee', e)}
             InputProps={{ startAdornment: '₹' }}
             onFocus={(e) => handleTextFieldFocus('monetary_benefits_amount_paid_by_employee', e)}
@@ -258,7 +258,7 @@ const OtherPerquisitesSection: React.FC<OtherPerquisitesSectionProps> = ({
             fullWidth
             label="Amount Paid by Employer"
             type="text"
-            value={formatIndianNumber(taxationData.salary?.perquisites?.gift_vouchers_amount_paid_by_employer || 0)}
+            value={formatIndianNumber(taxationData.perquisites?.other_perquisites?.gift_vouchers_amount_paid_by_employer || 0)}
             onChange={(e) => handleTextFieldChange('gift_vouchers_amount_paid_by_employer', e)}
             InputProps={{ startAdornment: '₹' }}
             onFocus={(e) => handleTextFieldFocus('gift_vouchers_amount_paid_by_employer', e)}
@@ -284,7 +284,8 @@ const OtherPerquisitesSection: React.FC<OtherPerquisitesSectionProps> = ({
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
           gap: 3,
-          width: '100%'
+          width: '100%',
+          mb: 4
         }}
       >
         <Tooltip 
@@ -296,7 +297,7 @@ const OtherPerquisitesSection: React.FC<OtherPerquisitesSectionProps> = ({
             fullWidth
             label="Amount Paid by Employer"
             type="text"
-            value={formatIndianNumber(taxationData.salary?.perquisites?.club_expenses_amount_paid_by_employer || 0)}
+            value={formatIndianNumber(taxationData.perquisites?.other_perquisites?.club_expenses_amount_paid_by_employer || 0)}
             onChange={(e) => handleTextFieldChange('club_expenses_amount_paid_by_employer', e)}
             InputProps={{ startAdornment: '₹' }}
             onFocus={(e) => handleTextFieldFocus('club_expenses_amount_paid_by_employer', e)}
@@ -312,7 +313,7 @@ const OtherPerquisitesSection: React.FC<OtherPerquisitesSectionProps> = ({
             fullWidth
             label="Amount recovered from employee"
             type="text"
-            value={formatIndianNumber(taxationData.salary?.perquisites?.club_expenses_amount_paid_by_employee || 0)}
+            value={formatIndianNumber(taxationData.perquisites?.other_perquisites?.club_expenses_amount_paid_by_employee || 0)}
             onChange={(e) => handleTextFieldChange('club_expenses_amount_paid_by_employee', e)}
             InputProps={{ startAdornment: '₹' }}
             onFocus={(e) => handleTextFieldFocus('club_expenses_amount_paid_by_employee', e)}
@@ -328,7 +329,7 @@ const OtherPerquisitesSection: React.FC<OtherPerquisitesSectionProps> = ({
             fullWidth
             label="Official purpose usage"
             type="text"
-            value={formatIndianNumber(taxationData.salary?.perquisites?.club_expenses_amount_paid_for_offical_purpose || 0)}
+            value={formatIndianNumber(taxationData.perquisites?.other_perquisites?.club_expenses_amount_paid_for_offical_purpose || 0)}
             onChange={(e) => handleTextFieldChange('club_expenses_amount_paid_for_offical_purpose', e)}
             InputProps={{ startAdornment: '₹' }}
             onFocus={(e) => handleTextFieldFocus('club_expenses_amount_paid_for_offical_purpose', e)}

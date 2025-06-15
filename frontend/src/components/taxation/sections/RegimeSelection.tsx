@@ -46,11 +46,11 @@ const RegimeSelection: React.FC<RegimeSelectionProps> = ({
   handleInputChange
 }) => {
   const getRegimeGuidance = (): React.ReactElement | null => {
-    if (!taxationData.emp_age) {
+    if (!taxationData.age) {
       return null;
     }
 
-    const age = parseInt(String(taxationData.emp_age));
+    const age = parseInt(String(taxationData.age));
     let guidance = '';
 
     if (age >= TAXATION_LIMITS.SUPER_SENIOR_CITIZEN_AGE) {
@@ -95,8 +95,8 @@ const RegimeSelection: React.FC<RegimeSelectionProps> = ({
         }}>
           <ValidatedTextField
             label="Employee Age"
-            value={taxationData.emp_age || ''}
-            onChange={(value) => handleInputChange('', 'emp_age', value)}
+            value={taxationData.age || ''}
+            onChange={(value) => handleInputChange('', 'age', value)}
             fieldType="age"
             required
             helperText="Age determines senior citizen benefits and tax slabs"

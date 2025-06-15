@@ -19,6 +19,8 @@ from app.domain.entities.taxation.house_property_income import HousePropertyInco
 from app.domain.entities.taxation.capital_gains import CapitalGainsIncome
 from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 from app.domain.value_objects.money import Money
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.tax_year import TaxYear
 from app.infrastructure.database.database_connector import DatabaseConnector
 
 
@@ -85,14 +87,14 @@ class MongoDBTaxationRepository(TaxationRepository):
         except Exception as e:
             raise RuntimeError(f"Collection access failed: {e}")
     
-    async def save_taxation_record(self, record: TaxationRecord) -> None:
+    async def save_taxation_record(self, record: TaxationRecord, organization_id: str) -> None:
         """
         Save a taxation record.
         
         Args:
             record: Taxation record to save
         """
-        collection = await self._get_collection(getattr(record, 'organisation_id', None))
+        collection = await self._get_collection(organization_id)
         document = self._convert_to_document(record)
         await collection.insert_one(document)
     
@@ -217,14 +219,14 @@ class MongoDBTaxationRepository(TaxationRepository):
             "financial_year": financial_year
         })
     
-    async def update_taxation_record(self, record: TaxationRecord) -> None:
+    async def update_taxation_record(self, record: TaxationRecord, organization_id: str) -> None:
         """
         Update a taxation record.
         
         Args:
             record: Taxation record to update
         """
-        collection = await self._get_collection(getattr(record, 'organisation_id', None))
+        collection = await self._get_collection(organization_id)
         document = self._convert_to_document(record)
         await collection.replace_one(
             {
@@ -389,6 +391,8 @@ class MongoDBTaxationRepository(TaxationRepository):
                 "special_allowance": record.salary_income.special_allowance.to_float(),
                 "conveyance_allowance": record.salary_income.conveyance_allowance.to_float(),
                 "medical_allowance": record.salary_income.medical_allowance.to_float(),
+                "hra_received": record.salary_income.hra_received.to_float(),
+                "hra_city_type": record.salary_income.hra_city_type,
                 "bonus": record.salary_income.bonus.to_float(),
                 "commission": record.salary_income.commission.to_float(),
                 "overtime": record.salary_income.overtime.to_float(),
@@ -532,7 +536,9 @@ class MongoDBTaxationRepository(TaxationRepository):
             arrears=Money(document["salary_income"]["arrears"]),
             gratuity=Money(document["salary_income"]["gratuity"]),
             leave_encashment=Money(document["salary_income"]["leave_encashment"]),
-            other_allowances=Money(document["salary_income"]["other_allowances"])
+            other_allowances=Money(document["salary_income"]["other_allowances"]),
+            hra_received=Money(document["salary_income"]["hra_received"]),
+            hra_city_type=document["salary_income"]["hra_city_type"]
         )
         
         # Convert perquisites
@@ -672,4 +678,158 @@ class MongoDBTaxationRepository(TaxationRepository):
             is_senior_citizen=document["is_senior_citizen"],
             is_super_senior_citizen=document["is_super_senior_citizen"],
             is_government_employee=document["is_government_employee"]
-        ) 
+        )
+
+    async def save(self, taxation_record: TaxationRecord, organization_id: str) -> TaxationRecord:
+        """
+        Save or update a taxation record.
+        
+        Args:
+            taxation_record: Taxation record to save
+            
+        Returns:
+            TaxationRecord: Saved taxation record
+        """
+        collection = await self._get_collection(organization_id)
+        document = self._convert_to_document(taxation_record)
+        
+        # Check if record already exists
+        existing = await collection.find_one({
+            "employee_id": taxation_record.employee_id,
+            "financial_year": taxation_record.financial_year
+        })
+        
+        if existing:
+            # Update existing record
+            document["_id"] = existing["_id"]
+            await collection.replace_one({"_id": existing["_id"]}, document)
+        else:
+            # Insert new record
+            result = await collection.insert_one(document)
+            document["_id"] = result.inserted_id
+        
+        # Return the saved record
+        return self._convert_to_entity(document)
+    
+    async def get_by_id(self, taxation_id: str, organization_id: str) -> Optional[TaxationRecord]:
+        """
+        Get taxation record by ID.
+        
+        Args:
+            taxation_id: Taxation record ID
+            organization_id: Organization ID
+            
+        Returns:
+            Optional[TaxationRecord]: Taxation record if found
+        """
+        collection = await self._get_collection(organization_id)
+        try:
+            document = await collection.find_one({"_id": ObjectId(taxation_id)})
+            if document:
+                return self._convert_to_entity(document)
+        except Exception:
+            # If ObjectId conversion fails, try string ID
+            document = await collection.find_one({"taxation_id": taxation_id})
+            if document:
+                return self._convert_to_entity(document)
+        return None
+    
+    async def get_by_user_and_year(self, 
+                                 user_id: EmployeeId, 
+                                 tax_year: TaxYear,
+                                 organization_id: str) -> Optional[TaxationRecord]:
+        """
+        Get taxation record by user and tax year.
+        
+        Args:
+            user_id: User ID
+            tax_year: Tax year
+            organization_id: Organization ID
+            
+        Returns:
+            Optional[TaxationRecord]: Taxation record if found
+        """
+        collection = await self._get_collection(organization_id)
+        document = await collection.find_one({
+            "employee_id": str(user_id),
+            "financial_year": tax_year.start_year
+        })
+        
+        if document:
+            return self._convert_to_entity(document)
+        return None
+    
+    async def get_by_user(self, 
+                        user_id: EmployeeId, 
+                        organization_id: str,
+                        limit: int = 10,
+                        offset: int = 0) -> List[TaxationRecord]:
+        """
+        Get all taxation records for a user.
+        
+        Args:
+            user_id: User ID
+            organization_id: Organization ID
+            limit: Maximum number of records to return
+            offset: Number of records to skip
+            
+        Returns:
+            List[TaxationRecord]: List of taxation records
+        """
+        collection = await self._get_collection(organization_id)
+        cursor = collection.find({
+            "user_id": str(user_id),
+            "organization_id": organization_id
+        }).skip(offset).limit(limit).sort("created_at", -1)
+        
+        documents = await cursor.to_list(length=None)
+        return [self._convert_to_entity(doc) for doc in documents]
+    
+    async def get_by_tax_year(self, 
+                            tax_year: TaxYear,
+                            organization_id: str,
+                            limit: int = 100,
+                            offset: int = 0) -> List[TaxationRecord]:
+        """
+        Get all taxation records for a tax year.
+        
+        Args:
+            tax_year: Tax year
+            organization_id: Organization ID
+            limit: Maximum number of records to return
+            offset: Number of records to skip
+            
+        Returns:
+            List[TaxationRecord]: List of taxation records
+        """
+        collection = await self._get_collection(organization_id)
+        cursor = collection.find({
+            "tax_year": str(tax_year),
+            "organization_id": organization_id
+        }).skip(offset).limit(limit).sort("created_at", -1)
+        
+        documents = await cursor.to_list(length=None)
+        return [self._convert_to_entity(doc) for doc in documents]
+    
+    async def get_by_organization(self, 
+                                organization_id: str,
+                                limit: int = 100,
+                                offset: int = 0) -> List[TaxationRecord]:
+        """
+        Get all taxation records for an organization.
+        
+        Args:
+            organization_id: Organization ID
+            limit: Maximum number of records to return
+            offset: Number of records to skip
+            
+        Returns:
+            List[TaxationRecord]: List of taxation records
+        """
+        collection = await self._get_collection(organization_id)
+        cursor = collection.find({
+            "organization_id": organization_id
+        }).skip(offset).limit(limit).sort("created_at", -1)
+        
+        documents = await cursor.to_list(length=None)
+        return [self._convert_to_entity(doc) for doc in documents] 

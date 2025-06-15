@@ -4,15 +4,13 @@ import {
   TaxationData,
   TaxRegime,
   FilingStatus,
-  SalaryComponents,
-  Perquisites,
-  OtherSources,
-  CapitalGains,
   LeaveEncashment,
   HouseProperty,
   Pension,
-  Deductions,
-
+  SalaryIncomeDTO,
+  OtherIncomeDTO,
+  TaxDeductionsDTO,
+  CapitalGainsIncomeDTO,
 } from '../types';
 
 // Set up axios instance with auth token
@@ -95,121 +93,19 @@ export const calculateTax = async (
   }
 };
 
-// Create default perquisites object
-const createDefaultPerquisites = (): Perquisites => ({
-  // Accommodation
-  accommodation_provided: 'Employer-Owned', 
-  accommodation_govt_lic_fees: 0,
-  accommodation_city_population: 'Exceeding 40 lakhs in 2011 Census',
-  accommodation_rent: 0,
-  is_furniture_owned: false,
-  furniture_actual_cost: 0,
-
-
-  // Car perquisites
-
-
-
-
-  car_use: 'Personal',
-  car_cost_to_employer: 0,
-  month_counts: 0,
-  other_vehicle_cost_to_employer: 0,
-  other_vehicle_month_counts: 0,
-
-  // Medical Reimbursement
-  is_treated_in_India: false,
-  medical_reimbursement_by_employer: 0,
-  travelling_allowance_for_treatment: 0,
-  rbi_limit_for_illness: 0,
-
-  // Leave Travel Allowance
-  lta_amount_claimed: 0,
-  lta_claimed_count: 0,
-  travel_through: 'Air',
-  public_transport_travel_amount_for_same_distance: 0,
-  lta_claim_start_date: '',
-  lta_claim_end_date: '',
-
-  // Free Education
-  employer_maintained_1st_child: false,
-  monthly_count_1st_child: 0,
-  employer_monthly_expenses_1st_child: 0,
-  employer_maintained_2nd_child: false,
-  monthly_count_2nd_child: 0,
-  employer_monthly_expenses_2nd_child: 0,
-
-  // Gas, Electricity, Water
-  is_gas_manufactured_by_employer: false,
-  gas_amount_paid_by_employer: 0,
-  gas_amount_paid_by_employee: 0,
-  is_electricity_manufactured_by_employer: false,
-  electricity_amount_paid_by_employer: 0,
-  electricity_amount_paid_by_employee: 0,
-  is_water_manufactured_by_employer: false,
-  water_amount_paid_by_employer: 0,
-  water_amount_paid_by_employee: 0,
-
-  // Domestic help
-  domestic_help_amount_paid_by_employer: 0,
-  domestic_help_amount_paid_by_employee: 0,
-
-  // Interest-free/concessional loan
-  loan_type: 'Personal',
-  loan_amount: 0,
-  loan_interest_rate_company: 0,
-  loan_interest_rate_sbi: 0,
-  loan_month_count: 0,
-  loan_start_date: '',
-  loan_end_date: '',
-
-  // Lunch/Refreshment
-  lunch_amount_paid_by_employer: 0,
-  lunch_amount_paid_by_employee: 0,
-
-  // ESOP & Stock Options fields
-  number_of_esop_shares_exercised: 0,
-  esop_exercise_price_per_share: 0,
-  esop_allotment_price_per_share: 0,
-  grant_date: null,
-  vesting_date: null,
-  exercise_date: null,
-  vesting_period: 0,
-  exercise_period: 0,
-  exercise_price_per_share: 0,
-
-  // Movable Asset
-  mau_ownership: 'Employer-Owned',
-  mau_value_to_employer: 0,
-  mau_value_to_employee: 0,
-  mat_type: 'Electronics',
-  mat_value_to_employer: 0,
-  mat_value_to_employee: 0,
-  mat_number_of_completed_years_of_use: 0,
-
-  // Monetary Benefits
-  monetary_amount_paid_by_employer: 0,
-  expenditure_for_offical_purpose: 0,
-  monetary_benefits_amount_paid_by_employee: 0,
-  gift_vouchers_amount_paid_by_employer: 0,
-
-  // Club Expenses
-  club_expenses_amount_paid_by_employer: 0,
-  club_expenses_amount_paid_by_employee: 0,
-  club_expenses_amount_paid_for_offical_purpose: 0,
-} as any);
-
 // Create default salary components
-const createDefaultSalaryComponents = (): SalaryComponents => ({
-  basic: 0,
+export const createDefaultSalaryComponents = (): SalaryIncomeDTO => ({
+  basic_salary: 0,
   dearness_allowance: 0,
-  hra_city: 'Others',
-  hra_percentage: 0.4,
-  hra: 0,
+  hra_received: 0,
+  hra_city_type: 'non_metro',
   actual_rent_paid: 0,
-  special_allowance: 0,
   bonus: 0,
   commission: 0,
+  special_allowance: 0,
+  conveyance_allowance: 0,
+  medical_allowance: 0,
+  other_allowances: 0,
   city_compensatory_allowance: 0,
   rural_allowance: 0,
   proctorship_allowance: 0,
@@ -219,7 +115,6 @@ const createDefaultSalaryComponents = (): SalaryComponents => ({
   overtime_allowance: 0,
   interim_relief: 0,
   tiffin_allowance: 0,
-  fixed_medical_allowance: 0,
   servant_allowance: 0,
   hills_high_altd_allowance: 0,
   hills_high_altd_exemption_limit: 0,
@@ -232,7 +127,6 @@ const createDefaultSalaryComponents = (): SalaryComponents => ({
   hostel_allowance: 0,
   hostel_count: 0,
   hostel_months: 0,
-  transport_allowance: 0,
   transport_months: 0,
   underground_mines_allowance: 0,
   underground_mines_months: 0,
@@ -241,7 +135,6 @@ const createDefaultSalaryComponents = (): SalaryComponents => ({
   supreme_high_court_judges_allowance: 0,
   judge_compensatory_allowance: 0,
   section_10_14_special_allowances: 0,
-  any_other_allowance: 0,
   any_other_allowance_exemption: 0,
   travel_on_tour_allowance: 0,
   tour_daily_charge_allowance: 0,
@@ -249,33 +142,34 @@ const createDefaultSalaryComponents = (): SalaryComponents => ({
   helper_in_performace_of_duties: 0,
   academic_research: 0,
   uniform_allowance: 0,
-  perquisites: createDefaultPerquisites(),
 });
 
 // Create default other sources
-const createDefaultOtherSources = (): OtherSources => ({
-  interest_savings: 0,
-  interest_fd: 0,
-  interest_rd: 0,
+export const createDefaultOtherSources = (): OtherIncomeDTO => ({
+  interest_income: {
+    savings_account_interest: 0,
+    fixed_deposit_interest: 0,
+    recurring_deposit_interest: 0,
+    other_interest: 0,
+  },
   dividend_income: 0,
-  gifts: 0,
-  other_interest: 0,
+  gifts_received: 0,
   business_professional_income: 0,
-  other_income: 0,
+  other_miscellaneous_income: 0,
 });
 
 // Create default capital gains
-const createDefaultCapitalGains = (): CapitalGains => ({
-  stcg_111a: 0,
-  stcg_any_other_asset: 0,
+export const createDefaultCapitalGains = (): CapitalGainsIncomeDTO => ({
+  stcg_111a_equity_stt: 0,
+  stcg_other_assets: 0,
   stcg_debt_mutual_fund: 0,
-  ltcg_112a: 0,
-  ltcg_any_other_asset: 0,
-  ltcg_debt_mutual_fund: 0,
+  ltcg_112a_equity_stt: 0,
+  ltcg_other_assets: 0,
+  ltcg_debt_mf: 0,
 });
 
 // Create default leave encashment
-const createDefaultLeaveEncashment = (): LeaveEncashment => ({
+export const createDefaultLeaveEncashment = (): LeaveEncashment => ({
   leave_encashment_income_received: 0,
   leave_encashment_exemption: 0,
   leave_encashment_taxable: 0,
@@ -285,7 +179,8 @@ const createDefaultLeaveEncashment = (): LeaveEncashment => ({
 });
 
 // Create default house property
-const createDefaultHouseProperty = (): HouseProperty => ({
+export const createDefaultHouseProperty = (): HouseProperty => ({
+  property_type: 'Self-Occupied',
   annual_rent: 0,
   municipal_tax: 0,
   standard_deduction: 0,
@@ -300,7 +195,7 @@ const createDefaultHouseProperty = (): HouseProperty => ({
 });
 
 // Create default pension
-const createDefaultPension = (): Pension => ({
+export const createDefaultPension = (): Pension => ({
   pension_received: 0,
   commuted_pension: 0,
   uncommuted_pension: 0,
@@ -311,116 +206,244 @@ const createDefaultPension = (): Pension => ({
 });
 
 // Create default deductions
-const createDefaultDeductions = (): Deductions => ({
-  section_80c_lic: 0,
-  section_80c_epf: 0,
-  section_80c_ssp: 0,
-  section_80c_nsc: 0,
-  section_80c_ulip: 0,
-  section_80c_tsmf: 0,
-  section_80c_tffte2c: 0,
-  section_80c_paphl: 0,
-  section_80c_sdpphp: 0,
-  section_80c_tsfdsb: 0,
-  section_80c_scss: 0,
-  section_80c_others: 0,
-  section_80ccc_ppic: 0,
-  section_80ccd_1_nps: 0,
-  section_80ccd_1b_additional: 0,
-  section_80ccd_2_enps: 0,
-  section_80d_hisf: 0,
-  section_80d_phcs: 0,
-  section_80d_hi_parent: 0,
-  section_80dd: 0,
-  section_80ddb: 0,
-  section_80e_interest: 0,
-  section_80eeb: 0,
-  section_80g_100_wo_ql: 0,
-  section_80g_50_wo_ql: 0,
-  section_80ggc: 0,
-  section_80u: 0,
-  relation_80dd: '',
-  relation_80ddb: '',
-  disability_percentage_80dd: '',
-  disability_percentage_80u: '',
+export const createDefaultDeductions = (): TaxDeductionsDTO => ({
+  section_80c: {
+    life_insurance_premium: 0,
+    epf_contribution: 0,
+    ssp_contribution: 0,
+    nsc_investment: 0,
+    ulip_investment: 0,
+    tax_saver_mutual_fund: 0,
+    tuition_fees_for_two_children: 0,
+    principal_amount_paid_home_loan: 0,
+    sukanya_deposit_plan_for_girl_child: 0,
+    tax_saver_fixed_deposit_5_years_bank: 0,
+    senior_citizen_savings_scheme: 0,
+    others: 0,
+  },
+  section_80ccc: {
+    pension_plan_insurance_company: 0,
+  },
+  section_80ccd: {
+    nps_contribution_10_percent: 0,
+    additional_nps_50k: 0,
+    employer_nps_contribution: 0,
+  },
+  section_80d: {
+    self_family_premium: 0,
+    preventive_health_checkup_self: 0,
+    parent_premium: 0,
+  },
+  section_80dd: {
+    amount: 0,
+    relation: '',
+    disability_percentage: '',
+  },
+  section_80ddb: {
+    amount: 0,
+    relation: '',
+  },
+  section_80e: {
+    education_loan_interest: 0,
+  },
+  section_80eeb: {
+    amount: 0,
+  },
+  section_80g: {
+    donation_100_percent_without_limit: 0,
+    donation_50_percent_without_limit: 0,
+    donation_100_percent_with_limit: 0,
+    donation_50_percent_with_limit: 0,
+  },
+  section_80ggc: {
+    amount: 0,
+  },
+  section_80u: {
+    amount: 0,
+    disability_percentage: '',
+  },
 });
 
+// Transform flat perquisites structure to nested DTO structure
+const transformPerquisitesToDTO = (perquisites: any, salaryData?: any) => {
+  if (!perquisites) return null;
+  
+  return {
+    // Accommodation perquisite
+    accommodation: {
+      accommodation_type: perquisites.accommodation_provided || 'Employer-Owned',
+      city_population: perquisites.accommodation_city_population === 'Exceeding 40 lakhs in 2011 Census' 
+        ? 'Above 40 lakhs' 
+        : perquisites.accommodation_city_population === 'Between 15-40 lakhs in 2011 Census'
+        ? 'Between 15-40 lakhs'
+        : 'Below 15 lakhs',
+      license_fees: perquisites.accommodation_govt_lic_fees || 0,
+      employee_rent_payment: perquisites.accommodation_rent || 0,
+      basic_salary: salaryData?.basic_salary || 0,
+      dearness_allowance: salaryData?.dearness_allowance || 0,
+      rent_paid_by_employer: 0,
+      hotel_charges: 0,
+      stay_days: 0,
+      furniture_cost: perquisites.furniture_actual_cost || 0,
+      furniture_employee_payment: 0,
+      is_furniture_owned_by_employer: perquisites.is_furniture_owned || false
+    },
+    
+    // Car perquisite
+    car: {
+      car_use_type: perquisites.car_use || 'Personal',
+      engine_capacity_cc: 1600, // Default value
+      months_used: perquisites.month_counts || 0,
+      car_cost_to_employer: perquisites.car_cost_to_employer || 0,
+      other_vehicle_cost: perquisites.other_vehicle_cost_to_employer || 0,
+      has_expense_reimbursement: false,
+      driver_provided: false
+    },
+    
+    // Medical reimbursement
+    medical_reimbursement: {
+      medical_reimbursement_amount: perquisites.medical_reimbursement_by_employer || 0,
+      is_overseas_treatment: !perquisites.is_treated_in_India
+    },
+    
+    // LTA perquisite
+    lta: {
+      lta_amount_claimed: perquisites.lta_amount_claimed || 0,
+      lta_claimed_count: perquisites.lta_claimed_count || 0,
+      public_transport_cost: perquisites.public_transport_travel_amount_for_same_distance || 0
+    },
+    
+    // Interest free loan
+    interest_free_loan: {
+      loan_amount: perquisites.loan_amount || 0,
+      outstanding_amount: perquisites.loan_amount || 0,
+      company_interest_rate: perquisites.loan_interest_rate_company || 0,
+      sbi_interest_rate: perquisites.loan_interest_rate_sbi || 0,
+      loan_months: perquisites.loan_month_count || 0
+    },
+    
+    // ESOP perquisite
+    esop: {
+      shares_exercised: perquisites.number_of_esop_shares_exercised || 0,
+      exercise_price: perquisites.esop_exercise_price_per_share || 0,
+      allotment_price: perquisites.esop_allotment_price_per_share || 0
+    },
+    
+    // Utilities perquisite
+    utilities: {
+      gas_paid_by_employer: perquisites.gas_amount_paid_by_employer || 0,
+      electricity_paid_by_employer: perquisites.electricity_amount_paid_by_employer || 0,
+      water_paid_by_employer: perquisites.water_amount_paid_by_employer || 0,
+      gas_paid_by_employee: perquisites.gas_amount_paid_by_employee || 0,
+      electricity_paid_by_employee: perquisites.electricity_amount_paid_by_employee || 0,
+      water_paid_by_employee: perquisites.water_amount_paid_by_employee || 0,
+      is_gas_manufactured_by_employer: perquisites.is_gas_manufactured_by_employer || false,
+      is_electricity_manufactured_by_employer: perquisites.is_electricity_manufactured_by_employer || false,
+      is_water_manufactured_by_employer: perquisites.is_water_manufactured_by_employer || false
+    },
+    
+    // Free education
+    free_education: {
+      monthly_expenses_child1: perquisites.employer_monthly_expenses_1st_child || 0,
+      monthly_expenses_child2: perquisites.employer_monthly_expenses_2nd_child || 0,
+      months_child1: perquisites.monthly_count_1st_child || 0,
+      months_child2: perquisites.monthly_count_2nd_child || 0,
+      employer_maintained_1st_child: perquisites.employer_maintained_1st_child || false,
+      employer_maintained_2nd_child: perquisites.employer_maintained_2nd_child || false
+    },
+    
+    // Movable asset usage
+    movable_asset_usage: {
+      asset_type: perquisites.mat_type || 'Electronics',
+      asset_value: perquisites.mau_value_to_employer || 0,
+      employee_payment: perquisites.mau_value_to_employee || 0,
+      is_employer_owned: perquisites.mau_ownership === 'Employer-Owned'
+    },
+    
+    // Movable asset transfer
+    movable_asset_transfer: {
+      asset_type: perquisites.mat_type || 'Electronics',
+      asset_cost: perquisites.mat_value_to_employer || 0,
+      years_of_use: perquisites.mat_number_of_completed_years_of_use || 0,
+      employee_payment: perquisites.mat_value_to_employee || 0
+    },
+    
+    // Lunch refreshment
+    lunch_refreshment: {
+      employer_cost: perquisites.lunch_amount_paid_by_employer || 0,
+      employee_payment: perquisites.lunch_amount_paid_by_employee || 0,
+      meal_days_per_year: 250 // Default working days
+    },
+    
+    // Gift voucher
+    gift_voucher: {
+      gift_voucher_amount: perquisites.gift_vouchers_amount_paid_by_employer || 0
+    },
+    
+    // Monetary benefits
+    monetary_benefits: {
+      monetary_amount_paid_by_employer: perquisites.monetary_amount_paid_by_employer || 0,
+      expenditure_for_official_purpose: perquisites.expenditure_for_offical_purpose || 0,
+      amount_paid_by_employee: perquisites.monetary_benefits_amount_paid_by_employee || 0
+    },
+    
+    // Club expenses
+    club_expenses: {
+      club_expenses_paid_by_employer: perquisites.club_expenses_amount_paid_by_employer || 0,
+      club_expenses_paid_by_employee: perquisites.club_expenses_amount_paid_by_employee || 0,
+      club_expenses_for_official_purpose: perquisites.club_expenses_amount_paid_for_offical_purpose || 0
+    },
+    
+    // Domestic help
+    domestic_help: {
+      domestic_help_paid_by_employer: perquisites.domestic_help_amount_paid_by_employer || 0,
+      domestic_help_paid_by_employee: perquisites.domestic_help_amount_paid_by_employee || 0
+    }
+  };
+};
+
 // Submit or update taxation data
-export const saveTaxationData = async (
-  taxationData: Partial<TaxationData>
-): Promise<TaxationData> => {
+export const saveTaxationData = async (taxationData: TaxationData): Promise<any> => {
   try {
-    // Add filing_status if not present
-    if (!taxationData.filing_status) {
-      taxationData.filing_status = 'draft';
-    }
+    // Transform the data to match backend DTO structure
+    const transformedData = {
+      tax_year: taxationData.tax_year,
+      regime_type: taxationData.regime,
+      age: taxationData.age,
+      is_govt_employee: taxationData.is_govt_employee,
+      employee_id: taxationData.employee_id,
+      
+      // Salary income
+      salary_income: taxationData.salary_income,
+      
+      // Periodic salary income
+      periodic_salary_income: null,
+      
+      // Transform perquisites to nested structure
+      perquisites: transformPerquisitesToDTO(taxationData.perquisites, taxationData.salary_income),
+      
+      // House property income
+      house_property_income: taxationData.house_property_income,
+      
+      // Capital gains income
+      capital_gains_income: taxationData.capital_gains_income,
+      
+      // Retirement benefits
+      retirement_benefits: taxationData.retirement_benefits,
+      
+      // Other income
+      other_income: taxationData.other_income,
+      
+      // Tax deductions
+      deductions: taxationData.deductions
+    };
 
-    // Add default values for other required fields if not present
-    if (!taxationData.tax_breakup) {
-      taxationData.tax_breakup = {
-        gross_total_income: 0,
-        total_deductions: 0,
-        taxable_income: 0,
-        tax_before_relief: 0,
-        tax_relief: 0,
-        tax_payable: 0,
-      };
-    }
-
-    // Make sure salary components exist
-    if (!taxationData.salary) {
-      taxationData.salary = createDefaultSalaryComponents();
-    } else if (!taxationData.salary.perquisites) {
-      taxationData.salary.perquisites = createDefaultPerquisites();
-    }
-
-    // Initialize other_sources if missing
-    if (!taxationData.other_sources) {
-      taxationData.other_sources = createDefaultOtherSources();
-    }
-
-    // Initialize capital_gains if missing
-    if (!taxationData.capital_gains) {
-      taxationData.capital_gains = createDefaultCapitalGains();
-    }
-
-    if (!taxationData.leave_encashment) {
-      taxationData.leave_encashment = createDefaultLeaveEncashment();
-    }
-
-    if (!taxationData.house_property) {
-      taxationData.house_property = createDefaultHouseProperty();
-    }
-
-    if (!taxationData.pension) {
-      taxationData.pension = createDefaultPension();
-    }
-
-    // Initialize deductions if missing
-    if (!taxationData.deductions) {
-      taxationData.deductions = createDefaultDeductions();
-    }
-
-    // Initialize government employment status if missing
-    if (taxationData.is_govt_employee === undefined) {
-      taxationData.is_govt_employee = false;
-    }
-
-    // Initialize payment fields if not present
-    if (taxationData.tax_payable === undefined) taxationData.tax_payable = 0;
-    if (taxationData.tax_paid === undefined) taxationData.tax_paid = 0;
-    if (taxationData.tax_due === undefined) taxationData.tax_due = 0;
-    if (taxationData.tax_refundable === undefined)
-      taxationData.tax_refundable = 0;
-    if (taxationData.tax_pending === undefined) taxationData.tax_pending = 0;
-
-    // Updated to use v2 API endpoint
-    const response: AxiosResponse<TaxationData> = await apiClient().post(
-      '/api/v2/taxation/records',
-      taxationData
-    );
+    console.log('Sending taxation data:', transformedData);
+    
+    const response = await apiClient().post('/api/v2/taxation/records', transformedData);
     return response.data;
   } catch (error) {
+    console.error('Error saving taxation data:', error);
     throw error;
   }
 };

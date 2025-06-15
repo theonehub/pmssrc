@@ -159,25 +159,24 @@ class GetComprehensiveTaxationRecordUseCase:
             elif hasattr(taxation_record.regime, 'value'):
                 regime = taxation_record.regime.value.lower()
         
-        # Convert existing record to comprehensive DTO
-        # For now, we'll create a basic structure with existing data
+        # Convert existing record to comprehensive DTO with actual values
         return ComprehensiveTaxOutputDTO(
             tax_year=tax_year,
             regime_type=regime,
             age=age,
             is_govt_employee=is_govt_employee,
             employee_id=employee_id,
-            # All income sources will be None for existing records until we have proper conversion
-            salary_income=None,
-            periodic_salary_income=None,
-            perquisites=None,
-            house_property_income=None,
-            multiple_house_properties=None,
-            capital_gains_income=None,
-            retirement_benefits=None,
-            other_income=None,
-            monthly_payroll=None,
-            deductions=None
+            # Convert actual income sources from entity
+            salary_income=self._convert_salary_income_entity_to_dto(taxation_record.salary_income) if hasattr(taxation_record, 'salary_income') and taxation_record.salary_income else None,
+            periodic_salary_income=self._convert_periodic_salary_entity_to_dto(taxation_record.periodic_salary_income) if hasattr(taxation_record, 'periodic_salary_income') and taxation_record.periodic_salary_income else None,
+            perquisites=self._convert_perquisites_entity_to_dto(taxation_record.perquisites) if hasattr(taxation_record, 'perquisites') and taxation_record.perquisites else None,
+            house_property_income=self._convert_house_property_entity_to_dto(taxation_record.house_property_income) if hasattr(taxation_record, 'house_property_income') and taxation_record.house_property_income else None,
+            multiple_house_properties=None,  # Not implemented yet
+            capital_gains_income=self._convert_capital_gains_entity_to_dto(taxation_record.capital_gains_income) if hasattr(taxation_record, 'capital_gains_income') and taxation_record.capital_gains_income else None,
+            retirement_benefits=self._convert_retirement_benefits_entity_to_dto(taxation_record.retirement_benefits) if hasattr(taxation_record, 'retirement_benefits') and taxation_record.retirement_benefits else None,
+            other_income=self._convert_other_income_entity_to_dto(taxation_record.other_income) if hasattr(taxation_record, 'other_income') and taxation_record.other_income else None,
+            monthly_payroll=self._convert_monthly_payroll_entity_to_dto(taxation_record.monthly_payroll) if hasattr(taxation_record, 'monthly_payroll') and taxation_record.monthly_payroll else None,
+            deductions=self._convert_deductions_entity_to_dto(taxation_record.tax_deductions) if hasattr(taxation_record, 'tax_deductions') and taxation_record.tax_deductions else None
         )
     
     async def _create_default_comprehensive_record(
@@ -290,4 +289,389 @@ class GetComprehensiveTaxationRecordUseCase:
             
         except Exception as e:
             logger.error(f"Error computing age for user {user.employee_id if user else 'unknown'}: {str(e)}")
-            return 30  # Default age on error 
+            return 30  # Default age on error
+    
+    def _convert_salary_income_entity_to_dto(self, salary_income):
+        """Convert SalaryIncome entity to SalaryIncomeDTO."""
+        from app.application.dto.taxation_dto import SalaryIncomeDTO
+        
+        if not salary_income:
+            return None
+            
+        return SalaryIncomeDTO(
+            basic_salary=salary_income.basic_salary.to_float() if hasattr(salary_income.basic_salary, 'to_float') else float(salary_income.basic_salary),
+            dearness_allowance=salary_income.dearness_allowance.to_float() if hasattr(salary_income.dearness_allowance, 'to_float') else float(salary_income.dearness_allowance),
+            hra_received=salary_income.hra_received.to_float() if hasattr(salary_income.hra_received, 'to_float') else float(salary_income.hra_received),
+            hra_city_type=getattr(salary_income, 'hra_city_type', 'non_metro'),
+            actual_rent_paid=salary_income.actual_rent_paid.to_float() if hasattr(salary_income, 'actual_rent_paid') and hasattr(salary_income.actual_rent_paid, 'to_float') else 0,
+            bonus=salary_income.bonus.to_float() if hasattr(salary_income.bonus, 'to_float') else float(salary_income.bonus),
+            commission=salary_income.commission.to_float() if hasattr(salary_income.commission, 'to_float') else float(salary_income.commission),
+            special_allowance=salary_income.special_allowance.to_float() if hasattr(salary_income.special_allowance, 'to_float') else float(salary_income.special_allowance),
+            other_allowances=salary_income.other_allowances.to_float() if hasattr(salary_income.other_allowances, 'to_float') else float(salary_income.other_allowances),
+            lta_received=salary_income.lta_received.to_float() if hasattr(salary_income.lta_received, 'to_float') else float(salary_income.lta_received),
+            medical_allowance=salary_income.medical_allowance.to_float() if hasattr(salary_income.medical_allowance, 'to_float') else float(salary_income.medical_allowance),
+            conveyance_allowance=salary_income.conveyance_allowance.to_float() if hasattr(salary_income.conveyance_allowance, 'to_float') else float(salary_income.conveyance_allowance),
+            # Additional allowances with defaults
+            city_compensatory_allowance=getattr(salary_income, 'city_compensatory_allowance', 0),
+            rural_allowance=getattr(salary_income, 'rural_allowance', 0),
+            proctorship_allowance=getattr(salary_income, 'proctorship_allowance', 0),
+            wardenship_allowance=getattr(salary_income, 'wardenship_allowance', 0),
+            project_allowance=getattr(salary_income, 'project_allowance', 0),
+            deputation_allowance=getattr(salary_income, 'deputation_allowance', 0),
+            interim_relief=getattr(salary_income, 'interim_relief', 0),
+            tiffin_allowance=getattr(salary_income, 'tiffin_allowance', 0),
+            overtime_allowance=getattr(salary_income, 'overtime_allowance', 0),
+            servant_allowance=getattr(salary_income, 'servant_allowance', 0),
+            hills_high_altd_allowance=getattr(salary_income, 'hills_high_altd_allowance', 0),
+            hills_high_altd_exemption_limit=getattr(salary_income, 'hills_high_altd_exemption_limit', 0),
+            border_remote_allowance=getattr(salary_income, 'border_remote_allowance', 0),
+            border_remote_exemption_limit=getattr(salary_income, 'border_remote_exemption_limit', 0),
+            transport_employee_allowance=getattr(salary_income, 'transport_employee_allowance', 0),
+            children_education_allowance=getattr(salary_income, 'children_education_allowance', 0),
+            children_education_count=getattr(salary_income, 'children_education_count', 0),
+            children_education_months=getattr(salary_income, 'children_education_months', 0),
+            hostel_allowance=getattr(salary_income, 'hostel_allowance', 0),
+            hostel_count=getattr(salary_income, 'hostel_count', 0),
+            hostel_months=getattr(salary_income, 'hostel_months', 0),
+            transport_months=getattr(salary_income, 'transport_months', 0),
+            underground_mines_allowance=getattr(salary_income, 'underground_mines_allowance', 0),
+            underground_mines_months=getattr(salary_income, 'underground_mines_months', 0),
+            govt_employee_entertainment_allowance=getattr(salary_income, 'govt_employee_entertainment_allowance', 0),
+            govt_employees_outside_india_allowance=getattr(salary_income, 'govt_employees_outside_india_allowance', 0),
+            supreme_high_court_judges_allowance=getattr(salary_income, 'supreme_high_court_judges_allowance', 0),
+            judge_compensatory_allowance=getattr(salary_income, 'judge_compensatory_allowance', 0),
+            section_10_14_special_allowances=getattr(salary_income, 'section_10_14_special_allowances', 0),
+            travel_on_tour_allowance=getattr(salary_income, 'travel_on_tour_allowance', 0),
+            tour_daily_charge_allowance=getattr(salary_income, 'tour_daily_charge_allowance', 0),
+            conveyance_in_performace_of_duties=getattr(salary_income, 'conveyance_in_performace_of_duties', 0),
+            helper_in_performace_of_duties=getattr(salary_income, 'helper_in_performace_of_duties', 0),
+            academic_research=getattr(salary_income, 'academic_research', 0),
+            uniform_allowance=getattr(salary_income, 'uniform_allowance', 0),
+            any_other_allowance_exemption=getattr(salary_income, 'any_other_allowance_exemption', 0)
+        )
+    
+    def _convert_periodic_salary_entity_to_dto(self, periodic_salary):
+        """Convert PeriodicSalaryIncome entity to PeriodicSalaryIncomeDTO."""
+        from app.application.dto.taxation_dto import PeriodicSalaryIncomeDTO, PeriodicSalaryDataDTO, EmploymentPeriodDTO
+        
+        if not periodic_salary or not hasattr(periodic_salary, 'periods'):
+            return None
+            
+        periods_dto = []
+        for period_data in periodic_salary.periods:
+            period_dto = EmploymentPeriodDTO(
+                start_date=period_data.period.start_date if hasattr(period_data, 'period') else period_data.start_date,
+                end_date=period_data.period.end_date if hasattr(period_data, 'period') else period_data.end_date,
+                description=period_data.period.description if hasattr(period_data, 'period') else getattr(period_data, 'description', '')
+            )
+            
+            salary_income = period_data.salary_income if hasattr(period_data, 'salary_income') else period_data
+            salary_data_dto = PeriodicSalaryDataDTO(
+                period=period_dto,
+                basic_salary=salary_income.basic_salary.to_float() if hasattr(salary_income.basic_salary, 'to_float') else float(salary_income.basic_salary),
+                dearness_allowance=salary_income.dearness_allowance.to_float() if hasattr(salary_income.dearness_allowance, 'to_float') else float(salary_income.dearness_allowance),
+                hra_received=salary_income.hra_received.to_float() if hasattr(salary_income.hra_received, 'to_float') else float(salary_income.hra_received),
+                hra_city_type=getattr(salary_income, 'hra_city_type', 'non_metro'),
+                actual_rent_paid=salary_income.actual_rent_paid.to_float() if hasattr(salary_income, 'actual_rent_paid') and hasattr(salary_income.actual_rent_paid, 'to_float') else 0,
+                special_allowance=salary_income.special_allowance.to_float() if hasattr(salary_income.special_allowance, 'to_float') else float(salary_income.special_allowance),
+                bonus=salary_income.bonus.to_float() if hasattr(salary_income.bonus, 'to_float') else float(salary_income.bonus),
+                commission=salary_income.commission.to_float() if hasattr(salary_income.commission, 'to_float') else float(salary_income.commission),
+                other_allowances=salary_income.other_allowances.to_float() if hasattr(salary_income.other_allowances, 'to_float') else float(salary_income.other_allowances),
+                lta_received=salary_income.lta_received.to_float() if hasattr(salary_income.lta_received, 'to_float') else float(salary_income.lta_received),
+                medical_allowance=salary_income.medical_allowance.to_float() if hasattr(salary_income.medical_allowance, 'to_float') else float(salary_income.medical_allowance),
+                conveyance_allowance=salary_income.conveyance_allowance.to_float() if hasattr(salary_income.conveyance_allowance, 'to_float') else float(salary_income.conveyance_allowance)
+            )
+            
+            periods_dto.append(salary_data_dto)
+        
+        return PeriodicSalaryIncomeDTO(periods=periods_dto)
+    
+    def _convert_perquisites_entity_to_dto(self, perquisites):
+        """Convert Perquisites entity to PerquisitesDTO."""
+        from app.application.dto.taxation_dto import PerquisitesDTO
+        
+        if not perquisites:
+            return None
+            
+        # For now, return a basic PerquisitesDTO with available fields
+        # This would need to be expanded based on the actual perquisites entity structure
+        return PerquisitesDTO(
+            # Basic perquisite values - these would need to be mapped from the actual entity
+            accommodation=None,  # Would need proper conversion
+            car=None,  # Would need proper conversion
+            medical_reimbursement=None,  # Would need proper conversion
+            lta=None,  # Would need proper conversion
+            interest_free_loan=None,  # Would need proper conversion
+            esop=None,  # Would need proper conversion
+            utilities=None,  # Would need proper conversion
+            free_education=None,  # Would need proper conversion
+            movable_asset_usage=None,  # Would need proper conversion
+            movable_asset_transfer=None,  # Would need proper conversion
+            lunch_refreshment=None,  # Would need proper conversion
+            gift_voucher=None,  # Would need proper conversion
+            monetary_benefits=None,  # Would need proper conversion
+            club_expenses=None,  # Would need proper conversion
+            domestic_help=None  # Would need proper conversion
+        )
+    
+    def _convert_house_property_entity_to_dto(self, house_property):
+        """Convert HousePropertyIncome entity to HousePropertyIncomeDTO."""
+        from app.application.dto.taxation_dto import HousePropertyIncomeDTO
+        
+        if not house_property:
+            return None
+        
+        # Map property type from entity format to DTO format
+        property_type_mapping = {
+            'self_occupied': 'Self-Occupied',
+            'let_out': 'Let-Out', 
+            'deemed_let_out': 'Deemed Let-Out',
+            'Self-Occupied': 'Self-Occupied',  # Already correct format
+            'Let-Out': 'Let-Out',  # Already correct format
+            'Deemed Let-Out': 'Deemed Let-Out'  # Already correct format
+        }
+        
+        raw_property_type = getattr(house_property, 'property_type', 'self_occupied')
+        property_type = property_type_mapping.get(raw_property_type, 'Self-Occupied')  # Default to Self-Occupied
+            
+        return HousePropertyIncomeDTO(
+            property_type=property_type,
+            annual_rent_received=house_property.annual_rent_received.to_float() if hasattr(house_property, 'annual_rent_received') and hasattr(house_property.annual_rent_received, 'to_float') else 0,
+            municipal_taxes_paid=house_property.municipal_taxes_paid.to_float() if hasattr(house_property, 'municipal_taxes_paid') and hasattr(house_property.municipal_taxes_paid, 'to_float') else 0,
+            home_loan_interest=house_property.home_loan_interest.to_float() if hasattr(house_property, 'home_loan_interest') and hasattr(house_property.home_loan_interest, 'to_float') else 0,
+            pre_construction_interest=house_property.pre_construction_interest.to_float() if hasattr(house_property, 'pre_construction_interest') and hasattr(house_property.pre_construction_interest, 'to_float') else 0,
+            fair_rental_value=house_property.fair_rental_value.to_float() if hasattr(house_property, 'fair_rental_value') and hasattr(house_property.fair_rental_value, 'to_float') else 0,
+            standard_rent=house_property.standard_rent.to_float() if hasattr(house_property, 'standard_rent') and hasattr(house_property.standard_rent, 'to_float') else 0
+        )
+    
+    def _convert_capital_gains_entity_to_dto(self, capital_gains):
+        """Convert CapitalGainsIncome entity to CapitalGainsIncomeDTO."""
+        from app.application.dto.taxation_dto import CapitalGainsIncomeDTO
+        
+        if not capital_gains:
+            return None
+            
+        return CapitalGainsIncomeDTO(
+            short_term_capital_gains=capital_gains.short_term_capital_gains.to_float() if hasattr(capital_gains, 'short_term_capital_gains') and hasattr(capital_gains.short_term_capital_gains, 'to_float') else 0,
+            long_term_capital_gains=capital_gains.long_term_capital_gains.to_float() if hasattr(capital_gains, 'long_term_capital_gains') and hasattr(capital_gains.long_term_capital_gains, 'to_float') else 0,
+            ltcg_exemption_54=capital_gains.ltcg_exemption_54.to_float() if hasattr(capital_gains, 'ltcg_exemption_54') and hasattr(capital_gains.ltcg_exemption_54, 'to_float') else 0,
+            ltcg_exemption_54f=capital_gains.ltcg_exemption_54f.to_float() if hasattr(capital_gains, 'ltcg_exemption_54f') and hasattr(capital_gains.ltcg_exemption_54f, 'to_float') else 0,
+            ltcg_exemption_54ec=capital_gains.ltcg_exemption_54ec.to_float() if hasattr(capital_gains, 'ltcg_exemption_54ec') and hasattr(capital_gains.ltcg_exemption_54ec, 'to_float') else 0
+        )
+    
+    def _convert_retirement_benefits_entity_to_dto(self, retirement_benefits):
+        """Convert RetirementBenefits entity to RetirementBenefitsDTO."""
+        from app.application.dto.taxation_dto import (
+            RetirementBenefitsDTO, LeaveEncashmentDTO, GratuityDTO, 
+            VRSDTO, PensionDTO, RetrenchmentCompensationDTO
+        )
+        
+        if not retirement_benefits:
+            return None
+        
+        # Convert leave encashment
+        leave_encashment = None
+        if hasattr(retirement_benefits, 'leave_encashment') and retirement_benefits.leave_encashment:
+            leave_encashment_amount = retirement_benefits.leave_encashment.to_float() if hasattr(retirement_benefits.leave_encashment, 'to_float') else float(retirement_benefits.leave_encashment)
+            leave_encashment = LeaveEncashmentDTO(
+                leave_encashment_amount=leave_encashment_amount,
+                average_monthly_salary=getattr(retirement_benefits, 'average_monthly_salary', 0),
+                leave_days_encashed=getattr(retirement_benefits, 'leave_days_encashed', 0),
+                is_govt_employee=getattr(retirement_benefits, 'is_govt_employee', False),
+                during_employment=getattr(retirement_benefits, 'during_employment', False)
+            )
+        elif hasattr(retirement_benefits, 'leave_encashment_amount') and retirement_benefits.leave_encashment_amount:
+            leave_encashment_amount = retirement_benefits.leave_encashment_amount.to_float() if hasattr(retirement_benefits.leave_encashment_amount, 'to_float') else float(retirement_benefits.leave_encashment_amount)
+            if leave_encashment_amount > 0:
+                leave_encashment = LeaveEncashmentDTO(
+                    leave_encashment_amount=leave_encashment_amount,
+                    average_monthly_salary=getattr(retirement_benefits, 'average_monthly_salary', 0),
+                    leave_days_encashed=getattr(retirement_benefits, 'leave_days_encashed', 0),
+                    is_govt_employee=getattr(retirement_benefits, 'is_govt_employee', False),
+                    during_employment=getattr(retirement_benefits, 'during_employment', False)
+                )
+        
+        # Convert gratuity
+        gratuity = None
+        if hasattr(retirement_benefits, 'gratuity') and retirement_benefits.gratuity:
+            gratuity_amount = retirement_benefits.gratuity.to_float() if hasattr(retirement_benefits.gratuity, 'to_float') else float(retirement_benefits.gratuity)
+            gratuity = GratuityDTO(
+                gratuity_amount=gratuity_amount,
+                monthly_salary=getattr(retirement_benefits, 'monthly_salary', 0),
+                service_years=getattr(retirement_benefits, 'service_years', 0),
+                is_govt_employee=getattr(retirement_benefits, 'is_govt_employee', False)
+            )
+        elif hasattr(retirement_benefits, 'gratuity_amount') and retirement_benefits.gratuity_amount:
+            gratuity_amount = retirement_benefits.gratuity_amount.to_float() if hasattr(retirement_benefits.gratuity_amount, 'to_float') else float(retirement_benefits.gratuity_amount)
+            if gratuity_amount > 0:
+                gratuity = GratuityDTO(
+                    gratuity_amount=gratuity_amount,
+                    monthly_salary=getattr(retirement_benefits, 'monthly_salary', 0),
+                    service_years=getattr(retirement_benefits, 'service_years', 0),
+                    is_govt_employee=getattr(retirement_benefits, 'is_govt_employee', False)
+                )
+        
+        # Convert VRS
+        vrs = None
+        if hasattr(retirement_benefits, 'vrs') and retirement_benefits.vrs:
+            vrs_amount = retirement_benefits.vrs.to_float() if hasattr(retirement_benefits.vrs, 'to_float') else float(retirement_benefits.vrs)
+            vrs = VRSDTO(
+                vrs_amount=vrs_amount,
+                monthly_salary=getattr(retirement_benefits, 'monthly_salary', 0),
+                age=getattr(retirement_benefits, 'age', 30),
+                service_years=getattr(retirement_benefits, 'service_years', 0)
+            )
+        elif hasattr(retirement_benefits, 'vrs_amount') and retirement_benefits.vrs_amount:
+            vrs_amount = retirement_benefits.vrs_amount.to_float() if hasattr(retirement_benefits.vrs_amount, 'to_float') else float(retirement_benefits.vrs_amount)
+            if vrs_amount > 0:
+                vrs = VRSDTO(
+                    vrs_amount=vrs_amount,
+                    monthly_salary=getattr(retirement_benefits, 'monthly_salary', 0),
+                    age=getattr(retirement_benefits, 'age', 30),
+                    service_years=getattr(retirement_benefits, 'service_years', 0)
+                )
+        
+        # Convert pension
+        pension = None
+        if hasattr(retirement_benefits, 'pension') and retirement_benefits.pension:
+            pension_amount = retirement_benefits.pension.to_float() if hasattr(retirement_benefits.pension, 'to_float') else float(retirement_benefits.pension)
+            pension = PensionDTO(
+                regular_pension=pension_amount,
+                commuted_pension=getattr(retirement_benefits, 'commuted_pension', 0),
+                total_pension=pension_amount,
+                is_govt_employee=getattr(retirement_benefits, 'is_govt_employee', False),
+                gratuity_received=getattr(retirement_benefits, 'gratuity_received', False)
+            )
+        elif hasattr(retirement_benefits, 'pension_amount') and retirement_benefits.pension_amount:
+            pension_amount = retirement_benefits.pension_amount.to_float() if hasattr(retirement_benefits.pension_amount, 'to_float') else float(retirement_benefits.pension_amount)
+            if pension_amount > 0:
+                pension = PensionDTO(
+                    regular_pension=pension_amount,
+                    commuted_pension=getattr(retirement_benefits, 'commuted_pension', 0),
+                    total_pension=pension_amount,
+                    is_govt_employee=getattr(retirement_benefits, 'is_govt_employee', False),
+                    gratuity_received=getattr(retirement_benefits, 'gratuity_received', False)
+                )
+        
+        # Convert retrenchment compensation
+        retrenchment_compensation = None
+        if hasattr(retirement_benefits, 'retrenchment_compensation') and retirement_benefits.retrenchment_compensation:
+            retrenchment_amount = retirement_benefits.retrenchment_compensation.to_float() if hasattr(retirement_benefits.retrenchment_compensation, 'to_float') else float(retirement_benefits.retrenchment_compensation)
+            retrenchment_compensation = RetrenchmentCompensationDTO(
+                retrenchment_amount=retrenchment_amount,
+                monthly_salary=getattr(retirement_benefits, 'monthly_salary', 0),
+                service_years=getattr(retirement_benefits, 'service_years', 0)
+            )
+        elif hasattr(retirement_benefits, 'retrenchment_amount') and retirement_benefits.retrenchment_amount:
+            retrenchment_amount = retirement_benefits.retrenchment_amount.to_float() if hasattr(retirement_benefits.retrenchment_amount, 'to_float') else float(retirement_benefits.retrenchment_amount)
+            if retrenchment_amount > 0:
+                retrenchment_compensation = RetrenchmentCompensationDTO(
+                    retrenchment_amount=retrenchment_amount,
+                    monthly_salary=getattr(retirement_benefits, 'monthly_salary', 0),
+                    service_years=getattr(retirement_benefits, 'service_years', 0)
+                )
+        
+        # Only return RetirementBenefitsDTO if at least one component has data
+        if any([leave_encashment, gratuity, vrs, pension, retrenchment_compensation]):
+            return RetirementBenefitsDTO(
+                leave_encashment=leave_encashment,
+                gratuity=gratuity,
+                vrs=vrs,
+                pension=pension,
+                retrenchment_compensation=retrenchment_compensation
+            )
+        
+        return None
+    
+    def _convert_other_income_entity_to_dto(self, other_income):
+        """Convert OtherIncome entity to OtherIncomeDTO."""
+        from app.application.dto.taxation_dto import OtherIncomeDTO
+        
+        if not other_income:
+            return None
+            
+        return OtherIncomeDTO(
+            dividend_income=other_income.dividend_income.to_float() if hasattr(other_income, 'dividend_income') and hasattr(other_income.dividend_income, 'to_float') else 0,
+            gifts_received=other_income.gifts_received.to_float() if hasattr(other_income, 'gifts_received') and hasattr(other_income.gifts_received, 'to_float') else 0,
+            business_professional_income=other_income.business_professional_income.to_float() if hasattr(other_income, 'business_professional_income') and hasattr(other_income.business_professional_income, 'to_float') else 0,
+            other_miscellaneous_income=other_income.other_miscellaneous_income.to_float() if hasattr(other_income, 'other_miscellaneous_income') and hasattr(other_income.other_miscellaneous_income, 'to_float') else 0,
+            interest_income=None  # Would need proper conversion from InterestIncome entity
+        )
+    
+    def _convert_monthly_payroll_entity_to_dto(self, monthly_payroll):
+        """Convert AnnualPayrollWithLWP entity to AnnualPayrollWithLWPDTO."""
+        from app.application.dto.taxation_dto import AnnualPayrollWithLWPDTO
+        
+        if not monthly_payroll:
+            return None
+            
+        # This would need proper implementation based on the actual entity structure
+        return AnnualPayrollWithLWPDTO(
+            monthly_payrolls=[],  # Would need proper conversion
+            annual_salary=monthly_payroll.annual_salary.to_float() if hasattr(monthly_payroll, 'annual_salary') and hasattr(monthly_payroll.annual_salary, 'to_float') else 0,
+            total_lwp_days=getattr(monthly_payroll, 'total_lwp_days', 0),
+            lwp_details=[]  # Would need proper conversion
+        )
+    
+    def _convert_deductions_entity_to_dto(self, tax_deductions):
+        """Convert TaxDeductions entity to TaxDeductionsDTO."""
+        from app.application.dto.taxation_dto import TaxDeductionsDTO, DeductionSection80CDTO, DeductionSection80DDTO, DeductionSection80GDTO, DeductionSection80EDTO, DeductionSection80TTADTO, OtherDeductionsDTO
+        
+        if not tax_deductions:
+            return None
+            
+        # Convert Section 80C
+        section_80c = DeductionSection80CDTO(
+            life_insurance_premium=tax_deductions.life_insurance_premium.to_float() if hasattr(tax_deductions.life_insurance_premium, 'to_float') else 0,
+            epf_contribution=tax_deductions.employee_provident_fund.to_float() if hasattr(tax_deductions.employee_provident_fund, 'to_float') else 0,
+            ppf_contribution=tax_deductions.public_provident_fund.to_float() if hasattr(tax_deductions.public_provident_fund, 'to_float') else 0,
+            nsc_investment=tax_deductions.national_savings_certificate.to_float() if hasattr(tax_deductions.national_savings_certificate, 'to_float') else 0,
+            tax_saving_fd=tax_deductions.tax_saving_fixed_deposits.to_float() if hasattr(tax_deductions.tax_saving_fixed_deposits, 'to_float') else 0,
+            elss_investment=tax_deductions.elss_investments.to_float() if hasattr(tax_deductions.elss_investments, 'to_float') else 0,
+            home_loan_principal=tax_deductions.principal_repayment_home_loan.to_float() if hasattr(tax_deductions.principal_repayment_home_loan, 'to_float') else 0,
+            tuition_fees=tax_deductions.tuition_fees.to_float() if hasattr(tax_deductions.tuition_fees, 'to_float') else 0,
+            sukanya_samriddhi=tax_deductions.sukanya_samriddhi.to_float() if hasattr(tax_deductions.sukanya_samriddhi, 'to_float') else 0,
+            other_80c_investments=tax_deductions.other_80c_deductions.to_float() if hasattr(tax_deductions.other_80c_deductions, 'to_float') else 0
+        )
+        
+        # Convert Section 80D
+        section_80d = DeductionSection80DDTO(
+            self_family_premium=tax_deductions.health_insurance_self.to_float() if hasattr(tax_deductions.health_insurance_self, 'to_float') else 0,
+            parent_premium=tax_deductions.health_insurance_parents.to_float() if hasattr(tax_deductions.health_insurance_parents, 'to_float') else 0,
+            preventive_health_checkup=tax_deductions.preventive_health_checkup.to_float() if hasattr(tax_deductions.preventive_health_checkup, 'to_float') else 0,
+            employee_age=30,  # Default age, would need to be passed from context
+            parent_age=60  # Default parent age
+        )
+        
+        # Convert Section 80G
+        section_80g = DeductionSection80GDTO(
+            charitable_donations=tax_deductions.donations_80g.to_float() if hasattr(tax_deductions.donations_80g, 'to_float') else 0
+        )
+        
+        # Convert Section 80E
+        section_80e = DeductionSection80EDTO(
+            education_loan_interest=tax_deductions.education_loan_interest.to_float() if hasattr(tax_deductions.education_loan_interest, 'to_float') else 0
+        )
+        
+        # Convert Section 80TTA
+        section_80tta_ttb = DeductionSection80TTADTO(
+            savings_interest=tax_deductions.savings_account_interest.to_float() if hasattr(tax_deductions.savings_account_interest, 'to_float') else 0,
+            senior_citizen_interest=tax_deductions.senior_citizen_interest.to_float() if hasattr(tax_deductions.senior_citizen_interest, 'to_float') else 0,
+            employee_age=30  # Default age, would need to be passed from context
+        )
+        
+        # Convert Other Deductions
+        other_deductions = OtherDeductionsDTO(
+            education_loan_interest=tax_deductions.education_loan_interest.to_float() if hasattr(tax_deductions.education_loan_interest, 'to_float') else 0,
+            charitable_donations=tax_deductions.donations_80g.to_float() if hasattr(tax_deductions.donations_80g, 'to_float') else 0,
+            savings_interest=tax_deductions.savings_account_interest.to_float() if hasattr(tax_deductions.savings_account_interest, 'to_float') else 0
+        )
+        
+        return TaxDeductionsDTO(
+            section_80c=section_80c,
+            section_80d=section_80d,
+            section_80g=section_80g,
+            section_80e=section_80e,
+            section_80tta_ttb=section_80tta_ttb,
+            other_deductions=other_deductions
+        ) 

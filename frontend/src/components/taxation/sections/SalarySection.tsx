@@ -16,6 +16,7 @@ import {
 import { formatIndianNumber, parseIndianNumber } from '../utils/taxationUtils';
 import { cities } from '../utils/taxationConstants';
 import { TaxationData } from '../../../shared/types';
+import ValidatedTextField from '../components/ValidatedTextField';
 
 interface SalarySectionProps {
   taxationData: TaxationData;
@@ -44,8 +45,16 @@ const SalarySection: React.FC<SalarySectionProps> = ({
   computeHRA
 }) => {
   // Helper function to safely format salary values
-  const formatSalaryValue = (value: number | undefined): string => {
-    return formatIndianNumber(value || 0);
+  const formatSalaryValue = (value: number | string | undefined): string => {
+    // If value is a calculator expression (starts with '='), return it as-is
+    if (typeof value === 'string' && value.startsWith('=')) {
+      console.log('✅ Calculator expression detected in formatSalaryValue:', value);
+      return value;
+    }
+    // Otherwise, format as Indian number (ensure it's a number)
+    const numValue = typeof value === 'number' ? value : 0;
+    const formatted = formatIndianNumber(numValue);
+    return formatted;
   };
 
   const handleTextFieldChange = (section: string, field: string, event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
@@ -64,11 +73,11 @@ const SalarySection: React.FC<SalarySectionProps> = ({
 
   // Update HRA when basic salary, DA, or city changes
   useEffect(() => {
-    if (autoComputeHRA && taxationData.salary) {
+    if (autoComputeHRA && taxationData.salary_income) {
       const calculatedHRA = computeHRA(cities);
-      handleInputChange('salary', 'hra', calculatedHRA);
+      handleInputChange('salary_income', 'hra_received', calculatedHRA);
     }
-  }, [taxationData.salary?.basic, taxationData.salary?.dearness_allowance, cityForHRA, autoComputeHRA, computeHRA, handleInputChange, taxationData.salary]);
+  }, [taxationData.salary_income?.basic_salary, taxationData.salary_income?.dearness_allowance, cityForHRA, autoComputeHRA, computeHRA, handleInputChange, taxationData.salary_income]);
 
   return (
     <Box sx={{ py: 2 }}>
@@ -96,25 +105,24 @@ const SalarySection: React.FC<SalarySectionProps> = ({
         }}
       >
         {/* Basic Salary */}
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Basic Salary"
-          type="text"
-          value={formatSalaryValue(taxationData.salary?.basic)}
-          onChange={(e) => handleTextFieldChange('salary', 'basic', e)}
-          InputProps={{ startAdornment: '₹' }}
-          onFocus={(e) => handleTextFieldFocus('salary', 'basic', e)}
+          value={formatSalaryValue(taxationData.salary_income?.basic_salary)}
+          onChange={(value) => handleInputChange('salary_income', 'basic_salary', value)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'basic_salary', e)}
+          fieldType="amount"
+          required
+          helperText="Enter your basic salary amount"
         />
         
         {/* Dearness Allowance */}
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Dearness Allowance (DA)"
-          type="text"
-          value={formatSalaryValue(taxationData.salary?.dearness_allowance)}
-          onChange={(e) => handleTextFieldChange('salary', 'dearness_allowance', e)}
-          InputProps={{ startAdornment: '₹' }}
-          onFocus={(e) => handleTextFieldFocus('salary', 'dearness_allowance', e)}
+          value={formatSalaryValue(taxationData.salary_income?.dearness_allowance)}
+          onChange={(value) => handleInputChange('salary_income', 'dearness_allowance', value)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'dearness_allowance', e)}
+          fieldType="amount"
+          helperText="Enter your dearness allowance amount"
         />
         
         {/* HRA City */}
@@ -143,10 +151,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             fullWidth
             label="House Rent Allowance (HRA)"
             type="text"
-            value={formatSalaryValue(taxationData.salary?.hra)}
+            value={formatSalaryValue(taxationData.salary_income?.hra_received)}
             onChange={handleHRAChange}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('salary', 'hra', e)}
+            onFocus={(e) => handleTextFieldFocus('salary_income', 'hra_received', e)}
           />
           <FormControlLabel
             control={
@@ -164,32 +172,30 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           fullWidth
           label="Actual Rent Paid"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.actual_rent_paid)}
-          onChange={(e) => handleTextFieldChange('salary', 'actual_rent_paid', e)}
+          value={formatSalaryValue(taxationData.salary_income?.actual_rent_paid)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'actual_rent_paid', e)}
           InputProps={{ startAdornment: '₹' }}
-          onFocus={(e) => handleTextFieldFocus('salary', 'actual_rent_paid', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'actual_rent_paid', e)}
         />
 
         {/* Special Allowance */}
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Special Allowance"
-          type="text"
-          value={formatSalaryValue(taxationData.salary?.special_allowance)}
-          onChange={(e) => handleTextFieldChange('salary', 'special_allowance', e)}
-          InputProps={{ startAdornment: '₹' }}
-          onFocus={(e) => handleTextFieldFocus('salary', 'special_allowance', e)}
+          value={formatSalaryValue(taxationData.salary_income?.special_allowance)}
+          onChange={(value) => handleInputChange('salary_income', 'special_allowance', value)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'special_allowance', e)}
+          fieldType="amount"
+          helperText="Enter your special allowance amount"
         />
         
         {/* Bonus */}
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Bonus"
-          type="text"
-          value={formatSalaryValue(taxationData.salary?.bonus)}
-          onChange={(e) => handleTextFieldChange('salary', 'bonus', e)}
-          InputProps={{ startAdornment: '₹' }}
-          onFocus={(e) => handleTextFieldFocus('salary', 'bonus', e)}
+          value={formatSalaryValue(taxationData.salary_income?.bonus)}
+          onChange={(value) => handleInputChange('salary_income', 'bonus', value)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'bonus', e)}
+          fieldType="amount"
+          helperText="Enter your bonus amount"
         />
         
         {/* Commission */}
@@ -197,10 +203,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           fullWidth
           label="Commission"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.commission)}
-          onChange={(e) => handleTextFieldChange('salary', 'commission', e)}
+          value={formatSalaryValue(taxationData.salary_income?.commission)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'commission', e)}
           InputProps={{ startAdornment: '₹' }}
-          onFocus={(e) => handleTextFieldFocus('salary', 'commission', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'commission', e)}
         />
         
         {/* City Compensatory Allowance */}
@@ -208,10 +214,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           fullWidth
           label="City Compensatory Allowance"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.city_compensatory_allowance)}
-          onChange={(e) => handleTextFieldChange('salary', 'city_compensatory_allowance', e)}
+          value={formatSalaryValue(taxationData.salary_income?.city_compensatory_allowance)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'city_compensatory_allowance', e)}
           InputProps={{ startAdornment: '₹' }}
-          onFocus={(e) => handleTextFieldFocus('salary', 'city_compensatory_allowance', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'city_compensatory_allowance', e)}
         />
 
         {/* Section Header: Additional Allowances */}
@@ -227,10 +233,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           fullWidth
           label="Rural Allowance"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.rural_allowance)}
-          onChange={(e) => handleTextFieldChange('salary', 'rural_allowance', e)}
+          value={formatSalaryValue(taxationData.salary_income?.rural_allowance)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'rural_allowance', e)}
           InputProps={{ startAdornment: '₹' }}
-          onFocus={(e) => handleTextFieldFocus('salary', 'rural_allowance', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'rural_allowance', e)}
         />
 
         {/* Proctorship Allowance */}
@@ -238,10 +244,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           fullWidth
           label="Proctorship Allowance"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.proctorship_allowance)}
-          onChange={(e) => handleTextFieldChange('salary', 'proctorship_allowance', e)}
+          value={formatSalaryValue(taxationData.salary_income?.proctorship_allowance)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'proctorship_allowance', e)}
           InputProps={{ startAdornment: '₹' }}
-          onFocus={(e) => handleTextFieldFocus('salary', 'proctorship_allowance', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'proctorship_allowance', e)}
         />
 
         {/* Wardenship Allowance */}
@@ -249,10 +255,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           fullWidth
           label="Wardenship Allowance"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.wardenship_allowance)}
-          onChange={(e) => handleTextFieldChange('salary', 'wardenship_allowance', e)}
+          value={formatSalaryValue(taxationData.salary_income?.wardenship_allowance)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'wardenship_allowance', e)}
           InputProps={{ startAdornment: '₹' }}
-          onFocus={(e) => handleTextFieldFocus('salary', 'wardenship_allowance', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'wardenship_allowance', e)}
         />
 
         {/* Project Allowance */}
@@ -260,10 +266,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           fullWidth
           label="Project Allowance"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.project_allowance)}
-          onChange={(e) => handleTextFieldChange('salary', 'project_allowance', e)}
+          value={formatSalaryValue(taxationData.salary_income?.project_allowance)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'project_allowance', e)}
           InputProps={{ startAdornment: '₹' }}
-          onFocus={(e) => handleTextFieldFocus('salary', 'project_allowance', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'project_allowance', e)}
         />
 
         {/* Deputation Allowance */}
@@ -271,10 +277,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           fullWidth
           label="Deputation Allowance"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.deputation_allowance)}
-          onChange={(e) => handleTextFieldChange('salary', 'deputation_allowance', e)}
+          value={formatSalaryValue(taxationData.salary_income?.deputation_allowance)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'deputation_allowance', e)}
           InputProps={{ startAdornment: '₹' }}
-          onFocus={(e) => handleTextFieldFocus('salary', 'deputation_allowance', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'deputation_allowance', e)}
         />
 
         {/* Interim Relief */}
@@ -282,10 +288,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           fullWidth
           label="Interim Relief"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.interim_relief)}
-          onChange={(e) => handleTextFieldChange('salary', 'interim_relief', e)}
+          value={formatSalaryValue(taxationData.salary_income?.interim_relief)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'interim_relief', e)}
           InputProps={{ startAdornment: '₹' }}
-          onFocus={(e) => handleTextFieldFocus('salary', 'interim_relief', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'interim_relief', e)}
         />
 
         {/* Tiffin Allowance */}
@@ -293,10 +299,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           fullWidth
           label="Tiffin Allowance"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.tiffin_allowance)}
-          onChange={(e) => handleTextFieldChange('salary', 'tiffin_allowance', e)}
+          value={formatSalaryValue(taxationData.salary_income?.tiffin_allowance)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'tiffin_allowance', e)}
           InputProps={{ startAdornment: '₹' }}
-          onFocus={(e) => handleTextFieldFocus('salary', 'tiffin_allowance', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'tiffin_allowance', e)}
         />
 
         {/* Fixed Medical Allowance */}
@@ -304,10 +310,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           fullWidth
           label="Fixed Medical Allowance"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.fixed_medical_allowance)}
-          onChange={(e) => handleTextFieldChange('salary', 'fixed_medical_allowance', e)}
+          value={formatSalaryValue(taxationData.salary_income?.medical_allowance)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'medical_allowance', e)}
           InputProps={{ startAdornment: '₹' }}
-          onFocus={(e) => handleTextFieldFocus('salary', 'fixed_medical_allowance', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'medical_allowance', e)}
         />
         
         {/* Overtime Allowance */}
@@ -315,10 +321,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           fullWidth
           label="Overtime Allowance"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.overtime_allowance)}
-          onChange={(e) => handleTextFieldChange('salary', 'overtime_allowance', e)}
+          value={formatSalaryValue(taxationData.salary_income?.overtime_allowance)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'overtime_allowance', e)}
           InputProps={{ startAdornment: '₹' }}
-          onFocus={(e) => handleTextFieldFocus('salary', 'overtime_allowance', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'overtime_allowance', e)}
         />
 
         {/* Servant Allowance */}
@@ -326,10 +332,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           fullWidth
           label="Servant Allowance"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.servant_allowance)}
-          onChange={(e) => handleTextFieldChange('salary', 'servant_allowance', e)}
+          value={formatSalaryValue(taxationData.salary_income?.servant_allowance)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'servant_allowance', e)}
           InputProps={{ startAdornment: '₹' }}
-          onFocus={(e) => handleTextFieldFocus('salary', 'servant_allowance', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'servant_allowance', e)}
         />
 
         {/* Section Header: Hills/High Altitude Allowance */}
@@ -354,10 +360,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             fullWidth
             label="Hills/High Altitude Allowance"
             type="text"
-            value={formatSalaryValue(taxationData.salary?.hills_high_altd_allowance)}
-            onChange={(e) => handleTextFieldChange('salary', 'hills_high_altd_allowance', e)}
+            value={formatSalaryValue(taxationData.salary_income?.hills_high_altd_allowance)}
+            onChange={(e) => handleTextFieldChange('salary_income', 'hills_high_altd_allowance', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('salary', 'hills_high_altd_allowance', e)}
+            onFocus={(e) => handleTextFieldFocus('salary_income', 'hills_high_altd_allowance', e)}
           />
         </Tooltip>
 
@@ -378,10 +384,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             fullWidth
             label="Hills/High Altitude Allowance Exemption Limit"
             type="text"
-            value={formatSalaryValue(taxationData.salary?.hills_high_altd_exemption_limit)}
-            onChange={(e) => handleTextFieldChange('salary', 'hills_high_altd_exemption_limit', e)}
+            value={formatSalaryValue(taxationData.salary_income?.hills_high_altd_exemption_limit)}
+            onChange={(e) => handleTextFieldChange('salary_income', 'hills_high_altd_exemption_limit', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('salary', 'hills_high_altd_exemption_limit', e)}
+            onFocus={(e) => handleTextFieldFocus('salary_income', 'hills_high_altd_exemption_limit', e)}
           />
         </Tooltip>
 
@@ -406,10 +412,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             fullWidth
             label="Border/Remote Area Allowance"
             type="text"
-            value={formatSalaryValue(taxationData.salary?.border_remote_allowance)}
-            onChange={(e) => handleTextFieldChange('salary', 'border_remote_allowance', e)}
+            value={formatSalaryValue(taxationData.salary_income?.border_remote_allowance)}
+            onChange={(e) => handleTextFieldChange('salary_income', 'border_remote_allowance', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('salary', 'border_remote_allowance', e)}
+            onFocus={(e) => handleTextFieldFocus('salary_income', 'border_remote_allowance', e)}
           />
         </Tooltip>
 
@@ -429,10 +435,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             fullWidth
             label="Border/Remote Area Allowance Exemption Limit"
             type="text"
-            value={formatSalaryValue(taxationData.salary?.border_remote_exemption_limit)}
-            onChange={(e) => handleTextFieldChange('salary', 'border_remote_exemption_limit', e)}
+            value={formatSalaryValue(taxationData.salary_income?.border_remote_exemption_limit)}
+            onChange={(e) => handleTextFieldChange('salary_income', 'border_remote_exemption_limit', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('salary', 'border_remote_exemption_limit', e)}
+            onFocus={(e) => handleTextFieldFocus('salary_income', 'border_remote_exemption_limit', e)}
           />
         </Tooltip>
 
@@ -458,10 +464,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             fullWidth
             label="Transport Employee Allowance"
             type="text"
-            value={formatSalaryValue(taxationData.salary?.transport_employee_allowance)}
-            onChange={(e) => handleTextFieldChange('salary', 'transport_employee_allowance', e)}
+            value={formatSalaryValue(taxationData.salary_income?.transport_employee_allowance)}
+            onChange={(e) => handleTextFieldChange('salary_income', 'transport_employee_allowance', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('salary', 'transport_employee_allowance', e)}
+            onFocus={(e) => handleTextFieldFocus('salary_income', 'transport_employee_allowance', e)}
           />
         </Tooltip>
 
@@ -487,10 +493,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             fullWidth
             label="Children Education Allowance"
             type="text"
-            value={formatSalaryValue(taxationData.salary?.children_education_allowance)}
-            onChange={(e) => handleTextFieldChange('salary', 'children_education_allowance', e)}
+            value={formatSalaryValue(taxationData.salary_income?.children_education_allowance)}
+            onChange={(e) => handleTextFieldChange('salary_income', 'children_education_allowance', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('salary', 'children_education_allowance', e)}
+            onFocus={(e) => handleTextFieldFocus('salary_income', 'children_education_allowance', e)}
           />
         </Tooltip>
 
@@ -498,18 +504,18 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           fullWidth
           label="Number of Children"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.children_education_count)}
-          onChange={(e) => handleTextFieldChange('salary', 'children_education_count', e)}
-          onFocus={(e) => handleTextFieldFocus('salary', 'children_education_count', e)}
+          value={formatSalaryValue(taxationData.salary_income?.children_education_count)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'children_education_count', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'children_education_count', e)}
         />
 
         <TextField
           fullWidth
           label="Number of Months"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.children_education_months)}
-          onChange={(e) => handleTextFieldChange('salary', 'children_education_months', e)}
-          onFocus={(e) => handleTextFieldFocus('salary', 'children_education_months', e)}
+          value={formatSalaryValue(taxationData.salary_income?.children_education_months)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'children_education_months', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'children_education_months', e)}
         />
 
         {/* Section Header: Hostel Allowance */}
@@ -534,10 +540,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             fullWidth
             label="Hostel Allowance"
             type="text"
-            value={formatSalaryValue(taxationData.salary?.hostel_allowance)}
-            onChange={(e) => handleTextFieldChange('salary', 'hostel_allowance', e)}
+            value={formatSalaryValue(taxationData.salary_income?.hostel_allowance)}
+            onChange={(e) => handleTextFieldChange('salary_income', 'hostel_allowance', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('salary', 'hostel_allowance', e)}
+            onFocus={(e) => handleTextFieldFocus('salary_income', 'hostel_allowance', e)}
           />
         </Tooltip>
 
@@ -545,18 +551,18 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           fullWidth
           label="Number of Children in Hostel"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.hostel_count)}
-          onChange={(e) => handleTextFieldChange('salary', 'hostel_count', e)}
-          onFocus={(e) => handleTextFieldFocus('salary', 'hostel_count', e)}
+          value={formatSalaryValue(taxationData.salary_income?.hostel_count)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'hostel_count', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'hostel_count', e)}
         />
 
         <TextField
           fullWidth
           label="Hostel Months"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.hostel_months)}
-          onChange={(e) => handleTextFieldChange('salary', 'hostel_months', e)}
-          onFocus={(e) => handleTextFieldFocus('salary', 'hostel_months', e)}
+          value={formatSalaryValue(taxationData.salary_income?.hostel_months)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'hostel_months', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'hostel_months', e)}
         />
 
         {/* Section Header: Transport Allowance */}
@@ -582,10 +588,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             fullWidth
             label="Transport Allowance"
             type="text"
-            value={formatSalaryValue(taxationData.salary?.transport_allowance)}
-            onChange={(e) => handleTextFieldChange('salary', 'transport_allowance', e)}
+            value={formatSalaryValue(taxationData.salary_income?.conveyance_allowance)}
+            onChange={(e) => handleTextFieldChange('salary_income', 'conveyance_allowance', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('salary', 'transport_allowance', e)}
+            onFocus={(e) => handleTextFieldFocus('salary_income', 'conveyance_allowance', e)}
           />
         </Tooltip>
 
@@ -593,9 +599,9 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           fullWidth
           label="Transport Months"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.transport_months)}
-          onChange={(e) => handleTextFieldChange('salary', 'transport_months', e)}
-          onFocus={(e) => handleTextFieldFocus('salary', 'transport_months', e)}
+          value={formatSalaryValue(taxationData.salary_income?.transport_months)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'transport_months', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'transport_months', e)}
         />
 
         {/* Section Header: Underground Mines Allowance */}
@@ -620,10 +626,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             fullWidth
             label="Underground Mines Allowance"
             type="text"
-            value={formatSalaryValue(taxationData.salary?.underground_mines_allowance)}
-            onChange={(e) => handleTextFieldChange('salary', 'underground_mines_allowance', e)}
+            value={formatSalaryValue(taxationData.salary_income?.underground_mines_allowance)}
+            onChange={(e) => handleTextFieldChange('salary_income', 'underground_mines_allowance', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('salary', 'underground_mines_allowance', e)}
+            onFocus={(e) => handleTextFieldFocus('salary_income', 'underground_mines_allowance', e)}
           />
         </Tooltip>
 
@@ -631,9 +637,9 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           fullWidth
           label="Underground Mines Months"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.underground_mines_months)}
-          onChange={(e) => handleTextFieldChange('salary', 'underground_mines_months', e)}
-          onFocus={(e) => handleTextFieldFocus('salary', 'underground_mines_months', e)}
+          value={formatSalaryValue(taxationData.salary_income?.underground_mines_months)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'underground_mines_months', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'underground_mines_months', e)}
         />
 
         {/* Section Header: Government Employee Specific Allowances */}
@@ -658,10 +664,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             fullWidth
             label="Government Employee Entertainment Allowance"
             type="text"
-            value={formatSalaryValue(taxationData.salary?.govt_employee_entertainment_allowance)}
-            onChange={(e) => handleTextFieldChange('salary', 'govt_employee_entertainment_allowance', e)}
+            value={formatSalaryValue(taxationData.salary_income?.govt_employee_entertainment_allowance)}
+            onChange={(e) => handleTextFieldChange('salary_income', 'govt_employee_entertainment_allowance', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('salary', 'govt_employee_entertainment_allowance', e)}
+            onFocus={(e) => handleTextFieldFocus('salary_income', 'govt_employee_entertainment_allowance', e)}
           />
         </Tooltip>
 
@@ -681,10 +687,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
                 fullWidth
                 label="Government Employees Outside India Allowance"
                 type="text"
-                value={formatSalaryValue(taxationData.salary?.govt_employees_outside_india_allowance)}
-                onChange={(e) => handleTextFieldChange('salary', 'govt_employees_outside_india_allowance', e)}
+                value={formatSalaryValue(taxationData.salary_income?.govt_employees_outside_india_allowance)}
+                onChange={(e) => handleTextFieldChange('salary_income', 'govt_employees_outside_india_allowance', e)}
                 InputProps={{ startAdornment: '₹' }}
-                onFocus={(e) => handleTextFieldFocus('salary', 'govt_employees_outside_india_allowance', e)}
+                onFocus={(e) => handleTextFieldFocus('salary_income', 'govt_employees_outside_india_allowance', e)}
               />
             </Tooltip>
 
@@ -702,10 +708,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
                 fullWidth
                 label="Supreme/High Court Judges Allowance"
                 type="text"
-                value={formatSalaryValue(taxationData.salary?.supreme_high_court_judges_allowance)}
-                onChange={(e) => handleTextFieldChange('salary', 'supreme_high_court_judges_allowance', e)}
+                value={formatSalaryValue(taxationData.salary_income?.supreme_high_court_judges_allowance)}
+                onChange={(e) => handleTextFieldChange('salary_income', 'supreme_high_court_judges_allowance', e)}
                 InputProps={{ startAdornment: '₹' }}
-                onFocus={(e) => handleTextFieldFocus('salary', 'supreme_high_court_judges_allowance', e)}
+                onFocus={(e) => handleTextFieldFocus('salary_income', 'supreme_high_court_judges_allowance', e)}
               />
             </Tooltip>
 
@@ -723,10 +729,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
                 fullWidth
                 label="Judge Compensatory Allowance"
                 type="text"
-                value={formatSalaryValue(taxationData.salary?.judge_compensatory_allowance)}
-                onChange={(e) => handleTextFieldChange('salary', 'judge_compensatory_allowance', e)}
+                value={formatSalaryValue(taxationData.salary_income?.judge_compensatory_allowance)}
+                onChange={(e) => handleTextFieldChange('salary_income', 'judge_compensatory_allowance', e)}
                 InputProps={{ startAdornment: '₹' }}
-                onFocus={(e) => handleTextFieldFocus('salary', 'judge_compensatory_allowance', e)}
+                onFocus={(e) => handleTextFieldFocus('salary_income', 'judge_compensatory_allowance', e)}
               />
             </Tooltip>
 
@@ -744,10 +750,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
                 fullWidth
                 label="Section 10(14) Special Allowances"
                 type="text"
-                value={formatSalaryValue(taxationData.salary?.section_10_14_special_allowances)}
-                onChange={(e) => handleTextFieldChange('salary', 'section_10_14_special_allowances', e)}
+                value={formatSalaryValue(taxationData.salary_income?.section_10_14_special_allowances)}
+                onChange={(e) => handleTextFieldChange('salary_income', 'section_10_14_special_allowances', e)}
                 InputProps={{ startAdornment: '₹' }}
-                onFocus={(e) => handleTextFieldFocus('salary', 'section_10_14_special_allowances', e)}
+                onFocus={(e) => handleTextFieldFocus('salary_income', 'section_10_14_special_allowances', e)}
               />
             </Tooltip>
           </>
@@ -775,10 +781,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             fullWidth
             label="Travel Allowance (Tour)"
             type="text"
-            value={formatSalaryValue(taxationData.salary?.travel_on_tour_allowance)}
-            onChange={(e) => handleTextFieldChange('salary', 'travel_on_tour_allowance', e)}
+            value={formatSalaryValue(taxationData.salary_income?.travel_on_tour_allowance)}
+            onChange={(e) => handleTextFieldChange('salary_income', 'travel_on_tour_allowance', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('salary', 'travel_on_tour_allowance', e)}
+            onFocus={(e) => handleTextFieldFocus('salary_income', 'travel_on_tour_allowance', e)}
           />
         </Tooltip>
 
@@ -796,10 +802,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             fullWidth
             label="Tour Daily Charge Allowance"
             type="text"
-            value={formatSalaryValue(taxationData.salary?.tour_daily_charge_allowance)}
-            onChange={(e) => handleTextFieldChange('salary', 'tour_daily_charge_allowance', e)}
+            value={formatSalaryValue(taxationData.salary_income?.tour_daily_charge_allowance)}
+            onChange={(e) => handleTextFieldChange('salary_income', 'tour_daily_charge_allowance', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('salary', 'tour_daily_charge_allowance', e)}
+            onFocus={(e) => handleTextFieldFocus('salary_income', 'tour_daily_charge_allowance', e)}
           />
         </Tooltip>
 
@@ -817,10 +823,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             fullWidth
             label="Conveyance Allowance (Duties)"
             type="text"
-            value={formatSalaryValue(taxationData.salary?.conveyance_in_performace_of_duties)}
-            onChange={(e) => handleTextFieldChange('salary', 'conveyance_in_performace_of_duties', e)}
+            value={formatSalaryValue(taxationData.salary_income?.conveyance_in_performace_of_duties)}
+            onChange={(e) => handleTextFieldChange('salary_income', 'conveyance_in_performace_of_duties', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('salary', 'conveyance_in_performace_of_duties', e)}
+            onFocus={(e) => handleTextFieldFocus('salary_income', 'conveyance_in_performace_of_duties', e)}
           />
         </Tooltip>
 
@@ -838,10 +844,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             fullWidth
             label="Helper Allowance (Duties)"
             type="text"
-            value={formatSalaryValue(taxationData.salary?.helper_in_performace_of_duties)}
-            onChange={(e) => handleTextFieldChange('salary', 'helper_in_performace_of_duties', e)}
+            value={formatSalaryValue(taxationData.salary_income?.helper_in_performace_of_duties)}
+            onChange={(e) => handleTextFieldChange('salary_income', 'helper_in_performace_of_duties', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('salary', 'helper_in_performace_of_duties', e)}
+            onFocus={(e) => handleTextFieldFocus('salary_income', 'helper_in_performace_of_duties', e)}
           />
         </Tooltip>
 
@@ -859,10 +865,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             fullWidth
             label="Academic/Research Allowance"
             type="text"
-            value={formatSalaryValue(taxationData.salary?.academic_research)}
-            onChange={(e) => handleTextFieldChange('salary', 'academic_research', e)}
+            value={formatSalaryValue(taxationData.salary_income?.academic_research)}
+            onChange={(e) => handleTextFieldChange('salary_income', 'academic_research', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('salary', 'academic_research', e)}
+            onFocus={(e) => handleTextFieldFocus('salary_income', 'academic_research', e)}
           />
         </Tooltip>
 
@@ -880,10 +886,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             fullWidth
             label="Uniform Allowance (Duties)"
             type="text"
-            value={formatSalaryValue(taxationData.salary?.uniform_allowance)}
-            onChange={(e) => handleTextFieldChange('salary', 'uniform_allowance', e)}
+            value={formatSalaryValue(taxationData.salary_income?.uniform_allowance)}
+            onChange={(e) => handleTextFieldChange('salary_income', 'uniform_allowance', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('salary', 'uniform_allowance', e)}
+            onFocus={(e) => handleTextFieldFocus('salary_income', 'uniform_allowance', e)}
           />
         </Tooltip>
 
@@ -892,10 +898,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           fullWidth
           label="Any Other Allowance"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.any_other_allowance)}
-          onChange={(e) => handleTextFieldChange('salary', 'any_other_allowance', e)}
+          value={formatSalaryValue(taxationData.salary_income?.other_allowances)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'other_allowances', e)}
           InputProps={{ startAdornment: '₹' }}
-          onFocus={(e) => handleTextFieldFocus('salary', 'any_other_allowance', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'other_allowances', e)}
         />
         
         {/* Any Other Allowance Exemption */}
@@ -903,10 +909,10 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           fullWidth
           label="Any Other Allowance Exemption"
           type="text"
-          value={formatSalaryValue(taxationData.salary?.any_other_allowance_exemption)}
-          onChange={(e) => handleTextFieldChange('salary', 'any_other_allowance_exemption', e)}
+          value={formatSalaryValue(taxationData.salary_income?.any_other_allowance_exemption)}
+          onChange={(e) => handleTextFieldChange('salary_income', 'any_other_allowance_exemption', e)}
           InputProps={{ startAdornment: '₹' }}
-          onFocus={(e) => handleTextFieldFocus('salary', 'any_other_allowance_exemption', e)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'any_other_allowance_exemption', e)}
         />
       </Box>
     </Box>

@@ -5,14 +5,27 @@ import {
   InputAdornment,
   Box,
   Typography,
-  TextFieldProps
+  TextFieldProps,
+  IconButton,
+  Tooltip
 } from '@mui/material';
+import { Calculate as CalculatorIcon } from '@mui/icons-material';
 import { 
   validateAmount, 
   getValidationMessage,
   TAXATION_LIMITS 
 } from '../utils/validationRules';
-import { formatIndianNumber, parseIndianNumber } from '../utils/taxationUtils';
+import { 
+  formatIndianNumber, 
+  parseIndianNumber,
+  evaluateCalculatorExpression,
+  isCalculatorExpression,
+  validateCalculatorExpression
+} from '../utils/taxationUtils';
+import type { 
+  CalculatorEvaluationResult, 
+  CalculatorValidationResult 
+} from '../utils/calculatorTypes';
 
 type FieldType = 
   | 'amount' 
@@ -76,9 +89,17 @@ const ValidatedTextField: React.FC<ValidatedTextFieldProps> = ({
   sx = {},
   ...props
 }) => {
+  // Only log if value is a calculator expression
+  if (typeof value === 'string' && value.startsWith('=')) {
+    console.log('🔄 ValidatedTextField render with calculator expression:', { label, value });
+  }
+  
   const [touched, setTouched] = useState<boolean>(false);
   const [warning, setWarning] = useState<string>('');
   const [info, setInfo] = useState<string>('');
+  const [isCalculating, setIsCalculating] = useState<boolean>(false);
+  const [calculatorError, setCalculatorError] = useState<string>('');
+  const [showCalculatorIcon, setShowCalculatorIcon] = useState<boolean>(false);
 
   const performFieldSpecificValidations = useCallback((numValue: number): void => {
     switch (fieldType) {
@@ -168,7 +189,55 @@ const ValidatedTextField: React.FC<ValidatedTextFieldProps> = ({
   const validateField = useCallback((inputValue: string | number): void => {
     setWarning('');
     setInfo('');
+    setCalculatorError('');
 
+    // Handle calculator expressions
+    if (isCalculatorExpression(String(inputValue))) {
+      const validation = validateCalculatorExpression(String(inputValue)) as CalculatorValidationResult;
+      if (!validation.isValid) {
+        setCalculatorError(validation.message);
+        return;
+      }
+      
+      const evaluation = evaluateCalculatorExpression(String(inputValue)) as CalculatorEvaluationResult;
+      if (!evaluation.isValid) {
+        setCalculatorError(evaluation.error || 'Invalid calculation');
+        return;
+      }
+      
+      // Use the calculated result for further validation
+      const numValue = evaluation.result;
+      setInfo(`Calculated: ${formatIndianNumber(numValue)}`);
+      
+      // Continue with normal validation using the calculated value
+      const basicValidation = validateAmount(numValue, maxLimit);
+      if (basicValidation.warning) {
+        setWarning(basicValidation.warning);
+        return;
+      }
+
+      // Field-specific validation messages
+      const validationMessage = getValidationMessage(fieldType, numValue, validationContext);
+      if (validationMessage) {
+        switch (validationMessage.type) {
+          case 'warning':
+            setWarning(validationMessage.message);
+            break;
+          case 'info':
+            // Don't override calculation info with field info
+            if (!info.startsWith('Calculated:')) {
+              setInfo(validationMessage.message);
+            }
+            break;
+        }
+      }
+
+      // Field-specific validations
+      performFieldSpecificValidations(numValue);
+      return;
+    }
+
+    // Handle regular numeric values
     const numValue = parseIndianNumber(String(inputValue));
 
     // Basic amount validation - now shows warnings instead of errors
@@ -193,7 +262,7 @@ const ValidatedTextField: React.FC<ValidatedTextFieldProps> = ({
 
     // Field-specific validations - now show warnings instead of blocking
     performFieldSpecificValidations(numValue);
-  }, [fieldType, maxLimit, validationContext, performFieldSpecificValidations]);
+  }, [fieldType, maxLimit, validationContext, performFieldSpecificValidations, info]);
 
   useEffect(() => {
     if (touched && value !== '') {
@@ -203,15 +272,49 @@ const ValidatedTextField: React.FC<ValidatedTextFieldProps> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     let inputValue = e.target.value;
-
-    // For numeric fields, sanitize input
-    if (fieldType !== 'text' && fieldType !== 'select') {
-      // Remove invalid characters but keep decimal point and commas
-      inputValue = inputValue.replace(/[^0-9.,]/g, '');
+    
+    // Special handling for calculator expressions
+    // If user types '=' at the beginning or after existing content, start fresh with '='
+    if (inputValue.includes('=')) {
+      const equalsIndex = inputValue.indexOf('=');
+      if (equalsIndex === 0) {
+        // User typed '=' at the beginning, keep as is
+        // inputValue remains the same
+      } else {
+        // User typed '=' after existing content (like "0="), start fresh with just the '=' part
+        inputValue = '=' + inputValue.substring(equalsIndex + 1);
+      }
       
-      // Prevent multiple decimal points
-      const decimalCount = (inputValue.match(/\./g) || []).length;
-      if (decimalCount > 1) {
+      setIsCalculating(true);
+      setShowCalculatorIcon(true);
+      console.log('🧮 Calculator mode activated in ValidatedTextField:', { label, inputValue });
+      onChange(inputValue);
+      return;
+    }
+    
+    // If we were in calculator mode but user removed the '=', exit calculator mode
+    if (isCalculating && !inputValue.startsWith('=')) {
+      setIsCalculating(false);
+      setShowCalculatorIcon(false);
+      setCalculatorError('');
+    }
+
+    // Handle invalid arithmetic without '=' prefix
+    if (fieldType !== 'text' && fieldType !== 'select') {
+      // Check for arithmetic operators without '=' prefix
+      const hasArithmetic = /[+\-*/]/.test(inputValue) && !inputValue.startsWith('=');
+      if (hasArithmetic) {
+        setCalculatorError('Invalid arithmetic without \'=\' prefix. Use = to start calculations (e.g., =10000*10)');
+        console.log('❌ Invalid arithmetic detected in ValidatedTextField:', { label, inputValue });
+        return;
+      }
+    }
+
+    // For non-text fields, ensure numeric input (unless it's a calculator expression)
+    if (fieldType !== 'text' && fieldType !== 'select' && !inputValue.startsWith('=')) {
+      // Allow empty string, numbers, commas, and decimal points
+      const numericPattern = /^[0-9,.\s]*$/;
+      if (inputValue && !numericPattern.test(inputValue)) {
         return;
       }
     }
@@ -222,26 +325,50 @@ const ValidatedTextField: React.FC<ValidatedTextFieldProps> = ({
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>): void => {
     setTouched(true);
     
-    // Format the value for display
-    if (fieldType !== 'text' && fieldType !== 'select' && e.target.value) {
-      const numValue = parseIndianNumber(e.target.value);
+    const inputValue = e.target.value;
+    
+    // Handle calculator expressions
+    if (isCalculatorExpression(inputValue)) {
+      const evaluation = evaluateCalculatorExpression(inputValue) as CalculatorEvaluationResult;
+      if (evaluation.isValid) {
+        // Replace the expression with the calculated result
+        const formattedResult = formatIndianNumber(evaluation.result);
+        onChange(formattedResult);
+        setIsCalculating(false);
+        setShowCalculatorIcon(false);
+        setCalculatorError('');
+        setInfo(`Calculated from: ${inputValue}`);
+        
+        // Validate the calculated result
+        validateField(evaluation.result);
+        return;
+      } else {
+        setCalculatorError(evaluation.error || 'Invalid calculation');
+        return;
+      }
+    }
+    
+    // Format the value for display (existing logic)
+    if (fieldType !== 'text' && fieldType !== 'select' && inputValue) {
+      const numValue = parseIndianNumber(inputValue);
       if (!isNaN(numValue)) {
         onChange(formatIndianNumber(numValue));
       }
     }
     
-    validateField(e.target.value);
+    validateField(inputValue);
   };
 
   const handleFocusEvent = (e: React.FocusEvent<HTMLInputElement>): void => {
-    // Clear formatting on focus for easier editing
-    if (fieldType !== 'text' && fieldType !== 'select' && value) {
-      const numValue = parseIndianNumber(String(value));
-      if (numValue === 0) {
-        onChange('');
-      } else {
-        onChange(numValue.toString());
-      }
+    setTouched(true);
+    
+    // Clear field if it contains just "0" or "₹0" to make it easier to type calculator expressions
+    const currentValue = e.target.value;
+    if (currentValue === '0' || currentValue === '₹0' || currentValue === '0.00' || currentValue === '₹0.00') {
+      // Clear the field by calling onChange with empty string
+      onChange('');
+      // Also clear the input field directly
+      e.target.value = '';
     }
     
     if (onFocus) {
@@ -251,7 +378,13 @@ const ValidatedTextField: React.FC<ValidatedTextFieldProps> = ({
 
   // Determine the color and helper text based on validation state
   const getFieldState = (): FieldState => {
-    if (warning) {
+    if (calculatorError) {
+      return {
+        color: 'warning',
+        helperTextContent: calculatorError,
+        helperTextColor: 'error'
+      };
+    } else if (warning) {
       return {
         color: 'warning',
         helperTextContent: warning,
@@ -291,17 +424,34 @@ const ValidatedTextField: React.FC<ValidatedTextFieldProps> = ({
         color={fieldState.color}
         required={required}
         disabled={disabled}
-        error={false} // Never show error state, only warnings
+        error={!!calculatorError} // Show error state for calculator errors
         InputProps={{
           startAdornment: (fieldType === 'amount' || fieldType.includes('amount')) ? (
             <InputAdornment position="start">₹</InputAdornment>
-          ) : (fieldType === 'percentage') ? (
-            <InputAdornment position="end">%</InputAdornment>
           ) : undefined,
+          endAdornment: (() => {
+            // Calculator icon for amount fields when in calculator mode
+            if ((fieldType === 'amount' || fieldType.includes('amount')) && showCalculatorIcon) {
+              return (
+                <InputAdornment position="end">
+                  <Tooltip title="Calculator mode active. Use = to start calculations (e.g., =10000*10)">
+                    <IconButton edge="end" size="small" disabled>
+                      <CalculatorIcon fontSize="small" color={isCalculating ? 'primary' : 'disabled'} />
+                    </IconButton>
+                  </Tooltip>
+                </InputAdornment>
+              );
+            }
+            // Percentage symbol for percentage fields
+            if (fieldType === 'percentage') {
+              return <InputAdornment position="end">%</InputAdornment>;
+            }
+            return undefined;
+          })(),
         }}
         inputProps={{
-          maxLength: fieldType === 'amount' ? 12 : fieldType === 'percentage' ? 5 : fieldType === 'age' ? 3 : undefined,
-          pattern: fieldType === 'amount' ? '[0-9,]*' : fieldType === 'percentage' ? '[0-9]*' : undefined
+          maxLength: fieldType === 'amount' ? 20 : fieldType === 'percentage' ? 5 : fieldType === 'age' ? 3 : undefined, // Increased for calculator expressions
+          pattern: fieldType === 'amount' ? '[0-9,=+\\-*/()]*' : fieldType === 'percentage' ? '[0-9]*' : undefined
         }}
         {...props}
       />
@@ -329,6 +479,20 @@ const ValidatedTextField: React.FC<ValidatedTextFieldProps> = ({
           }}
         >
           Maximum allowed: ₹{maxLimit.toLocaleString('en-IN')}
+        </Typography>
+      )}
+
+      {/* Show calculator usage hint for amount fields */}
+      {(fieldType === 'amount' || fieldType.includes('amount')) && !fieldState.helperTextContent && !isCalculating && (
+        <Typography 
+          variant="caption" 
+          sx={{ 
+            color: 'text.secondary',
+            display: 'block',
+            mt: 0.5
+          }}
+        >
+          Tip: Use = for calculations (e.g., =10000*10, =50000+25000)
         </Typography>
       )}
     </Box>

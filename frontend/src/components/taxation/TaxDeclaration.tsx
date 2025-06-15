@@ -85,6 +85,19 @@ const TaxDeclaration: React.FC = () => {
     fetchVrsValue
   } = hookResult;
 
+  // Debug: Log taxation data whenever it changes
+  useEffect(() => {
+    console.log('🎯 TaxDeclaration received taxation data:', {
+      keys: Object.keys(taxationData || {}),
+      employee_id: taxationData?.employee_id,
+      age: taxationData?.age,
+      regime: taxationData?.regime,
+      salary_income_keys: taxationData?.salary_income ? Object.keys(taxationData.salary_income) : null,
+      basic_salary: taxationData?.salary_income?.basic_salary,
+      deductions_keys: taxationData?.deductions ? Object.keys(taxationData.deductions) : null,
+    });
+  }, [taxationData]);
+
   // Validate form whenever data changes - now tracks warnings instead of errors
   useEffect(() => {
     const validation: any = validateTaxationForm(taxationData);

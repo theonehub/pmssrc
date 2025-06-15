@@ -6,7 +6,7 @@ Data Transfer Objects for taxation API covering all scenarios including mid-year
 from datetime import datetime, date
 from decimal import Decimal
 from typing import Dict, Any, List, Optional
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, model_validator
 
 
 # =============================================================================
@@ -54,17 +54,58 @@ class EmploymentPeriodDTO(BaseModel):
 # =============================================================================
 
 class SalaryIncomeDTO(BaseModel):
-    """Basic salary income DTO."""
+    """Basic salary income DTO with comprehensive allowance fields."""
+    # Core salary components
     basic_salary: Decimal = Field(..., ge=0)
     dearness_allowance: Decimal = Field(default=0, ge=0)
     hra_received: Decimal = Field(default=0, ge=0)
     hra_city_type: str = Field(default="non_metro", description="metro or non_metro")
     actual_rent_paid: Decimal = Field(default=0, ge=0)
+    bonus: Decimal = Field(default=0, ge=0)
+    commission: Decimal = Field(default=0, ge=0)
     special_allowance: Decimal = Field(default=0, ge=0)
     other_allowances: Decimal = Field(default=0, ge=0)
     lta_received: Decimal = Field(default=0, ge=0)
     medical_allowance: Decimal = Field(default=0, ge=0)
     conveyance_allowance: Decimal = Field(default=0, ge=0)
+    
+    # Additional detailed allowances from frontend
+    city_compensatory_allowance: Decimal = Field(default=0, ge=0)
+    rural_allowance: Decimal = Field(default=0, ge=0)
+    proctorship_allowance: Decimal = Field(default=0, ge=0)
+    wardenship_allowance: Decimal = Field(default=0, ge=0)
+    project_allowance: Decimal = Field(default=0, ge=0)
+    deputation_allowance: Decimal = Field(default=0, ge=0)
+    interim_relief: Decimal = Field(default=0, ge=0)
+    tiffin_allowance: Decimal = Field(default=0, ge=0)
+    overtime_allowance: Decimal = Field(default=0, ge=0)
+    servant_allowance: Decimal = Field(default=0, ge=0)
+    hills_high_altd_allowance: Decimal = Field(default=0, ge=0)
+    hills_high_altd_exemption_limit: Decimal = Field(default=0, ge=0)
+    border_remote_allowance: Decimal = Field(default=0, ge=0)
+    border_remote_exemption_limit: Decimal = Field(default=0, ge=0)
+    transport_employee_allowance: Decimal = Field(default=0, ge=0)
+    children_education_allowance: Decimal = Field(default=0, ge=0)
+    children_education_count: int = Field(default=0, ge=0)
+    children_education_months: int = Field(default=0, ge=0, le=12)
+    hostel_allowance: Decimal = Field(default=0, ge=0)
+    hostel_count: int = Field(default=0, ge=0)
+    hostel_months: int = Field(default=0, ge=0, le=12)
+    transport_months: int = Field(default=0, ge=0, le=12)
+    underground_mines_allowance: Decimal = Field(default=0, ge=0)
+    underground_mines_months: int = Field(default=0, ge=0, le=12)
+    govt_employee_entertainment_allowance: Decimal = Field(default=0, ge=0)
+    govt_employees_outside_india_allowance: Decimal = Field(default=0, ge=0)
+    supreme_high_court_judges_allowance: Decimal = Field(default=0, ge=0)
+    judge_compensatory_allowance: Decimal = Field(default=0, ge=0)
+    section_10_14_special_allowances: Decimal = Field(default=0, ge=0)
+    travel_on_tour_allowance: Decimal = Field(default=0, ge=0)
+    tour_daily_charge_allowance: Decimal = Field(default=0, ge=0)
+    conveyance_in_performace_of_duties: Decimal = Field(default=0, ge=0)
+    helper_in_performace_of_duties: Decimal = Field(default=0, ge=0)
+    academic_research: Decimal = Field(default=0, ge=0)
+    uniform_allowance: Decimal = Field(default=0, ge=0)
+    any_other_allowance_exemption: Decimal = Field(default=0, ge=0)
     
     @validator('hra_city_type')
     def validate_city_type(cls, v):
@@ -74,9 +115,10 @@ class SalaryIncomeDTO(BaseModel):
 
 
 class PeriodicSalaryDataDTO(BaseModel):
-    """DTO for salary data in a specific period."""
+    """DTO for salary data in a specific period with comprehensive allowance fields."""
     
     period: EmploymentPeriodDTO
+    # Core salary components
     basic_salary: Decimal = Field(..., gt=0, description="Basic salary amount")
     dearness_allowance: Decimal = Field(0, ge=0, description="Dearness allowance")
     hra_received: Decimal = Field(0, ge=0, description="HRA received")
@@ -84,9 +126,49 @@ class PeriodicSalaryDataDTO(BaseModel):
     actual_rent_paid: Decimal = Field(0, ge=0, description="Actual rent paid")
     special_allowance: Decimal = Field(0, ge=0, description="Special allowance")
     other_allowances: Decimal = Field(0, ge=0, description="Other allowances")
+    bonus: Decimal = Field(0, ge=0, description="Bonus")
+    commission: Decimal = Field(0, ge=0, description="Commission")
     lta_received: Decimal = Field(0, ge=0, description="LTA received")
     medical_allowance: Decimal = Field(0, ge=0, description="Medical allowance")
     conveyance_allowance: Decimal = Field(0, ge=0, description="Conveyance allowance")
+    
+    # Additional detailed allowances from frontend
+    city_compensatory_allowance: Decimal = Field(default=0, ge=0)
+    rural_allowance: Decimal = Field(default=0, ge=0)
+    proctorship_allowance: Decimal = Field(default=0, ge=0)
+    wardenship_allowance: Decimal = Field(default=0, ge=0)
+    project_allowance: Decimal = Field(default=0, ge=0)
+    deputation_allowance: Decimal = Field(default=0, ge=0)
+    interim_relief: Decimal = Field(default=0, ge=0)
+    tiffin_allowance: Decimal = Field(default=0, ge=0)
+    overtime_allowance: Decimal = Field(default=0, ge=0)
+    servant_allowance: Decimal = Field(default=0, ge=0)
+    hills_high_altd_allowance: Decimal = Field(default=0, ge=0)
+    hills_high_altd_exemption_limit: Decimal = Field(default=0, ge=0)
+    border_remote_allowance: Decimal = Field(default=0, ge=0)
+    border_remote_exemption_limit: Decimal = Field(default=0, ge=0)
+    transport_employee_allowance: Decimal = Field(default=0, ge=0)
+    children_education_allowance: Decimal = Field(default=0, ge=0)
+    children_education_count: int = Field(default=0, ge=0)
+    children_education_months: int = Field(default=0, ge=0, le=12)
+    hostel_allowance: Decimal = Field(default=0, ge=0)
+    hostel_count: int = Field(default=0, ge=0)
+    hostel_months: int = Field(default=0, ge=0, le=12)
+    transport_months: int = Field(default=0, ge=0, le=12)
+    underground_mines_allowance: Decimal = Field(default=0, ge=0)
+    underground_mines_months: int = Field(default=0, ge=0, le=12)
+    govt_employee_entertainment_allowance: Decimal = Field(default=0, ge=0)
+    govt_employees_outside_india_allowance: Decimal = Field(default=0, ge=0)
+    supreme_high_court_judges_allowance: Decimal = Field(default=0, ge=0)
+    judge_compensatory_allowance: Decimal = Field(default=0, ge=0)
+    section_10_14_special_allowances: Decimal = Field(default=0, ge=0)
+    travel_on_tour_allowance: Decimal = Field(default=0, ge=0)
+    tour_daily_charge_allowance: Decimal = Field(default=0, ge=0)
+    conveyance_in_performace_of_duties: Decimal = Field(default=0, ge=0)
+    helper_in_performace_of_duties: Decimal = Field(default=0, ge=0)
+    academic_research: Decimal = Field(default=0, ge=0)
+    uniform_allowance: Decimal = Field(default=0, ge=0)
+    any_other_allowance_exemption: Decimal = Field(default=0, ge=0)
     
     @validator('hra_city_type')
     def validate_city_type(cls, v):
@@ -107,6 +189,8 @@ class PeriodicSalaryDataDTO(BaseModel):
                 "dearness_allowance": 60000,
                 "hra_received": 240000,
                 "hra_city_type": "metro",
+                "bonus": 100000,
+                "commission": 50000,
                 "actual_rent_paid": 300000,
                 "special_allowance": 100000,
                 "other_allowances": 50000
@@ -132,7 +216,9 @@ class PeriodicSalaryIncomeDTO(BaseModel):
                         "basic_salary": 600000,
                         "hra_received": 240000,
                         "hra_city_type": "metro",
-                        "actual_rent_paid": 300000
+                        "actual_rent_paid": 300000,
+                        "bonus": 100000,
+                        "commission": 50000
                     },
                     {
                         "period": {
@@ -143,7 +229,9 @@ class PeriodicSalaryIncomeDTO(BaseModel):
                         "basic_salary": 800000,
                         "hra_received": 320000,
                         "hra_city_type": "metro",
-                        "actual_rent_paid": 300000
+                        "actual_rent_paid": 300000,
+                        "bonus": 100000,
+                        "commission": 50000
                     }
                 ]
             }
@@ -169,7 +257,9 @@ class MidYearJoinerDTO(BaseModel):
                     "basic_salary": 800000,
                     "hra_received": 320000,
                     "hra_city_type": "metro",
-                    "actual_rent_paid": 300000
+                    "actual_rent_paid": 300000,
+                    "bonus": 100000,
+                    "commission": 50000
                 }
             }
         }
@@ -195,7 +285,9 @@ class MidYearIncrementDTO(BaseModel):
                     "basic_salary": 600000,
                     "hra_received": 240000,
                     "hra_city_type": "metro",
-                    "actual_rent_paid": 300000
+                    "actual_rent_paid": 300000,
+                    "bonus": 100000,
+                    "commission": 50000
                 },
                 "post_increment_salary": {
                     "period": {
@@ -206,7 +298,9 @@ class MidYearIncrementDTO(BaseModel):
                     "basic_salary": 800000,
                     "hra_received": 320000,
                     "hra_city_type": "metro",
-                    "actual_rent_paid": 300000
+                    "actual_rent_paid": 300000,
+                    "bonus": 100000,
+                    "commission": 50000
                 }
             }
         }
@@ -379,7 +473,9 @@ class EnhancedTaxCalculationRequestDTO(BaseModel):
                             "basic_salary": 600000,
                             "hra_received": 240000,
                             "hra_city_type": "metro",
-                            "actual_rent_paid": 300000
+                            "actual_rent_paid": 300000,
+                            "bonus": 100000,
+                            "commission": 50000
                         }
                     ]
                 },
@@ -417,7 +513,9 @@ class ScenarioComparisonRequestDTO(BaseModel):
                                 "basic_salary": 800000,
                                 "hra_received": 320000,
                                 "hra_city_type": "metro",
-                                "actual_rent_paid": 300000
+                                "actual_rent_paid": 300000,
+                                "bonus": 100000,
+                                "commission": 50000
                             }
                         ]
                     },
@@ -435,11 +533,12 @@ class ScenarioComparisonRequestDTO(BaseModel):
 
 class CreateTaxationRecordRequest(BaseModel):
     """Request to create new taxation record with comprehensive income support."""
-    user_id: str = Field(..., description="User ID")
+    user_id: Optional[str] = Field(None, description="User ID (deprecated, use employee_id)")
+    employee_id: Optional[str] = Field(None, description="Employee ID")
     tax_year: str = Field(..., description="Tax year (e.g., '2023-24')")
     
     # Core income (required for backward compatibility)
-    salary_income: SalaryIncomeDTO
+    salary_income: Optional[SalaryIncomeDTO] = None
     deductions: Optional[TaxDeductionsDTO] = None
     
     # Comprehensive income components (optional)
@@ -462,6 +561,26 @@ class CreateTaxationRecordRequest(BaseModel):
         if v not in ["old", "new"]:
             raise ValueError("Regime must be 'old' or 'new'")
         return v
+    
+    @model_validator(mode='before')
+    @classmethod
+    def validate_user_identification(cls, values):
+        """Ensure either user_id or employee_id is provided and map employee_id to user_id."""
+        user_id = values.get('user_id')
+        employee_id = values.get('employee_id')
+        
+        if not user_id and not employee_id:
+            raise ValueError("Either user_id or employee_id must be provided")
+        
+        # If employee_id is provided but user_id is not, map employee_id to user_id
+        if employee_id and not user_id:
+            values['user_id'] = employee_id
+        
+        # If both are provided, ensure they match
+        if user_id and employee_id and user_id != employee_id:
+            raise ValueError("user_id and employee_id must match if both are provided")
+        
+        return values
 
 
 class UpdateSalaryIncomeRequest(BaseModel):

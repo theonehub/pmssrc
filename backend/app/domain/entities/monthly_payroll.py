@@ -10,7 +10,7 @@ from datetime import date
 
 from app.domain.value_objects.money import Money
 from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
-from app.domain.entities.salary_income import SalaryIncome
+from app.domain.entities.taxation.salary_income import SalaryIncome
 
 
 @dataclass

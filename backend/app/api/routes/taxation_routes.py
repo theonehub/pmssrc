@@ -75,7 +75,7 @@ async def calculate_comprehensive_tax(
     
     try:
         response = await controller.calculate_comprehensive_tax(
-            request, current_user.organization_id
+            request, current_user.hostname
         )
         return response
         
@@ -110,7 +110,7 @@ async def calculate_perquisites(
     
     try:
         response = await controller.calculate_perquisites_only(
-            perquisites, regime_type, current_user.organization_id
+            perquisites, regime_type, current_user.hostname
         )
         return response
         
@@ -141,7 +141,7 @@ async def calculate_house_property(
     
     try:
         response = await controller.calculate_house_property_only(
-            house_property, regime_type, current_user.organization_id
+            house_property, regime_type, current_user.hostname
         )
         return response
         
@@ -172,7 +172,7 @@ async def calculate_capital_gains(
     
     try:
         response = await controller.calculate_capital_gains_only(
-            capital_gains, regime_type, current_user.organization_id
+            capital_gains, regime_type, current_user.hostname
         )
         return response
         
@@ -203,7 +203,7 @@ async def calculate_retirement_benefits(
     
     try:
         response = await controller.calculate_retirement_benefits_only(
-            retirement_benefits, regime_type, current_user.organization_id
+            retirement_benefits, regime_type, current_user.hostname
         )
         return response
         

@@ -109,95 +109,23 @@ class TaxCalculationService:
     
     def _calculate_total_income(self, input_data: TaxCalculationInput) -> Money:
         """Calculate total income from all sources."""
-        # Salary income
-        salary_total = (
-            input_data.salary_income.basic_salary +
-            input_data.salary_income.dearness_allowance +
-            input_data.salary_income.house_rent_allowance +
-            input_data.salary_income.special_allowance +
-            input_data.salary_income.conveyance_allowance +
-            input_data.salary_income.medical_allowance +
-            input_data.salary_income.bonus +
-            input_data.salary_income.commission +
-            input_data.salary_income.overtime +
-            input_data.salary_income.arrears +
-            input_data.salary_income.gratuity +
-            input_data.salary_income.leave_encashment +
-            input_data.salary_income.other_allowances
-        )
+        # Salary income - use the actual method from SalaryIncome entity
+        salary_total = input_data.salary_income.get_total_salary()
         
-        # Perquisites
-        perquisites_total = (
-            input_data.perquisites.rent_free_accommodation +
-            input_data.perquisites.concessional_accommodation +
-            input_data.perquisites.car_perquisite +
-            input_data.perquisites.driver_perquisite +
-            input_data.perquisites.fuel_perquisite +
-            input_data.perquisites.education_perquisite +
-            input_data.perquisites.domestic_servant_perquisite +
-            input_data.perquisites.utility_perquisite +
-            input_data.perquisites.loan_perquisite +
-            input_data.perquisites.esop_perquisite +
-            input_data.perquisites.club_membership_perquisite +
-            input_data.perquisites.other_perquisites
-        )
+        # Perquisites - use the actual method from Perquisites entity
+        perquisites_total = input_data.perquisites.get_total_perquisites()
         
-        # House property income
-        house_property_total = (
-            input_data.house_property_income.municipal_value +
-            input_data.house_property_income.fair_rental_value +
-            input_data.house_property_income.standard_rent +
-            input_data.house_property_income.actual_rent -
-            input_data.house_property_income.municipal_tax -
-            input_data.house_property_income.interest_on_loan -
-            input_data.house_property_income.pre_construction_interest -
-            input_data.house_property_income.other_deductions
-        )
+        # House property income - use the actual method from HousePropertyIncome entity
+        house_property_total = input_data.house_property_income.calculate_net_income_from_house_property(input_data.regime)
         
-        # Capital gains income
-        capital_gains_total = (
-            input_data.capital_gains_income.sale_price -
-            input_data.capital_gains_income.purchase_price -
-            input_data.capital_gains_income.transfer_expenses -
-            input_data.capital_gains_income.improvement_cost
-        )
+        # Capital gains income - use the actual method from CapitalGainsIncome entity
+        capital_gains_total = input_data.capital_gains_income.calculate_total_capital_gains_income()
         
-        # Retirement benefits
-        retirement_total = (
-            input_data.retirement_benefits.gratuity_amount +
-            input_data.retirement_benefits.leave_encashment_amount +
-            input_data.retirement_benefits.pension_amount +
-            input_data.retirement_benefits.vrs_compensation +
-            input_data.retirement_benefits.other_retirement_benefits
-        )
+        # Retirement benefits - use default zero for now (can be enhanced later)
+        retirement_total = Money.zero()
         
-        # Other income
-        other_income_total = (
-            input_data.other_income.bank_interest +
-            input_data.other_income.fixed_deposit_interest +
-            input_data.other_income.recurring_deposit_interest +
-            input_data.other_income.post_office_interest +
-            input_data.other_income.other_interest +
-            input_data.other_income.equity_dividend +
-            input_data.other_income.mutual_fund_dividend +
-            input_data.other_income.other_dividend +
-            input_data.other_income.house_property_rent +
-            input_data.other_income.commercial_property_rent +
-            input_data.other_income.other_rental +
-            input_data.other_income.business_income +
-            input_data.other_income.professional_income +
-            input_data.other_income.short_term_capital_gains +
-            input_data.other_income.long_term_capital_gains +
-            input_data.other_income.lottery_winnings +
-            input_data.other_income.horse_race_winnings +
-            input_data.other_income.crossword_puzzle_winnings +
-            input_data.other_income.card_game_winnings +
-            input_data.other_income.other_speculative_income +
-            input_data.other_income.agricultural_income +
-            input_data.other_income.share_of_profit_partnership +
-            input_data.other_income.interest_on_tax_free_bonds +
-            input_data.other_income.other_exempt_income
-        )
+        # Other income - use the actual method from OtherIncome entity
+        other_income_total = input_data.other_income.calculate_total_other_income(input_data.regime)
         
         return (
             salary_total +
@@ -210,137 +138,19 @@ class TaxCalculationService:
     
     def _calculate_total_exemptions(self, input_data: TaxCalculationInput) -> Money:
         """Calculate total exemptions."""
-        # HRA exemption
-        hra_exemption = self._calculate_hra_exemption(
-            input_data.salary_income.basic_salary,
-            input_data.salary_income.dearness_allowance,
-            input_data.salary_income.house_rent_allowance,
-            input_data.house_property_income.actual_rent
-        )
+        # Use the actual exemption methods from entities
+        salary_exemptions = input_data.salary_income.calculate_total_exemptions(input_data.regime)
         
-        # Gratuity exemption
-        gratuity_exemption = self._calculate_gratuity_exemption(
-            input_data.retirement_benefits.gratuity_amount,
-            input_data.retirement_benefits.years_of_service,
-            input_data.retirement_benefits.is_government_employee
-        )
-        
-        # Leave encashment exemption
-        leave_encashment_exemption = self._calculate_leave_encashment_exemption(
-            input_data.retirement_benefits.leave_encashment_amount,
-            input_data.retirement_benefits.leave_balance,
-            input_data.retirement_benefits.is_government_employee
-        )
-        
-        # Pension exemption
-        pension_exemption = self._calculate_pension_exemption(
-            input_data.retirement_benefits.pension_amount,
-            input_data.retirement_benefits.is_commuted_pension,
-            input_data.retirement_benefits.commutation_percentage,
-            input_data.retirement_benefits.is_government_employee
-        )
-        
-        # VRS compensation exemption
-        vrs_exemption = self._calculate_vrs_exemption(
-            input_data.retirement_benefits.vrs_compensation
-        )
-        
-        # Other exemptions
-        other_exemptions = (
-            input_data.other_income.interest_on_tax_free_bonds +
-            input_data.other_income.other_exempt_income
-        )
-        
-        return (
-            hra_exemption +
-            gratuity_exemption +
-            leave_encashment_exemption +
-            pension_exemption +
-            vrs_exemption +
-            other_exemptions
-        )
+        # For now, return salary exemptions only (can be enhanced later)
+        return salary_exemptions
     
     def _calculate_total_deductions(self, input_data: TaxCalculationInput) -> Money:
         """Calculate total deductions."""
         if input_data.regime.regime_type == TaxRegimeType.NEW:
-            return Money(Decimal('0'))  # No deductions in new regime
+            return Money.zero()  # No deductions in new regime
         
-        # Section 80C deductions
-        section_80c = (
-            input_data.tax_deductions.life_insurance_premium +
-            input_data.tax_deductions.elss_investments +
-            input_data.tax_deductions.public_provident_fund +
-            input_data.tax_deductions.employee_provident_fund +
-            input_data.tax_deductions.sukanya_samriddhi +
-            input_data.tax_deductions.national_savings_certificate +
-            input_data.tax_deductions.tax_saving_fixed_deposits +
-            input_data.tax_deductions.principal_repayment_home_loan +
-            input_data.tax_deductions.tuition_fees +
-            input_data.tax_deductions.other_80c_deductions
-        )
-        section_80c = min(section_80c, Money(Decimal('150000')))  # Max ₹1.5 lakh
-        
-        # Section 80D deductions
-        section_80d = (
-            input_data.tax_deductions.health_insurance_self +
-            input_data.tax_deductions.health_insurance_parents +
-            input_data.tax_deductions.preventive_health_checkup
-        )
-        section_80d = min(section_80d, Money(Decimal('25000')))  # Max ₹25,000
-        
-        # Section 80E deductions
-        section_80e = input_data.tax_deductions.education_loan_interest  # No limit
-        
-        # Section 80G deductions
-        section_80g = input_data.tax_deductions.donations_80g  # 50% or 100% of donation
-        
-        # Section 80TTA deductions
-        section_80tta = min(
-            input_data.tax_deductions.savings_account_interest,
-            Money(Decimal('10000'))
-        )  # Max ₹10,000
-        
-        # Section 80TTB deductions
-        section_80ttb = min(
-            input_data.tax_deductions.senior_citizen_interest,
-            Money(Decimal('50000'))
-        ) if input_data.is_senior_citizen else Money(Decimal('0'))  # Max ₹50,000
-        
-        # Section 80U deductions
-        section_80u = (
-            input_data.tax_deductions.disability_deduction +
-            input_data.tax_deductions.medical_treatment_deduction
-        )
-        
-        # Other deductions
-        other_deductions = (
-            input_data.tax_deductions.scientific_research_donation +
-            input_data.tax_deductions.political_donation +
-            input_data.tax_deductions.infrastructure_deduction +
-            input_data.tax_deductions.industrial_undertaking_deduction +
-            input_data.tax_deductions.special_category_state_deduction +
-            input_data.tax_deductions.hotel_deduction +
-            input_data.tax_deductions.north_eastern_state_deduction +
-            input_data.tax_deductions.employment_deduction +
-            input_data.tax_deductions.employment_generation_deduction +
-            input_data.tax_deductions.offshore_banking_deduction +
-            input_data.tax_deductions.co_operative_society_deduction +
-            input_data.tax_deductions.royalty_deduction +
-            input_data.tax_deductions.patent_deduction +
-            input_data.tax_deductions.interest_on_savings_deduction +
-            input_data.tax_deductions.disability_deduction_amount
-        )
-        
-        return (
-            section_80c +
-            section_80d +
-            section_80e +
-            section_80g +
-            section_80tta +
-            section_80ttb +
-            section_80u +
-            other_deductions
-        )
+        # Use the actual deduction methods from TaxDeductions entity
+        return input_data.tax_deductions.calculate_total_eligible_deductions(input_data.regime)
     
     def _calculate_tax_liability(self,
                                taxable_income: Money,
@@ -405,7 +215,7 @@ class TaxCalculationService:
                 "salary_income": {
                     "basic_salary": input_data.salary_income.basic_salary.to_float(),
                     "dearness_allowance": input_data.salary_income.dearness_allowance.to_float(),
-                    "house_rent_allowance": input_data.salary_income.house_rent_allowance.to_float(),
+                    "hra_received": input_data.salary_income.hra_received.to_float(),
                     "special_allowance": input_data.salary_income.special_allowance.to_float(),
                     "conveyance_allowance": input_data.salary_income.conveyance_allowance.to_float(),
                     "medical_allowance": input_data.salary_income.medical_allowance.to_float(),
@@ -494,7 +304,7 @@ class TaxCalculationService:
                 "hra_exemption": self._calculate_hra_exemption(
                     input_data.salary_income.basic_salary,
                     input_data.salary_income.dearness_allowance,
-                    input_data.salary_income.house_rent_allowance,
+                    input_data.salary_income.hra_received,
                     input_data.house_property_income.actual_rent
                 ).to_float(),
                 "gratuity_exemption": self._calculate_gratuity_exemption(

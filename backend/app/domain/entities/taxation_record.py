@@ -12,7 +12,7 @@ from app.domain.value_objects.employee_id import EmployeeId
 from app.domain.value_objects.money import Money
 from app.domain.value_objects.tax_year import TaxYear
 from app.domain.value_objects.tax_regime import TaxRegime
-from app.domain.entities.salary_income import SalaryIncome
+from app.domain.entities.taxation.salary_income import SalaryIncome
 from app.domain.entities.tax_deductions import TaxDeductions
 from app.domain.entities.perquisites import Perquisites
 from app.domain.entities.house_property_income import HousePropertyIncome

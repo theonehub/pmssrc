@@ -222,7 +222,6 @@ class UnifiedTaxationController:
             salary_income = SalaryIncome(
                 basic_salary=Money.zero(),
                 dearness_allowance=Money.zero(),
-                house_rent_allowance=Money.zero(),
                 hra_received=Money.zero(),
                 hra_city_type="non_metro",
                 special_allowance=Money.zero(),
@@ -551,7 +550,7 @@ class UnifiedTaxationController:
             tax_input = self._convert_dto_to_domain_input(request)
             
             # Calculate comprehensive tax
-            result = self.enhanced_tax_service.calculate_comprehensive_tax(tax_input)
+            result = self.enhanced_tax_service.calculate_tax(tax_input)
             
             # Convert result to response DTO
             response = self._convert_result_to_dto(result, request)
@@ -817,13 +816,176 @@ class UnifiedTaxationController:
     # DTO TO DOMAIN ENTITY CONVERSION METHODS
     # =============================================================================
     
+    def _convert_dto_to_domain_input(self, request: ComprehensiveTaxInputDTO):
+        """Convert ComprehensiveTaxInputDTO to TaxCalculationInput for domain service."""
+        from app.domain.services.taxation.tax_calculation_service import TaxCalculationInput
+        from app.domain.value_objects.taxation.tax_regime import TaxRegime, TaxRegimeType
+        
+        # Convert regime
+        regime_type = TaxRegimeType.OLD if request.regime_type.lower() == "old" else TaxRegimeType.NEW
+        regime = TaxRegime(regime_type)
+        
+        # Convert salary income
+        salary_income = self._convert_salary_dto_to_entity(request.salary_income) if request.salary_income else self._create_default_salary_income()
+        
+        # Convert other components
+        perquisites = self._convert_perquisites_dto_to_entity(request.perquisites) if request.perquisites else self._create_default_perquisites()
+        house_property_income = self._convert_house_property_dto_to_entity(request.house_property_income) if request.house_property_income else self._create_default_house_property()
+        capital_gains_income = self._convert_capital_gains_dto_to_entity(request.capital_gains_income) if request.capital_gains_income else self._create_default_capital_gains()
+        retirement_benefits = self._convert_retirement_benefits_dto_to_entity(request.retirement_benefits) if request.retirement_benefits else self._create_default_retirement_benefits()
+        other_income = self._convert_other_income_dto_to_entity(request.other_income) if request.other_income else self._create_default_other_income()
+        tax_deductions = self._convert_deductions_dto_to_entity(request.deductions) if request.deductions else self._create_default_deductions()
+        
+        # Determine citizen status
+        is_senior_citizen = request.age >= 60
+        is_super_senior_citizen = request.age >= 80
+        
+        return TaxCalculationInput(
+            salary_income=salary_income,
+            perquisites=perquisites,
+            house_property_income=house_property_income,
+            capital_gains_income=capital_gains_income,
+            retirement_benefits=retirement_benefits,
+            other_income=other_income,
+            tax_deductions=tax_deductions,
+            regime=regime,
+            age=request.age,
+            is_senior_citizen=is_senior_citizen,
+            is_super_senior_citizen=is_super_senior_citizen,
+            is_government_employee=getattr(request, 'is_govt_employee', False)
+        )
+    
+    def _convert_result_to_dto(self, result, request: ComprehensiveTaxInputDTO) -> PeriodicTaxCalculationResponseDTO:
+        """Convert TaxCalculationResult to PeriodicTaxCalculationResponseDTO."""
+        from app.application.dto.taxation_dto import PeriodicTaxCalculationResponseDTO
+        from datetime import datetime
+        
+        # Calculate additional fields
+        effective_tax_rate = 0.0
+        if result.total_income.to_float() > 0:
+            effective_tax_rate = (result.tax_liability.to_float() / result.total_income.to_float()) * 100
+        
+        # Calculate surcharge and cess (simplified calculation)
+        tax_before_surcharge = result.tax_liability.to_float()
+        surcharge = 0.0
+        cess = tax_before_surcharge * 0.04  # 4% health and education cess
+        
+        # Build response
+        return PeriodicTaxCalculationResponseDTO(
+            total_tax_liability=result.tax_liability.to_float(),
+            taxable_income=result.taxable_income.to_float(),
+            effective_tax_rate=effective_tax_rate,
+            regime_used=request.regime_type,
+            gross_income=result.total_income.to_float(),
+            total_exemptions=result.total_exemptions.to_float(),
+            total_deductions=result.total_deductions.to_float(),
+            tax_before_rebate=tax_before_surcharge,
+            rebate_87a=0.0,  # Calculate if applicable
+            tax_after_rebate=tax_before_surcharge,
+            surcharge=surcharge,
+            cess=cess,
+            
+            # Enhanced details
+            employment_periods=[],  # Not applicable for simple calculation
+            total_employment_days=365,  # Full year assumption
+            is_mid_year_scenario=False,
+            period_wise_income={},
+            surcharge_breakdown={},
+            full_year_projection={},
+            mid_year_impact={},
+            optimization_suggestions=[],
+            taxpayer_age=request.age,
+            calculation_breakdown=result.tax_breakdown,
+            
+            # Metadata
+            calculated_at=datetime.utcnow(),
+            calculation_version="1.0"
+        )
+    
+    def _create_default_salary_income(self):
+        """Create default salary income entity."""
+        from app.domain.entities.taxation.salary_income import SalaryIncome
+        from app.domain.value_objects.money import Money
+        
+        return SalaryIncome(
+            basic_salary=Money.zero(),
+            dearness_allowance=Money.zero(),
+            hra_received=Money.zero(),
+            hra_city_type="non_metro",
+            special_allowance=Money.zero(),
+            conveyance_allowance=Money.zero(),
+            medical_allowance=Money.zero(),
+            bonus=Money.zero(),
+            commission=Money.zero(),
+            other_allowances=Money.zero(),
+            lta_received=Money.zero()
+        )
+    
+    def _create_default_perquisites(self):
+        """Create default perquisites entity."""
+        from app.domain.entities.taxation.perquisites import Perquisites
+        
+        return Perquisites()
+    
+    def _create_default_house_property(self):
+        """Create default house property entity."""
+        from app.domain.entities.taxation.house_property_income import HousePropertyIncome
+        from app.domain.value_objects.money import Money
+        from app.domain.value_objects.taxation.property_type import PropertyType
+        
+        return HousePropertyIncome(
+            property_type=PropertyType.SELF_OCCUPIED,
+            annual_rent_received=Money.zero(),
+            municipal_taxes_paid=Money.zero(),
+            home_loan_interest=Money.zero(),
+            pre_construction_interest=Money.zero(),
+            fair_rental_value=Money.zero(),
+            standard_rent=Money.zero()
+        )
+    
+    def _create_default_capital_gains(self):
+        """Create default capital gains entity."""
+        from app.domain.entities.taxation.capital_gains import CapitalGainsIncome
+        from app.domain.value_objects.money import Money
+        
+        return CapitalGainsIncome(
+            stcg_111a_equity_stt=Money.zero(),
+            stcg_other_assets=Money.zero(),
+            ltcg_112a_equity_stt=Money.zero(),
+            ltcg_other_assets=Money.zero(),
+            ltcg_debt_mf=Money.zero()
+        )
+    
+    def _create_default_retirement_benefits(self):
+        """Create default retirement benefits entity."""
+        from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
+        
+        return RetirementBenefits()
+    
+    def _create_default_other_income(self):
+        """Create default other income entity."""
+        from app.domain.entities.taxation.other_income import OtherIncome
+        from app.domain.value_objects.money import Money
+        
+        return OtherIncome(
+            dividend_income=Money.zero(),
+            gifts_received=Money.zero(),
+            business_professional_income=Money.zero(),
+            other_miscellaneous_income=Money.zero()
+        )
+    
+    def _create_default_deductions(self):
+        """Create default tax deductions entity."""
+        from app.domain.entities.taxation.tax_deductions import TaxDeductions
+        
+        return TaxDeductions()
+    
     def _convert_salary_dto_to_entity(self, salary_dto) -> SalaryIncome:
         """Convert salary DTO to domain entity."""
         
         return SalaryIncome(
             basic_salary=Money.from_decimal(salary_dto.basic_salary),
             dearness_allowance=Money.from_decimal(salary_dto.dearness_allowance),
-            house_rent_allowance=Money.from_decimal(salary_dto.hra_received),  # Map hra_received to house_rent_allowance
             hra_received=Money.from_decimal(salary_dto.hra_received),
             hra_city_type=salary_dto.hra_city_type,
             special_allowance=Money.from_decimal(salary_dto.special_allowance),
@@ -1286,7 +1448,6 @@ class UnifiedTaxationController:
         return SalaryIncome(
             basic_salary=Money.from_decimal(salary_data_dto.basic_salary),
             dearness_allowance=Money.from_decimal(salary_data_dto.dearness_allowance),
-            house_rent_allowance=Money.from_decimal(salary_data_dto.hra_received),  # Map hra_received to house_rent_allowance
             hra_received=Money.from_decimal(salary_data_dto.hra_received),
             hra_city_type=salary_data_dto.hra_city_type,
             special_allowance=Money.from_decimal(salary_data_dto.special_allowance),

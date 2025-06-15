@@ -387,7 +387,6 @@ class MongoDBTaxationRepository(TaxationRepository):
             "salary_income": {
                 "basic_salary": record.salary_income.basic_salary.to_float(),
                 "dearness_allowance": record.salary_income.dearness_allowance.to_float(),
-                "house_rent_allowance": record.salary_income.house_rent_allowance.to_float(),
                 "special_allowance": record.salary_income.special_allowance.to_float(),
                 "conveyance_allowance": record.salary_income.conveyance_allowance.to_float(),
                 "medical_allowance": record.salary_income.medical_allowance.to_float(),
@@ -526,7 +525,6 @@ class MongoDBTaxationRepository(TaxationRepository):
         salary_income = SalaryIncome(
             basic_salary=Money(document["salary_income"]["basic_salary"]),
             dearness_allowance=Money(document["salary_income"]["dearness_allowance"]),
-            house_rent_allowance=Money(document["salary_income"]["house_rent_allowance"]),
             special_allowance=Money(document["salary_income"]["special_allowance"]),
             conveyance_allowance=Money(document["salary_income"]["conveyance_allowance"]),
             medical_allowance=Money(document["salary_income"]["medical_allowance"]),

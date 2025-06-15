@@ -201,4 +201,41 @@ class Money:
         if not isinstance(other, Money):
             return NotImplemented
         self._validate_currency(other)
-        return self.amount >= other.amount 
+        return self.amount >= other.amount
+    
+    def __add__(self, other) -> 'Money':
+        """Addition operator (+)."""
+        if not isinstance(other, Money):
+            return NotImplemented
+        return self.add(other)
+    
+    def __sub__(self, other) -> 'Money':
+        """Subtraction operator (-)."""
+        if not isinstance(other, Money):
+            return NotImplemented
+        return self.subtract(other)
+    
+    def __mul__(self, other) -> 'Money':
+        """Multiplication operator (*)."""
+        if isinstance(other, Money):
+            return NotImplemented  # Cannot multiply money by money
+        return self.multiply(other)
+    
+    def __rmul__(self, other) -> 'Money':
+        """Reverse multiplication operator (*)."""
+        return self.multiply(other)
+    
+    def __truediv__(self, other) -> 'Money':
+        """Division operator (/)."""
+        if isinstance(other, Money):
+            return NotImplemented  # Cannot divide money by money
+        return self.divide(other)
+    
+    def __neg__(self) -> 'Money':
+        """Negation operator (-)."""
+        # Since Money cannot be negative, this should raise an error
+        raise ValueError("Money cannot be negative")
+    
+    def __abs__(self) -> 'Money':
+        """Absolute value operator."""
+        return self  # Money is always positive 

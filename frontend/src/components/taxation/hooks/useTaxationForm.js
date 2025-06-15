@@ -469,20 +469,17 @@ const useTaxationForm = (empId) => {
       setSubmitting(true);
       setError(null);
       
-      // Create a copy of the taxation data to modify before submission
-      const dataToSubmit = {...taxationData};
+      // Create a copy of the taxation data to modify before calculation
+      const dataToCalculate = {...taxationData};
       
       // Remove ev_purchase_date field as it's not expected by the backend
-      if (dataToSubmit.deductions && dataToSubmit.deductions.ev_purchase_date) {
-        delete dataToSubmit.deductions.ev_purchase_date;
+      if (dataToCalculate.deductions && dataToCalculate.deductions.ev_purchase_date) {
+        delete dataToCalculate.deductions.ev_purchase_date;
       }
       
-      // First save the taxation data
-      await saveTaxationData(dataToSubmit);
-      
-      // Then calculate the tax
-      const result = await calculateTax(empId, taxationData.tax_year, taxationData.regime);
-      setCalculatedTax(result.total_tax);
+      // Directly calculate the tax without saving first
+      const result = await calculateTax(empId, taxationData.tax_year, taxationData.regime, dataToCalculate);
+      setCalculatedTax(result.total_tax_liability);
       
       setSuccess('Tax calculated successfully!');
     } catch (err) {

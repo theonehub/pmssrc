@@ -62,32 +62,297 @@ export const getTaxationByEmpId = async (
   }
 };
 
-// Calculate tax for an employee
+// Helper function to ensure numeric values
+const ensureNumeric = (value: any): number => {
+  if (value === null || value === undefined || value === '') return 0;
+  const num = typeof value === 'string' ? parseFloat(value) : Number(value);
+  return isNaN(num) ? 0 : num;
+};
+
+// Calculate comprehensive tax for an employee
 export const calculateTax = async (
   empId: string,
   taxYear: string | null = null,
-  regime: TaxRegime | null = null
+  regime: TaxRegime | null = null,
+  taxationData?: TaxationData
 ): Promise<any> => {
   try {
-    // Note: This is a simplified implementation for now
-    // TODO: Implement proper comprehensive tax calculation with full input data
+    // If no taxation data provided, try to fetch existing record first
+    let inputData: TaxationData;
     
-    // Use parameters to avoid TypeScript warnings
-    console.log(`Calculating tax for employee ${empId}, tax year: ${taxYear}, regime: ${regime}`);
+    if (taxationData) {
+      inputData = taxationData;
+    } else {
+      try {
+        // Try to get existing taxation record for the employee
+        inputData = await getTaxationByEmpId(empId);
+      } catch (error) {
+        // If no existing record, create minimal input with default values
+        inputData = {
+          employee_id: empId,
+          tax_year: taxYear || '2024-25',
+          regime: regime || 'new',
+          age: 30, // Default age - should be provided by caller
+          salary_income: createDefaultSalaryComponents(),
+          other_income: createDefaultOtherSources(),
+          capital_gains_income: createDefaultCapitalGains(),
+          house_property_income: {
+            annual_rent: 0,
+            municipal_tax: 0,
+            standard_deduction: 0,
+            interest_on_loan: 0,
+            net_income: 0
+          },
+          deductions: createDefaultDeductions(),
+          retirement_benefits: {
+            leave_encashment: {
+              leave_encashment_income_received: 0,
+              leave_encashment_exemption: 0,
+              leave_encashment_taxable: 0
+            }
+          },
+          perquisites: {
+            other_perquisites: {
+              total_perquisites: 0
+            }
+          }
+        };
+      }
+    }
+
+    // Override tax year and regime if provided
+    if (taxYear) inputData.tax_year = taxYear;
+    if (regime) inputData.regime = regime;
     
-    const mockData = {
-      total_tax_liability: 50000,
-      taxable_income: 500000,
-      effective_tax_rate: 10.0,
-      regime_used: regime || 'new',
+    // Validate required fields
+    if (!inputData.tax_year) {
+      throw new Error('Tax year is required for tax calculation');
+    }
+    if (!inputData.regime) {
+      throw new Error('Tax regime is required for tax calculation');
+    }
+    if (!inputData.age || inputData.age < 18) {
+      inputData.age = 30; // Set default age if not provided or invalid
+    }
+
+    // Transform frontend data to backend ComprehensiveTaxInputDTO format
+    const comprehensiveInput = {
+      tax_year: inputData.tax_year,
+      regime_type: inputData.regime,
+      age: inputData.age || 30, // Ensure age is provided
+      
+      // Salary income - transform to backend format
+      salary_income: {
+        basic_salary: ensureNumeric(inputData.salary_income.basic_salary),
+        dearness_allowance: ensureNumeric(inputData.salary_income.dearness_allowance),
+        hra_received: ensureNumeric(inputData.salary_income.hra_received),
+        hra_city_type: inputData.salary_income.hra_city_type || 'non_metro',
+        actual_rent_paid: ensureNumeric(inputData.salary_income.actual_rent_paid),
+        bonus: ensureNumeric(inputData.salary_income.bonus),
+        commission: ensureNumeric(inputData.salary_income.commission),
+        special_allowance: ensureNumeric(inputData.salary_income.special_allowance),
+        conveyance_allowance: ensureNumeric(inputData.salary_income.conveyance_allowance),
+        medical_allowance: ensureNumeric(inputData.salary_income.medical_allowance),
+        other_allowances: ensureNumeric(inputData.salary_income.other_allowances),
+        
+        // Additional detailed allowances
+        city_compensatory_allowance: ensureNumeric(inputData.salary_income.city_compensatory_allowance),
+        rural_allowance: ensureNumeric(inputData.salary_income.rural_allowance),
+        proctorship_allowance: ensureNumeric(inputData.salary_income.proctorship_allowance),
+        wardenship_allowance: ensureNumeric(inputData.salary_income.wardenship_allowance),
+        project_allowance: ensureNumeric(inputData.salary_income.project_allowance),
+        deputation_allowance: ensureNumeric(inputData.salary_income.deputation_allowance),
+        interim_relief: ensureNumeric(inputData.salary_income.interim_relief),
+        tiffin_allowance: ensureNumeric(inputData.salary_income.tiffin_allowance),
+        overtime_allowance: ensureNumeric(inputData.salary_income.overtime_allowance),
+        servant_allowance: ensureNumeric(inputData.salary_income.servant_allowance),
+        hills_high_altd_allowance: ensureNumeric(inputData.salary_income.hills_high_altd_allowance),
+        hills_high_altd_exemption_limit: ensureNumeric(inputData.salary_income.hills_high_altd_exemption_limit),
+        border_remote_allowance: ensureNumeric(inputData.salary_income.border_remote_allowance),
+        border_remote_exemption_limit: ensureNumeric(inputData.salary_income.border_remote_exemption_limit),
+        transport_employee_allowance: ensureNumeric(inputData.salary_income.transport_employee_allowance),
+        children_education_allowance: ensureNumeric(inputData.salary_income.children_education_allowance),
+        children_education_count: ensureNumeric(inputData.salary_income.children_education_count),
+        children_education_months: ensureNumeric(inputData.salary_income.children_education_months),
+        hostel_allowance: ensureNumeric(inputData.salary_income.hostel_allowance),
+        hostel_count: ensureNumeric(inputData.salary_income.hostel_count),
+        hostel_months: ensureNumeric(inputData.salary_income.hostel_months),
+        transport_months: ensureNumeric(inputData.salary_income.transport_months),
+        underground_mines_allowance: ensureNumeric(inputData.salary_income.underground_mines_allowance),
+        underground_mines_months: ensureNumeric(inputData.salary_income.underground_mines_months),
+        govt_employee_entertainment_allowance: ensureNumeric(inputData.salary_income.govt_employee_entertainment_allowance),
+        govt_employees_outside_india_allowance: ensureNumeric(inputData.salary_income.govt_employees_outside_india_allowance),
+        supreme_high_court_judges_allowance: ensureNumeric(inputData.salary_income.supreme_high_court_judges_allowance),
+        judge_compensatory_allowance: ensureNumeric(inputData.salary_income.judge_compensatory_allowance),
+        section_10_14_special_allowances: ensureNumeric(inputData.salary_income.section_10_14_special_allowances),
+        travel_on_tour_allowance: ensureNumeric(inputData.salary_income.travel_on_tour_allowance),
+        tour_daily_charge_allowance: ensureNumeric(inputData.salary_income.tour_daily_charge_allowance),
+        conveyance_in_performace_of_duties: ensureNumeric(inputData.salary_income.conveyance_in_performace_of_duties),
+        helper_in_performace_of_duties: ensureNumeric(inputData.salary_income.helper_in_performace_of_duties),
+        academic_research: ensureNumeric(inputData.salary_income.academic_research),
+        uniform_allowance: ensureNumeric(inputData.salary_income.uniform_allowance),
+        any_other_allowance_exemption: ensureNumeric(inputData.salary_income.any_other_allowance_exemption)
+      },
+      
+      // Other income sources
+      other_income: inputData.other_income ? {
+        interest_income: {
+          savings_account_interest: ensureNumeric(inputData.other_income.interest_income?.savings_account_interest),
+          fixed_deposit_interest: ensureNumeric(inputData.other_income.interest_income?.fixed_deposit_interest),
+          recurring_deposit_interest: ensureNumeric(inputData.other_income.interest_income?.recurring_deposit_interest),
+          other_bank_interest: ensureNumeric(inputData.other_income.interest_income?.other_interest),
+          age: inputData.age
+        },
+        dividend_income: ensureNumeric(inputData.other_income.dividend_income),
+        gifts_received: ensureNumeric(inputData.other_income.gifts_received),
+        business_professional_income: ensureNumeric(inputData.other_income.business_professional_income),
+        other_miscellaneous_income: ensureNumeric(inputData.other_income.other_miscellaneous_income)
+      } : null,
+      
+      // Capital gains income
+      capital_gains_income: inputData.capital_gains_income ? {
+        stcg_111a_equity_stt: inputData.capital_gains_income.stcg_111a_equity_stt || 0,
+        stcg_other_assets: inputData.capital_gains_income.stcg_other_assets || 0,
+        stcg_debt_mutual_fund: inputData.capital_gains_income.stcg_debt_mutual_fund || 0,
+        ltcg_112a_equity_stt: inputData.capital_gains_income.ltcg_112a_equity_stt || 0,
+        ltcg_other_assets: inputData.capital_gains_income.ltcg_other_assets || 0,
+        ltcg_debt_mf: inputData.capital_gains_income.ltcg_debt_mf || 0
+      } : null,
+      
+      // House property income
+      house_property_income: inputData.house_property_income ? {
+        property_type: 'Self-Occupied',
+        annual_rent_received: inputData.house_property_income.annual_rent || 0,
+        municipal_taxes_paid: inputData.house_property_income.municipal_tax || 0,
+        home_loan_interest: inputData.house_property_income.interest_on_loan || 0,
+        pre_construction_interest: inputData.house_property_income.pre_construction_loan_interest || 0,
+        fair_rental_value: 0,
+        standard_rent: 0
+      } : null,
+      
+      // Retirement benefits
+      retirement_benefits: inputData.retirement_benefits ? {
+        leave_encashment: inputData.retirement_benefits.leave_encashment ? {
+          leave_encashment_amount: inputData.retirement_benefits.leave_encashment.leave_encashment_income_received || 0,
+          average_monthly_salary: 0,
+          leave_days_encashed: 0,
+          is_govt_employee: inputData.is_govt_employee || false,
+          during_employment: inputData.retirement_benefits.leave_encashment.during_employment || false
+        } : null,
+        gratuity: inputData.retirement_benefits.gratuity ? {
+          gratuity_amount: inputData.retirement_benefits.gratuity.gratuity_received || 0,
+          monthly_salary: 0,
+          service_years: 0,
+          is_govt_employee: inputData.is_govt_employee || false
+        } : null,
+        vrs: inputData.retirement_benefits.vrs ? {
+          vrs_amount: inputData.retirement_benefits.vrs.compensation_received || 0,
+          monthly_salary: 0,
+          age: inputData.age,
+          service_years: 0
+        } : null,
+        pension: inputData.retirement_benefits.pension ? {
+          regular_pension: inputData.retirement_benefits.pension.pension_received || 0,
+          commuted_pension: inputData.retirement_benefits.pension.commuted_pension || 0,
+          total_pension: inputData.retirement_benefits.pension.uncommuted_pension || 0,
+          is_govt_employee: inputData.is_govt_employee || false,
+          gratuity_received: false
+        } : null
+      } : null,
+      
+      // Tax deductions
+      deductions: inputData.deductions ? {
+        section_80c: {
+          life_insurance_premium: inputData.deductions.section_80c?.life_insurance_premium || 0,
+          epf_contribution: inputData.deductions.section_80c?.epf_contribution || 0,
+          ppf_contribution: 0,
+          nsc_investment: inputData.deductions.section_80c?.nsc_investment || 0,
+          tax_saving_fd: inputData.deductions.section_80c?.tax_saver_fixed_deposit_5_years_bank || 0,
+          elss_investment: inputData.deductions.section_80c?.tax_saver_mutual_fund || 0,
+          home_loan_principal: inputData.deductions.section_80c?.principal_amount_paid_home_loan || 0,
+          tuition_fees: inputData.deductions.section_80c?.tuition_fees_for_two_children || 0,
+          ulip_premium: inputData.deductions.section_80c?.ulip_investment || 0,
+          sukanya_samriddhi: inputData.deductions.section_80c?.sukanya_deposit_plan_for_girl_child || 0,
+          stamp_duty_property: 0,
+          senior_citizen_savings: inputData.deductions.section_80c?.senior_citizen_savings_scheme || 0,
+          other_80c_investments: inputData.deductions.section_80c?.others || 0
+        },
+        section_80d: {
+          self_family_premium: inputData.deductions.section_80d?.self_family_premium || 0,
+          parent_premium: inputData.deductions.section_80d?.parent_premium || 0,
+          preventive_health_checkup: inputData.deductions.section_80d?.preventive_health_checkup_self || 0,
+          employee_age: inputData.age,
+          parent_age: 60
+        },
+        section_80g: {
+          pm_relief_fund: 0,
+          national_defence_fund: 0,
+          other_100_percent_wo_limit: inputData.deductions.section_80g?.donation_100_percent_without_limit || 0,
+          other_50_percent_wo_limit: inputData.deductions.section_80g?.donation_50_percent_without_limit || 0,
+          other_100_percent_w_limit: inputData.deductions.section_80g?.donation_100_percent_with_limit || 0,
+          other_50_percent_w_limit: inputData.deductions.section_80g?.donation_50_percent_with_limit || 0
+        },
+        section_80e: {
+          education_loan_interest: inputData.deductions.section_80e?.education_loan_interest || 0,
+          relation: 'Self'
+        },
+        section_80tta_ttb: {
+          savings_interest: inputData.other_income?.interest_income?.savings_account_interest || 0,
+          fd_interest: inputData.other_income?.interest_income?.fixed_deposit_interest || 0,
+          rd_interest: inputData.other_income?.interest_income?.recurring_deposit_interest || 0,
+          other_bank_interest: inputData.other_income?.interest_income?.other_interest || 0,
+          age: inputData.age
+        }
+      } : null
+    };
+
+    // Debug: Log the input data being sent
+    console.log('Sending comprehensive tax calculation request:', JSON.stringify(comprehensiveInput, null, 2));
+    
+    // Call the backend comprehensive tax calculation endpoint
+    const response = await apiClient().post('/api/v2/taxation/calculate-comprehensive', comprehensiveInput);
+    
+    // Transform backend response to expected frontend format
+    const backendResult = response.data;
+    
+    return {
+      total_tax_liability: backendResult.total_tax_liability,
+      taxable_income: backendResult.taxable_income,
+      effective_tax_rate: backendResult.effective_tax_rate,
+      regime_used: backendResult.regime_used,
+      gross_income: backendResult.gross_income,
+      total_exemptions: backendResult.total_exemptions,
+      total_deductions: backendResult.total_deductions,
+      tax_before_rebate: backendResult.tax_before_rebate,
+      rebate_87a: backendResult.rebate_87a,
+      tax_after_rebate: backendResult.tax_after_rebate,
+      surcharge: backendResult.surcharge,
+      cess: backendResult.cess,
+      
+      // Enhanced details
+      employment_periods: backendResult.employment_periods,
+      total_employment_days: backendResult.total_employment_days,
+      is_mid_year_scenario: backendResult.is_mid_year_scenario,
+      period_wise_income: backendResult.period_wise_income,
+      surcharge_breakdown: backendResult.surcharge_breakdown,
+      full_year_projection: backendResult.full_year_projection,
+      mid_year_impact: backendResult.mid_year_impact,
+      optimization_suggestions: backendResult.optimization_suggestions,
+      taxpayer_age: backendResult.taxpayer_age,
+      calculation_breakdown: backendResult.calculation_breakdown,
+      
       message: 'Tax calculation completed successfully'
     };
     
-    return mockData;
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
       // eslint-disable-next-line no-console
-      console.error('Error calculating tax:', error);
+      console.error('Error calculating comprehensive tax:', error);
+    }
+    
+    // Re-throw with more context
+    if (error instanceof Error) {
+      throw new Error(`Tax calculation failed: ${error.message}`);
     }
     throw error;
   }

@@ -10286,3 +10286,461 @@ AttributeError: module 'bcrypt' has no attribute '__about__'
 2025-06-15 05:23:19 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
 2025-06-15 05:23:19 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
 2025-06-15 05:23:19 [INFO] uvicorn.access:473 - send(): 127.0.0.1:56753 - "POST /api/v2/taxation/records HTTP/1.1" 422
+2025-06-15 12:33:07 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 12:33:22 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 12:33:22 [INFO] uvicorn.error:83 - _serve(): Started server process [1445]
+2025-06-15 12:33:22 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 12:33:22 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 12:33:22 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 13:11:32 [INFO] uvicorn.access:473 - send(): 127.0.0.1:50920 - "OPTIONS /api/v2/auth/login HTTP/1.1" 200
+2025-06-15 13:11:32 [INFO] app.api.routes.auth_routes_v2:73 - login(): Login request for user: superadmin @ localhost
+2025-06-15 13:11:32 [INFO] app.api.controllers.auth_controller:84 - login(): Login attempt for user: superadmin @ localhost
+2025-06-15 13:11:32 [INFO] app.api.controllers.auth_controller:93 - login(): Connection string: mongodb+srv://admin:test123@mongodbtest.jhfj7s3.mongodb.net/?appName=mongodbTest
+2025-06-15 13:11:34 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-15 13:11:34 [INFO] app.infrastructure.database.mongodb_connector:113 - get_database(): Database 'pms_localhost' cached
+2025-06-15 13:11:34 [INFO] app.infrastructure.database.mongodb_connector:113 - get_database(): Database 'pms_global_database' cached
+2025-06-15 13:11:34 [INFO] app.infrastructure.database.mongodb_connector:90 - disconnect(): MongoDB connections closed
+2025-06-15 13:11:34 [INFO] app.api.controllers.auth_controller:121 - login(): Verifying password for user: superadmin
+2025-06-15 13:11:34 [INFO] app.auth.password_handler:19 - verify_password(): Verifying password: admin123 with hashed password: $2b$12$tHFlJsUzWyg1gntEL.JwRu6V1.VO/UdyyJxzLECfapAaMLw3BGZTW
+2025-06-15 13:11:34 [WARNING] passlib.handlers.bcrypt:622 - _load_backend_mixin(): (trapped) error reading bcrypt version
+Traceback (most recent call last):
+  File "/Users/ankit/Downloads/code/pmssrc/.venv/lib/python3.13/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
+    version = _bcrypt.__about__.__version__
+              ^^^^^^^^^^^^^^^^^
+AttributeError: module 'bcrypt' has no attribute '__about__'
+2025-06-15 13:11:34 [INFO] app.auth.password_handler:22 - verify_password(): Password verification succeeded.
+2025-06-15 13:11:34 [INFO] app.auth.jwt_handler:37 - create_access_token(): Access token created for user: superadmin
+2025-06-15 13:11:34 [INFO] app.auth.jwt_handler:38 - create_access_token(): Token expires at: 2025-06-15T15:41:34.838932
+2025-06-15 13:11:34 [INFO] app.api.controllers.auth_controller:165 - login(): User superadmin logged in successfully
+2025-06-15 13:11:34 [INFO] uvicorn.access:473 - send(): 127.0.0.1:50920 - "POST /api/v2/auth/login HTTP/1.1" 200
+2025-06-15 13:11:35 [INFO] uvicorn.access:473 - send(): 127.0.0.1:50920 - "OPTIONS /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 200
+2025-06-15 13:11:35 [INFO] uvicorn.access:473 - send(): 127.0.0.1:50922 - "OPTIONS /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 200
+2025-06-15 13:11:35 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-15 13:11:35 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-15 13:11:35 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-15 13:11:35 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-15 13:11:35 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-15 13:11:35 [INFO] app.config.dependency_container:209 - _setup_repositories(): Repositories initialized with centralized MongoDB configuration
+2025-06-15 13:11:35 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceNotificationHandler
+2025-06-15 13:11:35 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAnalyticsHandler
+2025-06-15 13:11:35 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAuditHandler
+2025-06-15 13:11:35 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceIntegrationHandler
+2025-06-15 13:11:35 [INFO] app.config.dependency_container:525 - _get_event_publisher(): Enhanced event publisher configured with attendance handlers
+2025-06-15 13:11:35 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceNotificationHandler
+2025-06-15 13:11:35 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAnalyticsHandler
+2025-06-15 13:11:35 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAuditHandler
+2025-06-15 13:11:35 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceIntegrationHandler
+2025-06-15 13:11:35 [INFO] app.config.dependency_container:525 - _get_event_publisher(): Enhanced event publisher configured with attendance handlers
+2025-06-15 13:11:35 [INFO] app.config.dependency_container:337 - _create_attendance_use_cases(): Attendance use cases created successfully
+2025-06-15 13:11:35 [INFO] app.config.dependency_container:288 - _setup_services(): Services initialized
+2025-06-15 13:11:35 [INFO] app.config.dependency_container:359 - _setup_controllers(): Controllers setup deferred
+2025-06-15 13:11:35 [INFO] app.config.dependency_container:104 - initialize(): Dependency container initialized successfully
+2025-06-15 13:11:35 [INFO] app.api.controllers.reporting_controller:256 - get_dashboard_analytics(): Getting dashboard analytics for user: superadmin
+2025-06-15 13:11:35 [INFO] app.infrastructure.services.reporting_service_impl:261 - get_dashboard_analytics(): Getting dashboard analytics for organisation: localhost
+2025-06-15 13:11:35 [INFO] app.application.use_cases.reporting.get_dashboard_analytics_use_case:51 - execute(): Getting dashboard analytics for organisation: localhost
+2025-06-15 13:11:35 [INFO] app.infrastructure.repositories.mongodb_user_repository:75 - _get_collection(): Database not connected, establishing connection...
+2025-06-15 13:11:35 [INFO] app.infrastructure.repositories.mongodb_user_repository:80 - _get_collection(): Using stored connection parameters from repository configuration
+2025-06-15 13:11:35 [INFO] app.infrastructure.database.mongodb_connector:69 - connect(): MongoDB connection established successfully
+2025-06-15 13:11:35 [INFO] app.infrastructure.repositories.mongodb_user_repository:90 - _get_collection(): MongoDB connection established successfully in current event loop
+2025-06-15 13:11:35 [INFO] app.infrastructure.database.mongodb_connector:113 - get_database(): Database 'pms_localhost' cached
+2025-06-15 13:11:35 [INFO] app.infrastructure.repositories.mongodb_user_repository:100 - _get_collection(): Successfully retrieved collection: users_info from database: pms_localhost
+2025-06-15 13:11:36 [INFO] app.infrastructure.repositories.mongodb_user_repository:1559 - find_with_filters(): Found 5 users with filters for organisation: localhost
+2025-06-15 13:11:36 [INFO] app.infrastructure.repositories.mongodb_reimbursement_repository:104 - _get_collection(): Successfully retrieved collection: reimbursements from database: pms_localhost
+2025-06-15 13:11:36 [INFO] app.infrastructure.repositories.mongodb_reimbursement_repository:367 - get_pending_reimbursements(): Found 0 pending reimbursements for organisation: localhost
+2025-06-15 13:11:36 [INFO] app.infrastructure.repositories.mongodb_user_repository:100 - _get_collection(): Successfully retrieved collection: users_info from database: pms_localhost
+2025-06-15 13:11:36 [INFO] app.infrastructure.repositories.mongodb_user_repository:1559 - find_with_filters(): Found 5 users with filters for organisation: localhost
+2025-06-15 13:11:36 [INFO] app.infrastructure.repositories.mongodb_attendance_repository:100 - _get_collection(): Successfully retrieved collection: attendance_info from database: pms_localhost
+2025-06-15 13:11:36 [INFO] app.application.use_cases.reporting.get_dashboard_analytics_use_case:98 - execute(): Successfully generated dashboard analytics for organisation: localhost
+2025-06-15 13:11:36 [INFO] app.infrastructure.services.reporting_service_impl:266 - get_dashboard_analytics(): Successfully generated dashboard analytics for organisation: localhost
+2025-06-15 13:11:36 [INFO] app.api.controllers.reporting_controller:260 - get_dashboard_analytics(): Successfully retrieved dashboard analytics
+2025-06-15 13:11:36 [INFO] uvicorn.access:473 - send(): 127.0.0.1:50920 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 200
+2025-06-15 13:11:36 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-15 13:11:36 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-15 13:11:36 [INFO] app.api.controllers.reporting_controller:256 - get_dashboard_analytics(): Getting dashboard analytics for user: superadmin
+2025-06-15 13:11:36 [INFO] app.infrastructure.services.reporting_service_impl:261 - get_dashboard_analytics(): Getting dashboard analytics for organisation: localhost
+2025-06-15 13:11:36 [INFO] app.application.use_cases.reporting.get_dashboard_analytics_use_case:51 - execute(): Getting dashboard analytics for organisation: localhost
+2025-06-15 13:11:36 [INFO] app.infrastructure.repositories.mongodb_user_repository:100 - _get_collection(): Successfully retrieved collection: users_info from database: pms_localhost
+2025-06-15 13:11:36 [INFO] app.infrastructure.repositories.mongodb_user_repository:1559 - find_with_filters(): Found 5 users with filters for organisation: localhost
+2025-06-15 13:11:36 [INFO] app.infrastructure.repositories.mongodb_reimbursement_repository:104 - _get_collection(): Successfully retrieved collection: reimbursements from database: pms_localhost
+2025-06-15 13:11:36 [INFO] app.infrastructure.repositories.mongodb_reimbursement_repository:367 - get_pending_reimbursements(): Found 0 pending reimbursements for organisation: localhost
+2025-06-15 13:11:36 [INFO] app.infrastructure.repositories.mongodb_user_repository:100 - _get_collection(): Successfully retrieved collection: users_info from database: pms_localhost
+2025-06-15 13:11:36 [INFO] app.infrastructure.repositories.mongodb_user_repository:1559 - find_with_filters(): Found 5 users with filters for organisation: localhost
+2025-06-15 13:11:36 [INFO] app.infrastructure.repositories.mongodb_attendance_repository:100 - _get_collection(): Successfully retrieved collection: attendance_info from database: pms_localhost
+2025-06-15 13:11:36 [INFO] app.application.use_cases.reporting.get_dashboard_analytics_use_case:98 - execute(): Successfully generated dashboard analytics for organisation: localhost
+2025-06-15 13:11:36 [INFO] app.infrastructure.services.reporting_service_impl:266 - get_dashboard_analytics(): Successfully generated dashboard analytics for organisation: localhost
+2025-06-15 13:11:36 [INFO] app.api.controllers.reporting_controller:260 - get_dashboard_analytics(): Successfully retrieved dashboard analytics
+2025-06-15 13:11:36 [INFO] uvicorn.access:473 - send(): 127.0.0.1:50922 - "GET /api/v2/reporting/dashboard/analytics/statistics HTTP/1.1" 200
+2025-06-15 13:11:41 [INFO] uvicorn.access:473 - send(): 127.0.0.1:50922 - "OPTIONS /api/v2/taxation/employee-selection?skip=0&limit=100&tax_year=2025-26 HTTP/1.1" 200
+2025-06-15 13:11:41 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-15 13:11:41 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-15 13:11:41 [INFO] app.api.controllers.taxation_controller:190 - get_employees_for_selection(): Getting employees for selection with query: skip=0 limit=100 search=None department=None role=None status=None has_tax_record=None tax_year='2025-26'
+2025-06-15 13:11:41 [INFO] app.infrastructure.services.user_service_impl:460 - search_users(): Searching users in organisation localhost
+2025-06-15 13:11:41 [INFO] app.infrastructure.repositories.mongodb_user_repository:100 - _get_collection(): Successfully retrieved collection: users_info from database: pms_localhost
+2025-06-15 13:11:41 [INFO] app.infrastructure.repositories.mongodb_user_repository:653 - search(): Search returned 5 users
+2025-06-15 13:11:41 [INFO] app.infrastructure.database.mongodb_connector:113 - get_database(): Database 'pms_pms_global_database' cached
+2025-06-15 13:11:42 [INFO] app.api.controllers.taxation_controller:198 - get_employees_for_selection(): Retrieved 5 employees for selection
+2025-06-15 13:11:42 [INFO] uvicorn.access:473 - send(): 127.0.0.1:50938 - "GET /api/v2/taxation/employee-selection?skip=0&limit=100&tax_year=2025-26 HTTP/1.1" 200
+2025-06-15 13:11:45 [INFO] uvicorn.access:473 - send(): 127.0.0.1:50938 - "OPTIONS /api/v2/taxation/records/employee/EMP005?tax_year=2025-26 HTTP/1.1" 200
+2025-06-15 13:11:45 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-15 13:11:45 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-15 13:11:45 [INFO] app.api.controllers.taxation_controller:311 - get_taxation_record_by_employee(): Getting comprehensive taxation record for employee EMP005, tax_year: 2025-26
+2025-06-15 13:11:45 [INFO] app.application.use_cases.taxation.get_comprehensive_taxation_record_use_case:67 - execute(): Getting comprehensive taxation record for employee EMP005, tax_year: 2025-26
+2025-06-15 13:11:45 [INFO] app.infrastructure.repositories.mongodb_user_repository:100 - _get_collection(): Successfully retrieved collection: users_info from database: pms_localhost
+2025-06-15 13:11:45 [INFO] app.application.use_cases.taxation.get_comprehensive_taxation_record_use_case:287 - _compute_age_from_user(): Computed age 43 for user EMP005 from DOB 1982-03-04
+2025-06-15 13:11:45 [INFO] app.infrastructure.database.mongodb_connector:113 - get_database(): Database 'pms_global_database' cached
+2025-06-15 13:11:45 [INFO] app.infrastructure.repositories.mongodb_organisation_repository:108 - _get_collection(): Successfully retrieved collection: organisation from database: pms_global_database
+2025-06-15 13:11:45 [INFO] uvicorn.access:473 - send(): 127.0.0.1:50922 - "GET /api/v2/taxation/records/employee/EMP005?tax_year=2025-26 HTTP/1.1" 200
+2025-06-15 13:11:45 [INFO] uvicorn.access:473 - send(): 127.0.0.1:50922 - "OPTIONS /api/v2/taxation/records/employee/EMP005 HTTP/1.1" 200
+2025-06-15 13:11:45 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-15 13:11:45 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-15 13:11:46 [INFO] app.api.controllers.taxation_controller:311 - get_taxation_record_by_employee(): Getting comprehensive taxation record for employee EMP005, tax_year: None
+2025-06-15 13:11:46 [INFO] app.application.use_cases.taxation.get_comprehensive_taxation_record_use_case:67 - execute(): Getting comprehensive taxation record for employee EMP005, tax_year: None
+2025-06-15 13:11:46 [INFO] app.infrastructure.repositories.mongodb_user_repository:100 - _get_collection(): Successfully retrieved collection: users_info from database: pms_localhost
+2025-06-15 13:11:46 [INFO] app.application.use_cases.taxation.get_comprehensive_taxation_record_use_case:287 - _compute_age_from_user(): Computed age 43 for user EMP005 from DOB 1982-03-04
+2025-06-15 13:11:46 [INFO] app.infrastructure.repositories.mongodb_organisation_repository:108 - _get_collection(): Successfully retrieved collection: organisation from database: pms_global_database
+2025-06-15 13:11:46 [INFO] uvicorn.access:473 - send(): 127.0.0.1:50938 - "GET /api/v2/taxation/records/employee/EMP005 HTTP/1.1" 200
+2025-06-15 13:12:17 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51058 - "OPTIONS /api/v2/taxation/records HTTP/1.1" 200
+2025-06-15 13:12:17 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-15 13:12:17 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-15 13:12:17 [INFO] uvicorn.access:473 - send(): 127.0.0.1:51060 - "POST /api/v2/taxation/records HTTP/1.1" 422
+2025-06-15 13:17:33 [INFO] uvicorn.access:473 - send(): 127.0.0.1:52187 - "OPTIONS /api/v2/taxation/calculate-comprehensive HTTP/1.1" 200
+2025-06-15 13:17:33 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-15 13:17:33 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-15 13:17:34 [INFO] uvicorn.access:473 - send(): 127.0.0.1:52187 - "POST /api/v2/taxation/calculate-comprehensive HTTP/1.1" 500
+2025-06-15 13:17:56 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-15 13:17:56 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-15 13:17:56 [INFO] uvicorn.access:473 - send(): 127.0.0.1:52189 - "POST /api/v2/taxation/calculate-comprehensive HTTP/1.1" 500
+2025-06-15 13:18:31 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-15 13:18:31 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-15 13:18:31 [INFO] app.main:42 - lifespan(): Running shutdown tasks...
+2025-06-15 13:18:31 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-15 13:18:31 [INFO] uvicorn.error:93 - _serve(): Finished server process [1445]
+2025-06-15 13:18:46 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 13:18:55 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 13:18:55 [INFO] uvicorn.error:83 - _serve(): Started server process [1971]
+2025-06-15 13:18:55 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 13:18:55 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 13:18:55 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 13:18:59 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 13:19:08 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 13:19:08 [INFO] uvicorn.error:83 - _serve(): Started server process [2023]
+2025-06-15 13:19:08 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 13:19:08 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 13:19:08 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 13:19:08 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-15 13:19:08 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-15 13:19:08 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-15 13:19:08 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-15 13:19:08 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-15 13:19:08 [INFO] app.config.dependency_container:209 - _setup_repositories(): Repositories initialized with centralized MongoDB configuration
+2025-06-15 13:19:08 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceNotificationHandler
+2025-06-15 13:19:08 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAnalyticsHandler
+2025-06-15 13:19:08 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAuditHandler
+2025-06-15 13:19:08 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceIntegrationHandler
+2025-06-15 13:19:08 [INFO] app.config.dependency_container:525 - _get_event_publisher(): Enhanced event publisher configured with attendance handlers
+2025-06-15 13:19:08 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceNotificationHandler
+2025-06-15 13:19:08 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAnalyticsHandler
+2025-06-15 13:19:08 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAuditHandler
+2025-06-15 13:19:08 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceIntegrationHandler
+2025-06-15 13:19:08 [INFO] app.config.dependency_container:525 - _get_event_publisher(): Enhanced event publisher configured with attendance handlers
+2025-06-15 13:19:08 [INFO] app.config.dependency_container:337 - _create_attendance_use_cases(): Attendance use cases created successfully
+2025-06-15 13:19:08 [INFO] app.config.dependency_container:288 - _setup_services(): Services initialized
+2025-06-15 13:19:08 [INFO] app.config.dependency_container:359 - _setup_controllers(): Controllers setup deferred
+2025-06-15 13:19:08 [INFO] app.config.dependency_container:104 - initialize(): Dependency container initialized successfully
+2025-06-15 13:19:08 [INFO] app.api.controllers.taxation_controller:548 - calculate_comprehensive_tax(): Starting comprehensive tax calculation for org localhost
+2025-06-15 13:19:08 [ERROR] app.api.controllers.taxation_controller:563 - calculate_comprehensive_tax(): Error in comprehensive tax calculation for org localhost: 'UnifiedTaxationController' object has no attribute '_convert_dto_to_domain_input'
+2025-06-15 13:19:08 [INFO] uvicorn.access:473 - send(): 127.0.0.1:52741 - "POST /api/v2/taxation/calculate-comprehensive HTTP/1.1" 500
+2025-06-15 13:21:54 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-15 13:21:54 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-15 13:21:54 [INFO] app.main:42 - lifespan(): Running shutdown tasks...
+2025-06-15 13:21:54 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-15 13:21:54 [INFO] uvicorn.error:93 - _serve(): Finished server process [2023]
+2025-06-15 13:22:01 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 13:22:10 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 13:22:10 [INFO] uvicorn.error:83 - _serve(): Started server process [2056]
+2025-06-15 13:22:10 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 13:22:10 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 13:22:10 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 13:22:15 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 13:22:15 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 13:22:26 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 13:22:26 [INFO] uvicorn.error:83 - _serve(): Started server process [2203]
+2025-06-15 13:22:26 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 13:22:26 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 13:22:26 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 13:22:35 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 13:22:37 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 13:23:04 [WARNING] app.auth.jwt_handler:81 - decode_access_token(): Invalid token: Not enough segments
+2025-06-15 13:23:04 [ERROR] app.auth.auth_dependencies:108 - get_current_user(): Authentication error: Invalid token: Not enough segments
+2025-06-15 13:23:04 [INFO] uvicorn.access:473 - send(): 127.0.0.1:54058 - "POST /api/v2/taxation/calculate-comprehensive HTTP/1.1" 401
+2025-06-15 13:58:44 [INFO] uvicorn.access:473 - send(): 127.0.0.1:63480 - "OPTIONS /api/v2/taxation/calculate-comprehensive HTTP/1.1" 200
+2025-06-15 13:58:44 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-15 13:58:44 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-15 13:58:44 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-15 13:58:44 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-15 13:58:44 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-15 13:58:44 [INFO] app.config.dependency_container:209 - _setup_repositories(): Repositories initialized with centralized MongoDB configuration
+2025-06-15 13:58:44 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceNotificationHandler
+2025-06-15 13:58:44 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAnalyticsHandler
+2025-06-15 13:58:44 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAuditHandler
+2025-06-15 13:58:44 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceIntegrationHandler
+2025-06-15 13:58:44 [INFO] app.config.dependency_container:525 - _get_event_publisher(): Enhanced event publisher configured with attendance handlers
+2025-06-15 13:58:44 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceNotificationHandler
+2025-06-15 13:58:44 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAnalyticsHandler
+2025-06-15 13:58:44 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAuditHandler
+2025-06-15 13:58:44 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceIntegrationHandler
+2025-06-15 13:58:44 [INFO] app.config.dependency_container:525 - _get_event_publisher(): Enhanced event publisher configured with attendance handlers
+2025-06-15 13:58:44 [INFO] app.config.dependency_container:337 - _create_attendance_use_cases(): Attendance use cases created successfully
+2025-06-15 13:58:44 [INFO] app.config.dependency_container:288 - _setup_services(): Services initialized
+2025-06-15 13:58:44 [INFO] app.config.dependency_container:359 - _setup_controllers(): Controllers setup deferred
+2025-06-15 13:58:44 [INFO] app.config.dependency_container:104 - initialize(): Dependency container initialized successfully
+2025-06-15 13:58:44 [INFO] app.api.controllers.taxation_controller:548 - calculate_comprehensive_tax(): Starting comprehensive tax calculation for org localhost
+2025-06-15 13:58:44 [ERROR] app.api.controllers.taxation_controller:563 - calculate_comprehensive_tax(): Error in comprehensive tax calculation for org localhost: unsupported operand type(s) for +: 'Money' and 'Money'
+2025-06-15 13:58:44 [INFO] uvicorn.access:473 - send(): 127.0.0.1:63480 - "POST /api/v2/taxation/calculate-comprehensive HTTP/1.1" 500
+2025-06-15 14:03:45 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-15 14:03:45 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-15 14:03:45 [INFO] app.main:42 - lifespan(): Running shutdown tasks...
+2025-06-15 14:03:45 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-15 14:03:45 [INFO] uvicorn.error:93 - _serve(): Finished server process [2203]
+2025-06-15 14:03:50 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 14:03:58 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 14:03:58 [INFO] uvicorn.error:83 - _serve(): Started server process [2600]
+2025-06-15 14:03:58 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 14:03:58 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 14:03:58 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 14:04:02 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 14:04:10 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 14:04:10 [INFO] uvicorn.error:83 - _serve(): Started server process [2625]
+2025-06-15 14:04:10 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 14:04:10 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 14:04:10 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 14:04:11 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 14:04:17 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 14:04:20 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 14:04:53 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-15 14:04:53 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-15 14:04:53 [INFO] app.main:42 - lifespan(): Running shutdown tasks...
+2025-06-15 14:04:53 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-15 14:04:53 [INFO] uvicorn.error:93 - _serve(): Finished server process [2625]
+2025-06-15 14:04:59 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 14:05:06 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 14:05:06 [INFO] uvicorn.error:83 - _serve(): Started server process [2687]
+2025-06-15 14:05:06 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 14:05:06 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 14:05:06 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 14:05:12 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-15 14:05:13 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-15 14:05:13 [INFO] app.main:42 - lifespan(): Running shutdown tasks...
+2025-06-15 14:05:13 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-15 14:05:13 [INFO] uvicorn.error:93 - _serve(): Finished server process [2687]
+2025-06-15 14:05:16 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 14:05:23 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 14:05:23 [INFO] uvicorn.error:83 - _serve(): Started server process [2714]
+2025-06-15 14:05:23 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 14:05:23 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 14:05:23 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 14:05:27 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 14:05:38 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 14:05:38 [INFO] uvicorn.error:83 - _serve(): Started server process [2733]
+2025-06-15 14:05:38 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 14:05:38 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 14:05:38 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 14:05:55 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-15 14:05:55 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-15 14:05:55 [INFO] app.main:42 - lifespan(): Running shutdown tasks...
+2025-06-15 14:05:55 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-15 14:05:55 [INFO] uvicorn.error:93 - _serve(): Finished server process [2733]
+2025-06-15 14:05:59 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 14:06:07 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 14:06:07 [INFO] uvicorn.error:83 - _serve(): Started server process [2757]
+2025-06-15 14:06:07 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 14:06:07 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 14:06:07 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 14:06:10 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-15 14:06:10 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-15 14:06:10 [INFO] app.main:42 - lifespan(): Running shutdown tasks...
+2025-06-15 14:06:10 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-15 14:06:10 [INFO] uvicorn.error:93 - _serve(): Finished server process [2757]
+2025-06-15 14:06:14 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 14:06:22 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 14:06:22 [INFO] uvicorn.error:83 - _serve(): Started server process [2778]
+2025-06-15 14:06:22 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 14:06:22 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 14:06:22 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 14:06:32 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-15 14:06:32 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-15 14:06:32 [INFO] app.main:42 - lifespan(): Running shutdown tasks...
+2025-06-15 14:06:32 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-15 14:06:32 [INFO] uvicorn.error:93 - _serve(): Finished server process [2778]
+2025-06-15 14:06:37 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 14:06:41 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 14:06:44 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 14:06:46 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 14:06:46 [INFO] uvicorn.error:83 - _serve(): Started server process [2795]
+2025-06-15 14:06:46 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 14:06:46 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 14:06:46 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 14:07:21 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-15 14:07:21 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-15 14:07:21 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-15 14:07:21 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-15 14:07:21 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-15 14:07:21 [INFO] app.config.dependency_container:209 - _setup_repositories(): Repositories initialized with centralized MongoDB configuration
+2025-06-15 14:07:21 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceNotificationHandler
+2025-06-15 14:07:21 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAnalyticsHandler
+2025-06-15 14:07:21 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAuditHandler
+2025-06-15 14:07:21 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceIntegrationHandler
+2025-06-15 14:07:21 [INFO] app.config.dependency_container:525 - _get_event_publisher(): Enhanced event publisher configured with attendance handlers
+2025-06-15 14:07:21 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceNotificationHandler
+2025-06-15 14:07:21 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAnalyticsHandler
+2025-06-15 14:07:21 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAuditHandler
+2025-06-15 14:07:21 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceIntegrationHandler
+2025-06-15 14:07:21 [INFO] app.config.dependency_container:525 - _get_event_publisher(): Enhanced event publisher configured with attendance handlers
+2025-06-15 14:07:21 [INFO] app.config.dependency_container:337 - _create_attendance_use_cases(): Attendance use cases created successfully
+2025-06-15 14:07:21 [INFO] app.config.dependency_container:288 - _setup_services(): Services initialized
+2025-06-15 14:07:21 [INFO] app.config.dependency_container:359 - _setup_controllers(): Controllers setup deferred
+2025-06-15 14:07:21 [INFO] app.config.dependency_container:104 - initialize(): Dependency container initialized successfully
+2025-06-15 14:07:21 [INFO] app.api.controllers.taxation_controller:548 - calculate_comprehensive_tax(): Starting comprehensive tax calculation for org localhost
+2025-06-15 14:07:21 [ERROR] app.api.controllers.taxation_controller:563 - calculate_comprehensive_tax(): Error in comprehensive tax calculation for org localhost: 'SalaryIncome' object has no attribute 'calculate_total_exemptions'
+2025-06-15 14:07:21 [INFO] uvicorn.access:473 - send(): 127.0.0.1:49789 - "POST /api/v2/taxation/calculate-comprehensive HTTP/1.1" 500
+2025-06-15 14:59:48 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-15 14:59:48 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-15 14:59:48 [INFO] app.main:42 - lifespan(): Running shutdown tasks...
+2025-06-15 14:59:48 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-15 14:59:48 [INFO] uvicorn.error:93 - _serve(): Finished server process [2795]
+2025-06-15 14:59:55 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 15:00:31 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 15:00:59 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 15:01:06 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 15:01:06 [INFO] uvicorn.error:83 - _serve(): Started server process [3183]
+2025-06-15 15:01:06 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 15:01:06 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 15:01:06 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 15:01:11 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 15:01:17 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 15:01:17 [INFO] uvicorn.error:83 - _serve(): Started server process [3207]
+2025-06-15 15:01:17 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 15:01:17 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 15:01:17 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 15:01:17 [INFO] uvicorn.access:473 - send(): 127.0.0.1:64275 - "OPTIONS /api/v2/taxation/calculate-comprehensive HTTP/1.1" 200
+2025-06-15 15:01:17 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-15 15:01:17 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-15 15:01:17 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-15 15:01:17 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-15 15:01:17 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-15 15:01:17 [INFO] app.config.dependency_container:209 - _setup_repositories(): Repositories initialized with centralized MongoDB configuration
+2025-06-15 15:01:17 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceNotificationHandler
+2025-06-15 15:01:17 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAnalyticsHandler
+2025-06-15 15:01:17 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAuditHandler
+2025-06-15 15:01:17 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceIntegrationHandler
+2025-06-15 15:01:17 [INFO] app.config.dependency_container:525 - _get_event_publisher(): Enhanced event publisher configured with attendance handlers
+2025-06-15 15:01:17 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceNotificationHandler
+2025-06-15 15:01:17 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAnalyticsHandler
+2025-06-15 15:01:17 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAuditHandler
+2025-06-15 15:01:17 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceIntegrationHandler
+2025-06-15 15:01:17 [INFO] app.config.dependency_container:525 - _get_event_publisher(): Enhanced event publisher configured with attendance handlers
+2025-06-15 15:01:17 [INFO] app.config.dependency_container:337 - _create_attendance_use_cases(): Attendance use cases created successfully
+2025-06-15 15:01:17 [INFO] app.config.dependency_container:288 - _setup_services(): Services initialized
+2025-06-15 15:01:17 [INFO] app.config.dependency_container:359 - _setup_controllers(): Controllers setup deferred
+2025-06-15 15:01:17 [INFO] app.config.dependency_container:104 - initialize(): Dependency container initialized successfully
+2025-06-15 15:01:17 [INFO] app.api.controllers.taxation_controller:548 - calculate_comprehensive_tax(): Starting comprehensive tax calculation for org localhost
+2025-06-15 15:01:17 [ERROR] app.api.controllers.taxation_controller:563 - calculate_comprehensive_tax(): Error in comprehensive tax calculation for org localhost: SalaryIncome.__init__() got an unexpected keyword argument 'house_rent_allowance'
+2025-06-15 15:01:17 [INFO] uvicorn.access:473 - send(): 127.0.0.1:64275 - "POST /api/v2/taxation/calculate-comprehensive HTTP/1.1" 500
+2025-06-15 15:02:37 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-15 15:02:37 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-15 15:02:37 [INFO] app.main:42 - lifespan(): Running shutdown tasks...
+2025-06-15 15:02:37 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-15 15:02:37 [INFO] uvicorn.error:93 - _serve(): Finished server process [3207]
+2025-06-15 15:02:43 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 15:02:50 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 15:02:50 [INFO] uvicorn.error:83 - _serve(): Started server process [3230]
+2025-06-15 15:02:50 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 15:02:50 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 15:02:50 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 15:03:51 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-15 15:03:51 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-15 15:03:51 [INFO] app.main:42 - lifespan(): Running shutdown tasks...
+2025-06-15 15:03:51 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-15 15:03:51 [INFO] uvicorn.error:93 - _serve(): Finished server process [3230]
+2025-06-15 15:03:58 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 15:04:05 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 15:04:05 [INFO] uvicorn.error:83 - _serve(): Started server process [3285]
+2025-06-15 15:04:05 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 15:04:05 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 15:04:05 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 15:04:11 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 15:04:18 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 15:04:18 [INFO] uvicorn.error:83 - _serve(): Started server process [3301]
+2025-06-15 15:04:18 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 15:04:18 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 15:04:18 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 15:04:23 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 15:04:31 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 15:04:31 [INFO] uvicorn.error:83 - _serve(): Started server process [3320]
+2025-06-15 15:04:31 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 15:04:31 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 15:04:31 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 15:04:34 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 15:04:42 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 15:04:42 [INFO] uvicorn.error:83 - _serve(): Started server process [3335]
+2025-06-15 15:04:42 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 15:04:42 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 15:04:42 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 15:05:01 [INFO] uvicorn.error:263 - shutdown(): Shutting down
+2025-06-15 15:05:01 [INFO] uvicorn.error:67 - shutdown(): Waiting for application shutdown.
+2025-06-15 15:05:01 [INFO] app.main:42 - lifespan(): Running shutdown tasks...
+2025-06-15 15:05:01 [INFO] uvicorn.error:76 - shutdown(): Application shutdown complete.
+2025-06-15 15:05:01 [INFO] uvicorn.error:93 - _serve(): Finished server process [3335]
+2025-06-15 15:05:07 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 15:05:17 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 15:05:17 [INFO] uvicorn.error:83 - _serve(): Started server process [3373]
+2025-06-15 15:05:17 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 15:05:17 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 15:05:17 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 15:05:23 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 15:05:33 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 15:05:33 [INFO] uvicorn.error:83 - _serve(): Started server process [3399]
+2025-06-15 15:05:33 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 15:05:33 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 15:05:33 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 15:05:41 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 15:05:50 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 15:05:50 [INFO] uvicorn.error:83 - _serve(): Started server process [3421]
+2025-06-15 15:05:50 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 15:05:50 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 15:05:50 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 15:05:55 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 15:06:03 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 15:06:03 [INFO] uvicorn.error:83 - _serve(): Started server process [3455]
+2025-06-15 15:06:03 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 15:06:03 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 15:06:03 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 15:06:08 [INFO] app.logger_config:153 - configure_logging(): Logging configured - Level: INFO, Format: detailed, File: True
+2025-06-15 15:06:24 [INFO] app.main:87 - <module>(): ✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting
+2025-06-15 15:06:24 [INFO] uvicorn.error:83 - _serve(): Started server process [3474]
+2025-06-15 15:06:24 [INFO] uvicorn.error:48 - startup(): Waiting for application startup.
+2025-06-15 15:06:24 [INFO] app.main:40 - lifespan(): Running startup tasks...
+2025-06-15 15:06:24 [INFO] uvicorn.error:62 - startup(): Application startup complete.
+2025-06-15 15:06:24 [INFO] app.auth.jwt_handler:65 - decode_access_token(): Token decoded successfully for user: superadmin
+2025-06-15 15:06:24 [INFO] app.auth.auth_dependencies:101 - get_current_user(): Authenticated user: superadmin from organisation: localhost
+2025-06-15 15:06:24 [INFO] app.config.dependency_container:95 - initialize(): Initializing dependency container...
+2025-06-15 15:06:24 [INFO] app.config.dependency_container:120 - _setup_infrastructure(): MongoDB connector configured with database: pms_global_database
+2025-06-15 15:06:24 [INFO] app.config.dependency_container:121 - _setup_infrastructure(): MongoDB connection will be established lazily when first needed
+2025-06-15 15:06:24 [INFO] app.config.dependency_container:209 - _setup_repositories(): Repositories initialized with centralized MongoDB configuration
+2025-06-15 15:06:24 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceNotificationHandler
+2025-06-15 15:06:24 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAnalyticsHandler
+2025-06-15 15:06:24 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAuditHandler
+2025-06-15 15:06:24 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceIntegrationHandler
+2025-06-15 15:06:24 [INFO] app.config.dependency_container:525 - _get_event_publisher(): Enhanced event publisher configured with attendance handlers
+2025-06-15 15:06:24 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceNotificationHandler
+2025-06-15 15:06:24 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAnalyticsHandler
+2025-06-15 15:06:24 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceAuditHandler
+2025-06-15 15:06:24 [INFO] app.infrastructure.services.enhanced_event_publisher:392 - register_handler(): Registered event handler: AttendanceIntegrationHandler
+2025-06-15 15:06:24 [INFO] app.config.dependency_container:525 - _get_event_publisher(): Enhanced event publisher configured with attendance handlers
+2025-06-15 15:06:24 [INFO] app.config.dependency_container:337 - _create_attendance_use_cases(): Attendance use cases created successfully
+2025-06-15 15:06:24 [INFO] app.config.dependency_container:288 - _setup_services(): Services initialized
+2025-06-15 15:06:24 [INFO] app.config.dependency_container:359 - _setup_controllers(): Controllers setup deferred
+2025-06-15 15:06:24 [INFO] app.config.dependency_container:104 - initialize(): Dependency container initialized successfully
+2025-06-15 15:06:24 [INFO] app.api.controllers.taxation_controller:547 - calculate_comprehensive_tax(): Starting comprehensive tax calculation for org localhost
+2025-06-15 15:06:24 [ERROR] app.api.controllers.taxation_controller:562 - calculate_comprehensive_tax(): Error in comprehensive tax calculation for org localhost: SalaryIncome.__init__() missing 1 required positional argument: 'actual_rent_paid'
+2025-06-15 15:06:24 [INFO] uvicorn.access:473 - send(): 127.0.0.1:49394 - "POST /api/v2/taxation/calculate-comprehensive HTTP/1.1" 500

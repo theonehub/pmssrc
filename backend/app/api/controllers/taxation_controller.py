@@ -78,7 +78,7 @@ from app.domain.value_objects.money import Money
 from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
 from app.domain.entities.taxation.salary_income import SalaryIncome
 from app.domain.entities.periodic_salary_income import PeriodicSalaryIncome, PeriodicSalaryData
-from app.domain.entities.taxation.tax_deductions import TaxDeductions
+from app.domain.entities.taxation.deductions import TaxDeductions
 from app.domain.entities.taxation.perquisites import (
     Perquisites, AccommodationPerquisite, CarPerquisite, AccommodationType,
     CityPopulation, CarUseType, AssetType, MedicalReimbursement, LTAPerquisite,
@@ -211,7 +211,7 @@ class UnifiedTaxationController:
                                    organization_id: str) -> CreateTaxationRecordResponse:
         """Create new taxation record with comprehensive income support."""
         
-        logger.info(f"Creating taxation record for user {request.user_id}, year {request.tax_year}")
+        logger.info(f"Creating taxation record for user {request.employee_id}, year {request.tax_year}")
         
         # Convert core DTO to domain entities
         # Handle case when salary_income is null - create default with zero values
@@ -252,7 +252,7 @@ class UnifiedTaxationController:
         
         try:
             command = CreateTaxationRecordCommand(
-                user_id=request.user_id,
+                employee_id=request.employee_id,
                 organization_id=organization_id,
                 tax_year=request.tax_year,
                 regime=request.regime,
@@ -439,7 +439,7 @@ class UnifiedTaxationController:
         # Convert to DTO response
         return CalculateTaxResponse(
             taxation_id=response.taxation_id,
-            user_id=response.user_id,
+            employee_id=response.employee_id,
             tax_year=response.tax_year,
             regime=response.regime,
             calculation_breakdown={
@@ -834,7 +834,7 @@ class UnifiedTaxationController:
         capital_gains_income = self._convert_capital_gains_dto_to_entity(request.capital_gains_income) if request.capital_gains_income else self._create_default_capital_gains()
         retirement_benefits = self._convert_retirement_benefits_dto_to_entity(request.retirement_benefits) if request.retirement_benefits else self._create_default_retirement_benefits()
         other_income = self._convert_other_income_dto_to_entity(request.other_income) if request.other_income else self._create_default_other_income()
-        tax_deductions = self._convert_deductions_dto_to_entity(request.deductions) if request.deductions else self._create_default_deductions()
+        deductions = self._convert_deductions_dto_to_entity(request.deductions) if request.deductions else self._create_default_deductions()
         
         # Determine citizen status
         is_senior_citizen = request.age >= 60
@@ -847,7 +847,7 @@ class UnifiedTaxationController:
             capital_gains_income=capital_gains_income,
             retirement_benefits=retirement_benefits,
             other_income=other_income,
-            tax_deductions=tax_deductions,
+            deductions=deductions,
             regime=regime,
             age=request.age,
             is_senior_citizen=is_senior_citizen,
@@ -975,7 +975,7 @@ class UnifiedTaxationController:
     
     def _create_default_deductions(self):
         """Create default tax deductions entity."""
-        from app.domain.entities.taxation.tax_deductions import TaxDeductions
+        from app.domain.entities.taxation.deductions import TaxDeductions
         
         return TaxDeductions()
     
@@ -1025,40 +1025,40 @@ class UnifiedTaxationController:
         """Convert deductions DTO to domain entity."""
         
         # Initialize with default values
-        tax_deductions = TaxDeductions()
+        deductions = TaxDeductions()
         
         if not deductions_dto:
-            return tax_deductions
+            return deductions
         
         # Map Section 80C fields directly
         if deductions_dto.section_80c:
             sec_80c_dto = deductions_dto.section_80c
-            tax_deductions.life_insurance_premium = Money.from_decimal(sec_80c_dto.life_insurance_premium)
-            tax_deductions.employee_provident_fund = Money.from_decimal(sec_80c_dto.epf_contribution)
-            tax_deductions.public_provident_fund = Money.from_decimal(sec_80c_dto.ppf_contribution)
-            tax_deductions.national_savings_certificate = Money.from_decimal(sec_80c_dto.nsc_investment)
-            tax_deductions.tax_saving_fixed_deposits = Money.from_decimal(sec_80c_dto.tax_saving_fd)
-            tax_deductions.elss_investments = Money.from_decimal(sec_80c_dto.elss_investment)
-            tax_deductions.principal_repayment_home_loan = Money.from_decimal(sec_80c_dto.home_loan_principal)
-            tax_deductions.tuition_fees = Money.from_decimal(sec_80c_dto.tuition_fees)
-            tax_deductions.sukanya_samriddhi = Money.from_decimal(sec_80c_dto.sukanya_samriddhi)
-            tax_deductions.other_80c_deductions = Money.from_decimal(sec_80c_dto.other_80c_investments)
+            deductions.life_insurance_premium = Money.from_decimal(sec_80c_dto.life_insurance_premium)
+            deductions.employee_provident_fund = Money.from_decimal(sec_80c_dto.epf_contribution)
+            deductions.public_provident_fund = Money.from_decimal(sec_80c_dto.ppf_contribution)
+            deductions.national_savings_certificate = Money.from_decimal(sec_80c_dto.nsc_investment)
+            deductions.tax_saving_fixed_deposits = Money.from_decimal(sec_80c_dto.tax_saving_fd)
+            deductions.elss_investments = Money.from_decimal(sec_80c_dto.elss_investment)
+            deductions.principal_repayment_home_loan = Money.from_decimal(sec_80c_dto.home_loan_principal)
+            deductions.tuition_fees = Money.from_decimal(sec_80c_dto.tuition_fees)
+            deductions.sukanya_samriddhi = Money.from_decimal(sec_80c_dto.sukanya_samriddhi)
+            deductions.other_80c_deductions = Money.from_decimal(sec_80c_dto.other_80c_investments)
         
         # Map Section 80D fields directly
         if deductions_dto.section_80d:
             sec_80d_dto = deductions_dto.section_80d
-            tax_deductions.health_insurance_self = Money.from_decimal(sec_80d_dto.self_family_premium)
-            tax_deductions.health_insurance_parents = Money.from_decimal(sec_80d_dto.parent_premium)
-            tax_deductions.preventive_health_checkup = Money.from_decimal(sec_80d_dto.preventive_health_checkup)
+            deductions.health_insurance_self = Money.from_decimal(sec_80d_dto.self_family_premium)
+            deductions.health_insurance_parents = Money.from_decimal(sec_80d_dto.parent_premium)
+            deductions.preventive_health_checkup = Money.from_decimal(sec_80d_dto.preventive_health_checkup)
         
         # Map Other Deductions fields directly
         if deductions_dto.other_deductions:
             other_dto = deductions_dto.other_deductions
-            tax_deductions.education_loan_interest = Money.from_decimal(other_dto.education_loan_interest)
-            tax_deductions.donations_80g = Money.from_decimal(other_dto.charitable_donations)
-            tax_deductions.savings_account_interest = Money.from_decimal(other_dto.savings_interest)
+            deductions.education_loan_interest = Money.from_decimal(other_dto.education_loan_interest)
+            deductions.donations_80g = Money.from_decimal(other_dto.charitable_donations)
+            deductions.savings_account_interest = Money.from_decimal(other_dto.savings_interest)
         
-        return tax_deductions
+        return deductions
     
     def _convert_comprehensive_deductions_dto_to_entity(self, comp_deductions_dto) -> TaxDeductions:
         """Convert comprehensive deductions DTO to entity."""

@@ -462,24 +462,24 @@ class MonthlyLeaveAllocationUseCase:
             logger.error(f"Error during monthly leave allocation for organisation {current_user.hostname}: {e}")
             raise
     
-    async def execute_for_user(self, user_id: str, current_user: CurrentUser) -> bool:
+    async def execute_for_user(self, employee_id: str, current_user: CurrentUser) -> bool:
         """
         Execute monthly leave allocation for a specific user.
         
         Args:
-            user_id: Employee ID of the user
+            employee_id: Employee ID of the user
             current_user: Current authenticated user with organisation context
             
         Returns:
             True if successful, False otherwise
         """
         try:
-            logger.info(f"Adding monthly leave allocation for user {user_id} in organisation {current_user.hostname}")
+            logger.info(f"Adding monthly leave allocation for user {employee_id} in organisation {current_user.hostname}")
             
             # Fetch the user
-            user = await self.user_query_repository.get_by_employee_id(user_id, current_user.hostname)
+            user = await self.user_query_repository.get_by_employee_id(employee_id, current_user.hostname)
             if not user:
-                logger.error(f"User {user_id} not found in organisation {current_user.hostname}")
+                logger.error(f"User {employee_id} not found in organisation {current_user.hostname}")
                 return False
             
             # Fetch active company leave policies for the organisation
@@ -506,19 +506,19 @@ class MonthlyLeaveAllocationUseCase:
                 user.update_leave_balance(leave_name, float(new_balance))
                 user_updated = True
                 
-                logger.info(f"Added monthly allocation for user {user_id}, {leave_name}: "
+                logger.info(f"Added monthly allocation for user {employee_id}, {leave_name}: "
                            f"{monthly_allocation} days. Previous: {current_balance}, New: {new_balance}")
             
             # Save the updated user
             if user_updated:
                 await self.user_command_repository.save(user, current_user.hostname)
-                logger.info(f"Successfully updated monthly leave allocation for user {user_id}")
+                logger.info(f"Successfully updated monthly leave allocation for user {employee_id}")
                 return True
             
             return False
             
         except Exception as e:
-            logger.error(f"Error adding monthly leave allocation for user {user_id}: {e}")
+            logger.error(f"Error adding monthly leave allocation for user {employee_id}: {e}")
             return False
 
 
@@ -566,7 +566,7 @@ async def monthly_leave_allocation_job():
         print(f"Error in monthly allocation for {current_user.hostname}: {e}")
 
 # For individual user allocation:
-async def add_monthly_allocation_for_user(user_id: str, organisation_hostname: str):
+async def add_monthly_allocation_for_user(employee_id: str, organisation_hostname: str):
     '''
     Add monthly allocation for a specific user.
     Useful for new joiners or manual adjustments.
@@ -589,6 +589,6 @@ async def add_monthly_allocation_for_user(user_id: str, organisation_hostname: s
         role="superadmin"
     )
     
-    success = await monthly_allocation_use_case.execute_for_user(user_id, current_user)
+    success = await monthly_allocation_use_case.execute_for_user(employee_id, current_user)
     return success
 """ 

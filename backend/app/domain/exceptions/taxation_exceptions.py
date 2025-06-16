@@ -113,8 +113,8 @@ class AgeValidationError(TaxationValidationError):
 class DuplicateTaxationRecordError(TaxationDomainError):
     """Raised when attempting to create duplicate taxation record."""
     
-    def __init__(self, user_id: str, tax_year: str, details: Optional[Dict[str, Any]] = None):
-        message = f"Taxation record already exists for user {user_id} in tax year {tax_year}"
+    def __init__(self, employee_id: str, tax_year: str, details: Optional[Dict[str, Any]] = None):
+        message = f"Taxation record already exists for user {employee_id} in tax year {tax_year}"
         super().__init__(message, details)
 
 

@@ -74,13 +74,10 @@ class GetComprehensiveTaxationRecordUseCase:
             raise ValueError("Organization ID is required")
         
         try:
-            # Determine financial year
-            financial_year = self._get_financial_year(tax_year)
-            
             # Get taxation record from repository
             taxation_record = await self._taxation_repository.get_taxation_record(
                 employee_id=employee_id,
-                financial_year=financial_year,
+                tax_year=tax_year,
                 organisation_id=organization_id
             )
             
@@ -176,7 +173,7 @@ class GetComprehensiveTaxationRecordUseCase:
             retirement_benefits=self._convert_retirement_benefits_entity_to_dto(taxation_record.retirement_benefits) if hasattr(taxation_record, 'retirement_benefits') and taxation_record.retirement_benefits else None,
             other_income=self._convert_other_income_entity_to_dto(taxation_record.other_income) if hasattr(taxation_record, 'other_income') and taxation_record.other_income else None,
             monthly_payroll=self._convert_monthly_payroll_entity_to_dto(taxation_record.monthly_payroll) if hasattr(taxation_record, 'monthly_payroll') and taxation_record.monthly_payroll else None,
-            deductions=self._convert_deductions_entity_to_dto(taxation_record.tax_deductions) if hasattr(taxation_record, 'tax_deductions') and taxation_record.tax_deductions else None
+            deductions=self._convert_deductions_entity_to_dto(taxation_record.deductions) if hasattr(taxation_record, 'deductions') and taxation_record.deductions else None
         )
     
     async def _create_default_comprehensive_record(
@@ -666,58 +663,58 @@ class GetComprehensiveTaxationRecordUseCase:
             lwp_details=[]  # Would need proper conversion
         )
     
-    def _convert_deductions_entity_to_dto(self, tax_deductions):
+    def _convert_deductions_entity_to_dto(self, deductions):
         """Convert TaxDeductions entity to TaxDeductionsDTO."""
         from app.application.dto.taxation_dto import TaxDeductionsDTO, DeductionSection80CDTO, DeductionSection80DDTO, DeductionSection80GDTO, DeductionSection80EDTO, DeductionSection80TTADTO, OtherDeductionsDTO
         
-        if not tax_deductions:
+        if not deductions:
             return None
             
         # Convert Section 80C
         section_80c = DeductionSection80CDTO(
-            life_insurance_premium=tax_deductions.life_insurance_premium.to_float() if hasattr(tax_deductions.life_insurance_premium, 'to_float') else 0,
-            epf_contribution=tax_deductions.employee_provident_fund.to_float() if hasattr(tax_deductions.employee_provident_fund, 'to_float') else 0,
-            ppf_contribution=tax_deductions.public_provident_fund.to_float() if hasattr(tax_deductions.public_provident_fund, 'to_float') else 0,
-            nsc_investment=tax_deductions.national_savings_certificate.to_float() if hasattr(tax_deductions.national_savings_certificate, 'to_float') else 0,
-            tax_saving_fd=tax_deductions.tax_saving_fixed_deposits.to_float() if hasattr(tax_deductions.tax_saving_fixed_deposits, 'to_float') else 0,
-            elss_investment=tax_deductions.elss_investments.to_float() if hasattr(tax_deductions.elss_investments, 'to_float') else 0,
-            home_loan_principal=tax_deductions.principal_repayment_home_loan.to_float() if hasattr(tax_deductions.principal_repayment_home_loan, 'to_float') else 0,
-            tuition_fees=tax_deductions.tuition_fees.to_float() if hasattr(tax_deductions.tuition_fees, 'to_float') else 0,
-            sukanya_samriddhi=tax_deductions.sukanya_samriddhi.to_float() if hasattr(tax_deductions.sukanya_samriddhi, 'to_float') else 0,
-            other_80c_investments=tax_deductions.other_80c_deductions.to_float() if hasattr(tax_deductions.other_80c_deductions, 'to_float') else 0
+            life_insurance_premium=deductions.life_insurance_premium.to_float() if hasattr(deductions.life_insurance_premium, 'to_float') else 0,
+            epf_contribution=deductions.employee_provident_fund.to_float() if hasattr(deductions.employee_provident_fund, 'to_float') else 0,
+            ppf_contribution=deductions.public_provident_fund.to_float() if hasattr(deductions.public_provident_fund, 'to_float') else 0,
+            nsc_investment=deductions.national_savings_certificate.to_float() if hasattr(deductions.national_savings_certificate, 'to_float') else 0,
+            tax_saving_fd=deductions.tax_saving_fixed_deposits.to_float() if hasattr(deductions.tax_saving_fixed_deposits, 'to_float') else 0,
+            elss_investment=deductions.elss_investments.to_float() if hasattr(deductions.elss_investments, 'to_float') else 0,
+            home_loan_principal=deductions.principal_repayment_home_loan.to_float() if hasattr(deductions.principal_repayment_home_loan, 'to_float') else 0,
+            tuition_fees=deductions.tuition_fees.to_float() if hasattr(deductions.tuition_fees, 'to_float') else 0,
+            sukanya_samriddhi=deductions.sukanya_samriddhi.to_float() if hasattr(deductions.sukanya_samriddhi, 'to_float') else 0,
+            other_80c_investments=deductions.other_80c_deductions.to_float() if hasattr(deductions.other_80c_deductions, 'to_float') else 0
         )
         
         # Convert Section 80D
         section_80d = DeductionSection80DDTO(
-            self_family_premium=tax_deductions.health_insurance_self.to_float() if hasattr(tax_deductions.health_insurance_self, 'to_float') else 0,
-            parent_premium=tax_deductions.health_insurance_parents.to_float() if hasattr(tax_deductions.health_insurance_parents, 'to_float') else 0,
-            preventive_health_checkup=tax_deductions.preventive_health_checkup.to_float() if hasattr(tax_deductions.preventive_health_checkup, 'to_float') else 0,
+            self_family_premium=deductions.health_insurance_self.to_float() if hasattr(deductions.health_insurance_self, 'to_float') else 0,
+            parent_premium=deductions.health_insurance_parents.to_float() if hasattr(deductions.health_insurance_parents, 'to_float') else 0,
+            preventive_health_checkup=deductions.preventive_health_checkup.to_float() if hasattr(deductions.preventive_health_checkup, 'to_float') else 0,
             employee_age=30,  # Default age, would need to be passed from context
             parent_age=60  # Default parent age
         )
         
         # Convert Section 80G
         section_80g = DeductionSection80GDTO(
-            charitable_donations=tax_deductions.donations_80g.to_float() if hasattr(tax_deductions.donations_80g, 'to_float') else 0
+            charitable_donations=deductions.donations_80g.to_float() if hasattr(deductions.donations_80g, 'to_float') else 0
         )
         
         # Convert Section 80E
         section_80e = DeductionSection80EDTO(
-            education_loan_interest=tax_deductions.education_loan_interest.to_float() if hasattr(tax_deductions.education_loan_interest, 'to_float') else 0
+            education_loan_interest=deductions.education_loan_interest.to_float() if hasattr(deductions.education_loan_interest, 'to_float') else 0
         )
         
         # Convert Section 80TTA
         section_80tta_ttb = DeductionSection80TTADTO(
-            savings_interest=tax_deductions.savings_account_interest.to_float() if hasattr(tax_deductions.savings_account_interest, 'to_float') else 0,
-            senior_citizen_interest=tax_deductions.senior_citizen_interest.to_float() if hasattr(tax_deductions.senior_citizen_interest, 'to_float') else 0,
+            savings_interest=deductions.savings_account_interest.to_float() if hasattr(deductions.savings_account_interest, 'to_float') else 0,
+            senior_citizen_interest=deductions.senior_citizen_interest.to_float() if hasattr(deductions.senior_citizen_interest, 'to_float') else 0,
             employee_age=30  # Default age, would need to be passed from context
         )
         
         # Convert Other Deductions
         other_deductions = OtherDeductionsDTO(
-            education_loan_interest=tax_deductions.education_loan_interest.to_float() if hasattr(tax_deductions.education_loan_interest, 'to_float') else 0,
-            charitable_donations=tax_deductions.donations_80g.to_float() if hasattr(tax_deductions.donations_80g, 'to_float') else 0,
-            savings_interest=tax_deductions.savings_account_interest.to_float() if hasattr(tax_deductions.savings_account_interest, 'to_float') else 0
+            education_loan_interest=deductions.education_loan_interest.to_float() if hasattr(deductions.education_loan_interest, 'to_float') else 0,
+            charitable_donations=deductions.donations_80g.to_float() if hasattr(deductions.donations_80g, 'to_float') else 0,
+            savings_interest=deductions.savings_account_interest.to_float() if hasattr(deductions.savings_account_interest, 'to_float') else 0
         )
         
         return TaxDeductionsDTO(

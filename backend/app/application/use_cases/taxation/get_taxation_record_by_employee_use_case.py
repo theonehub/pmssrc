@@ -180,7 +180,7 @@ class GetTaxationRecordByEmployeeUseCase:
         
         return TaxationRecordSummaryDTO(
             taxation_id=getattr(taxation_record, 'taxation_id', f"tax_{taxation_record.employee_id}_{taxation_record.financial_year}"),
-            user_id=taxation_record.employee_id,
+            employee_id=taxation_record.employee_id,
             organization_id=organization_id,
             tax_year=tax_year,
             regime=regime,
@@ -213,7 +213,7 @@ class GetTaxationRecordByEmployeeUseCase:
         
         return TaxationRecordSummaryDTO(
             taxation_id=f"tax_{employee_id}_{tax_year.replace('-', '_')}",
-            user_id=employee_id,
+            employee_id=employee_id,
             organization_id=organization_id,
             tax_year=tax_year,
             regime="new",

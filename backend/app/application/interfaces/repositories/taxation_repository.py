@@ -8,7 +8,7 @@ from typing import List, Optional
 
 from app.domain.value_objects.employee_id import EmployeeId
 from app.domain.value_objects.tax_year import TaxYear
-from app.domain.entities.taxation_record import TaxationRecord
+from app.domain.entities.taxation.taxation_record import TaxationRecord
 
 
 class TaxationRepository(ABC):
@@ -47,14 +47,14 @@ class TaxationRepository(ABC):
     
     @abstractmethod
     async def get_by_user_and_year(self, 
-                                 user_id: EmployeeId, 
+                                 employee_id: EmployeeId, 
                                  tax_year: TaxYear,
                                  organization_id: str) -> Optional[TaxationRecord]:
         """
         Get taxation record by user and tax year.
         
         Args:
-            user_id: User ID
+            employee_id: User ID
             tax_year: Tax year
             organization_id: Organization ID
             
@@ -65,7 +65,7 @@ class TaxationRepository(ABC):
     
     @abstractmethod
     async def get_by_user(self, 
-                        user_id: EmployeeId, 
+                        employee_id: EmployeeId, 
                         organization_id: str,
                         limit: int = 10,
                         offset: int = 0) -> List[TaxationRecord]:
@@ -73,7 +73,7 @@ class TaxationRepository(ABC):
         Get all taxation records for a user.
         
         Args:
-            user_id: User ID
+            employee_id: User ID
             organization_id: Organization ID
             limit: Maximum number of records to return
             offset: Number of records to skip
@@ -124,7 +124,7 @@ class TaxationRepository(ABC):
     @abstractmethod
     async def search(self, 
                    organization_id: str,
-                   user_id: Optional[EmployeeId] = None,
+                   employee_id: Optional[EmployeeId] = None,
                    tax_year: Optional[TaxYear] = None,
                    regime: Optional[str] = None,
                    is_final: Optional[bool] = None,
@@ -135,7 +135,7 @@ class TaxationRepository(ABC):
         
         Args:
             organization_id: Organization ID
-            user_id: Optional user ID filter
+            employee_id: Optional user ID filter
             tax_year: Optional tax year filter
             regime: Optional regime filter ('old' or 'new')
             is_final: Optional finalization status filter
@@ -150,7 +150,7 @@ class TaxationRepository(ABC):
     @abstractmethod
     async def count(self, 
                   organization_id: str,
-                  user_id: Optional[EmployeeId] = None,
+                  employee_id: Optional[EmployeeId] = None,
                   tax_year: Optional[TaxYear] = None,
                   regime: Optional[str] = None,
                   is_final: Optional[bool] = None) -> int:
@@ -159,7 +159,7 @@ class TaxationRepository(ABC):
         
         Args:
             organization_id: Organization ID
-            user_id: Optional user ID filter
+            employee_id: Optional user ID filter
             tax_year: Optional tax year filter
             regime: Optional regime filter
             is_final: Optional finalization status filter
@@ -185,14 +185,14 @@ class TaxationRepository(ABC):
     
     @abstractmethod
     async def exists(self, 
-                   user_id: EmployeeId, 
+                   employee_id: EmployeeId, 
                    tax_year: TaxYear,
                    organization_id: str) -> bool:
         """
         Check if taxation record exists for user and tax year.
         
         Args:
-            user_id: User ID
+            employee_id: User ID
             tax_year: Tax year
             organization_id: Organization ID
             

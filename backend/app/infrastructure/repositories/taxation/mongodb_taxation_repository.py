@@ -10,9 +10,9 @@ from bson import ObjectId
 
 from app.domain.repositories.taxation_repository import TaxationRepository
 from app.domain.entities.taxation.taxation_record import TaxationRecord
-from app.domain.value_objects.taxation.tax_regime import TaxRegime, TaxRegimeType
+from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
 from app.domain.entities.taxation.salary_income import SalaryIncome
-from app.domain.entities.taxation.tax_deductions import TaxDeductions
+from app.domain.entities.taxation.deductions import TaxDeductions
 from app.domain.entities.taxation.perquisites import Perquisites
 from app.domain.entities.taxation.other_income import OtherIncome
 from app.domain.entities.taxation.house_property_income import HousePropertyIncome
@@ -21,6 +21,7 @@ from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 from app.domain.value_objects.money import Money
 from app.domain.value_objects.employee_id import EmployeeId
 from app.domain.value_objects.tax_year import TaxYear
+from app.domain.services.taxation.tax_calculation_service import TaxCalculationResult
 from app.infrastructure.database.database_connector import DatabaseConnector
 
 
@@ -380,344 +381,460 @@ class MongoDBTaxationRepository(TaxationRepository):
     
     def _convert_to_document(self, record: TaxationRecord) -> dict:
         """Convert taxation record to MongoDB document."""
-        return {
-            "employee_id": record.employee_id,
-            "financial_year": record.financial_year,
-            "assessment_year": record.assessment_year,
-            "salary_income": {
-                "basic_salary": record.salary_income.basic_salary.to_float(),
-                "dearness_allowance": record.salary_income.dearness_allowance.to_float(),
-                "hra_received": record.salary_income.hra_received.to_float(),
-                "hra_city_type": record.salary_income.hra_city_type,
-                "actual_rent_paid": record.salary_income.actual_rent_paid.to_float(),
-                "special_allowance": record.salary_income.special_allowance.to_float(),
-                "other_allowances": record.salary_income.other_allowances.to_float(),
-                "bonus": record.salary_income.bonus.to_float(),
-                "commission": record.salary_income.commission.to_float(),
-                "medical_allowance": record.salary_income.medical_allowance.to_float(),
-                "conveyance_allowance": record.salary_income.conveyance_allowance.to_float(),
-                "overtime_allowance": record.salary_income.overtime_allowance.to_float(),
-                "arrears": record.salary_income.arrears.to_float(),
-                "gratuity": record.salary_income.gratuity.to_float(),
-                "leave_encashment": record.salary_income.leave_encashment.to_float()
-            },
-            "perquisites": {
-                "rent_free_accommodation": record.perquisites.rent_free_accommodation.to_float(),
-                "concessional_accommodation": record.perquisites.concessional_accommodation.to_float(),
-                "car_perquisite": record.perquisites.car_perquisite.to_float(),
-                "driver_perquisite": record.perquisites.driver_perquisite.to_float(),
-                "fuel_perquisite": record.perquisites.fuel_perquisite.to_float(),
-                "education_perquisite": record.perquisites.education_perquisite.to_float(),
-                "domestic_servant_perquisite": record.perquisites.domestic_servant_perquisite.to_float(),
-                "utility_perquisite": record.perquisites.utility_perquisite.to_float(),
-                "loan_perquisite": record.perquisites.loan_perquisite.to_float(),
-                "esop_perquisite": record.perquisites.esop_perquisite.to_float(),
-                "club_membership_perquisite": record.perquisites.club_membership_perquisite.to_float(),
-                "other_perquisites": record.perquisites.other_perquisites.to_float()
-            },
-            "house_property_income": {
-                "property_type": record.house_property_income.property_type.value,
-                "municipal_value": record.house_property_income.municipal_value.to_float(),
-                "fair_rental_value": record.house_property_income.fair_rental_value.to_float(),
-                "standard_rent": record.house_property_income.standard_rent.to_float(),
-                "actual_rent": record.house_property_income.actual_rent.to_float(),
-                "municipal_tax": record.house_property_income.municipal_tax.to_float(),
-                "interest_on_loan": record.house_property_income.interest_on_loan.to_float(),
-                "pre_construction_interest": record.house_property_income.pre_construction_interest.to_float(),
-                "other_deductions": record.house_property_income.other_deductions.to_float()
-            },
-            "capital_gains_income": {
-                "asset_type": record.capital_gains_income.asset_type,
-                "purchase_date": record.capital_gains_income.purchase_date.isoformat(),
-                "sale_date": record.capital_gains_income.sale_date.isoformat(),
-                "purchase_price": record.capital_gains_income.purchase_price.to_float(),
-                "sale_price": record.capital_gains_income.sale_price.to_float(),
-                "transfer_expenses": record.capital_gains_income.transfer_expenses.to_float(),
-                "improvement_cost": record.capital_gains_income.improvement_cost.to_float()
-            },
-            "retirement_benefits": {
-                "gratuity_amount": record.retirement_benefits.gratuity.gratuity_amount.to_float() if record.retirement_benefits.gratuity else 0,
-                "years_of_service": int(record.retirement_benefits.gratuity.service_years) if record.retirement_benefits.gratuity else 0,
-                "is_government_employee": record.retirement_benefits.gratuity.is_govt_employee if record.retirement_benefits.gratuity else False,
-                "leave_encashment_amount": record.retirement_benefits.leave_encashment.leave_encashment_amount.to_float() if record.retirement_benefits.leave_encashment else 0,
-                "leave_balance": record.retirement_benefits.leave_encashment.leave_days_encashed if record.retirement_benefits.leave_encashment else 0,
-                "pension_amount": record.retirement_benefits.pension.total_pension.to_float() if record.retirement_benefits.pension else 0,
-                "is_commuted_pension": record.retirement_benefits.pension.is_govt_employee if record.retirement_benefits.pension else False,
-                "commutation_percentage": 0.0,  # Not available in new structure, default to 0
-                "vrs_compensation": record.retirement_benefits.vrs.vrs_amount.to_float() if record.retirement_benefits.vrs else 0
-                #"other_retirement_benefits": record.retirement_benefits.retrenchment_compensation.compensation_amount.to_float() if record.retirement_benefits.retrenchment_compensation else 0
-            },
-            "other_income": {
-                "bank_interest": record.other_income.bank_interest.to_float(),
-                "fixed_deposit_interest": record.other_income.fixed_deposit_interest.to_float(),
-                "recurring_deposit_interest": record.other_income.recurring_deposit_interest.to_float(),
-                "post_office_interest": record.other_income.post_office_interest.to_float(),
-                "other_interest": record.other_income.other_interest.to_float(),
-                "equity_dividend": record.other_income.equity_dividend.to_float(),
-                "mutual_fund_dividend": record.other_income.mutual_fund_dividend.to_float(),
-                "other_dividend": record.other_income.other_dividend.to_float(),
-                "house_property_rent": record.other_income.house_property_rent.to_float(),
-                "commercial_property_rent": record.other_income.commercial_property_rent.to_float(),
-                "other_rental": record.other_income.other_rental.to_float(),
-                "business_income": record.other_income.business_income.to_float(),
-                "professional_income": record.other_income.professional_income.to_float(),
-                "short_term_capital_gains": record.other_income.short_term_capital_gains.to_float(),
-                "long_term_capital_gains": record.other_income.long_term_capital_gains.to_float(),
-                "lottery_winnings": record.other_income.lottery_winnings.to_float(),
-                "horse_race_winnings": record.other_income.horse_race_winnings.to_float(),
-                "crossword_puzzle_winnings": record.other_income.crossword_puzzle_winnings.to_float(),
-                "card_game_winnings": record.other_income.card_game_winnings.to_float(),
-                "other_speculative_income": record.other_income.other_speculative_income.to_float(),
-                "agricultural_income": record.other_income.agricultural_income.to_float(),
-                "share_of_profit_partnership": record.other_income.share_of_profit_partnership.to_float(),
-                "interest_on_tax_free_bonds": record.other_income.interest_on_tax_free_bonds.to_float(),
-                "other_exempt_income": record.other_income.other_exempt_income.to_float()
-            },
-            "tax_deductions": {
-                "life_insurance_premium": record.tax_deductions.life_insurance_premium.to_float(),
-                "elss_investments": record.tax_deductions.elss_investments.to_float(),
-                "public_provident_fund": record.tax_deductions.public_provident_fund.to_float(),
-                "employee_provident_fund": record.tax_deductions.employee_provident_fund.to_float(),
-                "sukanya_samriddhi": record.tax_deductions.sukanya_samriddhi.to_float(),
-                "national_savings_certificate": record.tax_deductions.national_savings_certificate.to_float(),
-                "tax_saving_fixed_deposits": record.tax_deductions.tax_saving_fixed_deposits.to_float(),
-                "principal_repayment_home_loan": record.tax_deductions.principal_repayment_home_loan.to_float(),
-                "tuition_fees": record.tax_deductions.tuition_fees.to_float(),
-                "other_80c_deductions": record.tax_deductions.other_80c_deductions.to_float(),
-                "health_insurance_self": record.tax_deductions.health_insurance_self.to_float(),
-                "health_insurance_parents": record.tax_deductions.health_insurance_parents.to_float(),
-                "preventive_health_checkup": record.tax_deductions.preventive_health_checkup.to_float(),
-                "education_loan_interest": record.tax_deductions.education_loan_interest.to_float(),
-                "donations_80g": record.tax_deductions.donations_80g.to_float(),
-                "savings_account_interest": record.tax_deductions.savings_account_interest.to_float(),
-                "senior_citizen_interest": record.tax_deductions.senior_citizen_interest.to_float(),
-                "disability_deduction": record.tax_deductions.disability_deduction.to_float(),
-                "medical_treatment_deduction": record.tax_deductions.medical_treatment_deduction.to_float(),
-                "scientific_research_donation": record.tax_deductions.scientific_research_donation.to_float(),
-                "political_donation": record.tax_deductions.political_donation.to_float(),
-                "infrastructure_deduction": record.tax_deductions.infrastructure_deduction.to_float(),
-                "industrial_undertaking_deduction": record.tax_deductions.industrial_undertaking_deduction.to_float(),
-                "special_category_state_deduction": record.tax_deductions.special_category_state_deduction.to_float(),
-                "hotel_deduction": record.tax_deductions.hotel_deduction.to_float(),
-                "north_eastern_state_deduction": record.tax_deductions.north_eastern_state_deduction.to_float(),
-                "employment_deduction": record.tax_deductions.employment_deduction.to_float(),
-                "employment_generation_deduction": record.tax_deductions.employment_generation_deduction.to_float(),
-                "offshore_banking_deduction": record.tax_deductions.offshore_banking_deduction.to_float(),
-                "co_operative_society_deduction": record.tax_deductions.co_operative_society_deduction.to_float(),
-                "royalty_deduction": record.tax_deductions.royalty_deduction.to_float(),
-                "patent_deduction": record.tax_deductions.patent_deduction.to_float(),
-                "interest_on_savings_deduction": record.tax_deductions.interest_on_savings_deduction.to_float(),
-                "disability_deduction_amount": record.tax_deductions.disability_deduction_amount.to_float()
-            },
+        document = {
+            # Core identification
+            "taxation_id": record.taxation_id,
+            "employee_id": str(record.employee_id),
+            "organization_id": record.organization_id,
+            "tax_year": str(record.tax_year),
+            "age": record.age,
+            
+            # Core data - Salary income 
+            "salary_income": self._serialize_salary_income(record.salary_income),
+            
+            # Core data - Tax deductions
+            "deductions": self._serialize_deductions(record.deductions),
+            
+            # Tax regime
             "regime": {
                 "regime_type": record.regime.regime_type.value
             },
-            "age": record.age,
-            "is_senior_citizen": record.is_senior_citizen,
-            "is_super_senior_citizen": record.is_super_senior_citizen,
-            "is_government_employee": record.is_government_employee,
-            "created_at": record.created_at.isoformat() if hasattr(record, 'created_at') else None,
-            "updated_at": record.updated_at.isoformat() if hasattr(record, 'updated_at') else None
+            
+            # Comprehensive income components (optional)
+            "perquisites": self._serialize_perquisites(record.perquisites),
+            "house_property_income": self._serialize_house_property_income(record.house_property_income),
+            "capital_gains_income": self._serialize_capital_gains_income(record.capital_gains_income),
+            "retirement_benefits": self._serialize_retirement_benefits(record.retirement_benefits),
+            "other_income": self._serialize_other_income(record.other_income),
+            "monthly_payroll": self._serialize_monthly_payroll(record.monthly_payroll),
+            
+            # Calculation results
+            "calculation_result": self._serialize_calculation_result(record.calculation_result),
+            "last_calculated_at": record.last_calculated_at.isoformat() if record.last_calculated_at else None,
+            
+            # Metadata
+            "is_final": record.is_final,
+            "submitted_at": record.submitted_at.isoformat() if record.submitted_at else None,
+            
+            # Audit fields
+            "created_at": record.created_at.isoformat(),
+            "updated_at": record.updated_at.isoformat(),
+            "version": record.version
+        }
+        
+        return document
+    
+    def _serialize_salary_income(self, salary_income: SalaryIncome) -> dict:
+        """Serialize salary income to document format."""
+        return {
+            "basic_salary": salary_income.basic_salary.to_float(),
+            "dearness_allowance": salary_income.dearness_allowance.to_float(),
+            "hra_received": salary_income.hra_received.to_float(),
+            "hra_city_type": salary_income.hra_city_type,
+            "actual_rent_paid": salary_income.actual_rent_paid.to_float(),
+            "special_allowance": salary_income.special_allowance.to_float(),
+            "other_allowances": salary_income.other_allowances.to_float(),
+            "bonus": salary_income.bonus.to_float(),
+            "commission": salary_income.commission.to_float(),
+            "medical_allowance": salary_income.medical_allowance.to_float(),
+            "conveyance_allowance": salary_income.conveyance_allowance.to_float(),
+        }
+    
+    def _serialize_deductions(self, deductions: TaxDeductions) -> dict:
+        """Serialize tax deductions to document format."""
+        # Handle the nested structure by accessing actual fields
+        return {
+            "section_80c": self._serialize_section_80c(deductions.section_80c),
+            "section_80ccc": self._serialize_section_80ccc(deductions.section_80ccc),
+            "section_80ccd": self._serialize_section_80ccd(deductions.section_80ccd),
+            "section_80eeb": self._serialize_section_80eeb(deductions.section_80eeb),
+            "section_80ggc": self._serialize_section_80ggc(deductions.section_80ggc),
+            "section_80u": self._serialize_section_80u(deductions.section_80u),
+            "section_80dd": self._serialize_section_80dd(deductions.section_80dd),
+            "section_80ddb": self._serialize_section_80ddb(deductions.section_80ddb),
+            "section_80d": self._serialize_section_80d(deductions.section_80d),
+            "section_80e": self._serialize_section_80e(deductions.section_80e),
+            "section_80g": self._serialize_section_80g(deductions.section_80g),
+            "section_80tta_ttb": self._serialize_section_80tta_ttb(deductions.section_80tta_ttb),
+            "other_deductions": self._serialize_other_deductions(deductions.other_deductions)
+        }
+    
+    def _serialize_section_80c(self, section_80c) -> Optional[dict]:
+        """Serialize Section 80C deductions to document format."""
+        if not section_80c:
+            return None
+        
+        return {
+            "life_insurance_premium": section_80c.life_insurance_premium.to_float(),
+            "epf_contribution": section_80c.epf_contribution.to_float(),
+            "ppf_contribution": section_80c.ppf_contribution.to_float(),
+            "nsc_investment": section_80c.nsc_investment.to_float(),
+            "tax_saving_fd": section_80c.tax_saving_fd.to_float(),
+            "elss_investment": section_80c.elss_investment.to_float(),
+            "home_loan_principal": section_80c.home_loan_principal.to_float(),
+            "tuition_fees": section_80c.tuition_fees.to_float(),
+            "ulip_premium": section_80c.ulip_premium.to_float(),
+            "sukanya_samriddhi": section_80c.sukanya_samriddhi.to_float(),
+            "stamp_duty_property": section_80c.stamp_duty_property.to_float(),
+            "senior_citizen_savings": section_80c.senior_citizen_savings.to_float(),
+            "other_80c_investments": section_80c.other_80c_investments.to_float(),
+            "total_investment": section_80c.calculate_total_investment().to_float()
+        }
+    
+    def _serialize_section_80ccc(self, section_80ccc) -> Optional[dict]:
+        """Serialize Section 80CCC deductions to document format."""
+        if not section_80ccc:
+            return None
+        
+        return {
+            "pension_fund_contribution": section_80ccc.pension_fund_contribution.to_float()
+        }
+    
+    def _serialize_section_80ccd(self, section_80ccd) -> Optional[dict]:
+        """Serialize Section 80CCD deductions to document format."""
+        if not section_80ccd:
+            return None
+        
+        return {
+            "employee_nps_contribution": section_80ccd.employee_nps_contribution.to_float(),
+            "additional_nps_contribution": section_80ccd.additional_nps_contribution.to_float(),
+            "employer_nps_contribution": section_80ccd.employer_nps_contribution.to_float()
+        }
+    
+    def _serialize_section_80d(self, section_80d) -> Optional[dict]:
+        """Serialize Section 80D deductions to document format."""
+        if not section_80d:
+            return None
+        
+        return {
+            "self_family_premium": section_80d.self_family_premium.to_float(),
+            "parent_premium": section_80d.parent_premium.to_float(),
+            "preventive_health_checkup": section_80d.preventive_health_checkup.to_float(),
+            "parent_age": section_80d.parent_age
+        }
+    
+    def _serialize_section_80dd(self, section_80dd) -> Optional[dict]:
+        """Serialize Section 80DD deductions to document format."""
+        if not section_80dd:
+            return None
+        
+        return {
+            "relation": section_80dd.relation.value,
+            "disability_percentage": section_80dd.disability_percentage.value
+        }
+    
+    def _serialize_section_80ddb(self, section_80ddb) -> Optional[dict]:
+        """Serialize Section 80DDB deductions to document format."""
+        if not section_80ddb:
+            return None
+        
+        return {
+            "dependent_age": section_80ddb.dependent_age,
+            "medical_expenses": section_80ddb.medical_expenses.to_float(),
+            "relation": section_80ddb.relation.value
+        }
+    
+    def _serialize_section_80e(self, section_80e) -> Optional[dict]:
+        """Serialize Section 80E deductions to document format."""
+        if not section_80e:
+            return None
+        
+        return {
+            "education_loan_interest": section_80e.education_loan_interest.to_float(),
+            "relation": section_80e.relation.value
+        }
+    
+    def _serialize_section_80eeb(self, section_80eeb) -> Optional[dict]:
+        """Serialize Section 80EEB deductions to document format."""
+        if not section_80eeb:
+            return None
+        
+        return {
+            "ev_loan_interest": section_80eeb.ev_loan_interest.to_float(),
+            "ev_purchase_date": section_80eeb.ev_purchase_date.isoformat() if section_80eeb.ev_purchase_date else None
+        }
+    
+    def _serialize_section_80g(self, section_80g) -> Optional[dict]:
+        """Serialize Section 80G deductions to document format."""
+        if not section_80g:
+            return None
+        
+        return {
+            # 100% deduction without qualifying limit
+            "pm_relief_fund": section_80g.pm_relief_fund.to_float(),
+            "national_defence_fund": section_80g.national_defence_fund.to_float(),
+            "national_foundation_communal_harmony": section_80g.national_foundation_communal_harmony.to_float(),
+            "zila_saksharta_samiti": section_80g.zila_saksharta_samiti.to_float(),
+            "national_illness_assistance_fund": section_80g.national_illness_assistance_fund.to_float(),
+            "national_blood_transfusion_council": section_80g.national_blood_transfusion_council.to_float(),
+            "national_trust_autism_fund": section_80g.national_trust_autism_fund.to_float(),
+            "national_sports_fund": section_80g.national_sports_fund.to_float(),
+            "national_cultural_fund": section_80g.national_cultural_fund.to_float(),
+            "technology_development_fund": section_80g.technology_development_fund.to_float(),
+            "national_children_fund": section_80g.national_children_fund.to_float(),
+            "cm_relief_fund": section_80g.cm_relief_fund.to_float(),
+            "army_naval_air_force_funds": section_80g.army_naval_air_force_funds.to_float(),
+            "swachh_bharat_kosh": section_80g.swachh_bharat_kosh.to_float(),
+            "clean_ganga_fund": section_80g.clean_ganga_fund.to_float(),
+            "drug_abuse_control_fund": section_80g.drug_abuse_control_fund.to_float(),
+            "other_100_percent_wo_limit": section_80g.other_100_percent_wo_limit.to_float(),
+            
+            # 50% deduction without qualifying limit
+            "jn_memorial_fund": section_80g.jn_memorial_fund.to_float(),
+            "pm_drought_relief": section_80g.pm_drought_relief.to_float(),
+            "indira_gandhi_memorial_trust": section_80g.indira_gandhi_memorial_trust.to_float(),
+            "rajiv_gandhi_foundation": section_80g.rajiv_gandhi_foundation.to_float(),
+            "other_50_percent_wo_limit": section_80g.other_50_percent_wo_limit.to_float(),
+            
+            # 100% deduction with qualifying limit (10% of income)
+            "family_planning_donation": section_80g.family_planning_donation.to_float(),
+            "indian_olympic_association": section_80g.indian_olympic_association.to_float(),
+            "other_100_percent_w_limit": section_80g.other_100_percent_w_limit.to_float(),
+            
+            # 50% deduction with qualifying limit (10% of income)
+            "govt_charitable_donations": section_80g.govt_charitable_donations.to_float(),
+            "housing_authorities_donations": section_80g.housing_authorities_donations.to_float(),
+            "religious_renovation_donations": section_80g.religious_renovation_donations.to_float(),
+            "other_charitable_donations": section_80g.other_charitable_donations.to_float(),
+            "other_50_percent_w_limit": section_80g.other_50_percent_w_limit.to_float(),
+            
+            # Summary fields
+            "total_donations": section_80g.calculate_total_donations().to_float()
+        }
+    
+    def _serialize_section_80ggc(self, section_80ggc) -> Optional[dict]:
+        """Serialize Section 80GGC deductions to document format."""
+        if not section_80ggc:
+            return None
+        
+        return {
+            "political_party_contribution": section_80ggc.political_party_contribution.to_float()
+        }
+    
+    def _serialize_section_80u(self, section_80u) -> Optional[dict]:
+        """Serialize Section 80U deductions to document format."""
+        if not section_80u:
+            return None
+        
+        return {
+            "disability_percentage": section_80u.disability_percentage.value
+        }
+    
+    def _serialize_section_80tta_ttb(self, section_80tta_ttb) -> Optional[dict]:
+        """Serialize Section 80TTA/80TTB deductions to document format."""
+        if not section_80tta_ttb:
+            return None
+        
+        return {
+            "savings_interest": section_80tta_ttb.savings_interest.to_float(),
+            "fd_interest": section_80tta_ttb.fd_interest.to_float(),
+            "rd_interest": section_80tta_ttb.rd_interest.to_float(),
+            "other_bank_interest": section_80tta_ttb.other_bank_interest.to_float(),
+            "age": section_80tta_ttb.age
+        }
+    
+    def _serialize_other_deductions(self, other_deductions) -> Optional[dict]:
+        """Serialize other deductions to document format."""
+        if not other_deductions:
+            return None
+        
+        return {
+            "education_loan_interest": other_deductions.education_loan_interest.to_float(),
+            "charitable_donations": other_deductions.charitable_donations.to_float(),
+            "savings_interest": other_deductions.savings_interest.to_float(),
+            "nps_contribution": other_deductions.nps_contribution.to_float(),
+            "other_deductions": other_deductions.other_deductions.to_float(),
+            "total": other_deductions.calculate_total().to_float()
+        }
+    
+    def _serialize_perquisites(self, perquisites: Optional[Perquisites]) -> Optional[dict]:
+        """Serialize perquisites to document format."""
+        if not perquisites:
+            return None
+        
+        return {
+            "has_perquisites": True,
+            "total_value": perquisites.calculate_total_perquisites(TaxRegime.old_regime()).to_float(),
+            # Store summary for now - detailed structure can be added later
+        }
+    
+    def _serialize_house_property_income(self, house_property: Optional[HousePropertyIncome]) -> Optional[dict]:
+        """Serialize house property income to document format."""
+        if not house_property:
+            return None
+        
+        return {
+            "property_type": house_property.property_type.value,
+            "annual_rent_received": house_property.annual_rent_received.to_float(),
+            "municipal_taxes_paid": house_property.municipal_taxes_paid.to_float(),
+            "home_loan_interest": house_property.home_loan_interest.to_float(),
+            "pre_construction_interest": house_property.pre_construction_interest.to_float(),
+            "fair_rental_value": house_property.fair_rental_value.to_float(),
+            "standard_rent": house_property.standard_rent.to_float()
+        }
+    
+    def _serialize_capital_gains_income(self, capital_gains: Optional[CapitalGainsIncome]) -> Optional[dict]:
+        """Serialize capital gains income to document format."""
+        if not capital_gains:
+            return None
+        
+        return {
+            "stcg_111a_equity_stt": capital_gains.stcg_111a_equity_stt.to_float(),
+            "stcg_other_assets": capital_gains.stcg_other_assets.to_float(),
+            "stcg_debt_mf": capital_gains.stcg_debt_mf.to_float(),
+            "ltcg_112a_equity_stt": capital_gains.ltcg_112a_equity_stt.to_float(),
+            "ltcg_other_assets": capital_gains.ltcg_other_assets.to_float(),
+            "ltcg_debt_mf": capital_gains.ltcg_debt_mf.to_float()
+        }
+    
+    def _serialize_retirement_benefits(self, retirement_benefits: Optional[RetirementBenefits]) -> Optional[dict]:
+        """Serialize retirement benefits to document format."""
+        if not retirement_benefits:
+            return None
+        
+        return {
+            "leave_encashment_amount": retirement_benefits.leave_encashment.leave_encashment_amount.to_float() if retirement_benefits.leave_encashment else 0.0,
+            "gratuity_amount": retirement_benefits.gratuity.gratuity_amount.to_float() if retirement_benefits.gratuity else 0.0,
+            "vrs_amount": retirement_benefits.vrs.vrs_amount.to_float() if retirement_benefits.vrs else 0.0,
+            "pension_amount": retirement_benefits.pension.total_pension.to_float() if retirement_benefits.pension else 0.0,
+            "retrenchment_compensation": retirement_benefits.retrenchment_compensation.retrenchment_amount.to_float() if retirement_benefits.retrenchment_compensation else 0.0
+        }
+    
+    def _serialize_interest_income(self, interest_income) -> Optional[dict]:
+        """Serialize interest income to document format."""
+        if not interest_income:
+            return None
+        
+        return {
+            "savings_account_interest": interest_income.savings_account_interest.to_float(),
+            "fixed_deposit_interest": interest_income.fixed_deposit_interest.to_float(),
+            "recurring_deposit_interest": interest_income.recurring_deposit_interest.to_float(),
+            "other_bank_interest": interest_income.other_bank_interest.to_float()
+        }
+    
+    def _serialize_other_income(self, other_income: Optional[OtherIncome]) -> Optional[dict]:
+        """Serialize other income to document format."""
+        if not other_income:
+            return None
+        
+        return {
+            "interest_income": self._serialize_interest_income(other_income.interest_income),
+            "dividend_income": other_income.dividend_income.to_float(),
+            "gifts_received": other_income.gifts_received.to_float(),
+            "business_professional_income": other_income.business_professional_income.to_float(),
+            "other_miscellaneous_income": other_income.other_miscellaneous_income.to_float()
+        }
+    
+    def _serialize_monthly_payroll(self, monthly_payroll) -> Optional[dict]:
+        """Serialize monthly payroll to document format."""
+        if not monthly_payroll:
+            return None
+        
+        return {
+            "has_monthly_payroll": True,
+            "annual_salary_with_lwp": monthly_payroll.calculate_annual_salary_with_lwp().to_float(),
+            "total_lwp_impact": monthly_payroll.calculate_total_lwp_impact().to_float()
+        }
+    
+    def _serialize_calculation_result(self, calculation_result) -> Optional[dict]:
+        """Serialize calculation result to document format."""
+        if not calculation_result:
+            return None
+        
+        return {
+            "total_income": calculation_result.total_income.to_float(),
+            "total_exemptions": calculation_result.total_exemptions.to_float(),
+            "total_deductions": calculation_result.total_deductions.to_float(),
+            "taxable_income": calculation_result.taxable_income.to_float(),
+            "tax_liability": calculation_result.tax_liability.to_float(),
+            "effective_tax_rate": calculation_result.effective_tax_rate,
+            "monthly_tax_liability": calculation_result.monthly_tax_liability.to_float(),
+            "tax_breakdown": calculation_result.tax_breakdown
         }
     
     def _convert_to_entity(self, document: dict) -> TaxationRecord:
         """Convert MongoDB document to taxation record."""
-        # Convert salary income
-        salary_income = SalaryIncome(
-            basic_salary=Money(document["salary_income"]["basic_salary"]),
-            dearness_allowance=Money(document["salary_income"]["dearness_allowance"]),
-            hra_received=Money(document["salary_income"]["hra_received"]),
-            hra_city_type=document["salary_income"]["hra_city_type"],
-            actual_rent_paid=Money(document["salary_income"].get("actual_rent_paid", 0)),
-            special_allowance=Money(document["salary_income"]["special_allowance"]),
-            other_allowances=Money(document["salary_income"]["other_allowances"]),
-            bonus=Money(document["salary_income"]["bonus"]),
-            commission=Money(document["salary_income"]["commission"]),
-            medical_allowance=Money(document["salary_income"]["medical_allowance"]),
-            conveyance_allowance=Money(document["salary_income"]["conveyance_allowance"]),
-            overtime_allowance=Money(document["salary_income"]["overtime_allowance"]),
-            arrears=Money(document["salary_income"]["arrears"]),
-            gratuity=Money(document["salary_income"]["gratuity"]),
-            leave_encashment=Money(document["salary_income"]["leave_encashment"])
-        )
+        from datetime import datetime
         
-        # Convert perquisites - create with new structure but handle legacy data
-        perquisites = Perquisites(
-            # Core perquisites
-            accommodation=None,  # Will be populated from legacy data if available
-            car=None,  # Will be populated from legacy data if available
+        # Deserialize salary income
+        salary_income = self._deserialize_salary_income(document.get("salary_income", {}))
+        
+        # Deserialize tax deductions
+        deductions = self._deserialize_deductions(document.get("deductions", {}))
+        
+        # Deserialize regime
+        regime = TaxRegime(TaxRegimeType(document["regime"]["regime_type"]))
+        
+        # Deserialize calculation result if present
+        calculation_result = self._deserialize_calculation_result(document.get("calculation_result"))
+        
+        # Create TaxationRecord with core required fields
+        record = TaxationRecord(
+            taxation_id=document.get("taxation_id", str(document.get("_id", ""))),
+            employee_id=EmployeeId(document["employee_id"]),
+            #organization_id=document["organization_id"],
+            tax_year=TaxYear.from_string(document["tax_year"]),
+            salary_income=salary_income,
+            deductions=deductions,
+            regime=regime,
+            age=document["age"],
             
-            # Medical and travel perquisites
-            medical_reimbursement=None,
-            lta=None,
+            # Optional comprehensive income components
+            perquisites=self._deserialize_perquisites(document.get("perquisites")),
+            house_property_income=self._deserialize_house_property_income(document.get("house_property_income")),
+            capital_gains_income=self._deserialize_capital_gains_income(document.get("capital_gains_income")),
+            retirement_benefits=self._deserialize_retirement_benefits(document.get("retirement_benefits")),
+            other_income=self._deserialize_other_income(document.get("other_income")),
+            #monthly_payroll=self._deserialize_monthly_payroll(document.get("monthly_payroll")),
             
-            # Financial perquisites
-            interest_free_loan=None,
-            esop=None,
+            # Calculated fields
+            calculation_result=calculation_result,
+            last_calculated_at=datetime.fromisoformat(document["last_calculated_at"]) if document.get("last_calculated_at") else None,
             
-            # Utilities and facilities
-            utilities=None,
-            free_education=None,
-            lunch_refreshment=None,
-            domestic_help=None,
+            # Metadata
+            is_final=document.get("is_final", False),
+            submitted_at=datetime.fromisoformat(document["submitted_at"]) if document.get("submitted_at") else None,
             
-            # Asset-related perquisites
-            movable_asset_usage=None,
-            movable_asset_transfer=None,
-            
-            # Miscellaneous perquisites
-            gift_voucher=None,
-            monetary_benefits=None,
-            club_expenses=None
+            # # Audit fields
+            # created_at=datetime.fromisoformat(document["created_at"]),
+            # updated_at=datetime.fromisoformat(document["updated_at"]),
+            # version=document.get("version", 1)
         )
         
-        # Convert house property income - use new constructor signature
-        from app.domain.entities.taxation.house_property_income import PropertyType
-        
-        # Map property type string to enum
-        property_type_mapping = {
-            "Self-Occupied": PropertyType.SELF_OCCUPIED,
-            "Let-Out": PropertyType.LET_OUT,
-            "Deemed Let-Out": PropertyType.DEEMED_LET_OUT
-        }
-        property_type = property_type_mapping.get(
-            document["house_property_income"]["property_type"], 
-            PropertyType.SELF_OCCUPIED
+        return record
+    
+    def _deserialize_salary_income(self, salary_data: dict) -> SalaryIncome:
+        """Deserialize salary income from document format."""
+        return SalaryIncome(
+            basic_salary=Money(salary_data.get("basic_salary", 0)),
+            dearness_allowance=Money(salary_data.get("dearness_allowance", 0)),
+            hra_received=Money(salary_data.get("hra_received", 0)),
+            hra_city_type=salary_data.get("hra_city_type", "metro"),
+            actual_rent_paid=Money(salary_data.get("actual_rent_paid", 0)),
+            special_allowance=Money(salary_data.get("special_allowance", 0)),
+            other_allowances=Money(salary_data.get("other_allowances", 0)),
+            bonus=Money(salary_data.get("bonus", 0)),
+            commission=Money(salary_data.get("commission", 0)),
+            medical_allowance=Money(salary_data.get("medical_allowance", 0)),
+            conveyance_allowance=Money(salary_data.get("conveyance_allowance", 0))
         )
-        
-        house_property_income = HousePropertyIncome(
-            property_type=property_type,
-            annual_rent_received=Money(document["house_property_income"].get("actual_rent", 0)),
-            municipal_taxes_paid=Money(document["house_property_income"].get("municipal_tax", 0)),
-            home_loan_interest=Money(document["house_property_income"].get("interest_on_loan", 0)),
-            pre_construction_interest=Money(document["house_property_income"].get("pre_construction_interest", 0)),
-            fair_rental_value=Money(document["house_property_income"].get("fair_rental_value", 0)),
-            standard_rent=Money(document["house_property_income"].get("standard_rent", 0))
-        )
-        
-        # Convert capital gains income - use new constructor signature
-        capital_gains_income = CapitalGainsIncome(
-            stcg_111a_equity_stt=Money(document["capital_gains_income"].get("stcg_111a_equity_stt", 0)),
-            stcg_other_assets=Money(document["capital_gains_income"].get("stcg_other_assets", 0)),
-            stcg_debt_mf=Money(document["capital_gains_income"].get("stcg_debt_mf", 0)),
-            ltcg_112a_equity_stt=Money(document["capital_gains_income"].get("ltcg_112a_equity_stt", 0)),
-            ltcg_other_assets=Money(document["capital_gains_income"].get("ltcg_other_assets", 0)),
-            ltcg_debt_mf=Money(document["capital_gains_income"].get("ltcg_debt_mf", 0))
-        )
-        
-        # Convert retirement benefits - use new nested structure
-        from app.domain.entities.taxation.retirement_benefits import (
-            LeaveEncashment, Gratuity, VRS, Pension, RetrenchmentCompensation
-        )
-        
-        # Create nested objects from legacy data
-        leave_encashment = LeaveEncashment(
-            leave_encashment_amount=Money(document["retirement_benefits"].get("leave_encashment_amount", 0)),
-            leave_days_encashed=document["retirement_benefits"].get("leave_balance", 0),
-            is_govt_employee=document["retirement_benefits"].get("is_government_employee", False)
-        )
-        
-        gratuity = Gratuity(
-            gratuity_amount=Money(document["retirement_benefits"].get("gratuity_amount", 0)),
-            service_years=Decimal(str(document["retirement_benefits"].get("years_of_service", 0))),
-            is_govt_employee=document["retirement_benefits"].get("is_government_employee", False)
-        )
-        
-        vrs = VRS(
-            vrs_amount=Money(document["retirement_benefits"].get("vrs_compensation", 0))
-        )
-        
-        pension = Pension(
-            regular_pension=Money(document["retirement_benefits"].get("pension_amount", 0)),
-            commuted_pension=Money.zero(),  # Default to zero for legacy data
-            total_pension=Money(document["retirement_benefits"].get("pension_amount", 0)),
-            is_govt_employee=document["retirement_benefits"].get("is_government_employee", False)
-        )
-        
-        retrenchment_compensation = RetrenchmentCompensation(
-            retrenchment_amount=Money(document["retirement_benefits"].get("other_retirement_benefits", 0))
-        )
-        
-        retirement_benefits = RetirementBenefits(
-            leave_encashment=leave_encashment,
-            gratuity=gratuity,
-            vrs=vrs,
-            pension=pension,
-            retrenchment_compensation=retrenchment_compensation
-        )
-        
-        # Convert other income - use new constructor signature
-        from app.domain.entities.taxation.other_income import InterestIncome
-        
-        # Create interest income from legacy fields
-        interest_income = InterestIncome(
-            savings_account_interest=Money(document["other_income"].get("bank_interest", 0)),
-            fixed_deposit_interest=Money(document["other_income"].get("fixed_deposit_interest", 0)),
-            recurring_deposit_interest=Money(document["other_income"].get("recurring_deposit_interest", 0)),
-            other_bank_interest=Money(document["other_income"].get("other_interest", 0)),
-            age=25  # Default age, will be overridden by actual age if available
-        )
-        
-        other_income = OtherIncome(
-            interest_income=interest_income,
-            dividend_income=Money(document["other_income"].get("equity_dividend", 0)),
-            gifts_received=Money.zero(),  # Not in legacy data
-            business_professional_income=Money(document["other_income"].get("business_income", 0)),
-            other_miscellaneous_income=Money(document["other_income"].get("other_speculative_income", 0))
-        )
-        
-        # Convert tax deductions - use new nested structure
-        from app.domain.entities.taxation.tax_deductions import (
+    
+    def _deserialize_deductions(self, deductions_data: dict) -> TaxDeductions:
+        """Deserialize tax deductions from document format."""
+        from app.domain.entities.taxation.deductions import (
             DeductionSection80C, DeductionSection80D, DeductionSection80E, 
             DeductionSection80G, DeductionSection80TTA_TTB, OtherDeductions
         )
         
-        # Create Section 80C from legacy data
-        section_80c = DeductionSection80C(
-            life_insurance_premium=Money(document["tax_deductions"].get("life_insurance_premium", 0)),
-            epf_contribution=Money(document["tax_deductions"].get("employee_provident_fund", 0)),
-            ppf_contribution=Money(document["tax_deductions"].get("public_provident_fund", 0)),
-            nsc_investment=Money(document["tax_deductions"].get("national_savings_certificate", 0)),
-            tax_saving_fd=Money(document["tax_deductions"].get("tax_saving_fixed_deposits", 0)),
-            elss_investment=Money(document["tax_deductions"].get("elss_investments", 0)),
-            home_loan_principal=Money(document["tax_deductions"].get("principal_repayment_home_loan", 0)),
-            tuition_fees=Money(document["tax_deductions"].get("tuition_fees", 0)),
-            sukanya_samriddhi=Money(document["tax_deductions"].get("sukanya_samriddhi", 0)),
-            other_80c_investments=Money(document["tax_deductions"].get("other_80c_deductions", 0))
-        )
+        # Create simplified structure for now
+        section_80c = DeductionSection80C()
+        section_80d = DeductionSection80D()
+        section_80e = DeductionSection80E()
+        section_80g = DeductionSection80G()
+        section_80tta_ttb = DeductionSection80TTA_TTB()
+        other_deductions = OtherDeductions()
         
-        # Create Section 80D from legacy data
-        section_80d = DeductionSection80D(
-            self_family_premium=Money(document["tax_deductions"].get("health_insurance_self", 0)),
-            parent_premium=Money(document["tax_deductions"].get("health_insurance_parents", 0)),
-            preventive_health_checkup=Money(document["tax_deductions"].get("preventive_health_checkup", 0))
-        )
-        
-        # Create Section 80E from legacy data
-        section_80e = DeductionSection80E(
-            education_loan_interest=Money(document["tax_deductions"].get("education_loan_interest", 0))
-        )
-        
-        # Create Section 80G from legacy data
-        section_80g = DeductionSection80G(
-            other_charitable_donations=Money(document["tax_deductions"].get("donations_80g", 0))
-        )
-        
-        # Create Section 80TTA/TTB from legacy data
-        section_80tta_ttb = DeductionSection80TTA_TTB(
-            savings_interest=Money(document["tax_deductions"].get("savings_account_interest", 0)),
-            fd_interest=Money(document["tax_deductions"].get("senior_citizen_interest", 0))
-        )
-        
-        # Create other deductions from legacy data
-        other_deductions = OtherDeductions(
-            education_loan_interest=Money(document["tax_deductions"].get("education_loan_interest", 0)),
-            charitable_donations=Money(document["tax_deductions"].get("donations_80g", 0)),
-            savings_interest=Money(document["tax_deductions"].get("savings_account_interest", 0))
-        )
-        
-        # Create TaxDeductions with nested objects
-        tax_deductions = TaxDeductions(
+        return TaxDeductions(
             section_80c=section_80c,
             section_80d=section_80d,
             section_80e=section_80e,
@@ -725,24 +842,128 @@ class MongoDBTaxationRepository(TaxationRepository):
             section_80tta_ttb=section_80tta_ttb,
             other_deductions=other_deductions
         )
+    
+    def _deserialize_perquisites(self, perquisites_data: Optional[dict]) -> Optional[Perquisites]:
+        """Deserialize perquisites from document format."""
+        if not perquisites_data:
+            return None
         
-        # Create taxation record
-        return TaxationRecord(
-            employee_id=document["employee_id"],
-            financial_year=document["financial_year"],
-            assessment_year=document["assessment_year"],
-            salary_income=salary_income,
-            perquisites=perquisites,
-            house_property_income=house_property_income,
-            capital_gains_income=capital_gains_income,
-            retirement_benefits=retirement_benefits,
-            other_income=other_income,
-            tax_deductions=tax_deductions,
-            regime=TaxRegime(TaxRegimeType(document["regime"]["regime_type"])),
-            age=document["age"],
-            is_senior_citizen=document["is_senior_citizen"],
-            is_super_senior_citizen=document["is_super_senior_citizen"],
-            is_government_employee=document["is_government_employee"]
+        # Create default empty perquisites for now
+        return Perquisites()
+    
+    def _deserialize_house_property_income(self, house_property_data: Optional[dict]) -> Optional[HousePropertyIncome]:
+        """Deserialize house property income from document format."""
+        if not house_property_data:
+            return None
+        
+        from app.domain.entities.taxation.house_property_income import PropertyType
+        
+        property_type = PropertyType(house_property_data.get("property_type", "SELF_OCCUPIED"))
+        
+        return HousePropertyIncome(
+            property_type=property_type,
+            annual_rent_received=Money(house_property_data.get("annual_rent_received", 0)),
+            municipal_taxes_paid=Money(house_property_data.get("municipal_taxes_paid", 0)),
+            home_loan_interest=Money(house_property_data.get("home_loan_interest", 0)),
+            pre_construction_interest=Money(house_property_data.get("pre_construction_interest", 0)),
+            fair_rental_value=Money(house_property_data.get("fair_rental_value", 0)),
+            standard_rent=Money(house_property_data.get("standard_rent", 0))
+        )
+    
+    def _deserialize_capital_gains_income(self, capital_gains_data: Optional[dict]) -> Optional[CapitalGainsIncome]:
+        """Deserialize capital gains income from document format."""
+        if not capital_gains_data:
+            return None
+        
+        return CapitalGainsIncome(
+            stcg_111a_equity_stt=Money(capital_gains_data.get("stcg_111a_equity_stt", 0)),
+            stcg_other_assets=Money(capital_gains_data.get("stcg_other_assets", 0)),
+            stcg_debt_mf=Money(capital_gains_data.get("stcg_debt_mf", 0)),
+            ltcg_112a_equity_stt=Money(capital_gains_data.get("ltcg_112a_equity_stt", 0)),
+            ltcg_other_assets=Money(capital_gains_data.get("ltcg_other_assets", 0)),
+            ltcg_debt_mf=Money(capital_gains_data.get("ltcg_debt_mf", 0))
+        )
+    
+    def _deserialize_retirement_benefits(self, retirement_data: Optional[dict]) -> Optional[RetirementBenefits]:
+        """Deserialize retirement benefits from document format."""
+        if not retirement_data:
+            return None
+        
+        from app.domain.entities.taxation.retirement_benefits import (
+            LeaveEncashment, Gratuity, VRS, Pension, RetrenchmentCompensation
+        )
+        
+        # Create sub-entities with data from document
+        leave_encashment = LeaveEncashment(
+            leave_encashment_amount=Money(retirement_data.get("leave_encashment_amount", 0))
+        ) if retirement_data.get("leave_encashment_amount", 0) > 0 else None
+        
+        gratuity = Gratuity(
+            gratuity_amount=Money(retirement_data.get("gratuity_amount", 0))
+        ) if retirement_data.get("gratuity_amount", 0) > 0 else None
+        
+        vrs = VRS(
+            vrs_amount=Money(retirement_data.get("vrs_amount", 0))
+        ) if retirement_data.get("vrs_amount", 0) > 0 else None
+        
+        pension = Pension(
+            total_pension=Money(retirement_data.get("pension_amount", 0))
+        ) if retirement_data.get("pension_amount", 0) > 0 else None
+        
+        retrenchment_compensation = RetrenchmentCompensation(
+            retrenchment_amount=Money(retirement_data.get("retrenchment_compensation", 0))
+        ) if retirement_data.get("retrenchment_compensation", 0) > 0 else None
+        
+        return RetirementBenefits(
+            leave_encashment=leave_encashment,
+            gratuity=gratuity,
+            vrs=vrs,
+            pension=pension,
+            retrenchment_compensation=retrenchment_compensation
+        )
+    
+    def _deserialize_other_income(self, other_income_data: Optional[dict]) -> Optional[OtherIncome]:
+        """Deserialize other income from document format."""
+        if not other_income_data:
+            return None
+        
+        from app.domain.entities.taxation.other_income import InterestIncome
+        
+        # Create interest income sub-entity
+        interest_income = InterestIncome(
+            savings_account_interest=Money(other_income_data.get("interest_income_total", 0))
+        ) if other_income_data.get("interest_income_total", 0) > 0 else None
+        
+        return OtherIncome(
+            interest_income=interest_income,
+            dividend_income=Money(other_income_data.get("dividend_income", 0)),
+            gifts_received=Money(other_income_data.get("gifts_received", 0)),
+            business_professional_income=Money(other_income_data.get("business_professional_income", 0)),
+            other_miscellaneous_income=Money(other_income_data.get("other_miscellaneous_income", 0))
+        )
+    
+    def _deserialize_monthly_payroll(self, payroll_data: Optional[dict]):
+        """Deserialize monthly payroll from document format."""
+        if not payroll_data:
+            return None
+        
+        # For now, return None since monthly payroll is complex
+        # This can be implemented later when needed
+        return None
+    
+    def _deserialize_calculation_result(self, calc_data: Optional[dict]) -> Optional[TaxCalculationResult]:
+        """Deserialize calculation result from document format."""
+        if not calc_data:
+            return None
+        
+        return TaxCalculationResult(
+            total_income=Money(calc_data.get("total_income", 0)),
+            total_exemptions=Money(calc_data.get("total_exemptions", 0)),
+            total_deductions=Money(calc_data.get("total_deductions", 0)),
+            taxable_income=Money(calc_data.get("taxable_income", 0)),
+            tax_liability=Money(calc_data.get("tax_liability", 0)),
+            tax_breakdown=calc_data.get("tax_breakdown", {}),
+            regime_comparison=calc_data.get("regime_comparison")
         )
 
     async def save(self, taxation_record: TaxationRecord, organization_id: str) -> TaxationRecord:
@@ -761,7 +982,7 @@ class MongoDBTaxationRepository(TaxationRepository):
         # Check if record already exists
         existing = await collection.find_one({
             "employee_id": taxation_record.employee_id,
-            "financial_year": taxation_record.financial_year
+            "tax_year": taxation_record.tax_year
         })
         
         if existing:
@@ -800,14 +1021,14 @@ class MongoDBTaxationRepository(TaxationRepository):
         return None
     
     async def get_by_user_and_year(self, 
-                                 user_id: EmployeeId, 
+                                 employee_id: EmployeeId, 
                                  tax_year: TaxYear,
                                  organization_id: str) -> Optional[TaxationRecord]:
         """
         Get taxation record by user and tax year.
         
         Args:
-            user_id: User ID
+            employee_id: User ID
             tax_year: Tax year
             organization_id: Organization ID
             
@@ -816,7 +1037,7 @@ class MongoDBTaxationRepository(TaxationRepository):
         """
         collection = await self._get_collection(organization_id)
         document = await collection.find_one({
-            "employee_id": str(user_id),
+            "employee_id": str(employee_id),
             "financial_year": tax_year.start_year
         })
         
@@ -825,7 +1046,7 @@ class MongoDBTaxationRepository(TaxationRepository):
         return None
     
     async def get_by_user(self, 
-                        user_id: EmployeeId, 
+                        employee_id: EmployeeId, 
                         organization_id: str,
                         limit: int = 10,
                         offset: int = 0) -> List[TaxationRecord]:
@@ -833,7 +1054,7 @@ class MongoDBTaxationRepository(TaxationRepository):
         Get all taxation records for a user.
         
         Args:
-            user_id: User ID
+            employee_id: User ID
             organization_id: Organization ID
             limit: Maximum number of records to return
             offset: Number of records to skip
@@ -843,7 +1064,7 @@ class MongoDBTaxationRepository(TaxationRepository):
         """
         collection = await self._get_collection(organization_id)
         cursor = collection.find({
-            "user_id": str(user_id),
+            "employee_id": str(employee_id),
             "organization_id": organization_id
         }).skip(offset).limit(limit).sort("created_at", -1)
         

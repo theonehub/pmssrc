@@ -17,7 +17,7 @@ from app.domain.value_objects.tax_regime import TaxRegime
 from app.domain.value_objects.employment_period import EmploymentPeriod
 from app.domain.entities.taxation.salary_income import SalaryIncome
 from app.domain.entities.periodic_salary_income import PeriodicSalaryIncome, PeriodicSalaryData
-from app.domain.entities.taxation.tax_deductions import TaxDeductions
+from app.domain.entities.taxation.deductions import TaxDeductions
 from app.domain.entities.taxation.taxation_record import TaxationRecord
 from app.domain.entities.taxation.perquisites import Perquisites
 from app.domain.entities.taxation.house_property_income import HousePropertyIncome
@@ -42,7 +42,7 @@ from app.application.dto.taxation_dto import (
 @dataclass
 class CreateTaxationRecordCommand:
     """Command to create new taxation record with comprehensive income support."""
-    user_id: str
+    employee_id: str
     organization_id: str
     tax_year: str
     
@@ -66,7 +66,7 @@ class CreateTaxationRecordCommand:
 class CreateTaxationRecordResponse:
     """Response for creating taxation record."""
     taxation_id: str
-    user_id: str
+    employee_id: str
     tax_year: str
     regime: str
     status: str
@@ -93,23 +93,23 @@ class CreateTaxationRecordCommandHandler:
         
         logger = logging.getLogger(__name__)
         
-        logger.info(f"Starting taxation record creation for user {command.user_id}")
+        logger.info(f"Starting taxation record creation for user {command.employee_id}")
         
         # Parse and validate inputs
-        user_id = EmployeeId.from_string(command.user_id)
+        employee_id = EmployeeId.from_string(command.employee_id)
         tax_year = TaxYear.from_string(command.tax_year)
         regime = TaxRegime.from_string(command.regime)
         
-        logger.info(f"Parsed inputs - user_id: {user_id}, tax_year: {tax_year}, regime: {regime}")
+        logger.info(f"Parsed inputs - employee_id: {employee_id}, tax_year: {tax_year}, regime: {regime}")
         
         # Check if record already exists
         existing_record = await self.taxation_repository.get_by_user_and_year(
-            user_id, tax_year, command.organization_id
+            employee_id, tax_year, command.organization_id
         )
         
         if existing_record:
             raise TaxationValidationError(
-                f"Taxation record already exists for user {command.user_id} in {command.tax_year}"
+                f"Taxation record already exists for user {command.employee_id} in {command.tax_year}"
             )
         
         logger.info(f"No existing record found, proceeding with creation")
@@ -155,17 +155,16 @@ class CreateTaxationRecordCommandHandler:
         logger.info("Creating TaxationRecord entity...")
         try:
             taxation_record = TaxationRecord(
-                employee_id=command.user_id,
-                financial_year=tax_year.start_year,
-                assessment_year=tax_year.end_year,
+                employee_id=command.employee_id,
+                tax_year=command.tax_year,
                 salary_income=command.salary_income,
-                perquisites=default_perquisites,
-                house_property_income=default_house_property,
-                capital_gains_income=default_capital_gains,
-                retirement_benefits=default_retirement_benefits,
-                other_income=default_other_income,
-                tax_deductions=command.deductions,
-                regime=regime,
+                perquisites=command.perquisites,
+                house_property_income=command.house_property_income,
+                capital_gains_income=command.capital_gains_income,
+                retirement_benefits=command.retirement_benefits,
+                other_income=command.other_income,
+                deductions=command.deductions,
+                regime=TaxRegime.from_string(command.regime),
                 age=command.age
             )
             logger.info("✅ TaxationRecord entity created successfully")
@@ -180,8 +179,8 @@ class CreateTaxationRecordCommandHandler:
         logger.info("✅ Taxation record saved successfully")
         
         return CreateTaxationRecordResponse(
-            taxation_id=f"{saved_record.employee_id}_{saved_record.financial_year}",  # Generate ID from employee and year
-            user_id=command.user_id,
+            taxation_id=f"{saved_record.employee_id}_{saved_record.tax_year.start_year}",  # Generate ID from employee and year
+            employee_id=command.employee_id,
             tax_year=command.tax_year,
             regime=command.regime,
             status="created",
@@ -301,7 +300,7 @@ class CalculateTaxCommand:
 class CalculateTaxResponse:
     """Response for tax calculation."""
     taxation_id: str
-    user_id: str
+    employee_id: str
     tax_year: str
     regime: str
     total_tax_liability: float
@@ -342,7 +341,7 @@ class CalculateTaxCommandHandler:
         
         return CalculateTaxResponse(
             taxation_id=command.taxation_id,
-            user_id=str(taxation_record.user_id),
+            employee_id=str(taxation_record.employee_id),
             tax_year=str(taxation_record.tax_year),
             regime=taxation_record.regime.regime_type.value,
             total_tax_liability=calculation_result.total_tax_liability.to_float(),

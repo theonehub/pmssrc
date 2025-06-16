@@ -9,7 +9,7 @@ from decimal import Decimal
 
 from app.domain.value_objects.money import Money
 from app.domain.entities.taxation.salary_income import SalaryIncome
-from app.domain.entities.taxation.tax_deductions import TaxDeductions
+from app.domain.entities.taxation.deductions import TaxDeductions
 from app.domain.entities.taxation.perquisites import Perquisites
 from app.domain.entities.taxation.other_income import OtherIncome
 from app.domain.entities.taxation.house_property_income import HousePropertyIncome
@@ -26,7 +26,7 @@ class RegimeComparisonInput:
     capital_gains_income: CapitalGainsIncome
     retirement_benefits: RetirementBenefits
     other_income: OtherIncome
-    tax_deductions: TaxDeductions
+    deductions: TaxDeductions
     age: int
     is_senior_citizen: bool
     is_super_senior_citizen: bool
@@ -112,20 +112,20 @@ class RegimeComparisonService:
         
         # Calculate total deductions
         total_deductions = (
-            input_data.tax_deductions.section_80c +
-            input_data.tax_deductions.section_80d +
-            input_data.tax_deductions.section_80e +
-            input_data.tax_deductions.section_80g +
-            input_data.tax_deductions.section_80gg +
-            input_data.tax_deductions.section_80gga +
-            input_data.tax_deductions.section_80ggc +
-            input_data.tax_deductions.section_80tta +
-            input_data.tax_deductions.section_80ttb +
-            input_data.tax_deductions.section_80u +
-            input_data.tax_deductions.standard_deduction +
-            input_data.tax_deductions.hra_exemption +
-            input_data.tax_deductions.lta_exemption +
-            input_data.tax_deductions.other_deductions
+            input_data.deductions.section_80c +
+            input_data.deductions.section_80d +
+            input_data.deductions.section_80e +
+            input_data.deductions.section_80g +
+            input_data.deductions.section_80gg +
+            input_data.deductions.section_80gga +
+            input_data.deductions.section_80ggc +
+            input_data.deductions.section_80tta +
+            input_data.deductions.section_80ttb +
+            input_data.deductions.section_80u +
+            input_data.deductions.standard_deduction +
+            input_data.deductions.hra_exemption +
+            input_data.deductions.lta_exemption +
+            input_data.deductions.other_deductions
         )
         
         # Calculate taxable income
@@ -268,11 +268,11 @@ class RegimeComparisonService:
                 }
             },
             'deductions_breakdown': {
-                'section_80c': input_data.tax_deductions.section_80c,
-                'section_80d': input_data.tax_deductions.section_80d,
-                'standard_deduction': input_data.tax_deductions.standard_deduction,
-                'hra_exemption': input_data.tax_deductions.hra_exemption,
-                'other_deductions': input_data.tax_deductions.other_deductions
+                'section_80c': input_data.deductions.section_80c,
+                'section_80d': input_data.deductions.section_80d,
+                'standard_deduction': input_data.deductions.standard_deduction,
+                'hra_exemption': input_data.deductions.hra_exemption,
+                'other_deductions': input_data.deductions.other_deductions
             },
             'tax_breakdown': {
                 'old_regime': {
@@ -302,8 +302,8 @@ class RegimeComparisonService:
             'monthly_savings': tax_difference / Decimal('12'),
             'annual_savings': tax_difference,
             'savings_by_component': {
-                'deductions_savings': input_data.tax_deductions.section_80c * Decimal('0.3'),
-                'hra_savings': input_data.tax_deductions.hra_exemption * Decimal('0.3'),
-                'other_savings': input_data.tax_deductions.other_deductions * Decimal('0.3')
+                'deductions_savings': input_data.deductions.section_80c * Decimal('0.3'),
+                'hra_savings': input_data.deductions.hra_exemption * Decimal('0.3'),
+                'other_savings': input_data.deductions.other_deductions * Decimal('0.3')
             }
         } 

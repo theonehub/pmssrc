@@ -97,7 +97,7 @@ def test_salary_income_creation():
             deductions = TaxDeductions()
             
             command = CreateTaxationRecordCommand(
-                user_id="EMP005",
+                employee_id="EMP005",
                 organization_id="localhost",
                 tax_year="2025-26",
                 regime="old",
@@ -106,7 +106,7 @@ def test_salary_income_creation():
                 deductions=deductions
             )
             logger.info("✅ CreateTaxationRecordCommand created successfully!")
-            logger.info(f"   - user_id: {command.user_id}")
+            logger.info(f"   - employee_id: {command.employee_id}")
             logger.info(f"   - salary_income type: {type(command.salary_income)}")
         except Exception as e:
             logger.error(f"❌ CreateTaxationRecordCommand creation failed: {str(e)}")

@@ -6,12 +6,12 @@ Handles all tax calculations for Indian taxation
 from decimal import Decimal
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
+from datetime import datetime
 
 from app.domain.value_objects.money import Money
 from app.domain.value_objects.taxation.tax_regime import TaxRegime, TaxRegimeType
-from app.domain.entities.taxation.taxation_record import TaxationRecord
 from app.domain.entities.taxation.salary_income import SalaryIncome
-from app.domain.entities.taxation.tax_deductions import TaxDeductions
+from app.domain.entities.taxation.deductions import TaxDeductions
 from app.domain.entities.taxation.perquisites import Perquisites
 from app.domain.entities.taxation.other_income import OtherIncome
 from app.domain.entities.taxation.house_property_income import HousePropertyIncome
@@ -28,7 +28,7 @@ class TaxCalculationInput:
     capital_gains_income: CapitalGainsIncome
     retirement_benefits: RetirementBenefits
     other_income: OtherIncome
-    tax_deductions: TaxDeductions
+    deductions: TaxDeductions
     regime: TaxRegime
     age: int
     is_senior_citizen: bool
@@ -47,9 +47,46 @@ class TaxCalculationResult:
     tax_breakdown: Dict[str, Any]
     regime_comparison: Optional[Dict[str, Any]] = None
 
+    # Additional convenience properties
+    @property
+    def gross_income(self) -> Money:
+        """Alias for total_income for backward compatibility."""
+        return self.total_income
+    
+    @property
+    def total_tax_liability(self) -> Money:
+        """Alias for tax_liability for backward compatibility."""
+        return self.tax_liability
+    
+    @property
+    def monthly_tax_liability(self) -> Money:
+        """Calculate monthly tax liability."""
+        return self.tax_liability.divide(Decimal('12'))
+    
+    @property
+    def effective_tax_rate(self) -> float:
+        """Calculate effective tax rate as percentage."""
+        if self.total_income.is_zero():
+            return 0.0
+        return (self.tax_liability.to_float() / self.total_income.to_float()) * 100
+    
+    @property
+    def calculation_breakdown(self) -> Dict[str, Any]:
+        """Alias for tax_breakdown for backward compatibility."""
+        return self.tax_breakdown
+
 
 class TaxCalculationService:
     """Service for calculating taxes."""
+    
+    def __init__(self, taxation_repository=None):
+        """
+        Initialize the service.
+        
+        Args:
+            taxation_repository: Optional taxation repository for updating records
+        """
+        self.taxation_repository = taxation_repository
     
     def calculate_tax(self, input_data: TaxCalculationInput) -> TaxCalculationResult:
         """
@@ -106,6 +143,107 @@ class TaxCalculationService:
             tax_breakdown=tax_breakdown,
             regime_comparison=regime_comparison
         )
+
+    def calculate_income_tax(self, 
+                           gross_income: Money,
+                           total_exemptions: Money, 
+                           total_deductions: Money,
+                           regime: TaxRegime, 
+                           age: int) -> TaxCalculationResult:
+        """
+        Calculate income tax with provided totals - method expected by TaxationRecord.
+        
+        Args:
+            gross_income: Total gross income
+            total_exemptions: Total exemptions amount
+            total_deductions: Total deductions amount
+            regime: Tax regime
+            age: Employee age
+            
+        Returns:
+            TaxCalculationResult: Tax calculation result
+        """
+        # Determine citizen categories based on age
+        is_senior_citizen = age >= 60
+        is_super_senior_citizen = age >= 80
+        
+        # Calculate taxable income
+        income_after_exemptions = gross_income.subtract(total_exemptions) if gross_income.is_greater_than(total_exemptions) else Money.zero()
+        taxable_income = income_after_exemptions.subtract(total_deductions) if income_after_exemptions.is_greater_than(total_deductions) else Money.zero()
+        
+        # Calculate tax liability
+        tax_liability = self._calculate_tax_liability(
+            taxable_income,
+            regime,
+            age,
+            is_senior_citizen,
+            is_super_senior_citizen
+        )
+        
+        # Create simplified tax breakdown
+        tax_breakdown = {
+            "income_details": {
+                "gross_income": gross_income.to_float(),
+                "total_exemptions": total_exemptions.to_float(),
+                "income_after_exemptions": income_after_exemptions.to_float(),
+                "total_deductions": total_deductions.to_float(),
+                "taxable_income": taxable_income.to_float()
+            },
+            "tax_calculation": {
+                "regime": regime.regime_type.value,
+                "age_category": "super_senior" if is_super_senior_citizen else "senior" if is_senior_citizen else "regular",
+                "basic_tax": tax_liability.to_float(),
+                "total_tax_liability": tax_liability.to_float()
+            },
+            "summary": {
+                "effective_tax_rate": (tax_liability.to_float() / gross_income.to_float() * 100) if not gross_income.is_zero() else 0.0,
+                "monthly_tax": tax_liability.divide(Decimal('12')).to_float()
+            }
+        }
+        
+        return TaxCalculationResult(
+            total_income=gross_income,
+            total_exemptions=total_exemptions,
+            total_deductions=total_deductions,
+            taxable_income=taxable_income,
+            tax_liability=tax_liability,
+            tax_breakdown=tax_breakdown,
+            regime_comparison=None
+        )
+
+    async def calculate_and_update_taxation_record(self, 
+                                                 taxation_record, 
+                                                 organization_id: str) -> TaxCalculationResult:
+        """
+        Calculate tax for a taxation record and update it with results in the database.
+        
+        Args:
+            taxation_record: TaxationRecord to calculate and update
+            organization_id: Organization ID for database operations
+            
+        Returns:
+            TaxCalculationResult: Tax calculation result
+            
+        Raises:
+            ValueError: If taxation repository is not configured
+            RuntimeError: If database update fails
+        """
+        if not self.taxation_repository:
+            raise ValueError("Taxation repository not configured for this service")
+        
+        # Calculate tax using the record's built-in method
+        calculation_result = taxation_record.calculate_tax(self)
+        
+        try:
+            # Update the record in the database
+            await self.taxation_repository.update_taxation_record(taxation_record, organization_id)
+            
+            return calculation_result
+            
+        except Exception as e:
+            # Reset calculation state on update failure
+            taxation_record._invalidate_calculation()
+            raise RuntimeError(f"Failed to update taxation record in database: {e}")
     
     def _calculate_total_income(self, input_data: TaxCalculationInput) -> Money:
         """Calculate total income from all sources."""
@@ -150,7 +288,7 @@ class TaxCalculationService:
             return Money.zero()  # No deductions in new regime
         
         # Use the actual deduction methods from TaxDeductions entity
-        return Money.zero() #input_data.tax_deductions.get_total_deductions()
+        return Money.zero() #input_data.deductions.get_total_deductions()
     
     def _calculate_tax_liability(self,
                                taxable_income: Money,
@@ -338,57 +476,57 @@ class TaxCalculationService:
             "deductions_breakdown": {
                 "section_80c": min(
                     (
-                        input_data.tax_deductions.life_insurance_premium
-                        .add(input_data.tax_deductions.elss_investments)
-                        .add(input_data.tax_deductions.public_provident_fund)
-                        .add(input_data.tax_deductions.employee_provident_fund)
-                        .add(input_data.tax_deductions.sukanya_samriddhi)
-                        .add(input_data.tax_deductions.national_savings_certificate)
-                        .add(input_data.tax_deductions.tax_saving_fixed_deposits)
-                        .add(input_data.tax_deductions.principal_repayment_home_loan)
-                        .add(input_data.tax_deductions.tuition_fees)
-                        .add(input_data.tax_deductions.other_80c_deductions)
+                        input_data.deductions.life_insurance_premium
+                        .add(input_data.deductions.elss_investments)
+                        .add(input_data.deductions.public_provident_fund)
+                        .add(input_data.deductions.employee_provident_fund)
+                        .add(input_data.deductions.sukanya_samriddhi)
+                        .add(input_data.deductions.national_savings_certificate)
+                        .add(input_data.deductions.tax_saving_fixed_deposits)
+                        .add(input_data.deductions.principal_repayment_home_loan)
+                        .add(input_data.deductions.tuition_fees)
+                        .add(input_data.deductions.other_80c_deductions)
                     ).to_float(),
                     150000.0  # Max ₹1.5 lakh
                 ),
                 "section_80d": min(
                     (
-                        input_data.tax_deductions.health_insurance_self
-                        .add(input_data.tax_deductions.health_insurance_parents)
-                        .add(input_data.tax_deductions.preventive_health_checkup)
+                        input_data.deductions.health_insurance_self
+                        .add(input_data.deductions.health_insurance_parents)
+                        .add(input_data.deductions.preventive_health_checkup)
                     ).to_float(),
                     25000.0  # Max ₹25,000
                 ),
-                "section_80e": input_data.tax_deductions.education_loan_interest.to_float(),
-                "section_80g": input_data.tax_deductions.donations_80g.to_float(),
+                "section_80e": input_data.deductions.education_loan_interest.to_float(),
+                "section_80g": input_data.deductions.donations_80g.to_float(),
                 "section_80tta": min(
-                    input_data.tax_deductions.savings_account_interest.to_float(),
+                    input_data.deductions.savings_account_interest.to_float(),
                     10000.0  # Max ₹10,000
                 ),
                 "section_80ttb": min(
-                    input_data.tax_deductions.senior_citizen_interest.to_float(),
+                    input_data.deductions.senior_citizen_interest.to_float(),
                     50000.0  # Max ₹50,000
                 ) if input_data.is_senior_citizen else 0.0,
                 "section_80u": (
-                    input_data.tax_deductions.disability_deduction
-                    .add(input_data.tax_deductions.medical_treatment_deduction)
+                    input_data.deductions.disability_deduction
+                    .add(input_data.deductions.medical_treatment_deduction)
                 ).to_float(),
                 "other_deductions": (
-                    input_data.tax_deductions.scientific_research_donation
-                    .add(input_data.tax_deductions.political_donation)
-                    .add(input_data.tax_deductions.infrastructure_deduction)
-                    .add(input_data.tax_deductions.industrial_undertaking_deduction)
-                    .add(input_data.tax_deductions.special_category_state_deduction)
-                    .add(input_data.tax_deductions.hotel_deduction)
-                    .add(input_data.tax_deductions.north_eastern_state_deduction)
-                    .add(input_data.tax_deductions.employment_deduction)
-                    .add(input_data.tax_deductions.employment_generation_deduction)
-                    .add(input_data.tax_deductions.offshore_banking_deduction)
-                    .add(input_data.tax_deductions.co_operative_society_deduction)
-                    .add(input_data.tax_deductions.royalty_deduction)
-                    .add(input_data.tax_deductions.patent_deduction)
-                    .add(input_data.tax_deductions.interest_on_savings_deduction)
-                    .add(input_data.tax_deductions.disability_deduction_amount)
+                    input_data.deductions.scientific_research_donation
+                    .add(input_data.deductions.political_donation)
+                    .add(input_data.deductions.infrastructure_deduction)
+                    .add(input_data.deductions.industrial_undertaking_deduction)
+                    .add(input_data.deductions.special_category_state_deduction)
+                    .add(input_data.deductions.hotel_deduction)
+                    .add(input_data.deductions.north_eastern_state_deduction)
+                    .add(input_data.deductions.employment_deduction)
+                    .add(input_data.deductions.employment_generation_deduction)
+                    .add(input_data.deductions.offshore_banking_deduction)
+                    .add(input_data.deductions.co_operative_society_deduction)
+                    .add(input_data.deductions.royalty_deduction)
+                    .add(input_data.deductions.patent_deduction)
+                    .add(input_data.deductions.interest_on_savings_deduction)
+                    .add(input_data.deductions.disability_deduction_amount)
                 ).to_float()
             },
             "tax_summary": {
@@ -414,7 +552,7 @@ class TaxCalculationService:
             capital_gains_income=input_data.capital_gains_income,
             retirement_benefits=input_data.retirement_benefits,
             other_income=input_data.other_income,
-            tax_deductions=input_data.tax_deductions,
+            deductions=input_data.deductions,
             regime=TaxRegime(TaxRegimeType.NEW),
             age=input_data.age,
             is_senior_citizen=input_data.is_senior_citizen,

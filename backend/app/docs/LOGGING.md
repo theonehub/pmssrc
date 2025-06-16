@@ -103,7 +103,7 @@ api_logger = get_logger('api_requests')
 
 ```python
 logger.info("User operation completed", extra={
-    'user_id': '12345',
+    'employee_id': '12345',
     'operation': 'login',
     'duration_ms': 150,
     'success': True

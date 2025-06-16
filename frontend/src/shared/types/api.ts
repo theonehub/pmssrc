@@ -333,7 +333,7 @@ export interface ScenarioComparisonSummaryDTO {
 // =============================================================================
 
 export interface CreateTaxationRecordRequest {
-  user_id: string;
+  employee_id: string;
   tax_year: string;
   regime_type: TaxRegime;
   input_data: ComprehensiveTaxInputDTO;
@@ -343,7 +343,7 @@ export interface CreateTaxationRecordRequest {
 
 export interface CreateTaxationRecordResponse {
   taxation_id: string;
-  user_id: string;
+  employee_id: string;
   tax_year: string;
   regime_type: TaxRegime;
   status: FilingStatus;
@@ -353,7 +353,7 @@ export interface CreateTaxationRecordResponse {
 
 export interface TaxationRecordSummaryDTO {
   taxation_id: string;
-  user_id: string;
+  employee_id: string;
   tax_year: string;
   regime_type: TaxRegime;
   status: FilingStatus;
@@ -368,7 +368,7 @@ export interface TaxationRecordSummaryDTO {
 }
 
 export interface TaxationRecordQuery {
-  user_id?: string;
+  employee_id?: string;
   tax_year?: string;
   regime_type?: TaxRegime;
   status?: FilingStatus;

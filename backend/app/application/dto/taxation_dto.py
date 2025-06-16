@@ -534,7 +534,7 @@ class ScenarioComparisonRequestDTO(BaseModel):
 
 class CreateTaxationRecordRequest(BaseModel):
     """Request to create new taxation record with comprehensive income support."""
-    user_id: Optional[str] = Field(None, description="User ID (deprecated, use employee_id)")
+    employee_id: Optional[str] = Field(None, description="User ID (deprecated, use employee_id)")
     employee_id: Optional[str] = Field(None, description="Employee ID")
     tax_year: str = Field(..., description="Tax year (e.g., '2023-24')")
     
@@ -565,21 +565,21 @@ class CreateTaxationRecordRequest(BaseModel):
     
     @model_validator(mode='before')
     @classmethod
-    def validate_user_identification(cls, values):
-        """Ensure either user_id or employee_id is provided and map employee_id to user_id."""
-        user_id = values.get('user_id')
+    def validate_employee_identification(cls, values):
+        """Ensure either employee_id or employee_id is provided and map employee_id to employee_id."""
+        employee_id = values.get('employee_id')
         employee_id = values.get('employee_id')
         
-        if not user_id and not employee_id:
-            raise ValueError("Either user_id or employee_id must be provided")
+        if not employee_id and not employee_id:
+            raise ValueError("Either employee_id or employee_id must be provided")
         
-        # If employee_id is provided but user_id is not, map employee_id to user_id
-        if employee_id and not user_id:
-            values['user_id'] = employee_id
+        # If employee_id is provided but employee_id is not, map employee_id to employee_id
+        if employee_id and not employee_id:
+            values['employee_id'] = employee_id
         
         # If both are provided, ensure they match
-        if user_id and employee_id and user_id != employee_id:
-            raise ValueError("user_id and employee_id must match if both are provided")
+        if employee_id and employee_id and employee_id != employee_id:
+            raise ValueError("employee_id and employee_id must match if both are provided")
         
         return values
 
@@ -739,7 +739,7 @@ class TaxOptimizationSuggestionDTO(BaseModel):
 class TaxationRecordSummaryDTO(BaseModel):
     """Taxation record summary DTO."""
     taxation_id: str
-    user_id: str
+    employee_id: str
     organization_id: str
     tax_year: str
     regime: str
@@ -760,7 +760,7 @@ class TaxationRecordSummaryDTO(BaseModel):
 class CreateTaxationRecordResponse(BaseModel):
     """Response for creating taxation record."""
     taxation_id: str
-    user_id: str
+    employee_id: str
     tax_year: str
     regime: str
     status: str
@@ -771,7 +771,7 @@ class CreateTaxationRecordResponse(BaseModel):
 class CalculateTaxResponse(BaseModel):
     """Response for tax calculation."""
     taxation_id: str
-    user_id: str
+    employee_id: str
     tax_year: str
     regime: str
     calculation_breakdown: TaxCalculationBreakdownDTO
@@ -838,7 +838,7 @@ class ErrorResponse(BaseModel):
 
 class TaxationRecordQuery(BaseModel):
     """Query parameters for taxation records."""
-    user_id: Optional[str] = None
+    employee_id: Optional[str] = None
     tax_year: Optional[str] = None
     regime: Optional[str] = None
     is_final: Optional[bool] = None
@@ -854,13 +854,13 @@ class TaxationRecordQuery(BaseModel):
 
 class TaxYearSummaryQuery(BaseModel):
     """Query for tax year summary."""
-    user_id: str
+    employee_id: str
     tax_year: str
 
 
 class TaxAnalyticsQuery(BaseModel):
     """Query for tax analytics."""
-    user_id: Optional[str] = None
+    employee_id: Optional[str] = None
     organization_id: Optional[str] = None
     start_year: Optional[str] = None
     end_year: Optional[str] = None
@@ -890,7 +890,7 @@ class TaxAnalyticsResponse(BaseModel):
 
 class TaxYearSummaryResponse(BaseModel):
     """Tax year summary response."""
-    user_id: str
+    employee_id: str
     tax_year: str
     total_records: int
     regimes_used: List[str]

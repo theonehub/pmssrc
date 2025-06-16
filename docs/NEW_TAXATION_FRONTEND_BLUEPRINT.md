@@ -537,11 +537,11 @@ async def calculate_quick_tax(
     # Convert quick input to comprehensive and calculate
     pass
 
-@router.get("/summary/{user_id}/{tax_year}",
+@router.get("/summary/{employee_id}/{tax_year}",
             response_model=TaxSummaryDTO,
             summary="Tax summary for mobile dashboard")
 async def get_tax_summary_mobile(
-    user_id: str,
+    employee_id: str,
     tax_year: str,
     current_user: CurrentUser = Depends(get_current_user)
 ):

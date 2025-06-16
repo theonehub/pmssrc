@@ -15,7 +15,7 @@ from app.domain.value_objects.money import Money
 from app.domain.value_objects.taxation.tax_regime import TaxRegime, TaxRegimeType
 from app.domain.entities.taxation.taxation_record import TaxationRecord
 from app.domain.entities.taxation.salary_income import SalaryIncome
-from app.domain.entities.taxation.tax_deductions import TaxDeductions
+from app.domain.entities.taxation.deductions import TaxDeductions
 from app.domain.entities.taxation.perquisites import Perquisites
 from app.domain.entities.taxation.other_income import OtherIncome
 from app.domain.entities.taxation.house_property_income import HousePropertyIncome
@@ -75,7 +75,7 @@ class TaxCalculationServiceImpl(TaxCalculationService):
             capital_gains_income=record.capital_gains_income,
             retirement_benefits=record.retirement_benefits,
             other_income=record.other_income,
-            tax_deductions=record.tax_deductions,
+            deductions=record.deductions,
             regime=record.regime,
             age=record.age,
             is_senior_citizen=record.is_senior_citizen,

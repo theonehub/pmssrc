@@ -38,7 +38,7 @@ async def get_taxation_by_emp_id_legacy(
     """Legacy endpoint for frontend compatibility."""
     # Convert emp_id to proper user lookup
     taxation_records = await controller.list_taxation_records(
-        TaxationRecordQuery(user_id=emp_id), 
+        TaxationRecordQuery(employee_id=emp_id), 
         current_user.organization_id
     )
     if not taxation_records.records:
@@ -204,7 +204,7 @@ const fetchTaxationData = useCallback(async () => {
       setTaxationData(response.records);
     } else {
       const response = await listTaxationRecords({
-        user_id: userId,
+        employee_id: userId,
         page: 1,
         page_size: 10
       });

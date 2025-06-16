@@ -164,6 +164,13 @@ class DeductionSection80CCD:
             max_cap = basic_plus_da.percentage(10)  # 10% for private
         
         return self.employer_nps_contribution.min(max_cap)
+    
+    def calculate_eligible_deduction(self, regime: TaxRegime, basic_plus_da: Money, is_government_employee: bool) -> Money:
+        """Calculate eligible 80CCD deduction."""
+        if regime.regime_type == TaxRegimeType.NEW:
+            return Money.zero()
+        
+        return self.calculate_80ccd_1_deduction().add(self.calculate_80ccd_1b_deduction()).add(self.calculate_80ccd_2_deduction(basic_plus_da, is_government_employee))
 
 
 @dataclass  

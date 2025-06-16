@@ -444,8 +444,8 @@ class MongoDBTaxationRepository(TaxationRepository):
                 "pension_amount": record.retirement_benefits.pension.total_pension.to_float() if record.retirement_benefits.pension else 0,
                 "is_commuted_pension": record.retirement_benefits.pension.is_govt_employee if record.retirement_benefits.pension else False,
                 "commutation_percentage": 0.0,  # Not available in new structure, default to 0
-                "vrs_compensation": record.retirement_benefits.vrs.vrs_amount.to_float() if record.retirement_benefits.vrs else 0,
-                "other_retirement_benefits": record.retirement_benefits.retrenchment_compensation.compensation_amount.to_float() if record.retirement_benefits.retrenchment_compensation else 0
+                "vrs_compensation": record.retirement_benefits.vrs.vrs_amount.to_float() if record.retirement_benefits.vrs else 0
+                #"other_retirement_benefits": record.retirement_benefits.retrenchment_compensation.compensation_amount.to_float() if record.retirement_benefits.retrenchment_compensation else 0
             },
             "other_income": {
                 "bank_interest": record.other_income.bank_interest.to_float(),

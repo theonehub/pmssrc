@@ -96,7 +96,7 @@ from app.domain.entities.taxation.retirement_benefits import (
     RetirementBenefits, LeaveEncashment, Gratuity, VRS, Pension, RetrenchmentCompensation
 )
 from app.domain.entities.taxation.other_income import OtherIncome, InterestIncome
-from app.domain.entities.monthly_payroll import MonthlyPayroll, AnnualPayrollWithLWP, LWPDetails
+from app.domain.entities.taxation.monthly_payroll import MonthlyPayroll, AnnualPayrollWithLWP, LWPDetails
 
 # Import services
 from app.domain.services.taxation.tax_calculation_service import (

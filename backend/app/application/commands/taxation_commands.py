@@ -24,7 +24,7 @@ from app.domain.entities.taxation.house_property_income import HousePropertyInco
 from app.domain.entities.taxation.capital_gains import CapitalGainsIncome
 from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 from app.domain.entities.taxation.other_income import OtherIncome
-from app.domain.entities.monthly_payroll import AnnualPayrollWithLWP
+from app.domain.entities.taxation.monthly_payroll import AnnualPayrollWithLWP
 from app.domain.services.taxation.tax_calculation_service import TaxCalculationService, TaxCalculationResult
 from app.application.interfaces.repositories.taxation_repository import TaxationRepository
 from app.domain.exceptions.taxation_exceptions import TaxationRecordNotFoundError, TaxationValidationError

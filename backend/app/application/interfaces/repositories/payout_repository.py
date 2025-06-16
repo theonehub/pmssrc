@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Dict, Any
 from datetime import date, datetime
 
-from app.domain.entities.payout import PayoutCreate, PayoutUpdate, PayoutInDB, PayoutStatus
+from app.domain.entities.taxation.payout import PayoutCreate, PayoutUpdate, PayoutInDB, PayoutStatus
 from app.application.dto.payroll_dto import PayoutSearchFiltersDTO
 
 

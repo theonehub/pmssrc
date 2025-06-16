@@ -25,7 +25,7 @@ from app.domain.value_objects.payroll_value_objects import (
     Money, SalaryComponents, DeductionComponents, 
     AttendanceInfo, TaxInfo, PayPeriod, PayoutSummary
 )
-from app.domain.entities.payout import PayoutCreate, PayoutStatus
+from app.domain.entities.taxation.payout import PayoutCreate, PayoutStatus
 from app.infrastructure.services.employee_leave_legacy_service import get_employee_attendance
 
 logger = logging.getLogger(__name__)

@@ -62,7 +62,6 @@ const transformComprehensiveRecordToFormData = (comprehensiveRecord, empId) => {
         other_allowances: toNumber(salaryData.other_allowances),
         bonus: toNumber(salaryData.bonus),
         commission: toNumber(salaryData.commission),
-        lta_received: toNumber(salaryData.lta_received),
         // All the detailed allowances
         city_compensatory_allowance: toNumber(salaryData.city_compensatory_allowance),
         rural_allowance: toNumber(salaryData.rural_allowance),

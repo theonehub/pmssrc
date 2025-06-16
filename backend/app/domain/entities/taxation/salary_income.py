@@ -75,6 +75,10 @@ class SpecificAllowances:
     academic_research: Money = Money.zero()
     uniform_allowance: Money = Money.zero()
     
+
+    #########################################################
+    # Calculate exemptions for specific allowances
+    #########################################################
     def calculate_hills_exemption(self, regime: TaxRegime) -> Money:
         """Calculate hills allowance exemption."""
         if regime.regime_type == TaxRegimeType.NEW:
@@ -172,8 +176,18 @@ class SpecificAllowances:
                 .add(self.conveyance_in_performace_of_duties)
                 .add(self.helper_in_performace_of_duties)
                 .add(self.academic_research)
-                .add(self.uniform_allowance)
-                .add(self.any_other_allowance_exemption))
+                .add(self.uniform_allowance))
+    
+    def calculate_any_other_allowance_exemption(self, regime: TaxRegime) -> Money:
+        """Calculate any other allowance exemption."""
+        if regime.regime_type == TaxRegimeType.NEW:
+            return Money.zero()
+        
+        return self.any_other_allowance_exemption
+    
+    #########################################################
+    # Calculate total specific allowances received
+    #########################################################
     
     def calculate_total_specific_allowances(self) -> Money:
         """Calculate total specific allowances received."""
@@ -208,7 +222,7 @@ class SpecificAllowances:
                 .add(self.academic_research)
                 .add(self.uniform_allowance))
     
-    def calculate_total_exemptions(self, regime: TaxRegime) -> Money:
+    def calculate_total_specific_allowances_exemptions(self, regime: TaxRegime) -> Money:
         """Calculate total exemptions for specific allowances."""
         total = Money.zero()
         total = total.add(self.calculate_hills_exemption(regime))
@@ -220,6 +234,7 @@ class SpecificAllowances:
         total = total.add(self.calculate_underground_mines_exemption(regime))
         total = total.add(self.calculate_government_entertainment_exemption(regime))
         total = total.add(self.calculate_section_10_exemptions(regime))
+        total = total.add(self.calculate_any_other_allowance_exemption(regime))
         return total
 
 
@@ -230,7 +245,6 @@ class SalaryIncome:
     
     Handles comprehensive salary components including HRA, LTA, allowances, and exemptions.
     """
-    
     # Core salary components
     basic_salary: Money
     dearness_allowance: Money
@@ -243,9 +257,14 @@ class SalaryIncome:
     # Optional components with defaults
     bonus: Money = Money.zero()
     commission: Money = Money.zero()
-    lta_received: Money = Money.zero()
     medical_allowance: Money = Money.zero()
     conveyance_allowance: Money = Money.zero()
+    
+    # Additional allowances (for backward compatibility)
+    overtime_allowance: Money = Money.zero()
+    arrears: Money = Money.zero()
+    gratuity: Money = Money.zero()
+    leave_encashment: Money = Money.zero()
     
     # Specific allowances with exemption rules
     specific_allowances: SpecificAllowances = None
@@ -295,23 +314,6 @@ class SalaryIncome:
         
         return min_amount
     
-    def calculate_lta_exemption(self, regime: TaxRegime) -> Money:
-        """
-        Calculate LTA exemption (only in old regime).
-        
-        Args:
-            regime: Tax regime
-            
-        Returns:
-            Money: LTA exemption amount
-        """
-        if regime.regime_type == TaxRegimeType.NEW:
-            return Money.zero()
-        
-        # LTA exemption rules would be implemented here
-        # For simplicity, assuming full LTA is exempt if within limits
-        return self.lta_received
-    
     def calculate_medical_allowance_exemption(self, regime: TaxRegime) -> Money:
         """
         Calculate medical allowance exemption.
@@ -341,7 +343,7 @@ class SalaryIncome:
         """
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
-        
+        #TODO: Need to calculate Monthly Conveyance Allowance
         # Conveyance allowance up to ₹1,600 per month (₹19,200 per year) is exempt
         max_exempt = Money.from_int(19200)
         return self.conveyance_allowance.min(max_exempt)
@@ -360,12 +362,16 @@ class SalaryIncome:
                 .add(self.hra_received)
                 .add(self.special_allowance)
                 .add(self.other_allowances)
-                .add(self.lta_received)
                 .add(self.medical_allowance)
-                .add(self.conveyance_allowance))
+                .add(self.conveyance_allowance)
+                .add(self.overtime_allowance)
+                .add(self.arrears)
+                .add(self.gratuity)
+                .add(self.leave_encashment))
         
-        # Add specific allowances
-        gross = gross.add(self.specific_allowances.calculate_total_specific_allowances())
+        # Add specific allowances if available
+        if self.specific_allowances:
+            gross = gross.add(self.specific_allowances.calculate_total_specific_allowances())
         
         return gross
     
@@ -383,12 +389,12 @@ class SalaryIncome:
         
         # Standard exemptions
         total_exemptions = total_exemptions.add(self.calculate_hra_exemption(regime))
-        total_exemptions = total_exemptions.add(self.calculate_lta_exemption(regime))
         total_exemptions = total_exemptions.add(self.calculate_medical_allowance_exemption(regime))
         total_exemptions = total_exemptions.add(self.calculate_conveyance_exemption(regime))
         
         # Specific allowances exemptions
-        total_exemptions = total_exemptions.add(self.specific_allowances.calculate_total_exemptions(regime))
+        if self.specific_allowances:
+            total_exemptions = total_exemptions.add(self.specific_allowances.calculate_total_specific_allowances_exemptions(regime))
         
         return total_exemptions
     
@@ -435,18 +441,20 @@ class SalaryIncome:
                 "hra_received": self.hra_received.to_float(),
                 "special_allowance": self.special_allowance.to_float(),
                 "other_allowances": self.other_allowances.to_float(),
-                "lta_received": self.lta_received.to_float(),
                 "medical_allowance": self.medical_allowance.to_float(),
                 "conveyance_allowance": self.conveyance_allowance.to_float(),
-                "specific_allowances": self.specific_allowances.calculate_total_specific_allowances().to_float()
+                "overtime_allowance": self.overtime_allowance.to_float(),
+                "arrears": self.arrears.to_float(),
+                "gratuity": self.gratuity.to_float(),
+                "leave_encashment": self.leave_encashment.to_float(),
+                "specific_allowances": self.specific_allowances.calculate_total_specific_allowances().to_float() if self.specific_allowances else 0.0
             },
             "gross_salary_total": self.calculate_gross_salary().to_float(),
             "exemptions": {
                 "hra_exemption": self.calculate_hra_exemption(regime).to_float(),
-                "lta_exemption": self.calculate_lta_exemption(regime).to_float(),
                 "medical_exemption": self.calculate_medical_allowance_exemption(regime).to_float(),
                 "conveyance_exemption": self.calculate_conveyance_exemption(regime).to_float(),
-                "specific_allowances_exemption": self.specific_allowances.calculate_total_exemptions(regime).to_float(),
+                "specific_allowances_exemption": self.specific_allowances.calculate_total_specific_allowances_exemptions(regime).to_float() if self.specific_allowances else 0.0,
                 "standard_deduction": regime.get_standard_deduction().to_float()
             },
             "total_exemptions": self.calculate_total_exemptions(regime).add(regime.get_standard_deduction()).to_float(),

@@ -1,172 +1,291 @@
 """
 House Property Income Entity
-Represents income from house property
+Domain entity for handling income from house property
 """
 
 from dataclasses import dataclass
-from decimal import Decimal
-from typing import Optional
-
+from typing import Dict, Any, Optional
+from enum import Enum
 from app.domain.value_objects.money import Money
+from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
+
+
+class PropertyType(Enum):
+    """Types of house property."""
+    SELF_OCCUPIED = "Self-Occupied"
+    LET_OUT = "Let-Out"
+    DEEMED_LET_OUT = "Deemed Let-Out"
 
 
 @dataclass
 class HousePropertyIncome:
-    """House property income entity containing property details and income."""
+    """House property income calculation entity."""
     
-    # Property details
-    property_type: str  # self-occupied, let-out, deemed-let
-    municipal_value: Money
-    fair_rental_value: Money
-    standard_rent: Money
-    actual_rent: Money
-    
-    # Deductions
-    municipal_tax: Money = Money.zero()
-    interest_on_loan: Money = Money.zero()
+    property_type: PropertyType
+    annual_rent_received: Money = Money.zero()
+    municipal_taxes_paid: Money = Money.zero()
+    home_loan_interest: Money = Money.zero()
     pre_construction_interest: Money = Money.zero()
-    other_deductions: Money = Money.zero()
+    fair_rental_value: Money = Money.zero()
+    standard_rent: Money = Money.zero()
     
-    # Additional details
-    construction_completed: bool = True
-    construction_year: Optional[int] = None
-    loan_taken: bool = False
-    loan_taken_year: Optional[int] = None
-    
-    def get_gross_annual_value(self) -> Money:
+    def calculate_annual_value(self) -> Money:
         """
-        Calculate Gross Annual Value (GAV) of the property.
+        Calculate annual value of property.
         
-        For self-occupied property:
-        - GAV is zero
-        
-        For let-out property:
-        - GAV is higher of:
-          1. Municipal value
-          2. Fair rental value
-          3. Standard rent
-          4. Actual rent received
-        
-        For deemed-let property:
-        - GAV is higher of:
-          1. Municipal value
-          2. Fair rental value
-          3. Standard rent
+        Returns:
+            Money: Annual value
         """
-        if self.property_type == "self-occupied":
+        if self.property_type == PropertyType.SELF_OCCUPIED:
             return Money.zero()
         
-        # Calculate higher of municipal value, fair rental value, and standard rent
-        higher_of_three = max(
-            self.municipal_value.amount,
-            self.fair_rental_value.amount,
-            self.standard_rent.amount
-        )
+        elif self.property_type == PropertyType.LET_OUT:
+            return self.annual_rent_received
         
-        if self.property_type == "let-out":
-            # For let-out, compare with actual rent
-            return Money(max(higher_of_three, self.actual_rent.amount))
-        else:
-            # For deemed-let, use higher of three
-            return Money(higher_of_three)
+        elif self.property_type == PropertyType.DEEMED_LET_OUT:
+            # Annual value is higher of fair rental value and standard rent
+            return self.fair_rental_value.max(self.standard_rent)
+        
+        return Money.zero()
     
-    def get_net_annual_value(self) -> Money:
+    def calculate_net_annual_value(self) -> Money:
         """
-        Calculate Net Annual Value (NAV) of the property.
+        Calculate net annual value (annual value minus municipal taxes).
         
-        NAV = GAV - Municipal taxes
+        Returns:
+            Money: Net annual value
         """
-        return self.get_gross_annual_value().subtract(self.municipal_tax)
+        annual_value = self.calculate_annual_value()
+        return annual_value.subtract(self.municipal_taxes_paid).max(Money.zero())
     
-    def get_standard_deduction(self) -> Money:
+    def calculate_standard_deduction(self) -> Money:
         """
-        Calculate standard deduction.
+        Calculate standard deduction (30% of net annual value for let-out properties).
         
-        Standard deduction is 30% of NAV.
+        Returns:
+            Money: Standard deduction
         """
-        return self.get_net_annual_value().percentage(Decimal('30'))
-    
-    def get_interest_deduction(self) -> Money:
-        """
-        Calculate interest deduction on home loan.
-        
-        For self-occupied property:
-        - Maximum ₹2 lakh per year
-        
-        For let-out/deemed-let property:
-        - No limit on interest deduction
-        """
-        if not self.loan_taken:
+        if self.property_type == PropertyType.SELF_OCCUPIED:
             return Money.zero()
         
-        total_interest = self.interest_on_loan.add(self.pre_construction_interest)
-        
-        if self.property_type == "self-occupied":
-            return total_interest.min(Money(Decimal('200000')))
-        else:
-            return total_interest
+        net_annual_value = self.calculate_net_annual_value()
+        return net_annual_value.percentage(30)  # 30% standard deduction
     
-    def get_total_deductions(self) -> Money:
-        """Get total deductions from house property income."""
-        return (
-            self.municipal_tax
-            .add(self.get_standard_deduction())
-            .add(self.get_interest_deduction())
-            .add(self.other_deductions)
-        )
+    def calculate_interest_deduction(self) -> Money:
+        """
+        Calculate home loan interest deduction.
+        
+        Returns:
+            Money: Interest deduction
+        """
+        if self.property_type == PropertyType.SELF_OCCUPIED:
+            # Maximum ₹2 lakh for self-occupied property
+            max_limit = Money.from_int(200000)
+            return self.home_loan_interest.min(max_limit)
+        else:
+            # No upper limit for let-out property
+            return self.home_loan_interest
+    
+    def calculate_pre_construction_deduction(self) -> Money:
+        """
+        Calculate pre-construction interest deduction (1/5th over 5 years).
+        
+        Returns:
+            Money: Pre-construction interest deduction
+        """
+        if self.pre_construction_interest.is_zero():
+            return Money.zero()
+        
+        # Pre-construction interest is allowed as 1/5th over 5 years
+        return self.pre_construction_interest.divide(5)
+    
+    def calculate_net_income_from_house_property(self, regime: TaxRegime) -> Money:
+        """
+        Calculate net income from house property.
+        
+        Args:
+            regime: Tax regime
+            
+        Returns:
+            Money: Net income from house property (returns zero for losses)
+        """
+        net_annual_value = self.calculate_net_annual_value()
+        standard_deduction = self.calculate_standard_deduction()
+        interest_deduction = self.calculate_interest_deduction()
+        pre_construction_deduction = self.calculate_pre_construction_deduction()
+        
+        total_deductions = (standard_deduction
+                          .add(interest_deduction)
+                          .add(pre_construction_deduction))
+        
+        # Income from house property can be negative (loss)
+        # Since Money class doesn't allow negative amounts, we return zero for losses
+        # The actual loss amount can be retrieved via get_house_property_breakdown
+        if total_deductions.is_greater_than(net_annual_value):
+            return Money.zero()  # Loss case - return zero
+        else:
+            return net_annual_value.subtract(total_deductions)
+    
+    def get_house_property_loss(self, regime: TaxRegime) -> Money:
+        """
+        Get house property loss amount if any.
+        
+        Args:
+            regime: Tax regime
+            
+        Returns:
+            Money: Loss amount (zero if no loss)
+        """
+        net_annual_value = self.calculate_net_annual_value()
+        standard_deduction = self.calculate_standard_deduction()
+        interest_deduction = self.calculate_interest_deduction()
+        pre_construction_deduction = self.calculate_pre_construction_deduction()
+        
+        total_deductions = (standard_deduction
+                          .add(interest_deduction)
+                          .add(pre_construction_deduction))
+        
+        if total_deductions.is_greater_than(net_annual_value):
+            return total_deductions.subtract(net_annual_value)
+        else:
+            return Money.zero()
+    
+    # Properties for TaxCalculationService compatibility
+    @property
+    def actual_rent(self) -> Money:
+        """Get actual rent for TaxCalculationService compatibility."""
+        return self.annual_rent_received
+    
+    @property
+    def municipal_tax(self) -> Money:
+        """Get municipal tax for TaxCalculationService compatibility."""
+        return self.municipal_taxes_paid
+    
+    @property
+    def interest_on_loan(self) -> Money:
+        """Get interest on loan for TaxCalculationService compatibility."""
+        return self.home_loan_interest
+    
+    @property
+    def other_deductions(self) -> Money:
+        """Get other deductions for TaxCalculationService compatibility."""
+        return Money.zero()  # Default to zero as this field doesn't exist in the taxation entity
+    
+    @property
+    def municipal_value(self) -> Money:
+        """Backward compatibility: Get municipal value (same as fair rental value)."""
+        # Municipal value is typically the same as fair rental value in legacy systems
+        return self.fair_rental_value
     
     def get_income_from_house_property(self) -> Money:
         """
-        Calculate income from house property.
+        Calculate income from house property for TaxCalculationService.
         
-        Income = NAV - Standard deduction - Interest deduction - Other deductions
-        """
-        return self.get_net_annual_value().subtract(self.get_total_deductions())
-    
-    def calculate_pre_construction_interest(self, current_year: int) -> Money:
-        """
-        Calculate pre-construction interest.
+        This method is used by TaxCalculationService.
         
-        Pre-construction interest is allowed in 5 equal installments
-        starting from the year in which construction is completed.
+        Returns:
+            Money: Income from house property
+        """
+        from app.domain.value_objects.taxation.tax_regime import TaxRegime, TaxRegimeType
+        # Use old regime as default for compatibility
+        regime = TaxRegime(TaxRegimeType.OLD)
+        return self.calculate_net_income_from_house_property(regime)
+
+    def get_house_property_breakdown(self, regime: TaxRegime) -> Dict[str, Any]:
+        """
+        Get detailed breakdown of house property income calculation.
         
         Args:
-            current_year: Current financial year
+            regime: Tax regime
             
         Returns:
-            Money: Pre-construction interest for current year
+            Dict: Complete house property breakdown
         """
-        if not self.loan_taken or not self.pre_construction_interest.is_positive():
-            return Money.zero()
+        annual_value = self.calculate_annual_value()
+        net_annual_value = self.calculate_net_annual_value()
+        standard_deduction = self.calculate_standard_deduction()
+        interest_deduction = self.calculate_interest_deduction()
+        pre_construction_deduction = self.calculate_pre_construction_deduction()
+        net_income = self.calculate_net_income_from_house_property(regime)
+        loss_amount = self.get_house_property_loss(regime)
         
-        if not self.construction_completed or not self.construction_year:
-            return Money.zero()
+        total_deductions = (standard_deduction
+                          .add(interest_deduction)
+                          .add(pre_construction_deduction))
         
-        years_since_completion = current_year - self.construction_year
+        is_loss = loss_amount.is_positive()
+        actual_net_income = -loss_amount.to_float() if is_loss else net_income.to_float()
         
-        if years_since_completion < 0 or years_since_completion >= 5:
-            return Money.zero()
+        return {
+            "property_type": self.property_type.value,
+            "calculation_details": {
+                "annual_rent_received": self.annual_rent_received.to_float(),
+                "fair_rental_value": self.fair_rental_value.to_float(),
+                "standard_rent": self.standard_rent.to_float(),
+                "annual_value": annual_value.to_float(),
+                "municipal_taxes_paid": self.municipal_taxes_paid.to_float(),
+                "net_annual_value": net_annual_value.to_float()
+            },
+            "deductions": {
+                "standard_deduction_30_percent": standard_deduction.to_float(),
+                "home_loan_interest": interest_deduction.to_float(),
+                "pre_construction_interest": pre_construction_deduction.to_float(),
+                "total_deductions": total_deductions.to_float()
+            },
+            "net_income_from_house_property": actual_net_income,
+            "is_loss": is_loss,
+            "loss_amount": loss_amount.to_float() if is_loss else 0.0
+        }
+
+
+@dataclass
+class MultipleHouseProperties:
+    """Entity for handling multiple house properties."""
+    
+    properties: list[HousePropertyIncome]
+    
+    def calculate_total_house_property_income(self, regime: TaxRegime) -> Money:
+        """
+        Calculate total income from all house properties.
         
-        # Divide pre-construction interest into 5 equal parts
-        return self.pre_construction_interest.divide(5)
+        Args:
+            regime: Tax regime
+            
+        Returns:
+            Money: Total house property income
+        """
+        total_income = Money.zero()
+        
+        for property_income in self.properties:
+            property_net_income = property_income.calculate_net_income_from_house_property(regime)
+            total_income = total_income.add(property_net_income)
+        
+        return total_income
     
-    def is_self_occupied(self) -> bool:
-        """Check if property is self-occupied."""
-        return self.property_type == "self-occupied"
-    
-    def is_let_out(self) -> bool:
-        """Check if property is let-out."""
-        return self.property_type == "let-out"
-    
-    def is_deemed_let(self) -> bool:
-        """Check if property is deemed-let."""
-        return self.property_type == "deemed-let"
-    
-    def get_property_type_description(self) -> str:
-        """Get human-readable property type description."""
-        if self.is_self_occupied():
-            return "Self-occupied Property"
-        elif self.is_let_out():
-            return "Let-out Property"
-        else:
-            return "Deemed-let Property" 
+    def get_all_properties_breakdown(self, regime: TaxRegime) -> Dict[str, Any]:
+        """
+        Get breakdown of all properties.
+        
+        Args:
+            regime: Tax regime
+            
+        Returns:
+            Dict: All properties breakdown
+        """
+        properties_breakdown = []
+        total_income = Money.zero()
+        
+        for i, property_income in enumerate(self.properties, 1):
+            property_breakdown = property_income.get_house_property_breakdown(regime)
+            property_breakdown["property_number"] = i
+            properties_breakdown.append(property_breakdown)
+            
+            property_net_income = Money.from_float(property_breakdown["net_income_from_house_property"])
+            total_income = total_income.add(property_net_income)
+        
+        return {
+            "total_properties": len(self.properties),
+            "properties_breakdown": properties_breakdown,
+            "total_house_property_income": total_income.to_float(),
+            "regime": regime.regime_type.value
+        } 

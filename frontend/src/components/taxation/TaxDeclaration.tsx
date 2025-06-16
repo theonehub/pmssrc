@@ -64,7 +64,7 @@ const TaxDeclaration: React.FC = () => {
   const hookResult: any = useTaxationForm(empId || '');
   const {
     taxationData,
-    calculatedTax,
+    taxCalculationResponse,
     loading,
     submitting,
     error,
@@ -202,7 +202,7 @@ const TaxDeclaration: React.FC = () => {
         return (
           <SummarySection
             {...baseProps}
-            calculatedTax={calculatedTax}
+            taxCalculationResponse={taxCalculationResponse}
             submitting={submitting}
             handleCalculateTax={handleCalculateTax}
           />

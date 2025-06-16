@@ -13,12 +13,12 @@ from app.domain.value_objects.money import Money
 from app.domain.value_objects.tax_year import TaxYear
 from app.domain.value_objects.tax_regime import TaxRegime
 from app.domain.entities.taxation.salary_income import SalaryIncome
-from app.domain.entities.tax_deductions import TaxDeductions
-from app.domain.entities.perquisites import Perquisites
-from app.domain.entities.house_property_income import HousePropertyIncome
-from app.domain.entities.capital_gains import CapitalGainsIncome
-from app.domain.entities.retirement_benefits import RetirementBenefits
-from app.domain.entities.other_income import OtherIncome
+from app.domain.entities.taxation.tax_deductions import TaxDeductions
+from app.domain.entities.taxation.perquisites import Perquisites
+from app.domain.entities.taxation.house_property_income import HousePropertyIncome
+from app.domain.entities.taxation.capital_gains import CapitalGainsIncome
+from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
+from app.domain.entities.taxation.other_income import OtherIncome
 from app.domain.entities.monthly_payroll import AnnualPayrollWithLWP
 from app.domain.services.taxation.tax_calculation_service import TaxCalculationService, TaxCalculationResult
 

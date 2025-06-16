@@ -50,15 +50,16 @@ const transformComprehensiveRecordToFormData = (comprehensiveRecord, empId) => {
         basic_salary: toNumber(salaryData.basic_salary),
         dearness_allowance: toNumber(salaryData.dearness_allowance),
         hra_received: toNumber(salaryData.hra_received),
-        actual_rent_paid: toNumber(salaryData.actual_rent_paid),
         hra_city_type: salaryData.hra_city_type || 'non_metro',
+        actual_rent_paid: toNumber(salaryData.actual_rent_paid),
         special_allowance: toNumber(salaryData.special_allowance),
-        conveyance_allowance: toNumber(salaryData.conveyance_allowance),
-        medical_allowance: toNumber(salaryData.medical_allowance),
         other_allowances: toNumber(salaryData.other_allowances),
         bonus: toNumber(salaryData.bonus),
         commission: toNumber(salaryData.commission),
-        lta_received: toNumber(salaryData.lta_received),
+        medical_allowance: toNumber(salaryData.medical_allowance),
+        conveyance_allowance: toNumber(salaryData.conveyance_allowance),
+
+
         // All the detailed allowances
         city_compensatory_allowance: toNumber(salaryData.city_compensatory_allowance),
         rural_allowance: toNumber(salaryData.rural_allowance),
@@ -66,21 +67,11 @@ const transformComprehensiveRecordToFormData = (comprehensiveRecord, empId) => {
         wardenship_allowance: toNumber(salaryData.wardenship_allowance),
         project_allowance: toNumber(salaryData.project_allowance),
         deputation_allowance: toNumber(salaryData.deputation_allowance),
-        overtime_allowance: toNumber(salaryData.overtime_allowance),
         interim_relief: toNumber(salaryData.interim_relief),
         tiffin_allowance: toNumber(salaryData.tiffin_allowance),
+        overtime_allowance: toNumber(salaryData.overtime_allowance),
         servant_allowance: toNumber(salaryData.servant_allowance),
-        govt_employees_outside_india_allowance: toNumber(salaryData.govt_employees_outside_india_allowance),
-        supreme_high_court_judges_allowance: toNumber(salaryData.supreme_high_court_judges_allowance),
-        judge_compensatory_allowance: toNumber(salaryData.judge_compensatory_allowance),
-        section_10_14_special_allowances: toNumber(salaryData.section_10_14_special_allowances),
-        any_other_allowance_exemption: toNumber(salaryData.any_other_allowance_exemption),
-        travel_on_tour_allowance: toNumber(salaryData.travel_on_tour_allowance),
-        tour_daily_charge_allowance: toNumber(salaryData.tour_daily_charge_allowance),
-        conveyance_in_performace_of_duties: toNumber(salaryData.conveyance_in_performace_of_duties),
-        helper_in_performace_of_duties: toNumber(salaryData.helper_in_performace_of_duties),
-        academic_research: toNumber(salaryData.academic_research),
-        uniform_allowance: toNumber(salaryData.uniform_allowance),
+
         hills_high_altd_allowance: toNumber(salaryData.hills_high_altd_allowance),
         hills_high_altd_exemption_limit: toNumber(salaryData.hills_high_altd_exemption_limit),
         border_remote_allowance: toNumber(salaryData.border_remote_allowance),
@@ -92,10 +83,24 @@ const transformComprehensiveRecordToFormData = (comprehensiveRecord, empId) => {
         hostel_allowance: toNumber(salaryData.hostel_allowance),
         hostel_count: toNumber(salaryData.hostel_count),
         hostel_months: toNumber(salaryData.hostel_months),
+
         transport_months: toNumber(salaryData.transport_months),
         underground_mines_allowance: toNumber(salaryData.underground_mines_allowance),
         underground_mines_months: toNumber(salaryData.underground_mines_months),
+
         govt_employee_entertainment_allowance: toNumber(salaryData.govt_employee_entertainment_allowance),
+        govt_employees_outside_india_allowance: toNumber(salaryData.govt_employees_outside_india_allowance),
+        supreme_high_court_judges_allowance: toNumber(salaryData.supreme_high_court_judges_allowance),
+        judge_compensatory_allowance: toNumber(salaryData.judge_compensatory_allowance),
+        section_10_14_special_allowances: toNumber(salaryData.section_10_14_special_allowances),
+        travel_on_tour_allowance: toNumber(salaryData.travel_on_tour_allowance),
+        tour_daily_charge_allowance: toNumber(salaryData.tour_daily_charge_allowance),
+        conveyance_in_performace_of_duties: toNumber(salaryData.conveyance_in_performace_of_duties),
+        helper_in_performace_of_duties: toNumber(salaryData.helper_in_performace_of_duties),
+        academic_research: toNumber(salaryData.academic_research),
+        uniform_allowance: toNumber(salaryData.uniform_allowance),
+        any_other_allowance_exemption: toNumber(salaryData.any_other_allowance_exemption),
+        
       };
     }
 
@@ -199,6 +204,7 @@ const transformComprehensiveRecordToFormData = (comprehensiveRecord, empId) => {
 const useTaxationForm = (empId) => {
   const [taxationData, setTaxationData] = useState(getDefaultTaxationState(empId));
   const [calculatedTax, setCalculatedTax] = useState(null);
+  const [taxCalculationResponse, setTaxCalculationResponse] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -273,6 +279,7 @@ const useTaxationForm = (empId) => {
       
       // Reset calculated tax when new data is loaded
       setCalculatedTax(null);
+      setTaxCalculationResponse(null);
       setError(null);
       
       console.log('✅ Form populated with comprehensive taxation record in hook');
@@ -333,6 +340,7 @@ const useTaxationForm = (empId) => {
     
     // Reset calculatedTax to null when any value changes
     setCalculatedTax(null);
+    setTaxCalculationResponse(null);
     
     setTaxationData((prevData) => {
       const newData = {
@@ -382,6 +390,7 @@ const useTaxationForm = (empId) => {
     
     // Reset calculatedTax to null when any value changes
     setCalculatedTax(null);
+    setTaxCalculationResponse(null);
     
     setTaxationData((prevData) => ({
       ...prevData,
@@ -399,6 +408,7 @@ const useTaxationForm = (empId) => {
   const handleRegimeChange = (event) => {
     // Reset calculatedTax to null when regime changes
     setCalculatedTax(null);
+    setTaxCalculationResponse(null);
     
     setTaxationData((prevData) => ({
       ...prevData,
@@ -480,6 +490,7 @@ const useTaxationForm = (empId) => {
       // Directly calculate the tax without saving first
       const result = await calculateTax(empId, taxationData.tax_year, taxationData.regime, dataToCalculate);
       setCalculatedTax(result.total_tax_liability);
+      setTaxCalculationResponse(result);
       
       setSuccess('Tax calculated successfully!');
     } catch (err) {
@@ -590,6 +601,8 @@ const useTaxationForm = (empId) => {
     setTaxationData,
     calculatedTax,
     setCalculatedTax,
+    taxCalculationResponse,
+    setTaxCalculationResponse,
     loading,
     submitting,
     error,

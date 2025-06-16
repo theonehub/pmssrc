@@ -316,8 +316,11 @@ export const calculateTax = async (
     const backendResult = response.data;
     
     return {
-      total_tax_liability: backendResult.total_tax_liability,
+      // Map tax_liability from backend response
+      tax_liability: backendResult.tax_liability,
+      total_tax_liability: backendResult.total_tax_liability || backendResult.tax_liability,
       taxable_income: backendResult.taxable_income,
+      total_income: backendResult.total_income,
       effective_tax_rate: backendResult.effective_tax_rate,
       regime_used: backendResult.regime_used,
       gross_income: backendResult.gross_income,
@@ -328,6 +331,9 @@ export const calculateTax = async (
       tax_after_rebate: backendResult.tax_after_rebate,
       surcharge: backendResult.surcharge,
       cess: backendResult.cess,
+      
+      // Include tax_breakdown from backend
+      tax_breakdown: backendResult.tax_breakdown,
       
       // Enhanced details
       employment_periods: backendResult.employment_periods,
@@ -340,6 +346,7 @@ export const calculateTax = async (
       optimization_suggestions: backendResult.optimization_suggestions,
       taxpayer_age: backendResult.taxpayer_age,
       calculation_breakdown: backendResult.calculation_breakdown,
+      regime_comparison: backendResult.regime_comparison,
       
       message: 'Tax calculation completed successfully'
     };

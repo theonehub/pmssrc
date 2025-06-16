@@ -65,7 +65,6 @@ class SalaryIncomeDTO(BaseModel):
     commission: Decimal = Field(default=0, ge=0)
     special_allowance: Decimal = Field(default=0, ge=0)
     other_allowances: Decimal = Field(default=0, ge=0)
-    lta_received: Decimal = Field(default=0, ge=0)
     medical_allowance: Decimal = Field(default=0, ge=0)
     conveyance_allowance: Decimal = Field(default=0, ge=0)
     
@@ -128,7 +127,6 @@ class PeriodicSalaryDataDTO(BaseModel):
     other_allowances: Decimal = Field(0, ge=0, description="Other allowances")
     bonus: Decimal = Field(0, ge=0, description="Bonus")
     commission: Decimal = Field(0, ge=0, description="Commission")
-    lta_received: Decimal = Field(0, ge=0, description="LTA received")
     medical_allowance: Decimal = Field(0, ge=0, description="Medical allowance")
     conveyance_allowance: Decimal = Field(0, ge=0, description="Conveyance allowance")
     
@@ -143,6 +141,7 @@ class PeriodicSalaryDataDTO(BaseModel):
     tiffin_allowance: Decimal = Field(default=0, ge=0)
     overtime_allowance: Decimal = Field(default=0, ge=0)
     servant_allowance: Decimal = Field(default=0, ge=0)
+
     hills_high_altd_allowance: Decimal = Field(default=0, ge=0)
     hills_high_altd_exemption_limit: Decimal = Field(default=0, ge=0)
     border_remote_allowance: Decimal = Field(default=0, ge=0)
@@ -154,9 +153,11 @@ class PeriodicSalaryDataDTO(BaseModel):
     hostel_allowance: Decimal = Field(default=0, ge=0)
     hostel_count: int = Field(default=0, ge=0)
     hostel_months: int = Field(default=0, ge=0, le=12)
+
     transport_months: int = Field(default=0, ge=0, le=12)
     underground_mines_allowance: Decimal = Field(default=0, ge=0)
     underground_mines_months: int = Field(default=0, ge=0, le=12)
+    
     govt_employee_entertainment_allowance: Decimal = Field(default=0, ge=0)
     govt_employees_outside_india_allowance: Decimal = Field(default=0, ge=0)
     supreme_high_court_judges_allowance: Decimal = Field(default=0, ge=0)
@@ -947,7 +948,7 @@ class CarPerquisiteDTO(BaseModel):
     """Car perquisite DTO."""
     car_use_type: str = Field(..., description="Personal, Business, Mixed")
     engine_capacity_cc: int = Field(default=1600, ge=0)
-    months_used: int = Field(default=12, ge=1, le=12)
+    months_used: int = Field(default=12, ge=0, le=12)
     
     # For personal use
     car_cost_to_employer: Decimal = Field(default=0, ge=0)
@@ -984,7 +985,7 @@ class InterestFreeConcessionalLoanDTO(BaseModel):
     outstanding_amount: Decimal = Field(default=0, ge=0)
     company_interest_rate: Decimal = Field(default=0, ge=0)
     sbi_interest_rate: Decimal = Field(default=8.5, ge=0)
-    loan_months: int = Field(default=12, ge=1, le=12)
+    loan_months: int = Field(default=12, ge=0, le=12)
 
 
 class ESOPPerquisiteDTO(BaseModel):

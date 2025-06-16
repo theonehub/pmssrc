@@ -52,6 +52,7 @@ from app.domain.exceptions.taxation_exceptions import (
     FinalizedRecordError,
     DuplicateTaxationRecordError
 )
+from app.domain.services.taxation.tax_calculation_service import TaxCalculationResult
 
 
 router = APIRouter(prefix="/api/v2/taxation", tags=["taxation"])
@@ -62,7 +63,7 @@ router = APIRouter(prefix="/api/v2/taxation", tags=["taxation"])
 # =============================================================================
 
 @router.post("/calculate-comprehensive",
-             response_model=PeriodicTaxCalculationResponseDTO,
+             response_model=TaxCalculationResult,
              status_code=status.HTTP_200_OK,
              summary="Calculate comprehensive tax",
              description="Calculate tax including all income sources and components")
@@ -70,7 +71,7 @@ async def calculate_comprehensive_tax(
     request: ComprehensiveTaxInputDTO,
     current_user: CurrentUser = Depends(get_current_user),
     controller: UnifiedTaxationController = Depends(get_comprehensive_taxation_controller)
-) -> PeriodicTaxCalculationResponseDTO:
+) -> TaxCalculationResult:
     """Calculate comprehensive tax including all income sources."""
     
     try:
@@ -816,7 +817,6 @@ def _convert_mid_year_joiner_to_comprehensive(
         commission=request.salary_details.commission,
         special_allowance=request.salary_details.special_allowance,
         other_allowances=request.salary_details.other_allowances,
-        lta_received=request.salary_details.lta_received,
         medical_allowance=request.salary_details.medical_allowance,
         conveyance_allowance=request.salary_details.conveyance_allowance
     )
@@ -858,7 +858,6 @@ def _convert_mid_year_increment_to_comprehensive(
         other_allowances=request.post_increment_salary.other_allowances,
         bonus=request.post_increment_salary.bonus,
         commission=request.post_increment_salary.commission,
-        lta_received=request.post_increment_salary.lta_received,
         medical_allowance=request.post_increment_salary.medical_allowance,
         conveyance_allowance=request.post_increment_salary.conveyance_allowance
     )

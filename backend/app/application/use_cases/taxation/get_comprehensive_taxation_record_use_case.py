@@ -297,6 +297,25 @@ class GetComprehensiveTaxationRecordUseCase:
         
         if not salary_income:
             return None
+        
+        def get_allowance_value(field_name, default=0):
+            """Helper function to get allowance value from either direct field or specific_allowances."""
+            # First try to get from direct field
+            if hasattr(salary_income, field_name):
+                value = getattr(salary_income, field_name)
+                if hasattr(value, 'to_float'):
+                    return value.to_float()
+                return float(value) if value is not None else default
+            
+            # Then try to get from specific_allowances
+            if hasattr(salary_income, 'specific_allowances') and salary_income.specific_allowances:
+                if hasattr(salary_income.specific_allowances, field_name):
+                    value = getattr(salary_income.specific_allowances, field_name)
+                    if hasattr(value, 'to_float'):
+                        return value.to_float()
+                    return float(value) if value is not None else default
+            
+            return default
             
         return SalaryIncomeDTO(
             basic_salary=salary_income.basic_salary.to_float() if hasattr(salary_income.basic_salary, 'to_float') else float(salary_income.basic_salary),
@@ -308,46 +327,45 @@ class GetComprehensiveTaxationRecordUseCase:
             commission=salary_income.commission.to_float() if hasattr(salary_income.commission, 'to_float') else float(salary_income.commission),
             special_allowance=salary_income.special_allowance.to_float() if hasattr(salary_income.special_allowance, 'to_float') else float(salary_income.special_allowance),
             other_allowances=salary_income.other_allowances.to_float() if hasattr(salary_income.other_allowances, 'to_float') else float(salary_income.other_allowances),
-            lta_received=salary_income.lta_received.to_float() if hasattr(salary_income.lta_received, 'to_float') else float(salary_income.lta_received),
             medical_allowance=salary_income.medical_allowance.to_float() if hasattr(salary_income.medical_allowance, 'to_float') else float(salary_income.medical_allowance),
             conveyance_allowance=salary_income.conveyance_allowance.to_float() if hasattr(salary_income.conveyance_allowance, 'to_float') else float(salary_income.conveyance_allowance),
-            # Additional allowances with defaults
-            city_compensatory_allowance=getattr(salary_income, 'city_compensatory_allowance', 0),
-            rural_allowance=getattr(salary_income, 'rural_allowance', 0),
-            proctorship_allowance=getattr(salary_income, 'proctorship_allowance', 0),
-            wardenship_allowance=getattr(salary_income, 'wardenship_allowance', 0),
-            project_allowance=getattr(salary_income, 'project_allowance', 0),
-            deputation_allowance=getattr(salary_income, 'deputation_allowance', 0),
-            interim_relief=getattr(salary_income, 'interim_relief', 0),
-            tiffin_allowance=getattr(salary_income, 'tiffin_allowance', 0),
-            overtime_allowance=getattr(salary_income, 'overtime_allowance', 0),
-            servant_allowance=getattr(salary_income, 'servant_allowance', 0),
-            hills_high_altd_allowance=getattr(salary_income, 'hills_high_altd_allowance', 0),
-            hills_high_altd_exemption_limit=getattr(salary_income, 'hills_high_altd_exemption_limit', 0),
-            border_remote_allowance=getattr(salary_income, 'border_remote_allowance', 0),
-            border_remote_exemption_limit=getattr(salary_income, 'border_remote_exemption_limit', 0),
-            transport_employee_allowance=getattr(salary_income, 'transport_employee_allowance', 0),
-            children_education_allowance=getattr(salary_income, 'children_education_allowance', 0),
-            children_education_count=getattr(salary_income, 'children_education_count', 0),
-            children_education_months=getattr(salary_income, 'children_education_months', 0),
-            hostel_allowance=getattr(salary_income, 'hostel_allowance', 0),
-            hostel_count=getattr(salary_income, 'hostel_count', 0),
-            hostel_months=getattr(salary_income, 'hostel_months', 0),
-            transport_months=getattr(salary_income, 'transport_months', 0),
-            underground_mines_allowance=getattr(salary_income, 'underground_mines_allowance', 0),
-            underground_mines_months=getattr(salary_income, 'underground_mines_months', 0),
-            govt_employee_entertainment_allowance=getattr(salary_income, 'govt_employee_entertainment_allowance', 0),
-            govt_employees_outside_india_allowance=getattr(salary_income, 'govt_employees_outside_india_allowance', 0),
-            supreme_high_court_judges_allowance=getattr(salary_income, 'supreme_high_court_judges_allowance', 0),
-            judge_compensatory_allowance=getattr(salary_income, 'judge_compensatory_allowance', 0),
-            section_10_14_special_allowances=getattr(salary_income, 'section_10_14_special_allowances', 0),
-            travel_on_tour_allowance=getattr(salary_income, 'travel_on_tour_allowance', 0),
-            tour_daily_charge_allowance=getattr(salary_income, 'tour_daily_charge_allowance', 0),
-            conveyance_in_performace_of_duties=getattr(salary_income, 'conveyance_in_performace_of_duties', 0),
-            helper_in_performace_of_duties=getattr(salary_income, 'helper_in_performace_of_duties', 0),
-            academic_research=getattr(salary_income, 'academic_research', 0),
-            uniform_allowance=getattr(salary_income, 'uniform_allowance', 0),
-            any_other_allowance_exemption=getattr(salary_income, 'any_other_allowance_exemption', 0)
+            # Additional allowances - try both direct fields and specific_allowances
+            city_compensatory_allowance=get_allowance_value('city_compensatory_allowance'),
+            rural_allowance=get_allowance_value('rural_allowance'),
+            proctorship_allowance=get_allowance_value('proctorship_allowance'),
+            wardenship_allowance=get_allowance_value('wardenship_allowance'),
+            project_allowance=get_allowance_value('project_allowance'),
+            deputation_allowance=get_allowance_value('deputation_allowance'),
+            interim_relief=get_allowance_value('interim_relief'),
+            tiffin_allowance=get_allowance_value('tiffin_allowance'),
+            overtime_allowance=get_allowance_value('overtime_allowance'),
+            servant_allowance=get_allowance_value('servant_allowance'),
+            hills_high_altd_allowance=get_allowance_value('hills_allowance'),  # Note: different field name in entity
+            hills_high_altd_exemption_limit=get_allowance_value('hills_exemption_limit'),  # Note: different field name in entity
+            border_remote_allowance=get_allowance_value('border_allowance'),  # Note: different field name in entity
+            border_remote_exemption_limit=get_allowance_value('border_exemption_limit'),  # Note: different field name in entity
+            transport_employee_allowance=get_allowance_value('transport_employee_allowance'),
+            children_education_allowance=get_allowance_value('children_education_allowance'),
+            children_education_count=get_allowance_value('children_count'),  # Note: different field name in entity
+            children_education_months=get_allowance_value('children_education_months'),
+            hostel_allowance=get_allowance_value('hostel_allowance'),
+            hostel_count=get_allowance_value('hostel_count'),
+            hostel_months=get_allowance_value('hostel_months'),
+            transport_months=get_allowance_value('transport_months'),
+            underground_mines_allowance=get_allowance_value('underground_mines_allowance'),
+            underground_mines_months=get_allowance_value('mine_work_months'),  # Note: different field name in entity
+            govt_employee_entertainment_allowance=get_allowance_value('government_entertainment_allowance'),  # Note: different field name in entity
+            govt_employees_outside_india_allowance=get_allowance_value('govt_employees_outside_india_allowance'),
+            supreme_high_court_judges_allowance=get_allowance_value('supreme_high_court_judges_allowance'),
+            judge_compensatory_allowance=get_allowance_value('judge_compensatory_allowance'),
+            section_10_14_special_allowances=get_allowance_value('section_10_14_special_allowances'),
+            travel_on_tour_allowance=get_allowance_value('travel_on_tour_allowance'),
+            tour_daily_charge_allowance=get_allowance_value('tour_daily_charge_allowance'),
+            conveyance_in_performace_of_duties=get_allowance_value('conveyance_in_performace_of_duties'),
+            helper_in_performace_of_duties=get_allowance_value('helper_in_performace_of_duties'),
+            academic_research=get_allowance_value('academic_research'),
+            uniform_allowance=get_allowance_value('uniform_allowance'),
+            any_other_allowance_exemption=get_allowance_value('any_other_allowance_exemption')
         )
     
     def _convert_periodic_salary_entity_to_dto(self, periodic_salary):
@@ -377,7 +395,6 @@ class GetComprehensiveTaxationRecordUseCase:
                 bonus=salary_income.bonus.to_float() if hasattr(salary_income.bonus, 'to_float') else float(salary_income.bonus),
                 commission=salary_income.commission.to_float() if hasattr(salary_income.commission, 'to_float') else float(salary_income.commission),
                 other_allowances=salary_income.other_allowances.to_float() if hasattr(salary_income.other_allowances, 'to_float') else float(salary_income.other_allowances),
-                lta_received=salary_income.lta_received.to_float() if hasattr(salary_income.lta_received, 'to_float') else float(salary_income.lta_received),
                 medical_allowance=salary_income.medical_allowance.to_float() if hasattr(salary_income.medical_allowance, 'to_float') else float(salary_income.medical_allowance),
                 conveyance_allowance=salary_income.conveyance_allowance.to_float() if hasattr(salary_income.conveyance_allowance, 'to_float') else float(salary_income.conveyance_allowance)
             )
@@ -472,12 +489,22 @@ class GetComprehensiveTaxationRecordUseCase:
         # Convert leave encashment
         leave_encashment = None
         if hasattr(retirement_benefits, 'leave_encashment') and retirement_benefits.leave_encashment:
-            leave_encashment_amount = retirement_benefits.leave_encashment.to_float() if hasattr(retirement_benefits.leave_encashment, 'to_float') else float(retirement_benefits.leave_encashment)
+            # Handle nested LeaveEncashment object
+            if hasattr(retirement_benefits.leave_encashment, 'leave_encashment_amount'):
+                leave_encashment_amount = retirement_benefits.leave_encashment.leave_encashment_amount.to_float()
+                leave_days_encashed = getattr(retirement_benefits.leave_encashment, 'leave_days_encashed', 0)
+                is_govt_employee = getattr(retirement_benefits.leave_encashment, 'is_govt_employee', False)
+            else:
+                # Fallback for backward compatibility
+                leave_encashment_amount = retirement_benefits.leave_encashment.to_float() if hasattr(retirement_benefits.leave_encashment, 'to_float') else 0
+                leave_days_encashed = getattr(retirement_benefits, 'leave_days_encashed', 0)
+                is_govt_employee = getattr(retirement_benefits, 'is_govt_employee', False)
+            
             leave_encashment = LeaveEncashmentDTO(
                 leave_encashment_amount=leave_encashment_amount,
                 average_monthly_salary=getattr(retirement_benefits, 'average_monthly_salary', 0),
-                leave_days_encashed=getattr(retirement_benefits, 'leave_days_encashed', 0),
-                is_govt_employee=getattr(retirement_benefits, 'is_govt_employee', False),
+                leave_days_encashed=leave_days_encashed,
+                is_govt_employee=is_govt_employee,
                 during_employment=getattr(retirement_benefits, 'during_employment', False)
             )
         elif hasattr(retirement_benefits, 'leave_encashment_amount') and retirement_benefits.leave_encashment_amount:
@@ -494,12 +521,22 @@ class GetComprehensiveTaxationRecordUseCase:
         # Convert gratuity
         gratuity = None
         if hasattr(retirement_benefits, 'gratuity') and retirement_benefits.gratuity:
-            gratuity_amount = retirement_benefits.gratuity.to_float() if hasattr(retirement_benefits.gratuity, 'to_float') else float(retirement_benefits.gratuity)
+            # Handle nested Gratuity object
+            if hasattr(retirement_benefits.gratuity, 'gratuity_amount'):
+                gratuity_amount = retirement_benefits.gratuity.gratuity_amount.to_float()
+                service_years = float(retirement_benefits.gratuity.service_years) if hasattr(retirement_benefits.gratuity, 'service_years') else 0
+                is_govt_employee = getattr(retirement_benefits.gratuity, 'is_govt_employee', False)
+            else:
+                # Fallback for backward compatibility
+                gratuity_amount = retirement_benefits.gratuity.to_float() if hasattr(retirement_benefits.gratuity, 'to_float') else 0
+                service_years = getattr(retirement_benefits, 'service_years', 0)
+                is_govt_employee = getattr(retirement_benefits, 'is_govt_employee', False)
+            
             gratuity = GratuityDTO(
                 gratuity_amount=gratuity_amount,
                 monthly_salary=getattr(retirement_benefits, 'monthly_salary', 0),
-                service_years=getattr(retirement_benefits, 'service_years', 0),
-                is_govt_employee=getattr(retirement_benefits, 'is_govt_employee', False)
+                service_years=service_years,
+                is_govt_employee=is_govt_employee
             )
         elif hasattr(retirement_benefits, 'gratuity_amount') and retirement_benefits.gratuity_amount:
             gratuity_amount = retirement_benefits.gratuity_amount.to_float() if hasattr(retirement_benefits.gratuity_amount, 'to_float') else float(retirement_benefits.gratuity_amount)
@@ -514,7 +551,13 @@ class GetComprehensiveTaxationRecordUseCase:
         # Convert VRS
         vrs = None
         if hasattr(retirement_benefits, 'vrs') and retirement_benefits.vrs:
-            vrs_amount = retirement_benefits.vrs.to_float() if hasattr(retirement_benefits.vrs, 'to_float') else float(retirement_benefits.vrs)
+            # Handle nested VRS object
+            if hasattr(retirement_benefits.vrs, 'vrs_amount'):
+                vrs_amount = retirement_benefits.vrs.vrs_amount.to_float()
+            else:
+                # Fallback for backward compatibility
+                vrs_amount = retirement_benefits.vrs.to_float() if hasattr(retirement_benefits.vrs, 'to_float') else 0
+            
             vrs = VRSDTO(
                 vrs_amount=vrs_amount,
                 monthly_salary=getattr(retirement_benefits, 'monthly_salary', 0),
@@ -534,12 +577,24 @@ class GetComprehensiveTaxationRecordUseCase:
         # Convert pension
         pension = None
         if hasattr(retirement_benefits, 'pension') and retirement_benefits.pension:
-            pension_amount = retirement_benefits.pension.to_float() if hasattr(retirement_benefits.pension, 'to_float') else float(retirement_benefits.pension)
+            # Handle nested Pension object
+            if hasattr(retirement_benefits.pension, 'total_pension'):
+                pension_amount = retirement_benefits.pension.total_pension.to_float()
+                regular_pension = retirement_benefits.pension.regular_pension.to_float() if hasattr(retirement_benefits.pension, 'regular_pension') else pension_amount
+                commuted_pension = retirement_benefits.pension.commuted_pension.to_float() if hasattr(retirement_benefits.pension, 'commuted_pension') else 0
+                is_govt_employee = getattr(retirement_benefits.pension, 'is_govt_employee', False)
+            else:
+                # Fallback for backward compatibility
+                pension_amount = retirement_benefits.pension.to_float() if hasattr(retirement_benefits.pension, 'to_float') else 0
+                regular_pension = pension_amount
+                commuted_pension = 0
+                is_govt_employee = getattr(retirement_benefits, 'is_govt_employee', False)
+            
             pension = PensionDTO(
-                regular_pension=pension_amount,
-                commuted_pension=getattr(retirement_benefits, 'commuted_pension', 0),
+                regular_pension=regular_pension,
+                commuted_pension=commuted_pension,
                 total_pension=pension_amount,
-                is_govt_employee=getattr(retirement_benefits, 'is_govt_employee', False),
+                is_govt_employee=is_govt_employee,
                 gratuity_received=getattr(retirement_benefits, 'gratuity_received', False)
             )
         elif hasattr(retirement_benefits, 'pension_amount') and retirement_benefits.pension_amount:
@@ -556,20 +611,18 @@ class GetComprehensiveTaxationRecordUseCase:
         # Convert retrenchment compensation
         retrenchment_compensation = None
         if hasattr(retirement_benefits, 'retrenchment_compensation') and retirement_benefits.retrenchment_compensation:
-            retrenchment_amount = retirement_benefits.retrenchment_compensation.to_float() if hasattr(retirement_benefits.retrenchment_compensation, 'to_float') else float(retirement_benefits.retrenchment_compensation)
+            # Handle nested RetrenchmentCompensation object
+            if hasattr(retirement_benefits.retrenchment_compensation, 'compensation_amount'):
+                retrenchment_amount = retirement_benefits.retrenchment_compensation.compensation_amount.to_float()
+            else:
+                # Fallback for backward compatibility
+                retrenchment_amount = retirement_benefits.retrenchment_compensation.to_float() if hasattr(retirement_benefits.retrenchment_compensation, 'to_float') else 0
+            
             retrenchment_compensation = RetrenchmentCompensationDTO(
                 retrenchment_amount=retrenchment_amount,
                 monthly_salary=getattr(retirement_benefits, 'monthly_salary', 0),
                 service_years=getattr(retirement_benefits, 'service_years', 0)
             )
-        elif hasattr(retirement_benefits, 'retrenchment_amount') and retirement_benefits.retrenchment_amount:
-            retrenchment_amount = retirement_benefits.retrenchment_amount.to_float() if hasattr(retirement_benefits.retrenchment_amount, 'to_float') else float(retirement_benefits.retrenchment_amount)
-            if retrenchment_amount > 0:
-                retrenchment_compensation = RetrenchmentCompensationDTO(
-                    retrenchment_amount=retrenchment_amount,
-                    monthly_salary=getattr(retirement_benefits, 'monthly_salary', 0),
-                    service_years=getattr(retirement_benefits, 'service_years', 0)
-                )
         
         # Only return RetirementBenefitsDTO if at least one component has data
         if any([leave_encashment, gratuity, vrs, pension, retrenchment_compensation]):

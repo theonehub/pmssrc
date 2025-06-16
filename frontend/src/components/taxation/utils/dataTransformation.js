@@ -71,7 +71,6 @@ export const transformComprehensiveRecordToFormData = (comprehensiveRecord, empI
         other_allowances: 0,
         bonus: 0,
         commission: 0,
-        lta_received: 0,
         city_compensatory_allowance: 0,
         rural_allowance: 0,
         proctorship_allowance: 0,

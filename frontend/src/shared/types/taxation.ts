@@ -291,6 +291,165 @@ export interface TaxCalculationResult {
   total_tax_liability: number;
 }
 
+// Comprehensive Tax Calculation Response from backend
+export interface ComprehensiveTaxCalculationResponse {
+  total_income: {
+    amount: string;
+    currency: string;
+  };
+  total_exemptions: {
+    amount: string;
+    currency: string;
+  };
+  total_deductions: {
+    amount: string;
+    currency: string;
+  };
+  taxable_income: {
+    amount: string;
+    currency: string;
+  };
+  tax_liability: {
+    amount: string;
+    currency: string;
+  };
+  
+  // Additional fields returned by the backend
+  total_tax_liability?: any;
+  effective_tax_rate?: number;
+  regime_used?: string;
+  gross_income?: any;
+  tax_before_rebate?: number;
+  rebate_87a?: number;
+  tax_after_rebate?: number;
+  surcharge?: number;
+  cess?: number;
+  employment_periods?: any;
+  total_employment_days?: number;
+  is_mid_year_scenario?: boolean;
+  period_wise_income?: any;
+  surcharge_breakdown?: any;
+  full_year_projection?: any;
+  mid_year_impact?: any;
+  optimization_suggestions?: any;
+  taxpayer_age?: number;
+  calculation_breakdown?: any;
+  message?: string;
+  
+  tax_breakdown: {
+    income_breakdown: {
+      salary_income: {
+        basic_salary: number;
+        dearness_allowance: number;
+        hra_received: number;
+        special_allowance: number;
+        conveyance_allowance: number;
+        medical_allowance: number;
+        bonus: number;
+        commission: number;
+        other_allowances: number;
+      };
+      perquisites: {
+        rent_free_accommodation: number;
+        concessional_accommodation: number;
+        car_perquisite: number;
+        driver_perquisite: number;
+        fuel_perquisite: number;
+        education_perquisite: number;
+        domestic_servant_perquisite: number;
+        utility_perquisite: number;
+        loan_perquisite: number;
+        esop_perquisite: number;
+        club_membership_perquisite: number;
+        other_perquisites: number;
+      };
+      house_property_income: {
+        property_type: string;
+        fair_rental_value: number;
+        standard_rent: number;
+        actual_rent: number;
+        municipal_tax: number;
+        interest_on_loan: number;
+        pre_construction_interest: number;
+        other_deductions: number;
+      };
+      capital_gains_income: {
+        stcg_111a_equity_stt: number;
+        stcg_other_assets: number;
+        stcg_debt_mf: number;
+        ltcg_112a_equity_stt: number;
+        ltcg_other_assets: number;
+        ltcg_debt_mf: number;
+      };
+      retirement_benefits: {
+        gratuity_amount: number;
+        years_of_service: number;
+        is_government_employee: boolean;
+        leave_encashment_amount: number;
+        leave_balance: number;
+        pension_amount: number;
+        is_commuted_pension: boolean;
+        commutation_percentage: number;
+        vrs_compensation: number;
+        other_retirement_benefits: number;
+      };
+      other_income: {
+        bank_interest: number;
+        fixed_deposit_interest: number;
+        recurring_deposit_interest: number;
+        post_office_interest: number;
+        other_interest: number;
+        equity_dividend: number;
+        mutual_fund_dividend: number;
+        other_dividend: number;
+        house_property_rent: number;
+        commercial_property_rent: number;
+        other_rental: number;
+        business_income: number;
+        professional_income: number;
+        short_term_capital_gains: number;
+        long_term_capital_gains: number;
+        lottery_winnings: number;
+        horse_race_winnings: number;
+        crossword_puzzle_winnings: number;
+        card_game_winnings: number;
+        other_speculative_income: number;
+        agricultural_income: number;
+        share_of_profit_partnership: number;
+        interest_on_tax_free_bonds: number;
+        other_exempt_income: number;
+      };
+    };
+    exemptions_breakdown: {
+      hra_exemption: number;
+      gratuity_exemption: number;
+      leave_encashment_exemption: number;
+      pension_exemption: number;
+      vrs_exemption: number;
+      other_exemptions: number;
+    };
+    deductions_breakdown: {
+      section_80c: number;
+      section_80d: number;
+      section_80e: number;
+      section_80g: number;
+      section_80tta: number;
+      section_80ttb: number;
+      section_80u: number;
+      other_deductions: number;
+    };
+    tax_summary: {
+      total_income: number;
+      total_exemptions: number;
+      total_deductions: number;
+      taxable_income: number;
+      tax_liability: number;
+      regime: string;
+    };
+  };
+  regime_comparison: any | null;
+}
+
 export interface TaxationResponse {
   taxation_record: TaxationRecord;
   tax_calculation: TaxCalculationResult;

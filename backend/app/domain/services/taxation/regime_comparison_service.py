@@ -103,7 +103,7 @@ class RegimeComparisonService:
             input_data.salary_income.medical_allowance +
             input_data.salary_income.bonus +
             input_data.salary_income.commission +
-            input_data.salary_income.overtime +
+            input_data.salary_income.overtime_allowance +
             input_data.salary_income.arrears +
             input_data.salary_income.gratuity +
             input_data.salary_income.leave_encashment +
@@ -152,7 +152,7 @@ class RegimeComparisonService:
             input_data.salary_income.medical_allowance +
             input_data.salary_income.bonus +
             input_data.salary_income.commission +
-            input_data.salary_income.overtime +
+            input_data.salary_income.overtime_allowance +
             input_data.salary_income.arrears +
             input_data.salary_income.gratuity +
             input_data.salary_income.leave_encashment +

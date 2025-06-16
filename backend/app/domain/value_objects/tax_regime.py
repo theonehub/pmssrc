@@ -32,8 +32,10 @@ class TaxRegime:
         return self.regime_type == TaxRegimeType.OLD
     
     def get_standard_deduction(self) -> Money:
-        """Get standard deduction amount (same for both regimes)."""
-        return Money.from_int(50000)  # ₹50,000 for both regimes
+        if self.regime_type == TaxRegimeType.NEW:
+            return Money.from_int(75000)  # ₹75,000 for new regime
+        else:
+            return Money.from_int(50000)  # ₹50,000 for old regime
     
     def get_basic_exemption_limit(self, age: int) -> Money:
         """

@@ -524,7 +524,6 @@ class EnhancedTaxCalculationCommand:
                 other_allowances=Money.from_decimal(period_dto.other_allowances),
                 bonus=Money.from_decimal(period_dto.bonus),
                 commission=Money.from_decimal(period_dto.commission),
-                lta_received=Money.from_decimal(period_dto.lta_received),
                 medical_allowance=Money.from_decimal(period_dto.medical_allowance),
                 conveyance_allowance=Money.from_decimal(period_dto.conveyance_allowance)
             )
@@ -653,7 +652,6 @@ class MidYearJoinerCommand:
             other_allowances=Money.from_decimal(request.salary_details.other_allowances),
             bonus=Money.from_decimal(request.salary_details.bonus),
             commission=Money.from_decimal(request.salary_details.commission),
-            lta_received=Money.from_decimal(request.salary_details.lta_received),
             medical_allowance=Money.from_decimal(request.salary_details.medical_allowance),
             conveyance_allowance=Money.from_decimal(request.salary_details.conveyance_allowance)
         )
@@ -723,7 +721,6 @@ class MidYearIncrementCommand:
             commission=Money.from_decimal(request.pre_increment_salary.commission),
             special_allowance=Money.from_decimal(request.pre_increment_salary.special_allowance),
             other_allowances=Money.from_decimal(request.pre_increment_salary.other_allowances),
-            lta_received=Money.from_decimal(request.pre_increment_salary.lta_received),
             medical_allowance=Money.from_decimal(request.pre_increment_salary.medical_allowance),
             conveyance_allowance=Money.from_decimal(request.pre_increment_salary.conveyance_allowance)
         )
@@ -739,7 +736,6 @@ class MidYearIncrementCommand:
             bonus=Money.from_decimal(request.post_increment_salary.bonus),
             commission=Money.from_decimal(request.post_increment_salary.commission),
             other_allowances=Money.from_decimal(request.post_increment_salary.other_allowances),
-            lta_received=Money.from_decimal(request.post_increment_salary.lta_received),
             medical_allowance=Money.from_decimal(request.post_increment_salary.medical_allowance),
             conveyance_allowance=Money.from_decimal(request.post_increment_salary.conveyance_allowance)
         )

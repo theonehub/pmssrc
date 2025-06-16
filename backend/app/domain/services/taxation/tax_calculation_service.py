@@ -71,7 +71,9 @@ class TaxCalculationService:
         total_deductions = self._calculate_total_deductions(input_data)
         
         # Calculate taxable income
-        taxable_income = total_income - total_exemptions - total_deductions
+        # First subtract exemptions, then deductions, ensuring we don't go negative
+        income_after_exemptions = total_income.subtract(total_exemptions) if total_income.is_greater_than(total_exemptions) else Money.zero()
+        taxable_income = income_after_exemptions.subtract(total_deductions) if income_after_exemptions.is_greater_than(total_deductions) else Money.zero()
         
         # Calculate tax liability
         tax_liability = self._calculate_tax_liability(
@@ -92,10 +94,8 @@ class TaxCalculationService:
             input_data
         )
         
-        # Get regime comparison if applicable
+        # Skip regime comparison to avoid infinite recursion
         regime_comparison = None
-        if input_data.regime.regime_type == TaxRegimeType.OLD:
-            regime_comparison = self._get_regime_comparison(input_data)
         
         return TaxCalculationResult(
             total_income=total_income,
@@ -110,30 +110,30 @@ class TaxCalculationService:
     def _calculate_total_income(self, input_data: TaxCalculationInput) -> Money:
         """Calculate total income from all sources."""
         # Salary income - use the actual method from SalaryIncome entity
-        salary_total = input_data.salary_income.get_total_salary()
+        salary_total = input_data.salary_income.calculate_gross_salary()
         
         # Perquisites - use the actual method from Perquisites entity
-        perquisites_total = input_data.perquisites.get_total_perquisites()
+        perquisites_total = input_data.perquisites.calculate_total_perquisites(input_data.regime)
         
         # House property income - use the actual method from HousePropertyIncome entity
-        house_property_total = input_data.house_property_income.calculate_net_income_from_house_property(input_data.regime)
+        house_property_total = input_data.house_property_income.get_income_from_house_property()
         
         # Capital gains income - use the actual method from CapitalGainsIncome entity
         capital_gains_total = input_data.capital_gains_income.calculate_total_capital_gains_income()
         
-        # Retirement benefits - use default zero for now (can be enhanced later)
-        retirement_total = Money.zero()
+        # Retirement benefits - use the actual method from RetirementBenefits entity
+        retirement_total = input_data.retirement_benefits.calculate_total_retirement_income(input_data.regime)
         
         # Other income - use the actual method from OtherIncome entity
         other_income_total = input_data.other_income.calculate_total_other_income(input_data.regime)
         
         return (
-            salary_total +
-            perquisites_total +
-            house_property_total +
-            capital_gains_total +
-            retirement_total +
-            other_income_total
+            salary_total
+            .add(perquisites_total)
+            .add(house_property_total)
+            .add(capital_gains_total)
+            .add(retirement_total)
+            .add(other_income_total)
         )
     
     def _calculate_total_exemptions(self, input_data: TaxCalculationInput) -> Money:
@@ -150,7 +150,7 @@ class TaxCalculationService:
             return Money.zero()  # No deductions in new regime
         
         # Use the actual deduction methods from TaxDeductions entity
-        return input_data.tax_deductions.calculate_total_eligible_deductions(input_data.regime)
+        return Money.zero() #input_data.tax_deductions.get_total_deductions()
     
     def _calculate_tax_liability(self,
                                taxable_income: Money,
@@ -178,9 +178,12 @@ class TaxCalculationService:
             slab_rate = Decimal(str(slab["rate"])) / Decimal('100')
             
             if remaining_income > slab_min:
-                taxable_in_slab = min(remaining_income - slab_min, slab_max - slab_min)
-                tax_amount += taxable_in_slab * slab_rate
-                remaining_income -= taxable_in_slab
+                # Calculate taxable amount in this slab using Money methods
+                income_above_slab_min = remaining_income.subtract(slab_min)
+                slab_range = slab_max.subtract(slab_min) if slab_max != remaining_income else income_above_slab_min
+                taxable_in_slab = income_above_slab_min.min(slab_range)
+                tax_amount = tax_amount.add(taxable_in_slab.multiply(slab_rate))
+                remaining_income = remaining_income.subtract(taxable_in_slab) if remaining_income.is_greater_than(taxable_in_slab) else Money.zero()
         
         # Add surcharge if applicable
         if taxable_income > Money(Decimal('5000000')):  # Above ₹50 lakh
@@ -192,13 +195,13 @@ class TaxCalculationService:
             if taxable_income > Money(Decimal('50000000')):  # Above ₹5 crore
                 surcharge_rate = Decimal('0.37')  # 37% surcharge
             
-            surcharge = tax_amount * surcharge_rate
-            tax_amount += surcharge
+            surcharge = tax_amount.multiply(surcharge_rate)
+            tax_amount = tax_amount.add(surcharge)
         
         # Add health and education cess
         cess_rate = Decimal('0.04')  # 4% cess
-        cess = tax_amount * cess_rate
-        tax_amount += cess
+        cess = tax_amount.multiply(cess_rate)
+        tax_amount = tax_amount.add(cess)
         
         return tax_amount
     
@@ -221,10 +224,10 @@ class TaxCalculationService:
                     "medical_allowance": input_data.salary_income.medical_allowance.to_float(),
                     "bonus": input_data.salary_income.bonus.to_float(),
                     "commission": input_data.salary_income.commission.to_float(),
-                    "overtime": input_data.salary_income.overtime.to_float(),
-                    "arrears": input_data.salary_income.arrears.to_float(),
-                    "gratuity": input_data.salary_income.gratuity.to_float(),
-                    "leave_encashment": input_data.salary_income.leave_encashment.to_float(),
+                    #"overtime": input_data.salary_income.overtime.to_float(),
+                    #"arrears": input_data.salary_income.arrears.to_float(),
+                    #"gratuity": input_data.salary_income.gratuity.to_float(),
+                    #"leave_encashment": input_data.salary_income.leave_encashment.to_float(),
                     "other_allowances": input_data.salary_income.other_allowances.to_float()
                 },
                 "perquisites": {
@@ -242,8 +245,8 @@ class TaxCalculationService:
                     "other_perquisites": input_data.perquisites.other_perquisites.to_float()
                 },
                 "house_property_income": {
-                    "property_type": input_data.house_property_income.property_type,
-                    "municipal_value": input_data.house_property_income.municipal_value.to_float(),
+                    "property_type": input_data.house_property_income.property_type.value,
+                    #"municipal_value": input_data.house_property_income.municipal_value.to_float(),
                     "fair_rental_value": input_data.house_property_income.fair_rental_value.to_float(),
                     "standard_rent": input_data.house_property_income.standard_rent.to_float(),
                     "actual_rent": input_data.house_property_income.actual_rent.to_float(),
@@ -253,13 +256,13 @@ class TaxCalculationService:
                     "other_deductions": input_data.house_property_income.other_deductions.to_float()
                 },
                 "capital_gains_income": {
-                    "asset_type": input_data.capital_gains_income.asset_type,
-                    "purchase_date": input_data.capital_gains_income.purchase_date.isoformat(),
-                    "sale_date": input_data.capital_gains_income.sale_date.isoformat(),
-                    "purchase_price": input_data.capital_gains_income.purchase_price.to_float(),
-                    "sale_price": input_data.capital_gains_income.sale_price.to_float(),
-                    "transfer_expenses": input_data.capital_gains_income.transfer_expenses.to_float(),
-                    "improvement_cost": input_data.capital_gains_income.improvement_cost.to_float()
+                    "stcg_111a_equity_stt": input_data.capital_gains_income.stcg_111a_equity_stt.to_float(),
+                    "stcg_other_assets": input_data.capital_gains_income.stcg_other_assets.to_float(),
+                    "stcg_debt_mf": input_data.capital_gains_income.stcg_debt_mf.to_float(),
+                    
+                    "ltcg_112a_equity_stt": input_data.capital_gains_income.ltcg_112a_equity_stt.to_float(),
+                    "ltcg_other_assets": input_data.capital_gains_income.ltcg_other_assets.to_float(),
+                    "ltcg_debt_mf": input_data.capital_gains_income.ltcg_debt_mf.to_float(),
                 },
                 "retirement_benefits": {
                     "gratuity_amount": input_data.retirement_benefits.gratuity_amount.to_float(),
@@ -327,31 +330,32 @@ class TaxCalculationService:
                     input_data.retirement_benefits.vrs_compensation
                 ).to_float(),
                 "other_exemptions": (
-                    input_data.other_income.interest_on_tax_free_bonds +
-                    input_data.other_income.other_exempt_income
+                    input_data.other_income.interest_on_tax_free_bonds.add(
+                        input_data.other_income.other_exempt_income
+                    )
                 ).to_float()
             },
             "deductions_breakdown": {
                 "section_80c": min(
                     (
-                        input_data.tax_deductions.life_insurance_premium +
-                        input_data.tax_deductions.elss_investments +
-                        input_data.tax_deductions.public_provident_fund +
-                        input_data.tax_deductions.employee_provident_fund +
-                        input_data.tax_deductions.sukanya_samriddhi +
-                        input_data.tax_deductions.national_savings_certificate +
-                        input_data.tax_deductions.tax_saving_fixed_deposits +
-                        input_data.tax_deductions.principal_repayment_home_loan +
-                        input_data.tax_deductions.tuition_fees +
-                        input_data.tax_deductions.other_80c_deductions
+                        input_data.tax_deductions.life_insurance_premium
+                        .add(input_data.tax_deductions.elss_investments)
+                        .add(input_data.tax_deductions.public_provident_fund)
+                        .add(input_data.tax_deductions.employee_provident_fund)
+                        .add(input_data.tax_deductions.sukanya_samriddhi)
+                        .add(input_data.tax_deductions.national_savings_certificate)
+                        .add(input_data.tax_deductions.tax_saving_fixed_deposits)
+                        .add(input_data.tax_deductions.principal_repayment_home_loan)
+                        .add(input_data.tax_deductions.tuition_fees)
+                        .add(input_data.tax_deductions.other_80c_deductions)
                     ).to_float(),
                     150000.0  # Max ₹1.5 lakh
                 ),
                 "section_80d": min(
                     (
-                        input_data.tax_deductions.health_insurance_self +
-                        input_data.tax_deductions.health_insurance_parents +
-                        input_data.tax_deductions.preventive_health_checkup
+                        input_data.tax_deductions.health_insurance_self
+                        .add(input_data.tax_deductions.health_insurance_parents)
+                        .add(input_data.tax_deductions.preventive_health_checkup)
                     ).to_float(),
                     25000.0  # Max ₹25,000
                 ),
@@ -366,25 +370,25 @@ class TaxCalculationService:
                     50000.0  # Max ₹50,000
                 ) if input_data.is_senior_citizen else 0.0,
                 "section_80u": (
-                    input_data.tax_deductions.disability_deduction +
-                    input_data.tax_deductions.medical_treatment_deduction
+                    input_data.tax_deductions.disability_deduction
+                    .add(input_data.tax_deductions.medical_treatment_deduction)
                 ).to_float(),
                 "other_deductions": (
-                    input_data.tax_deductions.scientific_research_donation +
-                    input_data.tax_deductions.political_donation +
-                    input_data.tax_deductions.infrastructure_deduction +
-                    input_data.tax_deductions.industrial_undertaking_deduction +
-                    input_data.tax_deductions.special_category_state_deduction +
-                    input_data.tax_deductions.hotel_deduction +
-                    input_data.tax_deductions.north_eastern_state_deduction +
-                    input_data.tax_deductions.employment_deduction +
-                    input_data.tax_deductions.employment_generation_deduction +
-                    input_data.tax_deductions.offshore_banking_deduction +
-                    input_data.tax_deductions.co_operative_society_deduction +
-                    input_data.tax_deductions.royalty_deduction +
-                    input_data.tax_deductions.patent_deduction +
-                    input_data.tax_deductions.interest_on_savings_deduction +
-                    input_data.tax_deductions.disability_deduction_amount
+                    input_data.tax_deductions.scientific_research_donation
+                    .add(input_data.tax_deductions.political_donation)
+                    .add(input_data.tax_deductions.infrastructure_deduction)
+                    .add(input_data.tax_deductions.industrial_undertaking_deduction)
+                    .add(input_data.tax_deductions.special_category_state_deduction)
+                    .add(input_data.tax_deductions.hotel_deduction)
+                    .add(input_data.tax_deductions.north_eastern_state_deduction)
+                    .add(input_data.tax_deductions.employment_deduction)
+                    .add(input_data.tax_deductions.employment_generation_deduction)
+                    .add(input_data.tax_deductions.offshore_banking_deduction)
+                    .add(input_data.tax_deductions.co_operative_society_deduction)
+                    .add(input_data.tax_deductions.royalty_deduction)
+                    .add(input_data.tax_deductions.patent_deduction)
+                    .add(input_data.tax_deductions.interest_on_savings_deduction)
+                    .add(input_data.tax_deductions.disability_deduction_amount)
                 ).to_float()
             },
             "tax_summary": {
@@ -432,15 +436,19 @@ class TaxCalculationService:
             },
             "difference": {
                 "tax_liability": (
-                    new_regime_result.tax_liability - old_regime_result.tax_liability
+                    new_regime_result.tax_liability.subtract(old_regime_result.tax_liability) 
+                    if new_regime_result.tax_liability.is_greater_than(old_regime_result.tax_liability)
+                    else old_regime_result.tax_liability.subtract(new_regime_result.tax_liability).multiply(Decimal('-1'))
                 ).to_float(),
                 "percentage": float(
-                    (new_regime_result.tax_liability - old_regime_result.tax_liability) /
-                    old_regime_result.tax_liability * Decimal('100')
-                ) if old_regime_result.tax_liability > Money(Decimal('0')) else 0.0
+                    (new_regime_result.tax_liability.subtract(old_regime_result.tax_liability) 
+                     if new_regime_result.tax_liability.is_greater_than(old_regime_result.tax_liability)
+                     else old_regime_result.tax_liability.subtract(new_regime_result.tax_liability).multiply(Decimal('-1')))
+                    .divide(old_regime_result.tax_liability).multiply(Decimal('100'))
+                ) if old_regime_result.tax_liability.is_greater_than(Money(Decimal('0'))) else 0.0
             },
             "recommended_regime": (
-                "new" if new_regime_result.tax_liability < old_regime_result.tax_liability
+                "new" if new_regime_result.tax_liability.is_less_than(old_regime_result.tax_liability)
                 else "old"
             )
         }
@@ -455,15 +463,13 @@ class TaxCalculationService:
         # 1. Actual HRA received
         # 2. Rent paid - 10% of (Basic + DA)
         # 3. 50% of (Basic + DA) for metro cities, 40% for others
-        basic_plus_da = basic_salary + dearness_allowance
-        rent_minus_10_percent = rent_paid - (basic_plus_da * Decimal('0.10'))
+        basic_plus_da = basic_salary.add(dearness_allowance)
+        ten_percent_basic_da = basic_plus_da.multiply(Decimal('0.10'))
+        rent_minus_10_percent = rent_paid.subtract(ten_percent_basic_da) if rent_paid.is_greater_than(ten_percent_basic_da) else Money.zero()
         hra_percentage = Decimal('0.50')  # Assuming metro city
+        fifty_percent_basic_da = basic_plus_da.multiply(hra_percentage)
         
-        return min(
-            hra,
-            rent_minus_10_percent,
-            basic_plus_da * hra_percentage
-        )
+        return hra.min(rent_minus_10_percent).min(fifty_percent_basic_da)
     
     def _calculate_gratuity_exemption(self,
                                     gratuity_amount: Money,
@@ -477,11 +483,9 @@ class TaxCalculationService:
         # 1. Actual gratuity received
         # 2. ₹20 lakh
         # 3. 15 days' salary × years of service
-        return min(
-            gratuity_amount,
-            Money(Decimal('2000000')),  # ₹20 lakh
-            Money(Decimal(str(years_of_service * 15)))  # 15 days' salary × years
-        )
+        twenty_lakh = Money(Decimal('2000000'))  # ₹20 lakh
+        fifteen_days_salary = Money(Decimal(str(years_of_service * 15)))  # 15 days' salary × years
+        return gratuity_amount.min(twenty_lakh).min(fifteen_days_salary)
     
     def _calculate_leave_encashment_exemption(self,
                                             leave_encashment: Money,
@@ -495,11 +499,9 @@ class TaxCalculationService:
         # 1. Actual leave encashment
         # 2. ₹3 lakh
         # 3. 10 months' average salary
-        return min(
-            leave_encashment,
-            Money(Decimal('300000')),  # ₹3 lakh
-            Money(Decimal(str(leave_balance * 10)))  # 10 months' salary
-        )
+        three_lakh = Money(Decimal('300000'))  # ₹3 lakh
+        ten_months_salary = Money(Decimal(str(leave_balance * 10)))  # 10 months' salary
+        return leave_encashment.min(three_lakh).min(ten_months_salary)
     
     def _calculate_pension_exemption(self,
                                    pension_amount: Money,
@@ -518,14 +520,15 @@ class TaxCalculationService:
         # 1/2 of commuted pension if gratuity is not received
         if commutation_percentage > Decimal('0'):
             exemption_percentage = Decimal('0.33')  # Assuming gratuity is received
-            return pension_amount * exemption_percentage
+            return pension_amount.multiply(exemption_percentage)
         
         return Money(Decimal('0'))
     
     def _calculate_vrs_exemption(self, vrs_compensation: Money) -> Money:
         """Calculate VRS compensation exemption."""
         # VRS compensation is exempt up to ₹5 lakh
-        return min(vrs_compensation, Money(Decimal('500000')))
+        five_lakh = Money(Decimal('500000'))
+        return vrs_compensation.min(five_lakh)
     
     def _get_old_regime_slabs(self,
                              age: int,

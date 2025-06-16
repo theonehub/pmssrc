@@ -1,197 +1,221 @@
 """
-Capital Gains Income Entity
-Represents income from capital gains
+Capital Gains Entity
+Domain entity for handling capital gains calculations
 """
 
 from dataclasses import dataclass
+from typing import Dict, Any
+from enum import Enum
 from decimal import Decimal
-from typing import Optional
-from datetime import date
-
 from app.domain.value_objects.money import Money
+from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
+
+
+class CapitalGainsType(Enum):
+    """Types of capital gains."""
+    STCG_111A = "STCG 111A (Equity with STT)"
+    STCG_OTHER = "STCG Other Assets"
+    LTCG_112A = "LTCG 112A (Equity with STT)"
+    LTCG_OTHER = "LTCG Other Assets"
+    LTCG_DEBT_MF = "LTCG Debt Mutual Funds"
 
 
 @dataclass
 class CapitalGainsIncome:
-    """Capital gains income entity containing capital gains details."""
+    """Capital gains income calculation entity."""
     
-    # Asset details
-    asset_type: str  # equity, debt, property, etc.
-    purchase_date: date
-    sale_date: date
-    purchase_price: Money
-    sale_price: Money
-    transfer_expenses: Money = Money.zero()
-    improvement_cost: Money = Money.zero()
+    # Short-Term Capital Gains
+    stcg_111a_equity_stt: Money = Money.zero()  # Equity with STT
+    stcg_other_assets: Money = Money.zero()     # Other assets (taxed at slab rates)
+    stcg_debt_mf: Money = Money.zero()          # Debt mutual funds
     
-    # Additional details
-    is_listed_security: bool = False
-    is_residential_property: bool = False
-    is_agricultural_land: bool = False
-    is_business_asset: bool = False
+    # Long-Term Capital Gains
+    ltcg_112a_equity_stt: Money = Money.zero()  # Equity with STT
+    ltcg_other_assets: Money = Money.zero()     # Other assets
+    ltcg_debt_mf: Money = Money.zero()          # Debt mutual funds
     
-    def get_holding_period(self) -> int:
+    def calculate_stcg_111a_tax(self) -> Money:
         """
-        Calculate holding period in years.
+        Calculate tax on STCG 111A (Equity with STT) at 20%.
         
         Returns:
-            int: Number of years the asset was held
+            Money: Tax amount
         """
-        years = self.sale_date.year - self.purchase_date.year
-        if (self.sale_date.month, self.sale_date.day) < (self.purchase_date.month, self.purchase_date.day):
-            years -= 1
-        return years
+        # STCG 111A is taxed at 20% (Budget 2024)
+        return self.stcg_111a_equity_stt.percentage(20)
     
-    def is_long_term(self) -> bool:
+    def calculate_ltcg_112a_tax(self) -> Money:
         """
-        Check if capital gain is long-term.
+        Calculate tax on LTCG 112A (Equity with STT) at 12.5% with ₹1.25L exemption.
         
-        Long-term holding periods:
-        - Equity/debt mutual funds: 1 year
-        - Property: 2 years
-        - Other assets: 3 years
-        """
-        holding_period = self.get_holding_period()
-        
-        if self.asset_type in ["equity", "debt"]:
-            return holding_period >= 1
-        elif self.asset_type == "property":
-            return holding_period >= 2
-        else:
-            return holding_period >= 3
-    
-    def get_cost_of_acquisition(self) -> Money:
-        """
-        Calculate cost of acquisition.
-        
-        Cost of acquisition = Purchase price + Transfer expenses + Improvement cost
-        """
-        return (
-            self.purchase_price
-            .add(self.transfer_expenses)
-            .add(self.improvement_cost)
-        )
-    
-    def get_capital_gain(self) -> Money:
-        """
-        Calculate capital gain.
-        
-        Capital gain = Sale price - Cost of acquisition
-        """
-        return self.sale_price.subtract(self.get_cost_of_acquisition())
-    
-    def get_indexed_cost_of_acquisition(self, 
-                                      purchase_year_index: Decimal,
-                                      sale_year_index: Decimal) -> Money:
-        """
-        Calculate indexed cost of acquisition.
-        
-        Indexed cost = Cost of acquisition × (Sale year index / Purchase year index)
-        
-        Args:
-            purchase_year_index: Cost inflation index for purchase year
-            sale_year_index: Cost inflation index for sale year
-            
         Returns:
-            Money: Indexed cost of acquisition
+            Money: Tax amount
         """
-        if not self.is_long_term():
-            return self.get_cost_of_acquisition()
+        # LTCG 112A exemption increased to ₹1.25 lakh (Budget 2024)
+        exemption_limit = Money.from_int(125000)
         
-        indexed_cost = (
-            self.get_cost_of_acquisition().amount
-            * (sale_year_index / purchase_year_index)
-        )
+        if self.ltcg_112a_equity_stt.is_greater_than(exemption_limit):
+            taxable_ltcg = self.ltcg_112a_equity_stt.subtract(exemption_limit)
+            # LTCG 112A is taxed at 12.5% (Budget 2024)
+            return taxable_ltcg.percentage(Decimal('12.5'))
         
-        return Money(Decimal(str(indexed_cost)))
-    
-    def get_indexed_capital_gain(self,
-                               purchase_year_index: Decimal,
-                               sale_year_index: Decimal) -> Money:
-        """
-        Calculate indexed capital gain.
-        
-        Indexed capital gain = Sale price - Indexed cost of acquisition
-        
-        Args:
-            purchase_year_index: Cost inflation index for purchase year
-            sale_year_index: Cost inflation index for sale year
-            
-        Returns:
-            Money: Indexed capital gain
-        """
-        return self.sale_price.subtract(
-            self.get_indexed_cost_of_acquisition(purchase_year_index, sale_year_index)
-        )
-    
-    def get_taxable_capital_gain(self) -> Money:
-        """
-        Calculate taxable capital gain.
-        
-        For long-term capital gains:
-        - Equity/debt mutual funds: 10% tax on gains above ₹1 lakh
-        - Property: 20% tax on indexed gains
-        - Other assets: 20% tax on indexed gains
-        
-        For short-term capital gains:
-        - Equity: 15% tax
-        - Other assets: Normal slab rates
-        """
-        if not self.is_long_term():
-            # Short-term capital gains
-            if self.asset_type == "equity":
-                return self.get_capital_gain().percentage(Decimal('15'))
-            else:
-                return self.get_capital_gain()
-        else:
-            # Long-term capital gains
-            if self.asset_type in ["equity", "debt"]:
-                gain = self.get_capital_gain()
-                if gain.is_less_than(Money(Decimal('100000'))):
-                    return Money.zero()
-                else:
-                    return gain.percentage(Decimal('10'))
-            else:
-                # For property and other assets, use indexed gains
-                return self.get_indexed_capital_gain(
-                    Decimal('100'),  # Placeholder for purchase year index
-                    Decimal('100')   # Placeholder for sale year index
-                ).percentage(Decimal('20'))
-    
-    def get_exempt_capital_gain(self) -> Money:
-        """
-        Calculate exempt capital gain.
-        
-        Exemptions available:
-        - Investment in residential property
-        - Investment in specified bonds
-        - Investment in startup
-        """
-        # TODO: Implement exemption calculations based on investment details
         return Money.zero()
     
-    def get_net_taxable_capital_gain(self) -> Money:
+    def calculate_ltcg_other_tax(self) -> Money:
         """
-        Calculate net taxable capital gain.
+        Calculate tax on LTCG from other assets at 12.5%.
         
-        Net taxable gain = Taxable gain - Exempt gain
+        Returns:
+            Money: Tax amount
         """
-        return self.get_taxable_capital_gain().subtract(self.get_exempt_capital_gain())
+        # LTCG from other assets taxed at 12.5% (Budget 2024)
+        total_ltcg_other = self.ltcg_other_assets.add(self.ltcg_debt_mf)
+        return total_ltcg_other.percentage(Decimal('12.5'))
     
-    def get_asset_type_description(self) -> str:
-        """Get human-readable asset type description."""
-        if self.asset_type == "equity":
-            return "Equity Shares"
-        elif self.asset_type == "debt":
-            return "Debt Instruments"
-        elif self.asset_type == "property":
-            return "Property"
-        else:
-            return "Other Assets"
+    def calculate_total_capital_gains_tax(self) -> Money:
+        """
+        Calculate total capital gains tax.
+        
+        Returns:
+            Money: Total capital gains tax
+        """
+        stcg_111a_tax = self.calculate_stcg_111a_tax()
+        ltcg_112a_tax = self.calculate_ltcg_112a_tax()
+        ltcg_other_tax = self.calculate_ltcg_other_tax()
+        
+        return stcg_111a_tax.add(ltcg_112a_tax).add(ltcg_other_tax)
     
-    def get_gain_type_description(self) -> str:
-        """Get human-readable gain type description."""
-        if self.is_long_term():
-            return "Long-term Capital Gain"
-        else:
-            return "Short-term Capital Gain" 
+    def calculate_stcg_for_slab_rates(self) -> Money:
+        """
+        Calculate STCG that will be taxed at slab rates (added to regular income).
+        
+        Returns:
+            Money: STCG amount for slab taxation
+        """
+        return self.stcg_other_assets.add(self.stcg_debt_mf)
+    
+    def calculate_total_capital_gains_income(self) -> Money:
+        """
+        Calculate total capital gains income.
+        
+        Returns:
+            Money: Total capital gains
+        """
+        total_stcg = (self.stcg_111a_equity_stt
+                     .add(self.stcg_other_assets)
+                     .add(self.stcg_debt_mf))
+        
+        total_ltcg = (self.ltcg_112a_equity_stt
+                     .add(self.ltcg_other_assets)
+                     .add(self.ltcg_debt_mf))
+        
+        return total_stcg.add(total_ltcg)
+    
+    def get_capital_gains_breakdown(self, regime: TaxRegime) -> Dict[str, Any]:
+        """
+        Get detailed breakdown of capital gains calculations.
+        
+        Args:
+            regime: Tax regime
+            
+        Returns:
+            Dict: Complete capital gains breakdown
+        """
+        stcg_111a_tax = self.calculate_stcg_111a_tax()
+        ltcg_112a_tax = self.calculate_ltcg_112a_tax()
+        ltcg_other_tax = self.calculate_ltcg_other_tax()
+        total_cg_tax = self.calculate_total_capital_gains_tax()
+        stcg_slab_rate = self.calculate_stcg_for_slab_rates()
+        
+        return {
+            "regime": regime.regime_type.value,
+            "short_term_capital_gains": {
+                "stcg_111a_equity_stt": {
+                    "amount": self.stcg_111a_equity_stt.to_float(),
+                    "tax_rate": "20%",
+                    "tax_amount": stcg_111a_tax.to_float()
+                },
+                "stcg_other_assets": {
+                    "amount": self.stcg_other_assets.to_float(),
+                    "tax_rate": "Slab rates",
+                    "note": "Added to regular income"
+                },
+                "stcg_debt_mf": {
+                    "amount": self.stcg_debt_mf.to_float(),
+                    "tax_rate": "Slab rates",
+                    "note": "Added to regular income"
+                },
+                "total_stcg_for_slab_rates": stcg_slab_rate.to_float()
+            },
+            "long_term_capital_gains": {
+                "ltcg_112a_equity_stt": {
+                    "amount": self.ltcg_112a_equity_stt.to_float(),
+                    "exemption_limit": 125000,
+                    "tax_rate": "12.5%",
+                    "tax_amount": ltcg_112a_tax.to_float()
+                },
+                "ltcg_other_assets": {
+                    "amount": self.ltcg_other_assets.to_float(),
+                    "tax_rate": "12.5%",
+                    "tax_amount": self.ltcg_other_assets.percentage(Decimal('12.5')).to_float()
+                },
+                "ltcg_debt_mf": {
+                    "amount": self.ltcg_debt_mf.to_float(),
+                    "tax_rate": "12.5%",
+                    "tax_amount": self.ltcg_debt_mf.percentage(Decimal('12.5')).to_float()
+                },
+                "total_ltcg_tax": ltcg_other_tax.to_float()
+            },
+            "summary": {
+                "total_capital_gains_income": self.calculate_total_capital_gains_income().to_float(),
+                "total_capital_gains_tax": total_cg_tax.to_float(),
+                "amount_added_to_regular_income": stcg_slab_rate.to_float(),
+                "amount_taxed_separately": (self.stcg_111a_equity_stt
+                                          .add(self.ltcg_112a_equity_stt)
+                                          .add(self.ltcg_other_assets)
+                                          .add(self.ltcg_debt_mf)).to_float()
+            }
+        }
+    
+    # Backward compatibility properties for legacy code
+    @property
+    def asset_type(self) -> str:
+        """Backward compatibility: Get asset type (default to 'equity')."""
+        # Legacy systems expect an asset_type field
+        return "equity"
+    
+    @property
+    def purchase_date(self):
+        """Backward compatibility: Get purchase date (default to current year)."""
+        from datetime import date
+        return date.today().replace(month=1, day=1)  # Start of current year as date object
+    
+    @property
+    def sale_date(self):
+        """Backward compatibility: Get sale date (default to current year)."""
+        from datetime import date
+        return date.today()  # Current date as date object
+    
+    @property
+    def purchase_price(self) -> Money:
+        """Backward compatibility: Get purchase price (sum of all gains as proxy)."""
+        # This is a rough approximation for backward compatibility
+        return self.calculate_total_capital_gains_income()
+    
+    @property
+    def sale_price(self) -> Money:
+        """Backward compatibility: Get sale price (purchase price + gains)."""
+        # This is a rough approximation for backward compatibility
+        total_gains = self.calculate_total_capital_gains_income()
+        return total_gains.add(total_gains)  # Approximate: gains + cost basis
+    
+    @property
+    def transfer_expenses(self) -> Money:
+        """Backward compatibility: Get transfer expenses (default to zero)."""
+        return Money.zero()
+    
+    @property
+    def improvement_cost(self) -> Money:
+        """Backward compatibility: Get improvement cost (default to zero)."""
+        return Money.zero()
+    

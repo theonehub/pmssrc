@@ -79,7 +79,7 @@ from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
 from app.domain.entities.taxation.salary_income import SalaryIncome
 from app.domain.entities.periodic_salary_income import PeriodicSalaryIncome, PeriodicSalaryData
 from app.domain.entities.taxation.tax_deductions import TaxDeductions
-from app.domain.entities.perquisites import (
+from app.domain.entities.taxation.perquisites import (
     Perquisites, AccommodationPerquisite, CarPerquisite, AccommodationType,
     CityPopulation, CarUseType, AssetType, MedicalReimbursement, LTAPerquisite,
     InterestFreeConcessionalLoan, ESOPPerquisite, UtilitiesPerquisite,
@@ -87,12 +87,12 @@ from app.domain.entities.perquisites import (
     LunchRefreshmentPerquisite, GiftVoucherPerquisite, MonetaryBenefitsPerquisite,
     ClubExpensesPerquisite, DomesticHelpPerquisite
 )
-from app.domain.entities.house_property_income import HousePropertyIncome, PropertyType, MultipleHouseProperties
-from app.domain.entities.capital_gains import CapitalGainsIncome, CapitalGainsType
-from app.domain.entities.retirement_benefits import (
+from app.domain.entities.taxation.house_property_income import HousePropertyIncome
+from app.domain.entities.taxation.capital_gains import CapitalGainsIncome, CapitalGainsType
+from app.domain.entities.taxation.retirement_benefits import (
     RetirementBenefits, LeaveEncashment, Gratuity, VRS, Pension, RetrenchmentCompensation
 )
-from app.domain.entities.other_income import OtherIncome, InterestIncome
+from app.domain.entities.taxation.other_income import OtherIncome, InterestIncome
 from app.domain.entities.monthly_payroll import MonthlyPayroll, AnnualPayrollWithLWP, LWPDetails
 
 # Import services
@@ -532,7 +532,7 @@ class UnifiedTaxationController:
     
     async def calculate_comprehensive_tax(self,
                                         request: ComprehensiveTaxInputDTO,
-                                        organization_id: str) -> PeriodicTaxCalculationResponseDTO:
+                                        organization_id: str) -> TaxCalculationResult:
         """
         Calculate comprehensive tax including all income sources.
         
@@ -553,10 +553,10 @@ class UnifiedTaxationController:
             result = self.enhanced_tax_service.calculate_tax(tax_input)
             
             # Convert result to response DTO
-            response = self._convert_result_to_dto(result, request)
+            #response = self._convert_result_to_dto(result, request)
             
             logger.info(f"Comprehensive tax calculation completed for org {organization_id}")
-            return response
+            return result
             
         except Exception as e:
             logger.error(f"Error in comprehensive tax calculation for org {organization_id}: {str(e)}")
@@ -912,13 +912,13 @@ class UnifiedTaxationController:
             dearness_allowance=Money.zero(),
             hra_received=Money.zero(),
             hra_city_type="non_metro",
+            actual_rent_paid=Money.zero(),
             special_allowance=Money.zero(),
-            conveyance_allowance=Money.zero(),
-            medical_allowance=Money.zero(),
+            other_allowances=Money.zero(),
             bonus=Money.zero(),
             commission=Money.zero(),
-            other_allowances=Money.zero(),
-            lta_received=Money.zero()
+            medical_allowance=Money.zero(),
+            conveyance_allowance=Money.zero()
         )
     
     def _create_default_perquisites(self):
@@ -929,9 +929,8 @@ class UnifiedTaxationController:
     
     def _create_default_house_property(self):
         """Create default house property entity."""
-        from app.domain.entities.taxation.house_property_income import HousePropertyIncome
+        from app.domain.entities.taxation.house_property_income import HousePropertyIncome, PropertyType
         from app.domain.value_objects.money import Money
-        from app.domain.value_objects.taxation.property_type import PropertyType
         
         return HousePropertyIncome(
             property_type=PropertyType.SELF_OCCUPIED,
@@ -986,6 +985,7 @@ class UnifiedTaxationController:
         return SalaryIncome(
             basic_salary=Money.from_decimal(salary_dto.basic_salary),
             dearness_allowance=Money.from_decimal(salary_dto.dearness_allowance),
+            actual_rent_paid=Money.from_decimal(salary_dto.actual_rent_paid),
             hra_received=Money.from_decimal(salary_dto.hra_received),
             hra_city_type=salary_dto.hra_city_type,
             special_allowance=Money.from_decimal(salary_dto.special_allowance),
@@ -994,8 +994,7 @@ class UnifiedTaxationController:
             # Optional components with defaults
             bonus=Money.from_decimal(getattr(salary_dto, 'bonus', 0)),
             commission=Money.from_decimal(getattr(salary_dto, 'commission', 0)),
-            other_allowances=Money.from_decimal(getattr(salary_dto, 'other_allowances', 0)),
-            lta_received=Money.from_decimal(getattr(salary_dto, 'lta_received', 0))
+            other_allowances=Money.from_decimal(getattr(salary_dto, 'other_allowances', 0))
         )
     
     def _convert_periodic_salary_dto_to_entity(self, periodic_dto) -> PeriodicSalaryIncome:
@@ -1015,7 +1014,6 @@ class UnifiedTaxationController:
                 other_allowances=float(period_dto.other_allowances),
                 bonus=float(period_dto.bonus),
                 commission=float(period_dto.commission),
-                lta_received=float(period_dto.lta_received),
                 medical_allowance=float(period_dto.medical_allowance),
                 conveyance_allowance=float(period_dto.conveyance_allowance)
             )
@@ -1262,8 +1260,18 @@ class UnifiedTaxationController:
     
     def _convert_house_property_dto_to_entity(self, house_dto) -> HousePropertyIncome:
         """Convert house property DTO to entity."""
+        from app.domain.entities.taxation.house_property_income import PropertyType
+        
+        # Map property type to enum
+        property_type_mapping = {
+            "Self-Occupied": PropertyType.SELF_OCCUPIED,
+            "Let-Out": PropertyType.LET_OUT, 
+            "Deemed Let-Out": PropertyType.DEEMED_LET_OUT
+        }
+        property_type = property_type_mapping.get(house_dto.property_type, PropertyType.SELF_OCCUPIED)
+        
         return HousePropertyIncome(
-            property_type=PropertyType(house_dto.property_type),
+            property_type=property_type,
             annual_rent_received=Money.from_decimal(house_dto.annual_rent_received),
             municipal_taxes_paid=Money.from_decimal(house_dto.municipal_taxes_paid),
             home_loan_interest=Money.from_decimal(house_dto.home_loan_interest),
@@ -1450,14 +1458,13 @@ class UnifiedTaxationController:
             dearness_allowance=Money.from_decimal(salary_data_dto.dearness_allowance),
             hra_received=Money.from_decimal(salary_data_dto.hra_received),
             hra_city_type=salary_data_dto.hra_city_type,
+            actual_rent_paid=Money.from_decimal(getattr(salary_data_dto, 'actual_rent_paid', 0)),
             special_allowance=Money.from_decimal(salary_data_dto.special_allowance),
-            conveyance_allowance=Money.from_decimal(salary_data_dto.conveyance_allowance),
-            medical_allowance=Money.from_decimal(salary_data_dto.medical_allowance),
-            # Optional components with defaults
+            other_allowances=Money.from_decimal(getattr(salary_data_dto, 'other_allowances', 0)),
             bonus=Money.from_decimal(getattr(salary_data_dto, 'bonus', 0)),
             commission=Money.from_decimal(getattr(salary_data_dto, 'commission', 0)),
-            other_allowances=Money.from_decimal(getattr(salary_data_dto, 'other_allowances', 0)),
-            lta_received=Money.from_decimal(getattr(salary_data_dto, 'lta_received', 0))
+            medical_allowance=Money.from_decimal(salary_data_dto.medical_allowance),
+            conveyance_allowance=Money.from_decimal(salary_data_dto.conveyance_allowance)
         )
     
     def _create_comprehensive_from_periodic_salary(self, periodic_salary, regime_type: str, age: int, deductions: Dict[str, float], tax_year: str):
@@ -1514,7 +1521,6 @@ class UnifiedTaxationController:
                 bonus=period_data.salary_income.bonus.to_float(),
                 commission=period_data.salary_income.commission.to_float(),
                 other_allowances=period_data.salary_income.other_allowances.to_float(),
-                lta_received=period_data.salary_income.lta_received.to_float(),
                 medical_allowance=period_data.salary_income.medical_allowance.to_float(),
                 conveyance_allowance=period_data.salary_income.conveyance_allowance.to_float()
             )

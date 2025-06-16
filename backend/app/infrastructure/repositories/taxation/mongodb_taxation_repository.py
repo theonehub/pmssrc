@@ -387,18 +387,19 @@ class MongoDBTaxationRepository(TaxationRepository):
             "salary_income": {
                 "basic_salary": record.salary_income.basic_salary.to_float(),
                 "dearness_allowance": record.salary_income.dearness_allowance.to_float(),
-                "special_allowance": record.salary_income.special_allowance.to_float(),
-                "conveyance_allowance": record.salary_income.conveyance_allowance.to_float(),
-                "medical_allowance": record.salary_income.medical_allowance.to_float(),
                 "hra_received": record.salary_income.hra_received.to_float(),
                 "hra_city_type": record.salary_income.hra_city_type,
+                "actual_rent_paid": record.salary_income.actual_rent_paid.to_float(),
+                "special_allowance": record.salary_income.special_allowance.to_float(),
+                "other_allowances": record.salary_income.other_allowances.to_float(),
                 "bonus": record.salary_income.bonus.to_float(),
                 "commission": record.salary_income.commission.to_float(),
-                "overtime": record.salary_income.overtime.to_float(),
+                "medical_allowance": record.salary_income.medical_allowance.to_float(),
+                "conveyance_allowance": record.salary_income.conveyance_allowance.to_float(),
+                "overtime_allowance": record.salary_income.overtime_allowance.to_float(),
                 "arrears": record.salary_income.arrears.to_float(),
                 "gratuity": record.salary_income.gratuity.to_float(),
-                "leave_encashment": record.salary_income.leave_encashment.to_float(),
-                "other_allowances": record.salary_income.other_allowances.to_float()
+                "leave_encashment": record.salary_income.leave_encashment.to_float()
             },
             "perquisites": {
                 "rent_free_accommodation": record.perquisites.rent_free_accommodation.to_float(),
@@ -415,7 +416,7 @@ class MongoDBTaxationRepository(TaxationRepository):
                 "other_perquisites": record.perquisites.other_perquisites.to_float()
             },
             "house_property_income": {
-                "property_type": record.house_property_income.property_type,
+                "property_type": record.house_property_income.property_type.value,
                 "municipal_value": record.house_property_income.municipal_value.to_float(),
                 "fair_rental_value": record.house_property_income.fair_rental_value.to_float(),
                 "standard_rent": record.house_property_income.standard_rent.to_float(),
@@ -435,16 +436,16 @@ class MongoDBTaxationRepository(TaxationRepository):
                 "improvement_cost": record.capital_gains_income.improvement_cost.to_float()
             },
             "retirement_benefits": {
-                "gratuity_amount": record.retirement_benefits.gratuity_amount.to_float(),
-                "years_of_service": record.retirement_benefits.years_of_service,
-                "is_government_employee": record.retirement_benefits.is_government_employee,
-                "leave_encashment_amount": record.retirement_benefits.leave_encashment_amount.to_float(),
-                "leave_balance": record.retirement_benefits.leave_balance,
-                "pension_amount": record.retirement_benefits.pension_amount.to_float(),
-                "is_commuted_pension": record.retirement_benefits.is_commuted_pension,
-                "commutation_percentage": float(record.retirement_benefits.commutation_percentage),
-                "vrs_compensation": record.retirement_benefits.vrs_compensation.to_float(),
-                "other_retirement_benefits": record.retirement_benefits.other_retirement_benefits.to_float()
+                "gratuity_amount": record.retirement_benefits.gratuity.gratuity_amount.to_float() if record.retirement_benefits.gratuity else 0,
+                "years_of_service": int(record.retirement_benefits.gratuity.service_years) if record.retirement_benefits.gratuity else 0,
+                "is_government_employee": record.retirement_benefits.gratuity.is_govt_employee if record.retirement_benefits.gratuity else False,
+                "leave_encashment_amount": record.retirement_benefits.leave_encashment.leave_encashment_amount.to_float() if record.retirement_benefits.leave_encashment else 0,
+                "leave_balance": record.retirement_benefits.leave_encashment.leave_days_encashed if record.retirement_benefits.leave_encashment else 0,
+                "pension_amount": record.retirement_benefits.pension.total_pension.to_float() if record.retirement_benefits.pension else 0,
+                "is_commuted_pension": record.retirement_benefits.pension.is_govt_employee if record.retirement_benefits.pension else False,
+                "commutation_percentage": 0.0,  # Not available in new structure, default to 0
+                "vrs_compensation": record.retirement_benefits.vrs.vrs_amount.to_float() if record.retirement_benefits.vrs else 0,
+                "other_retirement_benefits": record.retirement_benefits.retrenchment_compensation.compensation_amount.to_float() if record.retirement_benefits.retrenchment_compensation else 0
             },
             "other_income": {
                 "bank_interest": record.other_income.bank_interest.to_float(),
@@ -525,138 +526,204 @@ class MongoDBTaxationRepository(TaxationRepository):
         salary_income = SalaryIncome(
             basic_salary=Money(document["salary_income"]["basic_salary"]),
             dearness_allowance=Money(document["salary_income"]["dearness_allowance"]),
+            hra_received=Money(document["salary_income"]["hra_received"]),
+            hra_city_type=document["salary_income"]["hra_city_type"],
+            actual_rent_paid=Money(document["salary_income"].get("actual_rent_paid", 0)),
             special_allowance=Money(document["salary_income"]["special_allowance"]),
-            conveyance_allowance=Money(document["salary_income"]["conveyance_allowance"]),
-            medical_allowance=Money(document["salary_income"]["medical_allowance"]),
+            other_allowances=Money(document["salary_income"]["other_allowances"]),
             bonus=Money(document["salary_income"]["bonus"]),
             commission=Money(document["salary_income"]["commission"]),
-            overtime=Money(document["salary_income"]["overtime"]),
+            medical_allowance=Money(document["salary_income"]["medical_allowance"]),
+            conveyance_allowance=Money(document["salary_income"]["conveyance_allowance"]),
+            overtime_allowance=Money(document["salary_income"]["overtime_allowance"]),
             arrears=Money(document["salary_income"]["arrears"]),
             gratuity=Money(document["salary_income"]["gratuity"]),
-            leave_encashment=Money(document["salary_income"]["leave_encashment"]),
-            other_allowances=Money(document["salary_income"]["other_allowances"]),
-            hra_received=Money(document["salary_income"]["hra_received"]),
-            hra_city_type=document["salary_income"]["hra_city_type"]
+            leave_encashment=Money(document["salary_income"]["leave_encashment"])
         )
         
-        # Convert perquisites
+        # Convert perquisites - create with new structure but handle legacy data
         perquisites = Perquisites(
-            rent_free_accommodation=Money(document["perquisites"]["rent_free_accommodation"]),
-            concessional_accommodation=Money(document["perquisites"]["concessional_accommodation"]),
-            car_perquisite=Money(document["perquisites"]["car_perquisite"]),
-            driver_perquisite=Money(document["perquisites"]["driver_perquisite"]),
-            fuel_perquisite=Money(document["perquisites"]["fuel_perquisite"]),
-            education_perquisite=Money(document["perquisites"]["education_perquisite"]),
-            domestic_servant_perquisite=Money(document["perquisites"]["domestic_servant_perquisite"]),
-            utility_perquisite=Money(document["perquisites"]["utility_perquisite"]),
-            loan_perquisite=Money(document["perquisites"]["loan_perquisite"]),
-            esop_perquisite=Money(document["perquisites"]["esop_perquisite"]),
-            club_membership_perquisite=Money(document["perquisites"]["club_membership_perquisite"]),
-            other_perquisites=Money(document["perquisites"]["other_perquisites"])
+            # Core perquisites
+            accommodation=None,  # Will be populated from legacy data if available
+            car=None,  # Will be populated from legacy data if available
+            
+            # Medical and travel perquisites
+            medical_reimbursement=None,
+            lta=None,
+            
+            # Financial perquisites
+            interest_free_loan=None,
+            esop=None,
+            
+            # Utilities and facilities
+            utilities=None,
+            free_education=None,
+            lunch_refreshment=None,
+            domestic_help=None,
+            
+            # Asset-related perquisites
+            movable_asset_usage=None,
+            movable_asset_transfer=None,
+            
+            # Miscellaneous perquisites
+            gift_voucher=None,
+            monetary_benefits=None,
+            club_expenses=None
         )
         
-        # Convert house property income
+        # Convert house property income - use new constructor signature
+        from app.domain.entities.taxation.house_property_income import PropertyType
+        
+        # Map property type string to enum
+        property_type_mapping = {
+            "Self-Occupied": PropertyType.SELF_OCCUPIED,
+            "Let-Out": PropertyType.LET_OUT,
+            "Deemed Let-Out": PropertyType.DEEMED_LET_OUT
+        }
+        property_type = property_type_mapping.get(
+            document["house_property_income"]["property_type"], 
+            PropertyType.SELF_OCCUPIED
+        )
+        
         house_property_income = HousePropertyIncome(
-            property_type=document["house_property_income"]["property_type"],
-            municipal_value=Money(document["house_property_income"]["municipal_value"]),
-            fair_rental_value=Money(document["house_property_income"]["fair_rental_value"]),
-            standard_rent=Money(document["house_property_income"]["standard_rent"]),
-            actual_rent=Money(document["house_property_income"]["actual_rent"]),
-            municipal_tax=Money(document["house_property_income"]["municipal_tax"]),
-            interest_on_loan=Money(document["house_property_income"]["interest_on_loan"]),
-            pre_construction_interest=Money(document["house_property_income"]["pre_construction_interest"]),
-            other_deductions=Money(document["house_property_income"]["other_deductions"])
+            property_type=property_type,
+            annual_rent_received=Money(document["house_property_income"].get("actual_rent", 0)),
+            municipal_taxes_paid=Money(document["house_property_income"].get("municipal_tax", 0)),
+            home_loan_interest=Money(document["house_property_income"].get("interest_on_loan", 0)),
+            pre_construction_interest=Money(document["house_property_income"].get("pre_construction_interest", 0)),
+            fair_rental_value=Money(document["house_property_income"].get("fair_rental_value", 0)),
+            standard_rent=Money(document["house_property_income"].get("standard_rent", 0))
         )
         
-        # Convert capital gains income
+        # Convert capital gains income - use new constructor signature
         capital_gains_income = CapitalGainsIncome(
-            asset_type=document["capital_gains_income"]["asset_type"],
-            purchase_date=date.fromisoformat(document["capital_gains_income"]["purchase_date"]),
-            sale_date=date.fromisoformat(document["capital_gains_income"]["sale_date"]),
-            purchase_price=Money(document["capital_gains_income"]["purchase_price"]),
-            sale_price=Money(document["capital_gains_income"]["sale_price"]),
-            transfer_expenses=Money(document["capital_gains_income"]["transfer_expenses"]),
-            improvement_cost=Money(document["capital_gains_income"]["improvement_cost"])
+            stcg_111a_equity_stt=Money(document["capital_gains_income"].get("stcg_111a_equity_stt", 0)),
+            stcg_other_assets=Money(document["capital_gains_income"].get("stcg_other_assets", 0)),
+            stcg_debt_mf=Money(document["capital_gains_income"].get("stcg_debt_mf", 0)),
+            ltcg_112a_equity_stt=Money(document["capital_gains_income"].get("ltcg_112a_equity_stt", 0)),
+            ltcg_other_assets=Money(document["capital_gains_income"].get("ltcg_other_assets", 0)),
+            ltcg_debt_mf=Money(document["capital_gains_income"].get("ltcg_debt_mf", 0))
         )
         
-        # Convert retirement benefits
+        # Convert retirement benefits - use new nested structure
+        from app.domain.entities.taxation.retirement_benefits import (
+            LeaveEncashment, Gratuity, VRS, Pension, RetrenchmentCompensation
+        )
+        
+        # Create nested objects from legacy data
+        leave_encashment = LeaveEncashment(
+            leave_encashment_amount=Money(document["retirement_benefits"].get("leave_encashment_amount", 0)),
+            leave_days_encashed=document["retirement_benefits"].get("leave_balance", 0),
+            is_govt_employee=document["retirement_benefits"].get("is_government_employee", False)
+        )
+        
+        gratuity = Gratuity(
+            gratuity_amount=Money(document["retirement_benefits"].get("gratuity_amount", 0)),
+            service_years=Decimal(str(document["retirement_benefits"].get("years_of_service", 0))),
+            is_govt_employee=document["retirement_benefits"].get("is_government_employee", False)
+        )
+        
+        vrs = VRS(
+            vrs_amount=Money(document["retirement_benefits"].get("vrs_compensation", 0))
+        )
+        
+        pension = Pension(
+            regular_pension=Money(document["retirement_benefits"].get("pension_amount", 0)),
+            commuted_pension=Money.zero(),  # Default to zero for legacy data
+            total_pension=Money(document["retirement_benefits"].get("pension_amount", 0)),
+            is_govt_employee=document["retirement_benefits"].get("is_government_employee", False)
+        )
+        
+        retrenchment_compensation = RetrenchmentCompensation(
+            retrenchment_amount=Money(document["retirement_benefits"].get("other_retirement_benefits", 0))
+        )
+        
         retirement_benefits = RetirementBenefits(
-            gratuity_amount=Money(document["retirement_benefits"]["gratuity_amount"]),
-            years_of_service=document["retirement_benefits"]["years_of_service"],
-            is_government_employee=document["retirement_benefits"]["is_government_employee"],
-            leave_encashment_amount=Money(document["retirement_benefits"]["leave_encashment_amount"]),
-            leave_balance=document["retirement_benefits"]["leave_balance"],
-            pension_amount=Money(document["retirement_benefits"]["pension_amount"]),
-            is_commuted_pension=document["retirement_benefits"]["is_commuted_pension"],
-            commutation_percentage=Decimal(str(document["retirement_benefits"]["commutation_percentage"])),
-            vrs_compensation=Money(document["retirement_benefits"]["vrs_compensation"]),
-            other_retirement_benefits=Money(document["retirement_benefits"]["other_retirement_benefits"])
+            leave_encashment=leave_encashment,
+            gratuity=gratuity,
+            vrs=vrs,
+            pension=pension,
+            retrenchment_compensation=retrenchment_compensation
         )
         
-        # Convert other income
+        # Convert other income - use new constructor signature
+        from app.domain.entities.taxation.other_income import InterestIncome
+        
+        # Create interest income from legacy fields
+        interest_income = InterestIncome(
+            savings_account_interest=Money(document["other_income"].get("bank_interest", 0)),
+            fixed_deposit_interest=Money(document["other_income"].get("fixed_deposit_interest", 0)),
+            recurring_deposit_interest=Money(document["other_income"].get("recurring_deposit_interest", 0)),
+            other_bank_interest=Money(document["other_income"].get("other_interest", 0)),
+            age=25  # Default age, will be overridden by actual age if available
+        )
+        
         other_income = OtherIncome(
-            bank_interest=Money(document["other_income"]["bank_interest"]),
-            fixed_deposit_interest=Money(document["other_income"]["fixed_deposit_interest"]),
-            recurring_deposit_interest=Money(document["other_income"]["recurring_deposit_interest"]),
-            post_office_interest=Money(document["other_income"]["post_office_interest"]),
-            other_interest=Money(document["other_income"]["other_interest"]),
-            equity_dividend=Money(document["other_income"]["equity_dividend"]),
-            mutual_fund_dividend=Money(document["other_income"]["mutual_fund_dividend"]),
-            other_dividend=Money(document["other_income"]["other_dividend"]),
-            house_property_rent=Money(document["other_income"]["house_property_rent"]),
-            commercial_property_rent=Money(document["other_income"]["commercial_property_rent"]),
-            other_rental=Money(document["other_income"]["other_rental"]),
-            business_income=Money(document["other_income"]["business_income"]),
-            professional_income=Money(document["other_income"]["professional_income"]),
-            short_term_capital_gains=Money(document["other_income"]["short_term_capital_gains"]),
-            long_term_capital_gains=Money(document["other_income"]["long_term_capital_gains"]),
-            lottery_winnings=Money(document["other_income"]["lottery_winnings"]),
-            horse_race_winnings=Money(document["other_income"]["horse_race_winnings"]),
-            crossword_puzzle_winnings=Money(document["other_income"]["crossword_puzzle_winnings"]),
-            card_game_winnings=Money(document["other_income"]["card_game_winnings"]),
-            other_speculative_income=Money(document["other_income"]["other_speculative_income"]),
-            agricultural_income=Money(document["other_income"]["agricultural_income"]),
-            share_of_profit_partnership=Money(document["other_income"]["share_of_profit_partnership"]),
-            interest_on_tax_free_bonds=Money(document["other_income"]["interest_on_tax_free_bonds"]),
-            other_exempt_income=Money(document["other_income"]["other_exempt_income"])
+            interest_income=interest_income,
+            dividend_income=Money(document["other_income"].get("equity_dividend", 0)),
+            gifts_received=Money.zero(),  # Not in legacy data
+            business_professional_income=Money(document["other_income"].get("business_income", 0)),
+            other_miscellaneous_income=Money(document["other_income"].get("other_speculative_income", 0))
         )
         
-        # Convert tax deductions
+        # Convert tax deductions - use new nested structure
+        from app.domain.entities.taxation.tax_deductions import (
+            DeductionSection80C, DeductionSection80D, DeductionSection80E, 
+            DeductionSection80G, DeductionSection80TTA_TTB, OtherDeductions
+        )
+        
+        # Create Section 80C from legacy data
+        section_80c = DeductionSection80C(
+            life_insurance_premium=Money(document["tax_deductions"].get("life_insurance_premium", 0)),
+            epf_contribution=Money(document["tax_deductions"].get("employee_provident_fund", 0)),
+            ppf_contribution=Money(document["tax_deductions"].get("public_provident_fund", 0)),
+            nsc_investment=Money(document["tax_deductions"].get("national_savings_certificate", 0)),
+            tax_saving_fd=Money(document["tax_deductions"].get("tax_saving_fixed_deposits", 0)),
+            elss_investment=Money(document["tax_deductions"].get("elss_investments", 0)),
+            home_loan_principal=Money(document["tax_deductions"].get("principal_repayment_home_loan", 0)),
+            tuition_fees=Money(document["tax_deductions"].get("tuition_fees", 0)),
+            sukanya_samriddhi=Money(document["tax_deductions"].get("sukanya_samriddhi", 0)),
+            other_80c_investments=Money(document["tax_deductions"].get("other_80c_deductions", 0))
+        )
+        
+        # Create Section 80D from legacy data
+        section_80d = DeductionSection80D(
+            self_family_premium=Money(document["tax_deductions"].get("health_insurance_self", 0)),
+            parent_premium=Money(document["tax_deductions"].get("health_insurance_parents", 0)),
+            preventive_health_checkup=Money(document["tax_deductions"].get("preventive_health_checkup", 0))
+        )
+        
+        # Create Section 80E from legacy data
+        section_80e = DeductionSection80E(
+            education_loan_interest=Money(document["tax_deductions"].get("education_loan_interest", 0))
+        )
+        
+        # Create Section 80G from legacy data
+        section_80g = DeductionSection80G(
+            other_charitable_donations=Money(document["tax_deductions"].get("donations_80g", 0))
+        )
+        
+        # Create Section 80TTA/TTB from legacy data
+        section_80tta_ttb = DeductionSection80TTA_TTB(
+            savings_interest=Money(document["tax_deductions"].get("savings_account_interest", 0)),
+            fd_interest=Money(document["tax_deductions"].get("senior_citizen_interest", 0))
+        )
+        
+        # Create other deductions from legacy data
+        other_deductions = OtherDeductions(
+            education_loan_interest=Money(document["tax_deductions"].get("education_loan_interest", 0)),
+            charitable_donations=Money(document["tax_deductions"].get("donations_80g", 0)),
+            savings_interest=Money(document["tax_deductions"].get("savings_account_interest", 0))
+        )
+        
+        # Create TaxDeductions with nested objects
         tax_deductions = TaxDeductions(
-            life_insurance_premium=Money(document["tax_deductions"]["life_insurance_premium"]),
-            elss_investments=Money(document["tax_deductions"]["elss_investments"]),
-            public_provident_fund=Money(document["tax_deductions"]["public_provident_fund"]),
-            employee_provident_fund=Money(document["tax_deductions"]["employee_provident_fund"]),
-            sukanya_samriddhi=Money(document["tax_deductions"]["sukanya_samriddhi"]),
-            national_savings_certificate=Money(document["tax_deductions"]["national_savings_certificate"]),
-            tax_saving_fixed_deposits=Money(document["tax_deductions"]["tax_saving_fixed_deposits"]),
-            principal_repayment_home_loan=Money(document["tax_deductions"]["principal_repayment_home_loan"]),
-            tuition_fees=Money(document["tax_deductions"]["tuition_fees"]),
-            other_80c_deductions=Money(document["tax_deductions"]["other_80c_deductions"]),
-            health_insurance_self=Money(document["tax_deductions"]["health_insurance_self"]),
-            health_insurance_parents=Money(document["tax_deductions"]["health_insurance_parents"]),
-            preventive_health_checkup=Money(document["tax_deductions"]["preventive_health_checkup"]),
-            education_loan_interest=Money(document["tax_deductions"]["education_loan_interest"]),
-            donations_80g=Money(document["tax_deductions"]["donations_80g"]),
-            savings_account_interest=Money(document["tax_deductions"]["savings_account_interest"]),
-            senior_citizen_interest=Money(document["tax_deductions"]["senior_citizen_interest"]),
-            disability_deduction=Money(document["tax_deductions"]["disability_deduction"]),
-            medical_treatment_deduction=Money(document["tax_deductions"]["medical_treatment_deduction"]),
-            scientific_research_donation=Money(document["tax_deductions"]["scientific_research_donation"]),
-            political_donation=Money(document["tax_deductions"]["political_donation"]),
-            infrastructure_deduction=Money(document["tax_deductions"]["infrastructure_deduction"]),
-            industrial_undertaking_deduction=Money(document["tax_deductions"]["industrial_undertaking_deduction"]),
-            special_category_state_deduction=Money(document["tax_deductions"]["special_category_state_deduction"]),
-            hotel_deduction=Money(document["tax_deductions"]["hotel_deduction"]),
-            north_eastern_state_deduction=Money(document["tax_deductions"]["north_eastern_state_deduction"]),
-            employment_deduction=Money(document["tax_deductions"]["employment_deduction"]),
-            employment_generation_deduction=Money(document["tax_deductions"]["employment_generation_deduction"]),
-            offshore_banking_deduction=Money(document["tax_deductions"]["offshore_banking_deduction"]),
-            co_operative_society_deduction=Money(document["tax_deductions"]["co_operative_society_deduction"]),
-            royalty_deduction=Money(document["tax_deductions"]["royalty_deduction"]),
-            patent_deduction=Money(document["tax_deductions"]["patent_deduction"]),
-            interest_on_savings_deduction=Money(document["tax_deductions"]["interest_on_savings_deduction"]),
-            disability_deduction_amount=Money(document["tax_deductions"]["disability_deduction_amount"])
+            section_80c=section_80c,
+            section_80d=section_80d,
+            section_80e=section_80e,
+            section_80g=section_80g,
+            section_80tta_ttb=section_80tta_ttb,
+            other_deductions=other_deductions
         )
         
         # Create taxation record

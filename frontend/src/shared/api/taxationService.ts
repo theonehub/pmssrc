@@ -310,7 +310,8 @@ export const calculateTax = async (
     console.log('Sending comprehensive tax calculation request:', JSON.stringify(comprehensiveInput, null, 2));
     
     // Call the backend comprehensive tax calculation endpoint
-    const response = await apiClient().post('/api/v2/taxation/calculate-comprehensive', comprehensiveInput);
+    //const response = await apiClient().post('/api/v2/taxation/calculate-comprehensive', comprehensiveInput);
+    const response = await apiClient().post(`/api/v2/taxation/records/employee/${empId}/calculate-comprehensive`, comprehensiveInput);
     
     // Transform backend response to expected frontend format
     const backendResult = response.data;

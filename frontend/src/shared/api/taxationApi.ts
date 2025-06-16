@@ -150,7 +150,8 @@ class TaxationAPI {
   // =============================================================================
 
   /**
-   * Calculate comprehensive tax including all income sources and components
+   * Calculate comprehensive tax including all income sources and components (generic calculation)
+   * Use this for tax calculations without database operations
    */
   async calculateComprehensiveTax(
     input: Types.ComprehensiveTaxInputDTO
@@ -159,6 +160,22 @@ class TaxationAPI {
       return await this.baseApi.post('/api/v2/taxation/calculate-comprehensive', input);
     } catch (error) {
       console.error('Error calculating comprehensive tax:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Calculate comprehensive tax for a specific employee and update their taxation record in database
+   * Use this for employee-specific calculations with database operations
+   */
+  async calculateComprehensiveTaxForEmployee(
+    employeeId: string,
+    input: Types.ComprehensiveTaxInputDTO
+  ): Promise<Types.PeriodicTaxCalculationResponseDTO> {
+    try {
+      return await this.baseApi.post(`/api/v2/taxation/records/employee/${employeeId}/calculate-comprehensive`, input);
+    } catch (error) {
+      console.error('Error calculating comprehensive tax for employee:', error);
       throw error;
     }
   }

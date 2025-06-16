@@ -92,6 +92,38 @@ async def calculate_comprehensive_tax(
         )
 
 
+@router.post("/records/employee/{employee_id}/calculate-comprehensive",
+             response_model=TaxCalculationResult,
+             status_code=status.HTTP_200_OK,
+             summary="Calculate and update comprehensive tax for employee",
+             description="Calculate comprehensive tax for a specific employee and update their taxation record in database")
+async def calculate_comprehensive_tax_for_employee(
+    employee_id: str,
+    request: ComprehensiveTaxInputDTO,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_comprehensive_taxation_controller)
+) -> TaxCalculationResult:
+    """Calculate comprehensive tax for a specific employee and update their record."""
+    
+    try:
+        # Add employee_id to the request context
+        response = await controller.calculate_comprehensive_tax_for_employee(
+            employee_id, request, current_user.hostname
+        )
+        return response
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to calculate comprehensive tax for employee {employee_id}: {str(e)}"
+        )
+
+
 # =============================================================================
 # INDIVIDUAL INCOME COMPONENT CALCULATIONS
 # =============================================================================

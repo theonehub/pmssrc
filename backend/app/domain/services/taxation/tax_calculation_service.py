@@ -212,38 +212,54 @@ class TaxCalculationService:
         )
 
     async def calculate_and_update_taxation_record(self, 
-                                                 taxation_record, 
+                                                 input_data, 
                                                  organization_id: str) -> TaxCalculationResult:
         """
-        Calculate tax for a taxation record and update it with results in the database.
+        Calculate tax for input data and update the corresponding taxation record in the database.
+        
+        This method can accept either:
+        1. TaxationRecord - will calculate and update the record directly
+        2. TaxCalculationInput - will calculate using the input and optionally update if repository is available
         
         Args:
-            taxation_record: TaxationRecord to calculate and update
+            input_data: Either TaxationRecord or TaxCalculationInput
             organization_id: Organization ID for database operations
             
         Returns:
             TaxCalculationResult: Tax calculation result
             
         Raises:
-            ValueError: If taxation repository is not configured
+            ValueError: If taxation repository is not configured when needed
             RuntimeError: If database update fails
         """
-        if not self.taxation_repository:
-            raise ValueError("Taxation repository not configured for this service")
         
-        # Calculate tax using the record's built-in method
-        calculation_result = taxation_record.calculate_tax(self)
+        # Check if input is a TaxationRecord
+        from app.domain.entities.taxation.taxation_record import TaxationRecord
         
-        try:
-            # Update the record in the database
-            await self.taxation_repository.update_taxation_record(taxation_record, organization_id)
+        if isinstance(input_data, TaxationRecord):
+            # Handle TaxationRecord input (new approach)
+            taxation_record = input_data
             
-            return calculation_result
+            if not self.taxation_repository:
+                raise ValueError("Taxation repository not configured for this service")
             
-        except Exception as e:
-            # Reset calculation state on update failure
-            taxation_record._invalidate_calculation()
-            raise RuntimeError(f"Failed to update taxation record in database: {e}")
+            # Calculate tax using the record's built-in method
+            calculation_result = taxation_record.calculate_tax(self)
+            
+            try:
+                # Update the record in the database
+                await self.taxation_repository.save(taxation_record, organization_id)
+                
+                return calculation_result
+                
+            except Exception as e:
+                # Reset calculation state on update failure
+                taxation_record._invalidate_calculation()
+                raise RuntimeError(f"Failed to update taxation record in database: {e}")
+        
+        else:
+            # Handle TaxCalculationInput (legacy approach)
+            return self.calculate_tax(input_data)
     
     def _calculate_total_income(self, input_data: TaxCalculationInput) -> Money:
         """Calculate total income from all sources."""

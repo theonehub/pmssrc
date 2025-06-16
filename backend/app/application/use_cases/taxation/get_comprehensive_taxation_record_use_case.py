@@ -74,19 +74,22 @@ class GetComprehensiveTaxationRecordUseCase:
             raise ValueError("Organization ID is required")
         
         try:
+            # Default tax_year to current tax year if None
+            effective_tax_year = tax_year or self._get_current_tax_year()
+            
             # Get taxation record from repository
             taxation_record = await self._taxation_repository.get_taxation_record(
                 employee_id=employee_id,
-                tax_year=tax_year,
+                tax_year=effective_tax_year,
                 organisation_id=organization_id
             )
             
             if taxation_record:
                 # Convert existing domain entity to DTO
-                return await self._convert_to_comprehensive_dto(taxation_record, employee_id, organization_id, tax_year or self._get_current_tax_year())
+                return await self._convert_to_comprehensive_dto(taxation_record, employee_id, organization_id, effective_tax_year)
             else:
                 # Create default record with computed values
-                return await self._create_default_comprehensive_record(employee_id, organization_id, tax_year or self._get_current_tax_year())
+                return await self._create_default_comprehensive_record(employee_id, organization_id, effective_tax_year)
                 
         except Exception as e:
             logger.error(f"Error getting comprehensive taxation record for employee {employee_id}: {str(e)}")

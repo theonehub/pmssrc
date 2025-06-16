@@ -158,11 +158,11 @@ class TaxationRecord:
         
         # Retirement benefits (if any)
         if self.retirement_benefits:
-            total_income = total_income.add(self.retirement_benefits.calculate_taxable_retirement_benefits())
+            total_income = total_income.add(self.retirement_benefits.calculate_total_retirement_income(self.regime))
         
         # Other income (if any)
         if self.other_income:
-            total_income = total_income.add(self.other_income.calculate_taxable_other_income(self.regime))
+            total_income = total_income.add(self.other_income.calculate_total_other_income(self.regime))
         
         return total_income
     
@@ -180,15 +180,15 @@ class TaxationRecord:
         
         # Capital gains exemptions
         if self.capital_gains_income:
-            total_exemptions = total_exemptions.add(self.capital_gains_income.calculate_ltcg_exemptions())
+            total_exemptions = total_exemptions.add(self.capital_gains_income.calculate_total_capital_gains_tax())
         
         # Retirement benefits exemptions
         if self.retirement_benefits:
-            total_exemptions = total_exemptions.add(self.retirement_benefits.calculate_total_exemptions())
+            total_exemptions = total_exemptions.add(self.retirement_benefits.calculate_total_retirement_income(self.regime))
         
         # Other income exemptions (interest exemptions)
         if self.other_income:
-            total_exemptions = total_exemptions.add(self.other_income.calculate_interest_exemptions(self.regime))
+            total_exemptions = total_exemptions.add(self.other_income.calculate_total_other_income(self.regime))
         
         return total_exemptions
     
@@ -240,14 +240,14 @@ class TaxationRecord:
         
         if self.retirement_benefits:
             breakdown["retirement_benefits"] = {
-                "taxable_amount": self.retirement_benefits.calculate_taxable_retirement_benefits().to_float(),
+                "taxable_amount": self.retirement_benefits.calculate_total_retirement_income(self.regime).to_float(),
                 "exemptions": self.retirement_benefits.calculate_total_exemptions().to_float(),
                 "breakdown": self.retirement_benefits.get_retirement_benefits_breakdown()
             }
         
         if self.other_income:
             breakdown["other_income"] = {
-                "taxable_amount": self.other_income.calculate_taxable_other_income(self.regime).to_float(),
+                "taxable_amount": self.other_income.calculate_total_other_income(self.regime).to_float(),
                 "exemptions": self.other_income.calculate_interest_exemptions(self.regime).to_float(),
                 "breakdown": self.other_income.get_other_income_breakdown(self.regime)
             }
@@ -375,13 +375,13 @@ class TaxationRecord:
         
         old_benefits = Money.zero()
         if self.retirement_benefits:
-            old_benefits = self.retirement_benefits.calculate_taxable_retirement_benefits()
+            old_benefits = self.retirement_benefits.calculate_total_retirement_income(self.regime)
         
         self.retirement_benefits = new_retirement_benefits
         
         new_benefits = Money.zero()
         if new_retirement_benefits:
-            new_benefits = new_retirement_benefits.calculate_taxable_retirement_benefits()
+            new_benefits = new_retirement_benefits.calculate_total_retirement_income(self.regime)
         
         # Invalidate calculation
         self._invalidate_calculation()
@@ -409,13 +409,13 @@ class TaxationRecord:
         
         old_income = Money.zero()
         if self.other_income:
-            old_income = self.other_income.calculate_taxable_other_income(self.regime)
+            old_income = self.other_income.calculate_total_other_income(self.regime)
         
         self.other_income = new_other_income
         
         new_income = Money.zero()
         if new_other_income:
-            new_income = new_other_income.calculate_taxable_other_income(self.regime)
+            new_income = new_other_income.calculate_total_other_income(self.regime)
         
         # Invalidate calculation
         self._invalidate_calculation()

@@ -244,7 +244,9 @@ class DependencyContainer:
             )
             
             # Tax calculation service
-            self._services['tax_calculation'] = TaxCalculationServiceImpl()
+            self._services['tax_calculation'] = TaxCalculationServiceImpl(
+                taxation_repository=self._repositories['taxation']
+            )
             
             # Regime comparison service
             self._services['regime_comparison'] = RegimeComparisonServiceImpl()
@@ -826,6 +828,8 @@ class DependencyContainer:
                 reopen_handler=reopen_handler,
                 delete_handler=delete_handler,
                 enhanced_tax_service=self._services['tax_calculation'],
+                taxation_repository=self._repositories['taxation'],
+                user_repository=self._repositories['user'],
                 get_employees_for_selection_use_case=get_employees_for_selection_use_case,
                 get_taxation_record_by_employee_use_case=get_taxation_record_by_employee_use_case,
                 get_comprehensive_taxation_record_use_case=get_comprehensive_taxation_record_use_case

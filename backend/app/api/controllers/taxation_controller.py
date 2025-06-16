@@ -76,6 +76,9 @@ from app.application.commands.taxation_commands import (
 # Import domain entities and value objects
 from app.domain.value_objects.money import Money
 from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
+from app.domain.value_objects.employee_id import EmployeeId
+from app.domain.value_objects.tax_year import TaxYear
+from app.domain.entities.taxation.taxation_record import TaxationRecord
 from app.domain.entities.taxation.salary_income import SalaryIncome
 from app.domain.entities.periodic_salary_income import PeriodicSalaryIncome, PeriodicSalaryData
 from app.domain.entities.taxation.deductions import TaxDeductions
@@ -141,6 +144,10 @@ class UnifiedTaxationController:
                  # Services for comprehensive calculations
                  enhanced_tax_service: TaxCalculationService,
                  
+                 # Repository for direct database access
+                 taxation_repository,
+                 user_repository,
+                 
                  # Use cases
                  get_employees_for_selection_use_case: GetEmployeesForSelectionUseCase,
                  get_taxation_record_by_employee_use_case: GetTaxationRecordByEmployeeUseCase,
@@ -158,6 +165,10 @@ class UnifiedTaxationController:
         
         # Enhanced calculation services
         self.enhanced_tax_service = enhanced_tax_service
+        
+        # Repository for direct database access
+        self.taxation_repository = taxation_repository
+        self.user_repository = user_repository
         
         # Use cases
         self.get_employees_for_selection_use_case = get_employees_for_selection_use_case
@@ -536,30 +547,34 @@ class UnifiedTaxationController:
         """
         Calculate comprehensive tax including all income sources.
         
+        This method performs generic tax calculation without database operations.
+        For employee-specific calculations with database operations, use 
+        calculate_comprehensive_tax_for_employee() instead.
+        
         Args:
-            request: Comprehensive tax input
+            request: Comprehensive tax input DTO
             organization_id: Organization ID for multi-tenancy
             
         Returns:
-            Complete tax calculation response
+            TaxCalculationResult: Complete tax calculation result
         """
         try:
-            logger.info(f"Starting comprehensive tax calculation for org {organization_id}")
+            logger.info(f"Starting comprehensive tax calculation for year {request.tax_year}")
             
-            # Convert DTO to domain input
-            tax_input = self._convert_dto_to_domain_input(request)
+            # Convert DTO to domain input for calculation
+            domain_input = self._convert_dto_to_domain_input(request)
             
-            # Calculate comprehensive tax
-            result = self.enhanced_tax_service.calculate_tax(tax_input)
+            # Calculate tax using the enhanced tax service (without database operations)
+            logger.info(f"Calculating tax for regime {request.regime_type}")
+            calculation_result = await self.enhanced_tax_service.calculate_and_update_taxation_record(
+                domain_input, organization_id
+            )
             
-            # Convert result to response DTO
-            #response = self._convert_result_to_dto(result, request)
-            
-            logger.info(f"Comprehensive tax calculation completed for org {organization_id}")
-            return result
+            logger.info(f"Comprehensive tax calculation completed")
+            return calculation_result
             
         except Exception as e:
-            logger.error(f"Error in comprehensive tax calculation for org {organization_id}: {str(e)}")
+            logger.error(f"Error in comprehensive tax calculation: {str(e)}")
             raise
     
     async def calculate_enhanced_tax(self,
@@ -1541,3 +1556,173 @@ class UnifiedTaxationController:
                 ])
         
         return result
+    
+    def _update_taxation_record_from_dto(self, taxation_record: TaxationRecord, request: ComprehensiveTaxInputDTO) -> TaxationRecord:
+        """
+        Update a TaxationRecord entity with data from ComprehensiveTaxInputDTO.
+        
+        Args:
+            taxation_record: Existing TaxationRecord to update
+            request: ComprehensiveTaxInputDTO with new data
+            
+        Returns:
+            TaxationRecord: Updated taxation record
+        """
+        # Update basic information
+        taxation_record.age = request.age
+        taxation_record.regime = TaxRegime(TaxRegimeType.OLD if request.regime_type.lower() == "old" else TaxRegimeType.NEW)
+        
+        # Update salary income if provided
+        if request.salary_income:
+            salary_income = self._convert_salary_dto_to_entity(request.salary_income)
+            taxation_record.update_salary(salary_income)
+        
+        # Update deductions if provided
+        if request.deductions:
+            deductions = self._convert_deductions_dto_to_entity(request.deductions)
+            taxation_record.update_deductions(deductions)
+        
+        # Update perquisites if provided
+        if request.perquisites:
+            perquisites = self._convert_perquisites_dto_to_entity(request.perquisites)
+            taxation_record.update_perquisites(perquisites)
+        else:
+            taxation_record.update_perquisites(None)
+        
+        # Update house property income if provided
+        if request.house_property_income:
+            house_property = self._convert_house_property_dto_to_entity(request.house_property_income)
+            taxation_record.update_house_property_income(house_property)
+        else:
+            taxation_record.update_house_property_income(None)
+        
+        # Update capital gains income if provided
+        if request.capital_gains_income:
+            capital_gains = self._convert_capital_gains_dto_to_entity(request.capital_gains_income)
+            taxation_record.update_capital_gains_income(capital_gains)
+        else:
+            taxation_record.update_capital_gains_income(None)
+        
+        # Update retirement benefits if provided
+        if request.retirement_benefits:
+            retirement_benefits = self._convert_retirement_benefits_dto_to_entity(request.retirement_benefits)
+            taxation_record.update_retirement_benefits(retirement_benefits)
+        else:
+            taxation_record.update_retirement_benefits(None)
+        
+        # Update other income if provided
+        if request.other_income:
+            other_income = self._convert_other_income_dto_to_entity(request.other_income)
+            taxation_record.update_other_income(other_income)
+        else:
+            taxation_record.update_other_income(None)
+        
+        # Update monthly payroll if provided
+        if request.monthly_payroll:
+            monthly_payroll = self._convert_monthly_payroll_dto_to_entity(request.monthly_payroll)
+            taxation_record.update_monthly_payroll(monthly_payroll)
+        else:
+            taxation_record.update_monthly_payroll(None)
+        
+        return taxation_record
+
+    async def calculate_comprehensive_tax_for_employee(self,
+                                                     employee_id: str,
+                                                     request: ComprehensiveTaxInputDTO,
+                                                     organization_id: str) -> TaxCalculationResult:
+        """
+        Calculate comprehensive tax for a specific employee and update their taxation record.
+        
+        This method:
+        1. Gets the taxation record for employee and tax_year from database
+        2. Updates the record with data from ComprehensiveTaxInputDTO
+        3. Computes tax using the enhanced tax service
+        4. Updates the record with computed tax results
+        5. Saves the updated record back to database
+        6. Returns TaxCalculationResult
+        
+        Args:
+            employee_id: Employee ID for the record
+            request: ComprehensiveTaxInputDTO containing tax data
+            organization_id: Organization ID for database operations
+            
+        Returns:
+            TaxCalculationResult: Tax calculation result with database update
+            
+        Raises:
+            ValueError: If employee_id or tax_year is invalid
+            RuntimeError: If database operations fail
+        """
+        
+        logger.info(f"Calculating comprehensive tax for employee {employee_id}, tax_year: {request.tax_year}")
+        
+        try:
+            # Step 1: Get existing taxation record from database
+            taxation_record = await self.taxation_repository.get_taxation_record(
+                employee_id=employee_id,
+                tax_year=request.tax_year,
+                organisation_id=organization_id
+            )
+            
+            # If no record exists, create a new one
+            if not taxation_record:
+                logger.info(f"No existing record found for employee {employee_id}, creating new record")
+                taxation_record = await self._create_new_taxation_record(
+                    employee_id, request, organization_id
+                )
+            
+            # Step 2: Update the taxation record with DTO data
+            updated_record = self._update_taxation_record_from_dto(taxation_record, request)
+            
+            # Step 3: Calculate tax and update the record
+            calculation_result = await self.enhanced_tax_service.calculate_and_update_taxation_record(
+                updated_record, organization_id
+            )
+            
+            logger.info(f"Successfully calculated and updated tax for employee {employee_id}")
+            return calculation_result
+            
+        except Exception as e:
+            logger.error(f"Error calculating comprehensive tax for employee {employee_id}: {e}")
+            raise RuntimeError(f"Failed to calculate comprehensive tax: {str(e)}")
+    
+    async def _create_new_taxation_record(self,
+                                        employee_id: str,
+                                        request: ComprehensiveTaxInputDTO,
+                                        organization_id: str) -> TaxationRecord:
+        """Create a new taxation record for the employee."""
+        
+        try:
+            # Get user information for additional details
+            user = await self.user_repository.get_by_id(EmployeeId(employee_id), organization_id)
+            if not user:
+                raise ValueError(f"Employee {employee_id} not found")
+            
+            # Create default salary income if not provided
+            if request.salary_income:
+                salary_income = self._convert_salary_dto_to_entity(request.salary_income)
+            else:
+                salary_income = self._create_default_salary_income()
+            
+            # Create default deductions if not provided
+            if request.deductions:
+                deductions = self._convert_deductions_dto_to_entity(request.deductions)
+            else:
+                deductions = self._create_default_deductions()
+            
+            # Create the taxation record with all required parameters
+            taxation_record = TaxationRecord(
+                employee_id=EmployeeId(employee_id),
+                tax_year=TaxYear.from_string(request.tax_year),
+                salary_income=salary_income,
+                deductions=deductions,
+                regime=TaxRegime.from_string(request.regime_type),
+                age=request.age,
+                organization_id=organization_id
+            )
+            
+            return taxation_record
+            
+        except Exception as e:
+            logger.error(f"Error creating new taxation record for employee {employee_id}: {e}")
+            raise ValueError(f"Failed to create taxation record: {str(e)}")

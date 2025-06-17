@@ -100,7 +100,7 @@ class GetEmployeesForSelectionUseCase:
     async def _enrich_employee_with_tax_info(
         self,
         user_summary,
-        tax_year: Optional[str],
+        tax_year: str,
         organization_id: str
     ) -> EmployeeSelectionDTO:
         """
@@ -123,40 +123,62 @@ class GetEmployeesForSelectionUseCase:
             department=user_summary.department,
             role=user_summary.role,
             status=user_summary.status,
-            joining_date=None,  # UserSummaryDTO doesn't have joining_date, will need to get from entity if needed
+            joining_date=user_summary.date_of_joining,  # Now available in UserSummaryDTO
             current_salary=None  # UserSummaryDTO doesn't have salary info
         )
         
         # Try to get tax record information
         try:
-            # Get the most recent tax record or for specific year
-            if tax_year:
-                # Convert tax year string (e.g., "2023-24") to financial year integer (e.g., 2023)
-                financial_year = int(tax_year.split('-')[0])
-                tax_record = await self._taxation_repository.get_taxation_record(
-                    user_summary.employee_id, 
-                    financial_year
-                )
-            else:
-                # Get most recent records and take the latest one
-                records = await self._taxation_repository.get_taxation_records(
-                    user_summary.employee_id
-                )
-                tax_record = records[0] if records else None
+            # Get the tax record for the specific year
+            tax_record = await self._taxation_repository.get_taxation_record(
+                user_summary.employee_id, 
+                tax_year, 
+                organization_id
+            )
+            
             
             if tax_record:
                 employee_dto.has_tax_record = True
-                employee_dto.tax_year = f"{tax_record.financial_year}-{str(tax_record.financial_year + 1)[2:]}"  # Convert back to "2023-24" format
+                employee_dto.tax_year = str(tax_record.tax_year)  # Convert TaxYear value object to string
                 employee_dto.filing_status = getattr(tax_record, 'filing_status', None)
-                employee_dto.regime = getattr(tax_record, 'regime', None)
+                employee_dto.regime = str(tax_record.regime) if hasattr(tax_record, 'regime') and tax_record.regime else None  # Convert TaxRegime value object to string
                 employee_dto.last_updated = tax_record.updated_at.isoformat() if hasattr(tax_record, 'updated_at') and tax_record.updated_at else None
                 
-                # Calculate total tax if tax calculation is available
-                if hasattr(tax_record, 'tax_calculation') and tax_record.tax_calculation:
-                    employee_dto.total_tax = tax_record.tax_calculation.get('total_tax_liability', 0)
-                elif hasattr(tax_record, 'total_tax_liability'):
-                    employee_dto.total_tax = tax_record.total_tax_liability
+                # Extract total tax liability from calculation result
+                total_tax = None
                 
+                if hasattr(tax_record, 'calculation_result') and tax_record.calculation_result:
+                    calc_result = tax_record.calculation_result
+                    
+                    # Handle TaxCalculationResult object
+                    if hasattr(calc_result, 'tax_liability'):
+                        if hasattr(calc_result.tax_liability, 'to_float'):
+                            total_tax = calc_result.tax_liability.to_float()
+                        else:
+                            total_tax = float(calc_result.tax_liability)
+                    elif hasattr(calc_result, 'total_tax_liability'):
+                        if hasattr(calc_result.total_tax_liability, 'to_float'):
+                            total_tax = calc_result.total_tax_liability.to_float()
+                        else:
+                            total_tax = float(calc_result.total_tax_liability)
+                    
+                    # Fallback: Handle as dictionary (in case deserialization didn't work)
+                    elif isinstance(calc_result, dict):
+                        total_tax = calc_result.get('tax_liability') or calc_result.get('total_tax_liability')
+                        
+                        # Try tax_breakdown if direct fields not available
+                        if not total_tax and 'tax_breakdown' in calc_result:
+                            breakdown = calc_result['tax_breakdown']
+                            if isinstance(breakdown, dict):
+                                if 'tax_calculation' in breakdown:
+                                    total_tax = breakdown['tax_calculation'].get('total_tax_liability')
+                                elif 'total_tax_liability' in breakdown:
+                                    total_tax = breakdown['total_tax_liability']
+                
+                # Set the total tax if found
+                if total_tax is not None:
+                    employee_dto.total_tax = float(total_tax)
+            
         except Exception:
             # If tax record not found or error occurs, leave defaults
             pass

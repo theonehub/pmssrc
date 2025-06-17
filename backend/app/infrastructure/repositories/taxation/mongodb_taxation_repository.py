@@ -102,12 +102,11 @@ class MongoDBTaxationRepository(TaxationRepository):
     async def get_taxation_record(self, 
                                 employee_id: str,
                                 tax_year: str,
-                                organisation_id: str = None) -> Optional[TaxationRecord]:
+                                organisation_id: str) -> Optional[TaxationRecord]:
         """
         Get a taxation record.
         
-        Args:
-            employee_id: Employee ID
+        Args: employee_id: Employee ID
             tax_year: Tax year (e.g., "2025-26")
             organisation_id: Organisation ID for database selection
             
@@ -126,17 +125,15 @@ class MongoDBTaxationRepository(TaxationRepository):
     
     async def get_taxation_records(self,
                                  employee_id: str,
-                                 start_year: Optional[str] = None,
-                                 end_year: Optional[str] = None,
-                                 organisation_id: str = None) -> List[TaxationRecord]:
+                                 tax_year: str,
+                                 organisation_id: str) -> List[TaxationRecord]:
         """
         Get taxation records for an employee.
         
         Args:
             employee_id: Employee ID
-            start_year: Start tax year (optional, e.g., "2024-25")
-            end_year: End tax year (optional, e.g., "2025-26")
-            organisation_id: Organisation ID for database selection
+            tax_year: Tax year
+            organization_id: Organization ID for database selection
             
         Returns:
             List[TaxationRecord]: List of taxation records
@@ -144,12 +141,9 @@ class MongoDBTaxationRepository(TaxationRepository):
         collection = await self._get_collection(organisation_id)
         query = {"employee_id": employee_id}
         
-        if start_year and end_year:
-            query["tax_year"] = {"$gte": start_year, "$lte": end_year}
-        elif start_year:
-            query["tax_year"] = {"$gte": start_year}
-        elif end_year:
-            query["tax_year"] = {"$lte": end_year}
+        # Add tax_year filter if provided
+        if tax_year:
+            query["tax_year"] = tax_year
         
         cursor = collection.find(query)
         documents = await cursor.to_list(length=None)
@@ -159,7 +153,7 @@ class MongoDBTaxationRepository(TaxationRepository):
     async def get_taxation_records_by_regime(self,
                                            regime: TaxRegimeType,
                                            tax_year: str,
-                                           organisation_id: str = None) -> List[TaxationRecord]:
+                                           organisation_id: str) -> List[TaxationRecord]:
         """
         Get taxation records by regime.
         
@@ -179,33 +173,11 @@ class MongoDBTaxationRepository(TaxationRepository):
         
         documents = await cursor.to_list(length=None)
         return [self._convert_to_entity(doc) for doc in documents]
-    
-    async def get_taxation_records_by_organisation(self,
-                                                 organisation_id: str,
-                                                 tax_year: str) -> List[TaxationRecord]:
-        """
-        Get taxation records by organisation.
-        
-        Args:
-            organisation_id: Organisation ID
-            tax_year: Tax year (e.g., "2025-26")
-            
-        Returns:
-            List[TaxationRecord]: List of taxation records
-        """
-        collection = await self._get_collection(organisation_id)
-        cursor = collection.find({
-            "organisation_id": organisation_id,
-            "tax_year": tax_year
-        })
-        
-        documents = await cursor.to_list(length=None)
-        return [self._convert_to_entity(doc) for doc in documents]
-    
+
     async def delete_taxation_record(self,
                                    employee_id: str,
                                    tax_year: str,
-                                   organisation_id: str = None) -> None:
+                                   organisation_id: str) -> None:
         """
         Delete a taxation record.
         
@@ -220,14 +192,14 @@ class MongoDBTaxationRepository(TaxationRepository):
             "tax_year": tax_year
         })
     
-    async def update_taxation_record(self, record: TaxationRecord, organization_id: str) -> None:
+    async def update_taxation_record(self, record: TaxationRecord, organisation_id: str) -> None:
         """
         Update a taxation record.
         
         Args:
             record: Taxation record to update
         """
-        collection = await self._get_collection(organization_id)
+        collection = await self._get_collection(organisation_id)
         document = self._convert_to_document(record)
         await collection.replace_one(
             {
@@ -240,7 +212,7 @@ class MongoDBTaxationRepository(TaxationRepository):
     async def get_taxation_records_by_date_range(self,
                                                start_date: date,
                                                end_date: date,
-                                               organisation_id: str = None) -> List[TaxationRecord]:
+                                               organization_id: str) -> List[TaxationRecord]:
         """
         Get taxation records by date range.
         
@@ -296,7 +268,7 @@ class MongoDBTaxationRepository(TaxationRepository):
                                                  min_income: float,
                                                  max_income: float,
                                                  tax_year: str,
-                                                 organisation_id: str = None) -> List[TaxationRecord]:
+                                                 organisation_id: str) -> List[TaxationRecord]:
         """
         Get taxation records by income range.
         
@@ -325,7 +297,7 @@ class MongoDBTaxationRepository(TaxationRepository):
                                                     min_deduction: float,
                                                     max_deduction: float,
                                                     tax_year: str,
-                                                    organisation_id: str = None) -> List[TaxationRecord]:
+                                                    organisation_id: str) -> List[TaxationRecord]:
         """
         Get taxation records by deduction range.
         
@@ -730,10 +702,64 @@ class MongoDBTaxationRepository(TaxationRepository):
         if not monthly_payroll:
             return None
         
+        from app.domain.entities.taxation.payout import PayoutBase, PayoutFrequency, PayoutStatus
+        
         return {
-            "has_monthly_payroll": True,
-            "annual_salary_with_lwp": monthly_payroll.calculate_annual_salary_with_lwp().to_float(),
-            "total_lwp_impact": monthly_payroll.calculate_total_lwp_impact().to_float()
+            "employee_id": monthly_payroll.employee_id,
+            "pay_period_start": monthly_payroll.pay_period_start.isoformat(),
+            "pay_period_end": monthly_payroll.pay_period_end.isoformat(),
+            "payout_date": monthly_payroll.payout_date.isoformat(),
+            "frequency": monthly_payroll.frequency.value,
+            
+            # Salary components
+            "basic_salary": monthly_payroll.basic_salary,
+            "da": monthly_payroll.da,
+            "hra": monthly_payroll.hra,
+            "special_allowance": monthly_payroll.special_allowance,
+            "transport_allowance": monthly_payroll.transport_allowance,
+            "medical_allowance": monthly_payroll.medical_allowance,
+            "bonus": monthly_payroll.bonus,
+            "commission": monthly_payroll.commission,
+            "other_allowances": monthly_payroll.other_allowances,
+            
+            # Deductions
+            "epf_employee": monthly_payroll.epf_employee,
+            "epf_employer": monthly_payroll.epf_employer,
+            "esi_employee": monthly_payroll.esi_employee,
+            "esi_employer": monthly_payroll.esi_employer,
+            "professional_tax": monthly_payroll.professional_tax,
+            "tds": monthly_payroll.tds,
+            "advance_deduction": monthly_payroll.advance_deduction,
+            "loan_deduction": monthly_payroll.loan_deduction,
+            "other_deductions": monthly_payroll.other_deductions,
+            
+            # Calculated totals
+            "gross_salary": monthly_payroll.gross_salary,
+            "total_deductions": monthly_payroll.total_deductions,
+            "net_salary": monthly_payroll.net_salary,
+            
+            # Annual projections
+            "annual_gross_salary": monthly_payroll.annual_gross_salary,
+            "annual_tax_liability": monthly_payroll.annual_tax_liability,
+            "monthly_tds": monthly_payroll.monthly_tds,
+            
+            # Tax details
+            "tax_regime": monthly_payroll.tax_regime,
+            "tax_exemptions": monthly_payroll.tax_exemptions,
+            "standard_deduction": monthly_payroll.standard_deduction,
+            "section_80c_claimed": monthly_payroll.section_80c_claimed,
+            
+            # Reimbursements
+            "reimbursements": monthly_payroll.reimbursements,
+            
+            # Working days and status
+            "total_days_in_month": monthly_payroll.total_days_in_month,
+            "working_days_in_period": monthly_payroll.working_days_in_period,
+            "lwp_days": monthly_payroll.lwp_days,
+            "effective_working_days": monthly_payroll.effective_working_days,
+            "status": monthly_payroll.status.value,
+            "notes": monthly_payroll.notes,
+            "remarks": monthly_payroll.remarks
         }
     
     def _serialize_calculation_result(self, calculation_result) -> Optional[dict]:
@@ -785,7 +811,7 @@ class MongoDBTaxationRepository(TaxationRepository):
             capital_gains_income=self._deserialize_capital_gains_income(document.get("capital_gains_income")),
             retirement_benefits=self._deserialize_retirement_benefits(document.get("retirement_benefits")),
             other_income=self._deserialize_other_income(document.get("other_income")),
-            #monthly_payroll=self._deserialize_monthly_payroll(document.get("monthly_payroll")),
+            monthly_payroll=self._deserialize_monthly_payroll(document.get("monthly_payroll")),
             
             # Calculated fields
             calculation_result=calculation_result,
@@ -947,9 +973,70 @@ class MongoDBTaxationRepository(TaxationRepository):
         if not payroll_data:
             return None
         
-        # For now, return None since monthly payroll is complex
-        # This can be implemented later when needed
-        return None
+        from app.domain.entities.taxation.payout import PayoutBase, PayoutFrequency, PayoutStatus
+        from datetime import date
+        
+        try:
+            return PayoutBase(
+                employee_id=payroll_data.get("employee_id", ""),
+                pay_period_start=date.fromisoformat(payroll_data.get("pay_period_start", date.today().isoformat())),
+                pay_period_end=date.fromisoformat(payroll_data.get("pay_period_end", date.today().isoformat())),
+                payout_date=date.fromisoformat(payroll_data.get("payout_date", date.today().isoformat())),
+                frequency=PayoutFrequency(payroll_data.get("frequency", "monthly")),
+                
+                # Salary components
+                basic_salary=payroll_data.get("basic_salary", 0.0),
+                da=payroll_data.get("da", 0.0),
+                hra=payroll_data.get("hra", 0.0),
+                special_allowance=payroll_data.get("special_allowance", 0.0),
+                transport_allowance=payroll_data.get("transport_allowance", 0.0),
+                medical_allowance=payroll_data.get("medical_allowance", 0.0),
+                bonus=payroll_data.get("bonus", 0.0),
+                commission=payroll_data.get("commission", 0.0),
+                other_allowances=payroll_data.get("other_allowances", 0.0),
+                
+                # Deductions
+                epf_employee=payroll_data.get("epf_employee", 0.0),
+                epf_employer=payroll_data.get("epf_employer", 0.0),
+                esi_employee=payroll_data.get("esi_employee", 0.0),
+                esi_employer=payroll_data.get("esi_employer", 0.0),
+                professional_tax=payroll_data.get("professional_tax", 0.0),
+                tds=payroll_data.get("tds", 0.0),
+                advance_deduction=payroll_data.get("advance_deduction", 0.0),
+                loan_deduction=payroll_data.get("loan_deduction", 0.0),
+                other_deductions=payroll_data.get("other_deductions", 0.0),
+                
+                # Calculated totals
+                gross_salary=payroll_data.get("gross_salary", 0.0),
+                total_deductions=payroll_data.get("total_deductions", 0.0),
+                net_salary=payroll_data.get("net_salary", 0.0),
+                
+                # Annual projections
+                annual_gross_salary=payroll_data.get("annual_gross_salary", 0.0),
+                annual_tax_liability=payroll_data.get("annual_tax_liability", 0.0),
+                monthly_tds=payroll_data.get("monthly_tds", 0.0),
+                
+                # Tax details
+                tax_regime=payroll_data.get("tax_regime", "new"),
+                tax_exemptions=payroll_data.get("tax_exemptions", 0.0),
+                standard_deduction=payroll_data.get("standard_deduction", 0.0),
+                section_80c_claimed=payroll_data.get("section_80c_claimed", 0.0),
+                
+                # Reimbursements
+                reimbursements=payroll_data.get("reimbursements", 0.0),
+                
+                # Working days and status
+                total_days_in_month=payroll_data.get("total_days_in_month", 30),
+                working_days_in_period=payroll_data.get("working_days_in_period", 22),
+                lwp_days=payroll_data.get("lwp_days", 0),
+                effective_working_days=payroll_data.get("effective_working_days", 22),
+                status=PayoutStatus(payroll_data.get("status", "pending")),
+                notes=payroll_data.get("notes"),
+                remarks=payroll_data.get("remarks")
+            )
+        except Exception as e:
+            # If deserialization fails, return None to prevent breaking the overall record loading
+            return None
     
     def _deserialize_calculation_result(self, calc_data: Optional[dict]) -> Optional[TaxCalculationResult]:
         """Deserialize calculation result from document format."""

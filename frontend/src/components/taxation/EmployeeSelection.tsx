@@ -123,14 +123,15 @@ const EmployeeSelection: React.FC = () => {
   const refreshEmployeeSelection = useRefreshEmployeeSelection();
   
   // Transform API response to local format
-  const employees: EmployeeRecord[] = useMemo(() => 
-    employeeResponse?.employees?.map(emp => ({
+  const employees: EmployeeRecord[] = useMemo(() => {
+    const transformedEmployees = employeeResponse?.employees?.map(emp => ({
       ...emp,
       // Ensure all required fields are present with defaults
       user_name: emp.user_name || 'Unknown',
       email: emp.email || '',
       department: emp.department || 'N/A',
       role: emp.role || 'N/A',
+      
       status: emp.status || 'active',
       joining_date: emp.joining_date || '',
       current_salary: emp.current_salary || 0,
@@ -138,9 +139,12 @@ const EmployeeSelection: React.FC = () => {
       tax_year: emp.tax_year || selectedTaxYear,
       filing_status: (emp.filing_status as FilingStatus) || 'pending',
       total_tax: emp.total_tax || 0,
-      regime: emp.regime || 'new',
+      regime: emp.regime || 'new', // Keep original value, normalization happens in display
       last_updated: emp.last_updated || ''
-    })) || [], [employeeResponse?.employees, selectedTaxYear]);
+    })) || [];
+    
+    return transformedEmployees;
+  }, [employeeResponse?.employees, selectedTaxYear]);
   
   // Convert React Query error to string
   const error = queryError ? 'Failed to load employees data. Please try again later.' : null;
@@ -301,6 +305,21 @@ const EmployeeSelection: React.FC = () => {
       <Chip
         label={label}
         color={color}
+        size="small"
+        variant="outlined"
+      />
+    );
+  };
+
+  // Helper function to render tax regime chip
+  const renderTaxRegimeChip = (regime: string | undefined): React.ReactElement => {
+    const normalizedRegime = regime?.toLowerCase() || 'new';
+    const isOldRegime = normalizedRegime === 'old';
+    
+    return (
+      <Chip
+        label={isOldRegime ? 'Old Regime' : 'New Regime'}
+        color={isOldRegime ? 'secondary' : 'primary'}
         size="small"
         variant="outlined"
       />
@@ -524,12 +543,7 @@ const EmployeeSelection: React.FC = () => {
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          <Chip
-                            label={employee.regime === 'old' ? 'Old Regime' : 'New Regime'}
-                            color={employee.regime === 'old' ? 'secondary' : 'primary'}
-                            size="small"
-                            variant="outlined"
-                          />
+                          {renderTaxRegimeChip(employee.regime)}
                         </TableCell>
                         <TableCell align="right">
                           <Typography variant="body2" fontWeight="medium">

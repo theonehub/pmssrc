@@ -179,6 +179,8 @@ class TaxCalculationService:
             is_senior_citizen,
             is_super_senior_citizen
         )
+
+        
         
         # Create simplified tax breakdown
         tax_breakdown = {
@@ -245,6 +247,14 @@ class TaxCalculationService:
             
             # Calculate tax using the record's built-in method
             calculation_result = taxation_record.calculate_tax(self)
+            
+            # Create monthly payout record based on the tax calculation
+            monthly_payout = self._create_monthly_payout_from_taxation_record(
+                taxation_record, calculation_result
+            )
+            
+            # Update the taxation record with the monthly payout
+            taxation_record.monthly_payroll = monthly_payout
             
             try:
                 # Update the record in the database
@@ -724,3 +734,162 @@ class TaxCalculationService:
             {"min": Decimal('1200000'), "max": Decimal('1500000'), "rate": Decimal('20')},
             {"min": Decimal('1500000'), "max": None, "rate": Decimal('30')}
         ] 
+
+    def _create_monthly_payout_from_taxation_record(self, 
+                                                   taxation_record, 
+                                                   calculation_result: TaxCalculationResult) -> 'PayoutBase':
+        """
+        Create a monthly payout record based on taxation record and calculation result.
+        
+        This method calculates monthly salary components by dividing annual amounts by 12,
+        and includes TDS calculation based on the annual tax liability.
+        
+        Args:
+            taxation_record: The taxation record containing salary and other details
+            calculation_result: The tax calculation result
+            
+        Returns:
+            PayoutBase: Monthly payout record with calculated values
+        """
+        from datetime import date
+        from app.domain.entities.taxation.payout import PayoutBase, PayoutFrequency, PayoutStatus
+        
+        # Get current year for payout dates
+        current_year = date.today().year
+        current_month = date.today().month
+        
+        # Calculate monthly salary components from annual salary
+        annual_gross = calculation_result.total_income
+        monthly_gross = annual_gross.divide(Decimal('12'))
+        
+        # Extract salary components from the salary income entity
+        salary_income = taxation_record.salary_income
+        
+        # Calculate monthly components
+        monthly_basic = salary_income.basic_salary.divide(Decimal('12'))
+        monthly_da = salary_income.dearness_allowance.divide(Decimal('12'))
+        monthly_hra = salary_income.hra_received.divide(Decimal('12'))
+        monthly_special = salary_income.special_allowance.divide(Decimal('12'))
+        monthly_conveyance = salary_income.conveyance_allowance.divide(Decimal('12'))
+        monthly_medical = salary_income.medical_allowance.divide(Decimal('12'))
+        monthly_bonus = salary_income.bonus.divide(Decimal('12'))
+        monthly_commission = salary_income.commission.divide(Decimal('12'))
+        monthly_other = salary_income.other_allowances.divide(Decimal('12'))
+        
+        # Calculate monthly TDS (Tax Deducted at Source)
+        annual_tax = calculation_result.tax_liability
+        monthly_tds = annual_tax.divide(Decimal('12'))
+        
+        # Calculate statutory deductions (EPF, ESI, Professional Tax)
+        monthly_epf_employee = self._calculate_monthly_epf_employee(monthly_basic, monthly_da)
+        monthly_epf_employer = self._calculate_monthly_epf_employer(monthly_basic, monthly_da)
+        monthly_esi_employee = self._calculate_monthly_esi_employee(monthly_gross)
+        monthly_esi_employer = self._calculate_monthly_esi_employer(monthly_gross)
+        monthly_professional_tax = self._calculate_monthly_professional_tax(monthly_gross)
+        
+        # Calculate total monthly deductions
+        total_monthly_deductions = (
+            monthly_epf_employee
+            .add(monthly_esi_employee)
+            .add(monthly_professional_tax)
+            .add(monthly_tds)
+        )
+        
+        # Calculate net monthly salary
+        net_monthly_salary = monthly_gross.subtract(total_monthly_deductions)
+        
+        # Create payout record
+        return PayoutBase(
+            employee_id=str(taxation_record.employee_id),
+            pay_period_start=date(current_year, current_month, 1),
+            pay_period_end=date(current_year, current_month, 28),  # Approximate month end
+            payout_date=date(current_year, current_month, 30),  # Assumed payout on 30th
+            frequency=PayoutFrequency.MONTHLY,
+            
+            # Monthly salary components
+            basic_salary=monthly_basic.to_float(),
+            da=monthly_da.to_float(),
+            hra=monthly_hra.to_float(),
+            special_allowance=monthly_special.to_float(),
+            transport_allowance=monthly_conveyance.to_float(),
+            medical_allowance=monthly_medical.to_float(),
+            bonus=monthly_bonus.to_float(),
+            commission=monthly_commission.to_float(),
+            other_allowances=monthly_other.to_float(),
+            
+            # Monthly deductions
+            epf_employee=monthly_epf_employee.to_float(),
+            epf_employer=monthly_epf_employer.to_float(),
+            esi_employee=monthly_esi_employee.to_float(),
+            esi_employer=monthly_esi_employer.to_float(),
+            professional_tax=monthly_professional_tax.to_float(),
+            tds=monthly_tds.to_float(),
+            advance_deduction=0.0,
+            loan_deduction=0.0,
+            other_deductions=0.0,
+            
+            # Calculated totals
+            gross_salary=monthly_gross.to_float(),
+            total_deductions=total_monthly_deductions.to_float(),
+            net_salary=net_monthly_salary.to_float(),
+            
+            # Annual projections
+            annual_gross_salary=annual_gross.to_float(),
+            annual_tax_liability=annual_tax.to_float(),
+            monthly_tds=monthly_tds.to_float(),
+            
+            # Tax details
+            tax_regime=taxation_record.regime.regime_type.value,
+            tax_exemptions=calculation_result.total_exemptions.to_float(),
+            standard_deduction=50000.0 if taxation_record.regime.regime_type.value == "new" else 0.0,
+            section_80c_claimed=0.0,  # Can be enhanced later
+            
+            # Reimbursements
+            reimbursements=0.0,
+            
+            # Working days (default values - can be enhanced)
+            total_days_in_month=30,
+            working_days_in_period=22,
+            lwp_days=0,
+            effective_working_days=22,
+            
+            # Status
+            status=PayoutStatus.PENDING,
+            notes=f"Auto-generated monthly payout for tax year {taxation_record.tax_year}",
+            remarks=f"Based on {taxation_record.regime.regime_type.value} tax regime calculation"
+        )
+
+    def _calculate_monthly_epf_employee(self, monthly_basic: Money, monthly_da: Money) -> Money:
+        """Calculate monthly EPF employee contribution (12% of basic + DA, capped at ₹1,800)."""
+        epf_eligible_salary = monthly_basic.add(monthly_da)
+        epf_contribution = epf_eligible_salary.multiply(Decimal('0.12'))
+        epf_cap = Money(Decimal('1800'))  # Current EPF cap is ₹1,800 per month
+        return epf_contribution.min(epf_cap)
+
+    def _calculate_monthly_epf_employer(self, monthly_basic: Money, monthly_da: Money) -> Money:
+        """Calculate monthly EPF employer contribution (12% of basic + DA, capped at ₹1,800)."""
+        return self._calculate_monthly_epf_employee(monthly_basic, monthly_da)
+
+    def _calculate_monthly_esi_employee(self, monthly_gross: Money) -> Money:
+        """Calculate monthly ESI employee contribution (0.75% of gross, applicable if gross ≤ ₹21,000)."""
+        esi_threshold = Money(Decimal('21000'))
+        if monthly_gross.is_greater_than(esi_threshold):
+            return Money.zero()
+        return monthly_gross.multiply(Decimal('0.0075'))
+
+    def _calculate_monthly_esi_employer(self, monthly_gross: Money) -> Money:
+        """Calculate monthly ESI employer contribution (3.25% of gross, applicable if gross ≤ ₹21,000)."""
+        esi_threshold = Money(Decimal('21000'))
+        if monthly_gross.is_greater_than(esi_threshold):
+            return Money.zero()
+        return monthly_gross.multiply(Decimal('0.0325'))
+
+    def _calculate_monthly_professional_tax(self, monthly_gross: Money) -> Money:
+        """Calculate monthly professional tax based on gross salary slabs."""
+        # Professional tax varies by state. Using Maharashtra rates as example:
+        if monthly_gross.is_less_than(Money(Decimal('15000'))) or monthly_gross.is_equal_to(Money(Decimal('15000'))):
+            return Money.zero()
+        elif monthly_gross.is_less_than(Money(Decimal('25000'))) or monthly_gross.is_equal_to(Money(Decimal('25000'))):
+            return Money(Decimal('175'))
+        else:
+            return Money(Decimal('200')) 

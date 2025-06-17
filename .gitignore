@@ -12,6 +12,7 @@ logs/
 
 # production
 /build
+frontend/build/
 
 # misc
 .DS_Store
@@ -30,3 +31,4 @@ package-lock.json
 env
 backend/uploads/
 backend/app/uploads/
+backend/logs/app.logs

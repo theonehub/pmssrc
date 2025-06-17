@@ -19,7 +19,7 @@ from app.domain.entities.taxation.house_property_income import HousePropertyInco
 from app.domain.entities.taxation.capital_gains import CapitalGainsIncome
 from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 from app.domain.entities.taxation.other_income import OtherIncome
-from app.domain.entities.taxation.monthly_payroll import AnnualPayrollWithLWP
+from app.domain.entities.taxation.payout import PayoutMonthlyProjection
 from app.domain.services.taxation.tax_calculation_service import TaxCalculationService, TaxCalculationResult
 
 
@@ -59,7 +59,7 @@ class TaxationRecord:
     capital_gains_income: Optional[CapitalGainsIncome] = None
     retirement_benefits: Optional[RetirementBenefits] = None
     other_income: Optional[OtherIncome] = None
-    monthly_payroll: Optional[AnnualPayrollWithLWP] = None
+    monthly_payroll: Optional[PayoutMonthlyProjection] = None
     
     # Calculated fields
     calculation_result: Optional[TaxCalculationResult] = None
@@ -254,9 +254,33 @@ class TaxationRecord:
         
         if self.monthly_payroll:
             breakdown["monthly_payroll"] = {
-                "annual_calculation": self.monthly_payroll.calculate_annual_salary_with_lwp().to_float(),
-                "lwp_impact": self.monthly_payroll.calculate_total_lwp_impact().to_float(),
-                "breakdown": self.monthly_payroll.get_payroll_breakdown()
+                "monthly_gross_salary": self.monthly_payroll.gross_salary,
+                "monthly_net_salary": self.monthly_payroll.net_salary,
+                "monthly_total_deductions": self.monthly_payroll.total_deductions,
+                "monthly_tds": self.monthly_payroll.tds,
+                "annual_gross_salary": self.monthly_payroll.annual_gross_salary,
+                "annual_tax_liability": self.monthly_payroll.annual_tax_liability,
+                "tax_regime": self.monthly_payroll.tax_regime,
+                "effective_working_days": self.monthly_payroll.effective_working_days,
+                "lwp_days": self.monthly_payroll.lwp_days,
+                "status": self.monthly_payroll.status.value,
+                "payout_details": {
+                    "basic_salary": self.monthly_payroll.basic_salary,
+                    "da": self.monthly_payroll.da,
+                    "hra": self.monthly_payroll.hra,
+                    "special_allowance": self.monthly_payroll.special_allowance,
+                    "transport_allowance": self.monthly_payroll.transport_allowance,
+                    "medical_allowance": self.monthly_payroll.medical_allowance,
+                    "bonus": self.monthly_payroll.bonus,
+                    "commission": self.monthly_payroll.commission,
+                    "other_allowances": self.monthly_payroll.other_allowances,
+                    "epf_employee": self.monthly_payroll.epf_employee,
+                    "esi_employee": self.monthly_payroll.esi_employee,
+                    "professional_tax": self.monthly_payroll.professional_tax,
+                    "advance_deduction": self.monthly_payroll.advance_deduction,
+                    "loan_deduction": self.monthly_payroll.loan_deduction,
+                    "other_deductions": self.monthly_payroll.other_deductions
+                }
             }
         
         return breakdown
@@ -431,7 +455,7 @@ class TaxationRecord:
             "updated_at": self.updated_at.isoformat()
         })
     
-    def update_monthly_payroll(self, new_monthly_payroll: Optional[AnnualPayrollWithLWP]) -> None:
+    def update_monthly_payroll(self, new_monthly_payroll: Optional[PayoutMonthlyProjection]) -> None:
         """
         Update monthly payroll information.
         
@@ -441,15 +465,15 @@ class TaxationRecord:
         if self.is_final:
             raise ValueError("Cannot update finalized tax record")
         
-        old_payroll = Money.zero()
+        old_payroll = 0.0
         if self.monthly_payroll:
-            old_payroll = self.monthly_payroll.calculate_annual_salary_with_lwp()
+            old_payroll = self.monthly_payroll.annual_gross_salary
         
         self.monthly_payroll = new_monthly_payroll
         
-        new_payroll = Money.zero()
+        new_payroll = 0.0
         if new_monthly_payroll:
-            new_payroll = new_monthly_payroll.calculate_annual_salary_with_lwp()
+            new_payroll = new_monthly_payroll.annual_gross_salary
         
         # Invalidate calculation
         self._invalidate_calculation()
@@ -460,8 +484,8 @@ class TaxationRecord:
             "taxation_id": self.taxation_id,
             "employee_id": str(self.employee_id),
             "tax_year": str(self.tax_year),
-            "old_payroll_amount": old_payroll.to_float(),
-            "new_payroll_amount": new_payroll.to_float(),
+            "old_payroll_amount": old_payroll,
+            "new_payroll_amount": new_payroll,
             "updated_at": self.updated_at.isoformat()
         })
     

@@ -98,6 +98,9 @@ class PayoutBase(BaseModel):
             "advance_deduction", "loan_deduction", "other_deductions"
         ]
         return sum(values.get(ded, 0) for ded in deductions)
+    
+class PayoutMonthlyProjection(PayoutBase):
+    pass
 
 class PayoutCreate(PayoutBase):
     pass

@@ -614,6 +614,7 @@ class UserSummaryDTO:
     mobile: Optional[str] = None
     department: Optional[str] = None
     designation: Optional[str] = None
+    date_of_joining: Optional[str] = None
     last_login_at: Optional[str] = None
     created_at: str = None
     is_active: bool = False
@@ -664,6 +665,7 @@ class UserSummaryDTO:
             mobile=safe_get_attr(user, 'mobile', ''),
             department=safe_get_attr(user, 'department'),
             designation=safe_get_attr(user, 'designation'),
+            date_of_joining=format_datetime(safe_get_attr(user, 'date_of_joining')),
             last_login_at=format_datetime(safe_get_attr(user, 'last_login')),
             created_at=format_datetime(safe_get_attr(user, 'created_at')),
             is_active=safe_bool_value(user, 'is_active', True),

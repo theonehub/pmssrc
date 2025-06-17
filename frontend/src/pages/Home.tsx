@@ -53,7 +53,7 @@ const Home: React.FC = () => {
       try {
         setLoading(true);
 
-        // Fetch dashboard statistics using v2 API
+        // Fetch dashboard statistics using reporting service
         const dashboardResponse = await get<DashboardStats>('/api/v2/reporting/dashboard/analytics/statistics');
         if (dashboardResponse) {
           setDashboardStats(dashboardResponse);
@@ -149,9 +149,27 @@ const Home: React.FC = () => {
       icon: <CheckOutIcon fontSize='large' />,
     },
     {
-      title: 'Pending Reimbursements Amount',
+      title: 'Pending Reimbursements',
+      value: dashboardStats.pending_reimbursements || 0,
+      color: theme.palette.warning.main,
+      icon: <RupeeIcon fontSize='large' />, 
+    },
+    {
+      title: 'Pending Amount (₹)',
       value: dashboardStats.pending_reimbursements_amount || 0,
       color: theme.palette.warning.main,
+      icon: <RupeeIcon fontSize='large' />, 
+    },
+    {
+      title: 'Approved Reimbursements',
+      value: dashboardStats.approved_reimbursements || 0,
+      color: theme.palette.success.main,
+      icon: <RupeeIcon fontSize='large' />, 
+    },
+    {
+      title: 'Approved Amount (₹)',
+      value: dashboardStats.approved_reimbursements_amount || 0,
+      color: theme.palette.success.main,
       icon: <RupeeIcon fontSize='large' />, 
     },
   ];

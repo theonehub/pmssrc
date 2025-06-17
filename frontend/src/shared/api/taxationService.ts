@@ -349,6 +349,9 @@ export const calculateTax = async (
       calculation_breakdown: backendResult.calculation_breakdown,
       regime_comparison: backendResult.regime_comparison,
       
+      // Monthly payroll projection
+      monthly_payroll: backendResult.monthly_payroll,
+      
       message: 'Tax calculation completed successfully'
     };
     

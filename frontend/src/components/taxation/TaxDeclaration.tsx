@@ -98,6 +98,17 @@ const TaxDeclaration: React.FC = () => {
     });
   }, [taxationData]);
 
+  // Log tax calculation response for debugging when needed
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && taxCalculationResponse) {
+      console.log('TaxDeclaration received taxCalculationResponse:', {
+        hasTaxResponse: !!taxCalculationResponse,
+        hasMonthlyPayroll: !!taxCalculationResponse?.monthly_payroll,
+        responseKeys: taxCalculationResponse ? Object.keys(taxCalculationResponse) : null,
+      });
+    }
+  }, [taxCalculationResponse]);
+
   // Validate form whenever data changes - now tracks warnings instead of errors
   useEffect(() => {
     const validation: any = validateTaxationForm(taxationData);
@@ -391,15 +402,39 @@ const TaxDeclaration: React.FC = () => {
 
             <Box>
               {activeStep === formSteps.length - 1 ? (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={onSubmit}
-                  disabled={submitting}
-                  startIcon={submitting && <CircularProgress size={20} />}
-                >
-                  {submitting ? 'Submitting...' : 'Submit Declaration'}
-                </Button>
+                // Show Monthly Projections button if tax calculation is complete, otherwise show Submit Declaration
+                taxCalculationResponse && taxCalculationResponse.monthly_payroll ? (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => {
+                      navigate('/taxation/monthly-projections', { 
+                        state: { 
+                          monthlyPayroll: taxCalculationResponse.monthly_payroll,
+                          taxationData,
+                          taxCalculationResponse
+                        }
+                      });
+                    }}
+                    size="large"
+                    sx={{ 
+                      minWidth: 200,
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    Monthly Projections
+                  </Button>
+                ) : (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={onSubmit}
+                    disabled={submitting}
+                    startIcon={submitting && <CircularProgress size={20} />}
+                  >
+                    {submitting ? 'Submitting...' : 'Submit Declaration'}
+                  </Button>
+                )
               ) : (
                 <Button
                   variant="contained"

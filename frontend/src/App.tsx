@@ -31,6 +31,7 @@ import TaxationDashboard from './components/taxation/TaxationDashboard';
 import TaxDeclaration from './components/taxation/TaxDeclaration';
 import EmployeeTaxDetail from './components/taxation/EmployeeTaxDetail';
 import EmployeeSelection from './components/taxation/EmployeeSelection';
+import MonthlyProjections from './components/taxation/MonthlyProjections';
 
 // Payout Pages
 import MySalaryDetails from './components/payouts/MySalaryDetails';
@@ -38,6 +39,9 @@ import MyPayslips from './components/payouts/MyPayslips';
 import AdminPayouts from './components/payouts/AdminPayouts';
 import PayoutReports from './components/payouts/PayoutReports';
 import MonthlyProcessing from './components/payouts/MonthlyProcessing';
+
+// Reporting Pages
+import ReportingDashboard from './components/Reporting/ReportingDashboard';
 
 const AppContent: React.FC = () => {
   const { isCalculatorOpen, closeCalculator } = useCalculatorStore();
@@ -157,6 +161,10 @@ const AppContent: React.FC = () => {
             path="/taxation/employee-selection"
             element={withLayout(<EmployeeSelection />, 'Employee Selection', ['admin', 'superadmin'])}
           />
+          <Route
+            path="/taxation/monthly-projections"
+            element={withLayout(<MonthlyProjections />, 'Monthly Projections', ['user', 'manager', 'admin', 'superadmin'])}
+          />
 
           {/* Payout Routes */}
           <Route
@@ -178,6 +186,12 @@ const AppContent: React.FC = () => {
           <Route
             path="/payouts/reports"
             element={withLayout(<PayoutReports />, 'Payout Reports', ['manager', 'admin', 'superadmin'])}
+          />
+
+          {/* Reporting Routes */}
+          <Route
+            path="/reporting"
+            element={withLayout(<ReportingDashboard />, 'Reporting & Analytics', ['manager', 'admin', 'superadmin'])}
           />
         </Routes>
       </Router>

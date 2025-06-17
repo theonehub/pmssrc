@@ -73,6 +73,7 @@ const Sidebar: React.FC = () => {
     payouts: false,
     reimbursements: false,
     taxation: false,
+    reporting: false,
     settings: false,
   });
 
@@ -244,6 +245,19 @@ const Sidebar: React.FC = () => {
           title: 'Reimbursement Approvals',
           icon: <ReceiptIcon />,
           path: '/reimbursement-approvals',
+          roles: ['manager', 'admin', 'superadmin'],
+        },
+      ],
+    },
+    {
+      id: 'reporting',
+      title: 'Reports & Analytics',
+      icon: <AssessmentIcon />,
+      items: [
+        {
+          title: 'Dashboard Analytics',
+          icon: <AssessmentIcon />,
+          path: '/reporting',
           roles: ['manager', 'admin', 'superadmin'],
         },
       ],

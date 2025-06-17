@@ -549,7 +549,7 @@ class CreateTaxationRecordRequest(BaseModel):
     capital_gains_income: Optional["CapitalGainsIncomeDTO"] = None
     retirement_benefits: Optional["RetirementBenefitsDTO"] = None
     other_income: Optional["OtherIncomeDTO"] = None
-    monthly_payroll: Optional["AnnualPayrollWithLWPDTO"] = None
+    monthly_payroll: Optional["PayoutMonthlyProjectionDTO"] = None
     
     # Enhanced deductions (optional)
     comprehensive_deductions: Optional[TaxDeductionsDTO] = None
@@ -1258,6 +1258,54 @@ class AnnualPayrollWithLWPDTO(BaseModel):
     lwp_details: List[LWPDetailsDTO] = Field(default=[])
 
 
+class PayoutMonthlyProjectionDTO(BaseModel):
+    """Payout monthly projection DTO."""
+    employee_id: str = Field(..., description="Employee ID")
+    month: int = Field(..., ge=1, le=12, description="Month")
+    year: int = Field(..., ge=2020, le=2030, description="Year")
+    
+    # Salary components
+    basic_salary: float = Field(default=0.0, ge=0, description="Basic salary")
+    da: float = Field(default=0.0, ge=0, description="Dearness allowance")
+    hra: float = Field(default=0.0, ge=0, description="HRA")
+    special_allowance: float = Field(default=0.0, ge=0, description="Special allowance")
+    transport_allowance: float = Field(default=0.0, ge=0, description="Transport allowance")
+    medical_allowance: float = Field(default=0.0, ge=0, description="Medical allowance")
+    bonus: float = Field(default=0.0, ge=0, description="Bonus")
+    commission: float = Field(default=0.0, ge=0, description="Commission")
+    other_allowances: float = Field(default=0.0, ge=0, description="Other allowances")
+    
+    # Deductions
+    epf_employee: float = Field(default=0.0, ge=0, description="EPF employee contribution")
+    esi_employee: float = Field(default=0.0, ge=0, description="ESI employee contribution")
+    professional_tax: float = Field(default=0.0, ge=0, description="Professional tax")
+    advance_deduction: float = Field(default=0.0, ge=0, description="Advance deduction")
+    loan_deduction: float = Field(default=0.0, ge=0, description="Loan deduction")
+    other_deductions: float = Field(default=0.0, ge=0, description="Other deductions")
+    
+    # Calculated totals
+    gross_salary: float = Field(default=0.0, ge=0, description="Gross salary")
+    net_salary: float = Field(default=0.0, ge=0, description="Net salary")
+    total_deductions: float = Field(default=0.0, ge=0, description="Total deductions")
+    tds: float = Field(default=0.0, ge=0, description="TDS")
+    
+    # Annual projections
+    annual_gross_salary: float = Field(default=0.0, ge=0, description="Annual gross salary")
+    annual_tax_liability: float = Field(default=0.0, ge=0, description="Annual tax liability")
+    
+    # Tax details
+    tax_regime: str = Field(default="new", description="Tax regime")
+    
+    # Working days
+    effective_working_days: int = Field(default=22, ge=0, description="Effective working days")
+    lwp_days: int = Field(default=0, ge=0, description="LWP days")
+    
+    # Status and notes
+    status: str = Field(default="pending", description="Payout status")
+    notes: Optional[str] = Field(None, description="Notes")
+    remarks: Optional[str] = Field(None, description="Remarks")
+
+
 # =============================================================================
 # COMPREHENSIVE TAX INPUT DTO
 # =============================================================================
@@ -1279,7 +1327,7 @@ class ComprehensiveTaxInputDTO(BaseModel):
     capital_gains_income: Optional[CapitalGainsIncomeDTO] = None
     retirement_benefits: Optional[RetirementBenefitsDTO] = None
     other_income: Optional[OtherIncomeDTO] = None
-    monthly_payroll: Optional[AnnualPayrollWithLWPDTO] = None
+    monthly_payroll: Optional[PayoutMonthlyProjectionDTO] = None
     
     # Deductions
     deductions: Optional[TaxDeductionsDTO] = None
@@ -1310,7 +1358,7 @@ class ComprehensiveTaxOutputDTO(BaseModel):
     capital_gains_income: Optional[CapitalGainsIncomeDTO] = None
     retirement_benefits: Optional[RetirementBenefitsDTO] = None
     other_income: Optional[OtherIncomeDTO] = None
-    monthly_payroll: Optional[AnnualPayrollWithLWPDTO] = None
+    monthly_payroll: Optional[PayoutMonthlyProjectionDTO] = None
     
     # Deductions
     deductions: Optional[TaxDeductionsDTO] = None

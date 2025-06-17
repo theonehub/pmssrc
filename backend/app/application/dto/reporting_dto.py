@@ -276,6 +276,8 @@ class DashboardAnalyticsDTO:
     checkout_count: int = 0
     pending_reimbursements: int = 0
     pending_reimbursements_amount: float = 0.0
+    approved_reimbursements: int = 0
+    approved_reimbursements_amount: float = 0.0
     pending_leaves: int = 0
     total_departments: int = 0
     recent_joiners_count: int = 0
@@ -286,6 +288,9 @@ class DashboardAnalyticsDTO:
     role_distribution: Dict[str, int] = field(default_factory=dict)
     attendance_trends: Dict[str, Any] = field(default_factory=dict)
     leave_trends: Dict[str, Any] = field(default_factory=dict)
+    
+    # Optional error message for debugging
+    error_message: Optional[str] = None
 
 
 @dataclass

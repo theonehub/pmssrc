@@ -453,31 +453,7 @@ class ReimbursementController:
         except Exception as e:
             logger.error(f"Error getting reimbursement statistics in organisation {current_user.hostname}: {e}")
             raise HTTPException(status_code=500, detail="Internal server error")
-    
-    async def get_reimbursement_analytics(
-        self,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        current_user: CurrentUser = None
-    ) -> Dict[str, Any]:
-        """Get reimbursement analytics with organisation context."""
-        try:
-            # Convert string dates to datetime if provided
-            start_dt = datetime.fromisoformat(start_date) if start_date else None
-            end_dt = datetime.fromisoformat(end_date) if end_date else None
-            
-            return await self.reimbursement_service.get_reimbursement_analytics(
-                start_date=start_dt,
-                end_date=end_dt,
-                current_user=current_user
-            )
-        except ValueError as e:
-            logger.error(f"Invalid date format in analytics request: {e}")
-            raise HTTPException(status_code=400, detail="Invalid date format")
-        except Exception as e:
-            logger.error(f"Error getting reimbursement analytics in organisation {current_user.hostname if current_user else 'unknown'}: {e}")
-            raise HTTPException(status_code=500, detail="Internal server error")
-    
+ 
     # ==================== LEGACY COMPATIBILITY METHODS ====================
     # These are for backward compatibility and should be deprecated
     

@@ -634,38 +634,6 @@ async def delete_reimbursement_type(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-# Analytics and Reporting Endpoints
-
-@router.get("/analytics/summary")
-async def get_reimbursement_analytics(
-    start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
-    end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
-    current_user: CurrentUser = Depends(get_current_user),
-    role: str = Depends(role_checker(["manager", "admin", "superadmin"])),
-    controller: ReimbursementController = Depends(get_reimbursement_controller)
-):
-    """
-    Get reimbursement analytics and summary.
-    
-    - **start_date**: Optional start date for filtering
-    - **end_date**: Optional end date for filtering
-    
-    Managers see analytics for their team.
-    Admins see organisation-wide analytics.
-    """
-    try:
-        # For managers, filter by their managed employees
-        manager_id = current_user.employee_id if role == "manager" else None
-        
-        result = await controller.get_reimbursement_analytics(
-            start_date, end_date, current_user
-        )
-        return result
-        
-    except Exception as e:
-        logger.error(f"Error getting reimbursement analytics: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
 @router.get("/debug/requests/{request_id}/check")
 async def debug_check_request(
     request_id: str,

@@ -370,7 +370,137 @@ class MongoDBReimbursementRepository(ReimbursementRepository):
         except Exception as e:
             logger.error(f"Error getting pending reimbursements for organisation {hostname}: {e}")
             return []
-    
+
+    async def get_pending_reimbursements_by_timespan(
+        self, 
+        hostname: str, 
+        start_date: Optional[datetime] = None, 
+        end_date: Optional[datetime] = None
+    ) -> List[Reimbursement]:
+        """
+        Get pending reimbursements filtered by timespan.
+        
+        Args:
+            hostname: Organisation hostname for database selection
+            start_date: Start date for filtering (optional)
+            end_date: End date for filtering (optional)
+            
+        Returns:
+            List of pending reimbursements within the specified timespan
+        """
+        try:
+            collection = await self._get_reimbursements_collection(hostname)
+            
+            # Build query with status and date filters
+            query = {
+                "status": {"$in": ["pending", "submitted", "under_review"]}
+            }
+            
+            # Add date range filter if provided
+            if start_date or end_date:
+                date_filter = {}
+                if start_date:
+                    date_filter["$gte"] = start_date
+                if end_date:
+                    date_filter["$lte"] = end_date
+                query["submitted_at"] = date_filter
+            
+            cursor = collection.find(query).sort("submitted_at", DESCENDING)
+            
+            reimbursements = []
+            async for document in cursor:
+                reimbursement = self._document_to_reimbursement(document)
+                if reimbursement:
+                    reimbursements.append(reimbursement)
+            
+            logger.info(f"Found {len(reimbursements)} pending reimbursements for organisation: {hostname} "
+                       f"between {start_date} and {end_date}")
+            return reimbursements
+            
+        except Exception as e:
+            logger.error(f"Error getting pending reimbursements by timespan for organisation {hostname}: {e}")
+            return []
+
+    async def get_approved_reimbursements(self, hostname: str) -> List[Reimbursement]:
+        """
+        Get all approved reimbursements for reporting purposes.
+        
+        Args:
+            hostname: Organisation hostname for database selection
+            
+        Returns:
+            List of approved reimbursements
+        """
+        try:
+            collection = await self._get_reimbursements_collection(hostname)
+            
+            cursor = collection.find({
+                "status": "approved"
+            }).sort("approval.approved_at", DESCENDING)
+            
+            reimbursements = []
+            async for document in cursor:
+                reimbursement = self._document_to_reimbursement(document)
+                if reimbursement:
+                    reimbursements.append(reimbursement)
+            
+            logger.info(f"Found {len(reimbursements)} approved reimbursements for organisation: {hostname}")
+            return reimbursements
+            
+        except Exception as e:
+            logger.error(f"Error getting approved reimbursements for organisation {hostname}: {e}")
+            return []
+
+    async def get_approved_reimbursements_by_timespan(
+        self, 
+        hostname: str, 
+        start_date: Optional[datetime] = None, 
+        end_date: Optional[datetime] = None
+    ) -> List[Reimbursement]:
+        """
+        Get approved reimbursements filtered by timespan.
+        
+        Args:
+            hostname: Organisation hostname for database selection
+            start_date: Start date for filtering (optional)
+            end_date: End date for filtering (optional)
+            
+        Returns:
+            List of approved reimbursements within the specified timespan
+        """
+        try:
+            collection = await self._get_reimbursements_collection(hostname)
+            
+            # Build query with status and date filters
+            query = {
+                "status": "approved"
+            }
+            
+            # Add date range filter if provided
+            if start_date or end_date:
+                date_filter = {}
+                if start_date:
+                    date_filter["$gte"] = start_date
+                if end_date:
+                    date_filter["$lte"] = end_date
+                query["approval.approved_at"] = date_filter
+            
+            cursor = collection.find(query).sort("approval.approved_at", DESCENDING)
+            
+            reimbursements = []
+            async for document in cursor:
+                reimbursement = self._document_to_reimbursement(document)
+                if reimbursement:
+                    reimbursements.append(reimbursement)
+            
+            logger.info(f"Found {len(reimbursements)} approved reimbursements for organisation: {hostname} "
+                       f"between {start_date} and {end_date}")
+            return reimbursements
+            
+        except Exception as e:
+            logger.error(f"Error getting approved reimbursements by timespan for organisation {hostname}: {e}")
+            return []
+
     async def get_all(self, organisation_id: str) -> List[Reimbursement]:
         """Get all reimbursements"""
         try:

@@ -5,7 +5,7 @@ Concrete implementation of reporting service
 
 import logging
 from typing import List, Optional, Dict, Any, TYPE_CHECKING
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.application.interfaces.services.reporting_service import ReportingService
 from app.application.interfaces.repositories.reporting_repository import ReportingRepository
@@ -302,8 +302,6 @@ class ReportingServiceImpl(ReportingService):
                 role_distribution[role] = role_distribution.get(role, 0) + 1
             
             # Get recent joiners (last 30 days)
-            from datetime import timedelta
-            thirty_days_ago = datetime.utcnow() - timedelta(days=30)
             recent_joiners = [
                 {
                     "employee_id": user.employee_id.value,
@@ -312,7 +310,7 @@ class ReportingServiceImpl(ReportingService):
                     "date_of_joining": user.date_of_joining
                 }
                 for user in users 
-                if user.created_at and user.created_at >= thirty_days_ago
+                if user.created_at and user.created_at >= datetime.utcnow() - timedelta(days=30)
             ]
             
             analytics = UserAnalyticsDTO(
@@ -460,28 +458,63 @@ class ReportingServiceImpl(ReportingService):
         try:
             logger.info(f"Getting reimbursement analytics for organisation: {current_user.hostname}")
             
-            # Get pending reimbursements
-            pending_reimbursements = await self.reimbursement_repository.get_pending_reimbursements(
-                current_user.hostname
+            # Parse dates or use defaults
+            if start_date and end_date:
+                start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+                end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+            else:
+                # Default to last 30 days
+                end_dt = datetime.utcnow()
+                start_dt = end_dt - timedelta(days=30)
+            
+            # Get pending reimbursements with timespan
+            pending_reimbursements = await self.reimbursement_repository.get_pending_reimbursements_by_timespan(
+                current_user.hostname, start_dt, end_dt
             )
             
+            # Get approved reimbursements with timespan
+            approved_reimbursements = await self.reimbursement_repository.get_approved_reimbursements_by_timespan(
+                current_user.hostname, start_dt, end_dt
+            )
+            
+            # Calculate statistics
             pending_count = len(pending_reimbursements)
             pending_amount = sum(
                 reimbursement.amount for reimbursement in pending_reimbursements
             )
             
-            # For now, use placeholder data for other metrics
-            # TODO: Implement when more reimbursement repository methods are available
+            approved_count = len(approved_reimbursements)
+            approved_amount = sum(
+                reimbursement.amount for reimbursement in approved_reimbursements
+            )
+            
+            # Create type distribution
+            type_distribution = {}
+            for reimbursement in pending_reimbursements + approved_reimbursements:
+                category = reimbursement.reimbursement_type.category_name
+                if category not in type_distribution:
+                    type_distribution[category] = {"count": 0, "amount": 0.0}
+                type_distribution[category]["count"] += 1
+                type_distribution[category]["amount"] += float(reimbursement.amount)
+            
+            # Create monthly trends (simplified)
+            monthly_trends = {}
+            current_month = end_dt.strftime("%Y-%m")
+            monthly_trends[current_month] = {
+                "pending": {"count": pending_count, "amount": pending_amount},
+                "approved": {"count": approved_count, "amount": approved_amount}
+            }
+            
             analytics = ReimbursementAnalyticsDTO(
                 total_pending_reimbursements=pending_count,
                 total_pending_amount=pending_amount,
-                total_approved_reimbursements=0,
-                total_approved_amount=0.0,
-                reimbursement_type_distribution={},
-                monthly_reimbursement_trends={}
+                total_approved_reimbursements=approved_count,
+                total_approved_amount=approved_amount,
+                reimbursement_type_distribution=type_distribution,
+                monthly_reimbursement_trends=monthly_trends
             )
             
-            logger.info(f"Successfully generated reimbursement analytics for organisation: {current_user.hostname}")
+            logger.info(f"Successfully generated reimbursement analytics: {pending_count} pending, {approved_count} approved")
             return analytics
             
         except Exception as e:

@@ -27,6 +27,8 @@ const SummarySection: React.FC<SummarySectionProps> = ({
   submitting,
   handleCalculateTax
 }) => {
+
+
   // Helper function to safely format currency values
   const formatSafeCurrency = (value: number | undefined): string => {
     return formatCurrency(value || 0);

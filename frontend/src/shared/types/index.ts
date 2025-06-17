@@ -408,6 +408,8 @@ export interface DashboardStats {
   checkout_count: number;
   pending_reimbursements: number;
   pending_reimbursements_amount: number;
+  approved_reimbursements: number;
+  approved_reimbursements_amount: number;
   pending_leaves: number;
   total_departments: number;
   recent_joiners_count: number;
@@ -416,6 +418,7 @@ export interface DashboardStats {
   role_distribution: Record<string, number>;
   attendance_trends: Record<string, any>;
   leave_trends: Record<string, any>;
+  error_message?: string;
 }
 
 // Organisation interface

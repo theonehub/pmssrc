@@ -652,18 +652,58 @@ class GetComprehensiveTaxationRecordUseCase:
         )
     
     def _convert_monthly_payroll_entity_to_dto(self, monthly_payroll):
-        """Convert AnnualPayrollWithLWP entity to AnnualPayrollWithLWPDTO."""
-        from app.application.dto.taxation_dto import AnnualPayrollWithLWPDTO
+        """Convert PayoutMonthlyProjection entity to PayoutMonthlyProjectionDTO."""
+        from app.application.dto.taxation_dto import PayoutMonthlyProjectionDTO
         
         if not monthly_payroll:
             return None
             
-        # This would need proper implementation based on the actual entity structure
-        return AnnualPayrollWithLWPDTO(
-            monthly_payrolls=[],  # Would need proper conversion
-            annual_salary=monthly_payroll.annual_salary.to_float() if hasattr(monthly_payroll, 'annual_salary') and hasattr(monthly_payroll.annual_salary, 'to_float') else 0,
-            total_lwp_days=getattr(monthly_payroll, 'total_lwp_days', 0),
-            lwp_details=[]  # Would need proper conversion
+        # Convert PayoutMonthlyProjection to PayoutMonthlyProjectionDTO
+        return PayoutMonthlyProjectionDTO(
+            employee_id=monthly_payroll.employee_id,
+            month=monthly_payroll.pay_period_start.month if hasattr(monthly_payroll, 'pay_period_start') else 1,
+            year=monthly_payroll.pay_period_start.year if hasattr(monthly_payroll, 'pay_period_start') else 2024,
+            
+            # Salary components
+            basic_salary=monthly_payroll.basic_salary,
+            da=monthly_payroll.da,
+            hra=monthly_payroll.hra,
+            special_allowance=monthly_payroll.special_allowance,
+            transport_allowance=monthly_payroll.transport_allowance,
+            medical_allowance=monthly_payroll.medical_allowance,
+            bonus=monthly_payroll.bonus,
+            commission=monthly_payroll.commission,
+            other_allowances=monthly_payroll.other_allowances,
+            
+            # Deductions
+            epf_employee=monthly_payroll.epf_employee,
+            esi_employee=monthly_payroll.esi_employee,
+            professional_tax=monthly_payroll.professional_tax,
+            advance_deduction=monthly_payroll.advance_deduction,
+            loan_deduction=monthly_payroll.loan_deduction,
+            other_deductions=monthly_payroll.other_deductions,
+            
+            # Calculated totals
+            gross_salary=monthly_payroll.gross_salary,
+            net_salary=monthly_payroll.net_salary,
+            total_deductions=monthly_payroll.total_deductions,
+            tds=monthly_payroll.tds,
+            
+            # Annual projections
+            annual_gross_salary=monthly_payroll.annual_gross_salary,
+            annual_tax_liability=monthly_payroll.annual_tax_liability,
+            
+            # Tax details
+            tax_regime=monthly_payroll.tax_regime,
+            
+            # Working days
+            effective_working_days=monthly_payroll.effective_working_days,
+            lwp_days=monthly_payroll.lwp_days,
+            
+            # Status
+            status=monthly_payroll.status,
+            notes=monthly_payroll.notes,
+            remarks=getattr(monthly_payroll, 'remarks', None)
         )
     
     def _convert_deductions_entity_to_dto(self, deductions):

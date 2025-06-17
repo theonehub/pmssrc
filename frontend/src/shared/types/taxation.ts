@@ -335,6 +335,7 @@ export interface ComprehensiveTaxCalculationResponse {
   taxpayer_age?: number;
   calculation_breakdown?: any;
   message?: string;
+  monthly_payroll?: any;
   
   tax_breakdown: {
     income_breakdown: {

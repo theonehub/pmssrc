@@ -68,7 +68,13 @@ class MongoDBUserRepository(UserRepository):
         
         Ensures database connection is established in the correct event loop.
         """
-        db_name = organisation_id if organisation_id else "pms_global_database"
+        # Fix database name logic - if organisation_id is None or global, use global database directly
+        if organisation_id and organisation_id not in ["global", "pms_global_database"]:
+            # For specific organisation, use pms_organisationid format
+            db_name = f"pms_{organisation_id}"
+        else:
+            # For global or None, use the global database name directly
+            db_name = "pms_global_database"
         
         # Ensure database is connected in the current event loop
         if not self.db_connector.is_connected:
@@ -95,9 +101,9 @@ class MongoDBUserRepository(UserRepository):
         
         # Verify connection and get collection
         try:
-            db = self.db_connector.get_database('pms_'+db_name)
+            db = self.db_connector.get_database(db_name)
             collection = db[self._collection_name]
-            logger.info(f"Successfully retrieved collection: {self._collection_name} from database: {'pms_'+db_name}")
+            logger.info(f"Successfully retrieved collection: {self._collection_name} from database: {db_name}")
             return collection
             
         except Exception as e:

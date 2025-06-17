@@ -46,6 +46,7 @@ class TaxCalculationResult:
     tax_liability: Money
     tax_breakdown: Dict[str, Any]
     regime_comparison: Optional[Dict[str, Any]] = None
+    monthly_payroll: Optional[Any] = None  # Add monthly payroll projection
 
     # Additional convenience properties
     @property
@@ -255,6 +256,9 @@ class TaxCalculationService:
             
             # Update the taxation record with the monthly payout
             taxation_record.monthly_payroll = monthly_payout
+            
+            # Add the monthly payroll to the calculation result
+            calculation_result.monthly_payroll = monthly_payout
             
             try:
                 # Update the record in the database

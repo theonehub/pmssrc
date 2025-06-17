@@ -36,7 +36,6 @@ import {
   Refresh as RefreshIcon
 } from '@mui/icons-material';
 import payoutService from '../../shared/services/payoutService';
-import PageLayout from '../../layout/PageLayout';
 import { usePayrollsQuery } from '../../shared/hooks/usePayrolls';
 
 interface YearOption {
@@ -247,216 +246,223 @@ const PayoutReports: React.FC = () => {
     setSuccess(null);
   };
 
-  if (payoutsLoading || loading) {
+  if (loading) {
     return (
-      <PageLayout title="Payout Reports">
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-          <CircularProgress />
-        </Box>
-      </PageLayout>
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+        <CircularProgress />
+      </Box>
     );
   }
 
-  return (
-    <PageLayout title="Payout Reports">
+  if (!payoutsLoading) {
+    return (
       <Box>
-        {/* Filters */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-          <FormControl size="small">
-            <InputLabel>Financial Year</InputLabel>
-            <Select
-              value={selectedYear.toString()}
-              label="Financial Year"
-              onChange={handleYearChange}
-            >
-              {yearOptions.map((option) => (
-                <MenuItem key={option.value} value={option.value.toString()}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+        <Alert severity="info" sx={{ m: 3 }}>
+          No payout data found for the selected period.
+        </Alert>
+      </Box>
+    );
+  }
+    
 
-          <FormControl size="small">
-            <InputLabel>Month</InputLabel>
-            <Select
-              value={selectedMonth ? selectedMonth.toString() : ''}
-              label="Month"
-              onChange={handleMonthChange}
-            >
-              <MenuItem value="">All Months</MenuItem>
-              {monthOptions.map((option) => (
-                <MenuItem key={option.value} value={option.value.toString()}>
-                  {option.label}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={fetchEmployeeData}
-            disabled={loading}
+  return (
+    <Box>
+      {/* Filters */}
+      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+        <FormControl size="small">
+          <InputLabel>Financial Year</InputLabel>
+          <Select
+            value={selectedYear.toString()}
+            label="Financial Year"
+            onChange={handleYearChange}
           >
-            Refresh
-          </Button>
-        </Box>
+            {yearOptions.map((option) => (
+              <MenuItem key={option.value} value={option.value.toString()}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-        {/* Messages */}
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={clearMessages}>
-            {error}
-          </Alert>
-        )}
-        {success && (
-          <Alert severity="success" sx={{ mb: 2 }} onClose={clearMessages}>
-            {success}
-          </Alert>
-        )}
-
-        {/* Bulk Actions */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-          <Button
-            variant="contained"
-            startIcon={<GetAppIcon />}
-            onClick={handleBulkGenerate}
-            disabled={bulkLoading || employees.length === 0}
+        <FormControl size="small">
+          <InputLabel>Month</InputLabel>
+          <Select
+            value={selectedMonth ? selectedMonth.toString() : ''}
+            label="Month"
+            onChange={handleMonthChange}
           >
-            {bulkLoading ? 'Generating...' : 'Bulk Generate Payslips'}
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<SendIcon />}
-            onClick={handleBulkEmail}
-            disabled={bulkLoading || employees.length === 0}
-          >
-            {bulkLoading ? 'Sending...' : 'Bulk Email Payslips'}
-          </Button>
-        </Box>
+            <MenuItem value="">All Months</MenuItem>
+            {monthOptions.map((option) => (
+              <MenuItem key={option.value} value={option.value.toString()}>
+                {option.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-        {/* Employee Table */}
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Employee Payouts
-            </Typography>
-            <TableContainer component={Paper}>
-              <Table>
-                <TableHead>
+        <Button
+          variant="outlined"
+          startIcon={<RefreshIcon />}
+          onClick={fetchEmployeeData}
+          disabled={loading}
+        >
+          Refresh
+        </Button>
+      </Box>
+
+      {/* Messages */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={clearMessages}>
+          {error}
+        </Alert>
+      )}
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={clearMessages}>
+          {success}
+        </Alert>
+      )}
+
+      {/* Bulk Actions */}
+      <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+        <Button
+          variant="contained"
+          startIcon={<GetAppIcon />}
+          onClick={handleBulkGenerate}
+          disabled={bulkLoading || employees.length === 0}
+        >
+          {bulkLoading ? 'Generating...' : 'Bulk Generate Payslips'}
+        </Button>
+        <Button
+          variant="outlined"
+          startIcon={<SendIcon />}
+          onClick={handleBulkEmail}
+          disabled={bulkLoading || employees.length === 0}
+        >
+          {bulkLoading ? 'Sending...' : 'Bulk Email Payslips'}
+        </Button>
+      </Box>
+
+      {/* Employee Table */}
+      <Card>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Employee Payouts
+          </Typography>
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Employee ID</TableCell>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Department</TableCell>
+                  <TableCell>Gross Salary</TableCell>
+                  <TableCell>Net Salary</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {employees.length === 0 ? (
                   <TableRow>
-                    <TableCell>Employee ID</TableCell>
-                    <TableCell>Name</TableCell>
-                    <TableCell>Department</TableCell>
-                    <TableCell>Gross Salary</TableCell>
-                    <TableCell>Net Salary</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Actions</TableCell>
+                    <TableCell colSpan={7} align="center">
+                      No employee data found for the selected period
+                    </TableCell>
                   </TableRow>
-                </TableHead>
-                <TableBody>
-                  {employees.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} align="center">
-                        No employee data found for the selected period
+                ) : (
+                  employees.map((employee) => (
+                    <TableRow key={employee.employee_id}>
+                      <TableCell>{employee.employee_id}</TableCell>
+                      <TableCell>{employee.name}</TableCell>
+                      <TableCell>{employee.department}</TableCell>
+                      <TableCell>
+                        {employee.payout ? payoutService.formatCurrency(employee.payout.gross_salary) : 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        {employee.payout ? payoutService.formatCurrency(employee.payout.net_salary) : 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        {employee.payout ? (
+                          <Chip
+                            label={employee.payout.status}
+                            color={employee.payout.status === 'paid' ? 'success' : 'default'}
+                            size="small"
+                          />
+                        ) : (
+                          <Chip label="No Payout" color="error" size="small" />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          {employee.hasPayslip && employee.payout && (
+                            <>
+                              <Tooltip title="View Payslip">
+                                <IconButton size="small">
+                                  <VisibilityIcon />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Download Payslip">
+                                <IconButton size="small">
+                                  <DownloadIcon />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Email Payslip">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleEmailPayslip(employee)}
+                                  disabled={!!emailLoading}
+                                >
+                                  {emailLoading === employee.employee_id ? (
+                                    <CircularProgress size={16} />
+                                  ) : (
+                                    <EmailIcon />
+                                  )}
+                                </IconButton>
+                              </Tooltip>
+                            </>
+                          )}
+                        </Box>
                       </TableCell>
                     </TableRow>
-                  ) : (
-                    employees.map((employee) => (
-                      <TableRow key={employee.employee_id}>
-                        <TableCell>{employee.employee_id}</TableCell>
-                        <TableCell>{employee.name}</TableCell>
-                        <TableCell>{employee.department}</TableCell>
-                        <TableCell>
-                          {employee.payout ? payoutService.formatCurrency(employee.payout.gross_salary) : 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          {employee.payout ? payoutService.formatCurrency(employee.payout.net_salary) : 'N/A'}
-                        </TableCell>
-                        <TableCell>
-                          {employee.payout ? (
-                            <Chip
-                              label={employee.payout.status}
-                              color={employee.payout.status === 'paid' ? 'success' : 'default'}
-                              size="small"
-                            />
-                          ) : (
-                            <Chip label="No Payout" color="error" size="small" />
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', gap: 1 }}>
-                            {employee.hasPayslip && employee.payout && (
-                              <>
-                                <Tooltip title="View Payslip">
-                                  <IconButton size="small">
-                                    <VisibilityIcon />
-                                  </IconButton>
-                                </Tooltip>
-                                <Tooltip title="Download Payslip">
-                                  <IconButton size="small">
-                                    <DownloadIcon />
-                                  </IconButton>
-                                </Tooltip>
-                                <Tooltip title="Email Payslip">
-                                  <IconButton
-                                    size="small"
-                                    onClick={() => handleEmailPayslip(employee)}
-                                    disabled={!!emailLoading}
-                                  >
-                                    {emailLoading === employee.employee_id ? (
-                                      <CircularProgress size={16} />
-                                    ) : (
-                                      <EmailIcon />
-                                    )}
-                                  </IconButton>
-                                </Tooltip>
-                              </>
-                            )}
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </Card>
-
-        {/* Bulk Results Dialog */}
-        <Dialog open={bulkDialogOpen} onClose={handleCloseBulkDialog}>
-          <DialogTitle>Bulk Operation Results</DialogTitle>
-          <DialogContent>
-            {bulkResults && (
-              <Box>
-                <Typography variant="body1" gutterBottom>
-                  <strong>Successful:</strong> {bulkResults.success}
-                </Typography>
-                <Typography variant="body1" gutterBottom>
-                  <strong>Failed:</strong> {bulkResults.failed}
-                </Typography>
-                {bulkResults.errors.length > 0 && (
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="body2" color="error" gutterBottom>
-                      Errors:
-                    </Typography>
-                    {bulkResults.errors.map((error, index) => (
-                      <Typography key={index} variant="body2" color="error">
-                        • {error}
-                      </Typography>
-                    ))}
-                  </Box>
+                  ))
                 )}
-              </Box>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseBulkDialog}>Close</Button>
-          </DialogActions>
-        </Dialog>
-      </Box>
-    </PageLayout>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+
+      {/* Bulk Results Dialog */}
+      <Dialog open={bulkDialogOpen} onClose={handleCloseBulkDialog}>
+        <DialogTitle>Bulk Operation Results</DialogTitle>
+        <DialogContent>
+          {bulkResults && (
+            <Box>
+              <Typography variant="body1" gutterBottom>
+                <strong>Successful:</strong> {bulkResults.success}
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                <strong>Failed:</strong> {bulkResults.failed}
+              </Typography>
+              {bulkResults.errors.length > 0 && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="body2" color="error" gutterBottom>
+                    Errors:
+                  </Typography>
+                  {bulkResults.errors.map((error, index) => (
+                    <Typography key={index} variant="body2" color="error">
+                      • {error}
+                    </Typography>
+                  ))}
+                </Box>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseBulkDialog}>Close</Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
 

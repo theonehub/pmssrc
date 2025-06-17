@@ -46,6 +46,13 @@ export interface PayrollAnalytics {
   average_salary: number;
   department_salary_distribution: Record<string, number>;
   salary_trends: Record<string, any>;
+  
+  // TDS Analytics
+  total_tds_current_month: number;
+  average_tds_per_employee: number;
+  tds_trends: Record<string, any>;
+  department_tds_distribution: Record<string, any>;
+  
   generated_at: string;
 }
 

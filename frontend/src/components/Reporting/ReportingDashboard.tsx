@@ -213,68 +213,6 @@ const ReportingDashboard: React.FC = () => {
 
     return (
       <Grid container spacing={4}>
-        {/* User Management Module */}
-        <Grid item xs={12}>
-          <Typography variant="h5" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
-            👥 User Management
-          </Typography>
-        </Grid>
-        
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center">
-                <PeopleIcon color="primary" sx={{ mr: 2 }} />
-                <Box>
-                  <Typography variant="h4">{dashboard_analytics?.total_users || 0}</Typography>
-                  <Typography color="textSecondary">Total Users</Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center">
-                <PeopleIcon color="success" sx={{ mr: 2 }} />
-                <Box>
-                  <Typography variant="h4">{dashboard_analytics?.active_users || 0}</Typography>
-                  <Typography color="textSecondary">Active Users</Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center">
-                <PeopleIcon color="error" sx={{ mr: 2 }} />
-                <Box>
-                  <Typography variant="h4">{dashboard_analytics?.inactive_users || 0}</Typography>
-                  <Typography color="textSecondary">Inactive Users</Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center">
-                <PeopleIcon color="info" sx={{ mr: 2 }} />
-                <Box>
-                  <Typography variant="h4">{dashboard_analytics?.recent_joiners_count || 0}</Typography>
-                  <Typography color="textSecondary">Recent Joiners</Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
 
         {/* Attendance Module */}
         <Grid item xs={12} sx={{ mt: 2 }}>
@@ -324,6 +262,74 @@ const ReportingDashboard: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
+
+
+         {/* Payroll Management Module */}
+         {consolidatedData?.payroll_analytics && (
+          <>
+            <Grid item xs={12} sx={{ mt: 2 }}>
+              <Typography variant="h5" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+                💰 Payroll Management
+              </Typography>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Box display="flex" alignItems="center">
+                    <PeopleIcon color="primary" sx={{ mr: 2 }} />
+                    <Box>
+                      <Typography variant="h4">{consolidatedData.payroll_analytics.total_payouts_current_month || 0}</Typography>
+                      <Typography color="textSecondary">Employees on Payroll</Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Box display="flex" alignItems="center">
+                    <AssessmentIcon color="success" sx={{ mr: 2 }} />
+                    <Box>
+                      <Typography variant="h4">₹{(consolidatedData.payroll_analytics.total_amount_current_month || 0).toLocaleString()}</Typography>
+                      <Typography color="textSecondary">Monthly Payroll</Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Box display="flex" alignItems="center">
+                    <ReceiptIcon color="info" sx={{ mr: 2 }} />
+                    <Box>
+                      <Typography variant="h4">₹{(consolidatedData.payroll_analytics.average_salary || 0).toLocaleString()}</Typography>
+                      <Typography color="textSecondary">Average Salary</Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            <Grid item xs={12} sm={6} md={3}>
+              <Card>
+                <CardContent>
+                  <Box display="flex" alignItems="center">
+                    <AssessmentIcon color="warning" sx={{ mr: 2 }} />
+                    <Box>
+                      <Typography variant="h4">₹{((consolidatedData.payroll_analytics.total_amount_current_month || 0) * 12).toLocaleString()}</Typography>
+                      <Typography color="textSecondary">Annual Cost</Typography>
+                    </Box>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          </>
+        )}
 
         {/* Reimbursement Module */}
         <Grid item xs={12} sx={{ mt: 2 }}>
@@ -409,6 +415,71 @@ const ReportingDashboard: React.FC = () => {
           </>
         )}
 
+
+        {/* User Management Module */}
+        <Grid item xs={12}>
+          <Typography variant="h5" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
+            👥 User Management
+          </Typography>
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center">
+                <PeopleIcon color="primary" sx={{ mr: 2 }} />
+                <Box>
+                  <Typography variant="h4">{dashboard_analytics?.total_users || 0}</Typography>
+                  <Typography color="textSecondary">Total Users</Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center">
+                <PeopleIcon color="success" sx={{ mr: 2 }} />
+                <Box>
+                  <Typography variant="h4">{dashboard_analytics?.active_users || 0}</Typography>
+                  <Typography color="textSecondary">Active Users</Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center">
+                <PeopleIcon color="error" sx={{ mr: 2 }} />
+                <Box>
+                  <Typography variant="h4">{dashboard_analytics?.inactive_users || 0}</Typography>
+                  <Typography color="textSecondary">Inactive Users</Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box display="flex" alignItems="center">
+                <PeopleIcon color="info" sx={{ mr: 2 }} />
+                <Box>
+                  <Typography variant="h4">{dashboard_analytics?.recent_joiners_count || 0}</Typography>
+                  <Typography color="textSecondary">Recent Joiners</Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+
         {/* Leave Management Module */}
         <Grid item xs={12} sx={{ mt: 2 }}>
           <Typography variant="h5" gutterBottom sx={{ color: 'info.main', fontWeight: 'bold' }}>
@@ -429,6 +500,8 @@ const ReportingDashboard: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
+
+       
 
         {/* Distribution Charts Section */}
         <Grid item xs={12} sx={{ mt: 4 }}>
@@ -584,6 +657,312 @@ const ReportingDashboard: React.FC = () => {
               <Typography variant="h4" color="error.main">
                 {attendance_analytics?.absent_count || 0}
               </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    );
+  };
+
+  const renderPayrollAnalyticsTab = () => {
+    if (!consolidatedData?.payroll_analytics) {
+      return (
+        <Alert severity="info">
+          No payroll data available for the selected period.
+        </Alert>
+      );
+    }
+
+    const payrollData = consolidatedData.payroll_analytics;
+
+    return (
+      <Grid container spacing={3}>
+        {/* Summary Cards */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">Total Employees</Typography>
+              <Typography variant="h4" color="primary">
+                {payrollData.total_payouts_current_month || 0}
+              </Typography>
+              <Typography color="textSecondary">
+                Current month payouts
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">Total Payroll</Typography>
+              <Typography variant="h4" color="success.main">
+                ₹{(payrollData.total_amount_current_month || 0).toLocaleString()}
+              </Typography>
+              <Typography color="textSecondary">
+                Gross monthly amount
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">Average Salary</Typography>
+              <Typography variant="h4" color="info.main">
+                ₹{(payrollData.average_salary || 0).toLocaleString()}
+              </Typography>
+              <Typography color="textSecondary">
+                Per employee
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6">Total TDS</Typography>
+              <Typography variant="h4" color="warning.main">
+                ₹{(payrollData.total_tds_current_month || 0).toLocaleString()}
+              </Typography>
+              <Typography color="textSecondary">
+                Tax deducted at source
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Department Distribution */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Department Salary Distribution</Typography>
+              <Box>
+                {Object.keys(payrollData.department_salary_distribution || {}).length > 0 ? (
+                  Object.entries(payrollData.department_salary_distribution || {}).map(([dept, data]: [string, any]) => (
+                    <Box key={dept} display="flex" justifyContent="space-between" alignItems="center" py={1}>
+                      <Box>
+                        <Typography variant="body1">{dept}</Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          {data.count || 0} employees
+                        </Typography>
+                      </Box>
+                      <Box textAlign="right">
+                        <Chip 
+                          label={`₹${(data.average_gross || 0).toLocaleString()}`} 
+                          color="primary" 
+                          size="small" 
+                        />
+                        <Typography variant="body2" color="textSecondary">
+                          Avg: ₹{(data.total_gross || 0).toLocaleString()}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ))
+                ) : (
+                  <Typography color="textSecondary">No department data available</Typography>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Salary Trends */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Monthly Salary Trends</Typography>
+              <Box>
+                {Object.keys(payrollData.salary_trends || {}).length > 0 ? (
+                  Object.entries(payrollData.salary_trends || {}).map(([month, data]: [string, any]) => (
+                    <Box key={month} display="flex" justifyContent="space-between" alignItems="center" py={1}>
+                      <Typography variant="body1">{month}</Typography>
+                      <Box textAlign="right">
+                        <Typography variant="body1">
+                          {data.total_payouts || 0} payouts
+                        </Typography>
+                        <Typography variant="body2" color="primary">
+                          ₹{(data.total_amount || 0).toLocaleString()}
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          Avg: ₹{(data.average_salary || 0).toLocaleString()}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ))
+                ) : (
+                  <Typography color="textSecondary">No trend data available</Typography>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* TDS Trends */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>TDS Trends</Typography>
+              <Box>
+                {Object.keys(payrollData.tds_trends || {}).length > 0 ? (
+                  Object.entries(payrollData.tds_trends || {}).map(([month, data]: [string, any]) => (
+                    <Box key={month} display="flex" justifyContent="space-between" alignItems="center" py={1}>
+                      <Typography variant="body1">{month}</Typography>
+                      <Box textAlign="right">
+                        <Typography variant="body1" color="warning.main">
+                          ₹{(data.total_tds || 0).toLocaleString()}
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          Avg: ₹{(data.average_tds || 0).toLocaleString()}
+                        </Typography>
+                        <Typography variant="body2" color="info.main">
+                          {data.tds_percentage || 0}% of gross
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ))
+                ) : (
+                  <Typography color="textSecondary">No TDS trend data available</Typography>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Department TDS Distribution */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Department TDS Distribution</Typography>
+              <Box>
+                {Object.keys(payrollData.department_tds_distribution || {}).length > 0 ? (
+                  Object.entries(payrollData.department_tds_distribution || {}).map(([dept, data]: [string, any]) => (
+                    <Box key={dept} display="flex" justifyContent="space-between" alignItems="center" py={1}>
+                      <Box>
+                        <Typography variant="body1">{dept}</Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          {data.count || 0} employees
+                        </Typography>
+                      </Box>
+                      <Box textAlign="right">
+                        <Chip 
+                          label={`₹${(data.average_tds || 0).toLocaleString()}`} 
+                          color="warning" 
+                          size="small" 
+                        />
+                        <Typography variant="body2" color="textSecondary">
+                          Total: ₹{(data.total_tds || 0).toLocaleString()}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ))
+                ) : (
+                  <Typography color="textSecondary">No department TDS data available</Typography>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Payroll Breakdown */}
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Payroll Components Analysis</Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="subtitle1" color="primary">Gross Pay</Typography>
+                      <Typography variant="h5">
+                        ₹{(payrollData.total_amount_current_month || 0).toLocaleString()}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        100% of total payroll
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="subtitle1" color="warning.main">TDS Deducted</Typography>
+                      <Typography variant="h5">
+                        ₹{(payrollData.total_tds_current_month || 0).toLocaleString()}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        Avg: ₹{(payrollData.average_tds_per_employee || 0).toLocaleString()} per employee
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="subtitle1" color="info.main">Estimated EPF</Typography>
+                      <Typography variant="h5">
+                        ₹{((payrollData.total_amount_current_month || 0) * 0.12).toLocaleString()}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        ~12% of basic pay
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card variant="outlined">
+                    <CardContent>
+                      <Typography variant="subtitle1" color="success.main">Estimated Net Pay</Typography>
+                      <Typography variant="h5">
+                        ₹{((payrollData.total_amount_current_month || 0) - (payrollData.total_tds_current_month || 0) - ((payrollData.total_amount_current_month || 0) * 0.12)).toLocaleString()}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        After TDS & EPF deductions
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Quick Actions */}
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>Payroll Actions</Typography>
+              <Box display="flex" gap={2}>
+                <Button 
+                  variant="outlined" 
+                  startIcon={<DownloadIcon />}
+                  onClick={() => handleExport('excel', 'payroll')}
+                >
+                  Export Payroll Report
+                </Button>
+                <Button 
+                  variant="outlined" 
+                  startIcon={<GetAppIcon />}
+                  onClick={() => handleExport('csv', 'payroll')}
+                >
+                  Export CSV
+                </Button>
+                <Button 
+                  variant="contained" 
+                  color="primary"
+                  onClick={() => {
+                    // Navigate to payroll management
+                    window.location.href = '/admin-payouts';
+                  }}
+                >
+                  Manage Payroll
+                </Button>
+              </Box>
             </CardContent>
           </Card>
         </Grid>
@@ -912,8 +1291,7 @@ const ReportingDashboard: React.FC = () => {
       </TabPanel>
 
       <TabPanel value={tabValue} index={4}>
-        <Typography variant="h6">Payroll Analytics</Typography>
-        <Alert severity="info">Payroll analytics coming soon...</Alert>
+        {renderPayrollAnalyticsTab()}
       </TabPanel>
 
       <TabPanel value={tabValue} index={5}>

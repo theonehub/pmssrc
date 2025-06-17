@@ -32,7 +32,6 @@ import {
   Receipt as ReceiptIcon
 } from '@mui/icons-material';
 import payoutService from '../../shared/services/payoutService';
-import PageLayout from '../../layout/PageLayout';
 import { usePayrollsQuery, Payout as PayrollPayout } from '../../shared/hooks/usePayrolls';
 
 // Type definitions
@@ -150,26 +149,23 @@ const MyPayslips: React.FC = () => {
 
   if (isLoading) {
     return (
-      <PageLayout title="My Payslips">
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
           <CircularProgress />
         </Box>
-      </PageLayout>
     );
   }
 
   if (error) {
     return (
-      <PageLayout title="My Payslips">
+      <Box>
         <Alert severity="error" sx={{ m: 3 }}>
           {error}
         </Alert>
-      </PageLayout>
+      </Box>
     );
   }
 
   return (
-    <PageLayout title="My Payslips">
       <Box>
         <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
           <FormControl size="small">
@@ -441,7 +437,6 @@ const MyPayslips: React.FC = () => {
           </DialogActions>
         </Dialog>
       </Box>
-    </PageLayout>
   );
 };
 

@@ -345,6 +345,13 @@ class PayrollAnalyticsDTO:
     average_salary: float
     department_salary_distribution: Dict[str, Any]
     salary_trends: Dict[str, Any]
+    
+    # TDS Analytics
+    total_tds_current_month: float = 0.0
+    average_tds_per_employee: float = 0.0
+    tds_trends: Dict[str, Any] = field(default_factory=dict)
+    department_tds_distribution: Dict[str, Any] = field(default_factory=dict)
+    
     generated_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
 
 

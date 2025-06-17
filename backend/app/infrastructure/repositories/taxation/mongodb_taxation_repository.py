@@ -1177,8 +1177,7 @@ class MongoDBTaxationRepository(TaxationRepository):
         """
         collection = await self._get_collection(organization_id)
         cursor = collection.find({
-            "tax_year": str(tax_year),
-            "organization_id": organization_id
+            "tax_year": str(tax_year)
         }).skip(offset).limit(limit).sort("created_at", -1)
         
         documents = await cursor.to_list(length=None)

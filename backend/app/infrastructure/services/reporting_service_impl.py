@@ -421,18 +421,185 @@ class ReportingServiceImpl(ReportingService):
         start_date: Optional[str] = None,
         end_date: Optional[str] = None
     ) -> PayrollAnalyticsDTO:
-        """Get payroll analytics data."""
+        """Get payroll analytics data from taxation records."""
         try:
             logger.info(f"Getting payroll analytics for organisation: {current_user.hostname}")
             
-            # For now, return placeholder data
-            # TODO: Implement when payroll repository methods are available
+            # Get current month/year for default filtering
+            from datetime import datetime, date
+            current_date = datetime.now()
+            
+            # For now, we'll get all taxation records and aggregate payroll data
+            # This would be optimized in production with proper indexes and aggregation pipelines
+            
+            # Get organization ID from hostname
+            organization_id = current_user.hostname
+            
+            # Initialize aggregation variables
+            total_payouts = 0
+            total_gross_amount = 0.0
+            total_net_amount = 0.0
+            total_deductions = 0.0
+            total_tds = 0.0
+            employee_salaries = []
+            employee_tds_amounts = []
+            department_breakdown = {}
+            salary_trends = {}
+            tds_trends = {}
+            department_tds_breakdown = {}
+            
+            try:
+                # Import taxation repository to get records
+                from app.config.dependency_container import DependencyContainer
+                from app.domain.value_objects.tax_year import TaxYear
+                
+                container = DependencyContainer()
+                taxation_repository = container.get_taxation_repository()
+                
+                # Get current tax year
+                current_tax_year = str(TaxYear.current())
+                
+                # Get all taxation records for current tax year
+                taxation_records = await taxation_repository.get_by_tax_year(
+                    tax_year=current_tax_year,
+                    organization_id=organization_id,
+                    limit=1000  # Increase limit for analytics
+                )
+                
+                logger.info(f"Found {len(taxation_records)} taxation records for analytics")
+                
+                # Process each taxation record
+                for record in taxation_records:
+                    # Check if record has monthly payroll data
+                    if hasattr(record, 'monthly_payroll') and record.monthly_payroll:
+                        payroll = record.monthly_payroll
+                        
+                        # Aggregate totals
+                        total_payouts += 1
+                        total_gross_amount += payroll.gross_salary
+                        total_net_amount += payroll.net_salary
+                        total_deductions += payroll.total_deductions
+                        
+                        # Aggregate TDS data
+                        payroll_tds = getattr(payroll, 'tds', 0.0)
+                        total_tds += payroll_tds
+                        
+                        # Store individual amounts for average calculations
+                        employee_salaries.append(payroll.gross_salary)
+                        employee_tds_amounts.append(payroll_tds)
+                        
+                        # Department breakdown (we'll need to get department from user data)
+                        # For now, using a placeholder
+                        dept_name = "General"  # Would be fetched from user repository
+                        if dept_name not in department_breakdown:
+                            department_breakdown[dept_name] = {
+                                "count": 0,
+                                "total_gross": 0.0,
+                                "total_net": 0.0,
+                                "average_gross": 0.0
+                            }
+                        
+                        if dept_name not in department_tds_breakdown:
+                            department_tds_breakdown[dept_name] = {
+                                "count": 0,
+                                "total_tds": 0.0,
+                                "average_tds": 0.0
+                            }
+                        
+                        department_breakdown[dept_name]["count"] += 1
+                        department_breakdown[dept_name]["total_gross"] += payroll.gross_salary
+                        department_breakdown[dept_name]["total_net"] += payroll.net_salary
+                        
+                        department_tds_breakdown[dept_name]["count"] += 1
+                        department_tds_breakdown[dept_name]["total_tds"] += payroll_tds
+                    
+                    # Fallback to salary income if no monthly payroll
+                    elif hasattr(record, 'salary_income') and record.salary_income:
+                        salary_income = record.salary_income
+                        
+                        # Calculate monthly equivalent
+                        annual_gross = salary_income.calculate_gross_salary()
+                        monthly_gross = annual_gross.to_float() / 12
+                        
+                        # Estimate monthly net (assuming 20% deductions)
+                        monthly_net = monthly_gross * 0.8
+                        monthly_deductions = monthly_gross * 0.2
+                        
+                        # Estimate monthly TDS from annual tax liability if available
+                        monthly_tds = 0.0
+                        if hasattr(record, 'annual_tax_liability') and record.annual_tax_liability:
+                            try:
+                                annual_tax = float(record.annual_tax_liability)
+                                monthly_tds = annual_tax / 12
+                            except (ValueError, TypeError):
+                                monthly_tds = 0.0
+                        else:
+                            # Fallback: estimate TDS as 10% of monthly gross (rough estimate)
+                            monthly_tds = monthly_gross * 0.1
+                        
+                        # Aggregate totals
+                        total_payouts += 1
+                        total_gross_amount += monthly_gross
+                        total_net_amount += monthly_net
+                        total_deductions += monthly_deductions
+                        total_tds += monthly_tds
+                        
+                        # Store individual amounts for average calculations
+                        employee_salaries.append(monthly_gross)
+                        employee_tds_amounts.append(monthly_tds)
+                
+                # Calculate department averages
+                for dept_data in department_breakdown.values():
+                    if dept_data["count"] > 0:
+                        dept_data["average_gross"] = dept_data["total_gross"] / dept_data["count"]
+                
+                # Calculate department TDS averages
+                for dept_name, dept_tds_data in department_tds_breakdown.items():
+                    if dept_tds_data["count"] > 0:
+                        dept_tds_data["average_tds"] = dept_tds_data["total_tds"] / dept_tds_data["count"]
+                
+                # Generate monthly trends (simplified - would be more sophisticated in production)
+                current_month = current_date.strftime("%Y-%m")
+                salary_trends = {
+                    current_month: {
+                        "total_payouts": round(total_payouts, 0),
+                        "total_amount": round(total_gross_amount, 0),
+                        "average_salary": round(sum(employee_salaries) / len(employee_salaries) if employee_salaries else 0.0, 0)
+                    }
+                }
+                
+                # Generate TDS trends
+                tds_trends = {
+                    current_month: {
+                        "total_tds": round(total_tds, 0),
+                        "average_tds": round(sum(employee_tds_amounts) / len(employee_tds_amounts) if employee_tds_amounts else 0.0, 0),
+                        "tds_percentage": round((total_tds / total_gross_amount * 100) if total_gross_amount > 0 else 0.0, 2)
+                    }
+                }
+                
+                logger.info(f"Processed payroll analytics: {total_payouts} payouts, ₹{total_gross_amount:.2f} total, ₹{total_tds:.2f} TDS")
+                
+            except Exception as e:
+                logger.warning(f"Error processing taxation records for payroll analytics: {e}")
+                # Return empty data if taxation processing fails
+                pass
+            
+            # Calculate average salary and TDS
+            average_salary = sum(employee_salaries) / len(employee_salaries) if employee_salaries else 0.0
+            average_tds = sum(employee_tds_amounts) / len(employee_tds_amounts) if employee_tds_amounts else 0.0
+            
             analytics = PayrollAnalyticsDTO(
-                total_payouts_current_month=0,
-                total_amount_current_month=0.0,
-                average_salary=0.0,
-                department_salary_distribution={},
-                salary_trends={}
+                total_payouts_current_month=round(total_payouts, 0),
+                total_amount_current_month=round(total_gross_amount, 0),
+                average_salary=round(average_salary, 0),
+                department_salary_distribution=department_breakdown,
+                salary_trends=salary_trends,
+                
+                # TDS Analytics
+                total_tds_current_month=round(total_tds, 0),
+                average_tds_per_employee=round(average_tds, 0),
+                tds_trends=tds_trends,
+                department_tds_distribution=department_tds_breakdown
             )
             
             logger.info(f"Successfully generated payroll analytics for organisation: {current_user.hostname}")
@@ -445,7 +612,11 @@ class ReportingServiceImpl(ReportingService):
                 total_amount_current_month=0.0,
                 average_salary=0.0,
                 department_salary_distribution={},
-                salary_trends={}
+                salary_trends={},
+                total_tds_current_month=0,
+                average_tds_per_employee=0.0,
+                tds_trends={},
+                department_tds_distribution={}
             )
     
     async def get_reimbursement_analytics(
@@ -479,14 +650,14 @@ class ReportingServiceImpl(ReportingService):
             
             # Calculate statistics
             pending_count = len(pending_reimbursements)
-            pending_amount = sum(
+            pending_amount = float(sum(
                 reimbursement.amount for reimbursement in pending_reimbursements
-            )
+            ))
             
             approved_count = len(approved_reimbursements)
-            approved_amount = sum(
+            approved_amount = float(sum(
                 reimbursement.amount for reimbursement in approved_reimbursements
-            )
+            ))
             
             # Create type distribution
             type_distribution = {}
@@ -501,8 +672,8 @@ class ReportingServiceImpl(ReportingService):
             monthly_trends = {}
             current_month = end_dt.strftime("%Y-%m")
             monthly_trends[current_month] = {
-                "pending": {"count": pending_count, "amount": pending_amount},
-                "approved": {"count": approved_count, "amount": approved_amount}
+                "pending": {"count": pending_count, "amount": float(pending_amount)},
+                "approved": {"count": approved_count, "amount": float(approved_amount)}
             }
             
             analytics = ReimbursementAnalyticsDTO(
@@ -582,7 +753,11 @@ class ReportingServiceImpl(ReportingService):
                 payroll_analytics=PayrollAnalyticsDTO(
                     total_payouts_current_month=0, total_amount_current_month=0.0,
                     average_salary=0.0, department_salary_distribution={},
-                    salary_trends={}
+                    salary_trends={},
+                    total_tds_current_month=0,
+                    average_tds_per_employee=0.0,
+                    tds_trends={},
+                    department_tds_distribution={}
                 ),
                 reimbursement_analytics=ReimbursementAnalyticsDTO(
                     total_pending_reimbursements=0, total_pending_amount=0.0,

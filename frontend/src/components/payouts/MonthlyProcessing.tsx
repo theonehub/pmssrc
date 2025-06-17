@@ -30,7 +30,6 @@ import {
 import { useTheme } from '@mui/material/styles';
 import { usePayrollsQuery } from '../../shared/hooks/usePayrolls';
 import payoutService from '../../shared/services/payoutService';
-import PageLayout from '../../layout/PageLayout';
 
 // Type definitions
 interface YearOption {
@@ -110,16 +109,13 @@ const MonthlyProcessing: React.FC = () => {
 
   if (isLoading) {
     return (
-      <PageLayout title="Monthly Processing">
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
           <CircularProgress />
         </Box>
-      </PageLayout>
     );
   }
 
   return (
-    <PageLayout title="Monthly Processing">
       <Box>
         {error && (
           <Alert severity="error" sx={{ mb: 3 }}>
@@ -272,7 +268,6 @@ const MonthlyProcessing: React.FC = () => {
           </CardContent>
         </Card>
       </Box>
-    </PageLayout>
   );
 };
 

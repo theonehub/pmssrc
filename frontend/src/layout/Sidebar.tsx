@@ -211,12 +211,6 @@ const Sidebar: React.FC = () => {
           roles: ['user', 'manager', 'admin', 'superadmin'],
         },
         {
-          title: 'Tax Declaration',
-          icon: <CalculateIcon />,
-          path: '/taxation/declaration',
-          roles: ['user', 'manager', 'admin', 'superadmin'],
-        },
-        {
           title: 'Employee Tax Selection',
           icon: <PeopleIcon />,
           path: '/taxation/employee-selection',

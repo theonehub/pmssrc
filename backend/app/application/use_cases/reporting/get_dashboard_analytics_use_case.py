@@ -226,11 +226,11 @@ class GetDashboardAnalyticsUseCase:
             
             return {
                 "pending_count": pending_count,
-                "pending_amount": pending_amount,
+                "pending_amount": round(pending_amount, 0),
                 "approved_count": approved_count,
-                "approved_amount": approved_amount,
+                "approved_amount": round(approved_amount, 0),
                 "total_count": pending_count + approved_count,
-                "total_amount": pending_amount + approved_amount,
+                "total_amount": round(pending_amount + approved_amount, 0),
                 "timespan_days": 30
             }
             

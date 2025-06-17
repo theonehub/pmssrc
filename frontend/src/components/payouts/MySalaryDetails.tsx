@@ -14,7 +14,6 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import payoutService from '../../shared/services/payoutService';
-import PageLayout from '../../layout/PageLayout';
 import { usePayrollsQuery } from '../../shared/hooks/usePayrolls';
 
 interface YearOption {
@@ -89,27 +88,25 @@ const MySalaryDetails: React.FC = () => {
 
   if (isLoading) {
     return (
-      <PageLayout title="My Salary Details">
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
           <CircularProgress />
         </Box>
-      </PageLayout>
     );
   }
 
   if (!latestPayout) {
     return (
-      <PageLayout title="My Salary Details">
+      <Box>
         <Alert severity="info" sx={{ m: 3 }}>
           No salary details found for the selected period.
         </Alert>
-      </PageLayout>
+      </Box>
     );
   }
 
   return (
-    <PageLayout title="My Salary Details">
       <Box>
+        {/* Filters */}
         <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
           <FormControl size="small">
             <InputLabel>Financial Year</InputLabel>
@@ -143,6 +140,7 @@ const MySalaryDetails: React.FC = () => {
           </FormControl>
         </Box>
 
+        {/* Salary Breakdown */}
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, mb: 3 }}>
           {/* Salary Breakdown */}
           <Card>
@@ -203,7 +201,6 @@ const MySalaryDetails: React.FC = () => {
           </CardContent>
         </Card>
       </Box>
-    </PageLayout>
   );
 };
 

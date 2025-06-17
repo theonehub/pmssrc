@@ -31,7 +31,6 @@ import {
   Visibility as VisibilityIcon
 } from '@mui/icons-material';
 import payoutService from '../../shared/services/payoutService';
-import PageLayout from '../../layout/PageLayout';
 import { usePayrollsQuery } from '../../shared/hooks/usePayrolls';
 
 // Type definitions
@@ -112,26 +111,21 @@ const AdminPayouts: React.FC = () => {
 
   if (isLoading) {
     return (
-      <PageLayout title="Admin Payouts">
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
           <CircularProgress />
         </Box>
-      </PageLayout>
     );
   }
 
   if (error) {
     return (
-      <PageLayout title="Admin Payouts">
         <Alert severity="error" sx={{ m: 3 }}>
           {error}
         </Alert>
-      </PageLayout>
     );
   }
 
   return (
-    <PageLayout title="Admin Payouts">
       <Box>
         <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
           <FormControl size="small">
@@ -308,7 +302,6 @@ const AdminPayouts: React.FC = () => {
           </DialogActions>
         </Dialog>
       </Box>
-    </PageLayout>
   );
 };
 

@@ -377,7 +377,11 @@ class ReportingController:
                 total_amount_current_month=0.0,
                 average_salary=0.0,
                 department_salary_distribution={},
-                salary_trends={}
+                salary_trends={},
+                total_tds_current_month=0.0,
+                average_tds_per_employee=0.0,
+                tds_trends={},
+                department_tds_distribution={}
             )
     
     async def get_reimbursement_analytics(
@@ -450,7 +454,11 @@ class ReportingController:
                 payroll_analytics=PayrollAnalyticsDTO(
                     total_payouts_current_month=0, total_amount_current_month=0.0,
                     average_salary=0.0, department_salary_distribution={},
-                    salary_trends={}
+                    salary_trends={},
+                    total_tds_current_month=0.0,
+                    average_tds_per_employee=0.0,
+                    tds_trends={},
+                    department_tds_distribution={}
                 ),
                 reimbursement_analytics=ReimbursementAnalyticsDTO(
                     total_pending_reimbursements=0, total_pending_amount=0.0,

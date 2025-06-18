@@ -26,7 +26,6 @@ from app.infrastructure.services.regime_comparison_service_impl import RegimeCom
 from app.infrastructure.services.reimbursement_service_impl import ReimbursementServiceImpl
 from app.infrastructure.services.project_attributes_service_impl import ProjectAttributesServiceImpl
 from app.infrastructure.services.employee_leave_service_impl import EmployeeLeaveServiceImpl
-from app.infrastructure.services.payout_service_impl import PayoutServiceImpl
 from app.infrastructure.services.reporting_service_impl import ReportingServiceImpl
 
 # Command handlers

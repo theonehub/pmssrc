@@ -33,13 +33,6 @@ import EmployeeTaxDetail from './components/taxation/EmployeeTaxDetail';
 import EmployeeSelection from './components/taxation/EmployeeSelection';
 import MonthlyProjections from './components/taxation/MonthlyProjections';
 
-// Payout Pages
-import MySalaryDetails from './components/payouts/MySalaryDetails';
-import MyPayslips from './components/payouts/MyPayslips';
-import AdminPayouts from './components/payouts/AdminPayouts';
-import PayoutReports from './components/payouts/PayoutReports';
-import MonthlyProcessing from './components/payouts/MonthlyProcessing';
-
 // Reporting Pages
 import ReportingDashboard from './components/Reporting/ReportingDashboard';
 
@@ -164,28 +157,6 @@ const AppContent: React.FC = () => {
           <Route
             path="/taxation/monthly-projections"
             element={withLayout(<MonthlyProjections />, 'Monthly Projections', ['user', 'manager', 'admin', 'superadmin'])}
-          />
-
-          {/* Payout Routes */}
-          <Route
-            path="/payouts/my-salary"
-            element={withLayout(<MySalaryDetails />, 'My Salary', ['user', 'manager', 'admin', 'superadmin'])}
-          />
-          <Route
-            path="/payouts/my-payslips"
-            element={withLayout(<MyPayslips />, 'My Payslips', ['user', 'manager', 'admin', 'superadmin'])}
-          />
-          <Route
-            path="/payouts/admin"
-            element={withLayout(<AdminPayouts />, 'Admin Payouts', ['admin', 'superadmin'])}
-          />
-          <Route
-            path="/payouts/monthly"
-            element={withLayout(<MonthlyProcessing />, 'Monthly Processing', ['admin', 'superadmin'])}
-          />
-          <Route
-            path="/payouts/reports"
-            element={withLayout(<PayoutReports />, 'Payout Reports', ['manager', 'admin', 'superadmin'])}
           />
 
           {/* Reporting Routes */}

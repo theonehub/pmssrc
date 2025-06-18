@@ -78,7 +78,6 @@ export { default as LeavesAPI } from './leavesApi';
 export { default as EmployeeAPI } from './employeeApi';
 export { default as OrganizationAPI } from './organizationApi';
 export { default as TaxationAPI } from './taxationApi';
-export { default as PayoutService } from './payoutService'; // still JS but wrapped
 export { default as ReimbursementService } from './reimbursementService';
 
 // Note: Some services are in JS for now; they'll be converted to TS in later tasks. 

@@ -23,13 +23,12 @@ from app.application.interfaces.repositories.reimbursement_repository import (
 from app.application.interfaces.repositories.employee_repository import EmployeeQueryRepository
 from app.application.interfaces.services.event_publisher import EventPublisher
 from app.application.interfaces.services.notification_service import NotificationService
-from app.application.interfaces.services.payment_service import PaymentService
 
 
 logger = logging.getLogger(__name__)
 
 
-class ProcessReimbursementPaymentUseCase:
+class ProcessReimbursementPaymentUseCase:   
     """
     Use case for processing reimbursement payments.
     
@@ -48,7 +47,6 @@ class ProcessReimbursementPaymentUseCase:
         reimbursement_type_repository: ReimbursementTypeQueryRepository,
         employee_repository: EmployeeQueryRepository,
         event_publisher: EventPublisher,
-        payment_service: Optional[PaymentService] = None,
         notification_service: Optional[NotificationService] = None
     ):
         self.command_repository = command_repository
@@ -56,7 +54,6 @@ class ProcessReimbursementPaymentUseCase:
         self.reimbursement_type_repository = reimbursement_type_repository
         self.employee_repository = employee_repository
         self.event_publisher = event_publisher
-        self.payment_service = payment_service
         self.notification_service = notification_service
     
     async def execute(
@@ -233,43 +230,44 @@ class ProcessReimbursementPaymentUseCase:
     ) -> Optional[str]:
         """Process payment through external payment service"""
         
-        if not self.payment_service:
-            logger.info("No payment service configured, skipping external payment processing")
-            return payment_request.payment_reference
+        return "No payment service configured, skipping external payment processing"
+        # if not self.payment_service:
+        #     logger.info("No payment service configured, skipping external payment processing")
+        #     return payment_request.payment_reference
         
-        try:
-            # Get final amount to be paid
-            final_amount = reimbursement.get_final_amount()
+        # try:
+        #     # Get final amount to be paid
+        #     final_amount = reimbursement.get_final_amount()
             
-            # Prepare payment data
-            payment_data = {
-                "reimbursement_id": reimbursement.request_id,
-                "employee_id": reimbursement.employee_id.value,
-                "amount": final_amount.amount,
-                "currency": final_amount.currency,
-                "payment_method": payment_request.payment_method,
-                "employee_bank_details": employee.get_bank_details() if payment_request.payment_method == "bank_transfer" else None,
-                "description": f"Reimbursement payment for {reimbursement.reimbursement_type.name}"
-            }
+        #     # Prepare payment data
+        #     payment_data = {
+        #         "reimbursement_id": reimbursement.request_id,
+        #         "employee_id": reimbursement.employee_id.value,
+        #         "amount": final_amount.amount,
+        #         "currency": final_amount.currency,
+        #         "payment_method": payment_request.payment_method,
+        #         "employee_bank_details": employee.get_bank_details() if payment_request.payment_method == "bank_transfer" else None,
+        #         "description": f"Reimbursement payment for {reimbursement.reimbursement_type.name}"
+        #     }
             
-            # Process payment
-            payment_result = await self.payment_service.process_payment(payment_data)
+        #     # Process payment
+        #     payment_result = await self.payment_service.process_payment(payment_data)
             
-            if payment_result.success:
-                logger.info(f"External payment processed successfully: {payment_result.reference}")
-                return payment_result.reference
-            else:
-                raise ReimbursementBusinessRuleError(
-                    f"Payment processing failed: {payment_result.error_message}",
-                    "payment_processing_failed"
-                )
+        #     if payment_result.success:
+        #         logger.info(f"External payment processed successfully: {payment_result.reference}")
+        #         return payment_result.reference
+        #     else:
+        #         raise ReimbursementBusinessRuleError(
+        #             f"Payment processing failed: {payment_result.error_message}",
+        #             "payment_processing_failed"
+        #         )
                 
-        except Exception as e:
-            logger.error(f"External payment processing failed: {str(e)}")
-            raise ReimbursementBusinessRuleError(
-                f"Payment processing failed: {str(e)}",
-                "payment_processing_error"
-            )
+        # except Exception as e:
+        #     logger.error(f"External payment processing failed: {str(e)}")
+        #     raise ReimbursementBusinessRuleError(
+        #         f"Payment processing failed: {str(e)}",
+        #         "payment_processing_error"
+        #     )
     
     async def _update_domain_objects(
         self,

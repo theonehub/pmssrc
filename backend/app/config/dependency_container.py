@@ -15,6 +15,7 @@ from app.infrastructure.repositories.mongodb_reimbursement_repository import Mon
 from app.infrastructure.repositories.project_attributes_repository_impl import ProjectAttributesRepositoryImpl
 from app.infrastructure.repositories.employee_leave_repository_impl import EmployeeLeaveRepositoryImpl
 from app.infrastructure.repositories.mongodb_reporting_repository import MongoDBReportingRepository
+from app.infrastructure.repositories.monthly_payout_repository_impl import MonthlyPayoutRepositoryImpl
 
 # Service implementations
 from app.infrastructure.services.user_service_impl import UserServiceImpl
@@ -172,6 +173,7 @@ class DependencyContainer:
             project_attributes_repository = ProjectAttributesRepositoryImpl(self._database_connector)
             employee_leave_repository = EmployeeLeaveRepositoryImpl(self._database_connector)
             reporting_repository = MongoDBReportingRepository(self._database_connector)
+            monthly_payout_repository = MonthlyPayoutRepositoryImpl(self._database_connector)
             
             # Configure connection for all repositories using centralized config
             repositories = [
@@ -185,6 +187,7 @@ class DependencyContainer:
                 project_attributes_repository,
                 employee_leave_repository,
                 reporting_repository,
+                monthly_payout_repository,
             ]
             
             for repo in repositories:
@@ -205,6 +208,7 @@ class DependencyContainer:
             self._repositories['project_attributes'] = project_attributes_repository
             self._repositories['employee_leave'] = employee_leave_repository
             self._repositories['reporting'] = reporting_repository
+            self._repositories['monthly_payout'] = monthly_payout_repository
             
             logger.info("Repositories initialized with centralized MongoDB configuration")
             
@@ -411,6 +415,11 @@ class DependencyContainer:
         """Get taxation repository instance."""
         self.initialize()
         return self._repositories['taxation']
+    
+    def get_monthly_payout_repository(self) -> MonthlyPayoutRepositoryImpl:
+        """Get monthly payout repository instance."""
+        self.initialize()
+        return self._repositories['monthly_payout']
     
     # ==================== SERVICE GETTERS ====================
     
@@ -837,6 +846,29 @@ class DependencyContainer:
         
         return self._controllers['taxation']
     
+    def get_monthly_payout_controller(self):
+        """Get monthly payout controller instance."""
+        self.initialize()
+        
+        # Import here to avoid circular imports
+        from app.api.controllers.monthly_payout_controller import MonthlyPayoutController
+        
+        if 'monthly_payout' not in self._controllers:
+            # Create use case
+            from app.application.use_cases.payroll.compute_monthly_payout_use_case import ComputeMonthlyPayoutUseCase
+            compute_monthly_payout_use_case = ComputeMonthlyPayoutUseCase(
+                user_query_repository=self._repositories['user'],
+                taxation_query_repository=self._repositories['taxation'],
+                monthly_payout_repository=self._repositories['monthly_payout']
+            )
+            
+            # Create controller
+            self._controllers['monthly_payout'] = MonthlyPayoutController(
+                compute_payout_use_case=compute_monthly_payout_use_case
+            )
+        
+        return self._controllers['monthly_payout']
+    
     # ==================== UTILITY METHODS ====================
     
     async def cleanup(self):
@@ -1139,4 +1171,16 @@ def get_taxation_controller():
 def get_comprehensive_taxation_controller():
     """FastAPI dependency for comprehensive taxation controller (same as taxation controller)."""
     container = get_dependency_container()
-    return container.get_taxation_controller() 
+    return container.get_taxation_controller()
+
+
+def get_monthly_payout_controller():
+    """FastAPI dependency for monthly payout controller."""
+    container = get_dependency_container()
+    return container.get_monthly_payout_controller()
+
+
+def get_monthly_payout_repository() -> MonthlyPayoutRepositoryImpl:
+    """FastAPI dependency for monthly payout repository."""
+    container = get_dependency_container()
+    return container.get_monthly_payout_repository()

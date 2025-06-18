@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, validator
 from typing import Optional, Dict, List, Any
 from datetime import date, datetime
 from enum import Enum
+from decimal import Decimal
 
 
 class PayoutStatusEnum(str, Enum):
@@ -98,41 +99,42 @@ class PayoutUpdateRequestDTO(BaseModel):
 
 
 class BulkPayoutRequestDTO(BaseModel):
-    """Request DTO for bulk payout processing"""
-    employee_ids: List[str] = Field(..., min_items=1, max_items=1000)
-    month: int = Field(..., ge=1, le=12)
-    year: int = Field(..., ge=2020, le=2030)
-    auto_calculate_tax: bool = True
-    auto_approve: bool = False
-    override_salary: Optional[Dict[str, Dict[str, float]]] = None  # employee_id -> salary components
-    notes: Optional[str] = None
+    """Request DTO for bulk monthly payout computation."""
     
-    @validator('employee_ids')
-    def validate_employee_ids(cls, v):
-        if len(set(v)) != len(v):
-            raise ValueError("Duplicate employee IDs found")
-        return v
+    employee_ids: List[str] = Field(..., min_items=1, description="List of employee IDs")
+    month: int = Field(..., ge=1, le=12, description="Month (1-12)")
+    year: int = Field(..., ge=2020, le=2050, description="Year")
+    
+    # Employee-specific LWP and deduction details
+    employee_lwp_details: Dict[str, Dict[str, Any]] = Field(
+        default_factory=dict, 
+        description="Employee-specific LWP and deduction details"
+    )
+    
+    # Processing options
+    auto_approve: bool = Field(False, description="Auto-approve all payouts")
+    notes: Optional[str] = Field(None, description="Bulk processing notes")
 
 
 class PayoutSearchFiltersDTO(BaseModel):
-    """Request DTO for payout search filters"""
-    employee_id: Optional[str] = None
-    month: Optional[int] = Field(None, ge=1, le=12)
-    year: Optional[int] = Field(None, ge=2020, le=2030)
-    status: Optional[PayoutStatusEnum] = None
-    min_gross_salary: Optional[float] = Field(None, ge=0)
-    max_gross_salary: Optional[float] = Field(None, ge=0)
-    created_from: Optional[datetime] = None
-    created_to: Optional[datetime] = None
-    page: int = Field(1, ge=1)
-    page_size: int = Field(20, ge=1, le=100)
+    """DTO for payout search filters."""
     
-    @validator('max_gross_salary')
-    def validate_salary_range(cls, v, values):
-        if v is not None and 'min_gross_salary' in values and values['min_gross_salary'] is not None:
-            if v < values['min_gross_salary']:
-                raise ValueError("Max gross salary cannot be less than min gross salary")
-        return v
+    employee_id: Optional[str] = Field(None, description="Employee ID filter")
+    month: Optional[int] = Field(None, ge=1, le=12, description="Month filter")
+    year: Optional[int] = Field(None, ge=2020, le=2050, description="Year filter")
+    status: Optional[str] = Field(None, description="Status filter")
+    
+    # Date range filters
+    calculation_date_from: Optional[str] = Field(None, description="Calculation date from")
+    calculation_date_to: Optional[str] = Field(None, description="Calculation date to")
+    
+    # Pagination
+    page: int = Field(1, ge=1, description="Page number")
+    page_size: int = Field(50, ge=1, le=500, description="Page size")
+    
+    # Sorting
+    sort_by: Optional[str] = Field("calculation_date", description="Sort field")
+    sort_order: str = Field("desc", pattern="^(asc|desc)$", description="Sort order")
 
 
 class PayslipGenerationRequestDTO(BaseModel):
@@ -417,4 +419,255 @@ class BulkOperationErrorResponseDTO(BaseModel):
     successful_items: int
     failed_items: int
     errors: List[Dict[str, Any]]
-    timestamp: datetime 
+    timestamp: datetime
+
+
+class MonthlyPayoutRequestDTO(BaseModel):
+    """Request DTO for computing monthly payout."""
+    
+    employee_id: str = Field(..., description="Employee ID")
+    month: int = Field(..., ge=1, le=12, description="Month (1-12)")
+    year: int = Field(..., ge=2020, le=2050, description="Year")
+    
+    # LWP details
+    lwp_days: int = Field(0, ge=0, le=31, description="LWP days in the month")
+    total_working_days: int = Field(30, ge=1, le=31, description="Total working days in month")
+    
+    # Additional deductions
+    advance_deduction: float = Field(0.0, ge=0, description="Advance deduction amount")
+    loan_deduction: float = Field(0.0, ge=0, description="Loan deduction amount")
+    other_deductions: float = Field(0.0, ge=0, description="Other deductions amount")
+    
+    # Processing options
+    auto_approve: bool = Field(False, description="Auto-approve the payout")
+    notes: Optional[str] = Field(None, description="Additional notes")
+    
+    @validator("lwp_days")
+    def validate_lwp_days(cls, v, values):
+        total_days = values.get("total_working_days", 30)
+        if v > total_days:
+            raise ValueError("LWP days cannot exceed total working days")
+        return v
+
+
+class MonthlyPayoutResponseDTO(BaseModel):
+    """Response DTO for monthly payout computation."""
+    
+    # Identifiers
+    payout_id: str = Field(..., description="Payout ID")
+    employee_id: str = Field(..., description="Employee ID")
+    employee_name: str = Field(..., description="Employee name")
+    organization_id: str = Field(..., description="Organization ID")
+    month: int = Field(..., description="Month")
+    year: int = Field(..., description="Year")
+    
+    # Salary components (LWP adjusted)
+    basic_salary: float = Field(..., description="Basic salary")
+    dearness_allowance: float = Field(..., description="Dearness allowance")
+    hra: float = Field(..., description="HRA")
+    special_allowance: float = Field(..., description="Special allowance")
+    transport_allowance: float = Field(..., description="Transport allowance")
+    medical_allowance: float = Field(..., description="Medical allowance")
+    bonus: float = Field(..., description="Bonus")
+    commission: float = Field(..., description="Commission")
+    other_allowances: float = Field(..., description="Other allowances")
+    
+    # Deductions
+    epf_employee: float = Field(..., description="EPF employee contribution")
+    esi_employee: float = Field(..., description="ESI employee contribution")
+    professional_tax: float = Field(..., description="Professional tax")
+    tds: float = Field(..., description="TDS")
+    advance_deduction: float = Field(..., description="Advance deduction")
+    loan_deduction: float = Field(..., description="Loan deduction")
+    other_deductions: float = Field(..., description="Other deductions")
+    
+    # Calculated totals
+    base_monthly_gross: float = Field(..., description="Base monthly gross (before LWP)")
+    adjusted_monthly_gross: float = Field(..., description="Adjusted monthly gross (after LWP)")
+    total_deductions: float = Field(..., description="Total deductions")
+    monthly_net_salary: float = Field(..., description="Monthly net salary")
+    
+    # LWP details
+    lwp_days: int = Field(..., description="LWP days")
+    effective_working_days: int = Field(..., description="Effective working days")
+    lwp_factor: float = Field(..., description="LWP adjustment factor")
+    lwp_deduction_amount: float = Field(..., description="Amount deducted due to LWP")
+    
+    # Tax information
+    tax_regime: str = Field(..., description="Tax regime")
+    annual_tax_liability: float = Field(..., description="Annual tax liability")
+    tax_exemptions: float = Field(..., description="Tax exemptions")
+    
+    # Status and metadata
+    status: str = Field(..., description="Payout status")
+    calculation_date: str = Field(..., description="Calculation date")
+    processed_date: Optional[str] = Field(None, description="Processing date")
+    approved_by: Optional[str] = Field(None, description="Approved by")
+    processed_by: Optional[str] = Field(None, description="Processed by")
+    notes: Optional[str] = Field(None, description="Notes")
+
+
+class PayoutUpdateDTO(BaseModel):
+    """DTO for updating payout details."""
+    
+    # Additional deductions that can be updated
+    advance_deduction: Optional[float] = Field(None, ge=0, description="Advance deduction")
+    loan_deduction: Optional[float] = Field(None, ge=0, description="Loan deduction")
+    other_deductions: Optional[float] = Field(None, ge=0, description="Other deductions")
+    
+    # Status updates
+    status: Optional[str] = Field(None, description="New status")
+    notes: Optional[str] = Field(None, description="Updated notes")
+
+
+class PayoutSummaryDTO(BaseModel):
+    """DTO for payout summary information."""
+    
+    month: int = Field(..., description="Month")
+    year: int = Field(..., description="Year")
+    total_employees: int = Field(..., description="Total employees")
+    
+    # Financial totals
+    total_gross_amount: float = Field(..., description="Total gross amount")
+    total_net_amount: float = Field(..., description="Total net amount")
+    total_deductions: float = Field(..., description="Total deductions")
+    total_lwp_deduction: float = Field(..., description="Total LWP deduction")
+    
+    # Status breakdown
+    status_breakdown: Dict[str, int] = Field(..., description="Status-wise count")
+    
+    # Processing statistics
+    pending_approvals: int = Field(0, description="Pending approvals")
+    processed_payouts: int = Field(0, description="Processed payouts")
+    failed_payouts: int = Field(0, description="Failed payouts")
+
+
+class EmployeePayoutHistoryDTO(BaseModel):
+    """DTO for employee payout history."""
+    
+    employee_id: str = Field(..., description="Employee ID")
+    employee_name: str = Field(..., description="Employee name")
+    year: int = Field(..., description="Year")
+    
+    # Annual totals
+    annual_gross: float = Field(..., description="Annual gross salary")
+    annual_net: float = Field(..., description="Annual net salary")
+    annual_deductions: float = Field(..., description="Annual deductions")
+    annual_lwp_deduction: float = Field(..., description="Annual LWP deduction")
+    
+    # Monthly breakdown
+    monthly_payouts: List[MonthlyPayoutResponseDTO] = Field(..., description="Monthly payouts")
+    
+    # LWP statistics
+    total_lwp_days: int = Field(..., description="Total LWP days in year")
+    months_with_lwp: int = Field(..., description="Months with LWP")
+    average_monthly_lwp: float = Field(..., description="Average monthly LWP days")
+
+
+class PayoutApprovalDTO(BaseModel):
+    """DTO for payout approval."""
+    
+    payout_ids: List[str] = Field(..., min_items=1, description="Payout IDs to approve")
+    approved_by: str = Field(..., description="User ID who is approving")
+    approval_notes: Optional[str] = Field(None, description="Approval notes")
+
+
+class PayoutProcessingDTO(BaseModel):
+    """DTO for payout processing."""
+    
+    payout_ids: List[str] = Field(..., min_items=1, description="Payout IDs to process")
+    processed_by: str = Field(..., description="User ID who is processing")
+    processing_notes: Optional[str] = Field(None, description="Processing notes")
+    
+    # Bank transfer details (optional)
+    bank_reference: Optional[str] = Field(None, description="Bank reference number")
+    transfer_date: Optional[str] = Field(None, description="Transfer date")
+
+
+class PayslipDataDTO(BaseModel):
+    """DTO for payslip data."""
+    
+    payout_id: str = Field(..., description="Payout ID")
+    employee_id: str = Field(..., description="Employee ID")
+    employee_name: str = Field(..., description="Employee name")
+    company_name: str = Field(..., description="Company name")
+    
+    # Pay period
+    pay_period: str = Field(..., description="Pay period (MM/YYYY)")
+    pay_period_start: str = Field(..., description="Pay period start date")
+    pay_period_end: str = Field(..., description="Pay period end date")
+    payout_date: str = Field(..., description="Payout date")
+    
+    # Employee details
+    employee_details: Dict[str, Any] = Field(default_factory=dict, description="Employee details")
+    
+    # Attendance
+    attendance: Dict[str, Any] = Field(..., description="Attendance details")
+    
+    # Salary breakdown
+    salary_breakdown: Dict[str, Any] = Field(..., description="Salary breakdown")
+    
+    # Tax information
+    tax_info: Dict[str, Any] = Field(..., description="Tax information")
+    
+    # LWP impact
+    lwp_impact: Dict[str, Any] = Field(..., description="LWP impact details")
+    
+    # Status
+    status: str = Field(..., description="Payout status")
+    notes: Optional[str] = Field(None, description="Notes")
+
+
+class PayoutAnalyticsDTO(BaseModel):
+    """DTO for payout analytics."""
+    
+    period: str = Field(..., description="Analysis period")
+    
+    # Financial metrics
+    total_gross_amount: float = Field(..., description="Total gross amount")
+    total_net_amount: float = Field(..., description="Total net amount")
+    total_deductions: float = Field(..., description="Total deductions")
+    average_gross_per_employee: float = Field(..., description="Average gross per employee")
+    average_net_per_employee: float = Field(..., description="Average net per employee")
+    
+    # LWP metrics
+    total_lwp_days: int = Field(..., description="Total LWP days")
+    employees_with_lwp: int = Field(..., description="Employees with LWP")
+    total_lwp_deduction: float = Field(..., description="Total LWP deduction")
+    lwp_impact_percentage: float = Field(..., description="LWP impact percentage")
+    
+    # Department-wise breakdown
+    department_breakdown: Dict[str, Dict[str, float]] = Field(
+        default_factory=dict, 
+        description="Department-wise breakdown"
+    )
+    
+    # Status distribution
+    status_distribution: Dict[str, int] = Field(..., description="Status distribution")
+    
+    # Trends (if applicable)
+    monthly_trends: Optional[List[Dict[str, Any]]] = Field(None, description="Monthly trends")
+
+
+class PayoutComplianceDTO(BaseModel):
+    """DTO for payout compliance metrics."""
+    
+    period: str = Field(..., description="Compliance period")
+    
+    # Statutory compliance
+    epf_compliance: Dict[str, Any] = Field(..., description="EPF compliance details")
+    esi_compliance: Dict[str, Any] = Field(..., description="ESI compliance details")
+    tds_compliance: Dict[str, Any] = Field(..., description="TDS compliance details")
+    pt_compliance: Dict[str, Any] = Field(..., description="Professional tax compliance")
+    
+    # Processing compliance
+    on_time_processing: float = Field(..., description="On-time processing percentage")
+    approval_delays: int = Field(..., description="Number of approval delays")
+    processing_delays: int = Field(..., description="Number of processing delays")
+    
+    # Data quality
+    missing_data_count: int = Field(..., description="Missing data count")
+    validation_errors: List[str] = Field(default_factory=list, description="Validation errors")
+    
+    # Recommendations
+    recommendations: List[str] = Field(default_factory=list, description="Compliance recommendations") 

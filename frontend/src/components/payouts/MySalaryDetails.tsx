@@ -36,13 +36,20 @@ const MySalaryDetails: React.FC = () => {
   const [selectedYear, setSelectedYear] = useState<number>(payoutService.getCurrentFinancialYear());
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
 
-  const { data: payoutsData, isLoading } = usePayrollsQuery({
+  const { isLoading } = usePayrollsQuery({
     year: selectedYear,
     month: selectedMonth
   });
 
-  const payouts = payoutsData?.payouts || [];
-  const latestPayout = payouts[0]; // Get the most recent payout
+  // Mock current employee data - in real app, this would come from auth context
+  const mockSalaryData = {
+    total_amount: 75000,
+    total_employees: 1,
+    basic_salary: 50000,
+    allowances: 15000,
+    deductions: 10000,
+    net_salary: 65000
+  };
 
   // Generate year options for the last 5 years
   const yearOptions: YearOption[] = Array.from({ length: 5 }, (_, i) => {
@@ -62,11 +69,11 @@ const MySalaryDetails: React.FC = () => {
   const getSalaryBreakdown = (): SalaryBreakdownItem[] => {
     // Since the payout from usePayrollsQuery doesn't have detailed breakdown,
     // we'll show basic information available
-    if (!latestPayout) return [];
+    if (!mockSalaryData) return [];
     
     return [
-      { label: 'Total Amount', amount: latestPayout.total_amount },
-      { label: 'Employees', amount: latestPayout.total_employees }
+      { label: 'Total Amount', amount: mockSalaryData.total_amount },
+      { label: 'Employees', amount: mockSalaryData.total_employees }
     ];
   };
 
@@ -94,7 +101,7 @@ const MySalaryDetails: React.FC = () => {
     );
   }
 
-  if (!latestPayout) {
+  if (!mockSalaryData) {
     return (
       <Box>
         <Alert severity="info" sx={{ m: 3 }}>
@@ -159,7 +166,7 @@ const MySalaryDetails: React.FC = () => {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
                 <Typography variant="subtitle1">Total Amount</Typography>
                 <Typography variant="subtitle1" fontWeight="bold">
-                  {payoutService.formatCurrency(latestPayout.total_amount)}
+                  {payoutService.formatCurrency(mockSalaryData.total_amount)}
                 </Typography>
               </Box>
             </CardContent>
@@ -182,7 +189,7 @@ const MySalaryDetails: React.FC = () => {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2, pt: 2, borderTop: 1, borderColor: 'divider' }}>
                 <Typography variant="subtitle1">Total Deductions</Typography>
                 <Typography variant="subtitle1" fontWeight="bold">
-                  {payoutService.formatCurrency(0)}
+                  {payoutService.formatCurrency(mockSalaryData.deductions)}
                 </Typography>
               </Box>
             </CardContent>
@@ -195,7 +202,7 @@ const MySalaryDetails: React.FC = () => {
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="h6">Net Salary</Typography>
               <Typography variant="h4" fontWeight="bold" color="primary.dark">
-                {payoutService.formatCurrency(latestPayout.total_amount)}
+                {payoutService.formatCurrency(mockSalaryData.net_salary)}
               </Typography>
             </Box>
           </CardContent>

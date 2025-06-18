@@ -91,7 +91,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({ title, children }) => {
         flexDirection: 'column',
         minHeight: '100vh',
         position: 'relative',
-        backgroundColor: theme.palette.background.default,
+        background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
       }}
     >
       <Topbar
@@ -188,15 +188,20 @@ const PageLayout: React.FC<PageLayoutProps> = ({ title, children }) => {
               top: '72px',
               transform: isSidebarOpen ? 'none' : 'rotate(180deg)',
               zIndex: 1200,
-              backgroundColor: theme.palette.background.paper,
-              border: `1px solid ${theme.palette.divider}`,
-              boxShadow: '0 3px 5px rgba(0,0,0,0.1)',
-              transition: theme.transitions.create(['left', 'transform'], {
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              border: 'none',
+              boxShadow: '0px 4px 16px rgba(102, 126, 234, 0.3)',
+              width: '40px',
+              height: '40px',
+              transition: theme.transitions.create(['left', 'transform', 'box-shadow'], {
                 easing: theme.transitions.easing.sharp,
                 duration: theme.transitions.duration.standard,
               }),
               '&:hover': {
-                backgroundColor: theme.palette.action.hover,
+                background: 'linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%)',
+                boxShadow: '0px 6px 20px rgba(102, 126, 234, 0.4)',
+                transform: isSidebarOpen ? 'scale(1.05)' : 'rotate(180deg) scale(1.05)',
               },
             }}
           >
@@ -212,11 +217,22 @@ const PageLayout: React.FC<PageLayoutProps> = ({ title, children }) => {
             p: { xs: 2, sm: 3 },
             overflow: 'auto',
             ml: `${mainContentMargin}px`,
-            backgroundColor: theme.palette.background.default,
+            backgroundColor: 'transparent',
             transition: theme.transitions.create('margin-left', {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.standard,
             }),
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(102, 126, 234, 0.1) 0%, transparent 50%)',
+              pointerEvents: 'none',
+              zIndex: -1,
+            },
           }}
         >
           {children}

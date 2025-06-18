@@ -7,7 +7,6 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Divider,
   useTheme,
   Typography,
   useMediaQuery,
@@ -308,8 +307,8 @@ const Sidebar: React.FC = () => {
       sx={{
         width: isMobile ? '100%' : 280,
         height: '100%',
-        backgroundColor: theme.palette.background.paper,
-        borderRight: `1px solid ${theme.palette.divider}`,
+        background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)',
+        borderRight: '1px solid rgba(0, 0, 0, 0.08)',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
@@ -318,18 +317,27 @@ const Sidebar: React.FC = () => {
         zIndex: 1300, // Ensure sidebar is above overlays
       }}
     >
-      <Box sx={{ p: 2, textAlign: 'center' }}>
-        <Typography variant='h6' color='primary'>
-          📋 Menu
+      <Box 
+        sx={{ 
+          p: 3, 
+          textAlign: 'center',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)'
+        }}
+      >
+        <Typography variant='h6' fontWeight={700}>
+          📋 PMS Dashboard
         </Typography>
       </Box>
-      <Divider />
 
       <List
         sx={{
           flexGrow: 1,
           overflowY: 'auto',
-          backgroundColor: theme.palette.background.paper,
+          backgroundColor: 'transparent',
+          px: 1,
+          py: 2,
         }}
       >
         {menuCategories.map(
@@ -340,24 +348,40 @@ const Sidebar: React.FC = () => {
                 <ListItemButton
                   onClick={() => toggleExpand(category.id)}
                   sx={{
-                    backgroundColor: theme.palette.action.selected,
-                    mb: 0.5,
+                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: 3,
+                    mb: 1,
+                    mx: 1,
+                    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
                     '&:hover': {
-                      backgroundColor: theme.palette.action.hover,
+                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                      transform: 'translateY(-1px)',
+                      boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
                     },
+                    transition: 'all 0.2s ease-in-out',
                   }}
                 >
-                  <ListItemIcon sx={{ color: theme.palette.primary.main }}>
+                  <ListItemIcon 
+                    sx={{ 
+                      color: theme.palette.primary.main,
+                      minWidth: 40,
+                    }}
+                  >
                     {category.icon}
                   </ListItemIcon>
                   <ListItemText
                     primary={category.title}
                     primaryTypographyProps={{
-                      fontWeight: 'bold',
-                      color: theme.palette.primary.main,
+                      fontWeight: 600,
+                      color: theme.palette.primary.dark,
+                      fontSize: '0.95rem',
                     }}
                   />
-                  {expanded[category.id] ? <ExpandLess /> : <ExpandMore />}
+                  <Box sx={{ color: theme.palette.primary.main }}>
+                    {expanded[category.id] ? <ExpandLess /> : <ExpandMore />}
+                  </Box>
                 </ListItemButton>
 
                 <Collapse
@@ -376,14 +400,24 @@ const Sidebar: React.FC = () => {
                             <ListItemButton
                               onClick={() => handleMenuItemClick(item)}
                               sx={{
-                                pl: 4,
+                                ml: 2,
+                                mr: 1,
+                                mb: 0.5,
+                                borderRadius: 2,
+                                backgroundColor: 'rgba(255, 255, 255, 0.4)',
                                 '&:hover': {
-                                  backgroundColor: theme.palette.action.hover,
+                                  backgroundColor: 'rgba(102, 126, 234, 0.08)',
+                                  transform: 'translateX(4px)',
+                                  boxShadow: '0px 2px 6px rgba(0, 0, 0, 0.08)',
                                 },
+                                transition: 'all 0.2s ease-in-out',
                               }}
                             >
                               <ListItemIcon
-                                sx={{ color: theme.palette.text.secondary }}
+                                sx={{ 
+                                  color: theme.palette.text.secondary,
+                                  minWidth: 36,
+                                }}
                               >
                                 {item.icon}
                               </ListItemIcon>
@@ -392,6 +426,8 @@ const Sidebar: React.FC = () => {
                                 primaryTypographyProps={{
                                   color: theme.palette.text.primary,
                                   variant: 'body2',
+                                  fontWeight: 500,
+                                  fontSize: '0.875rem',
                                 }}
                               />
                             </ListItemButton>
@@ -405,16 +441,25 @@ const Sidebar: React.FC = () => {
         )}
       </List>
 
-      <Divider />
-
-      <Box sx={{ backgroundColor: theme.palette.background.paper }}>
+      <Box 
+        sx={{ 
+          backgroundColor: 'transparent',
+          p: 1,
+        }}
+      >
         <ListItem disablePadding>
           <ListItemButton
             onClick={handleLogout}
             sx={{
+              borderRadius: 3,
+              backgroundColor: 'rgba(211, 47, 47, 0.1)',
+              border: '1px solid rgba(211, 47, 47, 0.2)',
               '&:hover': {
-                backgroundColor: theme.palette.error.light,
+                backgroundColor: 'rgba(211, 47, 47, 0.15)',
+                transform: 'translateY(-1px)',
+                boxShadow: '0px 4px 12px rgba(211, 47, 47, 0.2)',
               },
+              transition: 'all 0.2s ease-in-out',
             }}
           >
             <ListItemIcon sx={{ color: theme.palette.error.main }}>
@@ -425,6 +470,7 @@ const Sidebar: React.FC = () => {
               primaryTypographyProps={{
                 color: theme.palette.error.main,
                 variant: 'body1',
+                fontWeight: 600,
               }}
             />
           </ListItemButton>

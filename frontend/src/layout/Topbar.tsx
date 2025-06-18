@@ -21,15 +21,16 @@ const Topbar: React.FC<TopbarProps> = ({ title, onMenuClick }) => {
   return (
     <AppBar
       position='fixed'
-      elevation={1}
+      elevation={0}
       sx={{
-        backgroundColor: theme.palette.background.paper,
-        color: theme.palette.text.primary,
-        borderBottom: `1px solid ${theme.palette.divider}`,
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white',
+        borderBottom: 'none',
         zIndex: theme.zIndex.drawer + 1,
         height: '64px',
         display: 'flex',
         justifyContent: 'center',
+        boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.1)',
       }}
     >
       <Toolbar sx={{ minHeight: '64px !important' }}>
@@ -48,8 +49,9 @@ const Topbar: React.FC<TopbarProps> = ({ title, onMenuClick }) => {
             noWrap
             component='div'
             sx={{
-              fontWeight: 600,
-              color: theme.palette.primary.main,
+              fontWeight: 700,
+              color: 'white',
+              fontSize: '1.2rem',
             }}
           >
             {title || 'Dashboard'}

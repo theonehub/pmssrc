@@ -1,0 +1,305 @@
+version: '3.8'
+
+services:
+  # API Gateway
+  api-gateway:
+    image: kong:3.0
+    container_name: pms-api-gateway
+    ports:
+      - "8000:8000"    # Gateway port
+      - "8001:8001"    # Admin API
+    environment:
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /kong/declarative/kong.yml
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+    volumes:
+      - ./infrastructure/kong:/kong/declarative
+    depends_on:
+      - user-service
+      - organization-service
+    networks:
+      - pms-network
+
+  # MongoDB Database
+  mongodb:
+    image: mongo:5.0
+    container_name: pms-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+    volumes:
+      - mongodb_data:/data/db
+      - ./infrastructure/mongo-init:/docker-entrypoint-initdb.d
+    networks:
+      - pms-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: pms-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - pms-network
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: pms-rabbitmq
+    ports:
+      - "5672:5672"    # AMQP port
+      - "15672:15672"  # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: password123
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - pms-network
+
+  # User Service
+  user-service:
+    build: ./services/user-service
+    container_name: pms-user-service
+    ports:
+      - "8001:8000"
+    environment:
+      - MONGODB_URL=mongodb://admin:password123@mongodb:27017/
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:password123@rabbitmq:5672/
+      - SERVICE_NAME=user_service
+      - SERVICE_PORT=8000
+    depends_on:
+      - mongodb
+      - redis
+      - rabbitmq
+    volumes:
+      - ./uploads:/app/uploads
+    networks:
+      - pms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Organization Service
+  organization-service:
+    build: ./services/organization-service
+    container_name: pms-organization-service
+    ports:
+      - "8002:8000"
+    environment:
+      - MONGODB_URL=mongodb://admin:password123@mongodb:27017/
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:password123@rabbitmq:5672/
+      - SERVICE_NAME=organization_service
+      - SERVICE_PORT=8000
+    depends_on:
+      - mongodb
+      - redis
+      - rabbitmq
+    networks:
+      - pms-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+
+  # Leave Service
+  leave-service:
+    build: ./services/leave-service
+    container_name: pms-leave-service
+    ports:
+      - "8003:8000"
+    environment:
+      - MONGODB_URL=mongodb://admin:password123@mongodb:27017/
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:password123@rabbitmq:5672/
+      - SERVICE_NAME=leave_service
+      - SERVICE_PORT=8000
+      - USER_SERVICE_URL=http://user-service:8000
+    depends_on:
+      - mongodb
+      - redis
+      - rabbitmq
+      - user-service
+    networks:
+      - pms-network
+
+  # Attendance Service
+  attendance-service:
+    build: ./services/attendance-service
+    container_name: pms-attendance-service
+    ports:
+      - "8004:8000"
+    environment:
+      - MONGODB_URL=mongodb://admin:password123@mongodb:27017/
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:password123@rabbitmq:5672/
+      - SERVICE_NAME=attendance_service
+      - SERVICE_PORT=8000
+      - USER_SERVICE_URL=http://user-service:8000
+    depends_on:
+      - mongodb
+      - redis
+      - rabbitmq
+      - user-service
+    networks:
+      - pms-network
+
+  # Reimbursement Service
+  reimbursement-service:
+    build: ./services/reimbursement-service
+    container_name: pms-reimbursement-service
+    ports:
+      - "8005:8000"
+    environment:
+      - MONGODB_URL=mongodb://admin:password123@mongodb:27017/
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:password123@rabbitmq:5672/
+      - SERVICE_NAME=reimbursement_service
+      - SERVICE_PORT=8000
+      - USER_SERVICE_URL=http://user-service:8000
+    depends_on:
+      - mongodb
+      - redis
+      - user-service
+    volumes:
+      - ./uploads:/app/uploads
+    networks:
+      - pms-network
+
+  # Project Service
+  project-service:
+    build: ./services/project-service
+    container_name: pms-project-service
+    ports:
+      - "8006:8000"
+    environment:
+      - MONGODB_URL=mongodb://admin:password123@mongodb:27017/
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:password123@rabbitmq:5672/
+      - SERVICE_NAME=project_service
+      - SERVICE_PORT=8000
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - pms-network
+
+  # Payroll Service
+  payroll-service:
+    build: ./services/payroll-service
+    container_name: pms-payroll-service
+    ports:
+      - "8007:8000"
+    environment:
+      - MONGODB_URL=mongodb://admin:password123@mongodb:27017/
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:password123@rabbitmq:5672/
+      - SERVICE_NAME=payroll_service
+      - SERVICE_PORT=8000
+      - USER_SERVICE_URL=http://user-service:8000
+      - ATTENDANCE_SERVICE_URL=http://attendance-service:8000
+      - LEAVE_SERVICE_URL=http://leave-service:8000
+    depends_on:
+      - mongodb
+      - redis
+      - rabbitmq
+      - user-service
+      - attendance-service
+      - leave-service
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+    networks:
+      - pms-network
+
+  # Taxation Service
+  taxation-service:
+    build: ./services/taxation-service
+    container_name: pms-taxation-service
+    ports:
+      - "8008:8000"
+    environment:
+      - MONGODB_URL=mongodb://admin:password123@mongodb:27017/
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:password123@rabbitmq:5672/
+      - SERVICE_NAME=taxation_service
+      - SERVICE_PORT=8000
+      - USER_SERVICE_URL=http://user-service:8000
+      - PAYROLL_SERVICE_URL=http://payroll-service:8000
+    depends_on:
+      - mongodb
+      - redis
+      - rabbitmq
+      - user-service
+      - payroll-service
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+          cpus: '1.5'
+    networks:
+      - pms-network
+
+  # Reporting Service
+  reporting-service:
+    build: ./services/reporting-service
+    container_name: pms-reporting-service
+    ports:
+      - "8009:8000"
+    environment:
+      - MONGODB_URL=mongodb://admin:password123@mongodb:27017/
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://admin:password123@rabbitmq:5672/
+      - SERVICE_NAME=reporting_service
+      - SERVICE_PORT=8000
+      - USER_SERVICE_URL=http://user-service:8000
+      - PAYROLL_SERVICE_URL=http://payroll-service:8000
+      - ATTENDANCE_SERVICE_URL=http://attendance-service:8000
+      - LEAVE_SERVICE_URL=http://leave-service:8000
+    depends_on:
+      - mongodb
+      - redis
+      - user-service
+      - payroll-service
+      - attendance-service
+      - leave-service
+    networks:
+      - pms-network
+
+  # Frontend (Optional - if you want to include it)
+  frontend:
+    build: ./frontend
+    container_name: pms-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    depends_on:
+      - api-gateway
+    networks:
+      - pms-network
+
+volumes:
+  mongodb_data:
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+
+networks:
+  pms-network:
+    driver: bridge 

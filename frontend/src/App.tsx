@@ -33,6 +33,9 @@ import EmployeeTaxDetail from './components/taxation/EmployeeTaxDetail';
 import EmployeeSelection from './components/taxation/EmployeeSelection';
 import MonthlyProjections from './components/taxation/MonthlyProjections';
 
+// Salary Processing Pages
+import SalaryProcessing from './components/SalaryProcessing/SalaryProcessing';
+
 // Reporting Pages
 import ReportingDashboard from './components/Reporting/ReportingDashboard';
 
@@ -157,6 +160,10 @@ const AppContent: React.FC = () => {
           <Route
             path="/taxation/monthly-projections"
             element={withLayout(<MonthlyProjections />, 'Monthly Projections', ['user', 'manager', 'admin', 'superadmin'])}
+          />
+          <Route
+            path="/taxation/salary-processing"
+            element={withLayout(<SalaryProcessing />, 'Salary Processing', ['admin', 'superadmin'])}
           />
 
           {/* Reporting Routes */}

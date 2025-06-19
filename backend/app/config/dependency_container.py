@@ -15,6 +15,7 @@ from app.infrastructure.repositories.mongodb_reimbursement_repository import Mon
 from app.infrastructure.repositories.project_attributes_repository_impl import ProjectAttributesRepositoryImpl
 from app.infrastructure.repositories.employee_leave_repository_impl import EmployeeLeaveRepositoryImpl
 from app.infrastructure.repositories.mongodb_reporting_repository import MongoDBReportingRepository
+from app.infrastructure.repositories.monthly_salary_repository_impl import MongoDBMonthlySalaryRepository
 
 # Service implementations
 from app.infrastructure.services.user_service_impl import UserServiceImpl
@@ -27,6 +28,7 @@ from app.infrastructure.services.reimbursement_service_impl import Reimbursement
 from app.infrastructure.services.project_attributes_service_impl import ProjectAttributesServiceImpl
 from app.infrastructure.services.employee_leave_service_impl import EmployeeLeaveServiceImpl
 from app.infrastructure.services.reporting_service_impl import ReportingServiceImpl
+from app.infrastructure.services.monthly_salary_service_impl import MonthlySalaryServiceImpl
 
 # Command handlers
 from app.application.commands.taxation_commands import (
@@ -171,6 +173,7 @@ class DependencyContainer:
             project_attributes_repository = ProjectAttributesRepositoryImpl(self._database_connector)
             employee_leave_repository = EmployeeLeaveRepositoryImpl(self._database_connector)
             reporting_repository = MongoDBReportingRepository(self._database_connector)
+            monthly_salary_repository = MongoDBMonthlySalaryRepository(self._database_connector)
             
             # Configure connection for all repositories using centralized config
             repositories = [
@@ -184,6 +187,7 @@ class DependencyContainer:
                 project_attributes_repository,
                 employee_leave_repository,
                 reporting_repository,
+                monthly_salary_repository,
             ]
             
             for repo in repositories:
@@ -204,6 +208,7 @@ class DependencyContainer:
             self._repositories['project_attributes'] = project_attributes_repository
             self._repositories['employee_leave'] = employee_leave_repository
             self._repositories['reporting'] = reporting_repository
+            self._repositories['monthly_salary'] = monthly_salary_repository
             
             logger.info("Repositories initialized with centralized MongoDB configuration")
             
@@ -284,6 +289,14 @@ class DependencyContainer:
                 user_repository=self._repositories['user'],
                 reimbursement_repository=self._repositories['reimbursement'],
                 attendance_repository=self._repositories['attendance']
+            )
+            
+            # Monthly salary service
+            self._services['monthly_salary'] = MonthlySalaryServiceImpl(
+                monthly_salary_repository=self._repositories['monthly_salary'],
+                user_repository=self._repositories['user'],
+                taxation_repository=self._repositories['taxation'],
+                tax_calculation_service=self._services['tax_calculation']
             )
             
             logger.info("Services initialized")
@@ -411,6 +424,11 @@ class DependencyContainer:
         self.initialize()
         return self._repositories['taxation']
     
+    def get_monthly_salary_repository(self) -> MongoDBMonthlySalaryRepository:
+        """Get monthly salary repository instance."""
+        self.initialize()
+        return self._repositories['monthly_salary']
+    
     # ==================== SERVICE GETTERS ====================
     
     def get_user_service(self) -> UserServiceImpl:
@@ -467,6 +485,11 @@ class DependencyContainer:
         """Get regime comparison service instance."""
         self.initialize()
         return self._services['regime_comparison']
+    
+    def get_monthly_salary_service(self) -> MonthlySalaryServiceImpl:
+        """Get monthly salary service instance."""
+        self.initialize()
+        return self._services['monthly_salary']
     
     # ==================== INFRASTRUCTURE SERVICE GETTERS ====================
     
@@ -836,6 +859,20 @@ class DependencyContainer:
         
         return self._controllers['taxation']
     
+    def get_monthly_salary_controller(self):
+        """Get monthly salary controller instance."""
+        self.initialize()
+        
+        # Import here to avoid circular imports
+        from app.api.controllers.monthly_salary_controller import MonthlySalaryController
+        
+        if 'monthly_salary' not in self._controllers:
+            self._controllers['monthly_salary'] = MonthlySalaryController(
+                monthly_salary_service=self._services['monthly_salary']
+            )
+        
+        return self._controllers['monthly_salary']
+    
     # ==================== UTILITY METHODS ====================
     
     async def cleanup(self):
@@ -1138,4 +1175,40 @@ def get_taxation_controller():
 def get_comprehensive_taxation_controller():
     """FastAPI dependency for comprehensive taxation controller (same as taxation controller)."""
     container = get_dependency_container()
-    return container.get_taxation_controller() 
+    return container.get_taxation_controller()
+
+
+def get_monthly_salary_controller():
+    """FastAPI dependency for monthly salary controller."""
+    container = get_dependency_container()
+    return container.get_monthly_salary_controller()
+
+
+def get_monthly_salary_service() -> MonthlySalaryServiceImpl:
+    """FastAPI dependency for monthly salary service."""
+    container = get_dependency_container()
+    return container.get_monthly_salary_service()
+
+
+def get_monthly_salary_repository() -> MongoDBMonthlySalaryRepository:
+    """FastAPI dependency for monthly salary repository."""
+    container = get_dependency_container()
+    return container.get_monthly_salary_repository()
+
+
+def get_monthly_salary_controller():
+    """FastAPI dependency for monthly salary controller."""
+    container = get_dependency_container()
+    return container.get_monthly_salary_controller()
+
+
+def get_monthly_salary_service() -> MonthlySalaryServiceImpl:
+    """FastAPI dependency for monthly salary service."""
+    container = get_dependency_container()
+    return container.get_monthly_salary_service()
+
+
+def get_monthly_salary_repository() -> MongoDBMonthlySalaryRepository:
+    """FastAPI dependency for monthly salary repository."""
+    container = get_dependency_container()
+    return container.get_monthly_salary_repository() 

@@ -112,6 +112,16 @@ export interface MonthlySalaryStatusUpdateRequest {
   updated_by?: string;
 }
 
+export interface MonthlySalaryPaymentRequest {
+  employee_id: string;
+  month: number;
+  year: number;
+  payment_type: 'salary' | 'tds' | 'both';
+  payment_reference?: string;
+  payment_notes?: string;
+  paid_by?: string;
+}
+
 export const salaryProcessingApi = {
   /**
    * Get monthly salary for a specific employee
@@ -194,6 +204,16 @@ export const salaryProcessingApi = {
     const response = await apiClient.get(
       `/api/v2/monthly-salary/summary/month/${month}/year/${year}`
     );
+    return response.data;
+  },
+
+  /**
+   * Mark salary payment
+   */
+  async markSalaryPayment(
+    request: MonthlySalaryPaymentRequest
+  ): Promise<MonthlySalaryResponse> {
+    const response = await apiClient.put('/api/v2/monthly-salary/payment', request);
     return response.data;
   },
 

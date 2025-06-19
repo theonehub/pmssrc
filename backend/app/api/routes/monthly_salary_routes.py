@@ -14,6 +14,7 @@ from app.application.dto.monthly_salary_dto import (
     MonthlySalaryBulkComputeRequestDTO,
     MonthlySalaryBulkComputeResponseDTO,
     MonthlySalaryStatusUpdateRequestDTO,
+    MonthlySalaryPaymentRequestDTO,
     MonthlySalarySummaryDTO
 )
 from app.auth.auth_dependencies import CurrentUser, get_current_user
@@ -289,4 +290,48 @@ async def delete_monthly_salary(
         month=month,
         year=year,
         current_user=current_user
-    ) 
+    )
+
+
+@router.put(
+    "/payment",
+    response_model=MonthlySalaryResponseDTO,
+    summary="Mark Salary Payment",
+    description="""
+    Mark salary payment for a specific employee.
+    
+    **Payment Types:**
+    - **salary**: Mark only salary portion as paid (employee payment)
+    - **tds**: Mark only TDS portion as paid (government payment)
+    - **both**: Mark both salary and TDS as paid simultaneously
+    
+    **Status Transitions:**
+    - From "approved" + "salary" payment → "salary_paid"
+    - From "approved" + "tds" payment → "tds_paid"
+    - From "salary_paid" + "tds" payment → "paid" (fully completed)
+    - From "tds_paid" + "salary" payment → "paid" (fully completed)
+    - From "approved" + "both" payment → "paid" (fully completed)
+    
+    **Request Body:**
+    - **employee_id**: Employee ID
+    - **month**: Month (1-12)
+    - **year**: Year
+    - **payment_type**: Type of payment ("salary", "tds", or "both")
+    - **payment_reference**: Optional payment reference/transaction ID
+    - **payment_notes**: Optional payment notes
+    - **paid_by**: Optional - user who processed payment
+    
+    **Returns:**
+    - Updated monthly salary record with payment details
+    """
+)
+async def mark_salary_payment(
+    request: MonthlySalaryPaymentRequestDTO,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: MonthlySalaryController = Depends(get_monthly_salary_controller)
+) -> MonthlySalaryResponseDTO:
+    """Mark salary payment."""
+    return await controller.mark_salary_payment(
+        request=request,
+        current_user=current_user
+    )

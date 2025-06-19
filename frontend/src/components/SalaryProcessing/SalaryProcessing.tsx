@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -25,58 +25,29 @@ import {
   DialogActions,
   Grid,
   IconButton,
-  Tooltip
+  Tooltip,
+  Menu,
+  ListItemIcon,
+  ListItemText,
+  TextField,
+  Divider
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
   Calculate as CalculateIcon,
-  Visibility as VisibilityIcon
+  Visibility as VisibilityIcon,
+  MoreVert as MoreVertIcon,
+  CheckCircle as ApproveIcon,
+  Cancel as RejectIcon,
+  Payment as PaymentIcon,
+  Replay as RecomputeIcon
 } from '@mui/icons-material';
-import { salaryProcessingApi } from '../../shared/api/salaryProcessingApi';
-
-interface MonthlySalary {
-  employee_id: string;
-  employee_name: string | null;
-  employee_email: string | null;
-  department: string | null;
-  designation: string | null;
-  month: number;
-  year: number;
-  tax_year: string;
-  gross_salary: number;
-  net_salary: number;
-  total_deductions: number;
-  tds: number;
-  status: string;
-  computation_date: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-interface SalarySummary {
-  month: number;
-  year: number;
-  tax_year: string;
-  total_employees: number;
-  computed_count: number;
-  pending_count: number;
-  approved_count: number;
-  paid_count: number;
-  total_gross_payroll: number;
-  total_net_payroll: number;
-  total_deductions: number;
-  total_tds: number;
-  computation_completion_rate: number;
-}
-
-interface BulkComputeResult {
-  total_requested: number;
-  successful: number;
-  failed: number;
-  skipped: number;
-  errors: Array<{ employee_id: string; error: string }>;
-  computation_summary: any;
-}
+import { 
+  salaryProcessingApi,
+  MonthlySalaryResponse as MonthlySalary,
+  MonthlySalarySummaryResponse as SalarySummary,
+  MonthlySalaryBulkComputeResponse as BulkComputeResult
+} from '../../shared/api/salaryProcessingApi';
 
 const SalaryProcessing: React.FC = () => {
   // State management
@@ -107,6 +78,29 @@ const SalaryProcessing: React.FC = () => {
   const [selectedSalary, setSelectedSalary] = useState<MonthlySalary | null>(null);
   const [salaryDetailDialogOpen, setSalaryDetailDialogOpen] = useState(false);
 
+  // Status transition states
+  const [statusChangeDialogOpen, setStatusChangeDialogOpen] = useState(false);
+  const [statusChangeTarget, setStatusChangeTarget] = useState<{
+    salary: MonthlySalary;
+    newStatus: string;
+    actionLabel: string;
+  } | null>(null);
+  const [statusChangeNotes, setStatusChangeNotes] = useState('');
+  const [statusChanging, setStatusChanging] = useState(false);
+  const [actionMenuAnchor, setActionMenuAnchor] = useState<null | HTMLElement>(null);
+  const [actionMenuSalary, setActionMenuSalary] = useState<MonthlySalary | null>(null);
+
+  // Payment states
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [paymentTarget, setPaymentTarget] = useState<{
+    salary: MonthlySalary;
+    paymentType: 'salary' | 'tds' | 'both';
+    actionLabel: string;
+  } | null>(null);
+  const [paymentReference, setPaymentReference] = useState('');
+  const [paymentNotes, setPaymentNotes] = useState('');
+  const [processingPayment, setProcessingPayment] = useState(false);
+
   // Month options
   const monthOptions = [
     { value: 1, label: 'January' },
@@ -129,12 +123,55 @@ const SalaryProcessing: React.FC = () => {
     pending: { color: 'warning', label: 'Pending' },
     computed: { color: 'info', label: 'Computed' },
     approved: { color: 'success', label: 'Approved' },
-    paid: { color: 'success', label: 'Paid' },
+    salary_paid: { color: 'warning', label: 'Salary Paid' },
+    tds_paid: { color: 'warning', label: 'TDS Paid' },
+    paid: { color: 'success', label: 'Fully Paid' },
     rejected: { color: 'error', label: 'Rejected' }
   };
 
+  // Status transition configuration
+  const getAvailableActions = (status: string) => {
+    switch (status) {
+      case 'not_computed':
+        return [
+          { action: 'compute', label: 'Compute Salary', icon: <CalculateIcon />, targetStatus: 'computed' }
+        ];
+      case 'computed':
+        return [
+          { action: 'approve', label: 'Approve', icon: <ApproveIcon />, targetStatus: 'approved' },
+          { action: 'reject', label: 'Reject', icon: <RejectIcon />, targetStatus: 'rejected' },
+          { action: 'recompute', label: 'Recompute', icon: <RecomputeIcon />, targetStatus: 'computed' }
+        ];
+      case 'approved':
+        return [
+          { action: 'pay_salary', label: 'Pay Salary', icon: <PaymentIcon />, paymentType: 'salary' },
+          { action: 'pay_tds', label: 'Pay TDS', icon: <PaymentIcon />, paymentType: 'tds' },
+          { action: 'pay_both', label: 'Pay Both', icon: <PaymentIcon />, paymentType: 'both' },
+          { action: 'reject', label: 'Reject', icon: <RejectIcon />, targetStatus: 'rejected' }
+        ];
+      case 'salary_paid':
+        return [
+          { action: 'pay_tds', label: 'Pay TDS', icon: <PaymentIcon />, paymentType: 'tds' },
+          { action: 'reject', label: 'Reject', icon: <RejectIcon />, targetStatus: 'rejected' }
+        ];
+      case 'tds_paid':
+        return [
+          { action: 'pay_salary', label: 'Pay Salary', icon: <PaymentIcon />, paymentType: 'salary' },
+          { action: 'reject', label: 'Reject', icon: <RejectIcon />, targetStatus: 'rejected' }
+        ];
+      case 'rejected':
+        return [
+          { action: 'recompute', label: 'Recompute', icon: <RecomputeIcon />, targetStatus: 'computed' }
+        ];
+      case 'paid':
+        return []; // No actions available for fully paid status
+      default:
+        return [];
+    }
+  };
+
   // Fetch data
-  const fetchSalaries = async () => {
+  const fetchSalaries = useCallback(async () => {
     setLoading(true);
     setError(null);
     
@@ -149,9 +186,9 @@ const SalaryProcessing: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedMonth, selectedYear]);
 
-  const fetchSummary = async () => {
+  const fetchSummary = useCallback(async () => {
     try {
       const summaryData = await salaryProcessingApi.getMonthlySalarySummary(
         selectedMonth,
@@ -161,13 +198,13 @@ const SalaryProcessing: React.FC = () => {
     } catch (err: any) {
       console.error('Failed to fetch summary:', err);
     }
-  };
+  }, [selectedMonth, selectedYear]);
 
   // Effects
   useEffect(() => {
     fetchSalaries();
     fetchSummary();
-  }, [selectedMonth, selectedYear]);
+  }, [fetchSalaries, fetchSummary]);
 
   // Handlers
   const handleMonthChange = (event: any) => {
@@ -230,6 +267,165 @@ const SalaryProcessing: React.FC = () => {
         variant="outlined"
       />
     );
+  };
+
+  // Status transition handlers
+  const handleActionMenuOpen = (event: React.MouseEvent<HTMLElement>, salary: MonthlySalary) => {
+    setActionMenuAnchor(event.currentTarget);
+    setActionMenuSalary(salary);
+  };
+
+  const handleActionMenuClose = () => {
+    setActionMenuAnchor(null);
+    setActionMenuSalary(null);
+  };
+
+  const handleStatusChangeClick = (salary: MonthlySalary, action: any) => {
+    if (action.action === 'compute' || action.action === 'recompute') {
+      // Handle direct computation
+      handleIndividualCompute(salary);
+    } else if (action.action.startsWith('pay_')) {
+      // Handle payment actions
+      handlePaymentAction(salary, action);
+    } else {
+      // Handle status change with confirmation
+      setStatusChangeTarget({
+        salary,
+        newStatus: action.targetStatus,
+        actionLabel: action.label
+      });
+      setStatusChangeNotes('');
+      setStatusChangeDialogOpen(true);
+    }
+    handleActionMenuClose();
+  };
+
+  const handleIndividualCompute = async (salary: MonthlySalary) => {
+    setStatusChanging(true);
+    setError(null);
+    
+    try {
+      await salaryProcessingApi.computeMonthlySalary({
+        employee_id: salary.employee_id,
+        month: salary.month,
+        year: salary.year,
+        tax_year: salary.tax_year,
+        force_recompute: true
+      });
+      
+      setSuccess(`Salary computed successfully for ${salary.employee_name}`);
+      
+      // Refresh data
+      await fetchSalaries();
+      await fetchSummary();
+      
+    } catch (err: any) {
+      setError(err.message || 'Failed to compute salary');
+    } finally {
+      setStatusChanging(false);
+    }
+  };
+
+  const handleStatusChangeConfirm = async () => {
+    if (!statusChangeTarget) return;
+    
+    setStatusChanging(true);
+    setError(null);
+    
+    try {
+      const updateRequest: any = {
+        employee_id: statusChangeTarget.salary.employee_id,
+        month: statusChangeTarget.salary.month,
+        year: statusChangeTarget.salary.year,
+        status: statusChangeTarget.newStatus
+      };
+      
+      if (statusChangeNotes) {
+        updateRequest.notes = statusChangeNotes;
+      }
+      
+      await salaryProcessingApi.updateMonthlySalaryStatus(updateRequest);
+      
+      setSuccess(`${statusChangeTarget.actionLabel} successful for ${statusChangeTarget.salary.employee_name}`);
+      
+      // Refresh data
+      await fetchSalaries();
+      await fetchSummary();
+      
+      // Close dialog
+      setStatusChangeDialogOpen(false);
+      setStatusChangeTarget(null);
+      setStatusChangeNotes('');
+      
+    } catch (err: any) {
+      setError(err.message || `Failed to ${statusChangeTarget.actionLabel.toLowerCase()}`);
+    } finally {
+      setStatusChanging(false);
+    }
+  };
+
+  const handleStatusChangeCancel = () => {
+    setStatusChangeDialogOpen(false);
+    setStatusChangeTarget(null);
+    setStatusChangeNotes('');
+  };
+
+  const handlePaymentAction = (salary: MonthlySalary, action: any) => {
+    setPaymentTarget({
+      salary,
+      paymentType: action.paymentType,
+      actionLabel: action.label
+    });
+    setPaymentReference('');
+    setPaymentNotes('');
+    setPaymentDialogOpen(true);
+  };
+
+  const handlePaymentConfirm = async () => {
+    if (!paymentTarget) return;
+
+    setProcessingPayment(true);
+    setError(null);
+
+    try {
+      const paymentRequest: any = {
+        employee_id: paymentTarget.salary.employee_id,
+        month: paymentTarget.salary.month,
+        year: paymentTarget.salary.year,
+        payment_type: paymentTarget.paymentType
+      };
+      
+      if (paymentReference) {
+        paymentRequest.payment_reference = paymentReference;
+      }
+      
+      if (paymentNotes) {
+        paymentRequest.payment_notes = paymentNotes;
+      }
+      
+      await salaryProcessingApi.markSalaryPayment(paymentRequest);
+
+      setSuccess(`Successfully marked ${paymentTarget.actionLabel.toLowerCase()} for ${paymentTarget.salary.employee_name}`);
+      setPaymentDialogOpen(false);
+      setPaymentTarget(null);
+      setPaymentReference('');
+      setPaymentNotes('');
+      
+      // Refresh data
+      await fetchSalaries();
+      await fetchSummary();
+    } catch (err: any) {
+      setError(err.message || `Failed to ${paymentTarget.actionLabel.toLowerCase()}`);
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
+
+  const handlePaymentCancel = () => {
+    setPaymentDialogOpen(false);
+    setPaymentTarget(null);
+    setPaymentReference('');
+    setPaymentNotes('');
   };
 
   return (
@@ -360,6 +556,52 @@ const SalaryProcessing: React.FC = () => {
         </Alert>
       )}
 
+      {/* Salary Lifecycle Workflow */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Salary Processing Workflow
+          </Typography>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', mt: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Chip label="Not Computed" color="default" size="small" variant="outlined" />
+              <Typography variant="body2">→</Typography>
+            </Box>
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Chip label="Computed" color="info" size="small" variant="outlined" />
+              <Typography variant="body2">→</Typography>
+            </Box>
+            
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Chip label="Approved" color="success" size="small" variant="outlined" />
+              <Typography variant="body2">→</Typography>
+            </Box>
+            
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Chip label="Salary Paid" color="warning" size="small" variant="outlined" />
+                <Typography variant="caption">or</Typography>
+                <Chip label="TDS Paid" color="warning" size="small" variant="outlined" />
+              </Box>
+              <Typography variant="body2">↓</Typography>
+              <Chip label="Fully Paid" color="success" size="small" variant="outlined" />
+            </Box>
+            
+            <Box sx={{ ml: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="body2" color="text.secondary">or</Typography>
+              <Chip label="Rejected" color="error" size="small" variant="outlined" />
+            </Box>
+          </Box>
+          
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            Use the actions menu (⋮) next to each salary record to move it through the workflow stages.
+            Rejected salaries can be recomputed and re-entered into the workflow.
+          </Typography>
+        </CardContent>
+      </Card>
+
       {/* Salary Table */}
       <Card>
         <CardContent>
@@ -412,14 +654,28 @@ const SalaryProcessing: React.FC = () => {
                         {getStatusChip(salary.status)}
                       </TableCell>
                       <TableCell align="center">
-                        <Tooltip title="View Details">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleViewSalaryDetails(salary)}
-                          >
-                            <VisibilityIcon />
-                          </IconButton>
-                        </Tooltip>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                          <Tooltip title="View Details">
+                            <IconButton
+                              size="small"
+                              onClick={() => handleViewSalaryDetails(salary)}
+                            >
+                              <VisibilityIcon />
+                            </IconButton>
+                          </Tooltip>
+                          
+                          {getAvailableActions(salary.status).length > 0 && (
+                            <Tooltip title="Actions">
+                              <IconButton
+                                size="small"
+                                onClick={(e) => handleActionMenuOpen(e, salary)}
+                                disabled={statusChanging}
+                              >
+                                <MoreVertIcon />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -438,6 +694,155 @@ const SalaryProcessing: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Action Menu */}
+      <Menu
+        anchorEl={actionMenuAnchor}
+        open={Boolean(actionMenuAnchor)}
+        onClose={handleActionMenuClose}
+        PaperProps={{
+          elevation: 3,
+          sx: { minWidth: 180 }
+        }}
+      >
+        {actionMenuSalary && getAvailableActions(actionMenuSalary.status).map((action) => (
+          <MenuItem
+            key={action.action}
+            onClick={() => handleStatusChangeClick(actionMenuSalary, action)}
+            disabled={statusChanging}
+          >
+            <ListItemIcon>
+              {action.icon}
+            </ListItemIcon>
+            <ListItemText>
+              {action.label}
+            </ListItemText>
+          </MenuItem>
+        ))}
+      </Menu>
+
+      {/* Status Change Confirmation Dialog */}
+      <Dialog
+        open={statusChangeDialogOpen}
+        onClose={handleStatusChangeCancel}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Confirm {statusChangeTarget?.actionLabel}
+        </DialogTitle>
+        <DialogContent>
+          {statusChangeTarget && (
+            <Box>
+              <Typography gutterBottom>
+                Are you sure you want to {statusChangeTarget.actionLabel.toLowerCase()} the salary for{' '}
+                <strong>{statusChangeTarget.salary.employee_name}</strong>?
+              </Typography>
+              
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Period: {monthOptions.find(m => m.value === statusChangeTarget.salary.month)?.label} {statusChangeTarget.salary.year}
+              </Typography>
+              
+              <Divider sx={{ my: 2 }} />
+              
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                label="Notes (Optional)"
+                value={statusChangeNotes}
+                onChange={(e) => setStatusChangeNotes(e.target.value)}
+                placeholder="Add any notes or comments..."
+                variant="outlined"
+                sx={{ mt: 2 }}
+              />
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={handleStatusChangeCancel}
+            disabled={statusChanging}
+            color="inherit"
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleStatusChangeConfirm}
+            disabled={statusChanging}
+            variant="contained"
+            startIcon={statusChanging ? <CircularProgress size={16} /> : null}
+          >
+            {statusChanging ? 'Processing...' : `Confirm ${statusChangeTarget?.actionLabel}`}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Payment Confirmation Dialog */}
+      <Dialog
+        open={paymentDialogOpen}
+        onClose={handlePaymentCancel}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Confirm {paymentTarget?.actionLabel}
+        </DialogTitle>
+        <DialogContent>
+          {paymentTarget && (
+            <Box>
+              <Typography gutterBottom>
+                Are you sure you want to mark {paymentTarget.paymentType === 'both' ? 'both salary and TDS' : paymentTarget.paymentType.toUpperCase()} as paid for{' '}
+                <strong>{paymentTarget.salary.employee_name}</strong>?
+              </Typography>
+              
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Period: {monthOptions.find(m => m.value === paymentTarget.salary.month)?.label} {paymentTarget.salary.year}
+              </Typography>
+              
+              <Divider sx={{ my: 2 }} />
+              
+              <TextField
+                fullWidth
+                label="Payment Reference (Optional)"
+                value={paymentReference}
+                onChange={(e) => setPaymentReference(e.target.value)}
+                placeholder="Transaction ID, Check number, etc."
+                variant="outlined"
+                sx={{ mb: 2 }}
+              />
+              
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                label="Payment Notes (Optional)"
+                value={paymentNotes}
+                onChange={(e) => setPaymentNotes(e.target.value)}
+                placeholder="Add any payment-related notes..."
+                variant="outlined"
+              />
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+                     <Button 
+             onClick={handlePaymentCancel}
+             disabled={processingPayment}
+             color="inherit"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handlePaymentConfirm}
+              disabled={processingPayment}
+              variant="contained"
+              startIcon={processingPayment ? <CircularProgress size={16} /> : null}
+            >
+              {processingPayment ? 'Processing...' : `Confirm ${paymentTarget?.actionLabel}`}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Bulk Compute Result Dialog */}
       <Dialog

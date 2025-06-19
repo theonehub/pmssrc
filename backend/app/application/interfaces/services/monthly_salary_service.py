@@ -14,6 +14,7 @@ from app.application.dto.monthly_salary_dto import (
     MonthlySalaryBulkComputeRequestDTO,
     MonthlySalaryBulkComputeResponseDTO,
     MonthlySalaryStatusUpdateRequestDTO,
+    MonthlySalaryPaymentRequestDTO,
     MonthlySalarySummaryDTO
 )
 
@@ -115,6 +116,24 @@ class MonthlySalaryService(ABC):
         
         Args:
             request: Status update request data
+            current_user: Current user context
+            
+        Returns:
+            MonthlySalaryResponseDTO: Updated monthly salary
+        """
+        pass
+    
+    @abstractmethod
+    async def mark_salary_payment(
+        self, 
+        request: MonthlySalaryPaymentRequestDTO, 
+        current_user: "CurrentUser"
+    ) -> MonthlySalaryResponseDTO:
+        """
+        Mark salary payment (salary, TDS, or both).
+        
+        Args:
+            request: Payment request data
             current_user: Current user context
             
         Returns:

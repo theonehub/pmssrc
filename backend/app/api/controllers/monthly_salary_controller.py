@@ -16,6 +16,7 @@ from app.application.dto.monthly_salary_dto import (
     MonthlySalaryBulkComputeRequestDTO,
     MonthlySalaryBulkComputeResponseDTO,
     MonthlySalaryStatusUpdateRequestDTO,
+    MonthlySalaryPaymentRequestDTO,
     MonthlySalarySummaryDTO
 )
 from app.auth.auth_dependencies import CurrentUser
@@ -423,4 +424,56 @@ class MonthlySalaryController:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Internal server error occurred"
-            ) 
+            )
+    
+    async def mark_salary_payment(
+        self,
+        request: MonthlySalaryPaymentRequestDTO,
+        current_user: CurrentUser
+    ) -> MonthlySalaryResponseDTO:
+        """
+        Mark salary payment.
+        
+        Args:
+            request: Payment request data
+            current_user: Current user context
+            
+        Returns:
+            MonthlySalaryResponseDTO: Updated monthly salary
+            
+        Raises:
+            HTTPException: For validation or processing errors
+        """
+        try:
+            logger.info(f"Marking {request.payment_type} payment for employee {request.employee_id}")
+            
+            # Validate payment type
+            if request.payment_type not in ["salary", "tds", "both"]:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Payment type must be 'salary', 'tds', or 'both'"
+                )
+            
+            # Set paid_by if not provided
+            if not request.paid_by:
+                request.paid_by = current_user.employee_id
+            
+            result = await self.monthly_salary_service.mark_salary_payment(
+                request=request,
+                current_user=current_user
+            )
+            
+            return result
+            
+        except ValueError as e:
+            logger.warning(f"Validation error marking payment: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e)
+            )
+        except Exception as e:
+            logger.error(f"Error marking payment for {request.employee_id}: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal server error occurred"
+            )

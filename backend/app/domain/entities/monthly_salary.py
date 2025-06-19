@@ -20,14 +20,17 @@ class ProcessingStatus:
     PENDING = "pending"
     COMPUTED = "computed"
     APPROVED = "approved"
-    PAID = "paid"
+    SALARY_PAID = "salary_paid"
+    TDS_PAID = "tds_paid"
+    PAID = "paid"  # Both salary and TDS paid
     REJECTED = "rejected"
     
     def __init__(self, status: str):
         """Initialize processing status."""
         valid_statuses = [
             self.NOT_COMPUTED, self.PENDING, self.COMPUTED, 
-            self.APPROVED, self.PAID, self.REJECTED
+            self.APPROVED, self.SALARY_PAID, self.TDS_PAID, 
+            self.PAID, self.REJECTED
         ]
         if status not in valid_statuses:
             raise ValueError(f"Invalid processing status: {status}")
@@ -41,8 +44,16 @@ class ProcessingStatus:
         return self.value != self.NOT_COMPUTED
     
     def is_final(self) -> bool:
-        """Check if salary processing is final (approved or paid)."""
-        return self.value in [self.APPROVED, self.PAID]
+        """Check if salary processing is final (fully paid)."""
+        return self.value == self.PAID
+    
+    def is_approved_or_beyond(self) -> bool:
+        """Check if salary is approved or in payment phase."""
+        return self.value in [self.APPROVED, self.SALARY_PAID, self.TDS_PAID, self.PAID]
+    
+    def is_payment_phase(self) -> bool:
+        """Check if salary is in payment phase (salary or TDS paid but not both)."""
+        return self.value in [self.SALARY_PAID, self.TDS_PAID]
 
 
 @dataclass
@@ -106,10 +117,18 @@ class MonthlySalary:
     notes: Optional[str]
     remarks: Optional[str]
     
-    # Audit fields
+    # Audit fields (non-optional fields must come before optional fields)
     organization_id: str
     created_at: datetime
     updated_at: datetime
+    
+    # Payment tracking (optional fields)
+    salary_payment_date: Optional[datetime] = None
+    tds_payment_date: Optional[datetime] = None
+    salary_payment_reference: Optional[str] = None
+    tds_payment_reference: Optional[str] = None
+    salary_paid_by: Optional[str] = None
+    tds_paid_by: Optional[str] = None
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
     
@@ -196,6 +215,14 @@ class MonthlySalary:
             computation_date=None,
             notes=None,
             remarks=None,
+            
+            # Payment tracking
+            salary_payment_date=None,
+            tds_payment_date=None,
+            salary_payment_reference=None,
+            tds_payment_reference=None,
+            salary_paid_by=None,
+            tds_paid_by=None,
             
             # Audit fields
             organization_id=organization_id,
@@ -284,6 +311,14 @@ class MonthlySalary:
             computation_date=None,
             notes=getattr(monthly_projection, 'notes', None),
             remarks=getattr(monthly_projection, 'remarks', None),
+            
+            # Payment tracking
+            salary_payment_date=None,
+            tds_payment_date=None,
+            salary_payment_reference=None,
+            tds_payment_reference=None,
+            salary_paid_by=None,
+            tds_paid_by=None,
             
             # Audit fields
             organization_id=organization_id,
@@ -417,17 +452,80 @@ class MonthlySalary:
         if reason:
             self.remarks = reason
     
+    def mark_salary_as_paid(
+        self,
+        paid_by: Optional[str] = None,
+        payment_reference: Optional[str] = None,
+        payment_notes: Optional[str] = None
+    ) -> None:
+        """Mark salary portion as paid."""
+        if self.status.value not in [ProcessingStatus.APPROVED, ProcessingStatus.TDS_PAID]:
+            raise ValueError("Can only mark salary as paid from approved or TDS paid status")
+        
+        now = datetime.utcnow()
+        self.salary_payment_date = now
+        self.salary_paid_by = paid_by
+        self.salary_payment_reference = payment_reference
+        self.updated_at = now
+        
+        if paid_by:
+            self.updated_by = paid_by
+        if payment_notes:
+            self.notes = payment_notes
+        
+        # Update status based on TDS payment status
+        if self.status.value == ProcessingStatus.TDS_PAID:
+            # Both salary and TDS are now paid
+            self.status = ProcessingStatus(ProcessingStatus.PAID)
+        else:
+            # Only salary is paid
+            self.status = ProcessingStatus(ProcessingStatus.SALARY_PAID)
+    
+    def mark_tds_as_paid(
+        self,
+        paid_by: Optional[str] = None,
+        payment_reference: Optional[str] = None,
+        payment_notes: Optional[str] = None
+    ) -> None:
+        """Mark TDS portion as paid."""
+        if self.status.value not in [ProcessingStatus.APPROVED, ProcessingStatus.SALARY_PAID]:
+            raise ValueError("Can only mark TDS as paid from approved or salary paid status")
+        
+        now = datetime.utcnow()
+        self.tds_payment_date = now
+        self.tds_paid_by = paid_by
+        self.tds_payment_reference = payment_reference
+        self.updated_at = now
+        
+        if paid_by:
+            self.updated_by = paid_by
+        if payment_notes:
+            self.remarks = payment_notes
+        
+        # Update status based on salary payment status
+        if self.status.value == ProcessingStatus.SALARY_PAID:
+            # Both salary and TDS are now paid
+            self.status = ProcessingStatus(ProcessingStatus.PAID)
+        else:
+            # Only TDS is paid
+            self.status = ProcessingStatus(ProcessingStatus.TDS_PAID)
+    
     def mark_as_paid(
         self,
         paid_by: Optional[str] = None,
         payment_notes: Optional[str] = None
     ) -> None:
-        """Mark salary as paid."""
+        """Mark both salary and TDS as paid simultaneously."""
         if self.status.value != ProcessingStatus.APPROVED:
             raise ValueError("Can only mark approved salaries as paid")
         
+        now = datetime.utcnow()
+        self.salary_payment_date = now
+        self.tds_payment_date = now
+        self.salary_paid_by = paid_by
+        self.tds_paid_by = paid_by
         self.status = ProcessingStatus(ProcessingStatus.PAID)
-        self.updated_at = datetime.utcnow()
+        self.updated_at = now
         
         if paid_by:
             self.updated_by = paid_by
@@ -475,6 +573,32 @@ class MonthlySalary:
         """Check if this record is for the current month."""
         now = datetime.now()
         return self.month == now.month and self.year == now.year
+    
+    def is_salary_paid(self) -> bool:
+        """Check if salary portion has been paid."""
+        return self.salary_payment_date is not None
+    
+    def is_tds_paid(self) -> bool:
+        """Check if TDS portion has been paid."""
+        return self.tds_payment_date is not None
+    
+    def is_fully_paid(self) -> bool:
+        """Check if both salary and TDS have been paid."""
+        return self.is_salary_paid() and self.is_tds_paid()
+    
+    def get_payment_status_summary(self) -> dict:
+        """Get a summary of payment status."""
+        return {
+            "salary_paid": self.is_salary_paid(),
+            "tds_paid": self.is_tds_paid(),
+            "fully_paid": self.is_fully_paid(),
+            "salary_payment_date": self.salary_payment_date,
+            "tds_payment_date": self.tds_payment_date,
+            "salary_payment_reference": self.salary_payment_reference,
+            "tds_payment_reference": self.tds_payment_reference,
+            "salary_paid_by": self.salary_paid_by,
+            "tds_paid_by": self.tds_paid_by
+        }
     
     def get_salary_breakdown(self) -> Dict[str, Any]:
         """Get detailed salary breakdown."""

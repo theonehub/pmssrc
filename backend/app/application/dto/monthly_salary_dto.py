@@ -97,6 +97,19 @@ class MonthlySalaryResponseDTO(BaseModel):
     notes: Optional[str] = Field(None, description="Notes")
     remarks: Optional[str] = Field(None, description="Remarks")
     
+    # Payment tracking
+    salary_payment_date: Optional[datetime] = Field(None, description="Salary payment date")
+    tds_payment_date: Optional[datetime] = Field(None, description="TDS payment date")
+    salary_payment_reference: Optional[str] = Field(None, description="Salary payment reference")
+    tds_payment_reference: Optional[str] = Field(None, description="TDS payment reference")
+    salary_paid_by: Optional[str] = Field(None, description="Salary paid by")
+    tds_paid_by: Optional[str] = Field(None, description="TDS paid by")
+    
+    # Payment status helpers
+    is_salary_paid: bool = Field(False, description="Whether salary is paid")
+    is_tds_paid: bool = Field(False, description="Whether TDS is paid")
+    is_fully_paid: bool = Field(False, description="Whether both salary and TDS are paid")
+    
     # Audit fields
     created_at: datetime = Field(..., description="Created timestamp")
     updated_at: datetime = Field(..., description="Updated timestamp")
@@ -158,6 +171,18 @@ class MonthlySalaryStatusUpdateRequestDTO(BaseModel):
     updated_by: Optional[str] = Field(None, description="Updated by")
 
 
+class MonthlySalaryPaymentRequestDTO(BaseModel):
+    """Request DTO for marking salary payment."""
+    
+    employee_id: str = Field(..., description="Employee ID")
+    month: int = Field(..., ge=1, le=12, description="Month")
+    year: int = Field(..., ge=2020, le=2030, description="Year")
+    payment_type: str = Field(..., description="Payment type: 'salary', 'tds', or 'both'")
+    payment_reference: Optional[str] = Field(None, description="Payment reference number")
+    payment_notes: Optional[str] = Field(None, description="Payment notes")
+    paid_by: Optional[str] = Field(None, description="Paid by")
+
+
 class MonthlySalarySummaryDTO(BaseModel):
     """Summary DTO for monthly salary overview."""
     
@@ -170,7 +195,9 @@ class MonthlySalarySummaryDTO(BaseModel):
     computed_count: int = Field(0, description="Computed salaries")
     pending_count: int = Field(0, description="Pending computations")
     approved_count: int = Field(0, description="Approved salaries")
-    paid_count: int = Field(0, description="Paid salaries")
+    salary_paid_count: int = Field(0, description="Salary paid (but TDS pending)")
+    tds_paid_count: int = Field(0, description="TDS paid (but salary pending)")
+    paid_count: int = Field(0, description="Fully paid salaries")
     
     # Financial summary
     total_gross_payroll: float = Field(0.0, description="Total gross payroll")

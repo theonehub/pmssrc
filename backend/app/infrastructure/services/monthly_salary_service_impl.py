@@ -21,6 +21,7 @@ from app.application.dto.monthly_salary_dto import (
     MonthlySalaryBulkComputeRequestDTO,
     MonthlySalaryBulkComputeResponseDTO,
     MonthlySalaryStatusUpdateRequestDTO,
+    MonthlySalaryPaymentRequestDTO,
     MonthlySalarySummaryDTO
 )
 from app.domain.services.taxation.tax_calculation_service import TaxCalculationService
@@ -289,12 +290,46 @@ class MonthlySalaryServiceImpl(MonthlySalaryService):
             if not monthly_salary:
                 raise ValueError(f"Monthly salary not found for {request.employee_id}, {request.month}/{request.year}")
             
-            # Update status
-            new_status = ProcessingStatus(request.status)
-            monthly_salary.update_status(new_status, request.updated_by or current_user.employee_id)
+            # Update status based on the requested status
+            updated_by = request.updated_by or current_user.employee_id
             
-            if request.notes:
-                monthly_salary.add_notes(request.notes)
+            if request.status == ProcessingStatus.APPROVED:
+                monthly_salary.approve_salary(
+                    approved_by=updated_by,
+                    remarks=request.notes
+                )
+            elif request.status == ProcessingStatus.REJECTED:
+                monthly_salary.reject_salary(
+                    rejected_by=updated_by,
+                    reason=request.notes
+                )
+            elif request.status == ProcessingStatus.SALARY_PAID:
+                monthly_salary.mark_salary_as_paid(
+                    paid_by=updated_by,
+                    payment_notes=request.notes
+                )
+            elif request.status == ProcessingStatus.TDS_PAID:
+                monthly_salary.mark_tds_as_paid(
+                    paid_by=updated_by,
+                    payment_notes=request.notes
+                )
+            elif request.status == ProcessingStatus.PAID:
+                monthly_salary.mark_as_paid(
+                    paid_by=updated_by,
+                    payment_notes=request.notes
+                )
+            elif request.status == ProcessingStatus.COMPUTED:
+                monthly_salary.mark_as_computed(
+                    computed_by=updated_by,
+                    notes=request.notes
+                )
+            else:
+                # For other statuses, update directly
+                monthly_salary.status = ProcessingStatus(request.status)
+                monthly_salary.updated_at = datetime.utcnow()
+                monthly_salary.updated_by = updated_by
+                if request.notes:
+                    monthly_salary.notes = request.notes
             
             # Save updated entity
             saved_monthly_salary = await self.monthly_salary_repository.save(monthly_salary, hostname)
@@ -308,6 +343,67 @@ class MonthlySalaryServiceImpl(MonthlySalaryService):
             
         except Exception as e:
             logger.error(f"Error updating status for {request.employee_id}: {e}")
+            raise
+    
+    async def mark_salary_payment(
+        self, 
+        request: MonthlySalaryPaymentRequestDTO, 
+        current_user: "CurrentUser"
+    ) -> MonthlySalaryResponseDTO:
+        """Mark salary payment (salary, TDS, or both)."""
+        try:
+            logger.info(f"Marking {request.payment_type} payment for {request.employee_id}, {request.month}/{request.year}")
+            
+            employee_id_obj = EmployeeId(request.employee_id)
+            hostname = current_user.hostname
+            
+            # Get existing monthly salary
+            monthly_salary = await self.monthly_salary_repository.get_by_employee_month_year(
+                employee_id_obj, request.month, request.year, hostname
+            )
+            
+            if not monthly_salary:
+                raise ValueError(f"Monthly salary not found for {request.employee_id}, {request.month}/{request.year}")
+            
+            # Handle payment based on type
+            paid_by = request.paid_by or current_user.employee_id
+            
+            if request.payment_type == "salary":
+                monthly_salary.mark_salary_as_paid(
+                    paid_by=paid_by,
+                    payment_reference=request.payment_reference,
+                    payment_notes=request.payment_notes
+                )
+            elif request.payment_type == "tds":
+                monthly_salary.mark_tds_as_paid(
+                    paid_by=paid_by,
+                    payment_reference=request.payment_reference,
+                    payment_notes=request.payment_notes
+                )
+            elif request.payment_type == "both":
+                monthly_salary.mark_as_paid(
+                    paid_by=paid_by,
+                    payment_notes=request.payment_notes
+                )
+                # Set payment references for both
+                if request.payment_reference:
+                    monthly_salary.salary_payment_reference = request.payment_reference
+                    monthly_salary.tds_payment_reference = request.payment_reference
+            else:
+                raise ValueError(f"Invalid payment type: {request.payment_type}")
+            
+            # Save updated entity
+            saved_monthly_salary = await self.monthly_salary_repository.save(monthly_salary, hostname)
+            
+            # Get employee details for response
+            user = await self.user_repository.get_by_id(employee_id_obj, hostname)
+            
+            logger.info(f"Successfully marked {request.payment_type} payment for {request.employee_id}")
+            
+            return self._convert_entity_to_dto(saved_monthly_salary, user)
+            
+        except Exception as e:
+            logger.error(f"Error marking payment for {request.employee_id}: {e}")
             raise
     
     async def get_monthly_salary_summary(
@@ -450,6 +546,19 @@ class MonthlySalaryServiceImpl(MonthlySalaryService):
             computation_date=monthly_salary.computation_date,
             notes=monthly_salary.notes,
             remarks=monthly_salary.remarks,
+            
+            # Payment tracking
+            salary_payment_date=monthly_salary.salary_payment_date,
+            tds_payment_date=monthly_salary.tds_payment_date,
+            salary_payment_reference=monthly_salary.salary_payment_reference,
+            tds_payment_reference=monthly_salary.tds_payment_reference,
+            salary_paid_by=monthly_salary.salary_paid_by,
+            tds_paid_by=monthly_salary.tds_paid_by,
+            
+            # Payment status helpers
+            is_salary_paid=monthly_salary.is_salary_paid(),
+            is_tds_paid=monthly_salary.is_tds_paid(),
+            is_fully_paid=monthly_salary.is_fully_paid(),
             
             # Audit fields
             created_at=monthly_salary.created_at,

@@ -7,8 +7,11 @@ import logging
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query, Path, Body
 from fastapi import status as http_status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from datetime import datetime
+import io
+import csv
+import json
 
 from app.api.controllers.user_controller import UserController
 from app.application.dto.user_dto import (
@@ -521,3 +524,192 @@ async def get_user_statistics(
 ) -> UserStatisticsDTO:
     """Get comprehensive user analytics and statistics."""
     return await controller.get_user_statistics(current_user)
+
+@router.get("/export")
+async def export_employees(
+    # Filters
+    search: Optional[str] = Query(None, description="Search term"),
+    department: Optional[str] = Query(None, description="Department filter"),
+    role: Optional[str] = Query(None, description="Role filter"),
+    designation: Optional[str] = Query(None, description="Designation filter"),
+    location: Optional[str] = Query(None, description="Location filter"),
+    manager_id: Optional[str] = Query(None, description="Manager ID filter"),
+    include_inactive: bool = Query(False, description="Include inactive employees"),
+    include_deleted: bool = Query(False, description="Include deleted employees"),
+    
+    # Date filters
+    date_of_joining_from: Optional[str] = Query(None, description="Date of joining from (YYYY-MM-DD)"),
+    date_of_joining_to: Optional[str] = Query(None, description="Date of joining to (YYYY-MM-DD)"),
+    date_of_leaving_from: Optional[str] = Query(None, description="Date of leaving from (YYYY-MM-DD)"),
+    date_of_leaving_to: Optional[str] = Query(None, description="Date of leaving to (YYYY-MM-DD)"),
+    date_of_birth_from: Optional[str] = Query(None, description="Date of birth from (YYYY-MM-DD)"),
+    date_of_birth_to: Optional[str] = Query(None, description="Date of birth to (YYYY-MM-DD)"),
+    
+    # Field selection
+    fields: List[str] = Query(None, description="Fields to include in export"),
+    format: str = Query("csv", description="Export format (csv or excel)"),
+    
+    # Auth
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+):
+    """Export employee data with filters and field selection."""
+    try:
+        logger.info(f"Exporting employee data for organisation {current_user.hostname}")
+        
+        # Check permissions - only admin and superadmin can export
+        if not hasattr(current_user, 'role') or current_user.role.lower() not in ['admin', 'superadmin']:
+            raise HTTPException(
+                status_code=403, 
+                detail="Access denied. Only admin and superadmin can export employee data."
+            )
+        
+        # Default fields if none specified
+        if not fields:
+            fields = [
+                'employee_id', 'name', 'email', 'mobile', 'department', 
+                'designation', 'date_of_joining', 'status'
+            ]
+        
+        # Create search filters
+        search_filters = UserSearchFiltersDTO(
+            name=search,
+            department=department,
+            role=role,
+            designation=designation,
+            location=location,
+            manager_id=manager_id,
+            is_active=None if include_inactive else True,
+            page_size=10000,  # Get all records for export
+            sort_by="name",
+            sort_order="asc"
+        )
+        
+        # Add date filters if provided
+        if date_of_joining_from:
+            search_filters.joined_after = datetime.fromisoformat(date_of_joining_from)
+        if date_of_joining_to:
+            search_filters.joined_before = datetime.fromisoformat(date_of_joining_to)
+        
+        # Get users from controller
+        result = await controller.search_users(search_filters, current_user)
+        users = result.users
+        
+        logger.info(f"Found {len(users)} users to export for organisation {current_user.hostname}")
+        
+        # Filter users based on additional criteria
+        filtered_users = []
+        for user in users:
+            # Apply additional date filters
+            should_include = True
+            
+            # Date of birth filter
+            if date_of_birth_from or date_of_birth_to:
+                if hasattr(user, 'personal_details') and user.personal_details:
+                    user_dob = user.personal_details.date_of_birth
+                    if user_dob:
+                        try:
+                            dob_date = datetime.fromisoformat(user_dob.split('T')[0])
+                            if date_of_birth_from and dob_date < datetime.fromisoformat(date_of_birth_from):
+                                should_include = False
+                            if date_of_birth_to and dob_date > datetime.fromisoformat(date_of_birth_to):
+                                should_include = False
+                        except (ValueError, AttributeError):
+                            pass
+            
+            # Date of leaving filter
+            if date_of_leaving_from or date_of_leaving_to:
+                user_dol = getattr(user, 'date_of_leaving', None)
+                if user_dol:
+                    try:
+                        dol_date = datetime.fromisoformat(user_dol.split('T')[0])
+                        if date_of_leaving_from and dol_date < datetime.fromisoformat(date_of_leaving_from):
+                            should_include = False
+                        if date_of_leaving_to and dol_date > datetime.fromisoformat(date_of_leaving_to):
+                            should_include = False
+                    except (ValueError, AttributeError):
+                        pass
+            
+            if should_include:
+                filtered_users.append(user)
+        
+        logger.info(f"After filtering: {len(filtered_users)} users to export")
+        
+        # Prepare data for export
+        export_data = []
+        for user in filtered_users:
+            row = {}
+            for field in fields:
+                value = ""
+                
+                # Handle nested fields
+                if field == 'date_of_birth' and hasattr(user, 'personal_details') and user.personal_details:
+                    value = user.personal_details.date_of_birth or ""
+                elif field == 'gender' and hasattr(user, 'personal_details') and user.personal_details:
+                    value = user.personal_details.gender or ""
+                elif field == 'mobile' and hasattr(user, 'personal_details') and user.personal_details:
+                    value = user.personal_details.mobile or ""
+                elif field == 'pan_number' and hasattr(user, 'personal_details') and user.personal_details:
+                    value = user.personal_details.pan_number or ""
+                elif field == 'aadhar_number' and hasattr(user, 'personal_details') and user.personal_details:
+                    value = user.personal_details.aadhar_number or ""
+                elif field == 'uan_number' and hasattr(user, 'personal_details') and user.personal_details:
+                    value = user.personal_details.uan_number or ""
+                elif field == 'esi_number' and hasattr(user, 'personal_details') and user.personal_details:
+                    value = user.personal_details.esi_number or ""
+                elif field.startswith('bank_') and hasattr(user, 'bank_details') and user.bank_details:
+                    bank_field = field.replace('bank_', '')
+                    value = getattr(user.bank_details, bank_field, "") or ""
+                else:
+                    # Direct field access
+                    value = getattr(user, field, "") or ""
+                
+                # Convert to string and handle special cases
+                if isinstance(value, bool):
+                    value = "Yes" if value else "No"
+                elif value is None:
+                    value = ""
+                else:
+                    value = str(value)
+                
+                row[field] = value
+            
+            export_data.append(row)
+        
+        # Generate export file
+        if format.lower() == 'excel':
+            # For Excel export, we'll use a simple CSV format for now
+            # In production, you might want to use openpyxl or xlsxwriter
+            format = 'csv'
+        
+        if format.lower() == 'csv':
+            # Create CSV
+            output = io.StringIO()
+            if export_data:
+                writer = csv.DictWriter(output, fieldnames=fields)
+                writer.writeheader()
+                writer.writerows(export_data)
+            
+            csv_content = output.getvalue()
+            output.close()
+            
+            # Create response
+            response = StreamingResponse(
+                io.BytesIO(csv_content.encode('utf-8')),
+                media_type="text/csv",
+                headers={
+                    "Content-Disposition": f"attachment; filename=employee_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+                }
+            )
+            
+            logger.info(f"Successfully exported {len(export_data)} employees as CSV for organisation {current_user.hostname}")
+            return response
+        
+        else:
+            raise HTTPException(status_code=400, detail="Unsupported export format")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error exporting employee data for organisation {current_user.hostname}: {e}")
+        raise HTTPException(status_code=500, detail=f"Export failed: {str(e)}")

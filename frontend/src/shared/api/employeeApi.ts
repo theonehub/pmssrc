@@ -67,6 +67,16 @@ export interface EmployeeFilters {
   manager_id?: string;
   designation?: string;
   location?: string;
+  // Date filters
+  doj_from?: string;
+  doj_to?: string;
+  dol_from?: string;
+  dol_to?: string;
+  dob_from?: string;
+  dob_to?: string;
+  // Export specific fields
+  fields?: string[];
+  format?: string;
 }
 
 export interface EmployeeListResponse {
@@ -180,7 +190,14 @@ class EmployeeAPI {
         role,
         manager_id,
         designation,
-        location
+        location,
+        // Date filters
+        doj_from,
+        doj_to,
+        dol_from,
+        dol_to,
+        dob_from,
+        dob_to
       } = filters;
 
       const params: Record<string, any> = {
@@ -197,6 +214,14 @@ class EmployeeAPI {
       if (manager_id) params.manager_id = manager_id;
       if (designation) params.designation = designation;
       if (location) params.location = location;
+
+      // Add date filters
+      if (doj_from) params.date_of_joining_from = doj_from;
+      if (doj_to) params.date_of_joining_to = doj_to;
+      if (dol_from) params.date_of_leaving_from = dol_from;
+      if (dol_to) params.date_of_leaving_to = dol_to;
+      if (dob_from) params.date_of_birth_from = dob_from;
+      if (dob_to) params.date_of_birth_to = dob_to;
 
       const response = await this.baseApi.get<EmployeeListResponse>('/api/v2/users', { params });
       return response;

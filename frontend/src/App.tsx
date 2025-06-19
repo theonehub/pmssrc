@@ -39,6 +39,9 @@ import SalaryProcessing from './components/SalaryProcessing/SalaryProcessing';
 // Reporting Pages
 import ReportingDashboard from './components/Reporting/ReportingDashboard';
 
+// Download Center Pages
+import DownloadCenter from './components/DownloadCenter/DownloadCenter';
+
 const AppContent: React.FC = () => {
   const { isCalculatorOpen, closeCalculator } = useCalculatorStore();
 
@@ -170,6 +173,12 @@ const AppContent: React.FC = () => {
           <Route
             path="/reporting"
             element={withLayout(<ReportingDashboard />, 'Reporting & Analytics', ['manager', 'admin', 'superadmin'])}
+          />
+
+          {/* Download Center Routes */}
+          <Route
+            path="/download-center"
+            element={withLayout(<DownloadCenter />, 'Download Center', ['admin', 'superadmin'])}
           />
         </Routes>
       </Router>

@@ -30,6 +30,7 @@ import {
   Assessment as AssessmentIcon,
   ExpandLess,
   ExpandMore,
+  Download as DownloadIcon,
 } from '@mui/icons-material';
 import { getUserRole } from '../shared/utils/auth';
 import { removeToken } from '../shared/utils/auth';
@@ -72,6 +73,7 @@ const Sidebar: React.FC = () => {
     reimbursements: false,
     taxation: false,
     reporting: false,
+    downloads: false,
     settings: false,
   });
 
@@ -227,6 +229,19 @@ const Sidebar: React.FC = () => {
           icon: <AssessmentIcon />,
           path: '/reporting',
           roles: ['manager', 'admin', 'superadmin'],
+        },
+      ],
+    },
+    {
+      id: 'downloads',
+      title: 'Download Center',
+      icon: <DownloadIcon />,
+      items: [
+        {
+          title: 'Download Center',
+          icon: <DownloadIcon />,
+          path: '/download-center',
+          roles: ['admin', 'superadmin'],
         },
       ],
     },

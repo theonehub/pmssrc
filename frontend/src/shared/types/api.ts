@@ -495,4 +495,58 @@ export interface EmployeeSelectionResponse {
   skip: number;
   limit: number;
   has_more: boolean;
+}
+
+// =============================================================================
+// EMPLOYEE EXPORT TYPES
+// =============================================================================
+
+export interface EmployeeExportField {
+  key: string;
+  label: string;
+  category: string;
+}
+
+export interface EmployeeExportFilters {
+  // Basic filters
+  search?: string;
+  department?: string;
+  role?: string;
+  designation?: string;
+  location?: string;
+  manager_id?: string;
+  
+  // Status filters
+  include_inactive?: boolean;
+  include_deleted?: boolean;
+  
+  // Date filters
+  date_of_joining_from?: string;
+  date_of_joining_to?: string;
+  date_of_leaving_from?: string;
+  date_of_leaving_to?: string;
+  date_of_birth_from?: string;
+  date_of_birth_to?: string;
+  
+  // Pagination (for preview)
+  limit?: number;
+  skip?: number;
+}
+
+export interface EmployeeExportRequest {
+  filters: EmployeeExportFilters;
+  fields: string[];
+  format: 'csv' | 'excel';
+}
+
+export interface EmployeeExportPreviewRequest {
+  filters: EmployeeExportFilters;
+  fields: string[];
+  limit?: number;
+}
+
+export interface EmployeeExportResponse {
+  success: boolean;
+  message: string;
+  download_url?: string;
 } 

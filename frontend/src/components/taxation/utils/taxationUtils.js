@@ -148,7 +148,7 @@ export const getDefaultTaxationState = (empId) => ({
   capital_gains_income: {
     stcg_111a_equity_stt: 0,
     stcg_other_assets: 0,
-    stcg_debt_mutual_fund: 0,
+    stcg_debt_mf: 0,
     ltcg_112a_equity_stt: 0,
     ltcg_other_assets: 0,
     ltcg_debt_mf: 0

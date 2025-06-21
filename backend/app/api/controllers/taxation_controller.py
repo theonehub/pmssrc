@@ -946,12 +946,11 @@ class UnifiedTaxationController:
         
         return HousePropertyIncome(
             property_type=PropertyType.SELF_OCCUPIED,
+            address="",
             annual_rent_received=Money.zero(),
             municipal_taxes_paid=Money.zero(),
             home_loan_interest=Money.zero(),
-            pre_construction_interest=Money.zero(),
-            fair_rental_value=Money.zero(),
-            standard_rent=Money.zero()
+            pre_construction_interest=Money.zero()
         )
     
     def _create_default_capital_gains(self):
@@ -1271,19 +1270,17 @@ class UnifiedTaxationController:
         # Map property type to enum
         property_type_mapping = {
             "Self-Occupied": PropertyType.SELF_OCCUPIED,
-            "Let-Out": PropertyType.LET_OUT, 
-            "Deemed Let-Out": PropertyType.DEEMED_LET_OUT
+            "Let-Out": PropertyType.LET_OUT
         }
         property_type = property_type_mapping.get(house_dto.property_type, PropertyType.SELF_OCCUPIED)
         
         return HousePropertyIncome(
             property_type=property_type,
+            address=getattr(house_dto, 'address', ''),
             annual_rent_received=Money.from_decimal(house_dto.annual_rent_received),
             municipal_taxes_paid=Money.from_decimal(house_dto.municipal_taxes_paid),
             home_loan_interest=Money.from_decimal(house_dto.home_loan_interest),
-            pre_construction_interest=Money.from_decimal(house_dto.pre_construction_interest),
-            fair_rental_value=Money.from_decimal(house_dto.fair_rental_value),
-            standard_rent=Money.from_decimal(house_dto.standard_rent)
+            pre_construction_interest=Money.from_decimal(house_dto.pre_construction_interest)
         )
     
     def _convert_capital_gains_dto_to_entity(self, capital_gains_dto) -> CapitalGainsIncome:
@@ -1291,6 +1288,7 @@ class UnifiedTaxationController:
         return CapitalGainsIncome(
             stcg_111a_equity_stt=Money.from_decimal(capital_gains_dto.stcg_111a_equity_stt),
             stcg_other_assets=Money.from_decimal(capital_gains_dto.stcg_other_assets),
+            stcg_debt_mf=Money.from_decimal(capital_gains_dto.stcg_debt_mf),
             ltcg_112a_equity_stt=Money.from_decimal(capital_gains_dto.ltcg_112a_equity_stt),
             ltcg_other_assets=Money.from_decimal(capital_gains_dto.ltcg_other_assets),
             ltcg_debt_mf=Money.from_decimal(capital_gains_dto.ltcg_debt_mf)

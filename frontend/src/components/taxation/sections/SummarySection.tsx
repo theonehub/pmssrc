@@ -300,7 +300,7 @@ const SummarySection: React.FC<SummarySectionProps> = ({
                     (taxCalculationResponse?.tax_breakdown?.income_breakdown?.capital_gains_income?.stcg_debt_mf || 0) ||
                     ((taxationData.capital_gains_income?.stcg_111a_equity_stt || 0) + 
                      (taxationData.capital_gains_income?.stcg_other_assets || 0) +
-                     (taxationData.capital_gains_income?.stcg_debt_mutual_fund || 0))
+                     (taxationData.capital_gains_income?.stcg_debt_mf || 0))
                   )}
                 </Typography>
                 

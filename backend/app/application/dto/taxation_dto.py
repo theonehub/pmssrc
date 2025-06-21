@@ -1137,13 +1137,14 @@ class MultipleHousePropertiesDTO(BaseModel):
 class CapitalGainsIncomeDTO(BaseModel):
     """Capital gains income DTO."""
     # Short Term Capital Gains
-    stcg_111a_equity_stt: Decimal = Field(default=0, ge=0, description="STCG on equity with STT (15%)")
+    stcg_111a_equity_stt: Decimal = Field(default=0, ge=0, description="STCG on equity with STT (20%)")
     stcg_other_assets: Decimal = Field(default=0, ge=0, description="STCG on other assets (slab rates)")
+    stcg_debt_mf: Decimal = Field(default=0, ge=0, description="STCG on debt mutual funds (slab rates)")
     
     # Long Term Capital Gains
-    ltcg_112a_equity_stt: Decimal = Field(default=0, ge=0, description="LTCG on equity with STT (10%)")
-    ltcg_other_assets: Decimal = Field(default=0, ge=0, description="LTCG on other assets (20%)")
-    ltcg_debt_mf: Decimal = Field(default=0, ge=0, description="LTCG on debt mutual funds (20%)")
+    ltcg_112a_equity_stt: Decimal = Field(default=0, ge=0, description="LTCG on equity with STT (12.5%)")
+    ltcg_other_assets: Decimal = Field(default=0, ge=0, description="LTCG on other assets (12.5%)")
+    ltcg_debt_mf: Decimal = Field(default=0, ge=0, description="LTCG on debt mutual funds (12.5%)")
 
 
 # =============================================================================

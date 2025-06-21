@@ -113,8 +113,8 @@ const transformComprehensiveRecordToFormData = (comprehensiveRecord, empId) => {
         municipal_taxes_paid: toNumber(houseData.municipal_taxes_paid),
         home_loan_interest: toNumber(houseData.home_loan_interest),
         pre_construction_interest: toNumber(houseData.pre_construction_interest),
-        fair_rental_value: toNumber(houseData.fair_rental_value),
-        standard_rent: toNumber(houseData.standard_rent),
+
+        
       };
     }
 

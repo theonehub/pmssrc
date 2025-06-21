@@ -76,9 +76,9 @@ export interface OtherIncomeDTO {
 export interface CapitalGainsIncomeDTO {
   stcg_111a_equity_stt: number;
   stcg_other_assets: number;
-  stcg_debt_mutual_fund?: number;
+  stcg_debt_mf: number;
   ltcg_112a_equity_stt: number;
-  ltcg_other_assets?: number;
+  ltcg_other_assets: number;
   ltcg_debt_mf: number;
 }
 
@@ -374,8 +374,6 @@ export interface ComprehensiveTaxCalculationResponse {
       };
       house_property_income: {
         property_type: string;
-        fair_rental_value: number;
-        standard_rent: number;
         annual_rent_received: number;
         municipal_tax: number;
         interest_on_loan: number;

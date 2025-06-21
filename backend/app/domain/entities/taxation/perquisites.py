@@ -53,10 +53,6 @@ class AccommodationPerquisite:
     license_fees: Money = Money.zero()
     employee_rent_payment: Money = Money.zero()
     
-    # For employer-owned/leased
-    basic_salary: Money = Money.zero()
-    dearness_allowance: Money = Money.zero()
-    
     # For employer-leased
     rent_paid_by_employer: Money = Money.zero()
     
@@ -69,9 +65,8 @@ class AccommodationPerquisite:
     furniture_employee_payment: Money = Money.zero()
     is_furniture_owned_by_employer: bool = True
     
-    def calculate_accommodation_value(self) -> Money:
+    def calculate_accommodation_value(self, basic_plus_da: Money) -> Money:
         """Calculate accommodation perquisite value."""
-        basic_plus_da = self.basic_salary.add(self.dearness_allowance)
         
         if self.accommodation_type == AccommodationType.GOVERNMENT:
             return self.license_fees.subtract(self.employee_rent_payment).max(Money.zero())

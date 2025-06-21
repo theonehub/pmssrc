@@ -188,59 +188,76 @@ const OtherIncomeSection: React.FC<OtherIncomeSectionProps> = ({
             width: '100%'
           }}
         >
-          {/* Short Term Capital Gains */}
+          {/* Short Term Capital Gains - 111A (Equity with STT) */}
           <TextField
             fullWidth
-            label="Short Term Capital Gains (111A)"
+            label="STCG 111A (Equity with STT)"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('capital_gains', 'stcg_111a', e)}
+            value={formatIndianNumber(taxationData.capital_gains_income?.stcg_111a_equity_stt || 0)}
+            onChange={(e) => handleTextFieldChange('capital_gains_income', 'stcg_111a_equity_stt', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('capital_gains', 'stcg_111a', e)}
+            onFocus={(e) => handleTextFieldFocus('capital_gains_income', 'stcg_111a_equity_stt', e)}
+            helperText="Taxed at 20%"
           />
           
-          {/* Long Term Capital Gains */}
+          {/* Short Term Capital Gains - Other Assets */}
           <TextField
             fullWidth
-            label="Long Term Capital Gains (112A)"
+            label="STCG Other Assets"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('capital_gains', 'ltcg_112a', e)}
+            value={formatIndianNumber(taxationData.capital_gains_income?.stcg_other_assets || 0)}
+            onChange={(e) => handleTextFieldChange('capital_gains_income', 'stcg_other_assets', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('capital_gains', 'ltcg_112a', e)}
-          />
-        </Box>
-      </Paper>
-
-      <FormSectionHeader title="Leave Encashment" />
-      <Paper variant="outlined" sx={{ p: 3 }}>
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: 3,
-            width: '100%'
-          }}
-        >
-          {/* Leave Encashment Income */}
-          <TextField
-            fullWidth
-            label="Leave Encashment Income"
-            type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('leave_encashment', 'income_received', e)}
-            InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('leave_encashment', 'income_received', e)}
+            onFocus={(e) => handleTextFieldFocus('capital_gains_income', 'stcg_other_assets', e)}
+            helperText="Taxed at slab rates"
           />
           
-          {/* Leave Days Encashed */}
+          {/* Short Term Capital Gains - Debt Mutual Funds */}
           <TextField
             fullWidth
-            label="Leave Days Encashed"
-            type="number"
-            value={0}
-            onChange={(e) => handleTextFieldChange('leave_encashment', 'leave_encashed', e)}
-            onFocus={(e) => handleTextFieldFocus('leave_encashment', 'leave_encashed', e)}
+            label="STCG Debt Mutual Funds"
+            type="text"
+            value={formatIndianNumber(taxationData.capital_gains_income?.stcg_debt_mf || 0)}
+            onChange={(e) => handleTextFieldChange('capital_gains_income', 'stcg_debt_mf', e)}
+            InputProps={{ startAdornment: '₹' }}
+            onFocus={(e) => handleTextFieldFocus('capital_gains_income', 'stcg_debt_mf', e)}
+            helperText="Taxed at slab rates"
+          />
+          
+          {/* Long Term Capital Gains - 112A (Equity with STT) */}
+          <TextField
+            fullWidth
+            label="LTCG 112A (Equity with STT)"
+            type="text"
+            value={formatIndianNumber(taxationData.capital_gains_income?.ltcg_112a_equity_stt || 0)}
+            onChange={(e) => handleTextFieldChange('capital_gains_income', 'ltcg_112a_equity_stt', e)}
+            InputProps={{ startAdornment: '₹' }}
+            onFocus={(e) => handleTextFieldFocus('capital_gains_income', 'ltcg_112a_equity_stt', e)}
+            helperText="12.5% tax with ₹1.25L exemption"
+          />
+          
+          {/* Long Term Capital Gains - Other Assets */}
+          <TextField
+            fullWidth
+            label="LTCG Other Assets"
+            type="text"
+            value={formatIndianNumber(taxationData.capital_gains_income?.ltcg_other_assets || 0)}
+            onChange={(e) => handleTextFieldChange('capital_gains_income', 'ltcg_other_assets', e)}
+            InputProps={{ startAdornment: '₹' }}
+            onFocus={(e) => handleTextFieldFocus('capital_gains_income', 'ltcg_other_assets', e)}
+            helperText="Taxed at 12.5%"
+          />
+          
+          {/* Long Term Capital Gains - Debt Mutual Funds */}
+          <TextField
+            fullWidth
+            label="LTCG Debt Mutual Funds"
+            type="text"
+            value={formatIndianNumber(taxationData.capital_gains_income?.ltcg_debt_mf || 0)}
+            onChange={(e) => handleTextFieldChange('capital_gains_income', 'ltcg_debt_mf', e)}
+            InputProps={{ startAdornment: '₹' }}
+            onFocus={(e) => handleTextFieldFocus('capital_gains_income', 'ltcg_debt_mf', e)}
+            helperText="Taxed at 12.5%"
           />
         </Box>
       </Paper>

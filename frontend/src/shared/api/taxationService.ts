@@ -213,7 +213,7 @@ export const calculateTax = async (
       capital_gains_income: inputData.capital_gains_income ? {
         stcg_111a_equity_stt: inputData.capital_gains_income.stcg_111a_equity_stt || 0,
         stcg_other_assets: inputData.capital_gains_income.stcg_other_assets || 0,
-        stcg_debt_mutual_fund: inputData.capital_gains_income.stcg_debt_mutual_fund || 0,
+        stcg_debt_mf: inputData.capital_gains_income.stcg_debt_mf || 0,
         ltcg_112a_equity_stt: inputData.capital_gains_income.ltcg_112a_equity_stt || 0,
         ltcg_other_assets: inputData.capital_gains_income.ltcg_other_assets || 0,
         ltcg_debt_mf: inputData.capital_gains_income.ltcg_debt_mf || 0
@@ -226,8 +226,8 @@ export const calculateTax = async (
         municipal_taxes_paid: inputData.house_property_income.municipal_tax || 0,
         home_loan_interest: inputData.house_property_income.interest_on_loan || 0,
         pre_construction_interest: inputData.house_property_income.pre_construction_loan_interest || 0,
-        fair_rental_value: 0,
-        standard_rent: 0
+
+        
       } : null,
       
       // Retirement benefits
@@ -438,7 +438,7 @@ export const createDefaultOtherSources = (): OtherIncomeDTO => ({
 export const createDefaultCapitalGains = (): CapitalGainsIncomeDTO => ({
   stcg_111a_equity_stt: 0,
   stcg_other_assets: 0,
-  stcg_debt_mutual_fund: 0,
+  stcg_debt_mf: 0,
   ltcg_112a_equity_stt: 0,
   ltcg_other_assets: 0,
   ltcg_debt_mf: 0,

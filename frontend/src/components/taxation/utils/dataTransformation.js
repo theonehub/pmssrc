@@ -135,8 +135,8 @@ export const transformComprehensiveRecordToFormData = (comprehensiveRecord, empI
         municipal_taxes_paid: 0,
         home_loan_interest: 0,
         pre_construction_interest: 0,
-        fair_rental_value: 0,
-        standard_rent: 0,
+  
+        
       }),
 
       // Transform capital gains

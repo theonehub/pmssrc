@@ -125,11 +125,12 @@ class CreateTaxationRecordCommandHandler:
         
         logger.info("Creating default HousePropertyIncome entity...")
         default_house_property = command.house_property_income or HousePropertyIncome(
-            property_type="self_occupied",
-            municipal_value=Money.zero(),
-            fair_rental_value=Money.zero(),
-            standard_rent=Money.zero(),
-            annual_rent_received=Money.zero()
+            property_type=PropertyType.SELF_OCCUPIED,
+            address="",
+            annual_rent_received=Money.zero(),
+            municipal_taxes_paid=Money.zero(),
+            home_loan_interest=Money.zero(),
+            pre_construction_interest=Money.zero()
         )
         logger.info("✅ HousePropertyIncome entity created successfully")
         

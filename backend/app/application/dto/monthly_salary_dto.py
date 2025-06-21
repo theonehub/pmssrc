@@ -56,11 +56,8 @@ class MonthlySalaryResponseDTO(BaseModel):
     da: float = Field(0.0, description="Dearness allowance")
     hra: float = Field(0.0, description="HRA")
     special_allowance: float = Field(0.0, description="Special allowance")
-    transport_allowance: float = Field(0.0, description="Transport allowance")
-    medical_allowance: float = Field(0.0, description="Medical allowance")
     bonus: float = Field(0.0, description="Bonus")
     commission: float = Field(0.0, description="Commission")
-    other_allowances: float = Field(0.0, description="Other allowances")
     
     # Deductions
     epf_employee: float = Field(0.0, description="EPF employee contribution")

@@ -200,7 +200,7 @@ export const calculateTax = async (
           savings_account_interest: ensureNumeric(inputData.other_income.interest_income?.savings_account_interest),
           fixed_deposit_interest: ensureNumeric(inputData.other_income.interest_income?.fixed_deposit_interest),
           recurring_deposit_interest: ensureNumeric(inputData.other_income.interest_income?.recurring_deposit_interest),
-          other_bank_interest: ensureNumeric(inputData.other_income.interest_income?.other_interest),
+          post_office_interest: ensureNumeric(inputData.other_income.interest_income?.post_office_interest),
           age: inputData.age
         },
         dividend_income: ensureNumeric(inputData.other_income.dividend_income),
@@ -300,7 +300,7 @@ export const calculateTax = async (
           savings_interest: inputData.other_income?.interest_income?.savings_account_interest || 0,
           fd_interest: inputData.other_income?.interest_income?.fixed_deposit_interest || 0,
           rd_interest: inputData.other_income?.interest_income?.recurring_deposit_interest || 0,
-          other_bank_interest: inputData.other_income?.interest_income?.other_interest || 0,
+          post_office_interest: inputData.other_income?.interest_income?.post_office_interest || 0,
           age: inputData.age
         }
       } : null
@@ -426,7 +426,7 @@ export const createDefaultOtherSources = (): OtherIncomeDTO => ({
     savings_account_interest: 0,
     fixed_deposit_interest: 0,
     recurring_deposit_interest: 0,
-    other_interest: 0,
+    post_office_interest: 0,
   },
   dividend_income: 0,
   gifts_received: 0,

@@ -518,7 +518,7 @@ const TaxationDashboard: React.FC = () => {
                   </TableRow>
                   <TableRow>
                     <TableCell>Other Interest</TableCell>
-                    <TableCell align="right">{formatCurrency(userData.other_sources?.other_interest || 0)}</TableCell>
+                    <TableCell align="right">{formatCurrency(userData.other_sources?.post_office_interest || 0)}</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>Business & Professional Income</TableCell>

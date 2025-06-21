@@ -24,7 +24,6 @@ class TaxCalculationInput:
     """Input for tax calculation."""
     salary_income: SalaryIncome
     perquisites: Perquisites
-    house_property_income: HousePropertyIncome
     capital_gains_income: CapitalGainsIncome
     retirement_benefits: RetirementBenefits
     other_income: OtherIncome
@@ -246,7 +245,7 @@ class TaxCalculationService:
             if not self.taxation_repository:
                 raise ValueError("Taxation repository not configured for this service")
             
-            # Calculate tax using the record's built-in method
+            # Calculate tax using the record's built-in method 
             calculation_result = taxation_record.calculate_tax(self)
             
             # Create monthly payout record based on the tax calculation
@@ -283,22 +282,18 @@ class TaxCalculationService:
         # Perquisites - use the actual method from Perquisites entity
         perquisites_total = input_data.perquisites.calculate_total_perquisites(input_data.regime)
         
-        # House property income - use the actual method from HousePropertyIncome entity
-        house_property_total = input_data.house_property_income.get_income_from_house_property()
-        
         # Capital gains income - use the actual method from CapitalGainsIncome entity
         capital_gains_total = input_data.capital_gains_income.calculate_total_capital_gains_income()
         
         # Retirement benefits - use the actual method from RetirementBenefits entity
         retirement_total = input_data.retirement_benefits.calculate_total_retirement_income(input_data.regime)
         
-        # Other income - use the actual method from OtherIncome entity
+        # Other income - use the actual method from OtherIncome entity (now includes house property income)
         other_income_total = input_data.other_income.calculate_total_other_income(input_data.regime)
         
         return (
             salary_total
             .add(perquisites_total)
-            .add(house_property_total)
             .add(capital_gains_total)
             .add(retirement_total)
             .add(other_income_total)
@@ -388,15 +383,11 @@ class TaxCalculationService:
                     "dearness_allowance": input_data.salary_income.dearness_allowance.to_float(),
                     "hra_received": input_data.salary_income.hra_received.to_float(),
                     "special_allowance": input_data.salary_income.special_allowance.to_float(),
-                    "conveyance_allowance": input_data.salary_income.conveyance_allowance.to_float(),
-                    "medical_allowance": input_data.salary_income.medical_allowance.to_float(),
                     "bonus": input_data.salary_income.bonus.to_float(),
                     "commission": input_data.salary_income.commission.to_float(),
-                    #"overtime": input_data.salary_income.overtime.to_float(),
-                    #"arrears": input_data.salary_income.arrears.to_float(),
-                    #"gratuity": input_data.salary_income.gratuity.to_float(),
-                    #"leave_encashment": input_data.salary_income.leave_encashment.to_float(),
-                    "other_allowances": input_data.salary_income.other_allowances.to_float()
+                    "overtime": input_data.salary_income.specific_allowances.overtime_allowance.to_float() if input_data.salary_income.specific_allowances else 0.0,
+                    "arrears": input_data.salary_income.arrears.to_float(),
+
                 },
                 "perquisites": {
                     "rent_free_accommodation": input_data.perquisites.rent_free_accommodation.to_float(),
@@ -412,17 +403,7 @@ class TaxCalculationService:
                     "club_membership_perquisite": input_data.perquisites.club_membership_perquisite.to_float(),
                     "other_perquisites": input_data.perquisites.other_perquisites.to_float()
                 },
-                "house_property_income": {
-                    "property_type": input_data.house_property_income.property_type.value,
-                    #"municipal_value": input_data.house_property_income.municipal_value.to_float(),
-                    "fair_rental_value": input_data.house_property_income.fair_rental_value.to_float(),
-                    "standard_rent": input_data.house_property_income.standard_rent.to_float(),
-                    "actual_rent": input_data.house_property_income.actual_rent.to_float(),
-                    "municipal_tax": input_data.house_property_income.municipal_tax.to_float(),
-                    "interest_on_loan": input_data.house_property_income.interest_on_loan.to_float(),
-                    "pre_construction_interest": input_data.house_property_income.pre_construction_interest.to_float(),
-                    "other_deductions": input_data.house_property_income.other_deductions.to_float()
-                },
+
                 "capital_gains_income": {
                     "stcg_111a_equity_stt": input_data.capital_gains_income.stcg_111a_equity_stt.to_float(),
                     "stcg_other_assets": input_data.capital_gains_income.stcg_other_assets.to_float(),
@@ -449,7 +430,6 @@ class TaxCalculationService:
                     "fixed_deposit_interest": input_data.other_income.fixed_deposit_interest.to_float(),
                     "recurring_deposit_interest": input_data.other_income.recurring_deposit_interest.to_float(),
                     "post_office_interest": input_data.other_income.post_office_interest.to_float(),
-                    "other_interest": input_data.other_income.other_interest.to_float(),
                     "equity_dividend": input_data.other_income.equity_dividend.to_float(),
                     "mutual_fund_dividend": input_data.other_income.mutual_fund_dividend.to_float(),
                     "other_dividend": input_data.other_income.other_dividend.to_float(),
@@ -476,7 +456,8 @@ class TaxCalculationService:
                     input_data.salary_income.basic_salary,
                     input_data.salary_income.dearness_allowance,
                     input_data.salary_income.hra_received,
-                    input_data.house_property_income.actual_rent
+                    (input_data.other_income.house_property_income.annual_rent_received 
+                     if input_data.other_income.house_property_income else Money.zero())
                 ).to_float(),
                 "gratuity_exemption": self._calculate_gratuity_exemption(
                     input_data.retirement_benefits.gratuity_amount,
@@ -578,7 +559,6 @@ class TaxCalculationService:
         new_regime_input = TaxCalculationInput(
             salary_income=input_data.salary_income,
             perquisites=input_data.perquisites,
-            house_property_income=input_data.house_property_income,
             capital_gains_income=input_data.capital_gains_income,
             retirement_benefits=input_data.retirement_benefits,
             other_income=input_data.other_income,
@@ -774,11 +754,10 @@ class TaxCalculationService:
         monthly_da = salary_income.dearness_allowance.divide(Decimal('12'))
         monthly_hra = salary_income.hra_received.divide(Decimal('12'))
         monthly_special = salary_income.special_allowance.divide(Decimal('12'))
-        monthly_conveyance = salary_income.conveyance_allowance.divide(Decimal('12'))
-        monthly_medical = salary_income.medical_allowance.divide(Decimal('12'))
         monthly_bonus = salary_income.bonus.divide(Decimal('12'))
         monthly_commission = salary_income.commission.divide(Decimal('12'))
-        monthly_other = salary_income.other_allowances.divide(Decimal('12'))
+        monthly_overtime = salary_income.specific_allowances.overtime_allowance.divide(Decimal('12')) if salary_income.specific_allowances else Money.zero()
+        monthly_arrears = salary_income.arrears.divide(Decimal('12'))
         
         # Calculate monthly TDS (Tax Deducted at Source)
         annual_tax = calculation_result.tax_liability
@@ -815,11 +794,10 @@ class TaxCalculationService:
             da=monthly_da.to_float(),
             hra=monthly_hra.to_float(),
             special_allowance=monthly_special.to_float(),
-            transport_allowance=monthly_conveyance.to_float(),
-            medical_allowance=monthly_medical.to_float(),
             bonus=monthly_bonus.to_float(),
             commission=monthly_commission.to_float(),
-            other_allowances=monthly_other.to_float(),
+            overtime=monthly_overtime.to_float(),
+            arrears=monthly_arrears.to_float(),
             
             # Monthly deductions
             epf_employee=monthly_epf_employee.to_float(),

@@ -29,11 +29,10 @@ class PayoutBase(BaseModel):
     da: float = Field(0.0, ge=0)
     hra: float = Field(0.0, ge=0)
     special_allowance: float = Field(0.0, ge=0)
+    overtime: float = Field(0.0, ge=0)
+    arrears: float = Field(0.0, ge=0)
     bonus: float = Field(0.0, ge=0)
     commission: float = Field(0.0, ge=0)
-    transport_allowance: float = Field(0.0, ge=0)
-    medical_allowance: float = Field(0.0, ge=0)
-    other_allowances: float = Field(0.0, ge=0)
     
     # Deductions
     epf_employee: float = Field(0.0, ge=0)
@@ -85,9 +84,8 @@ class PayoutBase(BaseModel):
     @validator("gross_salary", always=True)
     def calculate_gross_salary(cls, v, values):
         components = [
-            "basic_salary", "da", "hra", "special_allowance", "bonus", 
-            "commission", "transport_allowance", "medical_allowance", 
-            "other_allowances", "reimbursements"
+            "basic_salary", "da", "hra", "special_allowance", "overtime", 
+            "arrears", "bonus", "commission", "reimbursements"
         ]
         return sum(values.get(comp, 0) for comp in components)
     
@@ -110,11 +108,10 @@ class PayoutUpdate(BaseModel):
     da: Optional[float] = Field(None, ge=0)
     hra: Optional[float] = Field(None, ge=0)
     special_allowance: Optional[float] = Field(None, ge=0)
+    overtime: Optional[float] = Field(None, ge=0)
+    arrears: Optional[float] = Field(None, ge=0)
     bonus: Optional[float] = Field(None, ge=0)
     commission: Optional[float] = Field(None, ge=0)
-    transport_allowance: Optional[float] = Field(None, ge=0)
-    medical_allowance: Optional[float] = Field(None, ge=0)
-    other_allowances: Optional[float] = Field(None, ge=0)
     
     epf_employee: Optional[float] = Field(None, ge=0)
     epf_employer: Optional[float] = Field(None, ge=0)

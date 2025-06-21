@@ -193,7 +193,7 @@ export const transformComprehensiveRecordToFormData = (comprehensiveRecord, empI
           savings_interest: 0,
           fd_interest: 0,
           rd_interest: 0,
-          other_bank_interest: 0,
+          post_office_interest: 0,
           age: 25,
         }),
         other_deductions: transformNestedObject(comprehensiveRecord.deductions?.other_deductions, {

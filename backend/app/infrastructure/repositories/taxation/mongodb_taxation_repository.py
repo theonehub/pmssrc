@@ -374,8 +374,7 @@ class MongoDBTaxationRepository(TaxationRepository):
             
             # Comprehensive income components (optional)
             "perquisites": self._serialize_perquisites(record.perquisites),
-            "house_property_income": self._serialize_house_property_income(record.house_property_income),
-            "capital_gains_income": self._serialize_capital_gains_income(record.capital_gains_income),
+            "capital_gains_income": self._serialize_capital_gains_income(record.other_income.capital_gains_income),
             "retirement_benefits": self._serialize_retirement_benefits(record.retirement_benefits),
             "other_income": self._serialize_other_income(record.other_income),
             "monthly_payroll": self._serialize_monthly_payroll(record.monthly_payroll),
@@ -405,11 +404,10 @@ class MongoDBTaxationRepository(TaxationRepository):
             "hra_city_type": salary_income.hra_city_type,
             "actual_rent_paid": salary_income.actual_rent_paid.to_float(),
             "special_allowance": salary_income.special_allowance.to_float(),
-            "other_allowances": salary_income.other_allowances.to_float(),
             "bonus": salary_income.bonus.to_float(),
             "commission": salary_income.commission.to_float(),
-            "medical_allowance": salary_income.medical_allowance.to_float(),
-            "conveyance_allowance": salary_income.conveyance_allowance.to_float(),
+            "overtime": salary_income.specific_allowances.overtime_allowance.to_float() if salary_income.specific_allowances else 0.0,
+            "arrears": salary_income.arrears.to_float()
         }
     
     def _serialize_deductions(self, deductions: TaxDeductions) -> dict:
@@ -601,7 +599,7 @@ class MongoDBTaxationRepository(TaxationRepository):
             "savings_interest": section_80tta_ttb.savings_interest.to_float(),
             "fd_interest": section_80tta_ttb.fd_interest.to_float(),
             "rd_interest": section_80tta_ttb.rd_interest.to_float(),
-            "other_bank_interest": section_80tta_ttb.other_bank_interest.to_float(),
+            "post_office_interest": section_80tta_ttb.post_office_interest.to_float(),
             "age": section_80tta_ttb.age
         }
     
@@ -681,7 +679,7 @@ class MongoDBTaxationRepository(TaxationRepository):
             "savings_account_interest": interest_income.savings_account_interest.to_float(),
             "fixed_deposit_interest": interest_income.fixed_deposit_interest.to_float(),
             "recurring_deposit_interest": interest_income.recurring_deposit_interest.to_float(),
-            "other_bank_interest": interest_income.other_bank_interest.to_float()
+            "post_office_interest": interest_income.post_office_interest.to_float()
         }
     
     def _serialize_other_income(self, other_income: Optional[OtherIncome]) -> Optional[dict]:
@@ -691,6 +689,7 @@ class MongoDBTaxationRepository(TaxationRepository):
         
         return {
             "interest_income": self._serialize_interest_income(other_income.interest_income),
+            "house_property_income": self._serialize_house_property_income(other_income.house_property_income),
             "dividend_income": other_income.dividend_income.to_float(),
             "gifts_received": other_income.gifts_received.to_float(),
             "business_professional_income": other_income.business_professional_income.to_float(),
@@ -716,11 +715,10 @@ class MongoDBTaxationRepository(TaxationRepository):
             "da": monthly_payroll.da,
             "hra": monthly_payroll.hra,
             "special_allowance": monthly_payroll.special_allowance,
-            "transport_allowance": monthly_payroll.transport_allowance,
-            "medical_allowance": monthly_payroll.medical_allowance,
+            "overtime": monthly_payroll.overtime,
+            "arrears": monthly_payroll.arrears,
             "bonus": monthly_payroll.bonus,
             "commission": monthly_payroll.commission,
-            "other_allowances": monthly_payroll.other_allowances,
             
             # Deductions
             "epf_employee": monthly_payroll.epf_employee,
@@ -807,10 +805,8 @@ class MongoDBTaxationRepository(TaxationRepository):
             
             # Optional comprehensive income components
             perquisites=self._deserialize_perquisites(document.get("perquisites")),
-            house_property_income=self._deserialize_house_property_income(document.get("house_property_income")),
-            capital_gains_income=self._deserialize_capital_gains_income(document.get("capital_gains_income")),
             retirement_benefits=self._deserialize_retirement_benefits(document.get("retirement_benefits")),
-            other_income=self._deserialize_other_income(document.get("other_income")),
+            other_income=self._deserialize_other_income(document.get("other_income"), document.get("house_property_income"), document.get("capital_gains_income")),
             monthly_payroll=self._deserialize_monthly_payroll(document.get("monthly_payroll")),
             
             # Calculated fields
@@ -831,6 +827,13 @@ class MongoDBTaxationRepository(TaxationRepository):
     
     def _deserialize_salary_income(self, salary_data: dict) -> SalaryIncome:
         """Deserialize salary income from document format."""
+        from app.domain.entities.taxation.salary_income import SpecificAllowances
+        
+        # Create SpecificAllowances with overtime_allowance
+        specific_allowances = SpecificAllowances(
+            overtime_allowance=Money(salary_data.get("overtime", 0))
+        )
+        
         return SalaryIncome(
             basic_salary=Money(salary_data.get("basic_salary", 0)),
             dearness_allowance=Money(salary_data.get("dearness_allowance", 0)),
@@ -838,11 +841,10 @@ class MongoDBTaxationRepository(TaxationRepository):
             hra_city_type=salary_data.get("hra_city_type", "metro"),
             actual_rent_paid=Money(salary_data.get("actual_rent_paid", 0)),
             special_allowance=Money(salary_data.get("special_allowance", 0)),
-            other_allowances=Money(salary_data.get("other_allowances", 0)),
             bonus=Money(salary_data.get("bonus", 0)),
             commission=Money(salary_data.get("commission", 0)),
-            medical_allowance=Money(salary_data.get("medical_allowance", 0)),
-            conveyance_allowance=Money(salary_data.get("conveyance_allowance", 0))
+            arrears=Money(salary_data.get("arrears", 0)),
+            specific_allowances=specific_allowances
         )
     
     def _deserialize_deductions(self, deductions_data: dict) -> TaxDeductions:
@@ -948,24 +950,46 @@ class MongoDBTaxationRepository(TaxationRepository):
             retrenchment_compensation=retrenchment_compensation
         )
     
-    def _deserialize_other_income(self, other_income_data: Optional[dict]) -> Optional[OtherIncome]:
+    def _deserialize_other_income(self, other_income_data: Optional[dict], legacy_house_property_data: Optional[dict] = None, legacy_capital_gains_data: Optional[dict] = None) -> Optional[OtherIncome]:
         """Deserialize other income from document format."""
-        if not other_income_data:
+        if not other_income_data and not legacy_house_property_data and not legacy_capital_gains_data:
             return None
         
         from app.domain.entities.taxation.other_income import InterestIncome
         
-        # Create interest income sub-entity
+        # Handle case where we only have legacy data
+        if not other_income_data:
+            other_income_data = {}
+        
+        # Deserialize interest income
+        interest_data = other_income_data.get("interest_income", {})
         interest_income = InterestIncome(
-            savings_account_interest=Money(other_income_data.get("interest_income_total", 0))
-        ) if other_income_data.get("interest_income_total", 0) > 0 else None
+            savings_account_interest=Money.from_float(interest_data.get("savings_account_interest", 0.0)),
+            fixed_deposit_interest=Money.from_float(interest_data.get("fixed_deposit_interest", 0.0)),
+            recurring_deposit_interest=Money.from_float(interest_data.get("recurring_deposit_interest", 0.0)),
+            post_office_interest=Money.from_float(interest_data.get("post_office_interest", 0.0))
+        ) if interest_data else InterestIncome()
+        
+        # Deserialize house property income
+        house_property_income = None
+        house_property_data = other_income_data.get("house_property_income") or legacy_house_property_data
+        if house_property_data:
+            house_property_income = self._deserialize_house_property_income(house_property_data)
+        
+        # Deserialize capital gains income
+        capital_gains_income = None
+        capital_gains_data = other_income_data.get("capital_gains_income") or legacy_capital_gains_data
+        if capital_gains_data:
+            capital_gains_income = self._deserialize_capital_gains_income(capital_gains_data)
         
         return OtherIncome(
             interest_income=interest_income,
-            dividend_income=Money(other_income_data.get("dividend_income", 0)),
-            gifts_received=Money(other_income_data.get("gifts_received", 0)),
-            business_professional_income=Money(other_income_data.get("business_professional_income", 0)),
-            other_miscellaneous_income=Money(other_income_data.get("other_miscellaneous_income", 0))
+            house_property_income=house_property_income,
+            capital_gains_income=capital_gains_income,
+            dividend_income=Money.from_float(other_income_data.get("dividend_income", 0.0)),
+            gifts_received=Money.from_float(other_income_data.get("gifts_received", 0.0)),
+            business_professional_income=Money.from_float(other_income_data.get("business_professional_income", 0.0)),
+            other_miscellaneous_income=Money.from_float(other_income_data.get("other_miscellaneous_income", 0.0))
         )
     
     def _deserialize_monthly_payroll(self, payroll_data: Optional[dict]):
@@ -989,11 +1013,10 @@ class MongoDBTaxationRepository(TaxationRepository):
                 da=payroll_data.get("da", 0.0),
                 hra=payroll_data.get("hra", 0.0),
                 special_allowance=payroll_data.get("special_allowance", 0.0),
-                transport_allowance=payroll_data.get("transport_allowance", 0.0),
-                medical_allowance=payroll_data.get("medical_allowance", 0.0),
-                bonus=payroll_data.get("bonus", 0.0),
+                bonus=payroll_data.get("bonus", 0.0),   
                 commission=payroll_data.get("commission", 0.0),
-                other_allowances=payroll_data.get("other_allowances", 0.0),
+                overtime=payroll_data.get("overtime", 0.0),
+                arrears=payroll_data.get("arrears", 0.0),
                 
                 # Deductions
                 epf_employee=payroll_data.get("epf_employee", 0.0),

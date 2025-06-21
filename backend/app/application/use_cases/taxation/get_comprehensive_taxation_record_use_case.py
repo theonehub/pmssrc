@@ -159,6 +159,19 @@ class GetComprehensiveTaxationRecordUseCase:
             elif hasattr(taxation_record.regime, 'value'):
                 regime = taxation_record.regime.value.lower()
         
+        # Capital gains income (now part of other_income)
+        capital_gains_dto = None
+        if taxation_record.other_income and taxation_record.other_income.capital_gains_income:
+            capital_gains = taxation_record.other_income.capital_gains_income
+            capital_gains_dto = CapitalGainsIncomeDTO(
+                stcg_111a_equity_stt=capital_gains.stcg_111a_equity_stt.to_float(),
+                stcg_other_assets=capital_gains.stcg_other_assets.to_float(),
+                stcg_debt_mf=capital_gains.stcg_debt_mf.to_float(),
+                ltcg_112a_equity_stt=capital_gains.ltcg_112a_equity_stt.to_float(),
+                ltcg_other_assets=capital_gains.ltcg_other_assets.to_float(),
+                ltcg_debt_mf=capital_gains.ltcg_debt_mf.to_float()
+            )
+        
         # Convert existing record to comprehensive DTO with actual values
         return ComprehensiveTaxOutputDTO(
             tax_year=tax_year,
@@ -170,9 +183,11 @@ class GetComprehensiveTaxationRecordUseCase:
             salary_income=self._convert_salary_income_entity_to_dto(taxation_record.salary_income) if hasattr(taxation_record, 'salary_income') and taxation_record.salary_income else None,
             periodic_salary_income=self._convert_periodic_salary_entity_to_dto(taxation_record.periodic_salary_income) if hasattr(taxation_record, 'periodic_salary_income') and taxation_record.periodic_salary_income else None,
             perquisites=self._convert_perquisites_entity_to_dto(taxation_record.perquisites) if hasattr(taxation_record, 'perquisites') and taxation_record.perquisites else None,
-            house_property_income=self._convert_house_property_entity_to_dto(taxation_record.house_property_income) if hasattr(taxation_record, 'house_property_income') and taxation_record.house_property_income else None,
+            house_property_income=self._convert_house_property_entity_to_dto(
+                taxation_record.other_income.house_property_income if hasattr(taxation_record, 'other_income') and taxation_record.other_income and hasattr(taxation_record.other_income, 'house_property_income') else None
+            ),
             multiple_house_properties=None,  # Not implemented yet
-            capital_gains_income=self._convert_capital_gains_entity_to_dto(taxation_record.capital_gains_income) if hasattr(taxation_record, 'capital_gains_income') and taxation_record.capital_gains_income else None,
+            capital_gains_income=capital_gains_dto,
             retirement_benefits=self._convert_retirement_benefits_entity_to_dto(taxation_record.retirement_benefits) if hasattr(taxation_record, 'retirement_benefits') and taxation_record.retirement_benefits else None,
             other_income=self._convert_other_income_entity_to_dto(taxation_record.other_income) if hasattr(taxation_record, 'other_income') and taxation_record.other_income else None,
             monthly_payroll=self._convert_monthly_payroll_entity_to_dto(taxation_record.monthly_payroll) if hasattr(taxation_record, 'monthly_payroll') and taxation_record.monthly_payroll else None,
@@ -326,9 +341,6 @@ class GetComprehensiveTaxationRecordUseCase:
             bonus=salary_income.bonus.to_float() if hasattr(salary_income.bonus, 'to_float') else float(salary_income.bonus),
             commission=salary_income.commission.to_float() if hasattr(salary_income.commission, 'to_float') else float(salary_income.commission),
             special_allowance=salary_income.special_allowance.to_float() if hasattr(salary_income.special_allowance, 'to_float') else float(salary_income.special_allowance),
-            other_allowances=salary_income.other_allowances.to_float() if hasattr(salary_income.other_allowances, 'to_float') else float(salary_income.other_allowances),
-            medical_allowance=salary_income.medical_allowance.to_float() if hasattr(salary_income.medical_allowance, 'to_float') else float(salary_income.medical_allowance),
-            conveyance_allowance=salary_income.conveyance_allowance.to_float() if hasattr(salary_income.conveyance_allowance, 'to_float') else float(salary_income.conveyance_allowance),
             # Additional allowances - try both direct fields and specific_allowances
             city_compensatory_allowance=get_allowance_value('city_compensatory_allowance'),
             rural_allowance=get_allowance_value('rural_allowance'),
@@ -394,9 +406,6 @@ class GetComprehensiveTaxationRecordUseCase:
                 special_allowance=salary_income.special_allowance.to_float() if hasattr(salary_income.special_allowance, 'to_float') else float(salary_income.special_allowance),
                 bonus=salary_income.bonus.to_float() if hasattr(salary_income.bonus, 'to_float') else float(salary_income.bonus),
                 commission=salary_income.commission.to_float() if hasattr(salary_income.commission, 'to_float') else float(salary_income.commission),
-                other_allowances=salary_income.other_allowances.to_float() if hasattr(salary_income.other_allowances, 'to_float') else float(salary_income.other_allowances),
-                medical_allowance=salary_income.medical_allowance.to_float() if hasattr(salary_income.medical_allowance, 'to_float') else float(salary_income.medical_allowance),
-                conveyance_allowance=salary_income.conveyance_allowance.to_float() if hasattr(salary_income.conveyance_allowance, 'to_float') else float(salary_income.conveyance_allowance)
             )
             
             periods_dto.append(salary_data_dto)
@@ -459,21 +468,6 @@ class GetComprehensiveTaxationRecordUseCase:
             pre_construction_interest=house_property.pre_construction_interest.to_float() if hasattr(house_property, 'pre_construction_interest') and hasattr(house_property.pre_construction_interest, 'to_float') else 0,
             fair_rental_value=house_property.fair_rental_value.to_float() if hasattr(house_property, 'fair_rental_value') and hasattr(house_property.fair_rental_value, 'to_float') else 0,
             standard_rent=house_property.standard_rent.to_float() if hasattr(house_property, 'standard_rent') and hasattr(house_property.standard_rent, 'to_float') else 0
-        )
-    
-    def _convert_capital_gains_entity_to_dto(self, capital_gains):
-        """Convert CapitalGainsIncome entity to CapitalGainsIncomeDTO."""
-        from app.application.dto.taxation_dto import CapitalGainsIncomeDTO
-        
-        if not capital_gains:
-            return None
-            
-        return CapitalGainsIncomeDTO(
-            short_term_capital_gains=capital_gains.short_term_capital_gains.to_float() if hasattr(capital_gains, 'short_term_capital_gains') and hasattr(capital_gains.short_term_capital_gains, 'to_float') else 0,
-            long_term_capital_gains=capital_gains.long_term_capital_gains.to_float() if hasattr(capital_gains, 'long_term_capital_gains') and hasattr(capital_gains.long_term_capital_gains, 'to_float') else 0,
-            ltcg_exemption_54=capital_gains.ltcg_exemption_54.to_float() if hasattr(capital_gains, 'ltcg_exemption_54') and hasattr(capital_gains.ltcg_exemption_54, 'to_float') else 0,
-            ltcg_exemption_54f=capital_gains.ltcg_exemption_54f.to_float() if hasattr(capital_gains, 'ltcg_exemption_54f') and hasattr(capital_gains.ltcg_exemption_54f, 'to_float') else 0,
-            ltcg_exemption_54ec=capital_gains.ltcg_exemption_54ec.to_float() if hasattr(capital_gains, 'ltcg_exemption_54ec') and hasattr(capital_gains.ltcg_exemption_54ec, 'to_float') else 0
         )
     
     def _convert_retirement_benefits_entity_to_dto(self, retirement_benefits):
@@ -638,17 +632,47 @@ class GetComprehensiveTaxationRecordUseCase:
     
     def _convert_other_income_entity_to_dto(self, other_income):
         """Convert OtherIncome entity to OtherIncomeDTO."""
-        from app.application.dto.taxation_dto import OtherIncomeDTO
+        from app.application.dto.taxation_dto import OtherIncomeDTO, InterestIncomeDTO, HousePropertyIncomeDTO, CapitalGainsIncomeDTO
         
         if not other_income:
             return None
-            
+        
+        # Convert interest income
+        interest_income_dto = None
+        if other_income.interest_income:
+            interest_income_dto = InterestIncomeDTO(
+                savings_account_interest=other_income.interest_income.savings_account_interest.to_float() if hasattr(other_income.interest_income.savings_account_interest, 'to_float') else 0,
+                fixed_deposit_interest=other_income.interest_income.fixed_deposit_interest.to_float() if hasattr(other_income.interest_income.fixed_deposit_interest, 'to_float') else 0,
+                recurring_deposit_interest=other_income.interest_income.recurring_deposit_interest.to_float() if hasattr(other_income.interest_income.recurring_deposit_interest, 'to_float') else 0,
+                post_office_interest=other_income.interest_income.post_office_interest.to_float() if hasattr(other_income.interest_income.post_office_interest, 'to_float') else 0
+            )
+        
+        # Convert house property income
+        house_property_dto = None
+        if other_income.house_property_income:
+            house_property_dto = self._convert_house_property_entity_to_dto(other_income.house_property_income)
+        
+        # Convert capital gains income
+        capital_gains_dto = None
+        if other_income.capital_gains_income:
+            capital_gains = other_income.capital_gains_income
+            capital_gains_dto = CapitalGainsIncomeDTO(
+                stcg_111a_equity_stt=capital_gains.stcg_111a_equity_stt.to_float(),
+                stcg_other_assets=capital_gains.stcg_other_assets.to_float(),
+                stcg_debt_mf=capital_gains.stcg_debt_mf.to_float(),
+                ltcg_112a_equity_stt=capital_gains.ltcg_112a_equity_stt.to_float(),
+                ltcg_other_assets=capital_gains.ltcg_other_assets.to_float(),
+                ltcg_debt_mf=capital_gains.ltcg_debt_mf.to_float()
+            )
+        
         return OtherIncomeDTO(
-            dividend_income=other_income.dividend_income.to_float() if hasattr(other_income, 'dividend_income') and hasattr(other_income.dividend_income, 'to_float') else 0,
-            gifts_received=other_income.gifts_received.to_float() if hasattr(other_income, 'gifts_received') and hasattr(other_income.gifts_received, 'to_float') else 0,
-            business_professional_income=other_income.business_professional_income.to_float() if hasattr(other_income, 'business_professional_income') and hasattr(other_income.business_professional_income, 'to_float') else 0,
-            other_miscellaneous_income=other_income.other_miscellaneous_income.to_float() if hasattr(other_income, 'other_miscellaneous_income') and hasattr(other_income.other_miscellaneous_income, 'to_float') else 0,
-            interest_income=None  # Would need proper conversion from InterestIncome entity
+            interest_income=interest_income_dto,
+            house_property_income=house_property_dto,
+            capital_gains_income=capital_gains_dto,
+            dividend_income=other_income.dividend_income.to_float() if hasattr(other_income.dividend_income, 'to_float') else 0,
+            gifts_received=other_income.gifts_received.to_float() if hasattr(other_income.gifts_received, 'to_float') else 0,
+            business_professional_income=other_income.business_professional_income.to_float() if hasattr(other_income.business_professional_income, 'to_float') else 0,
+            other_miscellaneous_income=other_income.other_miscellaneous_income.to_float() if hasattr(other_income.other_miscellaneous_income, 'to_float') else 0
         )
     
     def _convert_monthly_payroll_entity_to_dto(self, monthly_payroll):
@@ -669,11 +693,8 @@ class GetComprehensiveTaxationRecordUseCase:
             da=monthly_payroll.da,
             hra=monthly_payroll.hra,
             special_allowance=monthly_payroll.special_allowance,
-            transport_allowance=monthly_payroll.transport_allowance,
-            medical_allowance=monthly_payroll.medical_allowance,
             bonus=monthly_payroll.bonus,
             commission=monthly_payroll.commission,
-            other_allowances=monthly_payroll.other_allowances,
             
             # Deductions
             epf_employee=monthly_payroll.epf_employee,

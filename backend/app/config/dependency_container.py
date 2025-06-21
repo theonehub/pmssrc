@@ -85,7 +85,6 @@ class DependencyContainer:
         self._controllers = {}
         self._initialized = False
         
-        # Get configuration from centralized mongodb_config - FIXED: No longer circular
         self._db_config = get_database_config()
     
     def initialize(self):

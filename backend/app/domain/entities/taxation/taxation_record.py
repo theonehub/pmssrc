@@ -16,7 +16,6 @@ from app.domain.entities.taxation.salary_income import SalaryIncome
 from app.domain.entities.taxation.deductions import TaxDeductions
 from app.domain.entities.taxation.perquisites import Perquisites
 from app.domain.entities.taxation.house_property_income import HousePropertyIncome
-from app.domain.entities.taxation.capital_gains import CapitalGainsIncome
 from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 from app.domain.entities.taxation.other_income import OtherIncome
 from app.domain.entities.taxation.payout import PayoutMonthlyProjection
@@ -34,7 +33,7 @@ class TaxationRecord:
     Enhanced to support comprehensive Indian taxation:
     - Salary income (simple and periodic)  
     - Perquisites (all 15+ types)
-    - House property income
+    - House property income (now under other_income)
     - Capital gains
     - Retirement benefits
     - Other income sources
@@ -55,8 +54,6 @@ class TaxationRecord:
     organization_id: Optional[str] = None
     taxation_id: Optional[str] = None
     perquisites: Optional[Perquisites] = None
-    house_property_income: Optional[HousePropertyIncome] = None
-    capital_gains_income: Optional[CapitalGainsIncome] = None
     retirement_benefits: Optional[RetirementBenefits] = None
     other_income: Optional[OtherIncome] = None
     monthly_payroll: Optional[PayoutMonthlyProjection] = None
@@ -141,28 +138,22 @@ class TaxationRecord:
         
         # Salary income (core)
         total_income = total_income.add(self.salary_income.calculate_gross_salary())
-        
+        #taxable_salary = self.salary_income.calculate_taxable_salary(self.regime)
+
+        # Other income (if any) - now includes house property income and capital gains
+        if self.other_income:
+            total_income = total_income.add(self.other_income.calculate_total_other_income_slab_rates(self.regime, self.age))
+            adjustments_less = self.other_income.loss_from_house_property_income(self.regime)
+            total_income = total_income.subtract(adjustments_less)
+                    
         # Perquisites (if any)
         if self.perquisites:
             total_income = total_income.add(self.perquisites.calculate_total_perquisites(self.regime))
-        
-        # House property income (if any)
-        if self.house_property_income:
-            total_income = total_income.add(
-                self.house_property_income.calculate_net_income_from_house_property(self.regime)
-            )
-        
-        # Capital gains income - only STCG that goes to regular slab rates
-        if self.capital_gains_income:
-            total_income = total_income.add(self.capital_gains_income.calculate_stcg_for_slab_rates())
         
         # Retirement benefits (if any)
         if self.retirement_benefits:
             total_income = total_income.add(self.retirement_benefits.calculate_total_retirement_income(self.regime))
         
-        # Other income (if any)
-        if self.other_income:
-            total_income = total_income.add(self.other_income.calculate_total_other_income(self.regime))
         
         return total_income
     
@@ -179,8 +170,8 @@ class TaxationRecord:
         total_exemptions = total_exemptions.add(self.salary_income.calculate_total_exemptions(self.regime))
         
         # Capital gains exemptions
-        if self.capital_gains_income:
-            total_exemptions = total_exemptions.add(self.capital_gains_income.calculate_total_capital_gains_tax())
+        if self.other_income and self.other_income.capital_gains_income:
+            total_exemptions = total_exemptions.add(self.other_income.calculate_capital_gains_exemptions(self.regime))
         
         # Retirement benefits exemptions
         if self.retirement_benefits:
@@ -188,7 +179,7 @@ class TaxationRecord:
         
         # Other income exemptions (interest exemptions)
         if self.other_income:
-            total_exemptions = total_exemptions.add(self.other_income.calculate_total_other_income(self.regime))
+            total_exemptions = total_exemptions.add(self.other_income.calculate_interest_exemptions(self.regime, self.age))
         
         return total_exemptions
     
@@ -199,10 +190,10 @@ class TaxationRecord:
         Returns:
             Money: Separate capital gains tax
         """
-        if not self.capital_gains_income:
+        if not self.other_income or not self.other_income.capital_gains_income:
             return Money.zero()
         
-        return self.capital_gains_income.calculate_total_capital_gains_tax()
+        return self.other_income.capital_gains_income.calculate_total_capital_gains_tax()
     
     def get_comprehensive_income_breakdown(self) -> Dict[str, Any]:
         """
@@ -225,17 +216,11 @@ class TaxationRecord:
                 "breakdown": self.perquisites.get_perquisites_breakdown(self.regime)
             }
         
-        if self.house_property_income:
-            breakdown["house_property_income"] = {
-                "net_income": self.house_property_income.calculate_net_income_from_house_property(self.regime).to_float(),
-                "breakdown": self.house_property_income.get_house_property_breakdown(self.regime)
-            }
-        
-        if self.capital_gains_income:
+        if self.other_income and self.other_income.capital_gains_income:
             breakdown["capital_gains_income"] = {
-                "slab_rate_income": self.capital_gains_income.calculate_stcg_for_slab_rates().to_float(),
-                "separate_tax": self.capital_gains_income.calculate_total_capital_gains_tax().to_float(),
-                "breakdown": self.capital_gains_income.get_capital_gains_breakdown(self.regime)
+                "slab_rate_income": self.other_income.capital_gains_income.calculate_stcg_for_slab_rates().to_float(),
+                "separate_tax": self.other_income.capital_gains_income.calculate_total_capital_gains_tax().to_float(),
+                "breakdown": self.other_income.capital_gains_income.get_capital_gains_breakdown(self.regime)
             }
         
         if self.retirement_benefits:
@@ -247,9 +232,9 @@ class TaxationRecord:
         
         if self.other_income:
             breakdown["other_income"] = {
-                "taxable_amount": self.other_income.calculate_total_other_income(self.regime).to_float(),
-                "exemptions": self.other_income.calculate_interest_exemptions(self.regime).to_float(),
-                "breakdown": self.other_income.get_other_income_breakdown(self.regime)
+                "taxable_amount": self.other_income.calculate_total_other_income(self.regime, self.age).to_float(),
+                "exemptions": self.other_income.calculate_interest_exemptions(self.regime, self.age).to_float(),
+                "breakdown": self.other_income.get_other_income_breakdown(self.regime, self.age)
             }
         
         if self.monthly_payroll:
@@ -269,11 +254,8 @@ class TaxationRecord:
                     "da": self.monthly_payroll.da,
                     "hra": self.monthly_payroll.hra,
                     "special_allowance": self.monthly_payroll.special_allowance,
-                    "transport_allowance": self.monthly_payroll.transport_allowance,
-                    "medical_allowance": self.monthly_payroll.medical_allowance,
                     "bonus": self.monthly_payroll.bonus,
                     "commission": self.monthly_payroll.commission,
-                    "other_allowances": self.monthly_payroll.other_allowances,
                     "epf_employee": self.monthly_payroll.epf_employee,
                     "esi_employee": self.monthly_payroll.esi_employee,
                     "professional_tax": self.monthly_payroll.professional_tax,
@@ -330,10 +312,15 @@ class TaxationRecord:
             raise ValueError("Cannot update finalized tax record")
         
         old_income = Money.zero()
-        if self.house_property_income:
-            old_income = self.house_property_income.calculate_net_income_from_house_property(self.regime)
+        if self.other_income and self.other_income.house_property_income:
+            old_income = self.other_income.house_property_income.calculate_net_income_from_house_property(self.regime)
         
-        self.house_property_income = new_house_property
+        # Ensure other_income exists
+        if not self.other_income:
+            from app.domain.entities.taxation.other_income import OtherIncome
+            self.other_income = OtherIncome()
+        
+        self.other_income.house_property_income = new_house_property
         
         new_income = Money.zero()
         if new_house_property:
@@ -350,40 +337,6 @@ class TaxationRecord:
             "tax_year": str(self.tax_year),
             "old_house_property_income": old_income.to_float(),
             "new_house_property_income": new_income.to_float(),
-            "updated_at": self.updated_at.isoformat()
-        })
-    
-    def update_capital_gains_income(self, new_capital_gains: Optional[CapitalGainsIncome]) -> None:
-        """
-        Update capital gains income information.
-        
-        Args:
-            new_capital_gains: New capital gains income details (can be None)
-        """
-        if self.is_final:
-            raise ValueError("Cannot update finalized tax record")
-        
-        old_gains = Money.zero()
-        if self.capital_gains_income:
-            old_gains = self.capital_gains_income.calculate_stcg_for_slab_rates()
-        
-        self.capital_gains_income = new_capital_gains
-        
-        new_gains = Money.zero()
-        if new_capital_gains:
-            new_gains = new_capital_gains.calculate_stcg_for_slab_rates()
-        
-        # Invalidate calculation
-        self._invalidate_calculation()
-        
-        # Raise domain event
-        self._add_domain_event({
-            "event_type": "CapitalGainsIncomeUpdated",
-            "taxation_id": self.taxation_id,
-            "employee_id": str(self.employee_id),
-            "tax_year": str(self.tax_year),
-            "old_capital_gains_income": old_gains.to_float(),
-            "new_capital_gains_income": new_gains.to_float(),
             "updated_at": self.updated_at.isoformat()
         })
     
@@ -433,13 +386,13 @@ class TaxationRecord:
         
         old_income = Money.zero()
         if self.other_income:
-            old_income = self.other_income.calculate_total_other_income(self.regime)
+            old_income = self.other_income.calculate_total_other_income(self.regime, self.age)
         
         self.other_income = new_other_income
         
         new_income = Money.zero()
         if new_other_income:
-            new_income = new_other_income.calculate_total_other_income(self.regime)
+            new_income = new_other_income.calculate_total_other_income(self.regime, self.age)
         
         # Invalidate calculation
         self._invalidate_calculation()
@@ -498,10 +451,15 @@ class TaxationRecord:
         """
         return any([
             self.perquisites is not None,
-            self.house_property_income is not None,
-            self.capital_gains_income is not None,
+            self.other_income is not None and (
+                self.other_income.house_property_income is not None or
+                not self.other_income.dividend_income.is_zero() or
+                not self.other_income.business_professional_income.is_zero() or
+                not self.other_income.other_miscellaneous_income.is_zero() or
+                not self.other_income.gifts_received.is_zero()
+            ),
+            self.other_income and self.other_income.capital_gains_income is not None,
             self.retirement_benefits is not None,
-            self.other_income is not None,
             self.monthly_payroll is not None
         ])
     
@@ -721,7 +679,7 @@ class TaxationRecord:
         }
         
         # Add separate capital gains tax if applicable
-        if self.capital_gains_income:
+        if self.other_income and self.other_income.capital_gains_income:
             result["separate_capital_gains_tax"] = self.calculate_separate_capital_gains_tax().to_float()
         
         return result
@@ -789,4 +747,19 @@ class TaxationRecord:
             "current_regime": self.regime.regime_type.value,
             "comparison": comparison,
             "can_switch": self.can_switch_regime()
-        } 
+        }
+    
+    # Backward compatibility property
+    @property
+    def house_property_income(self) -> Optional[HousePropertyIncome]:
+        """Backward compatibility: Get house property income from other_income."""
+        if self.other_income:
+            return self.other_income.house_property_income
+        return None
+    
+    @property
+    def capital_gains_income(self):
+        """Backward compatibility: Get capital gains income from other_income."""
+        if self.other_income:
+            return self.other_income.capital_gains_income
+        return None 

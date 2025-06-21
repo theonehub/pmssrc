@@ -510,7 +510,7 @@ export interface OtherSources {
   interest_savings: number;
   interest_fd: number;
   interest_rd: number;
-  other_interest: number;
+  post_office_interest: number;
   dividend_income: number;
   gifts: number;
   business_professional_income: number;

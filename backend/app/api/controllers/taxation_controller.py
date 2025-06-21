@@ -929,11 +929,8 @@ class UnifiedTaxationController:
             hra_city_type="non_metro",
             actual_rent_paid=Money.zero(),
             special_allowance=Money.zero(),
-            other_allowances=Money.zero(),
             bonus=Money.zero(),
             commission=Money.zero(),
-            medical_allowance=Money.zero(),
-            conveyance_allowance=Money.zero()
         )
     
     def _create_default_perquisites(self):
@@ -1004,12 +1001,9 @@ class UnifiedTaxationController:
             hra_received=Money.from_decimal(salary_dto.hra_received),
             hra_city_type=salary_dto.hra_city_type,
             special_allowance=Money.from_decimal(salary_dto.special_allowance),
-            conveyance_allowance=Money.from_decimal(salary_dto.conveyance_allowance),
-            medical_allowance=Money.from_decimal(salary_dto.medical_allowance),
             # Optional components with defaults
             bonus=Money.from_decimal(getattr(salary_dto, 'bonus', 0)),
             commission=Money.from_decimal(getattr(salary_dto, 'commission', 0)),
-            other_allowances=Money.from_decimal(getattr(salary_dto, 'other_allowances', 0))
         )
     
     def _convert_periodic_salary_dto_to_entity(self, periodic_dto) -> PeriodicSalaryIncome:
@@ -1026,11 +1020,8 @@ class UnifiedTaxationController:
                 hra_city_type=period_dto.hra_city_type,
                 actual_rent_paid=float(period_dto.actual_rent_paid),
                 special_allowance=float(period_dto.special_allowance),
-                other_allowances=float(period_dto.other_allowances),
                 bonus=float(period_dto.bonus),
                 commission=float(period_dto.commission),
-                medical_allowance=float(period_dto.medical_allowance),
-                conveyance_allowance=float(period_dto.conveyance_allowance)
             )
             periods.append(period_data)
         
@@ -1381,12 +1372,23 @@ class UnifiedTaxationController:
                 savings_account_interest=Money.from_decimal(int_dto.savings_account_interest),
                 fixed_deposit_interest=Money.from_decimal(int_dto.fixed_deposit_interest),
                 recurring_deposit_interest=Money.from_decimal(int_dto.recurring_deposit_interest),
-                other_bank_interest=Money.from_decimal(int_dto.other_bank_interest),
-                age=int_dto.age
+                post_office_interest=Money.from_decimal(int_dto.post_office_interest)
             )
+        
+        # Convert house property income if present
+        house_property_income = None
+        if hasattr(other_income_dto, 'house_property_income') and other_income_dto.house_property_income:
+            house_property_income = self._convert_house_property_dto_to_entity(other_income_dto.house_property_income)
+        
+        # Convert capital gains income if present
+        capital_gains_income = None
+        if hasattr(other_income_dto, 'capital_gains_income') and other_income_dto.capital_gains_income:
+            capital_gains_income = self._convert_capital_gains_dto_to_entity(other_income_dto.capital_gains_income)
         
         return OtherIncome(
             interest_income=interest_income,
+            house_property_income=house_property_income,
+            capital_gains_income=capital_gains_income,
             dividend_income=Money.from_decimal(other_income_dto.dividend_income),
             gifts_received=Money.from_decimal(other_income_dto.gifts_received),
             business_professional_income=Money.from_decimal(other_income_dto.business_professional_income),
@@ -1475,11 +1477,8 @@ class UnifiedTaxationController:
             hra_city_type=salary_data_dto.hra_city_type,
             actual_rent_paid=Money.from_decimal(getattr(salary_data_dto, 'actual_rent_paid', 0)),
             special_allowance=Money.from_decimal(salary_data_dto.special_allowance),
-            other_allowances=Money.from_decimal(getattr(salary_data_dto, 'other_allowances', 0)),
             bonus=Money.from_decimal(getattr(salary_data_dto, 'bonus', 0)),
-            commission=Money.from_decimal(getattr(salary_data_dto, 'commission', 0)),
-            medical_allowance=Money.from_decimal(salary_data_dto.medical_allowance),
-            conveyance_allowance=Money.from_decimal(salary_data_dto.conveyance_allowance)
+            commission=Money.from_decimal(getattr(salary_data_dto, 'commission', 0))
         )
     
     def _create_comprehensive_from_periodic_salary(self, periodic_salary, regime_type: str, age: int, deductions: Dict[str, float], tax_year: str):
@@ -1534,10 +1533,7 @@ class UnifiedTaxationController:
                 actual_rent_paid=period_data.salary_income.actual_rent_paid.to_float(),
                 special_allowance=period_data.salary_income.special_allowance.to_float(),
                 bonus=period_data.salary_income.bonus.to_float(),
-                commission=period_data.salary_income.commission.to_float(),
-                other_allowances=period_data.salary_income.other_allowances.to_float(),
-                medical_allowance=period_data.salary_income.medical_allowance.to_float(),
-                conveyance_allowance=period_data.salary_income.conveyance_allowance.to_float()
+                commission=period_data.salary_income.commission.to_float()
             )
             
             periods_dto.append(salary_data_dto)
@@ -1589,19 +1585,30 @@ class UnifiedTaxationController:
         else:
             taxation_record.update_perquisites(None)
         
-        # Update house property income if provided
-        if request.house_property_income:
-            house_property = self._convert_house_property_dto_to_entity(request.house_property_income)
-            taxation_record.update_house_property_income(house_property)
+        # Update other income (including house property income and capital gains) if provided
+        if request.other_income or request.house_property_income or request.capital_gains_income:
+            # Create other income entity
+            other_income = None
+            if request.other_income:
+                other_income = self._convert_other_income_dto_to_entity(request.other_income)
+            else:
+                # Create default other income if only house property or capital gains is provided
+                from app.domain.entities.taxation.other_income import OtherIncome
+                other_income = OtherIncome()
+            
+            # Add house property income if provided separately
+            if request.house_property_income:
+                house_property = self._convert_house_property_dto_to_entity(request.house_property_income)
+                other_income.house_property_income = house_property
+            
+            # Add capital gains income if provided separately
+            if request.capital_gains_income:
+                capital_gains = self._convert_capital_gains_dto_to_entity(request.capital_gains_income)
+                other_income.capital_gains_income = capital_gains
+            
+            taxation_record.update_other_income(other_income)
         else:
-            taxation_record.update_house_property_income(None)
-        
-        # Update capital gains income if provided
-        if request.capital_gains_income:
-            capital_gains = self._convert_capital_gains_dto_to_entity(request.capital_gains_income)
-            taxation_record.update_capital_gains_income(capital_gains)
-        else:
-            taxation_record.update_capital_gains_income(None)
+            taxation_record.update_other_income(None)
         
         # Update retirement benefits if provided
         if request.retirement_benefits:
@@ -1609,13 +1616,6 @@ class UnifiedTaxationController:
             taxation_record.update_retirement_benefits(retirement_benefits)
         else:
             taxation_record.update_retirement_benefits(None)
-        
-        # Update other income if provided
-        if request.other_income:
-            other_income = self._convert_other_income_dto_to_entity(request.other_income)
-            taxation_record.update_other_income(other_income)
-        else:
-            taxation_record.update_other_income(None)
         
         # Update monthly payroll if provided
         if request.monthly_payroll:

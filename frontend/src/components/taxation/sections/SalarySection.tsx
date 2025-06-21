@@ -57,11 +57,6 @@ const SalarySection: React.FC<SalarySectionProps> = ({
     return formatted;
   };
 
-  const handleTextFieldChange = (section: string, field: string, event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
-    const value = parseIndianNumber(event.target.value);
-    handleInputChange(section, field, value);
-  };
-
   const handleTextFieldFocus = (section: string, field: string, event: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
     const value = parseIndianNumber(event.target.value);
     handleFocus(section, field, value);
@@ -168,14 +163,13 @@ const SalarySection: React.FC<SalarySectionProps> = ({
         </Box>
 
         {/* Rent Paid */}
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Actual Rent Paid"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.actual_rent_paid)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'actual_rent_paid', e)}
-          InputProps={{ startAdornment: '₹' }}
+          onChange={(value) => handleInputChange('salary_income', 'actual_rent_paid', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'actual_rent_paid', e)}
+          fieldType="amount"
+          helperText="Enter the actual rent amount paid"
         />
 
         {/* Special Allowance */}
@@ -199,25 +193,23 @@ const SalarySection: React.FC<SalarySectionProps> = ({
         />
         
         {/* Commission */}
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Commission"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.commission)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'commission', e)}
-          InputProps={{ startAdornment: '₹' }}
+          onChange={(value) => handleInputChange('salary_income', 'commission', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'commission', e)}
+          fieldType="amount"
+          helperText="Enter your commission amount"
         />
         
         {/* City Compensatory Allowance */}
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="City Compensatory Allowance"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.city_compensatory_allowance)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'city_compensatory_allowance', e)}
-          InputProps={{ startAdornment: '₹' }}
+          onChange={(value) => handleInputChange('salary_income', 'city_compensatory_allowance', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'city_compensatory_allowance', e)}
+          fieldType="amount"
+          helperText="Enter your city compensatory allowance amount"
         />
 
         {/* Section Header: Additional Allowances */}
@@ -229,113 +221,103 @@ const SalarySection: React.FC<SalarySectionProps> = ({
         </Box>
         
         {/* Rural Allowance */}
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Rural Allowance"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.rural_allowance)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'rural_allowance', e)}
-          InputProps={{ startAdornment: '₹' }}
+          onChange={(value) => handleInputChange('salary_income', 'rural_allowance', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'rural_allowance', e)}
+          fieldType="amount"
+          helperText="Enter your rural allowance amount"
         />
 
         {/* Proctorship Allowance */}
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Proctorship Allowance"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.proctorship_allowance)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'proctorship_allowance', e)}
-          InputProps={{ startAdornment: '₹' }}
+          onChange={(value) => handleInputChange('salary_income', 'proctorship_allowance', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'proctorship_allowance', e)}
+          fieldType="amount"
+          helperText="Enter your proctorship allowance amount"
         />
 
         {/* Wardenship Allowance */}
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Wardenship Allowance"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.wardenship_allowance)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'wardenship_allowance', e)}
-          InputProps={{ startAdornment: '₹' }}
+          onChange={(value) => handleInputChange('salary_income', 'wardenship_allowance', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'wardenship_allowance', e)}
+          fieldType="amount"
+          helperText="Enter your wardenship allowance amount"
         />
 
         {/* Project Allowance */}
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Project Allowance"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.project_allowance)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'project_allowance', e)}
-          InputProps={{ startAdornment: '₹' }}
+          onChange={(value) => handleInputChange('salary_income', 'project_allowance', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'project_allowance', e)}
+          fieldType="amount"
+          helperText="Enter your project allowance amount"
         />
 
         {/* Deputation Allowance */}
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Deputation Allowance"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.deputation_allowance)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'deputation_allowance', e)}
-          InputProps={{ startAdornment: '₹' }}
+          onChange={(value) => handleInputChange('salary_income', 'deputation_allowance', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'deputation_allowance', e)}
+          fieldType="amount"
+          helperText="Enter your deputation allowance amount"
         />
 
         {/* Interim Relief */}
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Interim Relief"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.interim_relief)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'interim_relief', e)}
-          InputProps={{ startAdornment: '₹' }}
+          onChange={(value) => handleInputChange('salary_income', 'interim_relief', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'interim_relief', e)}
+          fieldType="amount"
+          helperText="Enter your interim relief amount"
         />
 
         {/* Tiffin Allowance */}
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Tiffin Allowance"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.tiffin_allowance)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'tiffin_allowance', e)}
-          InputProps={{ startAdornment: '₹' }}
+          onChange={(value) => handleInputChange('salary_income', 'tiffin_allowance', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'tiffin_allowance', e)}
+          fieldType="amount"
+          helperText="Enter your tiffin allowance amount"
         />
 
         {/* Fixed Medical Allowance */}
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Fixed Medical Allowance"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.medical_allowance)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'medical_allowance', e)}
-          InputProps={{ startAdornment: '₹' }}
+          onChange={(value) => handleInputChange('salary_income', 'medical_allowance', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'medical_allowance', e)}
+          fieldType="amount"
+          helperText="Enter your fixed medical allowance amount"
         />
         
         {/* Overtime Allowance */}
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Overtime Allowance"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.overtime_allowance)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'overtime_allowance', e)}
-          InputProps={{ startAdornment: '₹' }}
+          onChange={(value) => handleInputChange('salary_income', 'overtime_allowance', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'overtime_allowance', e)}
+          fieldType="amount"
+          helperText="Enter your overtime allowance amount"
         />
 
         {/* Servant Allowance */}
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Servant Allowance"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.servant_allowance)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'servant_allowance', e)}
-          InputProps={{ startAdornment: '₹' }}
+          onChange={(value) => handleInputChange('salary_income', 'servant_allowance', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'servant_allowance', e)}
+          fieldType="amount"
+          helperText="Enter your servant allowance amount"
         />
 
         {/* Section Header: Hills/High Altitude Allowance */}
@@ -356,14 +338,13 @@ const SalarySection: React.FC<SalarySectionProps> = ({
         placement="top"
         arrow
         >
-          <TextField
-            fullWidth
+          <ValidatedTextField
             label="Hills/High Altitude Allowance"
-            type="text"
             value={formatSalaryValue(taxationData.salary_income?.hills_high_altd_allowance)}
-            onChange={(e) => handleTextFieldChange('salary_income', 'hills_high_altd_allowance', e)}
-            InputProps={{ startAdornment: '₹' }}
+            onChange={(value) => handleInputChange('salary_income', 'hills_high_altd_allowance', value)}
             onFocus={(e) => handleTextFieldFocus('salary_income', 'hills_high_altd_allowance', e)}
+            fieldType="amount"
+            helperText="Enter allowance for employees working in hilly areas"
           />
         </Tooltip>
 
@@ -380,14 +361,13 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           placement="top"
           arrow
         >
-          <TextField
-            fullWidth
+          <ValidatedTextField
             label="Hills/High Altitude Allowance Exemption Limit"
-            type="text"
             value={formatSalaryValue(taxationData.salary_income?.hills_high_altd_exemption_limit)}
-            onChange={(e) => handleTextFieldChange('salary_income', 'hills_high_altd_exemption_limit', e)}
-            InputProps={{ startAdornment: '₹' }}
+            onChange={(value) => handleInputChange('salary_income', 'hills_high_altd_exemption_limit', value)}
             onFocus={(e) => handleTextFieldFocus('salary_income', 'hills_high_altd_exemption_limit', e)}
+            fieldType="amount"
+            helperText="Enter exemption limit for hills/high altitude allowance"
           />
         </Tooltip>
 
@@ -408,14 +388,13 @@ const SalarySection: React.FC<SalarySectionProps> = ({
         placement="top"
         arrow
         >
-          <TextField
-            fullWidth
+          <ValidatedTextField
             label="Border/Remote Area Allowance"
-            type="text"
             value={formatSalaryValue(taxationData.salary_income?.border_remote_allowance)}
-            onChange={(e) => handleTextFieldChange('salary_income', 'border_remote_allowance', e)}
-            InputProps={{ startAdornment: '₹' }}
+            onChange={(value) => handleInputChange('salary_income', 'border_remote_allowance', value)}
             onFocus={(e) => handleTextFieldFocus('salary_income', 'border_remote_allowance', e)}
+            fieldType="amount"
+            helperText="Enter allowance for employees working in border or remote areas"
           />
         </Tooltip>
 
@@ -431,14 +410,13 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           placement="top"
           arrow
         >
-          <TextField
-            fullWidth
+          <ValidatedTextField
             label="Border/Remote Area Allowance Exemption Limit"
-            type="text"
             value={formatSalaryValue(taxationData.salary_income?.border_remote_exemption_limit)}
-            onChange={(e) => handleTextFieldChange('salary_income', 'border_remote_exemption_limit', e)}
-            InputProps={{ startAdornment: '₹' }}
+            onChange={(value) => handleInputChange('salary_income', 'border_remote_exemption_limit', value)}
             onFocus={(e) => handleTextFieldFocus('salary_income', 'border_remote_exemption_limit', e)}
+            fieldType="amount"
+            helperText="Enter exemption limit for border/remote area allowance"
           />
         </Tooltip>
 
@@ -460,14 +438,13 @@ const SalarySection: React.FC<SalarySectionProps> = ({
         placement="top"
         arrow
         >
-          <TextField
-            fullWidth
+          <ValidatedTextField
             label="Transport Employee Allowance"
-            type="text"
             value={formatSalaryValue(taxationData.salary_income?.transport_employee_allowance)}
-            onChange={(e) => handleTextFieldChange('salary_income', 'transport_employee_allowance', e)}
-            InputProps={{ startAdornment: '₹' }}
+            onChange={(value) => handleInputChange('salary_income', 'transport_employee_allowance', value)}
             onFocus={(e) => handleTextFieldFocus('salary_income', 'transport_employee_allowance', e)}
+            fieldType="amount"
+            helperText="Enter allowance for transport employees"
           />
         </Tooltip>
 
@@ -489,33 +466,32 @@ const SalarySection: React.FC<SalarySectionProps> = ({
         placement="top"
         arrow
         >
-          <TextField
-            fullWidth
+          <ValidatedTextField
             label="Children Education Allowance"
-            type="text"
             value={formatSalaryValue(taxationData.salary_income?.children_education_allowance)}
-            onChange={(e) => handleTextFieldChange('salary_income', 'children_education_allowance', e)}
-            InputProps={{ startAdornment: '₹' }}
+            onChange={(value) => handleInputChange('salary_income', 'children_education_allowance', value)}
             onFocus={(e) => handleTextFieldFocus('salary_income', 'children_education_allowance', e)}
+            fieldType="amount"
+            helperText="Enter education allowance for children"
           />
         </Tooltip>
 
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Number of Children"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.children_education_count)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'children_education_count', e)}
+          onChange={(value) => handleInputChange('salary_income', 'children_education_count', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'children_education_count', e)}
+          fieldType="number"
+          helperText="Enter number of children (max 2)"
         />
 
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Number of Months"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.children_education_months)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'children_education_months', e)}
+          onChange={(value) => handleInputChange('salary_income', 'children_education_months', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'children_education_months', e)}
+          fieldType="number"
+          helperText="Enter number of months (max 12)"
         />
 
         {/* Section Header: Hostel Allowance */}
@@ -536,33 +512,32 @@ const SalarySection: React.FC<SalarySectionProps> = ({
         placement="top"
         arrow
         >
-          <TextField
-            fullWidth
+          <ValidatedTextField
             label="Hostel Allowance"
-            type="text"
             value={formatSalaryValue(taxationData.salary_income?.hostel_allowance)}
-            onChange={(e) => handleTextFieldChange('salary_income', 'hostel_allowance', e)}
-            InputProps={{ startAdornment: '₹' }}
+            onChange={(value) => handleInputChange('salary_income', 'hostel_allowance', value)}
             onFocus={(e) => handleTextFieldFocus('salary_income', 'hostel_allowance', e)}
+            fieldType="amount"
+            helperText="Enter hostel allowance for children"
           />
         </Tooltip>
 
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Number of Children in Hostel"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.hostel_count)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'hostel_count', e)}
+          onChange={(value) => handleInputChange('salary_income', 'hostel_count', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'hostel_count', e)}
+          fieldType="number"
+          helperText="Enter number of children in hostel (max 2)"
         />
 
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Hostel Months"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.hostel_months)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'hostel_months', e)}
+          onChange={(value) => handleInputChange('salary_income', 'hostel_months', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'hostel_months', e)}
+          fieldType="number"
+          helperText="Enter number of hostel months (max 12)"
         />
 
         {/* Section Header: Transport Allowance */}
@@ -576,32 +551,29 @@ const SalarySection: React.FC<SalarySectionProps> = ({
         <Tooltip title={
           <>
             Transport allowance for commuting<br/>
-            '₹ 1600 per month for non-disabled'<br/>
-            '₹ 3200 per month for disabled'<br/>
-            'Provide Annual Allowance value'
+            '₹ 3200 per month for  blind or deaf and dumb'<br/>
           </>
         }
         placement="top"
         arrow
         >
-          <TextField
-            fullWidth
+          <ValidatedTextField
             label="Transport Allowance"
-            type="text"
             value={formatSalaryValue(taxationData.salary_income?.conveyance_allowance)}
-            onChange={(e) => handleTextFieldChange('salary_income', 'conveyance_allowance', e)}
-            InputProps={{ startAdornment: '₹' }}
+            onChange={(value) => handleInputChange('salary_income', 'conveyance_allowance', value)}
             onFocus={(e) => handleTextFieldFocus('salary_income', 'conveyance_allowance', e)}
+            fieldType="amount"
+            helperText="Enter transport allowance for commuting"
           />
         </Tooltip>
 
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Transport Months"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.transport_months)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'transport_months', e)}
+          onChange={(value) => handleInputChange('salary_income', 'transport_months', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'transport_months', e)}
+          fieldType="number"
+          helperText="Enter number of transport months (max 12)"
         />
 
         {/* Section Header: Underground Mines Allowance */}
@@ -622,24 +594,23 @@ const SalarySection: React.FC<SalarySectionProps> = ({
         placement="top"
         arrow
         >
-          <TextField
-            fullWidth
+          <ValidatedTextField
             label="Underground Mines Allowance"
-            type="text"
             value={formatSalaryValue(taxationData.salary_income?.underground_mines_allowance)}
-            onChange={(e) => handleTextFieldChange('salary_income', 'underground_mines_allowance', e)}
-            InputProps={{ startAdornment: '₹' }}
+            onChange={(value) => handleInputChange('salary_income', 'underground_mines_allowance', value)}
             onFocus={(e) => handleTextFieldFocus('salary_income', 'underground_mines_allowance', e)}
+            fieldType="amount"
+            helperText="Enter allowance for underground mine workers"
           />
         </Tooltip>
 
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Underground Mines Months"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.underground_mines_months)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'underground_mines_months', e)}
+          onChange={(value) => handleInputChange('salary_income', 'underground_mines_months', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'underground_mines_months', e)}
+          fieldType="number"
+          helperText="Enter number of underground mines months (max 12)"
         />
 
         {/* Section Header: Government Employee Specific Allowances */}
@@ -660,14 +631,13 @@ const SalarySection: React.FC<SalarySectionProps> = ({
         placement="top"
         arrow
         >
-          <TextField
-            fullWidth
+          <ValidatedTextField
             label="Government Employee Entertainment Allowance"
-            type="text"
             value={formatSalaryValue(taxationData.salary_income?.govt_employee_entertainment_allowance)}
-            onChange={(e) => handleTextFieldChange('salary_income', 'govt_employee_entertainment_allowance', e)}
-            InputProps={{ startAdornment: '₹' }}
+            onChange={(value) => handleInputChange('salary_income', 'govt_employee_entertainment_allowance', value)}
             onFocus={(e) => handleTextFieldFocus('salary_income', 'govt_employee_entertainment_allowance', e)}
+            fieldType="amount"
+            helperText="Enter entertainment allowance for government employees"
           />
         </Tooltip>
 
@@ -683,14 +653,13 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             placement="top"
             arrow
             >
-              <TextField
-                fullWidth
+              <ValidatedTextField
                 label="Government Employees Outside India Allowance"
-                type="text"
                 value={formatSalaryValue(taxationData.salary_income?.govt_employees_outside_india_allowance)}
-                onChange={(e) => handleTextFieldChange('salary_income', 'govt_employees_outside_india_allowance', e)}
-                InputProps={{ startAdornment: '₹' }}
+                onChange={(value) => handleInputChange('salary_income', 'govt_employees_outside_india_allowance', value)}
                 onFocus={(e) => handleTextFieldFocus('salary_income', 'govt_employees_outside_india_allowance', e)}
+                fieldType="amount"
+                helperText="Enter allowance for government employees posted outside India"
               />
             </Tooltip>
 
@@ -704,14 +673,13 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             placement="top"
             arrow
             >
-              <TextField
-                fullWidth
+              <ValidatedTextField
                 label="Supreme/High Court Judges Allowance"
-                type="text"
                 value={formatSalaryValue(taxationData.salary_income?.supreme_high_court_judges_allowance)}
-                onChange={(e) => handleTextFieldChange('salary_income', 'supreme_high_court_judges_allowance', e)}
-                InputProps={{ startAdornment: '₹' }}
+                onChange={(value) => handleInputChange('salary_income', 'supreme_high_court_judges_allowance', value)}
                 onFocus={(e) => handleTextFieldFocus('salary_income', 'supreme_high_court_judges_allowance', e)}
+                fieldType="amount"
+                helperText="Enter special allowance for Supreme/High Court judges"
               />
             </Tooltip>
 
@@ -725,14 +693,13 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             placement="top"
             arrow
             >
-              <TextField
-                fullWidth
+              <ValidatedTextField
                 label="Judge Compensatory Allowance"
-                type="text"
                 value={formatSalaryValue(taxationData.salary_income?.judge_compensatory_allowance)}
-                onChange={(e) => handleTextFieldChange('salary_income', 'judge_compensatory_allowance', e)}
-                InputProps={{ startAdornment: '₹' }}
+                onChange={(value) => handleInputChange('salary_income', 'judge_compensatory_allowance', value)}
                 onFocus={(e) => handleTextFieldFocus('salary_income', 'judge_compensatory_allowance', e)}
+                fieldType="amount"
+                helperText="Enter compensatory allowance for judges"
               />
             </Tooltip>
 
@@ -746,14 +713,13 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             placement="top"
             arrow
             >
-              <TextField
-                fullWidth
+              <ValidatedTextField
                 label="Section 10(14) Special Allowances"
-                type="text"
                 value={formatSalaryValue(taxationData.salary_income?.section_10_14_special_allowances)}
-                onChange={(e) => handleTextFieldChange('salary_income', 'section_10_14_special_allowances', e)}
-                InputProps={{ startAdornment: '₹' }}
+                onChange={(value) => handleInputChange('salary_income', 'section_10_14_special_allowances', value)}
                 onFocus={(e) => handleTextFieldFocus('salary_income', 'section_10_14_special_allowances', e)}
+                fieldType="amount"
+                helperText="Enter Section 10(14) special allowances"
               />
             </Tooltip>
           </>
@@ -777,14 +743,13 @@ const SalarySection: React.FC<SalarySectionProps> = ({
         placement="top"
         arrow
         >
-          <TextField
-            fullWidth
+          <ValidatedTextField
             label="Travel Allowance (Tour)"
-            type="text"
             value={formatSalaryValue(taxationData.salary_income?.travel_on_tour_allowance)}
-            onChange={(e) => handleTextFieldChange('salary_income', 'travel_on_tour_allowance', e)}
-            InputProps={{ startAdornment: '₹' }}
+            onChange={(value) => handleInputChange('salary_income', 'travel_on_tour_allowance', value)}
             onFocus={(e) => handleTextFieldFocus('salary_income', 'travel_on_tour_allowance', e)}
+            fieldType="amount"
+            helperText="Enter allowance granted to meet cost of travel on tour"
           />
         </Tooltip>
 
@@ -798,14 +763,13 @@ const SalarySection: React.FC<SalarySectionProps> = ({
         placement="top"
         arrow
         >
-          <TextField
-            fullWidth
+          <ValidatedTextField
             label="Tour Daily Charge Allowance"
-            type="text"
             value={formatSalaryValue(taxationData.salary_income?.tour_daily_charge_allowance)}
-            onChange={(e) => handleTextFieldChange('salary_income', 'tour_daily_charge_allowance', e)}
-            InputProps={{ startAdornment: '₹' }}
+            onChange={(value) => handleInputChange('salary_income', 'tour_daily_charge_allowance', value)}
             onFocus={(e) => handleTextFieldFocus('salary_income', 'tour_daily_charge_allowance', e)}
+            fieldType="amount"
+            helperText="Enter allowance granted to meet cost of daily charges incurred on tour"
           />
         </Tooltip>
 
@@ -819,14 +783,13 @@ const SalarySection: React.FC<SalarySectionProps> = ({
         placement="top"
         arrow
         >
-          <TextField
-            fullWidth
+          <ValidatedTextField
             label="Conveyance Allowance (Duties)"
-            type="text"
             value={formatSalaryValue(taxationData.salary_income?.conveyance_in_performace_of_duties)}
-            onChange={(e) => handleTextFieldChange('salary_income', 'conveyance_in_performace_of_duties', e)}
-            InputProps={{ startAdornment: '₹' }}
+            onChange={(value) => handleInputChange('salary_income', 'conveyance_in_performace_of_duties', value)}
             onFocus={(e) => handleTextFieldFocus('salary_income', 'conveyance_in_performace_of_duties', e)}
+            fieldType="amount"
+            helperText="Enter allowance granted to meet expenditure incurred on conveyance in performance of duties"
           />
         </Tooltip>
 
@@ -840,14 +803,13 @@ const SalarySection: React.FC<SalarySectionProps> = ({
         placement="top"
         arrow
         >
-          <TextField
-            fullWidth
+          <ValidatedTextField
             label="Helper Allowance (Duties)"
-            type="text"
             value={formatSalaryValue(taxationData.salary_income?.helper_in_performace_of_duties)}
-            onChange={(e) => handleTextFieldChange('salary_income', 'helper_in_performace_of_duties', e)}
-            InputProps={{ startAdornment: '₹' }}
+            onChange={(value) => handleInputChange('salary_income', 'helper_in_performace_of_duties', value)}
             onFocus={(e) => handleTextFieldFocus('salary_income', 'helper_in_performace_of_duties', e)}
+            fieldType="amount"
+            helperText="Enter allowance granted to meet expenditure incurred on helper in performance of duties"
           />
         </Tooltip>
 
@@ -861,14 +823,13 @@ const SalarySection: React.FC<SalarySectionProps> = ({
         placement="top"
         arrow
         >
-          <TextField
-            fullWidth
+          <ValidatedTextField
             label="Academic/Research Allowance"
-            type="text"
             value={formatSalaryValue(taxationData.salary_income?.academic_research)}
-            onChange={(e) => handleTextFieldChange('salary_income', 'academic_research', e)}
-            InputProps={{ startAdornment: '₹' }}
+            onChange={(value) => handleInputChange('salary_income', 'academic_research', value)}
             onFocus={(e) => handleTextFieldFocus('salary_income', 'academic_research', e)}
+            fieldType="amount"
+            helperText="Enter allowance granted for encouraging academic, research & training pursuits"
           />
         </Tooltip>
 
@@ -882,37 +843,34 @@ const SalarySection: React.FC<SalarySectionProps> = ({
         placement="top"
         arrow
         >
-          <TextField
-            fullWidth
+          <ValidatedTextField
             label="Uniform Allowance (Duties)"
-            type="text"
             value={formatSalaryValue(taxationData.salary_income?.uniform_allowance)}
-            onChange={(e) => handleTextFieldChange('salary_income', 'uniform_allowance', e)}
-            InputProps={{ startAdornment: '₹' }}
+            onChange={(value) => handleInputChange('salary_income', 'uniform_allowance', value)}
             onFocus={(e) => handleTextFieldFocus('salary_income', 'uniform_allowance', e)}
+            fieldType="amount"
+            helperText="Enter allowance granted for expenditure incurred on purchase or maintenance of uniform"
           />
         </Tooltip>
 
         {/* Any Other Allowance */}
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Any Other Allowance"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.other_allowances)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'other_allowances', e)}
-          InputProps={{ startAdornment: '₹' }}
+          onChange={(value) => handleInputChange('salary_income', 'other_allowances', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'other_allowances', e)}
+          fieldType="amount"
+          helperText="Enter any other allowance amount"
         />
         
         {/* Any Other Allowance Exemption */}
-        <TextField
-          fullWidth
+        <ValidatedTextField
           label="Any Other Allowance Exemption"
-          type="text"
           value={formatSalaryValue(taxationData.salary_income?.any_other_allowance_exemption)}
-          onChange={(e) => handleTextFieldChange('salary_income', 'any_other_allowance_exemption', e)}
-          InputProps={{ startAdornment: '₹' }}
+          onChange={(value) => handleInputChange('salary_income', 'any_other_allowance_exemption', value)}
           onFocus={(e) => handleTextFieldFocus('salary_income', 'any_other_allowance_exemption', e)}
+          fieldType="amount"
+          helperText="Enter any other allowance exemption amount"
         />
       </Box>
     </Box>

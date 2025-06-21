@@ -581,7 +581,7 @@ class DeductionSection80TTA_TTB:
     savings_interest: Money = Money.zero()
     fd_interest: Money = Money.zero()
     rd_interest: Money = Money.zero()
-    other_bank_interest: Money = Money.zero()
+    post_office_interest: Money = Money.zero()
     age: int = 25
     
     def calculate_eligible_exemption(self, regime: TaxRegime) -> Money:
@@ -594,7 +594,7 @@ class DeductionSection80TTA_TTB:
             total_interest = (self.savings_interest
                             .add(self.fd_interest)
                             .add(self.rd_interest)
-                            .add(self.other_bank_interest))
+                            .add(self.post_office_interest))
             max_limit = Money.from_int(50000)
             return total_interest.min(max_limit)
         else:
@@ -609,7 +609,7 @@ class DeductionSection80TTA_TTB:
             eligible_interest = (self.savings_interest
                                .add(self.fd_interest)
                                .add(self.rd_interest)
-                               .add(self.other_bank_interest))
+                               .add(self.post_office_interest))
             limit = 50000
         else:
             section = "80TTA"
@@ -621,7 +621,7 @@ class DeductionSection80TTA_TTB:
             "savings_interest": self.savings_interest.to_float(),
             "fd_interest": self.fd_interest.to_float(),
             "rd_interest": self.rd_interest.to_float(),
-            "other_bank_interest": self.other_bank_interest.to_float(),
+            "post_office_interest": self.post_office_interest.to_float(),
             "total_interest": eligible_interest.to_float(),
             "exemption_limit": limit,
             "eligible_exemption": self.calculate_eligible_exemption(regime).to_float()
@@ -868,14 +868,14 @@ class TaxDeductions:
         if self.section_80tta_ttb:
             return (self.section_80tta_ttb.fd_interest
                    .add(self.section_80tta_ttb.rd_interest)
-                   .add(self.section_80tta_ttb.other_bank_interest))
+                   .add(self.section_80tta_ttb.post_office_interest))
         return Money.zero()
-    
+
     @senior_citizen_interest.setter
     def senior_citizen_interest(self, value: Money):
         if self.section_80tta_ttb is None:
             self.section_80tta_ttb = DeductionSection80TTA_TTB()
-        self.section_80tta_ttb.other_bank_interest = value
+        self.section_80tta_ttb.post_office_interest = value
     
     # Section 80U/80DD backward compatibility
     @property

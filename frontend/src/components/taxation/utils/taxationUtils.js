@@ -127,7 +127,7 @@ export const getDefaultTaxationState = (empId) => ({
       savings_account_interest: 0,
       fixed_deposit_interest: 0,
       recurring_deposit_interest: 0,
-      other_interest: 0,
+      post_office_interest: 0,
     },
     dividend_income: 0,
     gifts_received: 0,

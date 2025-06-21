@@ -259,10 +259,9 @@ const SummarySection: React.FC<SummarySectionProps> = ({
                 <Typography align="right">
                   {formatSafeCurrency(
                     (taxCalculationResponse?.tax_breakdown?.income_breakdown?.other_income?.recurring_deposit_interest || 0) +
-                    (taxCalculationResponse?.tax_breakdown?.income_breakdown?.other_income?.post_office_interest || 0) +
-                    (taxCalculationResponse?.tax_breakdown?.income_breakdown?.other_income?.other_interest || 0) ||
+                    (taxCalculationResponse?.tax_breakdown?.income_breakdown?.other_income?.post_office_interest || 0) ||
                     ((taxationData.other_income?.interest_income?.recurring_deposit_interest || 0) +
-                     (taxationData.other_income?.interest_income?.other_interest || 0))
+                     (taxationData.other_income?.interest_income?.post_office_interest || 0))
                   )}
                 </Typography>
                 

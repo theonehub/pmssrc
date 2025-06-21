@@ -108,6 +108,14 @@ export interface OtherIncomeDTO {
   royalty_income: number;
   foreign_income: number;
   digital_asset_income: number;
+  house_property_income?: {
+    property_type: string;
+    address: string;
+    annual_rent_received: number;
+    municipal_taxes_paid: number;
+    home_loan_interest: number;
+    pre_construction_interest: number;
+  };
 }
 
 export interface DeductionsDTO {

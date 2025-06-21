@@ -129,7 +129,7 @@ class CreateTaxationRecordCommandHandler:
             municipal_value=Money.zero(),
             fair_rental_value=Money.zero(),
             standard_rent=Money.zero(),
-            actual_rent=Money.zero()
+            annual_rent_received=Money.zero()
         )
         logger.info("✅ HousePropertyIncome entity created successfully")
         
@@ -520,11 +520,8 @@ class EnhancedTaxCalculationCommand:
                 hra_city_type=period_dto.hra_city_type,
                 actual_rent_paid=Money.from_decimal(period_dto.actual_rent_paid),
                 special_allowance=Money.from_decimal(period_dto.special_allowance),
-                other_allowances=Money.from_decimal(period_dto.other_allowances),
                 bonus=Money.from_decimal(period_dto.bonus),
-                commission=Money.from_decimal(period_dto.commission),
-                medical_allowance=Money.from_decimal(period_dto.medical_allowance),
-                conveyance_allowance=Money.from_decimal(period_dto.conveyance_allowance)
+                commission=Money.from_decimal(period_dto.commission)
             )
             
             periods.append(PeriodicSalaryData(
@@ -648,11 +645,8 @@ class MidYearJoinerCommand:
             hra_city_type=request.salary_details.hra_city_type,
             actual_rent_paid=Money.from_decimal(request.salary_details.actual_rent_paid),
             special_allowance=Money.from_decimal(request.salary_details.special_allowance),
-            other_allowances=Money.from_decimal(request.salary_details.other_allowances),
             bonus=Money.from_decimal(request.salary_details.bonus),
-            commission=Money.from_decimal(request.salary_details.commission),
-            medical_allowance=Money.from_decimal(request.salary_details.medical_allowance),
-            conveyance_allowance=Money.from_decimal(request.salary_details.conveyance_allowance)
+            commission=Money.from_decimal(request.salary_details.commission)
         )
         
         # Create periodic salary for mid-year joiner
@@ -719,9 +713,6 @@ class MidYearIncrementCommand:
             bonus=Money.from_decimal(request.pre_increment_salary.bonus),
             commission=Money.from_decimal(request.pre_increment_salary.commission),
             special_allowance=Money.from_decimal(request.pre_increment_salary.special_allowance),
-            other_allowances=Money.from_decimal(request.pre_increment_salary.other_allowances),
-            medical_allowance=Money.from_decimal(request.pre_increment_salary.medical_allowance),
-            conveyance_allowance=Money.from_decimal(request.pre_increment_salary.conveyance_allowance)
         )
         
         # Build post-increment salary
@@ -734,9 +725,6 @@ class MidYearIncrementCommand:
             special_allowance=Money.from_decimal(request.post_increment_salary.special_allowance),
             bonus=Money.from_decimal(request.post_increment_salary.bonus),
             commission=Money.from_decimal(request.post_increment_salary.commission),
-            other_allowances=Money.from_decimal(request.post_increment_salary.other_allowances),
-            medical_allowance=Money.from_decimal(request.post_increment_salary.medical_allowance),
-            conveyance_allowance=Money.from_decimal(request.post_increment_salary.conveyance_allowance)
         )
         
         # Create periodic salary with increment

@@ -460,11 +460,10 @@ class MongoDBMonthlySalaryRepository(MonthlySalaryRepository, MonthlySalaryQuery
             "da": entity.da.to_float(),
             "hra": entity.hra.to_float(),
             "special_allowance": entity.special_allowance.to_float(),
-            "transport_allowance": entity.transport_allowance.to_float(),
-            "medical_allowance": entity.medical_allowance.to_float(),
             "bonus": entity.bonus.to_float(),
             "commission": entity.commission.to_float(),
-            "other_allowances": entity.other_allowances.to_float(),
+            "overtime": entity.overtime.to_float(),
+            "arrears": entity.arrears.to_float(),
             
             # Deductions
             "epf_employee": entity.epf_employee.to_float(),
@@ -522,11 +521,10 @@ class MongoDBMonthlySalaryRepository(MonthlySalaryRepository, MonthlySalaryQuery
             da=Money.from_float(document.get("da", 0.0)),
             hra=Money.from_float(document.get("hra", 0.0)),
             special_allowance=Money.from_float(document.get("special_allowance", 0.0)),
-            transport_allowance=Money.from_float(document.get("transport_allowance", 0.0)),
-            medical_allowance=Money.from_float(document.get("medical_allowance", 0.0)),
             bonus=Money.from_float(document.get("bonus", 0.0)),
             commission=Money.from_float(document.get("commission", 0.0)),
-            other_allowances=Money.from_float(document.get("other_allowances", 0.0)),
+            overtime=Money.from_float(document.get("overtime", 0.0)),
+            arrears=Money.from_float(document.get("arrears", 0.0)),
             
             # Deductions
             epf_employee=Money.from_float(document.get("epf_employee", 0.0)),

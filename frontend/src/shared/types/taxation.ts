@@ -57,12 +57,20 @@ export interface OtherIncomeDTO {
     savings_account_interest: number;
     fixed_deposit_interest: number;
     recurring_deposit_interest?: number;
-    other_interest?: number;
+    post_office_interest?: number;
   };
   dividend_income: number;
   gifts_received: number;
   business_professional_income?: number;
   other_miscellaneous_income: number;
+  house_property_income?: {
+    property_type: string;
+    address: string;
+    annual_rent_received: number;
+    municipal_taxes_paid: number;
+    home_loan_interest: number;
+    pre_construction_interest: number;
+  };
 }
 
 export interface CapitalGainsIncomeDTO {
@@ -368,7 +376,7 @@ export interface ComprehensiveTaxCalculationResponse {
         property_type: string;
         fair_rental_value: number;
         standard_rent: number;
-        actual_rent: number;
+        annual_rent_received: number;
         municipal_tax: number;
         interest_on_loan: number;
         pre_construction_interest: number;
@@ -399,7 +407,6 @@ export interface ComprehensiveTaxCalculationResponse {
         fixed_deposit_interest: number;
         recurring_deposit_interest: number;
         post_office_interest: number;
-        other_interest: number;
         equity_dividend: number;
         mutual_fund_dividend: number;
         other_dividend: number;

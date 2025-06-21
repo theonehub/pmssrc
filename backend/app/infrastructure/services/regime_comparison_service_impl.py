@@ -71,13 +71,12 @@ class RegimeComparisonServiceImpl(RegimeComparisonService):
         return RegimeComparisonInput(
             salary_income=record.salary_income,
             perquisites=record.perquisites,
-            house_property_income=record.house_property_income,
-            capital_gains_income=record.capital_gains_income,
+            capital_gains_income=record.other_income.capital_gains_income if record.other_income else None,
             retirement_benefits=record.retirement_benefits,
             other_income=record.other_income,
             deductions=record.deductions,
             age=record.age,
-            is_senior_citizen=record.is_senior_citizen,
-            is_super_senior_citizen=record.is_super_senior_citizen,
-            is_government_employee=record.is_government_employee
+            is_senior_citizen=record.age >= 60,
+            is_super_senior_citizen=record.age >= 80,
+            is_government_employee=False  # Default to False, can be enhanced later
         ) 

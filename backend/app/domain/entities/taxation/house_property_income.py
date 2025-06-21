@@ -14,7 +14,6 @@ class PropertyType(Enum):
     """Types of house property."""
     SELF_OCCUPIED = "Self-Occupied"
     LET_OUT = "Let-Out"
-    DEEMED_LET_OUT = "Deemed Let-Out"
 
 
 @dataclass
@@ -22,12 +21,11 @@ class HousePropertyIncome:
     """House property income calculation entity."""
     
     property_type: PropertyType
+    address: str = ""
     annual_rent_received: Money = Money.zero()
     municipal_taxes_paid: Money = Money.zero()
     home_loan_interest: Money = Money.zero()
     pre_construction_interest: Money = Money.zero()
-    fair_rental_value: Money = Money.zero()
-    standard_rent: Money = Money.zero()
     
     def calculate_annual_value(self) -> Money:
         """
@@ -41,10 +39,6 @@ class HousePropertyIncome:
         
         elif self.property_type == PropertyType.LET_OUT:
             return self.annual_rent_received
-        
-        elif self.property_type == PropertyType.DEEMED_LET_OUT:
-            # Annual value is higher of fair rental value and standard rent
-            return self.fair_rental_value.max(self.standard_rent)
         
         return Money.zero()
     
@@ -173,9 +167,9 @@ class HousePropertyIncome:
     
     @property
     def municipal_value(self) -> Money:
-        """Backward compatibility: Get municipal value (same as fair rental value)."""
-        # Municipal value is typically the same as fair rental value in legacy systems
-        return self.fair_rental_value
+        """Backward compatibility: Get municipal value (same as annual rent received)."""
+        # Municipal value is typically the same as annual rent received for let-out properties
+        return self.annual_rent_received
     
     def get_income_from_house_property(self) -> Money:
         """
@@ -220,8 +214,6 @@ class HousePropertyIncome:
             "property_type": self.property_type.value,
             "calculation_details": {
                 "annual_rent_received": self.annual_rent_received.to_float(),
-                "fair_rental_value": self.fair_rental_value.to_float(),
-                "standard_rent": self.standard_rent.to_float(),
                 "annual_value": annual_value.to_float(),
                 "municipal_taxes_paid": self.municipal_taxes_paid.to_float(),
                 "net_annual_value": net_annual_value.to_float()

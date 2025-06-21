@@ -64,9 +64,7 @@ class SalaryIncomeDTO(BaseModel):
     bonus: Decimal = Field(default=0, ge=0)
     commission: Decimal = Field(default=0, ge=0)
     special_allowance: Decimal = Field(default=0, ge=0)
-    other_allowances: Decimal = Field(default=0, ge=0)
-    medical_allowance: Decimal = Field(default=0, ge=0)
-    conveyance_allowance: Decimal = Field(default=0, ge=0)
+
     
     # Additional detailed allowances from frontend
     city_compensatory_allowance: Decimal = Field(default=0, ge=0)
@@ -124,11 +122,8 @@ class PeriodicSalaryDataDTO(BaseModel):
     hra_city_type: str = Field("non_metro", description="City type for HRA calculation")
     actual_rent_paid: Decimal = Field(0, ge=0, description="Actual rent paid")
     special_allowance: Decimal = Field(0, ge=0, description="Special allowance")
-    other_allowances: Decimal = Field(0, ge=0, description="Other allowances")
     bonus: Decimal = Field(0, ge=0, description="Bonus")
     commission: Decimal = Field(0, ge=0, description="Commission")
-    medical_allowance: Decimal = Field(0, ge=0, description="Medical allowance")
-    conveyance_allowance: Decimal = Field(0, ge=0, description="Conveyance allowance")
     
     # Additional detailed allowances from frontend
     city_compensatory_allowance: Decimal = Field(default=0, ge=0)
@@ -194,7 +189,6 @@ class PeriodicSalaryDataDTO(BaseModel):
                 "commission": 50000,
                 "actual_rent_paid": 300000,
                 "special_allowance": 100000,
-                "other_allowances": 50000
             }
         }
 
@@ -396,7 +390,7 @@ class DeductionSection80TTADTO(BaseModel):
     savings_interest: Decimal = Field(default=0, ge=0)
     fd_interest: Decimal = Field(default=0, ge=0)
     rd_interest: Decimal = Field(default=0, ge=0)
-    other_bank_interest: Decimal = Field(default=0, ge=0)
+    post_office_interest: Decimal = Field(default=0, ge=0)
     age: int = Field(default=25, ge=18, le=100)
 
 
@@ -1116,17 +1110,16 @@ class PerquisitesDTO(BaseModel):
 
 class HousePropertyIncomeDTO(BaseModel):
     """House property income DTO."""
-    property_type: str = Field(..., description="Self-Occupied, Let-Out, Deemed Let-Out")
+    property_type: str = Field(..., description="Self-Occupied, Let-Out")
+    address: str = Field(default="", description="Property address")
     annual_rent_received: Decimal = Field(default=0, ge=0)
     municipal_taxes_paid: Decimal = Field(default=0, ge=0)
     home_loan_interest: Decimal = Field(default=0, ge=0)
     pre_construction_interest: Decimal = Field(default=0, ge=0)
-    fair_rental_value: Decimal = Field(default=0, ge=0)
-    standard_rent: Decimal = Field(default=0, ge=0)
     
     @validator('property_type')
     def validate_property_type(cls, v):
-        valid_types = ["Self-Occupied", "Let-Out", "Deemed Let-Out"]
+        valid_types = ["Self-Occupied", "Let-Out"]
         if v not in valid_types:
             raise ValueError(f"Property type must be one of: {valid_types}")
         return v
@@ -1216,13 +1209,15 @@ class InterestIncomeDTO(BaseModel):
     savings_account_interest: Decimal = Field(default=0, ge=0)
     fixed_deposit_interest: Decimal = Field(default=0, ge=0)
     recurring_deposit_interest: Decimal = Field(default=0, ge=0)
-    other_bank_interest: Decimal = Field(default=0, ge=0)
+    post_office_interest: Decimal = Field(default=0, ge=0)
     age: int = Field(default=25, ge=18, le=100)
 
 
 class OtherIncomeDTO(BaseModel):
     """Other income DTO."""
     interest_income: Optional[InterestIncomeDTO] = None
+    house_property_income: Optional[HousePropertyIncomeDTO] = None
+    capital_gains_income: Optional[CapitalGainsIncomeDTO] = None
     dividend_income: Decimal = Field(default=0, ge=0)
     gifts_received: Decimal = Field(default=0, ge=0)
     business_professional_income: Decimal = Field(default=0, ge=0)
@@ -1269,11 +1264,8 @@ class PayoutMonthlyProjectionDTO(BaseModel):
     da: float = Field(default=0.0, ge=0, description="Dearness allowance")
     hra: float = Field(default=0.0, ge=0, description="HRA")
     special_allowance: float = Field(default=0.0, ge=0, description="Special allowance")
-    transport_allowance: float = Field(default=0.0, ge=0, description="Transport allowance")
-    medical_allowance: float = Field(default=0.0, ge=0, description="Medical allowance")
     bonus: float = Field(default=0.0, ge=0, description="Bonus")
     commission: float = Field(default=0.0, ge=0, description="Commission")
-    other_allowances: float = Field(default=0.0, ge=0, description="Other allowances")
     
     # Deductions
     epf_employee: float = Field(default=0.0, ge=0, description="EPF employee contribution")

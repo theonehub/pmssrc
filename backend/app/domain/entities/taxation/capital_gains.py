@@ -209,13 +209,5 @@ class CapitalGainsIncome:
         total_gains = self.calculate_total_capital_gains_income()
         return total_gains.add(total_gains)  # Approximate: gains + cost basis
     
-    @property
-    def transfer_expenses(self) -> Money:
-        """Backward compatibility: Get transfer expenses (default to zero)."""
-        return Money.zero()
-    
-    @property
-    def improvement_cost(self) -> Money:
-        """Backward compatibility: Get improvement cost (default to zero)."""
-        return Money.zero()
+
     

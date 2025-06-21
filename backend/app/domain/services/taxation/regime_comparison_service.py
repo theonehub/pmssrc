@@ -22,7 +22,6 @@ class RegimeComparisonInput:
     """Input for regime comparison."""
     salary_income: SalaryIncome
     perquisites: Perquisites
-    house_property_income: HousePropertyIncome
     capital_gains_income: CapitalGainsIncome
     retirement_benefits: RetirementBenefits
     other_income: OtherIncome
@@ -99,15 +98,10 @@ class RegimeComparisonService:
             input_data.salary_income.dearness_allowance +
             input_data.salary_income.hra_received +
             input_data.salary_income.special_allowance +
-            input_data.salary_income.conveyance_allowance +
-            input_data.salary_income.medical_allowance +
             input_data.salary_income.bonus +
             input_data.salary_income.commission +
-            input_data.salary_income.overtime_allowance +
-            input_data.salary_income.arrears +
-            input_data.salary_income.gratuity +
-            input_data.salary_income.leave_encashment +
-            input_data.salary_income.other_allowances
+            input_data.salary_income.specific_allowances.overtime_allowance +
+            input_data.salary_income.arrears 
         )
         
         # Calculate total deductions
@@ -148,15 +142,10 @@ class RegimeComparisonService:
             input_data.salary_income.dearness_allowance +
             input_data.salary_income.hra_received +
             input_data.salary_income.special_allowance +
-            input_data.salary_income.conveyance_allowance +
-            input_data.salary_income.medical_allowance +
             input_data.salary_income.bonus +
             input_data.salary_income.commission +
-            input_data.salary_income.overtime_allowance +
-            input_data.salary_income.arrears +
-            input_data.salary_income.gratuity +
-            input_data.salary_income.leave_encashment +
-            input_data.salary_income.other_allowances
+            input_data.salary_income.specific_allowances.overtime_allowance +
+            input_data.salary_income.arrears 
         )
         
         # Calculate taxable income (no deductions in new regime)
@@ -254,7 +243,10 @@ class RegimeComparisonService:
                     'dearness_allowance': input_data.salary_income.dearness_allowance,
                     'hra_received': input_data.salary_income.hra_received,
                     'special_allowance': input_data.salary_income.special_allowance,
-                    'other_allowances': input_data.salary_income.other_allowances
+                    'bonus': input_data.salary_income.bonus,
+                    'commission': input_data.salary_income.commission,
+                    'overtime_allowance': input_data.salary_income.specific_allowances.overtime_allowance,
+                    'arrears': input_data.salary_income.arrears
                 },
                 'perquisites': {
                     'rent_free_accommodation': input_data.perquisites.rent_free_accommodation,
@@ -262,7 +254,8 @@ class RegimeComparisonService:
                     'other_perquisites': input_data.perquisites.other_perquisites
                 },
                 'other_income': {
-                    'house_property': input_data.house_property_income.municipal_value,
+                    'house_property': (input_data.other_income.house_property_income.municipal_value 
+                                     if input_data.other_income.house_property_income else Money.zero()),
                     'capital_gains': input_data.capital_gains_income.sale_price,
                     'other_sources': input_data.other_income.bank_interest
                 }

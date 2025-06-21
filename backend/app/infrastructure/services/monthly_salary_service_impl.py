@@ -506,11 +506,8 @@ class MonthlySalaryServiceImpl(MonthlySalaryService):
             da=monthly_salary.da.to_float(),
             hra=monthly_salary.hra.to_float(),
             special_allowance=monthly_salary.special_allowance.to_float(),
-            transport_allowance=monthly_salary.transport_allowance.to_float(),
-            medical_allowance=monthly_salary.medical_allowance.to_float(),
             bonus=monthly_salary.bonus.to_float(),
             commission=monthly_salary.commission.to_float(),
-            other_allowances=monthly_salary.other_allowances.to_float(),
             
             # Deductions
             epf_employee=monthly_salary.epf_employee.to_float(),

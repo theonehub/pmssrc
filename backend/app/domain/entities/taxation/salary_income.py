@@ -16,64 +16,65 @@ class SpecificAllowances:
     """Specific allowances with their own exemption rules."""
     
     # Hills/High Altitude Allowances
-    hills_allowance: Money = Money.zero()
+    hills_allowance: Money = Money.zero()           #considered for doc
     hills_exemption_limit: Money = Money.zero()  # Varies by employee
     
     # Border/Remote Area Allowance
-    border_allowance: Money = Money.zero()
+    border_allowance: Money = Money.zero()           #considered for doc
     border_exemption_limit: Money = Money.zero()  # Varies by employee
     
     # Transport Employee Allowance
-    transport_employee_allowance: Money = Money.zero()
+    transport_employee_allowance: Money = Money.zero()       #considered for doc
     
     # Children Allowances
-    children_education_allowance: Money = Money.zero()
+    children_education_allowance: Money = Money.zero()       #considered for doc
     children_count: int = 0
     children_education_months: int = 12
-    hostel_allowance: Money = Money.zero()
+
+    hostel_allowance: Money = Money.zero()                   #considered for doc
     hostel_count: int = 0
     hostel_months: int = 12
     
     # Disabled Transport Allowance
-    disabled_transport_allowance: Money = Money.zero()
+    disabled_transport_allowance: Money = Money.zero()       #considered for doc
     transport_months: int = 12
     is_disabled: bool = False
     
     # Underground Mines Allowance
-    underground_mines_allowance: Money = Money.zero()
+    underground_mines_allowance: Money = Money.zero()        #considered for doc
     mine_work_months: int = 0
     
     # Government Employee Entertainment
-    government_entertainment_allowance: Money = Money.zero()
-    is_government_employee: bool = False
-    basic_salary: Money = Money.zero()
+    government_entertainment_allowance: Money = Money.zero()    #considered for doc
     
     # Additional allowances from old project
-    city_compensatory_allowance: Money = Money.zero()
-    rural_allowance: Money = Money.zero()
-    proctorship_allowance: Money = Money.zero()
-    wardenship_allowance: Money = Money.zero()
-    project_allowance: Money = Money.zero()
-    deputation_allowance: Money = Money.zero()
-    overtime_allowance: Money = Money.zero()
-    interim_relief: Money = Money.zero()
-    tiffin_allowance: Money = Money.zero()
-    fixed_medical_allowance: Money = Money.zero()
-    servant_allowance: Money = Money.zero()
-    any_other_allowance: Money = Money.zero()
+    city_compensatory_allowance: Money = Money.zero()           #considered for doc
+    rural_allowance: Money = Money.zero()                       #considered for doc
+    proctorship_allowance: Money = Money.zero()                 #considered for doc
+    wardenship_allowance: Money = Money.zero()                  #considered for doc
+    project_allowance: Money = Money.zero()                     #considered for doc
+    deputation_allowance: Money = Money.zero()                  #considered for doc
+    overtime_allowance: Money = Money.zero()                    #considered for doc
+    interim_relief: Money = Money.zero()                        #considered for doc
+    tiffin_allowance: Money = Money.zero()                      #considered for doc
+    fixed_medical_allowance: Money = Money.zero()               #considered for doc
+    servant_allowance: Money = Money.zero()                     #considered for doc
+
+
+    any_other_allowance: Money = Money.zero()                   #considered for doc
     any_other_allowance_exemption: Money = Money.zero()
     
     # Section 10 exempted allowances
-    govt_employees_outside_india_allowance: Money = Money.zero()
-    supreme_high_court_judges_allowance: Money = Money.zero()
-    judge_compensatory_allowance: Money = Money.zero()
-    section_10_14_special_allowances: Money = Money.zero()
-    travel_on_tour_allowance: Money = Money.zero()
-    tour_daily_charge_allowance: Money = Money.zero()
-    conveyance_in_performace_of_duties: Money = Money.zero()
-    helper_in_performace_of_duties: Money = Money.zero()
-    academic_research: Money = Money.zero()
-    uniform_allowance: Money = Money.zero()
+    govt_employees_outside_india_allowance: Money = Money.zero()  #considered for doc
+    supreme_high_court_judges_allowance: Money = Money.zero()     #considered for doc
+    judge_compensatory_allowance: Money = Money.zero()            #considered for doc
+    section_10_14_special_allowances: Money = Money.zero()        #considered for doc
+    travel_on_tour_allowance: Money = Money.zero()                #considered for doc
+    tour_daily_charge_allowance: Money = Money.zero()             #considered for doc
+    conveyance_in_performace_of_duties: Money = Money.zero()       #considered for doc
+    helper_in_performace_of_duties: Money = Money.zero()           #considered for doc
+    academic_research: Money = Money.zero()                        #considered for doc
+    uniform_allowance: Money = Money.zero()                        #considered for doc
     
 
     #########################################################
@@ -147,36 +148,43 @@ class SpecificAllowances:
         exemption_limit = Money.from_int(800 * self.mine_work_months)
         return self.underground_mines_allowance.min(exemption_limit)
     
-    def calculate_government_entertainment_exemption(self, regime: TaxRegime) -> Money:
+    def calculate_government_entertainment_exemption(self, regime: TaxRegime, basic_salary: Money, is_government_employee: bool) -> Money:
         """Calculate government entertainment allowance exemption."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
         
-        if not self.is_government_employee:
+        if not is_government_employee:
             return Money.zero()
         
         # Minimum of (Allowance, 20% of Basic, Rs. 5,000)
-        limit_1 = self.basic_salary.percentage(20)
+        #TODO: Need to check if basic salary is only basic salary or basic salary + dearness allowance
+        limit_1 = basic_salary.percentage(20)
         limit_2 = Money.from_int(5000)
         
         return self.government_entertainment_allowance.min(limit_1).min(limit_2)
     
-    def calculate_section_10_exemptions(self, regime: TaxRegime) -> Money:
+    def calculate_section_10_exemptions(self, regime: TaxRegime, is_government_employee: bool) -> Money:
         """Calculate Section 10 exempted allowances."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
         
+        exemptions = Money.zero()
+
+        if is_government_employee:
+            exemptions = exemptions.add(self.govt_employees_outside_india_allowance)
+            exemptions = exemptions.add(self.supreme_high_court_judges_allowance)
+            exemptions = exemptions.add(self.judge_compensatory_allowance)
+            exemptions = exemptions.add(self.section_10_14_special_allowances)
+
+        exemptions = exemptions.add(self.travel_on_tour_allowance)
+        exemptions = exemptions.add(self.tour_daily_charge_allowance)
+        exemptions = exemptions.add(self.conveyance_in_performace_of_duties)
+        exemptions = exemptions.add(self.helper_in_performace_of_duties)
+        exemptions = exemptions.add(self.academic_research)
+        exemptions = exemptions.add(self.uniform_allowance)
+        
         # Section 10 allowances are fully exempt
-        return (self.govt_employees_outside_india_allowance
-                .add(self.supreme_high_court_judges_allowance)
-                .add(self.judge_compensatory_allowance)
-                .add(self.section_10_14_special_allowances)
-                .add(self.travel_on_tour_allowance)
-                .add(self.tour_daily_charge_allowance)
-                .add(self.conveyance_in_performace_of_duties)
-                .add(self.helper_in_performace_of_duties)
-                .add(self.academic_research)
-                .add(self.uniform_allowance))
+        return exemptions
     
     def calculate_any_other_allowance_exemption(self, regime: TaxRegime) -> Money:
         """Calculate any other allowance exemption."""
@@ -222,7 +230,7 @@ class SpecificAllowances:
                 .add(self.academic_research)
                 .add(self.uniform_allowance))
     
-    def calculate_total_specific_allowances_exemptions(self, regime: TaxRegime) -> Money:
+    def calculate_total_specific_allowances_exemptions(self, regime: TaxRegime, basic_salary: Money, is_government_employee: bool) -> Money:
         """Calculate total exemptions for specific allowances."""
         total = Money.zero()
         total = total.add(self.calculate_hills_exemption(regime))
@@ -232,8 +240,8 @@ class SpecificAllowances:
         total = total.add(self.calculate_hostel_exemption(regime))
         total = total.add(self.calculate_disabled_transport_exemption(regime))
         total = total.add(self.calculate_underground_mines_exemption(regime))
-        total = total.add(self.calculate_government_entertainment_exemption(regime))
-        total = total.add(self.calculate_section_10_exemptions(regime))
+        total = total.add(self.calculate_government_entertainment_exemption(regime, basic_salary, is_government_employee))
+        total = total.add(self.calculate_section_10_exemptions(regime, is_government_employee))
         total = total.add(self.calculate_any_other_allowance_exemption(regime))
         return total
 
@@ -252,20 +260,13 @@ class SalaryIncome:
     hra_city_type: str  # "metro" or "non_metro"
     actual_rent_paid: Money
     special_allowance: Money
-    other_allowances: Money
     
     # Optional components with defaults
+    is_government_employee: bool = False
     bonus: Money = Money.zero()
     commission: Money = Money.zero()
-    medical_allowance: Money = Money.zero()
-    conveyance_allowance: Money = Money.zero()
-    
-    # Additional allowances (for backward compatibility)
-    overtime_allowance: Money = Money.zero()
     arrears: Money = Money.zero()
-    gratuity: Money = Money.zero()
-    leave_encashment: Money = Money.zero()
-    
+
     # Specific allowances with exemption rules
     specific_allowances: SpecificAllowances = None
     
@@ -275,7 +276,8 @@ class SalaryIncome:
             raise ValueError("HRA city type must be 'metro' or 'non_metro'")
         
         if self.specific_allowances is None:
-            self.specific_allowances = SpecificAllowances(basic_salary=self.basic_salary)
+            self.specific_allowances = SpecificAllowances()
+
     
     def calculate_hra_exemption(self, regime: TaxRegime) -> Money:
         """
@@ -314,39 +316,6 @@ class SalaryIncome:
         
         return min_amount
     
-    def calculate_medical_allowance_exemption(self, regime: TaxRegime) -> Money:
-        """
-        Calculate medical allowance exemption.
-        
-        Args:
-            regime: Tax regime
-            
-        Returns:
-            Money: Medical allowance exemption
-        """
-        if regime.regime_type == TaxRegimeType.NEW:
-            return Money.zero()
-        
-        # Medical allowance up to ₹15,000 is exempt
-        max_exempt = Money.from_int(15000)
-        return self.medical_allowance.min(max_exempt)
-    
-    def calculate_conveyance_exemption(self, regime: TaxRegime) -> Money:
-        """
-        Calculate conveyance allowance exemption.
-        
-        Args:
-            regime: Tax regime
-            
-        Returns:
-            Money: Conveyance allowance exemption
-        """
-        if regime.regime_type == TaxRegimeType.NEW:
-            return Money.zero()
-        #TODO: Need to calculate Monthly Conveyance Allowance
-        # Conveyance allowance up to ₹1,600 per month (₹19,200 per year) is exempt
-        max_exempt = Money.from_int(19200)
-        return self.conveyance_allowance.min(max_exempt)
     
     def calculate_gross_salary(self) -> Money:
         """
@@ -355,19 +324,13 @@ class SalaryIncome:
         Returns:
             Money: Total gross salary
         """
-        gross = (self.basic_salary
-                .add(self.dearness_allowance)
-                .add(self.bonus)
-                .add(self.commission)
-                .add(self.hra_received)
-                .add(self.special_allowance)
-                .add(self.other_allowances)
-                .add(self.medical_allowance)
-                .add(self.conveyance_allowance)
-                .add(self.overtime_allowance)
-                .add(self.arrears)
-                .add(self.gratuity)
-                .add(self.leave_encashment))
+        gross = (self.basic_salary                  #considered for doc 
+                .add(self.dearness_allowance)       #considered for doc
+                .add(self.bonus)                    #considered for doc
+                .add(self.commission)               #considered for doc
+                .add(self.hra_received)             #considered for doc
+                .add(self.special_allowance)        
+                .add(self.arrears))
         
         # Add specific allowances if available
         if self.specific_allowances:
@@ -389,13 +352,12 @@ class SalaryIncome:
         
         # Standard exemptions
         total_exemptions = total_exemptions.add(self.calculate_hra_exemption(regime))
-        total_exemptions = total_exemptions.add(self.calculate_medical_allowance_exemption(regime))
-        total_exemptions = total_exemptions.add(self.calculate_conveyance_exemption(regime))
         
         # Specific allowances exemptions
         if self.specific_allowances:
-            total_exemptions = total_exemptions.add(self.specific_allowances.calculate_total_specific_allowances_exemptions(regime))
+            total_exemptions = total_exemptions.add(self.specific_allowances.calculate_total_specific_allowances_exemptions(regime, self.basic_salary, self.is_government_employee))
         
+
         return total_exemptions
     
     def calculate_taxable_salary(self, regime: TaxRegime) -> Money:
@@ -440,21 +402,13 @@ class SalaryIncome:
                 "commission": self.commission.to_float(),
                 "hra_received": self.hra_received.to_float(),
                 "special_allowance": self.special_allowance.to_float(),
-                "other_allowances": self.other_allowances.to_float(),
-                "medical_allowance": self.medical_allowance.to_float(),
-                "conveyance_allowance": self.conveyance_allowance.to_float(),
-                "overtime_allowance": self.overtime_allowance.to_float(),
                 "arrears": self.arrears.to_float(),
-                "gratuity": self.gratuity.to_float(),
-                "leave_encashment": self.leave_encashment.to_float(),
                 "specific_allowances": self.specific_allowances.calculate_total_specific_allowances().to_float() if self.specific_allowances else 0.0
             },
             "gross_salary_total": self.calculate_gross_salary().to_float(),
             "exemptions": {
                 "hra_exemption": self.calculate_hra_exemption(regime).to_float(),
-                "medical_exemption": self.calculate_medical_allowance_exemption(regime).to_float(),
-                "conveyance_exemption": self.calculate_conveyance_exemption(regime).to_float(),
-                "specific_allowances_exemption": self.specific_allowances.calculate_total_specific_allowances_exemptions(regime).to_float() if self.specific_allowances else 0.0,
+                "specific_allowances_exemption": self.specific_allowances.calculate_total_specific_allowances_exemptions(regime, self.basic_salary, self.is_government_employee).to_float() if self.specific_allowances else 0.0,
                 "standard_deduction": regime.get_standard_deduction().to_float()
             },
             "total_exemptions": self.calculate_total_exemptions(regime).add(regime.get_standard_deduction()).to_float(),

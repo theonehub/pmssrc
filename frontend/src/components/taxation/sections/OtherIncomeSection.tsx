@@ -109,6 +109,17 @@ const OtherIncomeSection: React.FC<OtherIncomeSectionProps> = ({
             onFocus={(e) => handleTextFieldFocus('other_sources', 'interest_savings', e)}
           />
           
+          {/* Post Office Interest */}
+          <TextField
+            fullWidth
+            label="Post Office Interest"
+            type="text"
+            value={formatIndianNumber(0)}
+            onChange={(e) => handleTextFieldChange('other_sources', 'post_office_interest', e)}
+            InputProps={{ startAdornment: '₹' }}
+            onFocus={(e) => handleTextFieldFocus('other_sources', 'post_office_interest', e)}
+          />
+          
           {/* Dividend Income - placeholder since not in TaxationData */}
           <TextField
             fullWidth
@@ -244,61 +255,72 @@ const OtherIncomeSection: React.FC<OtherIncomeSectionProps> = ({
             width: '100%'
           }}
         >
-          {/* Property Address */}
+          {/* Property Address - Multi-line text box */}
           <TextField
             fullWidth
             label="Property Address"
-            type="text"
-            value={''}
-            onChange={(e) => handleTextFieldChange('house_property', 'property_address', e)}
-            onFocus={(e) => handleTextFieldFocus('house_property', 'property_address', e)}
+            multiline
+            rows={3}
+            value={taxationData.other_income?.house_property_income?.address || ''}
+            onChange={(e) => handleTextFieldChange('other_income.house_property_income', 'address', e)}
+            onFocus={(e) => handleTextFieldFocus('other_income.house_property_income', 'address', e)}
           />
           
-          {/* Occupancy Status */}
+          {/* Property Type */}
           <FormControl fullWidth>
-            <InputLabel>Occupancy Status</InputLabel>
+            <InputLabel>Property Type</InputLabel>
             <Select
-              value={'Self-Occupied'}
-              label="Occupancy Status"
-              onChange={(e) => handleSelectChange('house_property', 'occupancy_status', e)}
+              value={taxationData.other_income?.house_property_income?.property_type || 'Self-Occupied'}
+              label="Property Type"
+              onChange={(e) => handleSelectChange('other_income.house_property_income', 'property_type', e)}
             >
               <MenuItem value="Self-Occupied">Self-Occupied</MenuItem>
-              <MenuItem value="Let Out">Let Out</MenuItem>
-              <MenuItem value="Deemed Let Out">Deemed Let Out</MenuItem>
+              <MenuItem value="Let-Out">Let-Out</MenuItem>
             </Select>
           </FormControl>
           
-          {/* Rent Income */}
+          {/* Annual Rent Received */}
           <TextField
             fullWidth
-            label="Rent Income"
+            label="Annual Rent Received"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('house_property', 'rent_income', e)}
+            value={formatIndianNumber(taxationData.other_income?.house_property_income?.annual_rent_received || 0)}
+            onChange={(e) => handleTextFieldChange('other_income.house_property_income', 'annual_rent_received', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('house_property', 'rent_income', e)}
+            onFocus={(e) => handleTextFieldFocus('other_income.house_property_income', 'annual_rent_received', e)}
           />
           
-          {/* Property Tax */}
+          {/* Municipal Taxes Paid - CORRECTED field mapping */}
           <TextField
             fullWidth
-            label="Property Tax"
+            label="Municipal Taxes Paid"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('house_property', 'property_tax', e)}
+            value={formatIndianNumber(taxationData.other_income?.house_property_income?.municipal_taxes_paid || 0)}
+            onChange={(e) => handleTextFieldChange('other_income.house_property_income', 'municipal_taxes_paid', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('house_property', 'property_tax', e)}
+            onFocus={(e) => handleTextFieldFocus('other_income.house_property_income', 'municipal_taxes_paid', e)}
           />
           
-          {/* Interest on Home Loan */}
+          {/* Home Loan Interest - CORRECTED field mapping */}
           <TextField
             fullWidth
-            label="Interest on Home Loan"
+            label="Home Loan Interest"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('house_property', 'interest_on_home_loan', e)}
+            value={formatIndianNumber(taxationData.other_income?.house_property_income?.home_loan_interest || 0)}
+            onChange={(e) => handleTextFieldChange('other_income.house_property_income', 'home_loan_interest', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('house_property', 'interest_on_home_loan', e)}
+            onFocus={(e) => handleTextFieldFocus('other_income.house_property_income', 'home_loan_interest', e)}
+          />
+          
+          {/* Pre-construction Interest - ADDED missing field */}
+          <TextField
+            fullWidth
+            label="Pre-construction Interest"
+            type="text"
+            value={formatIndianNumber(taxationData.other_income?.house_property_income?.pre_construction_interest || 0)}
+            onChange={(e) => handleTextFieldChange('other_income.house_property_income', 'pre_construction_interest', e)}
+            InputProps={{ startAdornment: '₹' }}
+            onFocus={(e) => handleTextFieldFocus('other_income.house_property_income', 'pre_construction_interest', e)}
           />
         </Box>
       </Paper>

@@ -847,10 +847,7 @@ def _convert_mid_year_joiner_to_comprehensive(
         actual_rent_paid=request.salary_details.actual_rent_paid,
         bonus=request.salary_details.bonus,
         commission=request.salary_details.commission,
-        special_allowance=request.salary_details.special_allowance,
-        other_allowances=request.salary_details.other_allowances,
-        medical_allowance=request.salary_details.medical_allowance,
-        conveyance_allowance=request.salary_details.conveyance_allowance
+        special_allowance=request.salary_details.special_allowance
     )
     
     deductions_dto = TaxDeductionsDTO(
@@ -887,11 +884,8 @@ def _convert_mid_year_increment_to_comprehensive(
         hra_city_type=request.post_increment_salary.hra_city_type,
         actual_rent_paid=request.post_increment_salary.actual_rent_paid,
         special_allowance=request.post_increment_salary.special_allowance,
-        other_allowances=request.post_increment_salary.other_allowances,
         bonus=request.post_increment_salary.bonus,
-        commission=request.post_increment_salary.commission,
-        medical_allowance=request.post_increment_salary.medical_allowance,
-        conveyance_allowance=request.post_increment_salary.conveyance_allowance
+        commission=request.post_increment_salary.commission
     )
     
     deductions_dto = TaxDeductionsDTO(

@@ -76,11 +76,10 @@ class MonthlySalary:
     da: Money  # Dearness Allowance
     hra: Money  # House Rent Allowance
     special_allowance: Money
-    transport_allowance: Money
-    medical_allowance: Money
+    overtime: Money
+    arrears: Money
     bonus: Money
     commission: Money
-    other_allowances: Money
     
     # Deductions
     epf_employee: Money  # Employee Provident Fund
@@ -175,11 +174,10 @@ class MonthlySalary:
             da=Money.zero(),
             hra=Money.zero(),
             special_allowance=Money.zero(),
-            transport_allowance=Money.zero(),
-            medical_allowance=Money.zero(),
+            overtime=Money.zero(),
+            arrears=Money.zero(),
             bonus=Money.zero(),
             commission=Money.zero(),
-            other_allowances=Money.zero(),
             
             # Initialize all deductions to zero
             epf_employee=Money.zero(),
@@ -271,11 +269,10 @@ class MonthlySalary:
             da=Money(Decimal(str(monthly_projection.da))),
             hra=Money(Decimal(str(monthly_projection.hra))),
             special_allowance=Money(Decimal(str(monthly_projection.special_allowance))),
-            transport_allowance=Money(Decimal(str(monthly_projection.transport_allowance))),
-            medical_allowance=Money(Decimal(str(monthly_projection.medical_allowance))),
+            overtime=Money(Decimal(str(monthly_projection.overtime))),
+            arrears=Money(Decimal(str(monthly_projection.arrears))),
             bonus=Money(Decimal(str(monthly_projection.bonus))),
             commission=Money(Decimal(str(monthly_projection.commission))),
-            other_allowances=Money(Decimal(str(monthly_projection.other_allowances))),
             
             # Deductions from projection
             epf_employee=Money(Decimal(str(monthly_projection.epf_employee))),
@@ -334,11 +331,10 @@ class MonthlySalary:
         da: Optional[Money] = None,
         hra: Optional[Money] = None,
         special_allowance: Optional[Money] = None,
-        transport_allowance: Optional[Money] = None,
-        medical_allowance: Optional[Money] = None,
+        overtime: Optional[Money] = None,
+        arrears: Optional[Money] = None,
         bonus: Optional[Money] = None,
         commission: Optional[Money] = None,
-        other_allowances: Optional[Money] = None,
         updated_by: Optional[str] = None
     ) -> None:
         """Update salary components and recalculate totals."""
@@ -351,16 +347,14 @@ class MonthlySalary:
             self.hra = hra
         if special_allowance is not None:
             self.special_allowance = special_allowance
-        if transport_allowance is not None:
-            self.transport_allowance = transport_allowance
-        if medical_allowance is not None:
-            self.medical_allowance = medical_allowance
+        if overtime is not None:
+            self.overtime = overtime
+        if arrears is not None:
+            self.arrears = arrears
         if bonus is not None:
             self.bonus = bonus
         if commission is not None:
             self.commission = commission
-        if other_allowances is not None:
-            self.other_allowances = other_allowances
         
         # Recalculate gross salary
         self._recalculate_totals()
@@ -540,11 +534,10 @@ class MonthlySalary:
             .add(self.da)
             .add(self.hra)
             .add(self.special_allowance)
-            .add(self.transport_allowance)
-            .add(self.medical_allowance)
+            .add(self.overtime)
+            .add(self.arrears)
             .add(self.bonus)
             .add(self.commission)
-            .add(self.other_allowances)
         )
         
         # Calculate total deductions
@@ -615,11 +608,10 @@ class MonthlySalary:
                 "da": self.da.to_float(),
                 "hra": self.hra.to_float(),
                 "special_allowance": self.special_allowance.to_float(),
-                "transport_allowance": self.transport_allowance.to_float(),
-                "medical_allowance": self.medical_allowance.to_float(),
+                "overtime": self.overtime.to_float(),
+                "arrears": self.arrears.to_float(),
                 "bonus": self.bonus.to_float(),
                 "commission": self.commission.to_float(),
-                "other_allowances": self.other_allowances.to_float(),
                 "gross_salary": self.gross_salary.to_float()
             },
             

@@ -4,9 +4,11 @@ Domain entity for handling income from other sources
 """
 
 from dataclasses import dataclass
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from app.domain.value_objects.money import Money
 from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
+from app.domain.entities.taxation.house_property_income import HousePropertyIncome
+from app.domain.entities.taxation.capital_gains import CapitalGainsIncome
 
 
 @dataclass
@@ -16,22 +18,21 @@ class InterestIncome:
     savings_account_interest: Money = Money.zero()
     fixed_deposit_interest: Money = Money.zero()
     recurring_deposit_interest: Money = Money.zero()
-    other_bank_interest: Money = Money.zero()
-    age: int = 25
+    post_office_interest: Money = Money.zero()
     
     def calculate_total_interest(self) -> Money:
         """Calculate total interest income."""
         return (self.savings_account_interest
                 .add(self.fixed_deposit_interest)
                 .add(self.recurring_deposit_interest)
-                .add(self.other_bank_interest))
+                .add(self.post_office_interest))
     
-    def calculate_exemption_80tta_80ttb(self, regime: TaxRegime) -> Money:
+    def calculate_exemption_80tta_80ttb(self, regime: TaxRegime, age: int) -> Money:
         """Calculate interest exemption under 80TTA/80TTB."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
         
-        if self.age >= 60:
+        if age >= 60:
             # Section 80TTB - All bank interest up to Rs. 50,000
             total_interest = self.calculate_total_interest()
             max_limit = Money.from_int(50000)
@@ -39,28 +40,28 @@ class InterestIncome:
         else:
             # Section 80TTA - Only savings interest up to Rs. 10,000
             max_limit = Money.from_int(10000)
-            return self.savings_account_interest.min(max_limit)
+            return self.savings_account_interest.add(self.post_office_interest).min(max_limit)
     
-    def calculate_taxable_interest(self, regime: TaxRegime) -> Money:
+    def calculate_taxable_interest(self, regime: TaxRegime, age: int) -> Money:
         """Calculate taxable interest income."""
         total_interest = self.calculate_total_interest()
-        exemption = self.calculate_exemption_80tta_80ttb(regime)
+        exemption = self.calculate_exemption_80tta_80ttb(regime, age)
         return total_interest.subtract(exemption).max(Money.zero())
     
-    def get_interest_breakdown(self, regime: TaxRegime) -> Dict[str, Any]:
+    def get_interest_breakdown(self, regime: TaxRegime, age: int) -> Dict[str, Any]:
         """Get detailed breakdown of interest income."""
-        exemption = self.calculate_exemption_80tta_80ttb(regime)
+        exemption = self.calculate_exemption_80tta_80ttb(regime, age)
         
         return {
             "savings_interest": self.savings_account_interest.to_float(),
             "fd_interest": self.fixed_deposit_interest.to_float(),
             "rd_interest": self.recurring_deposit_interest.to_float(),
-            "other_bank_interest": self.other_bank_interest.to_float(),
+            "post_office_interest": self.post_office_interest.to_float(),
             "total_interest": self.calculate_total_interest().to_float(),
-            "applicable_section": "80TTB" if self.age >= 60 else "80TTA",
-            "exemption_limit": 50000 if self.age >= 60 else 10000,
+            "applicable_section": "80TTB" if age >= 60 else "80TTA",
+            "exemption_limit": 50000 if age >= 60 else 10000,
             "exemption_claimed": exemption.to_float(),
-            "taxable_interest": self.calculate_taxable_interest(regime).to_float()
+            "taxable_interest": self.calculate_taxable_interest(regime, age).to_float()
         }
 
 
@@ -68,69 +69,138 @@ class InterestIncome:
 class OtherIncome:
     """Complete other income entity."""
     
+    business_professional_income: Money = Money.zero()
+    house_property_income: HousePropertyIncome = None
     # Interest income
     interest_income: InterestIncome = None
-    
+
     # Other income sources (fully taxable)
     dividend_income: Money = Money.zero()
     gifts_received: Money = Money.zero()
-    business_professional_income: Money = Money.zero()
     other_miscellaneous_income: Money = Money.zero()
+    capital_gains_income: Optional[CapitalGainsIncome] = None
     
     def __post_init__(self):
         """Initialize interest income if not provided."""
         if self.interest_income is None:
             self.interest_income = InterestIncome()
+
+    def calculate_taxable_gifts_received(self, regime: TaxRegime) -> Money:
+        """Calculate taxable gifts received."""
+        if regime.regime_type == TaxRegimeType.NEW:
+            return self.gifts_received
+
+        if self.gifts_received > Money.from_int(50000):
+            return self.gifts_received.subtract(Money.from_int(50000))
+        return Money.zero()
     
-    def calculate_total_other_income(self, regime: TaxRegime) -> Money:
+    def calculate_total_other_income_slab_rates(self, regime: TaxRegime, age: int = 25) -> Money:
         """
         Calculate total income from other sources.
         
         Args:
             regime: Tax regime
+            age: Taxpayer age for interest exemptions
             
         Returns:
             Money: Total other income
         """
         total = Money.zero()
+
+        # Add business professional income
+        total = total.add(self.business_professional_income)
+
+        # Add house property income (if any)
+        if self.house_property_income:
+            total = total.add(
+                self.house_property_income.calculate_net_income_from_house_property(regime)
+            )
         
         # Add taxable interest income (after exemptions)
-        total = total.add(self.interest_income.calculate_taxable_interest(regime))
+        total = total.add(self.interest_income.calculate_taxable_interest(regime, age))
+        
+        # Add capital gains income that goes to slab rates (if any)
+        if self.capital_gains_income:
+            total = total.add(self.capital_gains_income.calculate_stcg_for_slab_rates())
         
         # Add other income sources (fully taxable)
         total = total.add(self.dividend_income)
-        total = total.add(self.gifts_received)
-        total = total.add(self.business_professional_income)
+        total = total.add(self.calculate_taxable_gifts_received(regime))
         total = total.add(self.other_miscellaneous_income)
         
         return total
     
-    def get_other_income_breakdown(self, regime: TaxRegime) -> Dict[str, Any]:
+    def calculate_interest_exemptions(self, regime: TaxRegime, age: int = 25) -> Money:
         """
-        Get detailed breakdown of other income.
+        Calculate total exemptions from interest income.
+        
+        Args:
+            regime: Tax regime
+            age: Taxpayer age
+            
+        Returns:
+            Money: Total interest exemptions
+        """
+        return self.interest_income.calculate_exemption_80tta_80ttb(regime, age)
+    
+    def calculate_capital_gains_tax_amount(self, regime: TaxRegime) -> Money:
+        """
+        Calculate total exemptions from capital gains.
         
         Args:
             regime: Tax regime
             
         Returns:
+            Money: Total capital gains exemptions (separate tax)
+        """
+        if self.capital_gains_income:
+            return self.capital_gains_income.calculate_total_capital_gains_tax()
+        return Money.zero()
+    
+    def get_other_income_breakdown(self, regime: TaxRegime, age: int = 25) -> Dict[str, Any]:
+        """
+        Get detailed breakdown of other income.
+        
+        Args:
+            regime: Tax regime
+            age: Taxpayer age
+            
+        Returns:
             Dict: Complete other income breakdown
         """
-        return {
+        breakdown = {
             "regime": regime.regime_type.value,
-            "interest_income": self.interest_income.get_interest_breakdown(regime),
+            "interest_income": self.interest_income.get_interest_breakdown(regime, age),
             "other_income_sources": {
                 "dividend_income": self.dividend_income.to_float(),
                 "gifts_received": self.gifts_received.to_float(),
                 "business_professional_income": self.business_professional_income.to_float(),
                 "other_miscellaneous_income": self.other_miscellaneous_income.to_float(),
                 "total_other_sources": (self.dividend_income
-                                      .add(self.gifts_received)
+                                      .add(self.calculate_taxable_gifts_received(regime))
                                       .add(self.business_professional_income)
                                       .add(self.other_miscellaneous_income)).to_float()
             },
-            "total_other_income": self.calculate_total_other_income(regime).to_float()
+            "total_other_income": self.calculate_total_other_income_slab_rates(regime, age).to_float()
         }
-    
+        
+        # Add house property breakdown if present
+        if self.house_property_income:
+            breakdown["house_property_income"] = {
+                "net_income": self.house_property_income.calculate_net_income_from_house_property(regime).to_float(),
+                "breakdown": self.house_property_income.get_house_property_breakdown(regime)
+            }
+        
+        # Add capital gains breakdown if present
+        if self.capital_gains_income:
+            breakdown["capital_gains_income"] = {
+                "slab_rate_income": self.capital_gains_income.calculate_stcg_for_slab_rates().to_float(),
+                "separate_tax": self.capital_gains_income.calculate_total_capital_gains_tax().to_float(),
+                "breakdown": self.capital_gains_income.get_capital_gains_breakdown(regime)
+            }
+        
+        return breakdown
+
     # Backward compatibility properties for legacy code
     @property
     def bank_interest(self) -> Money:
@@ -148,14 +218,14 @@ class OtherIncome:
         return self.interest_income.recurring_deposit_interest if self.interest_income else Money.zero()
     
     @property
-    def post_office_interest(self) -> Money:
-        """Backward compatibility: Get post office interest (mapped to other bank interest)."""
-        return self.interest_income.other_bank_interest if self.interest_income else Money.zero()
+    def other_bank_interest(self) -> Money:
+        """Backward compatibility: Get other bank interest (mapped to post office interest)."""
+        return self.interest_income.post_office_interest if self.interest_income else Money.zero()
     
     @property
     def other_interest(self) -> Money:
-        """Backward compatibility: Get other interest (mapped to other bank interest)."""
-        return self.interest_income.other_bank_interest if self.interest_income else Money.zero()
+        """Backward compatibility: Get other interest (mapped to post office interest)."""
+        return self.interest_income.post_office_interest if self.interest_income else Money.zero()
     
     @property
     def equity_dividend(self) -> Money:
@@ -174,7 +244,9 @@ class OtherIncome:
     
     @property
     def house_property_rent(self) -> Money:
-        """Backward compatibility: Get house property rent (default to zero)."""
+        """Backward compatibility: Get house property rent."""
+        if self.house_property_income:
+            return self.house_property_income.annual_rent_received
         return Money.zero()
     
     @property

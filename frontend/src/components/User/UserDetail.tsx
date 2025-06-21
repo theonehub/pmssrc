@@ -154,7 +154,7 @@ const UserDetail: React.FC = () => {
     
     try {
       // Create a full URL for the file
-      const fileUrl = `http://localhost:8000/files/${filePath}`;
+      const fileUrl = `http://localhost:8010/files/${filePath}`;
       
       // Open file in a new tab
       window.open(fileUrl, '_blank', 'noopener,noreferrer');

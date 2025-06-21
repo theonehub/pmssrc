@@ -40,7 +40,7 @@ interface ImportResponse {
   msg?: string;
 }
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'http://localhost:8010';
 
 const LWPManagement: React.FC = () => {
   // State management with proper typing

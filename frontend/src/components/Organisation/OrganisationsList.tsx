@@ -42,7 +42,7 @@ import {
 import type { Organisation } from '../../models/organisation';
 import { useOrganisationsQuery } from '../../shared/hooks/useOrganisations';
 
-const API_BASE_URL = 'http://localhost:8000/api/v2';
+const API_BASE_URL = 'http://localhost:8010/api/v2';
 
 // Define interfaces
 // interface OrganisationsResponse {

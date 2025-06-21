@@ -638,9 +638,7 @@ class MongoDBTaxationRepository(TaxationRepository):
             "annual_rent_received": house_property.annual_rent_received.to_float(),
             "municipal_taxes_paid": house_property.municipal_taxes_paid.to_float(),
             "home_loan_interest": house_property.home_loan_interest.to_float(),
-            "pre_construction_interest": house_property.pre_construction_interest.to_float(),
-            "fair_rental_value": house_property.fair_rental_value.to_float(),
-            "standard_rent": house_property.standard_rent.to_float()
+            "pre_construction_interest": house_property.pre_construction_interest.to_float()
         }
     
     def _serialize_capital_gains_income(self, capital_gains: Optional[CapitalGainsIncome]) -> Optional[dict]:
@@ -893,9 +891,7 @@ class MongoDBTaxationRepository(TaxationRepository):
             annual_rent_received=Money(house_property_data.get("annual_rent_received", 0)),
             municipal_taxes_paid=Money(house_property_data.get("municipal_taxes_paid", 0)),
             home_loan_interest=Money(house_property_data.get("home_loan_interest", 0)),
-            pre_construction_interest=Money(house_property_data.get("pre_construction_interest", 0)),
-            fair_rental_value=Money(house_property_data.get("fair_rental_value", 0)),
-            standard_rent=Money(house_property_data.get("standard_rent", 0))
+            pre_construction_interest=Money(house_property_data.get("pre_construction_interest", 0))
         )
     
     def _deserialize_capital_gains_income(self, capital_gains_data: Optional[dict]) -> Optional[CapitalGainsIncome]:

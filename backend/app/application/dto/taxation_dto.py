@@ -1110,7 +1110,7 @@ class PerquisitesDTO(BaseModel):
 
 class HousePropertyIncomeDTO(BaseModel):
     """House property income DTO."""
-    property_type: str = Field(..., description="Self-Occupied, Let-Out")
+    property_type: str = Field(..., description="Self-Occupied, Let-Out, Deemed Let-Out")
     address: str = Field(default="", description="Property address")
     annual_rent_received: Decimal = Field(default=0, ge=0)
     municipal_taxes_paid: Decimal = Field(default=0, ge=0)
@@ -1119,7 +1119,7 @@ class HousePropertyIncomeDTO(BaseModel):
     
     @validator('property_type')
     def validate_property_type(cls, v):
-        valid_types = ["Self-Occupied", "Let-Out"]
+        valid_types = ["Self-Occupied", "Let-Out", "Deemed Let-Out"]
         if v not in valid_types:
             raise ValueError(f"Property type must be one of: {valid_types}")
         return v

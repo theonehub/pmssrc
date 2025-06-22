@@ -130,6 +130,19 @@ class OtherIncome:
         
         return total
     
+    def calculate_total_other_income(self, regime: TaxRegime, age: int = 25) -> Money:
+        """
+        Calculate total income from other sources (alias for backward compatibility).
+        
+        Args:
+            regime: Tax regime
+            age: Taxpayer age for interest exemptions
+            
+        Returns:
+            Money: Total other income
+        """
+        return self.calculate_total_other_income_slab_rates(regime, age)
+    
     def calculate_interest_exemptions(self, regime: TaxRegime, age: int = 25) -> Money:
         """
         Calculate total exemptions from interest income.

@@ -652,7 +652,7 @@ class GetComprehensiveTaxationRecordUseCase:
         
         # Convert capital gains income
         capital_gains_dto = None
-        if other_income.capital_gains_income:
+        if other_income and other_income.capital_gains_income:
             capital_gains = other_income.capital_gains_income
             capital_gains_dto = CapitalGainsIncomeDTO(
                 stcg_111a_equity_stt=capital_gains.stcg_111a_equity_stt.to_float(),

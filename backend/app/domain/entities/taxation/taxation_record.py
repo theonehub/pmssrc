@@ -388,11 +388,16 @@ class TaxationRecord:
         if self.other_income:
             old_income = self.other_income.calculate_total_other_income(self.regime, self.age)
         
-        self.other_income = new_other_income
+        # Always ensure self.other_income is not None
+        if new_other_income is None:
+            from app.domain.entities.taxation.other_income import OtherIncome
+            self.other_income = OtherIncome()
+        else:
+            self.other_income = new_other_income
         
         new_income = Money.zero()
-        if new_other_income:
-            new_income = new_other_income.calculate_total_other_income(self.regime, self.age)
+        if self.other_income:
+            new_income = self.other_income.calculate_total_other_income(self.regime, self.age)
         
         # Invalidate calculation
         self._invalidate_calculation()

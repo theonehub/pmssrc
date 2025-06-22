@@ -14,6 +14,7 @@ class PropertyType(Enum):
     """Types of house property."""
     SELF_OCCUPIED = "Self-Occupied"
     LET_OUT = "Let-Out"
+    DEEMED_LET_OUT = "Deemed Let-Out"
 
 
 @dataclass
@@ -38,6 +39,11 @@ class HousePropertyIncome:
             return Money.zero()
         
         elif self.property_type == PropertyType.LET_OUT:
+            return self.annual_rent_received
+        
+        elif self.property_type == PropertyType.DEEMED_LET_OUT:
+            # For deemed let-out, use the higher of municipal value or actual rent
+            # Since we don't have municipal value in this entity, use actual rent
             return self.annual_rent_received
         
         return Money.zero()
@@ -77,7 +83,7 @@ class HousePropertyIncome:
             max_limit = Money.from_int(200000)
             return self.home_loan_interest.min(max_limit)
         else:
-            # No upper limit for let-out property
+            # No upper limit for let-out and deemed let-out properties
             return self.home_loan_interest
     
     def calculate_pre_construction_deduction(self) -> Money:

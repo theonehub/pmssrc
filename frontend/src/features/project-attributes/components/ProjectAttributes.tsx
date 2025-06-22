@@ -41,7 +41,7 @@ interface AttributeForm {
   description: string;
 }
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'http://localhost:8010';
 
 const ProjectAttributes: React.FC = () => {
   const { token, user } = useAuth();

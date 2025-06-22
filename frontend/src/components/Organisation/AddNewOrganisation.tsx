@@ -30,7 +30,7 @@ import axios from 'axios';
 import { getToken } from '../../shared/utils/auth';
 import { useOrganisationsQuery } from '../../shared/hooks/useOrganisations';
 
-const API_BASE_URL = 'http://localhost:8000/api/v2';
+const API_BASE_URL = 'http://localhost:8010/api/v2';
 
 interface ToastState {
   open: boolean;

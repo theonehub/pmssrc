@@ -44,7 +44,8 @@
     "zustand": "^4.4.7"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "PORT=3010 react-scripts start",
+    "start:win": "set PORT=3010 && react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
@@ -54,7 +55,8 @@
     "format:check": "prettier --check src/**/*.{js,jsx,ts,tsx,json,css,md}",
     "type-check": "tsc --noEmit",
     "analyze": "npm run build && npx bundle-analyzer build/static/js/*.js"
-  },
+  }
+  ,
   "eslintConfig": {
     "extends": [
       "react-app",

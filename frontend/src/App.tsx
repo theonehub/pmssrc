@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 import ErrorBoundary from './components/Common/ErrorBoundary';
+import { forceReinitializePlugins } from './utils/pluginInitializer';
 import Login from './components/Auth/Login';
 import Home from './pages/Home';
 import UsersList from './components/User/UsersList';
@@ -38,6 +39,18 @@ import SalaryProcessing from './components/SalaryProcessing/SalaryProcessing';
 
 // Reporting Pages
 import ReportingDashboard from './components/Reporting/ReportingDashboard';
+
+// Plugin Pages
+import PluginDemo from './components/Plugins/PluginDemo';
+import PluginManager from './components/Plugins/PluginManager';
+
+// Salary Components Pages
+import SalaryComponentsList from './components/SalaryComponents/SalaryComponentsList';
+import CreateSalaryComponent from './components/SalaryComponents/CreateSalaryComponent';
+import EditSalaryComponent from './components/SalaryComponents/EditSalaryComponent';
+import FormulaBuilder from './components/SalaryComponents/FormulaBuilder';
+import EmployeeMapping from './components/SalaryComponents/EmployeeMapping';
+import AssignComponents from './components/SalaryComponents/AssignComponents';
 
 const AppContent: React.FC = () => {
   const { isCalculatorOpen, closeCalculator } = useCalculatorStore();
@@ -171,6 +184,42 @@ const AppContent: React.FC = () => {
             path="/reporting"
             element={withLayout(<ReportingDashboard />, 'Reporting & Analytics', ['manager', 'admin', 'superadmin'])}
           />
+
+          {/* Plugin Routes */}
+          <Route
+            path="/plugin-demo"
+            element={withLayout(<PluginDemo />, 'Plugin System Demo', ['admin', 'superadmin'])}
+          />
+          <Route
+            path="/plugin-manager"
+            element={withLayout(<PluginManager />, 'Plugin Manager', ['admin', 'superadmin'])}
+          />
+
+          {/* Salary Components Routes */}
+          <Route
+            path="/salary-components"
+            element={withLayout(<SalaryComponentsList />, 'Salary Components', ['admin', 'superadmin', 'hr'])}
+          />
+          <Route
+            path="/salary-components/create"
+            element={withLayout(<CreateSalaryComponent />, 'Create Salary Component', ['admin', 'superadmin'])}
+          />
+          <Route
+            path="/salary-components/edit/:componentId"
+            element={withLayout(<EditSalaryComponent />, 'Edit Salary Component', ['admin', 'superadmin'])}
+          />
+          <Route
+            path="/salary-components/assign"
+            element={withLayout(<AssignComponents />, 'Assign Components', ['superadmin'])}
+          />
+          <Route
+            path="/salary-components/formula-builder"
+            element={withLayout(<FormulaBuilder />, 'Formula Builder', ['admin', 'superadmin'])}
+          />
+          <Route
+            path="/salary-components/employee-mapping"
+            element={withLayout(<EmployeeMapping />, 'Employee Mapping', ['admin', 'superadmin', 'hr'])}
+          />
         </Routes>
       </Router>
       
@@ -181,6 +230,11 @@ const AppContent: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  useEffect(() => {
+    // Force reinitialize plugins on app startup to ensure updated menu items
+    forceReinitializePlugins();
+  }, []);
+
   return (
     <ErrorBoundary>
       <AppContent />

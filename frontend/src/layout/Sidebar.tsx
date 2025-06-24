@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -34,6 +34,7 @@ import {
 import { getUserRole } from '../shared/utils/auth';
 import { removeToken } from '../shared/utils/auth';
 import { useCalculator } from '../context/CalculatorContext';
+import { usePlugins } from '../hooks/usePlugins';
 import { UserRole } from '../shared/types';
 
 // Type definitions for menu structure
@@ -62,6 +63,7 @@ const Sidebar: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { openCalculator } = useCalculator();
+  const { enabledPlugins, loading: pluginsLoading } = usePlugins();
 
   // State to track which menu categories are expanded
   const [expanded, setExpanded] = useState<ExpandedState>({
@@ -83,8 +85,8 @@ const Sidebar: React.FC = () => {
     }));
   };
 
-  // Menu structure with categories
-  const menuCategories: MenuCategory[] = [
+  // Menu structure with categories - wrapped in useMemo to prevent re-creation on every render
+  const menuCategories: MenuCategory[] = useMemo(() => [
     {
       id: 'home',
       title: 'Home',
@@ -249,7 +251,33 @@ const Sidebar: React.FC = () => {
         },
       ],
     },
-  ];
+  ], []);
+
+  // Combine core menu categories with plugin menu categories
+  const allMenuCategories = useMemo(() => {
+    if (pluginsLoading) return menuCategories;
+    
+    const pluginCategories: MenuCategory[] = [];
+    
+    enabledPlugins.forEach(plugin => {
+      plugin.menuCategories.forEach(category => {
+        pluginCategories.push({
+          id: `plugin-${plugin.id}-${category.id}`,
+          title: category.title,
+          icon: category.icon,
+          items: category.items.map(item => ({
+            title: item.title,
+            icon: item.icon,
+            ...(item.path && { path: item.path }),
+            ...(item.action && { action: item.action }),
+            roles: item.roles,
+          }))
+        });
+      });
+    });
+
+    return [...menuCategories, ...pluginCategories];
+  }, [enabledPlugins, pluginsLoading, menuCategories]);
 
   // Helper function to check if a category has any visible items for the current user
   const hasVisibleItems = (category: MenuCategory): boolean => {
@@ -306,7 +334,7 @@ const Sidebar: React.FC = () => {
           backgroundColor: theme.palette.background.paper,
         }}
       >
-        {menuCategories.map(
+        {allMenuCategories.map(
           category =>
             // Only show categories with items the user has access to
             hasVisibleItems(category) && (

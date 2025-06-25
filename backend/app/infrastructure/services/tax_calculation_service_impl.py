@@ -79,5 +79,5 @@ class TaxCalculationServiceImpl(TaxCalculationService):
             age=record.age,
             is_senior_citizen=record.age >= 60,
             is_super_senior_citizen=record.age >= 80,
-            is_government_employee=False  # Default to False, can be enhanced later
+            is_government_employee=record.is_government_employee
         ) 

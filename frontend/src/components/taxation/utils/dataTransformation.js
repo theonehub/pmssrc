@@ -62,9 +62,7 @@ export const transformComprehensiveRecordToFormData = (comprehensiveRecord, empI
       salary_income: transformNestedObject(comprehensiveRecord.salary_income, {
         basic_salary: 0,
         dearness_allowance: 0,
-        hra_received: 0,
-        actual_rent_paid: 0,
-        hra_city_type: 'non_metro',
+        hra_provided: 0,
         special_allowance: 0,
         conveyance_allowance: 0,
         medical_allowance: 0,
@@ -162,6 +160,10 @@ export const transformComprehensiveRecordToFormData = (comprehensiveRecord, empI
 
       // Transform deductions with proper nested structure
       deductions: {
+        hra_exemption: transformNestedObject(comprehensiveRecord.deductions?.hra_exemption, {
+          actual_rent_paid: 0,
+          hra_city_type: 'non_metro',
+        }),
         section_80c: transformNestedObject(comprehensiveRecord.deductions?.section_80c, {
           life_insurance_premium: 0,
           epf_contribution: 0,

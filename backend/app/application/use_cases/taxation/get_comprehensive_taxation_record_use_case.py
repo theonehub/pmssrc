@@ -335,7 +335,7 @@ class GetComprehensiveTaxationRecordUseCase:
         return SalaryIncomeDTO(
             basic_salary=salary_income.basic_salary.to_float() if hasattr(salary_income.basic_salary, 'to_float') else float(salary_income.basic_salary),
             dearness_allowance=salary_income.dearness_allowance.to_float() if hasattr(salary_income.dearness_allowance, 'to_float') else float(salary_income.dearness_allowance),
-            hra_received=salary_income.hra_received.to_float() if hasattr(salary_income.hra_received, 'to_float') else float(salary_income.hra_received),
+                            hra_provided=salary_income.hra_provided.to_float() if hasattr(salary_income.hra_provided, 'to_float') else float(salary_income.hra_provided),
             hra_city_type=getattr(salary_income, 'hra_city_type', 'non_metro'),
             actual_rent_paid=salary_income.actual_rent_paid.to_float() if hasattr(salary_income, 'actual_rent_paid') and hasattr(salary_income.actual_rent_paid, 'to_float') else 0,
             bonus=salary_income.bonus.to_float() if hasattr(salary_income.bonus, 'to_float') else float(salary_income.bonus),
@@ -400,7 +400,7 @@ class GetComprehensiveTaxationRecordUseCase:
                 period=period_dto,
                 basic_salary=salary_income.basic_salary.to_float() if hasattr(salary_income.basic_salary, 'to_float') else float(salary_income.basic_salary),
                 dearness_allowance=salary_income.dearness_allowance.to_float() if hasattr(salary_income.dearness_allowance, 'to_float') else float(salary_income.dearness_allowance),
-                hra_received=salary_income.hra_received.to_float() if hasattr(salary_income.hra_received, 'to_float') else float(salary_income.hra_received),
+                hra_provided=salary_income.hra_provided.to_float() if hasattr(salary_income.hra_provided, 'to_float') else float(salary_income.hra_provided),
                 hra_city_type=getattr(salary_income, 'hra_city_type', 'non_metro'),
                 actual_rent_paid=salary_income.actual_rent_paid.to_float() if hasattr(salary_income, 'actual_rent_paid') and hasattr(salary_income.actual_rent_paid, 'to_float') else 0,
                 special_allowance=salary_income.special_allowance.to_float() if hasattr(salary_income.special_allowance, 'to_float') else float(salary_income.special_allowance),

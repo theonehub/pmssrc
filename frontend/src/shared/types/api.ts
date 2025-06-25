@@ -503,4 +503,46 @@ export interface EmployeeSelectionResponse {
   skip: number;
   limit: number;
   has_more: boolean;
+}
+
+// =============================================================================
+// INDIVIDUAL COMPONENT MANAGEMENT TYPES
+// =============================================================================
+
+export interface ComponentResponse {
+  taxation_id: string;
+  employee_id: string;
+  tax_year: string;
+  component_type: string;
+  component_data: Record<string, any>;
+  last_updated?: string;
+  notes?: string;
+}
+
+export interface ComponentUpdateResponse {
+  taxation_id: string;
+  employee_id: string;
+  tax_year: string;
+  component_type: string;
+  status: string;
+  message: string;
+  updated_at: string;
+  notes?: string;
+}
+
+export interface TaxationRecordStatusResponse {
+  taxation_id: string;
+  employee_id: string;
+  tax_year: string;
+  regime_type: string;
+  age: number;
+  components_status: Record<string, {
+    has_data: boolean;
+    last_updated?: string;
+    status: string;
+    [key: string]: any;
+  }>;
+  overall_status: string;
+  last_updated: string;
+  is_final: boolean;
 } 

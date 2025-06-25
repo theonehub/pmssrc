@@ -38,7 +38,23 @@ from app.application.dto.taxation_dto import (
     
     # Employee Selection DTOs
     EmployeeSelectionQuery,
-    EmployeeSelectionResponse
+    EmployeeSelectionResponse,
+    
+    # Individual Component Update DTOs
+    ComponentUpdateResponse,
+    UpdateSalaryComponentRequest,
+    UpdatePerquisitesComponentRequest,
+    UpdateDeductionsComponentRequest,
+    UpdateHousePropertyComponentRequest,
+    UpdateCapitalGainsComponentRequest,
+    UpdateRetirementBenefitsComponentRequest,
+    UpdateOtherIncomeComponentRequest,
+    UpdateMonthlyPayrollComponentRequest,
+    UpdateRegimeComponentRequest,
+    
+    # Component Retrieval DTOs
+    ComponentResponse,
+    TaxationRecordStatusResponse
 )
 from app.api.controllers.taxation_controller import UnifiedTaxationController
 from app.config.dependency_container import (
@@ -538,6 +554,417 @@ async def get_taxation_record(
 
 
 # =============================================================================
+# INDIVIDUAL COMPONENT UPDATE ENDPOINTS
+# =============================================================================
+
+@router.put("/records/employee/{employee_id}/salary",
+            response_model=ComponentUpdateResponse,
+            status_code=status.HTTP_200_OK,
+            summary="Update salary component individually",
+            description="Update salary income component for a specific employee and tax year")
+async def update_salary_component(
+    employee_id: str,
+    request: UpdateSalaryComponentRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> ComponentUpdateResponse:
+    """Update salary component individually."""
+    
+    try:
+        # Ensure employee_id in path matches request
+        if request.employee_id != employee_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Employee ID in path must match employee_id in request body"
+            )
+        
+        response = await controller.update_salary_component(
+            request, current_user.hostname
+        )
+        return response
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update salary component: {str(e)}"
+        )
+
+
+@router.put("/records/employee/{employee_id}/perquisites",
+            response_model=ComponentUpdateResponse,
+            status_code=status.HTTP_200_OK,
+            summary="Update perquisites component individually",
+            description="Update perquisites component for a specific employee and tax year")
+async def update_perquisites_component(
+    employee_id: str,
+    request: UpdatePerquisitesComponentRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> ComponentUpdateResponse:
+    """Update perquisites component individually."""
+    
+    try:
+        # Ensure employee_id in path matches request
+        if request.employee_id != employee_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Employee ID in path must match employee_id in request body"
+            )
+        
+        response = await controller.update_perquisites_component(
+            request, current_user.hostname
+        )
+        return response
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update perquisites component: {str(e)}"
+        )
+
+
+@router.put("/records/employee/{employee_id}/deductions",
+            response_model=ComponentUpdateResponse,
+            status_code=status.HTTP_200_OK,
+            summary="Update deductions component individually",
+            description="Update deductions component for a specific employee and tax year")
+async def update_deductions_component(
+    employee_id: str,
+    request: UpdateDeductionsComponentRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> ComponentUpdateResponse:
+    """Update deductions component individually."""
+    
+    try:
+        # Ensure employee_id in path matches request
+        if request.employee_id != employee_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Employee ID in path must match employee_id in request body"
+            )
+        
+        response = await controller.update_deductions_component(
+            request, current_user.hostname
+        )
+        return response
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update deductions component: {str(e)}"
+        )
+
+
+@router.put("/records/employee/{employee_id}/house-property",
+            response_model=ComponentUpdateResponse,
+            status_code=status.HTTP_200_OK,
+            summary="Update house property component individually",
+            description="Update house property income component for a specific employee and tax year")
+async def update_house_property_component(
+    employee_id: str,
+    request: UpdateHousePropertyComponentRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> ComponentUpdateResponse:
+    """Update house property component individually."""
+    
+    try:
+        # Ensure employee_id in path matches request
+        if request.employee_id != employee_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Employee ID in path must match employee_id in request body"
+            )
+        
+        response = await controller.update_house_property_component(
+            request, current_user.hostname
+        )
+        return response
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update house property component: {str(e)}"
+        )
+
+
+@router.put("/records/employee/{employee_id}/capital-gains",
+            response_model=ComponentUpdateResponse,
+            status_code=status.HTTP_200_OK,
+            summary="Update capital gains component individually",
+            description="Update capital gains income component for a specific employee and tax year")
+async def update_capital_gains_component(
+    employee_id: str,
+    request: UpdateCapitalGainsComponentRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> ComponentUpdateResponse:
+    """Update capital gains component individually."""
+    
+    try:
+        # Ensure employee_id in path matches request
+        if request.employee_id != employee_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Employee ID in path must match employee_id in request body"
+            )
+        
+        response = await controller.update_capital_gains_component(
+            request, current_user.hostname
+        )
+        return response
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update capital gains component: {str(e)}"
+        )
+
+
+@router.put("/records/employee/{employee_id}/retirement-benefits",
+            response_model=ComponentUpdateResponse,
+            status_code=status.HTTP_200_OK,
+            summary="Update retirement benefits component individually",
+            description="Update retirement benefits component for a specific employee and tax year")
+async def update_retirement_benefits_component(
+    employee_id: str,
+    request: UpdateRetirementBenefitsComponentRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> ComponentUpdateResponse:
+    """Update retirement benefits component individually."""
+    
+    try:
+        # Ensure employee_id in path matches request
+        if request.employee_id != employee_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Employee ID in path must match employee_id in request body"
+            )
+        
+        response = await controller.update_retirement_benefits_component(
+            request, current_user.hostname
+        )
+        return response
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update retirement benefits component: {str(e)}"
+        )
+
+
+@router.put("/records/employee/{employee_id}/other-income",
+            response_model=ComponentUpdateResponse,
+            status_code=status.HTTP_200_OK,
+            summary="Update other income component individually",
+            description="Update other income component for a specific employee and tax year")
+async def update_other_income_component(
+    employee_id: str,
+    request: UpdateOtherIncomeComponentRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> ComponentUpdateResponse:
+    """Update other income component individually."""
+    
+    try:
+        # Ensure employee_id in path matches request
+        if request.employee_id != employee_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Employee ID in path must match employee_id in request body"
+            )
+        
+        response = await controller.update_other_income_component(
+            request, current_user.hostname
+        )
+        return response
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update other income component: {str(e)}"
+        )
+
+
+@router.put("/records/employee/{employee_id}/monthly-payroll",
+            response_model=ComponentUpdateResponse,
+            status_code=status.HTTP_200_OK,
+            summary="Update monthly payroll component individually",
+            description="Update monthly payroll component for a specific employee and tax year")
+async def update_monthly_payroll_component(
+    employee_id: str,
+    request: UpdateMonthlyPayrollComponentRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> ComponentUpdateResponse:
+    """Update monthly payroll component individually."""
+    
+    try:
+        # Ensure employee_id in path matches request
+        if request.employee_id != employee_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Employee ID in path must match employee_id in request body"
+            )
+        
+        response = await controller.update_monthly_payroll_component(
+            request, current_user.hostname
+        )
+        return response
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update monthly payroll component: {str(e)}"
+        )
+
+
+@router.put("/records/employee/{employee_id}/regime",
+            response_model=ComponentUpdateResponse,
+            status_code=status.HTTP_200_OK,
+            summary="Update tax regime component individually",
+            description="Update tax regime and age for a specific employee and tax year")
+async def update_regime_component(
+    employee_id: str,
+    request: UpdateRegimeComponentRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> ComponentUpdateResponse:
+    """Update tax regime component individually."""
+    
+    try:
+        # Ensure employee_id in path matches request
+        if request.employee_id != employee_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Employee ID in path must match employee_id in request body"
+            )
+        
+        response = await controller.update_regime_component(
+            request, current_user.hostname
+        )
+        return response
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update regime component: {str(e)}"
+        )
+
+
+# =============================================================================
+# COMPONENT RETRIEVAL ENDPOINTS
+# =============================================================================
+
+@router.get("/records/employee/{employee_id}/component/{component_type}",
+            response_model=ComponentResponse,
+            summary="Get specific component from taxation record",
+            description="Get a specific component (salary, perquisites, deductions, etc.) from taxation record")
+async def get_component(
+    employee_id: str,
+    component_type: str,
+    tax_year: str = Query(..., description="Tax year (e.g., '2024-25')"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> ComponentResponse:
+    """Get a specific component from taxation record."""
+    
+    try:
+        response = await controller.get_component(
+            employee_id, tax_year, component_type, current_user.hostname
+        )
+        return response
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get component {component_type}: {str(e)}"
+        )
+
+
+@router.get("/records/employee/{employee_id}/status",
+            response_model=TaxationRecordStatusResponse,
+            summary="Get taxation record status",
+            description="Get status of all components in a taxation record")
+async def get_taxation_record_status(
+    employee_id: str,
+    tax_year: str = Query(..., description="Tax year (e.g., '2024-25')"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> TaxationRecordStatusResponse:
+    """Get status of all components in a taxation record."""
+    
+    try:
+        response = await controller.get_taxation_record_status(
+            employee_id, tax_year, current_user.hostname
+        )
+        return response
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get taxation record status: {str(e)}"
+        )
+
+
+# =============================================================================
 # EMPLOYEE SELECTION ENDPOINTS
 # =============================================================================
 
@@ -842,7 +1269,7 @@ def _convert_mid_year_joiner_to_comprehensive(
     salary_dto = SalaryIncomeDTO(
         basic_salary=request.salary_details.basic_salary,
         dearness_allowance=request.salary_details.dearness_allowance,
-        hra_received=request.salary_details.hra_received,
+                    hra_provided=request.salary_details.hra_provided,
         hra_city_type=request.salary_details.hra_city_type,
         actual_rent_paid=request.salary_details.actual_rent_paid,
         bonus=request.salary_details.bonus,
@@ -880,7 +1307,7 @@ def _convert_mid_year_increment_to_comprehensive(
     salary_dto = SalaryIncomeDTO(
         basic_salary=request.post_increment_salary.basic_salary,
         dearness_allowance=request.post_increment_salary.dearness_allowance,
-        hra_received=request.post_increment_salary.hra_received,
+                    hra_provided=request.post_increment_salary.hra_provided,
         hra_city_type=request.post_increment_salary.hra_city_type,
         actual_rent_paid=request.post_increment_salary.actual_rent_paid,
         special_allowance=request.post_increment_salary.special_allowance,

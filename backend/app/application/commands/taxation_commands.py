@@ -115,7 +115,7 @@ class CreateTaxationRecordCommandHandler:
         logger.info(f"No existing record found, proceeding with creation")
         logger.info(f"Salary income type: {type(command.salary_income)}")
         logger.info(f"Salary income basic_salary: {command.salary_income.basic_salary}")
-        logger.info(f"Salary income hra_received: {command.salary_income.hra_received}")
+        logger.info(f"Salary income hra_provided: {command.salary_income.hra_provided}")
         logger.info(f"Salary income hra_city_type: {command.salary_income.hra_city_type}")
         
         # Create default entities for optional components
@@ -517,7 +517,7 @@ class EnhancedTaxCalculationCommand:
             salary_income = SalaryIncome(
                 basic_salary=Money.from_decimal(period_dto.basic_salary),
                 dearness_allowance=Money.from_decimal(period_dto.dearness_allowance),
-                hra_received=Money.from_decimal(period_dto.hra_received),
+                hra_provided=Money.from_decimal(period_dto.hra_provided),
                 hra_city_type=period_dto.hra_city_type,
                 actual_rent_paid=Money.from_decimal(period_dto.actual_rent_paid),
                 special_allowance=Money.from_decimal(period_dto.special_allowance),
@@ -642,7 +642,7 @@ class MidYearJoinerCommand:
         salary_income = SalaryIncome(
             basic_salary=Money.from_decimal(request.salary_details.basic_salary),
             dearness_allowance=Money.from_decimal(request.salary_details.dearness_allowance),
-            hra_received=Money.from_decimal(request.salary_details.hra_received),
+            hra_provided=Money.from_decimal(request.salary_details.hra_provided),
             hra_city_type=request.salary_details.hra_city_type,
             actual_rent_paid=Money.from_decimal(request.salary_details.actual_rent_paid),
             special_allowance=Money.from_decimal(request.salary_details.special_allowance),
@@ -708,7 +708,7 @@ class MidYearIncrementCommand:
         pre_increment_salary = SalaryIncome(
             basic_salary=Money.from_decimal(request.pre_increment_salary.basic_salary),
             dearness_allowance=Money.from_decimal(request.pre_increment_salary.dearness_allowance),
-            hra_received=Money.from_decimal(request.pre_increment_salary.hra_received),
+            hra_provided=Money.from_decimal(request.pre_increment_salary.hra_provided),
             hra_city_type=request.pre_increment_salary.hra_city_type,
             actual_rent_paid=Money.from_decimal(request.pre_increment_salary.actual_rent_paid),
             bonus=Money.from_decimal(request.pre_increment_salary.bonus),
@@ -720,7 +720,7 @@ class MidYearIncrementCommand:
         post_increment_salary = SalaryIncome(
             basic_salary=Money.from_decimal(request.post_increment_salary.basic_salary),
             dearness_allowance=Money.from_decimal(request.post_increment_salary.dearness_allowance),
-            hra_received=Money.from_decimal(request.post_increment_salary.hra_received),
+            hra_provided=Money.from_decimal(request.post_increment_salary.hra_provided),
             hra_city_type=request.post_increment_salary.hra_city_type,
             actual_rent_paid=Money.from_decimal(request.post_increment_salary.actual_rent_paid),
             special_allowance=Money.from_decimal(request.post_increment_salary.special_allowance),

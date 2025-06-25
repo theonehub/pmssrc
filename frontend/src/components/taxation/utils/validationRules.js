@@ -236,13 +236,13 @@ export const validateTaxationForm = (taxationData) => {
     });
     
     // Validate HRA calculation
-    if (taxationData.salary.hra && taxationData.salary.basic) {
-      const cityCategory = ['Delhi', 'Mumbai', 'Kolkata', 'Chennai'].includes(taxationData.salary.hra_city) ? 'metro' : 'non-metro';
+    if (taxationData.salary_income?.hra_provided && taxationData.deductions?.hra_exemption) {
+      const cityCategory = taxationData.deductions.hra_exemption.hra_city_type || 'non_metro';
       const hraValidation = validateHRA(
-        taxationData.salary.hra,
-        taxationData.salary.basic,
-        taxationData.salary.dearness_allowance || 0,
-        taxationData.salary.actual_rent_paid || 0,
+        taxationData.salary_income.hra_provided,
+        taxationData.salary_income.basic_salary,
+        taxationData.salary_income.dearness_allowance || 0,
+        taxationData.deductions.hra_exemption.actual_rent_paid || 0,
         cityCategory
       );
       if (hraValidation.taxable > 0) {
@@ -260,12 +260,18 @@ export const validateTaxationForm = (taxationData) => {
     const deductionWarnings = {};
     
     // Section 80C validation
-    const section80CTotal = (taxationData.deductions.section_80c_lic || 0) +
-                           (taxationData.deductions.section_80c_epf || 0) +
-                           (taxationData.deductions.section_80c_ssp || 0) +
-                           (taxationData.deductions.section_80c_nsc || 0) +
-                           (taxationData.deductions.section_80c_ulip || 0) +
-                           (taxationData.deductions.section_80c_others || 0);
+    const section80CTotal = (taxationData.deductions.section_80c?.life_insurance_premium || 0) +
+                           (taxationData.deductions.section_80c?.epf_contribution || 0) +
+                           (taxationData.deductions.section_80c?.ppf_contribution || 0) +
+                           (taxationData.deductions.section_80c?.nsc_investment || 0) +
+                           (taxationData.deductions.section_80c?.ulip_premium || 0) +
+                           (taxationData.deductions.section_80c?.elss_investment || 0) +
+                           (taxationData.deductions.section_80c?.tuition_fees || 0) +
+                           (taxationData.deductions.section_80c?.home_loan_principal || 0) +
+                           (taxationData.deductions.section_80c?.sukanya_samriddhi || 0) +
+                           (taxationData.deductions.section_80c?.tax_saving_fd || 0) +
+                           (taxationData.deductions.section_80c?.senior_citizen_savings || 0) +
+                           (taxationData.deductions.section_80c?.other_80c_investments || 0);
     
     const section80CValidation = validateSection80C(section80CTotal);
     if (section80CValidation.warning) {
@@ -273,9 +279,9 @@ export const validateTaxationForm = (taxationData) => {
     }
     
     // Section 80D validation
-    if (taxationData.deductions.section_80d_hisf) {
+    if (taxationData.deductions.section_80d?.self_family_premium) {
       const section80DValidation = validateSection80D(
-        taxationData.deductions.section_80d_hisf,
+        taxationData.deductions.section_80d.self_family_premium,
         taxationData.emp_age || 0,
         'self_family'
       );

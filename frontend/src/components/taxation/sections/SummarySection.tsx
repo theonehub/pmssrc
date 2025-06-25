@@ -109,13 +109,13 @@ const SummarySection: React.FC<SummarySectionProps> = ({
 
   // Get city name for display
   const getCityName = (): string => {
-    switch (taxationData.salary_income?.hra_city_type) {
+    switch (taxationData.deductions?.hra_exemption?.hra_city_type) {
       case 'metro':
         return 'Metro (Delhi, Mumbai, Kolkata, Chennai)';
       case 'non_metro':
         return 'Non-Metro (Tier 1 cities)';
       default:
-        return 'Others (Tier 2 & 3 cities)';
+        return 'Not specified';
     }
   };
 
@@ -170,8 +170,8 @@ const SummarySection: React.FC<SummarySectionProps> = ({
                 <Typography>HRA ({getCityName()}):</Typography>
                 <Typography align="right">
                   {formatSafeCurrency(
-                    taxCalculationResponse?.tax_breakdown?.income_breakdown?.salary_income?.hra_received || 
-                    taxationData.salary_income?.hra_received
+                            taxCalculationResponse?.tax_breakdown?.income_breakdown?.salary_income?.hra_provided ||
+        taxationData.salary_income?.hra_provided
                   )}
                 </Typography>
                 
@@ -348,28 +348,27 @@ const SummarySection: React.FC<SummarySectionProps> = ({
                   <Typography>Section 80C (Total):</Typography>
                   <Typography align="right">
                     {formatSafeCurrency(
-                      taxCalculationResponse?.tax_breakdown?.deductions_breakdown?.section_80c ||
-                      ((taxationData.deductions?.section_80c?.life_insurance_premium || 0) +
-                       (taxationData.deductions?.section_80c?.epf_contribution || 0) +
-                       (taxationData.deductions?.section_80c?.ssp_contribution || 0) +
-                       (taxationData.deductions?.section_80c?.nsc_investment || 0) +
-                       (taxationData.deductions?.section_80c?.ulip_investment || 0) +
-                       (taxationData.deductions?.section_80c?.tax_saver_mutual_fund || 0) +
-                       (taxationData.deductions?.section_80c?.tuition_fees_for_two_children || 0) +
-                       (taxationData.deductions?.section_80c?.principal_amount_paid_home_loan || 0) +
-                       (taxationData.deductions?.section_80c?.sukanya_deposit_plan_for_girl_child || 0) +
-                       (taxationData.deductions?.section_80c?.tax_saver_fixed_deposit_5_years_bank || 0) +
-                       (taxationData.deductions?.section_80c?.senior_citizen_savings_scheme || 0) +
-                       (taxationData.deductions?.section_80c?.others || 0))
+                      (taxationData.deductions?.section_80c?.life_insurance_premium || 0) +
+                      (taxationData.deductions?.section_80c?.epf_contribution || 0) +
+                      (taxationData.deductions?.section_80c?.ppf_contribution || 0) +
+                      (taxationData.deductions?.section_80c?.nsc_investment || 0) +
+                      (taxationData.deductions?.section_80c?.ulip_premium || 0) +
+                      (taxationData.deductions?.section_80c?.elss_investment || 0) +
+                      (taxationData.deductions?.section_80c?.tuition_fees || 0) +
+                      (taxationData.deductions?.section_80c?.home_loan_principal || 0) +
+                      (taxationData.deductions?.section_80c?.sukanya_samriddhi || 0) +
+                      (taxationData.deductions?.section_80c?.tax_saving_fd || 0) +
+                      (taxationData.deductions?.section_80c?.senior_citizen_savings || 0) +
+                      (taxationData.deductions?.section_80c?.other_80c_investments || 0)
                     )}
                   </Typography>
                   
                   <Typography>Section 80CCC/CCD (NPS):</Typography>
                   <Typography align="right">
                     {formatSafeCurrency(
-                      (taxationData.deductions?.section_80ccc?.pension_plan_insurance_company || 0) +
-                      (taxationData.deductions?.section_80ccd?.nps_contribution_10_percent || 0) +
-                      (taxationData.deductions?.section_80ccd?.additional_nps_50k || 0) +
+                      (taxationData.deductions?.section_80ccc?.pension_fund_contribution || 0) +
+                      (taxationData.deductions?.section_80ccd?.employee_nps_contribution || 0) +
+                      (taxationData.deductions?.section_80ccd?.additional_nps_contribution || 0) +
                       (taxationData.deductions?.section_80ccd?.employer_nps_contribution || 0)
                     )}
                   </Typography>
@@ -379,7 +378,7 @@ const SummarySection: React.FC<SummarySectionProps> = ({
                     {formatSafeCurrency(
                       taxCalculationResponse?.tax_breakdown?.deductions_breakdown?.section_80d ||
                       ((taxationData.deductions?.section_80d?.self_family_premium || 0) +
-                       (taxationData.deductions?.section_80d?.preventive_health_checkup_self || 0) +
+                       (taxationData.deductions?.section_80d?.preventive_health_checkup || 0) +
                        (taxationData.deductions?.section_80d?.parent_premium || 0))
                     )}
                   </Typography>
@@ -396,10 +395,38 @@ const SummarySection: React.FC<SummarySectionProps> = ({
                   <Typography align="right">
                     {formatSafeCurrency(
                       taxCalculationResponse?.tax_breakdown?.deductions_breakdown?.section_80g ||
-                      ((taxationData.deductions?.section_80g?.donation_100_percent_without_limit || 0) +
-                       (taxationData.deductions?.section_80g?.donation_50_percent_without_limit || 0) +
-                       (taxationData.deductions?.section_80g?.donation_100_percent_with_limit || 0) +
-                       (taxationData.deductions?.section_80g?.donation_50_percent_with_limit || 0))
+                      ([
+                        'pm_relief_fund',
+                        'national_defence_fund',
+                        'national_foundation_communal_harmony',
+                        'zila_saksharta_samiti',
+                        'national_illness_assistance_fund',
+                        'national_blood_transfusion_council',
+                        'national_trust_autism_fund',
+                        'national_sports_fund',
+                        'national_cultural_fund',
+                        'technology_development_fund',
+                        'national_children_fund',
+                        'cm_relief_fund',
+                        'army_naval_air_force_funds',
+                        'swachh_bharat_kosh',
+                        'clean_ganga_fund',
+                        'drug_abuse_control_fund',
+                        'other_100_percent_wo_limit',
+                        'jn_memorial_fund',
+                        'pm_drought_relief',
+                        'indira_gandhi_memorial_trust',
+                        'rajiv_gandhi_foundation',
+                        'other_50_percent_wo_limit',
+                        'family_planning_donation',
+                        'indian_olympic_association',
+                        'other_100_percent_w_limit',
+                        'govt_charitable_donations',
+                        'housing_authorities_donations',
+                        'religious_renovation_donations',
+                        'other_charitable_donations',
+                        'other_50_percent_w_limit',
+                      ] as const).reduce((sum, key) => sum + (taxationData.deductions?.section_80g?.[key] || 0), 0)
                     )}
                   </Typography>
                   
@@ -407,11 +434,40 @@ const SummarySection: React.FC<SummarySectionProps> = ({
                   <Typography align="right">
                     {formatSafeCurrency(
                       taxCalculationResponse?.tax_breakdown?.deductions_breakdown?.other_deductions ||
-                      ((taxationData.deductions?.section_80dd?.amount || 0) +
-                       (taxationData.deductions?.section_80ddb?.amount || 0) +
-                       (taxationData.deductions?.section_80eeb?.amount || 0) +
-                       (taxationData.deductions?.section_80ggc?.amount || 0) +
-                       (taxationData.deductions?.section_80u?.amount || 0))
+                      (() => {
+                        let total = 0;
+                        
+                        // Section 80DD - Disability deduction (based on disability percentage)
+                        if (taxationData.deductions?.section_80dd?.disability_percentage) {
+                          const percentage = parseInt(taxationData.deductions.section_80dd.disability_percentage);
+                          if (percentage >= 80) {
+                            total += 125000; // ₹1,25,000 for 80%+ disability
+                          } else if (percentage >= 40) {
+                            total += 75000; // ₹75,000 for 40-79% disability
+                          }
+                        }
+                        
+                        // Section 80DDB - Medical treatment for specified diseases
+                        total += (taxationData.deductions?.section_80ddb?.medical_expenses || 0);
+                        
+                        // Section 80EEB - Electric vehicle loan interest
+                        total += (taxationData.deductions?.section_80eeb?.ev_loan_interest || 0);
+                        
+                        // Section 80GGC - Political party contribution
+                        total += (taxationData.deductions?.section_80ggc?.political_party_contribution || 0);
+                        
+                        // Section 80U - Self disability
+                        if (taxationData.deductions?.section_80u?.disability_percentage) {
+                          const percentage = parseInt(taxationData.deductions.section_80u.disability_percentage);
+                          if (percentage >= 80) {
+                            total += 125000; // ₹1,25,000 for 80%+ disability
+                          } else if (percentage >= 40) {
+                            total += 75000; // ₹75,000 for 40-79% disability
+                          }
+                        }
+                        
+                        return total;
+                      })()
                     )}
                   </Typography>
                 </Box>

@@ -96,7 +96,7 @@ class RegimeComparisonService:
         total_income = (
             input_data.salary_income.basic_salary +
             input_data.salary_income.dearness_allowance +
-            input_data.salary_income.hra_received +
+            input_data.salary_income.hra_provided +
             input_data.salary_income.special_allowance +
             input_data.salary_income.bonus +
             input_data.salary_income.commission +
@@ -140,7 +140,7 @@ class RegimeComparisonService:
         total_income = (
             input_data.salary_income.basic_salary +
             input_data.salary_income.dearness_allowance +
-            input_data.salary_income.hra_received +
+            input_data.salary_income.hra_provided +
             input_data.salary_income.special_allowance +
             input_data.salary_income.bonus +
             input_data.salary_income.commission +
@@ -241,7 +241,7 @@ class RegimeComparisonService:
                 'salary_income': {
                     'basic_salary': input_data.salary_income.basic_salary,
                     'dearness_allowance': input_data.salary_income.dearness_allowance,
-                    'hra_received': input_data.salary_income.hra_received,
+                    'hra_provided': input_data.salary_income.hra_provided,
                     'special_allowance': input_data.salary_income.special_allowance,
                     'bonus': input_data.salary_income.bonus,
                     'commission': input_data.salary_income.commission,

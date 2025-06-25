@@ -53,7 +53,7 @@ const transformComprehensiveRecordToFormData = (comprehensiveRecord, empId) => {
         ...defaultState.salary_income,
         basic_salary: toNumber(salaryData.basic_salary),
         dearness_allowance: toNumber(salaryData.dearness_allowance),
-        hra_received: toNumber(salaryData.hra_received),
+        hra_provided: toNumber(salaryData.hra_provided),
         actual_rent_paid: toNumber(salaryData.actual_rent_paid),
         hra_city_type: salaryData.hra_city_type || 'non_metro',
         special_allowance: toNumber(salaryData.special_allowance),
@@ -317,6 +317,36 @@ const useTaxationForm = (empId) => {
     }));
   };
 
+  // Compute HRA based on basic salary and DA formula: (Basic+DA) * 0.5
+  const computeHRA = (cities) => {
+    const basic = taxationData.salary_income?.basic_salary || 0;
+    const da = taxationData.salary_income?.dearness_allowance || 0;
+    const baseAmount = basic + da;
+    
+    // Use fixed rate of 50% of (Basic + DA) as default
+    const defaultRate = 0.5;
+    
+    // Still update the city type for backend compatibility
+    handleInputChange('salary_income', 'hra_city_type', cityForHRA === 'Delhi' || cityForHRA === 'Mumbai' || cityForHRA === 'Kolkata' || cityForHRA === 'Chennai' ? 'metro' : 'non_metro');
+    
+    return Math.round(baseAmount * defaultRate);
+  };
+
+  // Handle city change
+  const handleCityChange = (event) => {
+    setCityForHRA(event.target.value);
+    
+    // Set the hra_city_type based on the selected city
+    const cityType = ['Delhi', 'Mumbai', 'Kolkata', 'Chennai'].includes(event.target.value) ? 'metro' : 'non_metro';
+    handleInputChange('salary_income', 'hra_city_type', cityType);
+  };
+
+  // Handle HRA manual edit
+  const handleHRAChange = (e) => {
+    setAutoComputeHRA(false);
+    handleInputChange('salary_income', 'hra_provided', e.target.value);
+  };
+
   const handleSubmit = async (navigate) => {
     try {
       setSubmitting(true);
@@ -360,6 +390,9 @@ const useTaxationForm = (empId) => {
     setTaxBreakup,
     handleInputChange,
     handleSubmit,
+    computeHRA,
+    handleCityChange,
+    handleHRAChange,
     // Add other methods as needed
     queryClient,
     refetchTaxationData,

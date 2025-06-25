@@ -58,9 +58,7 @@ class SalaryIncomeDTO(BaseModel):
     # Core salary components
     basic_salary: Decimal = Field(..., ge=0)
     dearness_allowance: Decimal = Field(default=0, ge=0)
-    hra_received: Decimal = Field(default=0, ge=0)
-    hra_city_type: str = Field(default="non_metro", description="metro or non_metro")
-    actual_rent_paid: Decimal = Field(default=0, ge=0)
+    hra_provided: Decimal = Field(default=0, ge=0)
     bonus: Decimal = Field(default=0, ge=0)
     commission: Decimal = Field(default=0, ge=0)
     special_allowance: Decimal = Field(default=0, ge=0)
@@ -103,12 +101,6 @@ class SalaryIncomeDTO(BaseModel):
     academic_research: Decimal = Field(default=0, ge=0)
     uniform_allowance: Decimal = Field(default=0, ge=0)
     any_other_allowance_exemption: Decimal = Field(default=0, ge=0)
-    
-    @validator('hra_city_type')
-    def validate_city_type(cls, v):
-        if v not in ["metro", "non_metro"]:
-            raise ValueError("City type must be 'metro' or 'non_metro'")
-        return v
 
 
 class PeriodicSalaryDataDTO(BaseModel):
@@ -118,7 +110,7 @@ class PeriodicSalaryDataDTO(BaseModel):
     # Core salary components
     basic_salary: Decimal = Field(..., gt=0, description="Basic salary amount")
     dearness_allowance: Decimal = Field(0, ge=0, description="Dearness allowance")
-    hra_received: Decimal = Field(0, ge=0, description="HRA received")
+    hra_provided: Decimal = Field(0, ge=0, description="HRA provided")
     hra_city_type: str = Field("non_metro", description="City type for HRA calculation")
     actual_rent_paid: Decimal = Field(0, ge=0, description="Actual rent paid")
     special_allowance: Decimal = Field(0, ge=0, description="Special allowance")
@@ -183,7 +175,7 @@ class PeriodicSalaryDataDTO(BaseModel):
                 },
                 "basic_salary": 600000,
                 "dearness_allowance": 60000,
-                "hra_received": 240000,
+                "hra_provided": 240000,
                 "hra_city_type": "metro",
                 "bonus": 100000,
                 "commission": 50000,
@@ -209,7 +201,7 @@ class PeriodicSalaryIncomeDTO(BaseModel):
                             "description": "Pre-increment period"
                         },
                         "basic_salary": 600000,
-                        "hra_received": 240000,
+                        "hra_provided": 240000,
                         "hra_city_type": "metro",
                         "actual_rent_paid": 300000,
                         "bonus": 100000,
@@ -222,7 +214,7 @@ class PeriodicSalaryIncomeDTO(BaseModel):
                             "description": "Post-increment period"
                         },
                         "basic_salary": 800000,
-                        "hra_received": 320000,
+                        "hra_provided": 320000,
                         "hra_city_type": "metro",
                         "actual_rent_paid": 300000,
                         "bonus": 100000,
@@ -250,7 +242,7 @@ class MidYearJoinerDTO(BaseModel):
                         "description": "Mid-year joining"
                     },
                     "basic_salary": 800000,
-                    "hra_received": 320000,
+                    "hra_provided": 320000,
                     "hra_city_type": "metro",
                     "actual_rent_paid": 300000,
                     "bonus": 100000,
@@ -278,7 +270,7 @@ class MidYearIncrementDTO(BaseModel):
                         "description": "Pre-increment period"
                     },
                     "basic_salary": 600000,
-                    "hra_received": 240000,
+                    "hra_provided": 240000,
                     "hra_city_type": "metro",
                     "actual_rent_paid": 300000,
                     "bonus": 100000,
@@ -291,7 +283,7 @@ class MidYearIncrementDTO(BaseModel):
                         "description": "Post-increment period"
                     },
                     "basic_salary": 800000,
-                    "hra_received": 320000,
+                    "hra_provided": 320000,
                     "hra_city_type": "metro",
                     "actual_rent_paid": 300000,
                     "bonus": 100000,
@@ -394,6 +386,424 @@ class DeductionSection80TTADTO(BaseModel):
     age: int = Field(default=25, ge=18, le=100)
 
 
+class HRAExemptionDTO(BaseModel):
+    """HRA exemption DTO."""
+    actual_rent_paid: Decimal = Field(default=0, ge=0)
+    hra_city_type: str = Field(default="non_metro", description="metro or non_metro")
+    
+    @validator('hra_city_type')
+    def validate_city_type(cls, v):
+        if v not in ["metro", "non_metro"]:
+            raise ValueError("City type must be 'metro' or 'non_metro'")
+        return v
+
+
+class OtherDeductionsDTO(BaseModel):
+    """Other deductions DTO."""
+    education_loan_interest: Decimal = Field(default=0, ge=0)
+    charitable_donations: Decimal = Field(default=0, ge=0)
+    savings_interest: Decimal = Field(default=0, ge=0)
+    nps_contribution: Decimal = Field(default=0, ge=0)
+"""
+Comprehensive Taxation DTOs
+Data Transfer Objects for taxation API covering all scenarios including mid-year and periodic calculations
+"""
+
+from datetime import datetime, date
+from decimal import Decimal
+from typing import Dict, Any, List, Optional
+from pydantic import BaseModel, Field, validator, model_validator
+
+
+# =============================================================================
+# BASIC VALUE OBJECTS
+# =============================================================================
+
+class MoneyDTO(BaseModel):
+    """Money DTO for API serialization."""
+    amount: Decimal = Field(..., ge=0, description="Amount in INR")
+    currency: str = Field(default="INR", description="Currency code")
+    
+    @validator('currency')
+    def validate_currency(cls, v):
+        if v != "INR":
+            raise ValueError("Only INR currency is supported")
+        return v
+
+
+class EmploymentPeriodDTO(BaseModel):
+    """DTO for employment period information."""
+    
+    start_date: date = Field(..., description="Start date of employment period")
+    end_date: Optional[date] = Field(None, description="End date of employment period (None for ongoing)")
+    description: str = Field(..., description="Description of the period")
+    
+    @validator('end_date')
+    def validate_end_date(cls, v, values):
+        """Validate end date is not before start date."""
+        if v and 'start_date' in values and v < values['start_date']:
+            raise ValueError('End date cannot be before start date')
+        return v
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "start_date": "2024-04-01",
+                "end_date": "2024-09-30",
+                "description": "Pre-increment period"
+            }
+        }
+
+
+# =============================================================================
+# SALARY INCOME DTOs
+# =============================================================================
+
+class SalaryIncomeDTO(BaseModel):
+    """Basic salary income DTO with comprehensive allowance fields."""
+    # Core salary components
+    basic_salary: Decimal = Field(..., ge=0)
+    dearness_allowance: Decimal = Field(default=0, ge=0)
+    hra_provided: Decimal = Field(default=0, ge=0)
+    bonus: Decimal = Field(default=0, ge=0)
+    commission: Decimal = Field(default=0, ge=0)
+    special_allowance: Decimal = Field(default=0, ge=0)
+
+    
+    # Additional detailed allowances from frontend
+    city_compensatory_allowance: Decimal = Field(default=0, ge=0)
+    rural_allowance: Decimal = Field(default=0, ge=0)
+    proctorship_allowance: Decimal = Field(default=0, ge=0)
+    wardenship_allowance: Decimal = Field(default=0, ge=0)
+    project_allowance: Decimal = Field(default=0, ge=0)
+    deputation_allowance: Decimal = Field(default=0, ge=0)
+    interim_relief: Decimal = Field(default=0, ge=0)
+    tiffin_allowance: Decimal = Field(default=0, ge=0)
+    overtime_allowance: Decimal = Field(default=0, ge=0)
+    servant_allowance: Decimal = Field(default=0, ge=0)
+    hills_high_altd_allowance: Decimal = Field(default=0, ge=0)
+    hills_high_altd_exemption_limit: Decimal = Field(default=0, ge=0)
+    border_remote_allowance: Decimal = Field(default=0, ge=0)
+    border_remote_exemption_limit: Decimal = Field(default=0, ge=0)
+    transport_employee_allowance: Decimal = Field(default=0, ge=0)
+    children_education_allowance: Decimal = Field(default=0, ge=0)
+    children_education_count: int = Field(default=0, ge=0)
+    children_education_months: int = Field(default=0, ge=0, le=12)
+    hostel_allowance: Decimal = Field(default=0, ge=0)
+    hostel_count: int = Field(default=0, ge=0)
+    hostel_months: int = Field(default=0, ge=0, le=12)
+    transport_months: int = Field(default=0, ge=0, le=12)
+    underground_mines_allowance: Decimal = Field(default=0, ge=0)
+    underground_mines_months: int = Field(default=0, ge=0, le=12)
+    govt_employee_entertainment_allowance: Decimal = Field(default=0, ge=0)
+    govt_employees_outside_india_allowance: Decimal = Field(default=0, ge=0)
+    supreme_high_court_judges_allowance: Decimal = Field(default=0, ge=0)
+    judge_compensatory_allowance: Decimal = Field(default=0, ge=0)
+    section_10_14_special_allowances: Decimal = Field(default=0, ge=0)
+    travel_on_tour_allowance: Decimal = Field(default=0, ge=0)
+    tour_daily_charge_allowance: Decimal = Field(default=0, ge=0)
+    conveyance_in_performace_of_duties: Decimal = Field(default=0, ge=0)
+    helper_in_performace_of_duties: Decimal = Field(default=0, ge=0)
+    academic_research: Decimal = Field(default=0, ge=0)
+    uniform_allowance: Decimal = Field(default=0, ge=0)
+    any_other_allowance_exemption: Decimal = Field(default=0, ge=0)
+
+
+class PeriodicSalaryDataDTO(BaseModel):
+    """DTO for salary data in a specific period with comprehensive allowance fields."""
+    
+    period: EmploymentPeriodDTO
+    # Core salary components
+    basic_salary: Decimal = Field(..., gt=0, description="Basic salary amount")
+    dearness_allowance: Decimal = Field(0, ge=0, description="Dearness allowance")
+    hra_provided: Decimal = Field(0, ge=0, description="HRA provided")
+    hra_city_type: str = Field("non_metro", description="City type for HRA calculation")
+    actual_rent_paid: Decimal = Field(0, ge=0, description="Actual rent paid")
+    special_allowance: Decimal = Field(0, ge=0, description="Special allowance")
+    bonus: Decimal = Field(0, ge=0, description="Bonus")
+    commission: Decimal = Field(0, ge=0, description="Commission")
+    
+    # Additional detailed allowances from frontend
+    city_compensatory_allowance: Decimal = Field(default=0, ge=0)
+    rural_allowance: Decimal = Field(default=0, ge=0)
+    proctorship_allowance: Decimal = Field(default=0, ge=0)
+    wardenship_allowance: Decimal = Field(default=0, ge=0)
+    project_allowance: Decimal = Field(default=0, ge=0)
+    deputation_allowance: Decimal = Field(default=0, ge=0)
+    interim_relief: Decimal = Field(default=0, ge=0)
+    tiffin_allowance: Decimal = Field(default=0, ge=0)
+    overtime_allowance: Decimal = Field(default=0, ge=0)
+    servant_allowance: Decimal = Field(default=0, ge=0)
+
+    hills_high_altd_allowance: Decimal = Field(default=0, ge=0)
+    hills_high_altd_exemption_limit: Decimal = Field(default=0, ge=0)
+    border_remote_allowance: Decimal = Field(default=0, ge=0)
+    border_remote_exemption_limit: Decimal = Field(default=0, ge=0)
+    transport_employee_allowance: Decimal = Field(default=0, ge=0)
+    children_education_allowance: Decimal = Field(default=0, ge=0)
+    children_education_count: int = Field(default=0, ge=0)
+    children_education_months: int = Field(default=0, ge=0, le=12)
+    hostel_allowance: Decimal = Field(default=0, ge=0)
+    hostel_count: int = Field(default=0, ge=0)
+    hostel_months: int = Field(default=0, ge=0, le=12)
+
+    transport_months: int = Field(default=0, ge=0, le=12)
+    underground_mines_allowance: Decimal = Field(default=0, ge=0)
+    underground_mines_months: int = Field(default=0, ge=0, le=12)
+    
+    govt_employee_entertainment_allowance: Decimal = Field(default=0, ge=0)
+    govt_employees_outside_india_allowance: Decimal = Field(default=0, ge=0)
+    supreme_high_court_judges_allowance: Decimal = Field(default=0, ge=0)
+    judge_compensatory_allowance: Decimal = Field(default=0, ge=0)
+    section_10_14_special_allowances: Decimal = Field(default=0, ge=0)
+    travel_on_tour_allowance: Decimal = Field(default=0, ge=0)
+    tour_daily_charge_allowance: Decimal = Field(default=0, ge=0)
+    conveyance_in_performace_of_duties: Decimal = Field(default=0, ge=0)
+    helper_in_performace_of_duties: Decimal = Field(default=0, ge=0)
+    academic_research: Decimal = Field(default=0, ge=0)
+    uniform_allowance: Decimal = Field(default=0, ge=0)
+    any_other_allowance_exemption: Decimal = Field(default=0, ge=0)
+    
+    @validator('hra_city_type')
+    def validate_city_type(cls, v):
+        """Validate HRA city type."""
+        if v not in ["metro", "non_metro"]:
+            raise ValueError('HRA city type must be "metro" or "non_metro"')
+        return v
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "period": {
+                    "start_date": "2024-04-01",
+                    "end_date": "2024-09-30",
+                    "description": "Pre-increment period"
+                },
+                "basic_salary": 600000,
+                "dearness_allowance": 60000,
+                "hra_provided": 240000,
+                "hra_city_type": "metro",
+                "bonus": 100000,
+                "commission": 50000,
+                "actual_rent_paid": 300000,
+                "special_allowance": 100000,
+            }
+        }
+
+
+class PeriodicSalaryIncomeDTO(BaseModel):
+    """DTO for periodic salary income with multiple periods."""
+    
+    periods: List[PeriodicSalaryDataDTO] = Field(..., min_items=1, description="List of salary periods")
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "periods": [
+                    {
+                        "period": {
+                            "start_date": "2024-04-01",
+                            "end_date": "2024-09-30",
+                            "description": "Pre-increment period"
+                        },
+                        "basic_salary": 600000,
+                        "hra_provided": 240000,
+                        "hra_city_type": "metro",
+                        "actual_rent_paid": 300000,
+                        "bonus": 100000,
+                        "commission": 50000
+                    },
+                    {
+                        "period": {
+                            "start_date": "2024-10-01",
+                            "end_date": None,
+                            "description": "Post-increment period"
+                        },
+                        "basic_salary": 800000,
+                        "hra_provided": 320000,
+                        "hra_city_type": "metro",
+                        "actual_rent_paid": 300000,
+                        "bonus": 100000,
+                        "commission": 50000
+                    }
+                ]
+            }
+        }
+
+
+class MidYearJoinerDTO(BaseModel):
+    """DTO for mid-year joiner scenario."""
+    
+    joining_date: date = Field(..., description="Date of joining")
+    salary_details: PeriodicSalaryDataDTO = Field(..., description="Salary details")
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "joining_date": "2024-10-01",
+                "salary_details": {
+                    "period": {
+                        "start_date": "2024-10-01",
+                        "end_date": None,
+                        "description": "Mid-year joining"
+                    },
+                    "basic_salary": 800000,
+                    "hra_provided": 320000,
+                    "hra_city_type": "metro",
+                    "actual_rent_paid": 300000,
+                    "bonus": 100000,
+                    "commission": 50000
+                }
+            }
+        }
+
+
+class MidYearIncrementDTO(BaseModel):
+    """DTO for mid-year increment scenario."""
+    
+    increment_date: date = Field(..., description="Date of increment")
+    pre_increment_salary: PeriodicSalaryDataDTO = Field(..., description="Salary before increment")
+    post_increment_salary: PeriodicSalaryDataDTO = Field(..., description="Salary after increment")
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "increment_date": "2024-10-01",
+                "pre_increment_salary": {
+                    "period": {
+                        "start_date": "2024-04-01",
+                        "end_date": "2024-09-30",
+                        "description": "Pre-increment period"
+                    },
+                    "basic_salary": 600000,
+                    "hra_provided": 240000,
+                    "hra_city_type": "metro",
+                    "actual_rent_paid": 300000,
+                    "bonus": 100000,
+                    "commission": 50000
+                },
+                "post_increment_salary": {
+                    "period": {
+                        "start_date": "2024-10-01",
+                        "end_date": None,
+                        "description": "Post-increment period"
+                    },
+                    "basic_salary": 800000,
+                    "hra_provided": 320000,
+                    "hra_city_type": "metro",
+                    "actual_rent_paid": 300000,
+                    "bonus": 100000,
+                    "commission": 50000
+                }
+            }
+        }
+
+
+# =============================================================================
+# DEDUCTION DTOs
+# =============================================================================
+
+class DeductionSection80CDTO(BaseModel):
+    """Section 80C deductions DTO."""
+    life_insurance_premium: Decimal = Field(default=0, ge=0)
+    epf_contribution: Decimal = Field(default=0, ge=0)
+    ppf_contribution: Decimal = Field(default=0, ge=0)
+    nsc_investment: Decimal = Field(default=0, ge=0)
+    tax_saving_fd: Decimal = Field(default=0, ge=0)
+    elss_investment: Decimal = Field(default=0, ge=0)
+    home_loan_principal: Decimal = Field(default=0, ge=0)
+    tuition_fees: Decimal = Field(default=0, ge=0)
+    ulip_premium: Decimal = Field(default=0, ge=0)
+    sukanya_samriddhi: Decimal = Field(default=0, ge=0)
+    stamp_duty_property: Decimal = Field(default=0, ge=0)
+    senior_citizen_savings: Decimal = Field(default=0, ge=0)
+    other_80c_investments: Decimal = Field(default=0, ge=0)
+
+
+class DeductionSection80DDTO(BaseModel):
+    """Section 80D deductions DTO."""
+    self_family_premium: Decimal = Field(default=0, ge=0)
+    parent_premium: Decimal = Field(default=0, ge=0)
+    preventive_health_checkup: Decimal = Field(default=0, ge=0)
+    employee_age: int = Field(default=25, ge=18, le=100)
+    parent_age: int = Field(default=55, ge=18, le=120)
+
+
+class DeductionSection80GDTO(BaseModel):
+    """Enhanced Section 80G deductions DTO with specific donation heads."""
+    
+    # 100% deduction without qualifying limit - Specific heads
+    pm_relief_fund: Decimal = Field(default=0, ge=0)
+    national_defence_fund: Decimal = Field(default=0, ge=0)
+    national_foundation_communal_harmony: Decimal = Field(default=0, ge=0)
+    zila_saksharta_samiti: Decimal = Field(default=0, ge=0)
+    national_illness_assistance_fund: Decimal = Field(default=0, ge=0)
+    national_blood_transfusion_council: Decimal = Field(default=0, ge=0)
+    national_trust_autism_fund: Decimal = Field(default=0, ge=0)
+    national_sports_fund: Decimal = Field(default=0, ge=0)
+    national_cultural_fund: Decimal = Field(default=0, ge=0)
+    technology_development_fund: Decimal = Field(default=0, ge=0)
+    national_children_fund: Decimal = Field(default=0, ge=0)
+    cm_relief_fund: Decimal = Field(default=0, ge=0)
+    army_naval_air_force_funds: Decimal = Field(default=0, ge=0)
+    swachh_bharat_kosh: Decimal = Field(default=0, ge=0)
+    clean_ganga_fund: Decimal = Field(default=0, ge=0)
+    drug_abuse_control_fund: Decimal = Field(default=0, ge=0)
+    other_100_percent_wo_limit: Decimal = Field(default=0, ge=0)
+    
+    # 50% deduction without qualifying limit - Specific heads
+    jn_memorial_fund: Decimal = Field(default=0, ge=0)
+    pm_drought_relief: Decimal = Field(default=0, ge=0)
+    indira_gandhi_memorial_trust: Decimal = Field(default=0, ge=0)
+    rajiv_gandhi_foundation: Decimal = Field(default=0, ge=0)
+    other_50_percent_wo_limit: Decimal = Field(default=0, ge=0)
+    
+    # 100% deduction with qualifying limit (10% of income) - Specific heads
+    family_planning_donation: Decimal = Field(default=0, ge=0)
+    indian_olympic_association: Decimal = Field(default=0, ge=0)
+    other_100_percent_w_limit: Decimal = Field(default=0, ge=0)
+    
+    # 50% deduction with qualifying limit (10% of income) - Specific heads
+    govt_charitable_donations: Decimal = Field(default=0, ge=0)
+    housing_authorities_donations: Decimal = Field(default=0, ge=0)
+    religious_renovation_donations: Decimal = Field(default=0, ge=0)
+    other_charitable_donations: Decimal = Field(default=0, ge=0)
+    other_50_percent_w_limit: Decimal = Field(default=0, ge=0)
+
+
+class DeductionSection80EDTO(BaseModel):
+    """Section 80E education loan interest DTO."""
+    education_loan_interest: Decimal = Field(default=0, ge=0)
+    relation: str = Field(default="Self", description="Self, Spouse, or Child")
+    
+    @validator('relation')
+    def validate_relation(cls, v):
+        if v not in ["Self", "Spouse", "Child"]:
+            raise ValueError("Relation must be 'Self', 'Spouse', or 'Child'")
+        return v
+
+
+class DeductionSection80TTADTO(BaseModel):
+    """Section 80TTA/80TTB interest income exemptions DTO."""
+    savings_interest: Decimal = Field(default=0, ge=0)
+    fd_interest: Decimal = Field(default=0, ge=0)
+    rd_interest: Decimal = Field(default=0, ge=0)
+    post_office_interest: Decimal = Field(default=0, ge=0)
+    age: int = Field(default=25, ge=18, le=100)
+
+
+class HRAExemptionDTO(BaseModel):
+    """HRA exemption DTO."""
+    actual_rent_paid: Decimal = Field(default=0, ge=0)
+    hra_city_type: str = Field(default="non_metro", description="metro or non_metro")
+    
+    @validator('hra_city_type')
+    def validate_city_type(cls, v):
+        if v not in ["metro", "non_metro"]:
+            raise ValueError("City type must be 'metro' or 'non_metro'")
+        return v
+
+
 class OtherDeductionsDTO(BaseModel):
     """Other deductions DTO."""
     education_loan_interest: Decimal = Field(default=0, ge=0)
@@ -410,6 +820,7 @@ class TaxDeductionsDTO(BaseModel):
     section_80g: Optional[DeductionSection80GDTO] = None
     section_80e: Optional[DeductionSection80EDTO] = None
     section_80tta_ttb: Optional[DeductionSection80TTADTO] = None
+    hra_exemption: Optional[HRAExemptionDTO] = None
     other_deductions: Optional[OtherDeductionsDTO] = None
 
 
@@ -466,7 +877,7 @@ class EnhancedTaxCalculationRequestDTO(BaseModel):
                                 "description": "Pre-increment period"
                             },
                             "basic_salary": 600000,
-                            "hra_received": 240000,
+                            "hra_provided": 240000,
                             "hra_city_type": "metro",
                             "actual_rent_paid": 300000,
                             "bonus": 100000,
@@ -506,7 +917,7 @@ class ScenarioComparisonRequestDTO(BaseModel):
                                     "description": "Mid-year joining"
                                 },
                                 "basic_salary": 800000,
-                                "hra_received": 320000,
+                                "hra_provided": 320000,
                                 "hra_city_type": "metro",
                                 "actual_rent_paid": 300000,
                                 "bonus": 100000,
@@ -1401,4 +1812,131 @@ class EmployeeSelectionResponse(BaseModel):
     employees: List[EmployeeSelectionDTO]
     skip: int
     limit: int
-    has_more: bool 
+    has_more: bool
+
+
+# =============================================================================
+# INDIVIDUAL COMPONENT UPDATE DTOs
+# =============================================================================
+
+class UpdateSalaryComponentRequest(BaseModel):
+    """Request to update salary component individually."""
+    employee_id: str = Field(..., description="Employee ID")
+    tax_year: str = Field(..., description="Tax year (e.g., '2024-25')")
+    salary_income: SalaryIncomeDTO = Field(..., description="Salary income data")
+    force_new_revision: bool = Field(default=False, description="Force create new salary revision instead of updating existing")
+    notes: Optional[str] = Field(None, description="Optional notes for the update")
+
+
+class UpdatePerquisitesComponentRequest(BaseModel):
+    """Request to update perquisites component individually."""
+    employee_id: str = Field(..., description="Employee ID")
+    tax_year: str = Field(..., description="Tax year (e.g., '2024-25')")
+    perquisites: PerquisitesDTO = Field(..., description="Perquisites data")
+    notes: Optional[str] = Field(None, description="Optional notes for the update")
+
+
+class UpdateDeductionsComponentRequest(BaseModel):
+    """Request to update deductions component individually."""
+    employee_id: str = Field(..., description="Employee ID")
+    tax_year: str = Field(..., description="Tax year (e.g., '2024-25')")
+    deductions: TaxDeductionsDTO = Field(..., description="Deductions data")
+    notes: Optional[str] = Field(None, description="Optional notes for the update")
+
+
+class UpdateHousePropertyComponentRequest(BaseModel):
+    """Request to update house property component individually."""
+    employee_id: str = Field(..., description="Employee ID")
+    tax_year: str = Field(..., description="Tax year (e.g., '2024-25')")
+    house_property_income: HousePropertyIncomeDTO = Field(..., description="House property income data")
+    notes: Optional[str] = Field(None, description="Optional notes for the update")
+
+
+class UpdateCapitalGainsComponentRequest(BaseModel):
+    """Request to update capital gains component individually."""
+    employee_id: str = Field(..., description="Employee ID")
+    tax_year: str = Field(..., description="Tax year (e.g., '2024-25')")
+    capital_gains_income: CapitalGainsIncomeDTO = Field(..., description="Capital gains income data")
+    notes: Optional[str] = Field(None, description="Optional notes for the update")
+
+
+class UpdateRetirementBenefitsComponentRequest(BaseModel):
+    """Request to update retirement benefits component individually."""
+    employee_id: str = Field(..., description="Employee ID")
+    tax_year: str = Field(..., description="Tax year (e.g., '2024-25')")
+    retirement_benefits: RetirementBenefitsDTO = Field(..., description="Retirement benefits data")
+    notes: Optional[str] = Field(None, description="Optional notes for the update")
+
+
+class UpdateOtherIncomeComponentRequest(BaseModel):
+    """Request to update other income component individually."""
+    employee_id: str = Field(..., description="Employee ID")
+    tax_year: str = Field(..., description="Tax year (e.g., '2024-25')")
+    other_income: OtherIncomeDTO = Field(..., description="Other income data")
+    notes: Optional[str] = Field(None, description="Optional notes for the update")
+
+
+class UpdateMonthlyPayrollComponentRequest(BaseModel):
+    """Request to update monthly payroll component individually."""
+    employee_id: str = Field(..., description="Employee ID")
+    tax_year: str = Field(..., description="Tax year (e.g., '2024-25')")
+    monthly_payroll: PayoutMonthlyProjectionDTO = Field(..., description="Monthly payroll data")
+    notes: Optional[str] = Field(None, description="Optional notes for the update")
+
+
+class UpdateRegimeComponentRequest(BaseModel):
+    """Request to update tax regime component individually."""
+    employee_id: str = Field(..., description="Employee ID")
+    tax_year: str = Field(..., description="Tax year (e.g., '2024-25')")
+    regime_type: str = Field(..., description="Tax regime: 'old' or 'new'")
+    age: int = Field(..., ge=18, le=100, description="Taxpayer age")
+    notes: Optional[str] = Field(None, description="Optional notes for the update")
+    
+    @validator('regime_type')
+    def validate_regime(cls, v):
+        if v not in ["old", "new"]:
+            raise ValueError("Regime must be 'old' or 'new'")
+        return v
+
+
+class ComponentUpdateResponse(BaseModel):
+    """Response for individual component updates."""
+    taxation_id: str = Field(..., description="Taxation record ID")
+    employee_id: str = Field(..., description="Employee ID")
+    tax_year: str = Field(..., description="Tax year")
+    component_type: str = Field(..., description="Type of component updated")
+    status: str = Field(..., description="Update status")
+    message: str = Field(..., description="Update message")
+    updated_at: datetime = Field(..., description="Update timestamp")
+    notes: Optional[str] = Field(None, description="Optional notes")
+
+
+class GetComponentRequest(BaseModel):
+    """Request to get a specific component from taxation record."""
+    employee_id: str = Field(..., description="Employee ID")
+    tax_year: str = Field(..., description="Tax year (e.g., '2024-25')")
+    component_type: str = Field(..., description="Type of component to retrieve")
+
+
+class ComponentResponse(BaseModel):
+    """Response for getting a specific component."""
+    taxation_id: str = Field(..., description="Taxation record ID")
+    employee_id: str = Field(..., description="Employee ID")
+    tax_year: str = Field(..., description="Tax year")
+    component_type: str = Field(..., description="Type of component")
+    component_data: Dict[str, Any] = Field(..., description="Component data")
+    last_updated: Optional[datetime] = Field(None, description="Last update timestamp")
+    notes: Optional[str] = Field(None, description="Optional notes")
+
+
+class TaxationRecordStatusResponse(BaseModel):
+    """Response showing status of all components in a taxation record."""
+    taxation_id: str = Field(..., description="Taxation record ID")
+    employee_id: str = Field(..., description="Employee ID")
+    tax_year: str = Field(..., description="Tax year")
+    regime_type: str = Field(..., description="Tax regime")
+    age: int = Field(..., description="Taxpayer age")
+    components_status: Dict[str, Dict[str, Any]] = Field(..., description="Status of each component")
+    overall_status: str = Field(..., description="Overall record status")
+    last_updated: datetime = Field(..., description="Last update timestamp")
+    is_final: bool = Field(..., description="Whether record is finalized") 

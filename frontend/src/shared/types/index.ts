@@ -584,43 +584,131 @@ export interface RetrenchmentCompensation {
 }
 
 export interface Deductions {
-  section_80c_lic: number;
-  section_80c_epf: number;
-  section_80c_ssp: number;
-  section_80c_nsc: number;
-  section_80c_ulip: number;
-  section_80c_tsmf: number;
-  section_80c_tffte2c: number;
-  section_80c_paphl: number;
-  section_80c_sdpphp: number;
-  section_80c_tsfdsb: number;
-  section_80c_scss: number;
-  section_80c_others: number;
-  section_80ccc_ppic: number;
-  section_80ccd_1_nps: number;
-  section_80ccd_1b_additional: number;
-  section_80ccd_2_enps: number;
-  section_80d_hisf: number;
-  section_80d_phcs: number;
-  section_80d_hi_parent: number;
-  section_24b?: number;
-  section_80dd: number;
-  section_80ddb: number;
-  section_80e_interest: number;
-  section_80eeb: number;
-  section_80g_100_wo_ql: number;
-  section_80g_50_wo_ql: number;
-  section_80ggc: number;
-  section_80u: number;
+  // Section 80C - Updated to match backend field names exactly
+  section_80c: {
+    life_insurance_premium: number;
+    epf_contribution: number;
+    ppf_contribution: number;
+    nsc_investment: number;
+    tax_saving_fd: number;
+    elss_investment: number;
+    home_loan_principal: number;
+    tuition_fees: number;
+    ulip_premium: number;
+    sukanya_samriddhi: number;
+    stamp_duty_property: number;
+    senior_citizen_savings: number;
+    other_80c_investments: number;
+  };
   
-  // Additional properties for compatibility
-  relation_80dd?: string;
-  relation_80ddb?: string;
-  disability_percentage_80dd?: string;
-  disability_percentage_80u?: string;
-  disability_percentage?: string; // Add missing property
-  section_80g_100_ql?: number;
-  section_80g_50_ql?: number;
+  // Section 80CCC - Updated to match backend field names exactly
+  section_80ccc: {
+    pension_fund_contribution: number;
+  };
+  
+  // Section 80CCD - Updated to match backend field names exactly
+  section_80ccd: {
+    employee_nps_contribution: number;
+    additional_nps_contribution: number;
+    employer_nps_contribution: number;
+  };
+  
+  // Section 80D - Updated to match backend field names exactly
+  section_80d: {
+    self_family_premium: number;
+    parent_premium: number;
+    preventive_health_checkup: number;
+    employee_age: number;
+    parent_age: number;
+  };
+  
+  // Section 80DD - Updated to match backend field names exactly
+  section_80dd: {
+    relation: string;
+    disability_percentage: string;
+  };
+  
+  // Section 80DDB - Updated to match backend field names exactly
+  section_80ddb: {
+    dependent_age: number;
+    medical_expenses: number;
+    relation: string;
+  };
+  
+  // Section 80E - Updated to match backend field names exactly
+  section_80e: {
+    education_loan_interest: number;
+    relation: string;
+  };
+  
+  // Section 80EEB - Updated to match backend field names exactly
+  section_80eeb: {
+    ev_loan_interest: number;
+    ev_purchase_date: string;
+  };
+  
+  // Section 80G - Updated to match backend field names exactly
+  section_80g: {
+    // 100% deduction without qualifying limit
+    pm_relief_fund: number;
+    national_defence_fund: number;
+    national_foundation_communal_harmony: number;
+    zila_saksharta_samiti: number;
+    national_illness_assistance_fund: number;
+    national_blood_transfusion_council: number;
+    national_trust_autism_fund: number;
+    national_sports_fund: number;
+    national_cultural_fund: number;
+    technology_development_fund: number;
+    national_children_fund: number;
+    cm_relief_fund: number;
+    army_naval_air_force_funds: number;
+    swachh_bharat_kosh: number;
+    clean_ganga_fund: number;
+    drug_abuse_control_fund: number;
+    other_100_percent_wo_limit: number;
+    
+    // 50% deduction without qualifying limit
+    jn_memorial_fund: number;
+    pm_drought_relief: number;
+    indira_gandhi_memorial_trust: number;
+    rajiv_gandhi_foundation: number;
+    other_50_percent_wo_limit: number;
+    
+    // 100% deduction with qualifying limit
+    family_planning_donation: number;
+    indian_olympic_association: number;
+    other_100_percent_w_limit: number;
+    
+    // 50% deduction with qualifying limit
+    govt_charitable_donations: number;
+    housing_authorities_donations: number;
+    religious_renovation_donations: number;
+    other_charitable_donations: number;
+    other_50_percent_w_limit: number;
+  };
+  
+  // Section 80GGC - Updated to match backend field names exactly
+  section_80ggc: {
+    political_party_contribution: number;
+  };
+  
+  // Section 80U - Updated to match backend field names exactly
+  section_80u: {
+    disability_percentage: string;
+  };
+  
+  // Section 80TTA/TTB - Updated to match backend field names exactly
+  section_80tta_ttb: {
+    savings_interest: number;
+    fd_interest: number;
+    rd_interest: number;
+    post_office_interest: number;
+    age: number;
+  };
+  
+  // Legacy fields for backward compatibility (to be removed)
+  section_24b?: number;
 }
 
 // Add missing dashboard and API response types

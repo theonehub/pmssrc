@@ -657,6 +657,213 @@ class TaxationAPI {
       throw new Error(error.response?.data?.detail || 'Failed to get my taxation data');
     }
   }
+
+  // =============================================================================
+  // INDIVIDUAL COMPONENT MANAGEMENT ENDPOINTS
+  // =============================================================================
+
+  /**
+   * Get a specific component from taxation record
+   */
+  async getComponent(
+    employeeId: string,
+    taxYear: string,
+    componentType: string
+  ): Promise<Types.ComponentResponse> {
+    try {
+      return await this.baseApi.get(`/api/v2/taxation/records/employee/${employeeId}/component/${componentType}?tax_year=${taxYear}`);
+    } catch (error) {
+      console.error('Error getting component:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update salary component individually
+   */
+  async updateSalaryComponent(
+    request: {
+      employee_id: string;
+      tax_year: string;
+      salary_income: any;
+      notes?: string;
+    }
+  ): Promise<any> {
+    try {
+      return await this.baseApi.put(`/api/v2/taxation/records/employee/${request.employee_id}/salary`, request);
+    } catch (error) {
+      console.error('Error updating salary component:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update perquisites component individually
+   */
+  async updatePerquisitesComponent(
+    request: {
+      employee_id: string;
+      tax_year: string;
+      perquisites: any;
+      notes?: string;
+    }
+  ): Promise<any> {
+    try {
+      return await this.baseApi.put(`/api/v2/taxation/records/employee/${request.employee_id}/perquisites`, request);
+    } catch (error) {
+      console.error('Error updating perquisites component:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update deductions component individually
+   */
+  async updateDeductionsComponent(
+    request: {
+      employee_id: string;
+      tax_year: string;
+      deductions: any;
+      notes?: string;
+    }
+  ): Promise<any> {
+    try {
+      return await this.baseApi.put(`/api/v2/taxation/records/employee/${request.employee_id}/deductions`, request);
+    } catch (error) {
+      console.error('Error updating deductions component:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update house property component individually
+   */
+  async updateHousePropertyComponent(
+    request: {
+      employee_id: string;
+      tax_year: string;
+      house_property: any;
+      notes?: string;
+    }
+  ): Promise<any> {
+    try {
+      return await this.baseApi.put(`/api/v2/taxation/records/employee/${request.employee_id}/house-property`, request);
+    } catch (error) {
+      console.error('Error updating house property component:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update capital gains component individually
+   */
+  async updateCapitalGainsComponent(
+    request: {
+      employee_id: string;
+      tax_year: string;
+      capital_gains: any;
+      notes?: string;
+    }
+  ): Promise<any> {
+    try {
+      return await this.baseApi.put(`/api/v2/taxation/records/employee/${request.employee_id}/capital-gains`, request);
+    } catch (error) {
+      console.error('Error updating capital gains component:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update retirement benefits component individually
+   */
+  async updateRetirementBenefitsComponent(
+    request: {
+      employee_id: string;
+      tax_year: string;
+      retirement_benefits: any;
+      notes?: string;
+    }
+  ): Promise<any> {
+    try {
+      return await this.baseApi.put(`/api/v2/taxation/records/employee/${request.employee_id}/retirement-benefits`, request);
+    } catch (error) {
+      console.error('Error updating retirement benefits component:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update other income component individually
+   */
+  async updateOtherIncomeComponent(
+    request: {
+      employee_id: string;
+      tax_year: string;
+      other_income: any;
+      notes?: string;
+    }
+  ): Promise<any> {
+    try {
+      return await this.baseApi.put(`/api/v2/taxation/records/employee/${request.employee_id}/other-income`, request);
+    } catch (error) {
+      console.error('Error updating other income component:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update monthly payroll component individually
+   */
+  async updateMonthlyPayrollComponent(
+    request: {
+      employee_id: string;
+      tax_year: string;
+      monthly_payroll: any;
+      notes?: string;
+    }
+  ): Promise<any> {
+    try {
+      return await this.baseApi.put(`/api/v2/taxation/records/employee/${request.employee_id}/monthly-payroll`, request);
+    } catch (error) {
+      console.error('Error updating monthly payroll component:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update regime component individually
+   */
+  async updateRegimeComponent(
+    request: {
+      employee_id: string;
+      tax_year: string;
+      regime_type: string;
+      age: number;
+      notes?: string;
+    }
+  ): Promise<any> {
+    try {
+      return await this.baseApi.put(`/api/v2/taxation/records/employee/${request.employee_id}/regime`, request);
+    } catch (error) {
+      console.error('Error updating regime component:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get taxation record status for all components
+   */
+  async getTaxationRecordStatus(
+    employeeId: string,
+    taxYear: string
+  ): Promise<any> {
+    try {
+      return await this.baseApi.get(`/api/v2/taxation/records/employee/${employeeId}/status?tax_year=${taxYear}`);
+    } catch (error) {
+      console.error('Error getting taxation record status:', error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance

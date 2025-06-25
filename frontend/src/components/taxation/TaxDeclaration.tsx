@@ -69,17 +69,11 @@ const TaxDeclaration: React.FC = () => {
     submitting,
     error,
     success,
-    cityForHRA,
-    autoComputeHRA,
-    setAutoComputeHRA,
     handleInputChange,
     handleNestedInputChange,
     handleRegimeChange,
     handleFocus,
     handleNestedFocus,
-    computeHRA,
-    handleCityChange,
-    handleHRAChange,
     handleCalculateTax,
     handleSubmit,
     fetchVrsValue
@@ -168,12 +162,6 @@ const TaxDeclaration: React.FC = () => {
             {...baseProps}
             handleInputChange={handleInputChange}
             handleFocus={handleFocus}
-            cityForHRA={cityForHRA}
-            handleCityChange={handleCityChange}
-            autoComputeHRA={autoComputeHRA}
-            setAutoComputeHRA={setAutoComputeHRA}
-            handleHRAChange={handleHRAChange}
-            computeHRA={computeHRA}
           />
         );
       case 2:

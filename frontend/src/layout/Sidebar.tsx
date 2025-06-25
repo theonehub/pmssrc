@@ -190,6 +190,12 @@ const Sidebar: React.FC = () => {
           path: '/taxation/employee-selection',
           roles: ['admin', 'superadmin'],
         },
+        {
+          title: 'Component Management',
+          icon: <SettingsIcon />,
+          path: '/taxation/component-management',
+          roles: ['admin', 'superadmin'],
+        },
       ],
     },
     {

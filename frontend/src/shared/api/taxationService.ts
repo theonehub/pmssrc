@@ -145,9 +145,7 @@ export const calculateTax = async (
       salary_income: {
         basic_salary: ensureNumeric(inputData.salary_income.basic_salary),
         dearness_allowance: ensureNumeric(inputData.salary_income.dearness_allowance),
-        hra_received: ensureNumeric(inputData.salary_income.hra_received),
-        hra_city_type: inputData.salary_income.hra_city_type || 'non_metro',
-        actual_rent_paid: ensureNumeric(inputData.salary_income.actual_rent_paid),
+        hra_provided: ensureNumeric(inputData.salary_income.hra_provided),
         bonus: ensureNumeric(inputData.salary_income.bonus),
         commission: ensureNumeric(inputData.salary_income.commission),
         special_allowance: ensureNumeric(inputData.salary_income.special_allowance),
@@ -262,46 +260,94 @@ export const calculateTax = async (
       
       // Tax deductions
       deductions: inputData.deductions ? {
+        hra_exemption: inputData.deductions.hra_exemption ? {
+          actual_rent_paid: ensureNumeric(inputData.deductions.hra_exemption.actual_rent_paid),
+          hra_city_type: inputData.deductions.hra_exemption.hra_city_type || 'non_metro'
+        } : null,
         section_80c: {
           life_insurance_premium: inputData.deductions.section_80c?.life_insurance_premium || 0,
           epf_contribution: inputData.deductions.section_80c?.epf_contribution || 0,
-          ppf_contribution: 0,
+          ppf_contribution: inputData.deductions.section_80c?.ppf_contribution || 0,
           nsc_investment: inputData.deductions.section_80c?.nsc_investment || 0,
-          tax_saving_fd: inputData.deductions.section_80c?.tax_saver_fixed_deposit_5_years_bank || 0,
-          elss_investment: inputData.deductions.section_80c?.tax_saver_mutual_fund || 0,
-          home_loan_principal: inputData.deductions.section_80c?.principal_amount_paid_home_loan || 0,
-          tuition_fees: inputData.deductions.section_80c?.tuition_fees_for_two_children || 0,
-          ulip_premium: inputData.deductions.section_80c?.ulip_investment || 0,
-          sukanya_samriddhi: inputData.deductions.section_80c?.sukanya_deposit_plan_for_girl_child || 0,
-          stamp_duty_property: 0,
-          senior_citizen_savings: inputData.deductions.section_80c?.senior_citizen_savings_scheme || 0,
-          other_80c_investments: inputData.deductions.section_80c?.others || 0
+          tax_saving_fd: inputData.deductions.section_80c?.tax_saving_fd || 0,
+          elss_investment: inputData.deductions.section_80c?.elss_investment || 0,
+          home_loan_principal: inputData.deductions.section_80c?.home_loan_principal || 0,
+          tuition_fees: inputData.deductions.section_80c?.tuition_fees || 0,
+          ulip_premium: inputData.deductions.section_80c?.ulip_premium || 0,
+          sukanya_samriddhi: inputData.deductions.section_80c?.sukanya_samriddhi || 0,
+          stamp_duty_property: inputData.deductions.section_80c?.stamp_duty_property || 0,
+          senior_citizen_savings: inputData.deductions.section_80c?.senior_citizen_savings || 0,
+          other_80c_investments: inputData.deductions.section_80c?.other_80c_investments || 0
         },
         section_80d: {
           self_family_premium: inputData.deductions.section_80d?.self_family_premium || 0,
           parent_premium: inputData.deductions.section_80d?.parent_premium || 0,
-          preventive_health_checkup: inputData.deductions.section_80d?.preventive_health_checkup_self || 0,
+          preventive_health_checkup: inputData.deductions.section_80d?.preventive_health_checkup || 0,
           employee_age: inputData.age,
           parent_age: 60
         },
         section_80g: {
-          pm_relief_fund: 0,
-          national_defence_fund: 0,
-          other_100_percent_wo_limit: inputData.deductions.section_80g?.donation_100_percent_without_limit || 0,
-          other_50_percent_wo_limit: inputData.deductions.section_80g?.donation_50_percent_without_limit || 0,
-          other_100_percent_w_limit: inputData.deductions.section_80g?.donation_100_percent_with_limit || 0,
-          other_50_percent_w_limit: inputData.deductions.section_80g?.donation_50_percent_with_limit || 0
+          pm_relief_fund: inputData.deductions.section_80g?.pm_relief_fund || 0,
+          national_defence_fund: inputData.deductions.section_80g?.national_defence_fund || 0,
+          national_foundation_communal_harmony: inputData.deductions.section_80g?.national_foundation_communal_harmony || 0,
+          zila_saksharta_samiti: inputData.deductions.section_80g?.zila_saksharta_samiti || 0,
+          national_illness_assistance_fund: inputData.deductions.section_80g?.national_illness_assistance_fund || 0,
+          national_blood_transfusion_council: inputData.deductions.section_80g?.national_blood_transfusion_council || 0,
+          national_trust_autism_fund: inputData.deductions.section_80g?.national_trust_autism_fund || 0,
+          national_sports_fund: inputData.deductions.section_80g?.national_sports_fund || 0,
+          national_cultural_fund: inputData.deductions.section_80g?.national_cultural_fund || 0,
+          technology_development_fund: inputData.deductions.section_80g?.technology_development_fund || 0,
+          national_children_fund: inputData.deductions.section_80g?.national_children_fund || 0,
+          cm_relief_fund: inputData.deductions.section_80g?.cm_relief_fund || 0,
+          army_naval_air_force_funds: inputData.deductions.section_80g?.army_naval_air_force_funds || 0,
+          swachh_bharat_kosh: inputData.deductions.section_80g?.swachh_bharat_kosh || 0,
+          clean_ganga_fund: inputData.deductions.section_80g?.clean_ganga_fund || 0,
+          drug_abuse_control_fund: inputData.deductions.section_80g?.drug_abuse_control_fund || 0,
+          other_100_percent_wo_limit: inputData.deductions.section_80g?.other_100_percent_wo_limit || 0,
+          jn_memorial_fund: inputData.deductions.section_80g?.jn_memorial_fund || 0,
+          pm_drought_relief: inputData.deductions.section_80g?.pm_drought_relief || 0,
+          indira_gandhi_memorial_trust: inputData.deductions.section_80g?.indira_gandhi_memorial_trust || 0,
+          rajiv_gandhi_foundation: inputData.deductions.section_80g?.rajiv_gandhi_foundation || 0,
+          other_50_percent_wo_limit: inputData.deductions.section_80g?.other_50_percent_wo_limit || 0,
+          family_planning_donation: inputData.deductions.section_80g?.family_planning_donation || 0,
+          indian_olympic_association: inputData.deductions.section_80g?.indian_olympic_association || 0,
+          other_100_percent_w_limit: inputData.deductions.section_80g?.other_100_percent_w_limit || 0,
+          govt_charitable_donations: inputData.deductions.section_80g?.govt_charitable_donations || 0,
+          housing_authorities_donations: inputData.deductions.section_80g?.housing_authorities_donations || 0,
+          religious_renovation_donations: inputData.deductions.section_80g?.religious_renovation_donations || 0,
+          other_charitable_donations: inputData.deductions.section_80g?.other_charitable_donations || 0,
+          other_50_percent_w_limit: inputData.deductions.section_80g?.other_50_percent_w_limit || 0
+        },
+        section_80ccc: {
+          pension_fund_contribution: inputData.deductions.section_80ccc?.pension_fund_contribution || 0
+        },
+        section_80ccd: {
+          employee_nps_contribution: inputData.deductions.section_80ccd?.employee_nps_contribution || 0,
+          additional_nps_contribution: inputData.deductions.section_80ccd?.additional_nps_contribution || 0,
+          employer_nps_contribution: inputData.deductions.section_80ccd?.employer_nps_contribution || 0
+        },
+        section_80dd: {
+          relation: inputData.deductions.section_80dd?.relation || '',
+          disability_percentage: inputData.deductions.section_80dd?.disability_percentage || ''
+        },
+        section_80ddb: {
+          dependent_age: inputData.deductions.section_80ddb?.dependent_age || 0,
+          medical_expenses: inputData.deductions.section_80ddb?.medical_expenses || 0,
+          relation: inputData.deductions.section_80ddb?.relation || ''
         },
         section_80e: {
           education_loan_interest: inputData.deductions.section_80e?.education_loan_interest || 0,
-          relation: 'Self'
+          relation: inputData.deductions.section_80e?.relation || ''
         },
-        section_80tta_ttb: {
-          savings_interest: inputData.other_income?.interest_income?.savings_account_interest || 0,
-          fd_interest: inputData.other_income?.interest_income?.fixed_deposit_interest || 0,
-          rd_interest: inputData.other_income?.interest_income?.recurring_deposit_interest || 0,
-          post_office_interest: inputData.other_income?.interest_income?.post_office_interest || 0,
-          age: inputData.age
+        section_80eeb: {
+          ev_loan_interest: inputData.deductions.section_80eeb?.ev_loan_interest || 0,
+          ev_purchase_date: inputData.deductions.section_80eeb?.ev_purchase_date || ''
+        },
+        section_80ggc: {
+          political_party_contribution: inputData.deductions.section_80ggc?.political_party_contribution || 0
+        },
+        section_80u: {
+          disability_percentage: inputData.deductions.section_80u?.disability_percentage || ''
         }
       } : null
     };
@@ -373,9 +419,7 @@ export const calculateTax = async (
 export const createDefaultSalaryComponents = (): SalaryIncomeDTO => ({
   basic_salary: 0,
   dearness_allowance: 0,
-  hra_received: 0,
-  hra_city_type: 'non_metro',
-  actual_rent_paid: 0,
+  hra_provided: 0,
   bonus: 0,
   commission: 0,
   special_allowance: 0,
@@ -483,60 +527,101 @@ export const createDefaultPension = (): Pension => ({
 
 // Create default deductions
 export const createDefaultDeductions = (): TaxDeductionsDTO => ({
+  hra_exemption: {
+    actual_rent_paid: 0,
+    hra_city_type: 'non_metro',
+  },
   section_80c: {
     life_insurance_premium: 0,
     epf_contribution: 0,
-    ssp_contribution: 0,
+    ppf_contribution: 0,
     nsc_investment: 0,
-    ulip_investment: 0,
-    tax_saver_mutual_fund: 0,
-    tuition_fees_for_two_children: 0,
-    principal_amount_paid_home_loan: 0,
-    sukanya_deposit_plan_for_girl_child: 0,
-    tax_saver_fixed_deposit_5_years_bank: 0,
-    senior_citizen_savings_scheme: 0,
-    others: 0,
+    tax_saving_fd: 0,
+    elss_investment: 0,
+    home_loan_principal: 0,
+    tuition_fees: 0,
+    ulip_premium: 0,
+    sukanya_samriddhi: 0,
+    stamp_duty_property: 0,
+    senior_citizen_savings: 0,
+    other_80c_investments: 0,
   },
   section_80ccc: {
-    pension_plan_insurance_company: 0,
+    pension_fund_contribution: 0,
   },
   section_80ccd: {
-    nps_contribution_10_percent: 0,
-    additional_nps_50k: 0,
+    employee_nps_contribution: 0,
+    additional_nps_contribution: 0,
     employer_nps_contribution: 0,
   },
   section_80d: {
     self_family_premium: 0,
-    preventive_health_checkup_self: 0,
     parent_premium: 0,
+    preventive_health_checkup: 0,
+    employee_age: 0,
+    parent_age: 0,
   },
   section_80dd: {
-    amount: 0,
     relation: '',
     disability_percentage: '',
   },
   section_80ddb: {
-    amount: 0,
+    dependent_age: 0,
+    medical_expenses: 0,
     relation: '',
   },
   section_80e: {
     education_loan_interest: 0,
+    relation: '',
   },
   section_80eeb: {
-    amount: 0,
+    ev_loan_interest: 0,
+    ev_purchase_date: '',
   },
   section_80g: {
-    donation_100_percent_without_limit: 0,
-    donation_50_percent_without_limit: 0,
-    donation_100_percent_with_limit: 0,
-    donation_50_percent_with_limit: 0,
+    pm_relief_fund: 0,
+    national_defence_fund: 0,
+    national_foundation_communal_harmony: 0,
+    zila_saksharta_samiti: 0,
+    national_illness_assistance_fund: 0,
+    national_blood_transfusion_council: 0,
+    national_trust_autism_fund: 0,
+    national_sports_fund: 0,
+    national_cultural_fund: 0,
+    technology_development_fund: 0,
+    national_children_fund: 0,
+    cm_relief_fund: 0,
+    army_naval_air_force_funds: 0,
+    swachh_bharat_kosh: 0,
+    clean_ganga_fund: 0,
+    drug_abuse_control_fund: 0,
+    other_100_percent_wo_limit: 0,
+    jn_memorial_fund: 0,
+    pm_drought_relief: 0,
+    indira_gandhi_memorial_trust: 0,
+    rajiv_gandhi_foundation: 0,
+    other_50_percent_wo_limit: 0,
+    family_planning_donation: 0,
+    indian_olympic_association: 0,
+    other_100_percent_w_limit: 0,
+    govt_charitable_donations: 0,
+    housing_authorities_donations: 0,
+    religious_renovation_donations: 0,
+    other_charitable_donations: 0,
+    other_50_percent_w_limit: 0,
   },
   section_80ggc: {
-    amount: 0,
+    political_party_contribution: 0,
   },
   section_80u: {
-    amount: 0,
     disability_percentage: '',
+  },
+  section_80tta_ttb: {
+    savings_interest: 0,
+    fd_interest: 0,
+    rd_interest: 0,
+    post_office_interest: 0,
+    age: 0,
   },
 });
 

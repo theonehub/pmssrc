@@ -82,6 +82,9 @@ class PeriodicSalaryData:
         """
         Calculate HRA exemption for the specific period.
         
+        NOTE: HRA exemption calculation should be handled by the deductions module.
+        This method provides a temporary calculation until full migration is complete.
+        
         Args:
             regime: Tax regime
             tax_year: Tax year
@@ -92,54 +95,10 @@ class PeriodicSalaryData:
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
         
-        period_months = self.period.get_period_months(tax_year)
-        monthly_basic_da = self.salary_income.basic_salary.add(self.salary_income.dearness_allowance).divide(12)
-        monthly_hra = self.salary_income.hra_received.divide(12)
-        monthly_rent = self.salary_income.actual_rent_paid.divide(12)
-        
-        # Calculate for each month and sum up
-        total_exemption = Money.zero()
-        
-        for _ in range(int(period_months)):
-            # Three calculations - minimum is exempt
-            actual_hra = monthly_hra
-            
-            # 50% for metro, 40% for non-metro
-            percentage = Decimal('50') if self.salary_income.hra_city_type == "metro" else Decimal('40')
-            percent_of_salary = monthly_basic_da.percentage(percentage)
-            
-            # Rent paid minus 10% of salary
-            ten_percent_salary = monthly_basic_da.percentage(Decimal('10'))
-            
-            if monthly_rent.is_greater_than(ten_percent_salary):
-                rent_minus_ten_percent = monthly_rent.subtract(ten_percent_salary)
-            else:
-                rent_minus_ten_percent = Money.zero()
-            
-            # Minimum of the three amounts
-            monthly_exemption = Money.zero()
-            if actual_hra.is_positive():
-                monthly_exemption = actual_hra.min(percent_of_salary).min(rent_minus_ten_percent)
-            
-            total_exemption = total_exemption.add(monthly_exemption)
-        
-        # Handle fractional month
-        fractional_part = period_months % 1
-        if fractional_part > 0:
-            actual_hra = monthly_hra.multiply(fractional_part)
-            percent_of_salary = monthly_basic_da.percentage(percentage).multiply(fractional_part)
-            rent_minus_ten_percent = monthly_rent.subtract(ten_percent_salary).multiply(fractional_part)
-            
-            if rent_minus_ten_percent.amount < 0:
-                rent_minus_ten_percent = Money.zero()
-            
-            fractional_exemption = Money.zero()
-            if actual_hra.is_positive():
-                fractional_exemption = actual_hra.min(percent_of_salary).min(rent_minus_ten_percent)
-            
-            total_exemption = total_exemption.add(fractional_exemption)
-        
-        return total_exemption
+        # TODO: This should be moved to deductions module
+        # For now, return zero to avoid accessing non-existent attributes
+        # HRA exemption will be calculated in the deductions module
+        return Money.zero()
 
 
 @dataclass

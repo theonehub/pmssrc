@@ -49,9 +49,8 @@ const transformComprehensiveRecordToFormData = (comprehensiveRecord, empId) => {
         ...defaultState.salary_income,
         basic_salary: toNumber(salaryData.basic_salary),
         dearness_allowance: toNumber(salaryData.dearness_allowance),
-        hra_received: toNumber(salaryData.hra_received),
-        hra_city_type: salaryData.hra_city_type || 'non_metro',
-        actual_rent_paid: toNumber(salaryData.actual_rent_paid),
+        hra_provided: toNumber(salaryData.hra_provided),
+
         special_allowance: toNumber(salaryData.special_allowance),
         other_allowances: toNumber(salaryData.other_allowances),
         bonus: toNumber(salaryData.bonus),
@@ -208,8 +207,7 @@ const useTaxationForm = (empId) => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  const [cityForHRA, setCityForHRA] = useState('Others');
-  const [autoComputeHRA, setAutoComputeHRA] = useState(true);
+
   const [taxBreakup, setTaxBreakup] = useState(null);
   
   const queryClient = useQueryClient();
@@ -268,14 +266,7 @@ const useTaxationForm = (empId) => {
       
       setTaxationData(transformedData);
       
-      // Set city for HRA if available
-      if (transformedData.salary_income?.hra_city_type) {
-        const cityMapping = {
-          'metro': 'Delhi', // Default metro city
-          'non_metro': 'Others'
-        };
-        setCityForHRA(cityMapping[transformedData.salary_income.hra_city_type] || 'Others');
-      }
+
       
       // Reset calculated tax when new data is loaded
       setCalculatedTax(null);
@@ -319,8 +310,7 @@ const useTaxationForm = (empId) => {
     const stringFields = [
       'occupancy_status', 'property_address', 'relation_80dd', 'section_80g_100_head',
       'relation_80ddb', 'disability_percentage', 'disability_percentage_80u', 'ev_purchase_date',
-      'section_80g_100_ql_head', 'section_80g_50_head', 'section_80g_50_ql_head', 'uncomputed_pension_frequency',
-      'hra_city_type'
+      'section_80g_100_ql_head', 'section_80g_50_head', 'section_80g_50_ql_head', 'uncomputed_pension_frequency'
     ];
     
     if (stringFields.includes(field)) {
@@ -445,33 +435,7 @@ const useTaxationForm = (empId) => {
     }
   };
 
-  // Compute HRA based on city and salary components
-  const computeHRA = (cities) => {
-    const basic = taxationData.salary_income?.basic_salary || 0;
-    const da = taxationData.salary_income?.dearness_allowance || 0;
-    const baseAmount = basic + da;
-    
-    const selectedCity = cities.find(city => city.value === cityForHRA);
-    const rate = selectedCity ? selectedCity.rate : 0.4;
-    handleInputChange('salary_income', 'hra_city_type', cityForHRA === 'Delhi' || cityForHRA === 'Mumbai' || cityForHRA === 'Kolkata' || cityForHRA === 'Chennai' ? 'metro' : 'non_metro');
-    
-    return Math.round(baseAmount * rate);
-  };
 
-  // Handle city change
-  const handleCityChange = (event) => {
-    setCityForHRA(event.target.value);
-    
-    // Set the hra_city_type based on the selected city
-    const cityType = ['Delhi', 'Mumbai', 'Kolkata', 'Chennai'].includes(event.target.value) ? 'metro' : 'non_metro';
-    handleInputChange('salary_income', 'hra_city_type', cityType);
-  };
-
-  // Handle HRA manual edit
-  const handleHRAChange = (e) => {
-    setAutoComputeHRA(false);
-    handleInputChange('salary_income', 'hra_received', e.target.value);
-  };
 
   // Calculate tax
   const handleCalculateTax = async () => {
@@ -609,10 +573,7 @@ const useTaxationForm = (empId) => {
     setError,
     success,
     setSuccess,
-    cityForHRA,
-    setCityForHRA,
-    autoComputeHRA,
-    setAutoComputeHRA,
+
     taxBreakup,
     setTaxBreakup,
     fetchTaxationData,
@@ -621,9 +582,7 @@ const useTaxationForm = (empId) => {
     handleRegimeChange,
     handleFocus,
     handleNestedFocus,
-    computeHRA,
-    handleCityChange,
-    handleHRAChange,
+
     handleCalculateTax,
     handleSubmit,
     fetchVrsValue,

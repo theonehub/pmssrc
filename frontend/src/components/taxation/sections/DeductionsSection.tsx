@@ -102,10 +102,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="PPF"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80c_ssp', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80c?.ppf_contribution || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80c.ppf_contribution', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80c_ssp', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80c.ppf_contribution', e)}
           />
           
           {/* NSC */}
@@ -113,10 +113,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="NSC"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80c_nsc', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80c?.nsc_investment || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80c.nsc_investment', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80c_nsc', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80c.nsc_investment', e)}
           />
           
           {/* ULIP */}
@@ -124,10 +124,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="ULIP"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80c_ulip', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80c?.ulip_premium || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80c.ulip_premium', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80c_ulip', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80c.ulip_premium', e)}
           />
           
           {/* Tax Saving Mutual Funds */}
@@ -135,10 +135,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="Tax Saving Mutual Funds (ELSS)"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80c_tsmf', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80c?.elss_investment || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80c.elss_investment', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80c_tsmf', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80c.elss_investment', e)}
           />
           
           {/* Tuition Fees */}
@@ -146,10 +146,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="Tuition Fees (for Children)"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80c_tffte2c', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80c?.tuition_fees || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80c.tuition_fees', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80c_tffte2c', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80c.tuition_fees', e)}
           />
           
           {/* Housing Loan Principal Repayment */}
@@ -157,10 +157,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="Housing Loan Principal Repayment"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80c_paphl', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80c?.home_loan_principal || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80c.home_loan_principal', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80c_paphl', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80c.home_loan_principal', e)}
           />
           
           {/* Sukanya Samriddhi */}
@@ -168,10 +168,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="Sukanya Samriddhi"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80c_sdpphp', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80c?.sukanya_samriddhi || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80c.sukanya_samriddhi', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80c_sdpphp', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80c.sukanya_samriddhi', e)}
           />
           
           {/* Bank FD */}
@@ -179,10 +179,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="Tax Saving Bank FD (5 years)"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80c_tsfdsb', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80c?.tax_saving_fd || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80c.tax_saving_fd', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80c_tsfdsb', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80c.tax_saving_fd', e)}
           />
           
           {/* Senior Citizens Savings Scheme */}
@@ -190,10 +190,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="Senior Citizens Savings Scheme"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80c_scss', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80c?.senior_citizen_savings || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80c.senior_citizen_savings', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80c_scss', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80c.senior_citizen_savings', e)}
           />
           
           {/* Others */}
@@ -201,10 +201,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="Others"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80c_others', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80c?.other_80c_investments || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80c.other_80c_investments', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80c_others', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80c.other_80c_investments', e)}
           />
         </Box>
       </Paper>
@@ -225,10 +225,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="Pension Plans (Sec 80CCC)"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80ccc_ppic', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80ccc?.pension_fund_contribution || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80ccc.pension_fund_contribution', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80ccc_ppic', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80ccc.pension_fund_contribution', e)}
           />
           
           {/* NPS Contribution (Sec 80CCD(1)) */}
@@ -237,10 +237,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
               fullWidth
               label="NPS Contribution (Sec 80CCD(1))"
               type="text"
-              value={formatIndianNumber(0)}
-              onChange={(e) => handleTextFieldChange('section_80ccd_1_nps', e)}
+              value={formatIndianNumber(taxationData.deductions?.section_80ccd?.employee_nps_contribution || 0)}
+              onChange={(e) => handleTextFieldChange('deductions.section_80ccd.employee_nps_contribution', e)}
               InputProps={{ startAdornment: '₹' }}
-              onFocus={(e) => handleTextFieldFocus('section_80ccd_1_nps', e)}
+              onFocus={(e) => handleTextFieldFocus('deductions.section_80ccd.employee_nps_contribution', e)}
             />
           </Tooltip>
           
@@ -250,10 +250,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
               fullWidth
               label="Additional NPS (Sec 80CCD(1B)) Max ₹50,000"
               type="text"
-              value={formatIndianNumber(0)}
-              onChange={(e) => handleTextFieldChange('section_80ccd_1b_additional', e)}
+              value={formatIndianNumber(taxationData.deductions?.section_80ccd?.additional_nps_contribution || 0)}
+              onChange={(e) => handleTextFieldChange('deductions.section_80ccd.additional_nps_contribution', e)}
               InputProps={{ startAdornment: '₹' }}
-              onFocus={(e) => handleTextFieldFocus('section_80ccd_1b_additional', e)}
+              onFocus={(e) => handleTextFieldFocus('deductions.section_80ccd.additional_nps_contribution', e)}
             />
           </Tooltip>
           
@@ -263,10 +263,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
               fullWidth
               label="Employer NPS Contribution (Sec 80CCD(2))"
               type="text"
-              value={formatIndianNumber(0)}
-              onChange={(e) => handleTextFieldChange('section_80ccd_2_enps', e)}
+              value={formatIndianNumber(taxationData.deductions?.section_80ccd?.employer_nps_contribution || 0)}
+              onChange={(e) => handleTextFieldChange('deductions.section_80ccd.employer_nps_contribution', e)}
               InputProps={{ startAdornment: '₹' }}
-              onFocus={(e) => handleTextFieldFocus('section_80ccd_2_enps', e)}
+              onFocus={(e) => handleTextFieldFocus('deductions.section_80ccd.employer_nps_contribution', e)}
             />
           </Tooltip>
         </Box>
@@ -299,10 +299,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="Preventive Health Checkup"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80d_checkup', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80d?.preventive_health_checkup || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80d.preventive_health_checkup', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80d_checkup', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80d.preventive_health_checkup', e)}
           />
           
           {/* Health Insurance for Parents */}
@@ -310,10 +310,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="Health Insurance - Parents"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80d_parents', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80d?.parent_premium || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80d.parent_premium', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80d_parents', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80d.parent_premium', e)}
           />
         </Box>
       </Paper>
@@ -334,10 +334,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="Section 80DD - Disability"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80dd', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80dd?.relation ? 75000 : 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80dd.relation', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80dd', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80dd.relation', e)}
           />
           
           {/* Relation for 80DD */}
@@ -346,9 +346,9 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
               <Box>
                 <InputLabel>Relation</InputLabel>
                 <Select
-                  value={'Parents'}
+                  value={taxationData.deductions?.section_80dd?.relation || 'Parents'}
                   label="Relation for 80DD"
-                  onChange={(e) => handleSelectChange('relation_80dd', e)}
+                  onChange={(e) => handleSelectChange('deductions.section_80dd.relation', e)}
                 >
                   {relationOptions.map((relation) => (
                     <MenuItem key={relation} value={relation}>{relation}</MenuItem>
@@ -362,9 +362,9 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
           <FormControl fullWidth>
             <InputLabel>Disability Percentage</InputLabel>
             <Select
-              value={'Between 40%-80%'}
+              value={taxationData.deductions?.section_80dd?.disability_percentage || 'Between 40%-80%'}
               label="Disability Percentage"
-              onChange={(e) => handleSelectChange('disability_percentage', e)}
+              onChange={(e) => handleSelectChange('deductions.section_80dd.disability_percentage', e)}
             >
               {disabilityPercentageOptions.map((option) => (
                 <MenuItem key={option} value={option}>{option}</MenuItem>
@@ -378,10 +378,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
               fullWidth
               label="Section 80DDB - Medical Treatment"
               type="text"
-              value={formatIndianNumber(0)}
-              onChange={(e) => handleTextFieldChange('section_80ddb', e)}
+              value={formatIndianNumber(taxationData.deductions?.section_80ddb?.medical_expenses || 0)}
+              onChange={(e) => handleTextFieldChange('deductions.section_80ddb.medical_expenses', e)}
               InputProps={{ startAdornment: '₹' }}
-              onFocus={(e) => handleTextFieldFocus('section_80ddb', e)}
+              onFocus={(e) => handleTextFieldFocus('deductions.section_80ddb.medical_expenses', e)}
             />
           </Tooltip>
           
@@ -391,9 +391,9 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
               <Box>
                 <InputLabel>Relation</InputLabel>
                 <Select
-                  value={'Parents'}
+                  value={taxationData.deductions?.section_80ddb?.relation || 'Parents'}
                   label="Relation for 80DDB"
-                  onChange={(e) => handleSelectChange('relation_80ddb', e)}
+                  onChange={(e) => handleSelectChange('deductions.section_80ddb.relation', e)}
                 >
                   {relationOptions.map((relation) => (
                     <MenuItem key={relation} value={relation}>{relation}</MenuItem>
@@ -408,9 +408,9 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="Age for 80DDB"
             type="number"
-            value={0}
-            onChange={(e) => handleTextFieldChange('age_80ddb', e)}
-            onFocus={(e) => handleTextFieldFocus('age_80ddb', e)}
+            value={taxationData.deductions?.section_80ddb?.dependent_age || 0}
+            onChange={(e) => handleTextFieldChange('deductions.section_80ddb.dependent_age', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80ddb.dependent_age', e)}
           />
           
           {/* Section 80U - Self Disability */}
@@ -418,19 +418,19 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="Section 80U - Self Disability"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80u', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80u?.disability_percentage ? 75000 : 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80u.disability_percentage', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80u', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80u.disability_percentage', e)}
           />
           
           {/* Disability Percentage for 80U */}
           <FormControl fullWidth>
             <InputLabel>Disability Percentage (80U)</InputLabel>
             <Select
-              value={'Between 40%-80%'}
+              value={taxationData.deductions?.section_80u?.disability_percentage || 'Between 40%-80%'}
               label="Disability Percentage (80U)"
-              onChange={(e) => handleSelectChange('disability_percentage_80u', e)}
+              onChange={(e) => handleSelectChange('deductions.section_80u.disability_percentage', e)}
             >
               {disabilityPercentageOptions.map((option) => (
                 <MenuItem key={option} value={option}>{option}</MenuItem>
@@ -454,9 +454,9 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
           <FormControl fullWidth>
             <InputLabel>Relationship (80E)</InputLabel>
             <Select
-              value={''}
+              value={taxationData.deductions?.section_80e?.relation || ''}
               label="Relationship (80E)"
-              onChange={(e) => handleSelectChange('relation_80e', e)}
+              onChange={(e) => handleSelectChange('deductions.section_80e.relation', e)}
             >
               <MenuItem value="Self">Self</MenuItem>
               <MenuItem value="Spouse">Spouse</MenuItem>
@@ -469,10 +469,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="Section 80EEB - Electric Vehicle Loan Interest"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80eeb', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80eeb?.ev_loan_interest || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80eeb.ev_loan_interest', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80eeb', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80eeb.ev_loan_interest', e)}
           />
 
           {/* EV Purchase Date */}
@@ -481,12 +481,59 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
               fullWidth
               label="Date of Purchase"
               type="date"
-              value={''}
-              onChange={(e) => handleTextFieldChange('ev_purchase_date', e)}
+              value={taxationData.deductions?.section_80eeb?.ev_purchase_date || ''}
+              onChange={(e) => handleTextFieldChange('deductions.section_80eeb.ev_purchase_date', e)}
               InputLabelProps={{ shrink: true }}
             />
           </Tooltip>
         </Box>
+      </Paper>
+      
+      <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+        <FormSectionHeader title="HRA Exemption" withDivider={false} />
+        
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: 3,
+            width: '100%'
+          }}
+        >
+          {/* Actual Rent Paid */}
+          <TextField
+            fullWidth
+            label="Actual Rent Paid"
+            type="text"
+            value={formatIndianNumber(taxationData.deductions?.hra_exemption?.actual_rent_paid || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.hra_exemption.actual_rent_paid', e)}
+            InputProps={{ startAdornment: '₹' }}
+            onFocus={(e) => handleTextFieldFocus('deductions.hra_exemption.actual_rent_paid', e)}
+            helperText="Enter the actual rent amount you pay annually"
+          />
+          
+          {/* HRA City Type */}
+          <FormControl fullWidth>
+            <InputLabel>City Type for HRA Calculation</InputLabel>
+            <Select
+              value={taxationData.deductions?.hra_exemption?.hra_city_type || 'non_metro'}
+              label="City Type for HRA Calculation"
+              onChange={(e) => handleSelectChange('deductions.hra_exemption.hra_city_type', e)}
+            >
+              <MenuItem value="metro">Metro City (50% exemption)</MenuItem>
+              <MenuItem value="non_metro">Non-Metro City (40% exemption)</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+        
+        <Alert severity="info" sx={{ mt: 2 }}>
+          <Typography variant="body2">
+            <strong>HRA Exemption Calculation:</strong> The exemption is the minimum of:
+            <br />• Actual HRA received from employer
+            <br />• {taxationData.deductions?.hra_exemption?.hra_city_type === 'metro' ? '50%' : '40%'} of (Basic Salary + Dearness Allowance)
+            <br />• Actual rent paid minus 10% of (Basic Salary + Dearness Allowance)
+          </Typography>
+        </Alert>
       </Paper>
       
       <Paper variant="outlined" sx={{ p: 3 }}>
@@ -508,26 +555,33 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
           
           <TextField
             fullWidth
-            label="100% Deduction - Amount"
+            label="PM Relief Fund"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80g_100_wo_ql', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80g?.pm_relief_fund || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80g.pm_relief_fund', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80g_100_wo_ql', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80g.pm_relief_fund', e)}
           />
           
-          <FormControl fullWidth>
-            <InputLabel>Donation Head</InputLabel>
-            <Select
-              value={'National Defence Fund set up by Central Government'}
-              label="Donation Head"
-              onChange={(e) => handleSelectChange('section_80g_100_head', e)}
-            >
-              <MenuItem value="National Defence Fund set up by Central Government">National Defence Fund set up by Central Government</MenuItem>
-              <MenuItem value="Prime Minister's National Relief Fund">Prime Minister's National Relief Fund</MenuItem>
-              <MenuItem value="Any other fund set up by Central Government for charitable purposes">Any other fund set up by Central Government for charitable purposes</MenuItem>
-            </Select>
-          </FormControl>
+          <TextField
+            fullWidth
+            label="National Defence Fund"
+            type="text"
+            value={formatIndianNumber(taxationData.deductions?.section_80g?.national_defence_fund || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80g.national_defence_fund', e)}
+            InputProps={{ startAdornment: '₹' }}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80g.national_defence_fund', e)}
+          />
+          
+          <TextField
+            fullWidth
+            label="CM Relief Fund"
+            type="text"
+            value={formatIndianNumber(taxationData.deductions?.section_80g?.cm_relief_fund || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80g.cm_relief_fund', e)}
+            InputProps={{ startAdornment: '₹' }}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80g.cm_relief_fund', e)}
+          />
           
           {/* 50% without qualifying limit section */}
           <Box sx={{ gridColumn: '1 / -1' }}>
@@ -537,26 +591,23 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
           
           <TextField
             fullWidth
-            label="50% Deduction - Amount"
+            label="JN Memorial Fund"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80g_50_wo_ql', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80g?.jn_memorial_fund || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80g.jn_memorial_fund', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80g_50_wo_ql', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80g.jn_memorial_fund', e)}
           />
           
-          <FormControl fullWidth>
-            <InputLabel>Donation Head</InputLabel>
-            <Select
-              value={'Prime Minister\'s Drought Relief Fund'}
-              label="Donation Head"
-              onChange={(e) => handleSelectChange('section_80g_50_head', e)}
-            >
-              <MenuItem value="Prime Minister's Drought Relief Fund">Prime Minister's Drought Relief Fund</MenuItem>
-              <MenuItem value="National Foundation for Communal Harmony">National Foundation for Communal Harmony</MenuItem>
-              <MenuItem value="Any other fund approved by Central Government">Any other fund approved by Central Government</MenuItem>
-            </Select>
-          </FormControl>
+          <TextField
+            fullWidth
+            label="PM Drought Relief Fund"
+            type="text"
+            value={formatIndianNumber(taxationData.deductions?.section_80g?.pm_drought_relief || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80g.pm_drought_relief', e)}
+            InputProps={{ startAdornment: '₹' }}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80g.pm_drought_relief', e)}
+          />
           
           {/* 100% with qualifying limit section */}
           <Box sx={{ gridColumn: '1 / -1' }}>
@@ -566,25 +617,23 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
           
           <TextField
             fullWidth
-            label="100% Deduction (with limit) - Amount"
+            label="Family Planning Donation"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80g_100_ql', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80g?.family_planning_donation || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80g.family_planning_donation', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80g_100_ql', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80g.family_planning_donation', e)}
           />
           
-          <FormControl fullWidth>
-            <InputLabel>Donation Head</InputLabel>
-            <Select
-              value={'Donations to government or any approved local authority to promote family planning'}
-              label="Donation Head"
-              onChange={(e) => handleSelectChange('section_80g_100_ql_head', e)}
-            >
-              <MenuItem value="Donations to government or any approved local authority to promote family planning">Donations to government or any approved local authority to promote family planning</MenuItem>
-              <MenuItem value="Any other approved institution for family planning">Any other approved institution for family planning</MenuItem>
-            </Select>
-          </FormControl>
+          <TextField
+            fullWidth
+            label="Indian Olympic Association"
+            type="text"
+            value={formatIndianNumber(taxationData.deductions?.section_80g?.indian_olympic_association || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80g.indian_olympic_association', e)}
+            InputProps={{ startAdornment: '₹' }}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80g.indian_olympic_association', e)}
+          />
           
           {/* 50% with qualifying limit section */}
           <Box sx={{ gridColumn: '1 / -1' }}>
@@ -594,25 +643,23 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
           
           <TextField
             fullWidth
-            label="50% Deduction (with limit) - Amount"
+            label="Government Charitable Donations"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80g_50_ql', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80g?.govt_charitable_donations || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80g.govt_charitable_donations', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80g_50_ql', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80g.govt_charitable_donations', e)}
           />
           
-          <FormControl fullWidth>
-            <InputLabel>Donation Head</InputLabel>
-            <Select
-              value={'Donations to government or any approved local authority to except to promote family planning'}
-              label="Donation Head"
-              onChange={(e) => handleSelectChange('section_80g_50_ql_head', e)}
-            >
-              <MenuItem value="Donations to government or any approved local authority to except to promote family planning">Donations to government or any approved local authority to except to promote family planning</MenuItem>
-              <MenuItem value="Any other approved charitable institution">Any other approved charitable institution</MenuItem>
-            </Select>
-          </FormControl>
+          <TextField
+            fullWidth
+            label="Other Charitable Donations"
+            type="text"
+            value={formatIndianNumber(taxationData.deductions?.section_80g?.other_charitable_donations || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80g.other_charitable_donations', e)}
+            InputProps={{ startAdornment: '₹' }}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80g.other_charitable_donations', e)}
+          />
           
           {/* Political donations section */}
           <Box sx={{ gridColumn: '1 / -1' }}>
@@ -625,10 +672,10 @@ const DeductionsSection: React.FC<DeductionsSectionProps> = ({
             fullWidth
             label="Section 80GGC - Political Donations"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('section_80ggc', e)}
+            value={formatIndianNumber(taxationData.deductions?.section_80ggc?.political_party_contribution || 0)}
+            onChange={(e) => handleTextFieldChange('deductions.section_80ggc.political_party_contribution', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('section_80ggc', e)}
+            onFocus={(e) => handleTextFieldFocus('deductions.section_80ggc.political_party_contribution', e)}
           />
         </Box>
       </Paper>

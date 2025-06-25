@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Dict, Any, Optional
 from datetime import date
 from enum import Enum
+from decimal import Decimal
 
 from app.domain.value_objects.money import Money
 from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
@@ -629,6 +630,133 @@ class DeductionSection80TTA_TTB:
 
 
 @dataclass
+class HRAExemption:
+    """HRA exemption calculation as per Indian tax rules."""
+    
+    actual_rent_paid: Money = Money.zero()
+    hra_city_type: str = "non_metro"  # "metro" or "non_metro"
+    
+    def __post_init__(self):
+        """Validate HRA city type."""
+        if self.hra_city_type not in ["metro", "non_metro"]:
+            raise ValueError("HRA city type must be 'metro' or 'non_metro'")
+    
+    def calculate_hra_exemption(self, regime: TaxRegime, basic_salary: Money, dearness_allowance: Money, hra_provided: Money) -> Money:
+        """
+        Calculate HRA exemption as per tax rules.
+        
+        Args:
+            regime: Tax regime (old/new)
+            basic_salary: Basic salary amount
+            dearness_allowance: Dearness allowance amount
+            hra_provided: HRA amount provided by employer
+            
+        Returns:
+            Money: HRA exemption amount
+        """
+        if regime.regime_type == TaxRegimeType.NEW:
+            return Money.zero()  # No HRA exemption in new regime
+        
+        basic_plus_da = basic_salary.add(dearness_allowance)
+        
+        # Three calculations - minimum is exempt
+        actual_hra = hra_provided
+        
+        # 50% for metro, 40% for non-metro
+        percentage = Decimal('50') if self.hra_city_type == "metro" else Decimal('40')
+        percent_of_salary = basic_plus_da.percentage(percentage)
+        
+        # Rent paid minus 10% of salary
+        ten_percent_salary = basic_plus_da.percentage(Decimal('10'))
+        
+        if self.actual_rent_paid.is_greater_than(ten_percent_salary):
+            rent_minus_ten_percent = self.actual_rent_paid.subtract(ten_percent_salary)
+        else:
+            rent_minus_ten_percent = Money.zero()
+        
+        # Minimum of the three amounts
+        min_amount = Money.zero()
+        if actual_hra.is_positive():
+            min_amount = actual_hra.min(percent_of_salary).min(rent_minus_ten_percent)
+        
+        return min_amount
+    
+    def get_hra_breakdown(self, regime: TaxRegime, basic_salary: Money, dearness_allowance: Money, hra_provided: Money) -> Dict[str, Any]:
+        """
+        Get detailed breakdown of HRA exemption calculation.
+        
+        Args:
+            regime: Tax regime
+            basic_salary: Basic salary amount
+            dearness_allowance: Dearness allowance amount
+            hra_provided: HRA amount provided by employer
+            
+        Returns:
+            Dict: Detailed HRA breakdown
+        """
+        if regime.regime_type == TaxRegimeType.NEW:
+            return {
+                "regime": "New",
+                "message": "No HRA exemption allowed in new regime",
+                "hra_provided": hra_provided.to_float(),
+                "taxable_hra": hra_provided.to_float(),
+                "exemption": 0.0
+            }
+        
+        basic_plus_da = basic_salary.add(dearness_allowance)
+        percentage = Decimal('50') if self.hra_city_type == "metro" else Decimal('40')
+        percent_of_salary = basic_plus_da.percentage(percentage)
+        ten_percent_salary = basic_plus_da.percentage(Decimal('10'))
+        
+        rent_minus_ten_percent = Money.zero()
+        if self.actual_rent_paid.is_greater_than(ten_percent_salary):
+            rent_minus_ten_percent = self.actual_rent_paid.subtract(ten_percent_salary)
+        
+        exemption = self.calculate_hra_exemption(regime, basic_salary, dearness_allowance, hra_provided)
+        taxable_hra = hra_provided.subtract(exemption).max(Money.zero())
+        
+        return {
+            "regime": "Old",
+            "city_type": self.hra_city_type,
+            "calculations": {
+                "actual_hra_received": hra_provided.to_float(),
+                "percentage_of_salary": {
+                    "rate": f"{percentage}%",
+                    "amount": percent_of_salary.to_float()
+                },
+                "rent_minus_10_percent": {
+                    "rent_paid": self.actual_rent_paid.to_float(),
+                    "ten_percent_salary": ten_percent_salary.to_float(),
+                    "amount": rent_minus_ten_percent.to_float()
+                }
+            },
+            "exemption": exemption.to_float(),
+            "taxable_hra": taxable_hra.to_float(),
+            "basic_plus_da": basic_plus_da.to_float()
+        }
+    
+    def validate_hra_details(self, hra_provided: Money) -> Dict[str, str]:
+        """
+        Validate HRA details and return any warnings.
+        
+        Args:
+            hra_provided: HRA amount provided by employer
+            
+        Returns:
+            Dict: Validation warnings if any
+        """
+        warnings = {}
+        
+        if hra_provided.is_positive() and self.actual_rent_paid.is_zero():
+            warnings["rent_validation"] = "HRA received but no rent paid - HRA exemption may not be available"
+        
+        if self.actual_rent_paid.is_greater_than(hra_provided):
+            warnings["rent_vs_hra"] = "Rent paid is more than HRA received - consider claiming full HRA"
+        
+        return warnings
+
+
+@dataclass
 class OtherDeductions:
     """Other miscellaneous deductions."""
     
@@ -675,6 +803,7 @@ class TaxDeductions:
     section_80ggc: Optional[DeductionSection80GGC] = None
     section_80u: Optional[DeductionSection80U] = None
     section_80tta_ttb: Optional[DeductionSection80TTA_TTB] = None
+    hra_exemption: Optional[HRAExemption] = None
     other_deductions: Optional[OtherDeductions] = None
     
     def __post_init__(self):
@@ -687,6 +816,8 @@ class TaxDeductions:
             self.section_80ccd = DeductionSection80CCD()
         if self.section_80d is None:
             self.section_80d = DeductionSection80D()
+        if self.hra_exemption is None:
+            self.hra_exemption = HRAExemption()
         if self.other_deductions is None:
             self.other_deductions = OtherDeductions()
     
@@ -914,9 +1045,11 @@ class TaxDeductions:
     def standard_deduction(self) -> Money:
         return Money.from_int(50000)  # Standard deduction amount
     
-    @property
-    def hra_exemption(self) -> Money:
-        return Money.zero()  # This should be calculated based on salary
+    def calculate_hra_exemption(self, regime: TaxRegime, basic_salary: Money, dearness_allowance: Money, hra_provided: Money) -> Money:
+        """Calculate HRA exemption using the dedicated HRA exemption section."""
+        if self.hra_exemption:
+            return self.hra_exemption.calculate_hra_exemption(regime, basic_salary, dearness_allowance, hra_provided)
+        return Money.zero()
     
     @property
     def lta_exemption(self) -> Money:
@@ -1228,6 +1361,14 @@ class TaxDeductions:
             # Interest exemptions
             if self.section_80tta_ttb:
                 breakdown["interest_exemptions"] = self.section_80tta_ttb.get_exemption_breakdown(regime)
+            
+            # HRA exemption (requires salary information for calculation)
+            if self.hra_exemption:
+                breakdown["hra_exemption"] = {
+                    "city_type": self.hra_exemption.hra_city_type,
+                    "actual_rent_paid": self.hra_exemption.actual_rent_paid.to_float(),
+                    "note": "HRA exemption calculation requires salary information"
+                }
             
             # Other deductions (for backward compatibility)
             if self.other_deductions:

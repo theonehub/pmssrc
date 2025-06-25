@@ -12,7 +12,12 @@ from app.domain.repositories.taxation_repository import TaxationRepository
 from app.domain.entities.taxation.taxation_record import TaxationRecord
 from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
 from app.domain.entities.taxation.salary_income import SalaryIncome
-from app.domain.entities.taxation.deductions import TaxDeductions
+from app.domain.entities.taxation.deductions import (
+    TaxDeductions, DeductionSection80C, DeductionSection80D, 
+    DeductionSection80E, DeductionSection80G, DeductionSection80TTA_TTB, OtherDeductions,
+    DeductionSection80CCC, DeductionSection80CCD, DeductionSection80DD, DeductionSection80DDB,
+    DeductionSection80EEB, DeductionSection80GGC, DeductionSection80U, RelationType, DisabilityPercentage
+)
 from app.domain.entities.taxation.perquisites import Perquisites
 from app.domain.entities.taxation.other_income import OtherIncome
 from app.domain.entities.taxation.house_property_income import HousePropertyIncome
@@ -400,14 +405,13 @@ class MongoDBTaxationRepository(TaxationRepository):
         return {
             "basic_salary": salary_income.basic_salary.to_float(),
             "dearness_allowance": salary_income.dearness_allowance.to_float(),
-            "hra_received": salary_income.hra_received.to_float(),
-            "hra_city_type": salary_income.hra_city_type,
-            "actual_rent_paid": salary_income.actual_rent_paid.to_float(),
+            "hra_provided": salary_income.hra_provided.to_float(),
             "special_allowance": salary_income.special_allowance.to_float(),
             "bonus": salary_income.bonus.to_float(),
             "commission": salary_income.commission.to_float(),
             "overtime": salary_income.specific_allowances.overtime_allowance.to_float() if salary_income.specific_allowances else 0.0,
             "arrears": salary_income.arrears.to_float()
+            # Note: hra_city_type and actual_rent_paid are now in deductions module
         }
     
     def _serialize_deductions(self, deductions: TaxDeductions) -> dict:
@@ -836,38 +840,259 @@ class MongoDBTaxationRepository(TaxationRepository):
         return SalaryIncome(
             basic_salary=Money(salary_data.get("basic_salary", 0)),
             dearness_allowance=Money(salary_data.get("dearness_allowance", 0)),
-            hra_received=Money(salary_data.get("hra_received", 0)),
-            hra_city_type=salary_data.get("hra_city_type", "metro"),
-            actual_rent_paid=Money(salary_data.get("actual_rent_paid", 0)),
+            hra_provided=Money(salary_data.get("hra_provided", 0)),
             special_allowance=Money(salary_data.get("special_allowance", 0)),
             bonus=Money(salary_data.get("bonus", 0)),
             commission=Money(salary_data.get("commission", 0)),
             arrears=Money(salary_data.get("arrears", 0)),
             specific_allowances=specific_allowances
+            # Note: hra_city_type and actual_rent_paid are now handled in deductions module
         )
     
     def _deserialize_deductions(self, deductions_data: dict) -> TaxDeductions:
         """Deserialize tax deductions from document format."""
         from app.domain.entities.taxation.deductions import (
             DeductionSection80C, DeductionSection80D, DeductionSection80E, 
-            DeductionSection80G, DeductionSection80TTA_TTB, OtherDeductions
+            DeductionSection80G, DeductionSection80TTA_TTB, OtherDeductions,
+            DeductionSection80CCC, DeductionSection80CCD, DeductionSection80DD,
+            DeductionSection80DDB, DeductionSection80EEB, DeductionSection80GGC,
+            DeductionSection80U, RelationType, DisabilityPercentage
         )
         
-        # Create simplified structure for now
-        section_80c = DeductionSection80C()
-        section_80d = DeductionSection80D()
-        section_80e = DeductionSection80E()
-        section_80g = DeductionSection80G()
-        section_80tta_ttb = DeductionSection80TTA_TTB()
-        other_deductions = OtherDeductions()
+        # Deserialize each section with data from document
+        section_80c = self._deserialize_section_80c(deductions_data.get("section_80c", {}))
+        section_80ccc = self._deserialize_section_80ccc(deductions_data.get("section_80ccc", {}))
+        section_80ccd = self._deserialize_section_80ccd(deductions_data.get("section_80ccd", {}))
+        section_80d = self._deserialize_section_80d(deductions_data.get("section_80d", {}))
+        section_80dd = self._deserialize_section_80dd(deductions_data.get("section_80dd", {}))
+        section_80ddb = self._deserialize_section_80ddb(deductions_data.get("section_80ddb", {}))
+        section_80e = self._deserialize_section_80e(deductions_data.get("section_80e", {}))
+        section_80eeb = self._deserialize_section_80eeb(deductions_data.get("section_80eeb", {}))
+        section_80g = self._deserialize_section_80g(deductions_data.get("section_80g", {}))
+        section_80ggc = self._deserialize_section_80ggc(deductions_data.get("section_80ggc", {}))
+        section_80u = self._deserialize_section_80u(deductions_data.get("section_80u", {}))
+        section_80tta_ttb = self._deserialize_section_80tta_ttb(deductions_data.get("section_80tta_ttb", {}))
+        other_deductions = self._deserialize_other_deductions(deductions_data.get("other_deductions", {}))
         
         return TaxDeductions(
             section_80c=section_80c,
+            section_80ccc=section_80ccc,
+            section_80ccd=section_80ccd,
             section_80d=section_80d,
+            section_80dd=section_80dd,
+            section_80ddb=section_80ddb,
             section_80e=section_80e,
+            section_80eeb=section_80eeb,
             section_80g=section_80g,
+            section_80ggc=section_80ggc,
+            section_80u=section_80u,
             section_80tta_ttb=section_80tta_ttb,
             other_deductions=other_deductions
+        )
+    
+    def _deserialize_section_80c(self, section_80c_doc: dict) -> DeductionSection80C:
+        """Deserialize Section 80C from document format."""
+        from app.domain.entities.taxation.deductions import DeductionSection80C
+        
+        return DeductionSection80C(
+            life_insurance_premium=Money.from_float(section_80c_doc.get("life_insurance_premium", 0.0)),
+            epf_contribution=Money.from_float(section_80c_doc.get("epf_contribution", 0.0)),
+            ppf_contribution=Money.from_float(section_80c_doc.get("ppf_contribution", 0.0)),
+            nsc_investment=Money.from_float(section_80c_doc.get("nsc_investment", 0.0)),
+            tax_saving_fd=Money.from_float(section_80c_doc.get("tax_saving_fd", 0.0)),
+            elss_investment=Money.from_float(section_80c_doc.get("elss_investment", 0.0)),
+            home_loan_principal=Money.from_float(section_80c_doc.get("home_loan_principal", 0.0)),
+            tuition_fees=Money.from_float(section_80c_doc.get("tuition_fees", 0.0)),
+            ulip_premium=Money.from_float(section_80c_doc.get("ulip_premium", 0.0)),
+            sukanya_samriddhi=Money.from_float(section_80c_doc.get("sukanya_samriddhi", 0.0)),
+            stamp_duty_property=Money.from_float(section_80c_doc.get("stamp_duty_property", 0.0)),
+            senior_citizen_savings=Money.from_float(section_80c_doc.get("senior_citizen_savings", 0.0)),
+            other_80c_investments=Money.from_float(section_80c_doc.get("other_80c_investments", 0.0))
+        )
+    
+    def _deserialize_section_80ccc(self, section_80ccc_doc: dict) -> DeductionSection80CCC:
+        """Deserialize Section 80CCC from document format."""
+        from app.domain.entities.taxation.deductions import DeductionSection80CCC
+        
+        return DeductionSection80CCC(
+            pension_fund_contribution=Money.from_float(section_80ccc_doc.get("pension_fund_contribution", 0.0))
+        )
+    
+    def _deserialize_section_80ccd(self, section_80ccd_doc: dict) -> DeductionSection80CCD:
+        """Deserialize Section 80CCD from document format."""
+        from app.domain.entities.taxation.deductions import DeductionSection80CCD
+        
+        return DeductionSection80CCD(
+            employee_nps_contribution=Money.from_float(section_80ccd_doc.get("employee_nps_contribution", 0.0)),
+            additional_nps_contribution=Money.from_float(section_80ccd_doc.get("additional_nps_contribution", 0.0)),
+            employer_nps_contribution=Money.from_float(section_80ccd_doc.get("employer_nps_contribution", 0.0))
+        )
+    
+    def _deserialize_section_80d(self, section_80d_doc: dict) -> DeductionSection80D:
+        """Deserialize Section 80D from document format."""
+        from app.domain.entities.taxation.deductions import DeductionSection80D
+        
+        return DeductionSection80D(
+            self_family_premium=Money.from_float(section_80d_doc.get("self_family_premium", 0.0)),
+            parent_premium=Money.from_float(section_80d_doc.get("parent_premium", 0.0)),
+            preventive_health_checkup=Money.from_float(section_80d_doc.get("preventive_health_checkup", 0.0)),
+            parent_age=section_80d_doc.get("parent_age", 55)
+        )
+    
+    def _deserialize_section_80dd(self, section_80dd_doc: dict) -> Optional[DeductionSection80DD]:
+        """Deserialize Section 80DD from document format."""
+        from app.domain.entities.taxation.deductions import DeductionSection80DD, RelationType, DisabilityPercentage
+        
+        if not section_80dd_doc:
+            return None
+        
+        try:
+            relation = RelationType(section_80dd_doc.get("relation", "SELF"))
+            disability_percentage = DisabilityPercentage(section_80dd_doc.get("disability_percentage", "MODERATE"))
+            
+            return DeductionSection80DD(
+                relation=relation,
+                disability_percentage=disability_percentage
+            )
+        except (ValueError, KeyError):
+            return None
+    
+    def _deserialize_section_80ddb(self, section_80ddb_doc: dict) -> Optional[DeductionSection80DDB]:
+        """Deserialize Section 80DDB from document format."""
+        from app.domain.entities.taxation.deductions import DeductionSection80DDB, RelationType
+        
+        if not section_80ddb_doc:
+            return None
+        
+        try:
+            relation = RelationType(section_80ddb_doc.get("relation", "SELF"))
+            
+            return DeductionSection80DDB(
+                dependent_age=section_80ddb_doc.get("dependent_age", 30),
+                medical_expenses=Money.from_float(section_80ddb_doc.get("medical_expenses", 0.0)),
+                relation=relation
+            )
+        except (ValueError, KeyError):
+            return None
+    
+    def _deserialize_section_80e(self, section_80e_doc: dict) -> DeductionSection80E:
+        """Deserialize Section 80E from document format."""
+        from app.domain.entities.taxation.deductions import DeductionSection80E, RelationType
+        
+        try:
+            relation = RelationType(section_80e_doc.get("relation", "SELF"))
+        except (ValueError, KeyError):
+            relation = RelationType.SELF
+        
+        return DeductionSection80E(
+            education_loan_interest=Money.from_float(section_80e_doc.get("education_loan_interest", 0.0)),
+            relation=relation
+        )
+    
+    def _deserialize_section_80eeb(self, section_80eeb_doc: dict) -> DeductionSection80EEB:
+        """Deserialize Section 80EEB from document format."""
+        from app.domain.entities.taxation.deductions import DeductionSection80EEB
+        from datetime import date
+        
+        ev_purchase_date = None
+        if section_80eeb_doc.get("ev_purchase_date"):
+            try:
+                ev_purchase_date = date.fromisoformat(section_80eeb_doc["ev_purchase_date"])
+            except (ValueError, TypeError):
+                ev_purchase_date = None
+        
+        return DeductionSection80EEB(
+            ev_loan_interest=Money.from_float(section_80eeb_doc.get("ev_loan_interest", 0.0)),
+            ev_purchase_date=ev_purchase_date
+        )
+    
+    def _deserialize_section_80g(self, section_80g_doc: dict) -> DeductionSection80G:
+        """Deserialize Section 80G from document format."""
+        from app.domain.entities.taxation.deductions import DeductionSection80G
+        
+        return DeductionSection80G(
+            # 100% deduction without qualifying limit
+            pm_relief_fund=Money.from_float(section_80g_doc.get("pm_relief_fund", 0.0)),
+            national_defence_fund=Money.from_float(section_80g_doc.get("national_defence_fund", 0.0)),
+            national_foundation_communal_harmony=Money.from_float(section_80g_doc.get("national_foundation_communal_harmony", 0.0)),
+            zila_saksharta_samiti=Money.from_float(section_80g_doc.get("zila_saksharta_samiti", 0.0)),
+            national_illness_assistance_fund=Money.from_float(section_80g_doc.get("national_illness_assistance_fund", 0.0)),
+            national_blood_transfusion_council=Money.from_float(section_80g_doc.get("national_blood_transfusion_council", 0.0)),
+            national_trust_autism_fund=Money.from_float(section_80g_doc.get("national_trust_autism_fund", 0.0)),
+            national_sports_fund=Money.from_float(section_80g_doc.get("national_sports_fund", 0.0)),
+            national_cultural_fund=Money.from_float(section_80g_doc.get("national_cultural_fund", 0.0)),
+            technology_development_fund=Money.from_float(section_80g_doc.get("technology_development_fund", 0.0)),
+            national_children_fund=Money.from_float(section_80g_doc.get("national_children_fund", 0.0)),
+            cm_relief_fund=Money.from_float(section_80g_doc.get("cm_relief_fund", 0.0)),
+            army_naval_air_force_funds=Money.from_float(section_80g_doc.get("army_naval_air_force_funds", 0.0)),
+            swachh_bharat_kosh=Money.from_float(section_80g_doc.get("swachh_bharat_kosh", 0.0)),
+            clean_ganga_fund=Money.from_float(section_80g_doc.get("clean_ganga_fund", 0.0)),
+            drug_abuse_control_fund=Money.from_float(section_80g_doc.get("drug_abuse_control_fund", 0.0)),
+            other_100_percent_wo_limit=Money.from_float(section_80g_doc.get("other_100_percent_wo_limit", 0.0)),
+            
+            # 50% deduction without qualifying limit
+            jn_memorial_fund=Money.from_float(section_80g_doc.get("jn_memorial_fund", 0.0)),
+            pm_drought_relief=Money.from_float(section_80g_doc.get("pm_drought_relief", 0.0)),
+            indira_gandhi_memorial_trust=Money.from_float(section_80g_doc.get("indira_gandhi_memorial_trust", 0.0)),
+            rajiv_gandhi_foundation=Money.from_float(section_80g_doc.get("rajiv_gandhi_foundation", 0.0)),
+            other_50_percent_wo_limit=Money.from_float(section_80g_doc.get("other_50_percent_wo_limit", 0.0)),
+            
+            # 100% deduction with qualifying limit
+            family_planning_donation=Money.from_float(section_80g_doc.get("family_planning_donation", 0.0)),
+            indian_olympic_association=Money.from_float(section_80g_doc.get("indian_olympic_association", 0.0)),
+            other_100_percent_w_limit=Money.from_float(section_80g_doc.get("other_100_percent_w_limit", 0.0)),
+            
+            # 50% deduction with qualifying limit
+            govt_charitable_donations=Money.from_float(section_80g_doc.get("govt_charitable_donations", 0.0)),
+            housing_authorities_donations=Money.from_float(section_80g_doc.get("housing_authorities_donations", 0.0)),
+            religious_renovation_donations=Money.from_float(section_80g_doc.get("religious_renovation_donations", 0.0)),
+            other_charitable_donations=Money.from_float(section_80g_doc.get("other_charitable_donations", 0.0)),
+            other_50_percent_w_limit=Money.from_float(section_80g_doc.get("other_50_percent_w_limit", 0.0))
+        )
+    
+    def _deserialize_section_80ggc(self, section_80ggc_doc: dict) -> DeductionSection80GGC:
+        """Deserialize Section 80GGC from document format."""
+        from app.domain.entities.taxation.deductions import DeductionSection80GGC
+        
+        return DeductionSection80GGC(
+            political_party_contribution=Money.from_float(section_80ggc_doc.get("political_party_contribution", 0.0))
+        )
+    
+    def _deserialize_section_80u(self, section_80u_doc: dict) -> Optional[DeductionSection80U]:
+        """Deserialize Section 80U from document format."""
+        from app.domain.entities.taxation.deductions import DeductionSection80U, DisabilityPercentage
+        
+        if not section_80u_doc:
+            return None
+        
+        try:
+            disability_percentage = DisabilityPercentage(section_80u_doc.get("disability_percentage", "MODERATE"))
+            return DeductionSection80U(disability_percentage=disability_percentage)
+        except (ValueError, KeyError):
+            return None
+    
+    def _deserialize_section_80tta_ttb(self, section_80tta_ttb_doc: dict) -> DeductionSection80TTA_TTB:
+        """Deserialize Section 80TTA/TTB from document format."""
+        from app.domain.entities.taxation.deductions import DeductionSection80TTA_TTB
+        
+        return DeductionSection80TTA_TTB(
+            savings_interest=Money.from_float(section_80tta_ttb_doc.get("savings_interest", 0.0)),
+            fd_interest=Money.from_float(section_80tta_ttb_doc.get("fd_interest", 0.0)),
+            rd_interest=Money.from_float(section_80tta_ttb_doc.get("rd_interest", 0.0)),
+            post_office_interest=Money.from_float(section_80tta_ttb_doc.get("post_office_interest", 0.0)),
+            age=section_80tta_ttb_doc.get("age", 25)
+        )
+    
+    def _deserialize_other_deductions(self, other_deductions_doc: dict) -> OtherDeductions:
+        """Deserialize other deductions from document format."""
+        from app.domain.entities.taxation.deductions import OtherDeductions
+        
+        return OtherDeductions(
+            education_loan_interest=Money.from_float(other_deductions_doc.get("education_loan_interest", 0.0)),
+            charitable_donations=Money.from_float(other_deductions_doc.get("charitable_donations", 0.0)),
+            savings_interest=Money.from_float(other_deductions_doc.get("savings_interest", 0.0)),
+            nps_contribution=Money.from_float(other_deductions_doc.get("nps_contribution", 0.0)),
+            other_deductions=Money.from_float(other_deductions_doc.get("other_deductions", 0.0))
         )
     
     def _deserialize_perquisites(self, perquisites_data: Optional[dict]) -> Optional[Perquisites]:

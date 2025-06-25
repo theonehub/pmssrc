@@ -571,75 +571,129 @@ const TaxationDashboard: React.FC = () => {
                   <TableBody>
                     <TableRow>
                       <TableCell>Section 80C (Life Insurance)</TableCell>
-                      <TableCell align="right">{formatCurrency(userData.deductions?.section_80c_lic || 0)}</TableCell>
+                      <TableCell align="right">{formatCurrency(userData.deductions?.section_80c?.life_insurance_premium || 0)}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Section 80C (EPF)</TableCell>
-                      <TableCell align="right">{formatCurrency(userData.deductions?.section_80c_epf || 0)}</TableCell>
+                      <TableCell align="right">{formatCurrency(userData.deductions?.section_80c?.epf_contribution || 0)}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Section 80C (Other Investments)</TableCell>
                       <TableCell align="right">{formatCurrency(
-                        (userData.deductions?.section_80c_ssp || 0) +
-                        (userData.deductions?.section_80c_nsc || 0) +
-                        (userData.deductions?.section_80c_ulip || 0) +
-                        (userData.deductions?.section_80c_tsmf || 0) +
-                        (userData.deductions?.section_80c_tffte2c || 0) +
-                        (userData.deductions?.section_80c_paphl || 0) +
-                        (userData.deductions?.section_80c_sdpphp || 0) +
-                        (userData.deductions?.section_80c_tsfdsb || 0) +
-                        (userData.deductions?.section_80c_scss || 0) +
-                        (userData.deductions?.section_80c_others || 0)
+                        (userData.deductions?.section_80c?.ppf_contribution || 0) +
+                        (userData.deductions?.section_80c?.nsc_investment || 0) +
+                        (userData.deductions?.section_80c?.tax_saving_fd || 0) +
+                        (userData.deductions?.section_80c?.elss_investment || 0) +
+                        (userData.deductions?.section_80c?.home_loan_principal || 0) +
+                        (userData.deductions?.section_80c?.tuition_fees || 0) +
+                        (userData.deductions?.section_80c?.ulip_premium || 0) +
+                        (userData.deductions?.section_80c?.sukanya_samriddhi || 0) +
+                        (userData.deductions?.section_80c?.stamp_duty_property || 0) +
+                        (userData.deductions?.section_80c?.senior_citizen_savings || 0) +
+                        (userData.deductions?.section_80c?.other_80c_investments || 0)
                       )}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Section 80CCC/CCD (Pension)</TableCell>
                       <TableCell align="right">{formatCurrency(
-                        (userData.deductions?.section_80ccc_ppic || 0) +
-                        (userData.deductions?.section_80ccd_1_nps || 0) +
-                        (userData.deductions?.section_80ccd_1b_additional || 0) +
-                        (userData.deductions?.section_80ccd_2_enps || 0)
+                        (userData.deductions?.section_80ccc?.pension_fund_contribution || 0) +
+                        (userData.deductions?.section_80ccd?.employee_nps_contribution || 0) +
+                        (userData.deductions?.section_80ccd?.additional_nps_contribution || 0) +
+                        (userData.deductions?.section_80ccd?.employer_nps_contribution || 0)
                       )}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Section 80D (Health Insurance)</TableCell>
                       <TableCell align="right">{formatCurrency(
-                        (userData.deductions?.section_80d_hisf || 0) +
-                        (userData.deductions?.section_80d_phcs || 0) +
-                        (userData.deductions?.section_80d_hi_parent || 0)
+                        (userData.deductions?.section_80d?.self_family_premium || 0) +
+                        (userData.deductions?.section_80d?.preventive_health_checkup || 0) +
+                        (userData.deductions?.section_80d?.parent_premium || 0)
                       )}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Section 80DD/DDB (Disability/Disease)</TableCell>
                       <TableCell align="right">{formatCurrency(
-                        (userData.deductions?.section_80dd || 0) +
-                        (userData.deductions?.section_80ddb || 0)
+                        (() => {
+                          let total = 0;
+                          // Section 80DD
+                          if (userData.deductions?.section_80dd?.disability_percentage) {
+                            const percentage = parseInt(userData.deductions.section_80dd.disability_percentage);
+                            if (percentage >= 80) {
+                              total += 125000;
+                            } else if (percentage >= 40) {
+                              total += 75000;
+                            }
+                          }
+                          // Section 80DDB
+                          total += (userData.deductions?.section_80ddb?.medical_expenses || 0);
+                          return total;
+                        })()
                       )}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Section 80E (Educational Loan)</TableCell>
-                      <TableCell align="right">{formatCurrency(userData.deductions?.section_80e_interest || 0)}</TableCell>
+                      <TableCell align="right">{formatCurrency(userData.deductions?.section_80e?.education_loan_interest || 0)}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Section 80EEB (EV Loan)</TableCell>
-                      <TableCell align="right">{formatCurrency(userData.deductions?.section_80eeb || 0)}</TableCell>
+                      <TableCell align="right">{formatCurrency(userData.deductions?.section_80eeb?.ev_loan_interest || 0)}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Section 80G (Donations)</TableCell>
                       <TableCell align="right">{formatCurrency(
-                        (userData.deductions?.section_80g_100_wo_ql || 0) +
-                        (userData.deductions?.section_80g_50_wo_ql || 0) +
-                        (userData.deductions?.section_80g_100_ql || 0) +
-                        (userData.deductions?.section_80g_50_ql || 0)
+                        ([
+                          'pm_relief_fund',
+                          'national_defence_fund',
+                          'national_foundation_communal_harmony',
+                          'zila_saksharta_samiti',
+                          'national_illness_assistance_fund',
+                          'national_blood_transfusion_council',
+                          'national_trust_autism_fund',
+                          'national_sports_fund',
+                          'national_cultural_fund',
+                          'technology_development_fund',
+                          'national_children_fund',
+                          'cm_relief_fund',
+                          'army_naval_air_force_funds',
+                          'swachh_bharat_kosh',
+                          'clean_ganga_fund',
+                          'drug_abuse_control_fund',
+                          'other_100_percent_wo_limit',
+                          'jn_memorial_fund',
+                          'pm_drought_relief',
+                          'indira_gandhi_memorial_trust',
+                          'rajiv_gandhi_foundation',
+                          'other_50_percent_wo_limit',
+                          'family_planning_donation',
+                          'indian_olympic_association',
+                          'other_100_percent_w_limit',
+                          'govt_charitable_donations',
+                          'housing_authorities_donations',
+                          'religious_renovation_donations',
+                          'other_charitable_donations',
+                          'other_50_percent_w_limit',
+                        ] as const).reduce((sum, key) => sum + (userData.deductions?.section_80g?.[key] || 0), 0)
                       )}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Section 80GGC (Political Contributions)</TableCell>
-                      <TableCell align="right">{formatCurrency(userData.deductions?.section_80ggc || 0)}</TableCell>
+                      <TableCell align="right">{formatCurrency(userData.deductions?.section_80ggc?.political_party_contribution || 0)}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>Section 80U (Self Disability)</TableCell>
-                      <TableCell align="right">{formatCurrency(userData.deductions?.section_80u || 0)}</TableCell>
+                      <TableCell align="right">{formatCurrency(
+                        (() => {
+                          if (userData.deductions?.section_80u?.disability_percentage) {
+                            const percentage = parseInt(userData.deductions.section_80u.disability_percentage);
+                            if (percentage >= 80) {
+                              return 125000;
+                            } else if (percentage >= 40) {
+                              return 75000;
+                            }
+                          }
+                          return 0;
+                        })()
+                      )}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>

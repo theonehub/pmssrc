@@ -251,18 +251,16 @@ class SalaryIncome:
     """
     Enhanced salary income entity with all salary components and exemption calculations.
     
-    Handles comprehensive salary components including HRA, LTA, allowances, and exemptions.
+    Handles comprehensive salary components including allowances and exemptions.
+    Note: HRA exemption is now handled in the deductions module.
     """
     # Core salary components
     basic_salary: Money
     dearness_allowance: Money
-    hra_received: Money
-    hra_city_type: str  # "metro" or "non_metro"
-    actual_rent_paid: Money
+    hra_provided: Money
     special_allowance: Money
     
     # Optional components with defaults
-    is_government_employee: bool = False
     bonus: Money = Money.zero()
     commission: Money = Money.zero()
     arrears: Money = Money.zero()
@@ -271,50 +269,11 @@ class SalaryIncome:
     specific_allowances: SpecificAllowances = None
     
     def __post_init__(self):
-        """Validate salary components and initialize defaults."""
-        if self.hra_city_type not in ["metro", "non_metro"]:
-            raise ValueError("HRA city type must be 'metro' or 'non_metro'")
-        
+        """Initialize defaults."""
         if self.specific_allowances is None:
             self.specific_allowances = SpecificAllowances()
 
-    
-    def calculate_hra_exemption(self, regime: TaxRegime) -> Money:
-        """
-        Calculate HRA exemption as per tax rules.
-        
-        Args:
-            regime: Tax regime (old/new)
-            
-        Returns:
-            Money: HRA exemption amount
-        """
-        if regime.regime_type == TaxRegimeType.NEW:
-            return Money.zero()  # No HRA exemption in new regime
-        
-        basic_plus_da = self.basic_salary.add(self.dearness_allowance)
-        
-        # Three calculations - minimum is exempt
-        actual_hra = self.hra_received
-        
-        # 50% for metro, 40% for non-metro
-        percentage = Decimal('50') if self.hra_city_type == "metro" else Decimal('40')
-        percent_of_salary = basic_plus_da.percentage(percentage)
-        
-        # Rent paid minus 10% of salary
-        ten_percent_salary = basic_plus_da.percentage(Decimal('10'))
-        
-        if self.actual_rent_paid.is_greater_than(ten_percent_salary):
-            rent_minus_ten_percent = self.actual_rent_paid.subtract(ten_percent_salary)
-        else:
-            rent_minus_ten_percent = Money.zero()
-        
-        # Minimum of the three amounts
-        min_amount = Money.zero()
-        if actual_hra.is_positive():
-            min_amount = actual_hra.min(percent_of_salary).min(rent_minus_ten_percent)
-        
-        return min_amount
+
     
     
     def calculate_gross_salary(self) -> Money:
@@ -328,7 +287,7 @@ class SalaryIncome:
                 .add(self.dearness_allowance)       #considered for doc
                 .add(self.bonus)                    #considered for doc
                 .add(self.commission)               #considered for doc
-                .add(self.hra_received)             #considered for doc
+                .add(self.hra_provided)             #considered for doc
                 .add(self.special_allowance)        
                 .add(self.arrears))
         
@@ -338,34 +297,33 @@ class SalaryIncome:
         
         return gross
     
-    def calculate_total_exemptions(self, regime: TaxRegime) -> Money:
+    def calculate_total_exemptions(self, regime: TaxRegime, is_government_employee: bool = False) -> Money:
         """
         Calculate total salary exemptions.
+        Note: HRA exemption is now calculated in the deductions module.
         
         Args:
             regime: Tax regime
+            is_government_employee: Whether the employee is a government employee
             
         Returns:
             Money: Total exemptions
         """
         total_exemptions = Money.zero()
         
-        # Standard exemptions
-        total_exemptions = total_exemptions.add(self.calculate_hra_exemption(regime))
-        
         # Specific allowances exemptions
         if self.specific_allowances:
-            total_exemptions = total_exemptions.add(self.specific_allowances.calculate_total_specific_allowances_exemptions(regime, self.basic_salary, self.is_government_employee))
+            total_exemptions = total_exemptions.add(self.specific_allowances.calculate_total_specific_allowances_exemptions(regime, self.basic_salary, is_government_employee))
         
-
         return total_exemptions
     
-    def calculate_taxable_salary(self, regime: TaxRegime) -> Money:
+    def calculate_taxable_salary(self, regime: TaxRegime, is_government_employee: bool = False) -> Money:
         """
         Calculate taxable salary after exemptions and standard deduction.
         
         Args:
             regime: Tax regime
+            is_government_employee: Whether the employee is a government employee
             
         Returns:
             Money: Taxable salary
@@ -373,7 +331,7 @@ class SalaryIncome:
         gross_salary = self.calculate_gross_salary()
         
         # Apply salary exemptions
-        total_exemptions = self.calculate_total_exemptions(regime)
+        total_exemptions = self.calculate_total_exemptions(regime, is_government_employee)
         
         # Apply standard deduction
         standard_deduction = regime.get_standard_deduction()
@@ -384,12 +342,13 @@ class SalaryIncome:
         
         return taxable_salary if taxable_salary.is_positive() else Money.zero()
     
-    def get_salary_breakdown(self, regime: TaxRegime) -> Dict[str, Any]:
+    def get_salary_breakdown(self, regime: TaxRegime, is_government_employee: bool = False) -> Dict[str, Any]:
         """
         Get detailed salary breakdown.
         
         Args:
             regime: Tax regime
+            is_government_employee: Whether the employee is a government employee
             
         Returns:
             Dict: Comprehensive salary breakdown with amounts and exemptions
@@ -400,39 +359,19 @@ class SalaryIncome:
                 "dearness_allowance": self.dearness_allowance.to_float(),
                 "bonus": self.bonus.to_float(),
                 "commission": self.commission.to_float(),
-                "hra_received": self.hra_received.to_float(),
+                "hra_provided": self.hra_provided.to_float(),
                 "special_allowance": self.special_allowance.to_float(),
                 "arrears": self.arrears.to_float(),
                 "specific_allowances": self.specific_allowances.calculate_total_specific_allowances().to_float() if self.specific_allowances else 0.0
             },
             "gross_salary_total": self.calculate_gross_salary().to_float(),
             "exemptions": {
-                "hra_exemption": self.calculate_hra_exemption(regime).to_float(),
-                "specific_allowances_exemption": self.specific_allowances.calculate_total_specific_allowances_exemptions(regime, self.basic_salary, self.is_government_employee).to_float() if self.specific_allowances else 0.0,
-                "standard_deduction": regime.get_standard_deduction().to_float()
+                "specific_allowances_exemption": self.specific_allowances.calculate_total_specific_allowances_exemptions(regime, self.basic_salary, is_government_employee).to_float() if self.specific_allowances else 0.0,
+                "standard_deduction": regime.get_standard_deduction().to_float(),
+                "note": "HRA exemption is calculated in deductions module"
             },
-            "total_exemptions": self.calculate_total_exemptions(regime).add(regime.get_standard_deduction()).to_float(),
-            "taxable_salary": self.calculate_taxable_salary(regime).to_float(),
+            "total_exemptions": self.calculate_total_exemptions(regime, is_government_employee).add(regime.get_standard_deduction()).to_float(),
+            "taxable_salary": self.calculate_taxable_salary(regime, is_government_employee).to_float(),
             "regime_used": regime.regime_type.value
         }
-    
-    def validate_hra_details(self) -> Dict[str, str]:
-        """
-        Validate HRA details and return any warnings.
-        
-        Returns:
-            Dict: Validation warnings if any
-        """
-        warnings = {}
-        
-        if self.hra_received.is_positive() and self.actual_rent_paid.is_zero():
-            warnings["rent_validation"] = "HRA received but no rent paid - HRA exemption may not be available"
-        
-        if self.actual_rent_paid.is_greater_than(self.hra_received):
-            warnings["rent_vs_hra"] = "Rent paid is more than HRA received - consider claiming full HRA"
-        
-        basic_plus_da = self.basic_salary.add(self.dearness_allowance)
-        if self.hra_received.is_greater_than(basic_plus_da.percentage(Decimal('50'))):
-            warnings["hra_limit"] = "HRA received exceeds 50% of basic salary - exemption may be limited"
-        
-        return warnings 
+ 

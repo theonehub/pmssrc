@@ -66,12 +66,19 @@ interface LocalTaxationData {
   };
   deductions?: {
     section_80c?: {
-      lic_premium?: number;
-      epf?: number;
-      ppf?: number;
-      nsc?: number;
-      elss?: number;
-      others?: number;
+      life_insurance_premium?: number;
+      epf_contribution?: number;
+      ppf_contribution?: number;
+      nsc_investment?: number;
+      tax_saving_fd?: number;
+      elss_investment?: number;
+      home_loan_principal?: number;
+      tuition_fees?: number;
+      ulip_premium?: number;
+      sukanya_samriddhi?: number;
+      stamp_duty_property?: number;
+      senior_citizen_savings?: number;
+      other_80c_investments?: number;
     };
     section_80d?: {
       health_insurance?: number;
@@ -566,12 +573,12 @@ const EmployeeTaxDetail: React.FC = () => {
                     <TableBody>
                       {/* Section 80C group */}
                       <TableRow><TableCell colSpan={2}><b>Section 80C (Total up to 1,50,000)</b></TableCell></TableRow>
-                      <TableRow><TableCell>LIC Premium</TableCell><TableCell align="right">{formatCurrency(taxationData?.deductions?.section_80c?.lic_premium)}</TableCell></TableRow>
-                      <TableRow><TableCell>EPF</TableCell><TableCell align="right">{formatCurrency(taxationData?.deductions?.section_80c?.epf)}</TableCell></TableRow>
-                      <TableRow><TableCell>PPF</TableCell><TableCell align="right">{formatCurrency(taxationData?.deductions?.section_80c?.ppf)}</TableCell></TableRow>
-                      <TableRow><TableCell>NSC</TableCell><TableCell align="right">{formatCurrency(taxationData?.deductions?.section_80c?.nsc)}</TableCell></TableRow>
-                      <TableRow><TableCell>ELSS</TableCell><TableCell align="right">{formatCurrency(taxationData?.deductions?.section_80c?.elss)}</TableCell></TableRow>
-                      <TableRow><TableCell>Others</TableCell><TableCell align="right">{formatCurrency(taxationData?.deductions?.section_80c?.others)}</TableCell></TableRow>
+                      <TableRow><TableCell>LIC Premium</TableCell><TableCell align="right">{formatCurrency(taxationData?.deductions?.section_80c?.life_insurance_premium)}</TableCell></TableRow>
+                      <TableRow><TableCell>EPF</TableCell><TableCell align="right">{formatCurrency(taxationData?.deductions?.section_80c?.epf_contribution)}</TableCell></TableRow>
+                      <TableRow><TableCell>PPF</TableCell><TableCell align="right">{formatCurrency(taxationData?.deductions?.section_80c?.ppf_contribution)}</TableCell></TableRow>
+                      <TableRow><TableCell>NSC</TableCell><TableCell align="right">{formatCurrency(taxationData?.deductions?.section_80c?.nsc_investment)}</TableCell></TableRow>
+                      <TableRow><TableCell>ELSS</TableCell><TableCell align="right">{formatCurrency(taxationData?.deductions?.section_80c?.elss_investment)}</TableCell></TableRow>
+                      <TableRow><TableCell>Others</TableCell><TableCell align="right">{formatCurrency(taxationData?.deductions?.section_80c?.other_80c_investments)}</TableCell></TableRow>
                       
                       {/* Other sections */}
                       <TableRow><TableCell colSpan={2}><b>Other Deductions</b></TableCell></TableRow>

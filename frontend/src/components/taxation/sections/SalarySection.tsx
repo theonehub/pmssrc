@@ -1,20 +1,11 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   Box,
   Typography,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormControlLabel,
-  Switch,
   Divider,
-  Tooltip,
-  SelectChangeEvent
+  Tooltip
 } from '@mui/material';
 import { formatIndianNumber, parseIndianNumber } from '../utils/taxationUtils';
-import { cities } from '../utils/taxationConstants';
 import { TaxationData } from '../../../shared/types';
 import ValidatedTextField from '../components/ValidatedTextField';
 
@@ -22,12 +13,6 @@ interface SalarySectionProps {
   taxationData: TaxationData;
   handleInputChange: (section: string, field: string, value: string | number | boolean) => void;
   handleFocus: (section: string, field: string, value: string | number) => void;
-  cityForHRA: string;
-  handleCityChange: (event: SelectChangeEvent<string>) => void;
-  autoComputeHRA: boolean;
-  setAutoComputeHRA: (value: boolean) => void;
-  handleHRAChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
-  computeHRA: (cities: any) => number;
 }
 
 /**
@@ -36,13 +21,7 @@ interface SalarySectionProps {
 const SalarySection: React.FC<SalarySectionProps> = ({
   taxationData,
   handleInputChange,
-  handleFocus,
-  cityForHRA,
-  handleCityChange,
-  autoComputeHRA,
-  setAutoComputeHRA,
-  handleHRAChange,
-  computeHRA
+  handleFocus
 }) => {
   // Helper function to safely format salary values
   const formatSalaryValue = (value: number | string | undefined): string => {
@@ -62,17 +41,7 @@ const SalarySection: React.FC<SalarySectionProps> = ({
     handleFocus(section, field, value);
   };
 
-  const handleSwitchChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
-    setAutoComputeHRA(event.target.checked);
-  };
 
-  // Update HRA when basic salary, DA, or city changes
-  useEffect(() => {
-    if (autoComputeHRA && taxationData.salary_income) {
-      const calculatedHRA = computeHRA(cities);
-      handleInputChange('salary_income', 'hra_received', calculatedHRA);
-    }
-  }, [taxationData.salary_income?.basic_salary, taxationData.salary_income?.dearness_allowance, cityForHRA, autoComputeHRA, computeHRA, handleInputChange, taxationData.salary_income]);
 
   return (
     <Box sx={{ py: 2 }}>
@@ -120,57 +89,17 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           helperText="Enter your dearness allowance amount"
         />
         
-        {/* HRA City */}
-        <FormControl fullWidth>
-          <InputLabel>City Category for HRA</InputLabel>
-          <Box>
-            <Tooltip title="City Category for HRA" placement="top" arrow>
-              <Select
-                value={cityForHRA}
-                label="City Category for HRA"
-                onChange={handleCityChange}
-              >
-                {cities.map((city) => (
-                  <MenuItem key={city.value} value={city.value}>
-                    {city.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </Tooltip>
-          </Box>
-        </FormControl>
-        
         {/* HRA */}
-        <Box>
-          <TextField
-            fullWidth
-            label="House Rent Allowance (HRA)"
-            type="text"
-            value={formatSalaryValue(taxationData.salary_income?.hra_received)}
-            onChange={handleHRAChange}
-            InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('salary_income', 'hra_received', e)}
-          />
-          <FormControlLabel
-            control={
-              <Switch
-                checked={autoComputeHRA}
-                onChange={handleSwitchChange}
-              />
-            }
-            label="Auto-calculate HRA"
-          />
-        </Box>
-
-        {/* Rent Paid */}
         <ValidatedTextField
-          label="Actual Rent Paid"
-          value={formatSalaryValue(taxationData.salary_income?.actual_rent_paid)}
-          onChange={(value) => handleInputChange('salary_income', 'actual_rent_paid', value)}
-          onFocus={(e) => handleTextFieldFocus('salary_income', 'actual_rent_paid', e)}
+          label="House Rent Allowance (HRA) Provided by Employer"
+          value={formatSalaryValue(taxationData.salary_income?.hra_provided)}
+          onChange={(value) => handleInputChange('salary_income', 'hra_provided', value)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'hra_provided', e)}
           fieldType="amount"
-          helperText="Enter the actual rent amount paid"
+          helperText="Enter the HRA amount provided by your employer. For exemption calculation, fill details in Deductions section."
         />
+
+
 
         {/* Special Allowance */}
         <ValidatedTextField

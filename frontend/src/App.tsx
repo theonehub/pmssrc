@@ -32,6 +32,13 @@ import TaxDeclaration from './components/taxation/TaxDeclaration';
 import EmployeeTaxDetail from './components/taxation/EmployeeTaxDetail';
 import EmployeeSelection from './components/taxation/EmployeeSelection';
 import MonthlyProjections from './components/taxation/MonthlyProjections';
+import IndividualComponentManagement from './components/taxation/IndividualComponentManagement';
+
+// Individual Component Forms
+import SalaryComponentForm from './components/taxation/components/SalaryComponentForm';
+import PerquisitesComponentForm from './components/taxation/components/PerquisitesComponentForm';
+import DeductionsComponentForm from './components/taxation/components/DeductionsComponentForm';
+import ComponentsOverview from './components/taxation/ComponentsOverview';
 
 // Salary Processing Pages
 import SalaryProcessing from './components/SalaryProcessing/SalaryProcessing';
@@ -156,6 +163,40 @@ const AppContent: React.FC = () => {
           <Route
             path="/taxation/employee-selection"
             element={withLayout(<EmployeeSelection />, 'Employee Selection', ['admin', 'superadmin'])}
+          />
+          <Route
+            path="/taxation/component-management"
+            element={withLayout(<IndividualComponentManagement />, 'Individual Component Management', ['admin', 'superadmin'])}
+          />
+          <Route
+            path="/taxation/components-overview/:empId"
+            element={withLayout(<ComponentsOverview />, 'Components Overview', ['admin', 'superadmin'])}
+          />
+          
+          {/* Individual Component Routes */}
+          <Route
+            path="/taxation/component/salary/:empId"
+            element={withLayout(<SalaryComponentForm />, 'Salary Component Management', ['admin', 'superadmin'])}
+          />
+          <Route
+            path="/taxation/component/salary/new/:empId"
+            element={withLayout(<SalaryComponentForm />, 'New Salary Revision', ['admin', 'superadmin'])}
+          />
+          <Route
+            path="/taxation/component/perquisites/:empId"
+            element={withLayout(<PerquisitesComponentForm />, 'Perquisites Component Management', ['admin', 'superadmin'])}
+          />
+          <Route
+            path="/taxation/component/perquisites/new/:empId"
+            element={withLayout(<PerquisitesComponentForm />, 'New Perquisites Revision', ['admin', 'superadmin'])}
+          />
+          <Route
+            path="/taxation/component/deductions/:empId"
+            element={withLayout(<DeductionsComponentForm />, 'Deductions Component Management', ['admin', 'superadmin'])}
+          />
+          <Route
+            path="/taxation/component/deductions/new/:empId"
+            element={withLayout(<DeductionsComponentForm />, 'New Deductions Revision', ['admin', 'superadmin'])}
           />
           <Route
             path="/taxation/monthly-projections"

@@ -4,9 +4,7 @@
 export interface SalaryIncomeDTO {
   basic_salary: number;
   dearness_allowance: number;
-  hra_received: number;
-  hra_city_type: 'metro' | 'non_metro';
-  actual_rent_paid: number;
+  hra_provided: number;
   special_allowance: number;
   bonus: number;
   commission: number;
@@ -93,61 +91,111 @@ export interface HousePropertyIncomeDTO {
   pre_construction_loan_interest?: number;
 }
 
+export interface HRAExemptionDTO {
+  actual_rent_paid: number;
+  hra_city_type: 'metro' | 'non_metro';
+}
+
 export interface TaxDeductionsDTO {
+  hra_exemption?: HRAExemptionDTO;
   section_80c: {
     life_insurance_premium: number;
     epf_contribution: number;
-    ssp_contribution?: number;
+    ppf_contribution: number;
     nsc_investment: number;
-    ulip_investment?: number;
-    tax_saver_mutual_fund?: number;
-    tuition_fees_for_two_children?: number;
-    principal_amount_paid_home_loan?: number;
-    sukanya_deposit_plan_for_girl_child?: number;
-    tax_saver_fixed_deposit_5_years_bank?: number;
-    senior_citizen_savings_scheme?: number;
-    others?: number;
+    tax_saving_fd: number;
+    elss_investment: number;
+    home_loan_principal: number;
+    tuition_fees: number;
+    ulip_premium: number;
+    sukanya_samriddhi: number;
+    stamp_duty_property: number;
+    senior_citizen_savings: number;
+    other_80c_investments: number;
   };
   section_80ccc: {
-    pension_plan_insurance_company?: number;
+    pension_fund_contribution: number;
   };
   section_80ccd: {
-    nps_contribution_10_percent?: number;
-    additional_nps_50k?: number;
-    employer_nps_contribution?: number;
+    employee_nps_contribution: number;
+    additional_nps_contribution: number;
+    employer_nps_contribution: number;
   };
   section_80d: {
     self_family_premium: number;
-    preventive_health_checkup_self?: number;
     parent_premium: number;
+    preventive_health_checkup: number;
+    employee_age: number;
+    parent_age: number;
   };
   section_80dd: {
-    amount?: number;
-    relation?: string;
-    disability_percentage?: string;
+    relation: string;
+    disability_percentage: string;
   };
   section_80ddb: {
-    amount?: number;
-    relation?: string;
+    dependent_age: number;
+    medical_expenses: number;
+    relation: string;
   };
   section_80e: {
     education_loan_interest: number;
+    relation: string;
   };
-  section_80eeb?: {
-    amount?: number;
+  section_80eeb: {
+    ev_loan_interest: number;
+    ev_purchase_date: string;
   };
   section_80g: {
-    donation_100_percent_without_limit?: number;
-    donation_50_percent_without_limit?: number;
-    donation_100_percent_with_limit?: number;
-    donation_50_percent_with_limit?: number;
+    // 100% deduction without qualifying limit
+    pm_relief_fund: number;
+    national_defence_fund: number;
+    national_foundation_communal_harmony: number;
+    zila_saksharta_samiti: number;
+    national_illness_assistance_fund: number;
+    national_blood_transfusion_council: number;
+    national_trust_autism_fund: number;
+    national_sports_fund: number;
+    national_cultural_fund: number;
+    technology_development_fund: number;
+    national_children_fund: number;
+    cm_relief_fund: number;
+    army_naval_air_force_funds: number;
+    swachh_bharat_kosh: number;
+    clean_ganga_fund: number;
+    drug_abuse_control_fund: number;
+    other_100_percent_wo_limit: number;
+    
+    // 50% deduction without qualifying limit
+    jn_memorial_fund: number;
+    pm_drought_relief: number;
+    indira_gandhi_memorial_trust: number;
+    rajiv_gandhi_foundation: number;
+    other_50_percent_wo_limit: number;
+    
+    // 100% deduction with qualifying limit
+    family_planning_donation: number;
+    indian_olympic_association: number;
+    other_100_percent_w_limit: number;
+    
+    // 50% deduction with qualifying limit
+    govt_charitable_donations: number;
+    housing_authorities_donations: number;
+    religious_renovation_donations: number;
+    other_charitable_donations: number;
+    other_50_percent_w_limit: number;
   };
-  section_80ggc?: {
-    amount?: number;
+  section_80ggc: {
+    political_party_contribution: number;
   };
-  section_80u?: {
-    amount?: number;
-    disability_percentage?: string;
+  section_80u: {
+    disability_percentage: string;
+  };
+  section_80tta_ttb: {
+    savings_interest: number;
+    fd_interest: number;
+    rd_interest: number;
+    post_office_interest: number;
+    age: number;
   };
 }
 
@@ -350,7 +398,7 @@ export interface ComprehensiveTaxCalculationResponse {
       salary_income: {
         basic_salary: number;
         dearness_allowance: number;
-        hra_received: number;
+        hra_provided: number;
         special_allowance: number;
         conveyance_allowance: number;
         medical_allowance: number;
@@ -472,4 +520,43 @@ export interface TaxationListResponse {
   limit: number;
   message: string;
   success: boolean;
+}
+
+// Component Response Interface
+export interface ComponentResponse {
+  taxation_id: string;
+  employee_id: string;
+  tax_year: string;
+  component_type: string;
+  component_data: Record<string, any>;
+  last_updated?: string;
+  notes?: string;
+}
+
+export interface ComponentUpdateResponse {
+  taxation_id: string;
+  employee_id: string;
+  tax_year: string;
+  component_type: string;
+  status: string;
+  message: string;
+  updated_at: string;
+  notes?: string;
+}
+
+export interface TaxationRecordStatusResponse {
+  taxation_id: string;
+  employee_id: string;
+  tax_year: string;
+  regime_type: string;
+  age: number;
+  components_status: Record<string, {
+    has_data: boolean;
+    last_updated?: string;
+    status: string;
+    [key: string]: any;
+  }>;
+  overall_status: string;
+  last_updated: string;
+  is_final: boolean;
 } 

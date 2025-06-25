@@ -17,6 +17,7 @@ from app.domain.entities.taxation.other_income import OtherIncome
 from app.domain.entities.taxation.house_property_income import HousePropertyIncome
 from app.domain.entities.taxation.capital_gains import CapitalGainsIncome
 from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
+from app.domain.value_objects.employee_id import EmployeeId
 
 
 @dataclass
@@ -87,6 +88,25 @@ class TaxCalculationService:
             taxation_repository: Optional taxation repository for updating records
         """
         self.taxation_repository = taxation_repository
+
+
+    def compute_monthly_tax(self, employee_id: EmployeeId, month: int, year: int) -> Dict[str, Any]:
+        """Compute monthly tax."""
+        # Get employee info from user_info
+        user_info = self.user_info_repository.get_user_info(employee_id)
+        if not user_info:
+            raise ValueError(f"User info not found for employee {employee_id}")
+        
+        # Get employee info from user_info
+        # Get monthly package record based on employee_id, month, year
+        monthly_package_record = self.monthly_package_repository.get_monthly_package_record(employee_id, month, year)
+        if not monthly_package_record:
+            raise ValueError(f"Monthly package record not found for employee {employee_id} in {month}/{year}")
+        
+        # Invoke function from salary_package_record to compute monthly tax
+        monthly_tax = monthly_package_record.compute_monthly_tax(month, year)
+
+        return monthly_tax
     
     def calculate_tax(self, input_data: TaxCalculationInput) -> TaxCalculationResult:
         """
@@ -381,7 +401,7 @@ class TaxCalculationService:
                 "salary_income": {
                     "basic_salary": input_data.salary_income.basic_salary.to_float(),
                     "dearness_allowance": input_data.salary_income.dearness_allowance.to_float(),
-                    "hra_received": input_data.salary_income.hra_received.to_float(),
+                    "hra_provided": input_data.salary_income.hra_provided.to_float(),
                     "special_allowance": input_data.salary_income.special_allowance.to_float(),
                     "bonus": input_data.salary_income.bonus.to_float(),
                     "commission": input_data.salary_income.commission.to_float(),
@@ -455,7 +475,7 @@ class TaxCalculationService:
                 "hra_exemption": self._calculate_hra_exemption(
                     input_data.salary_income.basic_salary,
                     input_data.salary_income.dearness_allowance,
-                    input_data.salary_income.hra_received,
+                    input_data.salary_income.hra_provided,
                     (input_data.other_income.house_property_income.annual_rent_received 
                      if input_data.other_income.house_property_income else Money.zero())
                 ).to_float(),
@@ -752,7 +772,7 @@ class TaxCalculationService:
         # Calculate monthly components
         monthly_basic = salary_income.basic_salary.divide(Decimal('12'))
         monthly_da = salary_income.dearness_allowance.divide(Decimal('12'))
-        monthly_hra = salary_income.hra_received.divide(Decimal('12'))
+        monthly_hra = salary_income.hra_provided.divide(Decimal('12'))
         monthly_special = salary_income.special_allowance.divide(Decimal('12'))
         monthly_bonus = salary_income.bonus.divide(Decimal('12'))
         monthly_commission = salary_income.commission.divide(Decimal('12'))

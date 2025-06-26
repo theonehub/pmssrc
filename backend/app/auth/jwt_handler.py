@@ -1,47 +1,64 @@
-import logging
+"""
+JWT Handler Module
+Handles JWT token generation and validation
+"""
+
 from datetime import datetime, timedelta
 from jose import jwt, JWTError
 from app.auth.jwt_config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
-logger = logging.getLogger(__name__)
+# Import centralized logger
+from app.utils.logger import get_logger
 
-def create_access_token(data: dict, expires_delta: timedelta = None):
+logger = get_logger(__name__)
+
+def create_access_token(data: dict, expires_delta: timedelta) -> str:
     """
-    Creates a JWT token with an expiration time.
-    The token includes data (typically the user's username and role).
+    Create a new JWT access token.
     
     Args:
-        data: Dictionary containing token payload data
-        expires_delta: Optional timedelta for custom expiration
+        data: Data to encode in the token
         
     Returns:
         str: Encoded JWT token
-        
-    Raises:
-        Exception: If token creation fails
     """
     try:
         to_encode = data.copy()
-        
-        # Set expiration time
-        if expires_delta:
-            expire = datetime.utcnow() + expires_delta
-        else:
-            expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        
+        expire = datetime.utcnow() + expires_delta
         to_encode.update({"exp": expire})
         
-        # Create the token
         token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-        
-        logger.info("Access token created for user: %s", data.get("sub", data.get("username", "unknown")))
-        logger.info("Token expires at: %s", expire.isoformat())
-        
+        logger.debug(f"Created access token for user: {data.get('sub', 'unknown')}")
         return token
         
     except Exception as e:
-        logger.error("Error creating access token: %s", e)
-        raise Exception(f"Failed to create access token: {str(e)}")
+        logger.error(f"Failed to create access token: {str(e)}", exc_info=True)
+        raise
+
+def verify_access_token(token: str) -> dict:
+    """
+    Verify and decode a JWT access token.
+    
+    Args:
+        token: JWT token to verify
+        
+    Returns:
+        dict: Decoded token data
+        
+    Raises:
+        JWTError: If token is invalid or expired
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        logger.debug(f"Verified access token for user: {payload.get('sub', 'unknown')}")
+        return payload
+        
+    except JWTError as e:
+        logger.warning(f"Invalid token: {str(e)}")
+        raise
+    except Exception as e:
+        logger.error(f"Failed to verify access token: {str(e)}", exc_info=True)
+        raise
 
 def decode_access_token(token: str):
     """
@@ -153,8 +170,9 @@ def refresh_token_if_needed(token: str, refresh_threshold_minutes: int = 60) -> 
                 # Remove old timestamp claims and create new token
                 new_payload = {k: v for k, v in payload.items() if k not in ["exp", "iat"]}
                 new_payload["iat"] = datetime.utcnow().timestamp()
-                
-                return create_access_token(new_payload)
+                # Create new access token with same user data
+                new_expires_delta = timedelta(hours=8)
+                return create_access_token(new_payload, new_expires_delta)
         
         return token
         

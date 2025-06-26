@@ -7,12 +7,14 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Dict, Any, Optional, List
 from uuid import uuid4
+from decimal import Decimal
 
+from app.utils.logger import get_logger
 from app.domain.value_objects.employee_id import EmployeeId
 from app.domain.value_objects.money import Money
 from app.domain.value_objects.tax_year import TaxYear
 from app.domain.value_objects.tax_regime import TaxRegime
-from app.domain.entities.taxation.salary_income import SalaryIncome
+from app.domain.entities.taxation.salary_income import SalaryIncome, SpecificAllowances
 from app.domain.entities.taxation.deductions import TaxDeductions
 from app.domain.entities.taxation.perquisites import Perquisites
 from app.domain.entities.taxation.house_property_income import HousePropertyIncome
@@ -20,6 +22,8 @@ from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 from app.domain.entities.taxation.other_income import OtherIncome
 from app.domain.entities.taxation.payout import PayoutMonthlyProjection
 from app.domain.services.taxation.tax_calculation_service import TaxCalculationService, TaxCalculationResult
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -796,6 +800,7 @@ class SalaryPackageRecord:
     
     # Optional components
     is_government_employee: bool = False
+    annual_salary_income: Optional[SalaryIncome] = None
     perquisites: Optional[Perquisites] = None
     retirement_benefits: Optional[RetirementBenefits] = None
     other_income: Optional[OtherIncome] = None
@@ -828,11 +833,16 @@ class SalaryPackageRecord:
             raise ValueError("At least one salary income is required")
         if not self.salary_package_id:
             self.salary_package_id = str(uuid4())
+        
+        # Initialize annual_salary_income if not already set
+        if not hasattr(self, 'annual_salary_income') or self.annual_salary_income is None:
+            self._update_annual_salary_income()
     
     def add_salary_income(self, salary_income: SalaryIncome) -> None:
         """
         Add a new salary income to the list.
         Automatically updates the effective_till of the previous salary income.
+        Updates the annual_salary_income field based on effective months calculation.
         
         Args:
             salary_income: New salary income to add
@@ -860,6 +870,10 @@ class SalaryPackageRecord:
         
         # Add the new salary income
         self.salary_incomes.append(salary_income)
+        
+        # Update annual_salary_income based on all salary incomes and their effective months
+        self._update_annual_salary_income()
+        
         self._invalidate_calculation()
         
         # Raise domain event
@@ -871,12 +885,14 @@ class SalaryPackageRecord:
             "total_salary_incomes": len(self.salary_incomes),
             "effective_from": salary_income.effective_from.isoformat() if salary_income.effective_from else None,
             "effective_till": salary_income.effective_till.isoformat() if salary_income.effective_till else None,
+            "annual_salary_gross": self.annual_salary_income.calculate_gross_salary().to_float(),
             "updated_at": self.updated_at.isoformat()
         })
     
     def update_latest_salary_income(self, new_salary_income: SalaryIncome) -> None:
         """
         Update the latest salary income in the list.
+        Updates the annual_salary_income field based on effective months calculation.
         
         Args:
             new_salary_income: New salary income to replace the latest one
@@ -891,6 +907,9 @@ class SalaryPackageRecord:
         self.salary_incomes[-1] = new_salary_income
         new_gross = new_salary_income.calculate_gross_salary()
         
+        # Update annual_salary_income based on all salary incomes and their effective months
+        self._update_annual_salary_income()
+        
         self._invalidate_calculation()
         
         # Raise domain event
@@ -900,6 +919,7 @@ class SalaryPackageRecord:
             "tax_year": str(self.tax_year),
             "old_gross_salary": old_gross.to_float(),
             "new_gross_salary": new_gross.to_float(),
+            "annual_salary_gross": self.annual_salary_income.calculate_gross_salary().to_float(),
             "updated_at": self.updated_at.isoformat()
         })
     
@@ -913,6 +933,21 @@ class SalaryPackageRecord:
         if not self.salary_incomes:
             raise ValueError("No salary incomes available")
         return self.salary_incomes[-1]
+    
+    def get_annual_salary_income(self) -> SalaryIncome:
+        """
+        Get the annual salary income which represents the weighted total of all salary incomes
+        based on their effective months. This contains ANNUAL TOTAL amounts, not monthly amounts.
+        
+        For example: If you have 3 months at ₹100K basic + 9 months at ₹150K basic,
+        this returns a SalaryIncome with basic_salary = ₹300K + ₹1350K = ₹1650K (annual total).
+        
+        Returns:
+            SalaryIncome: Annual salary income with weighted annual totals
+        """
+        if not hasattr(self, 'annual_salary_income') or self.annual_salary_income is None:
+            self._update_annual_salary_income()
+        return self.annual_salary_income
     
     def get_salary_income_history(self) -> List[SalaryIncome]:
         """
@@ -940,10 +975,19 @@ class SalaryPackageRecord:
         current_date = datetime.now().date()
         
         total_gross_salary = Money.zero()
-        covered_periods = []
+        
+
+        logger.info(f"Computing gross annual salary for {self.employee_id} in {self.tax_year}")
+        logger.info(f"Salary incomes Length: {len(self.salary_incomes)}")
+        logger.info(f"Financial year start: {financial_year_start}, Financial year end: {financial_year_end}")
+        logger.info(f"Current date: {current_date}")
         
         # Process all salary incomes that fall within the financial year
         for salary_income in self.salary_incomes:
+            logger.info(f"**************************************************")
+            logger.info(f"Salary income effective from: {salary_income.effective_from}")
+            logger.info(f"Salary income effective till: {salary_income.effective_till}")
+
             # Determine the effective period for this salary income within the financial year
             salary_start = max(
                 salary_income.effective_from.date() if salary_income.effective_from else financial_year_start,
@@ -953,6 +997,7 @@ class SalaryPackageRecord:
                 salary_income.effective_till.date() if salary_income.effective_till else financial_year_end,
                 financial_year_end
             )
+            logger.info(f"Salary start: {salary_start}, Salary end: {salary_end}")
             
             # Skip if salary period doesn't overlap with financial year
             if salary_start > financial_year_end or salary_end < financial_year_start:
@@ -962,37 +1007,19 @@ class SalaryPackageRecord:
             months_applicable = self._calculate_months_between_dates(salary_start, salary_end)
             
             if months_applicable > 0:
+                logger.info(f"**************************************************")
+                logger.info(f"Salary income basic salary: {salary_income.basic_salary}")
+                logger.info(f"Months applicable: {months_applicable}")
+                logger.info(f"**************************************************")
                 # Calculate proportional salary for this period
                 monthly_gross = salary_income.calculate_gross_salary()  # This is monthly amount
+                logger.info(f"Monthly gross: {monthly_gross}")
                 period_gross = monthly_gross.multiply(Decimal(str(months_applicable)))
+                logger.info(f"Period gross: {period_gross}")
                 total_gross_salary = total_gross_salary.add(period_gross)
+                logger.info(f"Total gross salary: {total_gross_salary}")
+                logger.info(f"**************************************************")
                 
-                # Track covered periods
-                covered_periods.append({
-                    'start': salary_start,
-                    'end': salary_end,
-                    'months': months_applicable,
-                    'monthly_gross': monthly_gross.to_float()
-                })
-        
-        # Calculate projected salary for any uncovered remaining period in the financial year
-        if current_date < financial_year_end:
-            # Find the latest salary income for projection
-            latest_salary = self.get_latest_salary_income()
-            
-            # Calculate uncovered period from current date to financial year end
-            projection_start = max(current_date, financial_year_start)
-            projection_end = financial_year_end
-            
-            # Check if there's any uncovered period that needs projection
-            uncovered_months = self._get_uncovered_months(covered_periods, projection_start, projection_end)
-            
-            if uncovered_months > 0:
-                # Project salary for uncovered period using latest salary
-                monthly_gross = latest_salary.calculate_gross_salary()
-                projected_gross = monthly_gross.multiply(Decimal(str(uncovered_months)))
-                total_gross_salary = total_gross_salary.add(projected_gross)
-        
         return total_gross_salary
     
     def get_annual_salary_breakdown(self) -> Dict[str, Any]:
@@ -1078,7 +1105,24 @@ class SalaryPackageRecord:
                         "hra_provided": salary_income.hra_provided.to_float(),
                         "special_allowance": salary_income.special_allowance.to_float(),
                         "bonus": salary_income.bonus.to_float(),
-                        "commission": salary_income.commission.to_float()
+                        "commission": salary_income.commission.to_float(),
+                        "specific_allowances_total": salary_income.specific_allowances.calculate_total_specific_allowances().to_float() if salary_income.specific_allowances else 0.0,
+                        "specific_allowances_breakdown": {
+                            "hills_allowance": salary_income.specific_allowances.hills_allowance.to_float() if salary_income.specific_allowances else 0.0,
+                            "border_allowance": salary_income.specific_allowances.border_allowance.to_float() if salary_income.specific_allowances else 0.0,
+                            "transport_employee_allowance": salary_income.specific_allowances.transport_employee_allowance.to_float() if salary_income.specific_allowances else 0.0,
+                            "children_education_allowance": salary_income.specific_allowances.children_education_allowance.to_float() if salary_income.specific_allowances else 0.0,
+                            "hostel_allowance": salary_income.specific_allowances.hostel_allowance.to_float() if salary_income.specific_allowances else 0.0,
+                            "disabled_transport_allowance": salary_income.specific_allowances.disabled_transport_allowance.to_float() if salary_income.specific_allowances else 0.0,
+                            "underground_mines_allowance": salary_income.specific_allowances.underground_mines_allowance.to_float() if salary_income.specific_allowances else 0.0,
+                            "government_entertainment_allowance": salary_income.specific_allowances.government_entertainment_allowance.to_float() if salary_income.specific_allowances else 0.0,
+                            "city_compensatory_allowance": salary_income.specific_allowances.city_compensatory_allowance.to_float() if salary_income.specific_allowances else 0.0,
+                            "rural_allowance": salary_income.specific_allowances.rural_allowance.to_float() if salary_income.specific_allowances else 0.0,
+                            "project_allowance": salary_income.specific_allowances.project_allowance.to_float() if salary_income.specific_allowances else 0.0,
+                            "deputation_allowance": salary_income.specific_allowances.deputation_allowance.to_float() if salary_income.specific_allowances else 0.0,
+                            "overtime_allowance": salary_income.specific_allowances.overtime_allowance.to_float() if salary_income.specific_allowances else 0.0,
+                            "any_other_allowance": salary_income.specific_allowances.any_other_allowance.to_float() if salary_income.specific_allowances else 0.0
+                        }
                     }
                 })
         
@@ -1134,11 +1178,416 @@ class SalaryPackageRecord:
         if start_date > end_date:
             return 0.0
         
-        # Calculate total days
-        total_days = (end_date - start_date).days + 1  # +1 to include both start and end dates
+        # Get financial year boundaries for special handling
+        financial_year_start = self.tax_year.get_start_date()
+        financial_year_end = self.tax_year.get_end_date()
         
-        # Convert to months (using average of 30.44 days per month)
-        return total_days / 30.44
+        # Special handling for complete financial year
+        if start_date <= financial_year_start and end_date >= financial_year_end:
+            logger.info(f"Complete financial year detected: {start_date} to {end_date} covers {financial_year_start} to {financial_year_end}")
+            return 12.0
+        
+        # Special handling for exact financial year period
+        if start_date == financial_year_start and end_date == financial_year_end:
+            logger.info(f"Exact financial year period: {start_date} to {end_date}")
+            return 12.0
+        
+        # Calculate months using a more accurate approach
+        # Step 1: Calculate the number of complete months
+        start_year, start_month, start_day = start_date.year, start_date.month, start_date.day
+        end_year, end_month, end_day = end_date.year, end_date.month, end_date.day
+        
+        # Calculate total months difference (this gives us the base number of months)
+        months_diff = (end_year - start_year) * 12 + (end_month - start_month)
+        
+        # Now we need to handle the day calculation properly
+        # If we're on the same day or the end day is later, we get a full month plus fraction
+        # If the end day is earlier, we're still in the previous month
+        
+        if end_day >= start_day:
+            # We have completed the month and possibly some additional days
+            if start_day == 1 and end_day == self._get_last_day_of_month(end_year, end_month):
+                # Complete month: from 1st to last day of month
+                months_diff += 1.0
+            elif start_day == 1:
+                # Started from 1st, calculate fraction based on days covered
+                days_in_month = self._get_last_day_of_month(end_year, end_month)
+                fraction = end_day / days_in_month
+                months_diff += fraction
+            else:
+                # Started mid-month, calculate fraction
+                days_in_month = self._get_last_day_of_month(end_year, end_month)
+                days_covered = end_day - start_day + 1  # +1 to include both start and end dates
+                fraction = days_covered / days_in_month
+                months_diff += fraction
+        else:
+            # The end day is before the start day, so we haven't completed the month
+            # We're still in the previous month
+            if months_diff > 0:
+                months_diff -= 1
+                # Calculate the fraction for the incomplete month
+                days_in_prev_month = self._get_last_day_of_month(
+                    end_year if end_month > 1 else end_year - 1,
+                    end_month - 1 if end_month > 1 else 12
+                )
+                # Days from start_day to end of previous month + days from 1 to end_day
+                days_covered = (days_in_prev_month - start_day + 1) + end_day
+                fraction = days_covered / 30.0  # Use 30 as average for cross-month calculation
+                months_diff += fraction
+        
+        # Special case: For periods that should be exactly whole months
+        # (e.g., July 1 to March 31 should be exactly 9 months)
+        if self._is_period_exact_months(start_date, end_date):
+            exact_months = self._calculate_exact_months(start_date, end_date)
+            logger.info(f"Period {start_date} to {end_date} is exact months: {exact_months}")
+            return exact_months
+        
+        # Ensure we don't exceed 12 months for a financial year period
+        if (start_date >= financial_year_start and end_date <= financial_year_end and 
+            months_diff > 12.0):
+            logger.info(f"Capping months at 12.0 for financial year period: {start_date} to {end_date}")
+            return 12.0
+        
+        result = max(0.0, months_diff)
+        logger.info(f"Calculated months between {start_date} and {end_date}: {result}")
+        return result
+    
+    def _get_last_day_of_month(self, year: int, month: int) -> int:
+        """Get the last day of a given month and year."""
+        from calendar import monthrange
+        return monthrange(year, month)[1]
+    
+    def _is_period_exact_months(self, start_date: date, end_date: date) -> bool:
+        """
+        Check if a period represents exact months (e.g., July 1 to March 31).
+        
+        Args:
+            start_date: Start date
+            end_date: End date
+            
+        Returns:
+            bool: True if the period represents exact months
+        """
+        # Check if start is the 1st of a month and end is the last day of a month
+        start_is_first = start_date.day == 1
+        end_is_last = end_date.day == self._get_last_day_of_month(end_date.year, end_date.month)
+        
+        return start_is_first and end_is_last
+    
+    def _calculate_exact_months(self, start_date: date, end_date: date) -> float:
+        """
+        Calculate exact months for periods that start on 1st and end on last day of month.
+        
+        Args:
+            start_date: Start date (should be 1st of month)
+            end_date: End date (should be last day of month)
+            
+        Returns:
+            float: Exact number of months
+        """
+        start_year, start_month = start_date.year, start_date.month
+        end_year, end_month = end_date.year, end_date.month
+        
+        # Calculate total months between the two dates
+        # For example: July 2025 to March 2026
+        # July (7) to December (12) = 6 months (Jul, Aug, Sep, Oct, Nov, Dec)
+        # January (1) to March (3) = 3 months (Jan, Feb, Mar)
+        # Total = 6 + 3 = 9 months
+        
+        if end_year == start_year:
+            # Same year: just count months from start_month to end_month (inclusive)
+            months_diff = end_month - start_month + 1
+        else:
+            # Different years: months from start_month to December + months from January to end_month
+            months_from_start_year = 12 - start_month + 1  # Months from start_month to December (inclusive)
+            months_from_end_year = end_month  # Months from January to end_month (inclusive)
+            months_from_intermediate_years = max(0, (end_year - start_year - 1) * 12)  # Complete years in between
+            
+            months_diff = months_from_start_year + months_from_intermediate_years + months_from_end_year
+        
+        return float(months_diff)
+    
+    def _update_annual_salary_income(self) -> None:
+        """
+        Update the annual_salary_income field based on all salary incomes and their effective months.
+        This creates a weighted average salary income that represents the annual equivalent.
+        """
+        from decimal import Decimal
+        from copy import deepcopy
+        
+        # Get financial year boundaries
+        financial_year_start = self.tax_year.get_start_date()
+        financial_year_end = self.tax_year.get_end_date()
+        
+        # Calculate total months and weighted components
+        total_months = Decimal('0')
+        weighted_basic_salary = Money.zero()
+        weighted_dearness_allowance = Money.zero()
+        weighted_hra_provided = Money.zero()
+        weighted_special_allowance = Money.zero()
+        weighted_bonus = Money.zero()
+        weighted_commission = Money.zero()
+        
+        # Track weighted specific allowances
+        weighted_specific_allowances = {}
+        
+        # Process each salary income to calculate weighted averages
+        for salary_income in self.salary_incomes:
+            # Determine the effective period for this salary income within the financial year
+            salary_start = max(
+                salary_income.effective_from.date() if salary_income.effective_from else financial_year_start,
+                financial_year_start
+            )
+            salary_end = min(
+                salary_income.effective_till.date() if salary_income.effective_till else financial_year_end,
+                financial_year_end
+            )
+            
+            # Skip if salary period doesn't overlap with financial year
+            if salary_start > financial_year_end or salary_end < financial_year_start:
+                continue
+            
+            # Calculate the number of months this salary is applicable
+            months_applicable = Decimal(str(self._calculate_months_between_dates(salary_start, salary_end)))
+            
+            if months_applicable > 0:
+                logger.info(f"Start date: {salary_start}, End date: {salary_end}, Months applicable: {months_applicable}")
+                # Add weighted components
+                total_months += months_applicable
+                weighted_basic_salary = weighted_basic_salary.add(
+                    salary_income.basic_salary.multiply(months_applicable)
+                )
+                weighted_dearness_allowance = weighted_dearness_allowance.add(
+                    salary_income.dearness_allowance.multiply(months_applicable)
+                )
+                weighted_hra_provided = weighted_hra_provided.add(
+                    salary_income.hra_provided.multiply(months_applicable)
+                )
+                weighted_special_allowance = weighted_special_allowance.add(
+                    salary_income.special_allowance.multiply(months_applicable)
+                )
+                weighted_bonus = weighted_bonus.add(
+                    salary_income.bonus.multiply(months_applicable)
+                )
+                weighted_commission = weighted_commission.add(
+                    salary_income.commission.multiply(months_applicable)
+                )
+                
+                # Handle specific allowances if present
+                if salary_income.specific_allowances:
+                    self._add_weighted_specific_allowances(
+                        weighted_specific_allowances, 
+                        salary_income.specific_allowances, 
+                        months_applicable
+                    )
+        
+        # Calculate annual totals (do NOT divide by total_months - store actual annual amounts)
+        if total_months > 0:
+            # Create the annual salary income as weighted total
+            # Get the latest salary income as a template
+            latest_salary = self.get_latest_salary_income()
+            annual_salary = deepcopy(latest_salary)
+            
+            # Update components with weighted totals (these represent annual amounts)
+            # The weighted values already represent total amounts across applicable months
+            # Store them as annual amounts, not monthly equivalents
+            
+            annual_salary.basic_salary = weighted_basic_salary
+            annual_salary.dearness_allowance = weighted_dearness_allowance
+            annual_salary.hra_provided = weighted_hra_provided
+            annual_salary.special_allowance = weighted_special_allowance
+            annual_salary.bonus = weighted_bonus
+            annual_salary.commission = weighted_commission
+            
+            # Update specific allowances with weighted totals
+            if weighted_specific_allowances:
+                annual_salary.specific_allowances = self._create_weighted_specific_allowances_annual(
+                    weighted_specific_allowances, 
+                    latest_salary.specific_allowances
+                )
+            
+            # Set effective dates to cover the entire financial year
+            annual_salary.effective_from = datetime.combine(financial_year_start, datetime.min.time())
+            annual_salary.effective_till = datetime.combine(financial_year_end, datetime.min.time())
+            
+            self.annual_salary_income = annual_salary
+            
+            logger.info(f"Updated annual_salary_income - Total applicable months: {total_months}, Annual gross: {annual_salary.calculate_gross_salary()}")
+            
+            # Log specific allowances if present
+            if annual_salary.specific_allowances:
+                total_specific_allowances = annual_salary.specific_allowances.calculate_total_specific_allowances()
+                logger.info(f"Annual specific allowances included: {total_specific_allowances}")
+                logger.debug(f"Specific allowances breakdown - Hills: {annual_salary.specific_allowances.hills_allowance}, "
+                           f"Border: {annual_salary.specific_allowances.border_allowance}, "
+                           f"Transport: {annual_salary.specific_allowances.transport_employee_allowance}, "
+                           f"Children Education: {annual_salary.specific_allowances.children_education_allowance}")
+        else:
+            # If no applicable periods, use the latest salary as fallback
+            latest_salary = self.get_latest_salary_income()
+            self.annual_salary_income = deepcopy(latest_salary)
+            logger.info(f"No applicable periods found, using latest salary as annual_salary_income")
+    
+    def _add_weighted_specific_allowances(self, weighted_allowances: dict, specific_allowances, months_applicable: Decimal) -> None:
+        """
+        Add weighted specific allowances to the accumulator dictionary.
+        
+        Args:
+            weighted_allowances: Dictionary to accumulate weighted allowances
+            specific_allowances: SpecificAllowances object from salary income
+            months_applicable: Number of months this salary is applicable
+        """
+        # List of all specific allowance fields
+        allowance_fields = [
+            'hills_allowance', 'hills_exemption_limit', 'border_allowance', 'border_exemption_limit',
+            'transport_employee_allowance', 'children_education_allowance', 'hostel_allowance',
+            'disabled_transport_allowance', 'underground_mines_allowance', 'government_entertainment_allowance',
+            'city_compensatory_allowance', 'rural_allowance', 'proctorship_allowance', 'wardenship_allowance',
+            'project_allowance', 'deputation_allowance', 'overtime_allowance', 'interim_relief',
+            'tiffin_allowance', 'fixed_medical_allowance', 'servant_allowance', 'any_other_allowance',
+            'any_other_allowance_exemption', 'govt_employees_outside_india_allowance',
+            'supreme_high_court_judges_allowance', 'judge_compensatory_allowance',
+            'section_10_14_special_allowances', 'travel_on_tour_allowance', 'tour_daily_charge_allowance',
+            'conveyance_in_performace_of_duties', 'helper_in_performace_of_duties', 'academic_research',
+            'uniform_allowance'
+        ]
+        
+        # Integer fields that need special handling
+        integer_fields = [
+            'children_count', 'children_education_months', 'hostel_count', 'hostel_months',
+            'transport_months', 'mine_work_months'
+        ]
+        
+        # Boolean fields that need special handling
+        boolean_fields = ['is_disabled']
+        
+        # Accumulate weighted money values
+        for field in allowance_fields:
+            if hasattr(specific_allowances, field):
+                field_value = getattr(specific_allowances, field)
+                if field_value and hasattr(field_value, 'multiply'):  # Money object
+                    if field not in weighted_allowances:
+                        weighted_allowances[field] = Money.zero()
+                    weighted_allowances[field] = weighted_allowances[field].add(
+                        field_value.multiply(months_applicable)
+                    )
+        
+        # Handle integer fields (use latest values, don't weight them)
+        for field in integer_fields:
+            if hasattr(specific_allowances, field):
+                weighted_allowances[field] = getattr(specific_allowances, field)
+        
+        # Handle boolean fields (use latest values, don't weight them)
+        for field in boolean_fields:
+            if hasattr(specific_allowances, field):
+                weighted_allowances[field] = getattr(specific_allowances, field)
+    
+    def _create_weighted_specific_allowances_annual(self, weighted_allowances: dict, template_allowances) -> 'SpecificAllowances':
+        """
+        Create a SpecificAllowances object with weighted annual total values.
+        
+        Args:
+            weighted_allowances: Dictionary with accumulated weighted allowances (already annual totals)
+            template_allowances: Template SpecificAllowances object to copy structure from
+            
+        Returns:
+            SpecificAllowances: New object with weighted annual total values
+        """
+        from copy import deepcopy
+        from app.domain.entities.taxation.salary_income import SpecificAllowances
+        
+        # Create a new SpecificAllowances object
+        if template_allowances:
+            annual_allowances = deepcopy(template_allowances)
+        else:
+            annual_allowances = SpecificAllowances()
+        
+        # List of money fields to update with weighted annual totals
+        money_fields = [
+            'hills_allowance', 'hills_exemption_limit', 'border_allowance', 'border_exemption_limit',
+            'transport_employee_allowance', 'children_education_allowance', 'hostel_allowance',
+            'disabled_transport_allowance', 'underground_mines_allowance', 'government_entertainment_allowance',
+            'city_compensatory_allowance', 'rural_allowance', 'proctorship_allowance', 'wardenship_allowance',
+            'project_allowance', 'deputation_allowance', 'overtime_allowance', 'interim_relief',
+            'tiffin_allowance', 'fixed_medical_allowance', 'servant_allowance', 'any_other_allowance',
+            'any_other_allowance_exemption', 'govt_employees_outside_india_allowance',
+            'supreme_high_court_judges_allowance', 'judge_compensatory_allowance',
+            'section_10_14_special_allowances', 'travel_on_tour_allowance', 'tour_daily_charge_allowance',
+            'conveyance_in_performace_of_duties', 'helper_in_performace_of_duties', 'academic_research',
+            'uniform_allowance'
+        ]
+        
+        # Update money fields with annual totals (do NOT divide by total_months)
+        for field in money_fields:
+            if field in weighted_allowances:
+                annual_total = weighted_allowances[field]  # Already represents annual total
+                setattr(annual_allowances, field, annual_total)
+        
+        # Update integer and boolean fields (these were set to latest values)
+        integer_and_boolean_fields = [
+            'children_count', 'children_education_months', 'hostel_count', 'hostel_months',
+            'transport_months', 'mine_work_months', 'is_disabled'
+        ]
+        
+        for field in integer_and_boolean_fields:
+            if field in weighted_allowances:
+                setattr(annual_allowances, field, weighted_allowances[field])
+        
+        return annual_allowances
+    
+    def _create_weighted_specific_allowances(self, weighted_allowances: dict, total_months: Decimal, template_allowances) -> 'SpecificAllowances':
+        """
+        Create a SpecificAllowances object with weighted average values.
+        
+        Args:
+            weighted_allowances: Dictionary with accumulated weighted allowances
+            total_months: Total months across all salary periods
+            template_allowances: Template SpecificAllowances object to copy structure from
+            
+        Returns:
+            SpecificAllowances: New object with weighted average values
+        """
+        from copy import deepcopy
+        from app.domain.entities.taxation.salary_income import SpecificAllowances
+        
+        # Create a new SpecificAllowances object
+        if template_allowances:
+            annual_allowances = deepcopy(template_allowances)
+        else:
+            annual_allowances = SpecificAllowances()
+        
+        # List of money fields to update with weighted averages
+        money_fields = [
+            'hills_allowance', 'hills_exemption_limit', 'border_allowance', 'border_exemption_limit',
+            'transport_employee_allowance', 'children_education_allowance', 'hostel_allowance',
+            'disabled_transport_allowance', 'underground_mines_allowance', 'government_entertainment_allowance',
+            'city_compensatory_allowance', 'rural_allowance', 'proctorship_allowance', 'wardenship_allowance',
+            'project_allowance', 'deputation_allowance', 'overtime_allowance', 'interim_relief',
+            'tiffin_allowance', 'fixed_medical_allowance', 'servant_allowance', 'any_other_allowance',
+            'any_other_allowance_exemption', 'govt_employees_outside_india_allowance',
+            'supreme_high_court_judges_allowance', 'judge_compensatory_allowance',
+            'section_10_14_special_allowances', 'travel_on_tour_allowance', 'tour_daily_charge_allowance',
+            'conveyance_in_performace_of_duties', 'helper_in_performace_of_duties', 'academic_research',
+            'uniform_allowance'
+        ]
+        
+        # Update money fields with weighted averages
+        for field in money_fields:
+            if field in weighted_allowances:
+                weighted_value = weighted_allowances[field].divide(total_months)
+                setattr(annual_allowances, field, weighted_value)
+        
+        # Update integer and boolean fields (these were set to latest values)
+        integer_and_boolean_fields = [
+            'children_count', 'children_education_months', 'hostel_count', 'hostel_months',
+            'transport_months', 'mine_work_months', 'is_disabled'
+        ]
+        
+        for field in integer_and_boolean_fields:
+            if field in weighted_allowances:
+                setattr(annual_allowances, field, weighted_allowances[field])
+        
+        return annual_allowances
     
     def _get_uncovered_months(self, covered_periods: list, projection_start: date, projection_end: date) -> float:
         """
@@ -1176,6 +1625,16 @@ class SalaryPackageRecord:
                 return 0.0
         else:
             return total_projection_months
+        
+
+    def get_gross_salary(self) -> Money:
+        """
+        Get the gross salary of the employee.
+        
+        Returns:
+            Money: Gross salary of the employee
+        """
+        return self.get_annual_salary_income().calculate_gross_salary()
     
     def calculate_tax(self, calculation_service: TaxCalculationService) -> TaxCalculationResult:
         """
@@ -1189,7 +1648,7 @@ class SalaryPackageRecord:
         """
         
         # Calculate comprehensive gross income
-        gross_income = self.compute_gross_annual_salary_income()
+        gross_income = self.get_gross_salary()
         
         # Calculate total exemptions
         total_exemptions = self.calculate_comprehensive_exemptions()
@@ -1779,9 +2238,6 @@ class SalaryPackageRecord:
             Money: Monthly tax liability
         """
         from decimal import Decimal
-        import logging
-        logger = logging.getLogger(__name__)
-        
         # Validate inputs
         
         # If we have a valid calculation result, use it
@@ -1792,7 +2248,8 @@ class SalaryPackageRecord:
         
         # Calculate total annual salary income
         total_annual_income = self.compute_gross_annual_salary_income()
-        logger.info(f"Total annual income: {total_annual_income}")
+        logger.info(f"Total annual income: {total_annual_income}/{self.get_annual_salary_income().calculate_gross_salary()}")
+
         
         # Add other income sources (these are typically annual amounts)
         if self.other_income:

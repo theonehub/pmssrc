@@ -19,6 +19,7 @@ from app.domain.entities.taxation.house_property_income import HousePropertyInco
 from app.domain.entities.taxation.capital_gains import CapitalGainsIncome
 from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 from app.domain.value_objects.employee_id import EmployeeId
+from app.utils.logger import get_logger
 
 
 @dataclass
@@ -93,7 +94,7 @@ class TaxCalculationService:
         self.taxation_repository = taxation_repository
         self.salary_package_repository = salary_package_repository
         self.user_repository = user_repository
-        self.logger = logging.getLogger(__name__)
+        self.logger = get_logger(__name__)
 
 
     async def compute_monthly_tax(self, employee_id: EmployeeId, organization_id: str) -> Dict[str, Any]:

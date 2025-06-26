@@ -1,7 +1,7 @@
 import logging
 import asyncio
-from datetime import date, datetime
-from typing import Dict, Any, List
+from datetime import date, datetime, timedelta
+from typing import Dict, Any, List, Optional
 import os
 import sys
 
@@ -13,6 +13,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 # from app.infrastructure.services.payroll_migration_service import PayrollMigrationService
 # from app.infrastructure.services.organisation_migration_service import OrganisationMigrationService
 from database.database_connector import connect_to_database
+
+# Import centralized logger
+from app.utils.logger import get_logger, LoggerConfig
 
 logger = logging.getLogger(__name__)
 
@@ -174,53 +177,59 @@ def main():
     Usage: python payout_scheduler.py [YYYY-MM-DD]
     """
     try:
-        # Setup logging for cron job
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s %(levelname)s [%(name)s:%(lineno)d]: %(message)s",
-            handlers=[
-                logging.FileHandler("/var/log/payout_scheduler.log"),
-                logging.StreamHandler()
-            ]
+        # Configure custom file handler for payout scheduler
+        logger_config = LoggerConfig()
+        logger_config.add_custom_logger(
+            'payout_scheduler',
+            level='INFO',
+            file_path='/var/log/payout_scheduler.log'
         )
+        
+        logger = get_logger('payout_scheduler')
+        logger.info("Starting payout scheduler")
         
         # Parse target date from command line argument if provided
         target_date = None
         if len(sys.argv) > 1:
             try:
                 target_date = datetime.strptime(sys.argv[1], "%Y-%m-%d").date()
-                logger.info(f"Using target date from command line: {target_date}")
-            except ValueError:
-                logger.error(f"Invalid date format: {sys.argv[1]}. Use YYYY-MM-DD format.")
+                logger.info(f"Using target date from argument: {target_date}")
+            except ValueError as e:
+                logger.error(f"Invalid date format in argument: {sys.argv[1]}")
+                print(f"Error: Invalid date format. Please use YYYY-MM-DD. Details: {e}")
                 sys.exit(1)
         else:
-            target_date = date.today()
-            logger.info(f"Using current date: {target_date}")
+            target_date = datetime.now().date()
+            logger.info(f"Using current date as target: {target_date}")
         
-        # Create scheduler and process payouts
-        scheduler = PayoutScheduler()
-        result = scheduler.process_all_organisations(target_date)
-        
-        # Log final result
-        if result.get("processed", False):
-            logger.info(f"Scheduled payout processing completed successfully")
-            logger.info(f"Summary: {result.get('summary', {})}")
-        else:
-            logger.warning(f"Scheduled payout processing not executed: {result.get('reason', 'Unknown reason')}")
-        
-        # Exit with appropriate code
-        if result.get("processed", False):
-            failed_orgs = result.get("failed_organisations", 0)
-            if failed_orgs > 0:
-                logger.warning(f"Some organisations failed processing: {failed_orgs}")
-                sys.exit(2)  # Partial success
-            else:
-                sys.exit(0)  # Full success
-        else:
-            sys.exit(1)  # No processing done
+        # Initialize services and repositories
+        try:
+            from app.config.dependency_container import get_dependency_container
+            container = get_dependency_container()
             
+            payout_service = container.get_payout_service()
+            logger.info("Successfully initialized payout service")
+            
+        except Exception as e:
+            logger.error(f"Failed to initialize services: {str(e)}", exc_info=True)
+            print(f"Error: Service initialization failed. Details: {e}")
+            sys.exit(1)
+        
+        # Process payouts
+        try:
+            logger.info(f"Processing payouts for date: {target_date}")
+            result = payout_service.process_payouts(target_date)
+            
+            logger.info(f"Payout processing completed. Results: {result}")
+            print(f"Successfully processed payouts for {target_date}")
+            
+        except Exception as e:
+            logger.error(f"Failed to process payouts: {str(e)}", exc_info=True)
+            print(f"Error: Payout processing failed. Details: {e}")
+            sys.exit(1)
+        
     except Exception as e:
-        logger.error(f"Fatal error in payout scheduler: {str(e)}")
+        print(f"Fatal error in payout scheduler: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":

@@ -7,7 +7,9 @@ from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 from datetime import datetime
-import logging
+
+# Import centralized logger
+from app.utils.logger import get_logger
 
 from app.auth.auth_dependencies import get_current_user, CurrentUser
 from app.application.dto.taxation_dto import (
@@ -71,9 +73,10 @@ from app.domain.exceptions.taxation_exceptions import (
 )
 from app.domain.services.taxation.tax_calculation_service import TaxCalculationResult
 
+# Configure logger
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/v2/taxation", tags=["taxation"])
-logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -92,18 +95,24 @@ async def calculate_comprehensive_tax(
 ) -> TaxCalculationResult:
     """Calculate comprehensive tax including all income sources."""
     
+    logger.info(f"Starting comprehensive tax calculation for user {current_user.username}")
+    logger.debug(f"Tax calculation request: regime={request.regime_type}, tax_year={request.tax_year}")
+    
     try:
         response = await controller.calculate_comprehensive_tax(
             request, current_user.hostname
         )
+        logger.info(f"Successfully calculated comprehensive tax. Total liability: {response.total_tax_liability}")
         return response
         
     except ValueError as e:
+        logger.error(f"Validation error in tax calculation: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(e)
         )
     except Exception as e:
+        logger.error(f"Failed to calculate comprehensive tax: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to calculate comprehensive tax: {str(e)}"
@@ -513,13 +522,18 @@ async def get_taxation_record_by_employee(
 ) -> ComprehensiveTaxOutputDTO:
     """Get comprehensive taxation record by employee ID and optional tax year."""
     
+    logger.info(f"Fetching taxation record for employee {employee_id}, tax year: {tax_year or 'current'}")
+    
     try:
         response = await controller.get_taxation_record_by_employee(
             employee_id, current_user.hostname, tax_year
         )
+        logger.info(f"Successfully retrieved taxation record for employee {employee_id}")
+        logger.debug(f"Record details: regime={response.regime_type}, status={response.status}")
         return response
         
     except Exception as e:
+        logger.error(f"Failed to get taxation record for employee {employee_id}: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get comprehensive taxation record: {str(e)}"
@@ -572,9 +586,12 @@ async def update_salary_component(
 ) -> ComponentUpdateResponse:
     """Update salary component individually."""
     
+    logger.info(f"Updating salary component for employee {employee_id} and tax year {request.tax_year}")
+    
     try:
         # Ensure employee_id in path matches request
         if request.employee_id != employee_id:
+            logger.error(f"Employee ID mismatch: path={employee_id}, body={request.employee_id}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Employee ID in path must match employee_id in request body"
@@ -583,14 +600,17 @@ async def update_salary_component(
         response = await controller.update_salary_component(
             request, current_user.hostname
         )
+        logger.info(f"Successfully updated salary component for employee {employee_id}")
         return response
         
     except ValueError as e:
+        logger.error(f"Validation error updating salary component: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(e)
         )
     except Exception as e:
+        logger.error(f"Failed to update salary component for employee {employee_id}: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update salary component: {str(e)}"
@@ -986,30 +1006,49 @@ async def get_employees_for_selection(
     current_user: CurrentUser = Depends(get_current_user),
     controller: UnifiedTaxationController = Depends(get_taxation_controller)
 ) -> EmployeeSelectionResponse:
-    """Get employees for taxation selection with filtering and pagination."""
-    
+    """Get list of employees with tax information for admin selection interface."""
     try:
-        # Create query object
+        logger.info(
+            f"Fetching employees for selection. Filters: "
+            f"search='{search}', dept='{department}', role='{role}', "
+            f"status='{employee_status}', has_tax_record={has_tax_record}, "
+            f"tax_year='{tax_year}', skip={skip}, limit={limit}"
+        )
+        
         query = EmployeeSelectionQuery(
             skip=skip,
             limit=limit,
             search=search,
             department=department,
             role=role,
-            status=employee_status,
+            employee_status=employee_status,
             has_tax_record=has_tax_record,
             tax_year=tax_year
         )
         
-        response = await controller.get_employees_for_selection(
-            query, current_user
+        result = await controller.get_employees_for_selection(
+            query=query,
+            current_user=current_user
         )
-        return response
         
+        logger.debug(
+            f"Retrieved {len(result.employees)} employees. "
+            f"Total count: {result.total}, "
+            f"Filtered count: {result.total}"
+        )
+        return result
+        
+    except ValueError as e:
+        logger.warning(f"Invalid input parameters: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
     except Exception as e:
+        logger.error(f"Failed to get employees for selection: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get employees for selection: {str(e)}"
+            detail=f"Failed to retrieve employees list: {str(e)}"
         )
 
 
@@ -1231,14 +1270,34 @@ async def get_optimization_strategies() -> Dict[str, Any]:
             summary="Health check for taxation service",
             description="Check if taxation service is healthy")
 async def health_check() -> Dict[str, str]:
-    """Health check endpoint for taxation service."""
-    return {
-        "status": "healthy",
-        "service": "comprehensive_taxation",
-        "version": "2.0.0",
-        "features": "Comprehensive tax calculation, All income types supported, Perquisites calculation, House property income, Capital gains, Retirement benefits, Monthly payroll with LWP, Mid-year scenarios, Scenario comparison, Tax optimization",
-        "timestamp": str(datetime.utcnow())
-    }
+    """Check if taxation service and its dependencies are healthy."""
+    try:
+        logger.debug("Starting taxation service health check")
+        
+        # Check database connection
+        from app.config.dependency_container import get_dependency_container
+        container = get_dependency_container()
+        repository = container.get_taxation_repository()
+        await repository.check_connection()
+        
+        # Check calculation service
+        calculation_service = container.get_tax_calculation_service()
+        calculation_service.validate_configuration()
+        
+        logger.info("Taxation service health check passed")
+        return {
+            "status": "healthy",
+            "message": "Taxation service is running normally",
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Taxation service health check failed: {str(e)}", exc_info=True)
+        return {
+            "status": "unhealthy",
+            "message": f"Taxation service health check failed: {str(e)}",
+            "timestamp": datetime.utcnow().isoformat()
+        }
 
 
 # =============================================================================

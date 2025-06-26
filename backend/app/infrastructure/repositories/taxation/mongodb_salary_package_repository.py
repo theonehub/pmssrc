@@ -11,7 +11,7 @@ from bson import ObjectId
 from app.application.interfaces.repositories.salary_package_repository import SalaryPackageRepository
 from app.domain.entities.taxation.taxation_record import SalaryPackageRecord
 from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
-from app.domain.entities.taxation.salary_income import SalaryIncome
+from app.domain.entities.taxation.salary_income import SalaryIncome, SpecificAllowances
 from app.domain.entities.taxation.deductions import (
     TaxDeductions, DeductionSection80C, DeductionSection80D, DeductionSection80E, DeductionSection80G, DeductionSection80TTA_TTB, OtherDeductions
 )
@@ -42,33 +42,52 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         
         Ensures database connection is established in the correct event loop.
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         db_name = organisation_id if organisation_id else "pms_global_database"
+        logger.debug(f"_get_collection: Getting collection for db_name: {db_name}, organisation_id: {organisation_id}")
         
         # Ensure database is connected in the current event loop
         if not self.db_connector.is_connected:
+            logger.debug("_get_collection: Database not connected, attempting to connect")
             try:
                 # Use stored connection configuration or fallback to config functions
                 if self._connection_string and self._client_options:
                     connection_string = self._connection_string
                     options = self._client_options
+                    logger.debug("_get_collection: Using stored connection configuration")
                 else:
                     # Fallback to config functions if connection config not set
+                    logger.debug("_get_collection: Falling back to config functions for connection")
                     from app.config.mongodb_config import get_mongodb_connection_string, get_mongodb_client_options
                     connection_string = get_mongodb_connection_string()
                     options = get_mongodb_client_options()
                 
+                logger.debug(f"_get_collection: Connecting to database with connection_string length: {len(connection_string) if connection_string else 0}")
                 await self.db_connector.connect(connection_string, **options)
+                logger.debug("_get_collection: Database connection successful")
                 
             except Exception as e:
+                logger.error(f"_get_collection: Database connection failed: {e}", exc_info=True)
                 raise RuntimeError(f"Database connection failed: {e}")
+        else:
+            logger.debug("_get_collection: Database already connected")
         
         # Get collection
         try:
-            db = self.db_connector.get_database('pms_'+db_name)
+            final_db_name = 'pms_'+db_name
+            logger.debug(f"_get_collection: Getting database: {final_db_name}")
+            db = self.db_connector.get_database(final_db_name)
+            
+            logger.debug(f"_get_collection: Getting collection: {self._collection_name}")
             collection = db[self._collection_name]
+            
+            logger.debug(f"_get_collection: Successfully got collection {self._collection_name} from database {final_db_name}")
             return collection
             
         except Exception as e:
+            logger.error(f"_get_collection: Collection access failed: {e}", exc_info=True)
             raise RuntimeError(f"Collection access failed: {e}")
     
     async def save(self, salary_package_record: SalaryPackageRecord, organization_id: str) -> SalaryPackageRecord:
@@ -132,15 +151,40 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         Returns:
             Optional[SalaryPackageRecord]: Salary package record if found
         """
-        collection = await self._get_collection(organization_id)
-        document = await collection.find_one({
-            "employee_id": employee_id,
-            "tax_year": tax_year
-        })
+        import logging
+        logger = logging.getLogger(__name__)
         
-        if document:
-            return self._convert_to_entity(document)
-        return None
+        logger.debug(f"get_salary_package_record: Starting search for employee {employee_id}, tax_year {tax_year}, organization {organization_id}")
+        
+        try:
+            logger.debug(f"get_salary_package_record: Getting collection for organization {organization_id}")
+            collection = await self._get_collection(organization_id)
+            
+            query = {
+                "employee_id": employee_id,
+                "tax_year": tax_year
+            }
+            logger.debug(f"get_salary_package_record: Executing query: {query}")
+            
+            document = await collection.find_one(query)
+            
+            if document:
+                logger.debug(f"get_salary_package_record: Found document with _id: {document.get('_id')}")
+                logger.debug(f"get_salary_package_record: Document has keys: {list(document.keys())}")
+                
+                # Convert to entity
+                logger.debug("get_salary_package_record: Converting document to entity")
+                entity = self._convert_to_entity(document)
+                logger.debug(f"get_salary_package_record: Successfully converted to entity")
+                
+                return entity
+            else:
+                logger.warning(f"get_salary_package_record: No document found for employee {employee_id}, tax_year {tax_year}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"get_salary_package_record: Error occurred: {str(e)}", exc_info=True)
+            raise
     
     async def get_by_user_and_year(self, 
                                  employee_id: EmployeeId, 
@@ -442,6 +486,64 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         
         return record
     
+    def _serialize_specific_allowances(self, specific_allowances: SpecificAllowances) -> dict:
+        """Serialize specific allowances to document format."""
+        if not specific_allowances:
+            return {}
+        
+        return {
+            "hills_allowance": specific_allowances.hills_allowance.to_float(),
+            "hills_exemption_limit": specific_allowances.hills_exemption_limit.to_float(),
+
+            "border_allowance": specific_allowances.border_allowance.to_float(),
+            "border_exemption_limit": specific_allowances.border_exemption_limit.to_float(),
+
+            "transport_employee_allowance": specific_allowances.transport_employee_allowance.to_float(),
+            
+            "children_education_allowance": specific_allowances.children_education_allowance.to_float(),
+            "children_count": specific_allowances.children_count,
+            "children_education_months": specific_allowances.children_education_months,
+
+            "hostel_allowance": specific_allowances.hostel_allowance.to_float(),
+            "hostel_count": specific_allowances.hostel_count,
+            "hostel_months": specific_allowances.hostel_months,
+
+            "disabled_transport_allowance": specific_allowances.disabled_transport_allowance.to_float(),
+            "transport_months": specific_allowances.transport_months,
+            "is_disabled": specific_allowances.is_disabled,
+
+            "underground_mines_allowance": specific_allowances.underground_mines_allowance.to_float(),
+            "mine_work_months": specific_allowances.mine_work_months,
+
+            "government_entertainment_allowance": specific_allowances.government_entertainment_allowance.to_float(),
+
+            "city_compensatory_allowance": specific_allowances.city_compensatory_allowance.to_float(),
+            "rural_allowance": specific_allowances.rural_allowance.to_float(),
+            "proctorship_allowance": specific_allowances.proctorship_allowance.to_float(),
+            "wardenship_allowance": specific_allowances.wardenship_allowance.to_float(),
+            "project_allowance": specific_allowances.project_allowance.to_float(),
+            "deputation_allowance": specific_allowances.deputation_allowance.to_float(),
+            "overtime_allowance": specific_allowances.overtime_allowance.to_float(),
+            "interim_relief": specific_allowances.interim_relief.to_float(),
+            "tiffin_allowance": specific_allowances.tiffin_allowance.to_float(),
+            "fixed_medical_allowance": specific_allowances.fixed_medical_allowance.to_float(),
+            "servant_allowance": specific_allowances.servant_allowance.to_float(),
+
+            "any_other_allowance": specific_allowances.any_other_allowance.to_float(),
+            "any_other_allowance_exemption": specific_allowances.any_other_allowance_exemption.to_float(),
+
+            "govt_employees_outside_india_allowance": specific_allowances.govt_employees_outside_india_allowance.to_float(),
+            "supreme_high_court_judges_allowance": specific_allowances.supreme_high_court_judges_allowance.to_float(),
+            "judge_compensatory_allowance": specific_allowances.judge_compensatory_allowance.to_float(),
+            "section_10_14_special_allowances": specific_allowances.section_10_14_special_allowances.to_float(),
+            "travel_on_tour_allowance": specific_allowances.travel_on_tour_allowance.to_float(),
+            "tour_daily_charge_allowance": specific_allowances.tour_daily_charge_allowance.to_float(),
+            "conveyance_in_performace_of_duties": specific_allowances.conveyance_in_performace_of_duties.to_float(),
+            "helper_in_performace_of_duties": specific_allowances.helper_in_performace_of_duties.to_float(),
+            "academic_research": specific_allowances.academic_research.to_float(),
+            "uniform_allowance": specific_allowances.uniform_allowance.to_float()
+        }
+
     # Serialization methods (reuse from MongoDBTaxationRepository)
     def _serialize_salary_income(self, salary_income: SalaryIncome) -> dict:
         """Serialize salary income to document format."""
@@ -453,8 +555,10 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             "bonus": salary_income.bonus.to_float(),
             "commission": salary_income.commission.to_float(),
             "arrears": salary_income.arrears.to_float(),
-            # Note: hra_city_type and actual_rent_paid are now in deductions module
-        }
+            "effective_from": salary_income.effective_from.isoformat(),
+            "effective_till": salary_income.effective_till.isoformat(),
+            "specific_allowances": self._serialize_specific_allowances(salary_income.specific_allowances)
+        }   
     
     def _serialize_deductions(self, deductions: TaxDeductions) -> dict:
         """Serialize deductions to document format."""
@@ -624,10 +728,90 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             "regime_comparison": calculation_result.regime_comparison
         }
     
+    def _deserialize_specific_allowances(self, specific_allowances_doc: dict) -> SpecificAllowances:
+        """Deserialize specific allowances from document format."""
+        return SpecificAllowances(
+            hills_allowance=Money.from_float(specific_allowances_doc.get("hills_allowance", 0.0)),
+            hills_exemption_limit=Money.from_float(specific_allowances_doc.get("hills_exemption_limit", 0.0)),
+
+            border_allowance=Money.from_float(specific_allowances_doc.get("border_allowance", 0.0)),
+            border_exemption_limit=Money.from_float(specific_allowances_doc.get("border_exemption_limit", 0.0)),
+
+            transport_employee_allowance=Money.from_float(specific_allowances_doc.get("transport_employee_allowance", 0.0)),
+
+            children_education_allowance=Money.from_float(specific_allowances_doc.get("children_education_allowance", 0.0)),
+            children_count=specific_allowances_doc.get("children_count", 0),
+            children_education_months=specific_allowances_doc.get("children_education_months", 0),
+
+            hostel_allowance=Money.from_float(specific_allowances_doc.get("hostel_allowance", 0.0)),
+            hostel_count=specific_allowances_doc.get("hostel_count", 0),
+            hostel_months=specific_allowances_doc.get("hostel_months", 0),
+
+            disabled_transport_allowance=Money.from_float(specific_allowances_doc.get("disabled_transport_allowance", 0.0)),
+            transport_months=specific_allowances_doc.get("transport_months", 0),
+            is_disabled=specific_allowances_doc.get("is_disabled", False),
+
+            underground_mines_allowance=Money.from_float(specific_allowances_doc.get("underground_mines_allowance", 0.0)),
+            mine_work_months=specific_allowances_doc.get("mine_work_months", 0),
+
+            government_entertainment_allowance=Money.from_float(specific_allowances_doc.get("government_entertainment_allowance", 0.0)),
+
+            city_compensatory_allowance=Money.from_float(specific_allowances_doc.get("city_compensatory_allowance", 0.0)),
+            rural_allowance=Money.from_float(specific_allowances_doc.get("rural_allowance", 0.0)),
+
+            proctorship_allowance=Money.from_float(specific_allowances_doc.get("proctorship_allowance", 0.0)),
+            wardenship_allowance=Money.from_float(specific_allowances_doc.get("wardenship_allowance", 0.0)),
+
+            project_allowance=Money.from_float(specific_allowances_doc.get("project_allowance", 0.0)),
+            deputation_allowance=Money.from_float(specific_allowances_doc.get("deputation_allowance", 0.0)),
+            overtime_allowance=Money.from_float(specific_allowances_doc.get("overtime_allowance", 0.0)),
+            interim_relief=Money.from_float(specific_allowances_doc.get("interim_relief", 0.0)),
+            tiffin_allowance=Money.from_float(specific_allowances_doc.get("tiffin_allowance", 0.0)),
+            fixed_medical_allowance=Money.from_float(specific_allowances_doc.get("fixed_medical_allowance", 0.0)),
+            servant_allowance=Money.from_float(specific_allowances_doc.get("servant_allowance", 0.0)),
+
+            any_other_allowance=Money.from_float(specific_allowances_doc.get("any_other_allowance", 0.0)),
+            any_other_allowance_exemption=Money.from_float(specific_allowances_doc.get("any_other_allowance_exemption", 0.0)),
+
+            govt_employees_outside_india_allowance=Money.from_float(specific_allowances_doc.get("govt_employees_outside_india_allowance", 0.0)),
+            supreme_high_court_judges_allowance=Money.from_float(specific_allowances_doc.get("supreme_high_court_judges_allowance", 0.0)),
+            judge_compensatory_allowance=Money.from_float(specific_allowances_doc.get("judge_compensatory_allowance", 0.0)),
+            section_10_14_special_allowances=Money.from_float(specific_allowances_doc.get("section_10_14_special_allowances", 0.0)),
+            travel_on_tour_allowance=Money.from_float(specific_allowances_doc.get("travel_on_tour_allowance", 0.0)),
+            tour_daily_charge_allowance=Money.from_float(specific_allowances_doc.get("tour_daily_charge_allowance", 0.0)),
+            conveyance_in_performace_of_duties=Money.from_float(specific_allowances_doc.get("conveyance_in_performace_of_duties", 0.0)),
+            helper_in_performace_of_duties=Money.from_float(specific_allowances_doc.get("helper_in_performace_of_duties", 0.0)),
+            academic_research=Money.from_float(specific_allowances_doc.get("academic_research", 0.0)),
+            uniform_allowance=Money.from_float(specific_allowances_doc.get("uniform_allowance", 0.0))
+        )
+    
     # Deserialization methods
     def _deserialize_salary_income(self, salary_doc: dict) -> SalaryIncome:
         """Deserialize salary income from document format."""
+        from datetime import datetime
+        from app.domain.value_objects.tax_year import TaxYear
+        
+        # Get effective dates from document or use defaults
+        effective_from = None
+        effective_till = None
+        
+        if salary_doc.get("effective_from"):
+            effective_from = datetime.fromisoformat(salary_doc["effective_from"])
+        else:
+            # Default to start of current tax year
+            current_tax_year = TaxYear.current()
+            effective_from = datetime.combine(current_tax_year.get_start_date(), datetime.min.time())
+        
+        if salary_doc.get("effective_till"):
+            effective_till = datetime.fromisoformat(salary_doc["effective_till"])
+        else:
+            # Default to end of current tax year
+            current_tax_year = TaxYear.current()
+            effective_till = datetime.combine(current_tax_year.get_end_date(), datetime.min.time())
+        
         return SalaryIncome(
+            effective_from=effective_from,
+            effective_till=effective_till,
             basic_salary=Money.from_float(salary_doc.get("basic_salary", 0.0)),
             dearness_allowance=Money.from_float(salary_doc.get("dearness_allowance", 0.0)),
             hra_provided=Money.from_float(salary_doc.get("hra_provided", 0.0)),
@@ -635,6 +819,7 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             bonus=Money.from_float(salary_doc.get("bonus", 0.0)),
             commission=Money.from_float(salary_doc.get("commission", 0.0)),
             arrears=Money.from_float(salary_doc.get("arrears", 0.0)),
+            specific_allowances=self._deserialize_specific_allowances(salary_doc.get("specific_allowances", {})),
             # Note: hra_city_type and actual_rent_paid are now handled in deductions module
         )
     

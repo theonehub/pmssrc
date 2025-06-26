@@ -26,9 +26,13 @@ from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 class TaxCalculationServiceImpl(TaxCalculationService):
     """Infrastructure implementation of the tax calculation service."""
     
-    def __init__(self, taxation_repository=None):
-        """Initialize the service with taxation repository."""
-        super().__init__(taxation_repository=taxation_repository)
+    def __init__(self, taxation_repository=None, salary_package_repository=None, user_repository=None):
+        """Initialize the service with repositories."""
+        super().__init__(
+            taxation_repository=taxation_repository,
+            salary_package_repository=salary_package_repository,
+            user_repository=user_repository
+        )
     
     def calculate_tax(self, input_data: TaxCalculationInput) -> TaxCalculationResult:
         """

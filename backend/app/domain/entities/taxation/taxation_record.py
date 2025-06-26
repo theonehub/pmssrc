@@ -4,7 +4,7 @@ Main aggregate root for taxation domain
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from typing import Dict, Any, Optional, List
 from uuid import uuid4
 
@@ -832,6 +832,7 @@ class SalaryPackageRecord:
     def add_salary_income(self, salary_income: SalaryIncome) -> None:
         """
         Add a new salary income to the list.
+        Automatically updates the effective_till of the previous salary income.
         
         Args:
             salary_income: New salary income to add
@@ -839,6 +840,25 @@ class SalaryPackageRecord:
         if self.is_final:
             raise ValueError("Cannot update finalized salary package record")
         
+        # If there are existing salary incomes and the new one has effective_from date
+        if self.salary_incomes and salary_income.effective_from:
+            # Update the effective_till of the latest (most recent) salary income
+            latest_salary = self.salary_incomes[-1]
+            
+            # Calculate one day before the new effective_from date
+            from datetime import timedelta
+            new_effective_till = salary_income.effective_from - timedelta(days=1)
+            
+            # Update the effective_till of the previous salary income
+            # Create a new SalaryIncome instance with updated effective_till
+            from copy import deepcopy
+            updated_previous_salary = deepcopy(latest_salary)
+            updated_previous_salary.effective_till = new_effective_till
+            
+            # Replace the last salary income with the updated one
+            self.salary_incomes[-1] = updated_previous_salary
+        
+        # Add the new salary income
         self.salary_incomes.append(salary_income)
         self._invalidate_calculation()
         
@@ -849,6 +869,8 @@ class SalaryPackageRecord:
             "tax_year": str(self.tax_year),
             "new_salary_gross": salary_income.calculate_gross_salary().to_float(),
             "total_salary_incomes": len(self.salary_incomes),
+            "effective_from": salary_income.effective_from.isoformat() if salary_income.effective_from else None,
+            "effective_till": salary_income.effective_till.isoformat() if salary_income.effective_till else None,
             "updated_at": self.updated_at.isoformat()
         })
     
@@ -901,6 +923,260 @@ class SalaryPackageRecord:
         """
         return self.salary_incomes.copy()
     
+    def compute_gross_annual_salary_income(self) -> Money:
+        """
+        Compute gross annual salary from all salary components applicable in the current financial year.
+        This includes actual salary earned from different periods and projected salary for remaining period.
+        
+        Returns:
+            Money: Total gross annual salary for the financial year
+        """
+        from datetime import timedelta
+        from decimal import Decimal
+        
+        # Get financial year boundaries
+        financial_year_start = self.tax_year.get_start_date()
+        financial_year_end = self.tax_year.get_end_date()
+        current_date = datetime.now().date()
+        
+        total_gross_salary = Money.zero()
+        covered_periods = []
+        
+        # Process all salary incomes that fall within the financial year
+        for salary_income in self.salary_incomes:
+            # Determine the effective period for this salary income within the financial year
+            salary_start = max(
+                salary_income.effective_from.date() if salary_income.effective_from else financial_year_start,
+                financial_year_start
+            )
+            salary_end = min(
+                salary_income.effective_till.date() if salary_income.effective_till else financial_year_end,
+                financial_year_end
+            )
+            
+            # Skip if salary period doesn't overlap with financial year
+            if salary_start > financial_year_end or salary_end < financial_year_start:
+                continue
+            
+            # Calculate the number of months this salary is applicable
+            months_applicable = self._calculate_months_between_dates(salary_start, salary_end)
+            
+            if months_applicable > 0:
+                # Calculate proportional salary for this period
+                monthly_gross = salary_income.calculate_gross_salary()  # This is monthly amount
+                period_gross = monthly_gross.multiply(Decimal(str(months_applicable)))
+                total_gross_salary = total_gross_salary.add(period_gross)
+                
+                # Track covered periods
+                covered_periods.append({
+                    'start': salary_start,
+                    'end': salary_end,
+                    'months': months_applicable,
+                    'monthly_gross': monthly_gross.to_float()
+                })
+        
+        # Calculate projected salary for any uncovered remaining period in the financial year
+        if current_date < financial_year_end:
+            # Find the latest salary income for projection
+            latest_salary = self.get_latest_salary_income()
+            
+            # Calculate uncovered period from current date to financial year end
+            projection_start = max(current_date, financial_year_start)
+            projection_end = financial_year_end
+            
+            # Check if there's any uncovered period that needs projection
+            uncovered_months = self._get_uncovered_months(covered_periods, projection_start, projection_end)
+            
+            if uncovered_months > 0:
+                # Project salary for uncovered period using latest salary
+                monthly_gross = latest_salary.calculate_gross_salary()
+                projected_gross = monthly_gross.multiply(Decimal(str(uncovered_months)))
+                total_gross_salary = total_gross_salary.add(projected_gross)
+        
+        return total_gross_salary
+    
+    def get_annual_salary_breakdown(self) -> Dict[str, Any]:
+        """
+        Get detailed breakdown of how gross annual salary is computed.
+        Shows contribution from each salary component and projections.
+        
+        Returns:
+            Dict: Detailed breakdown of annual salary computation
+        """
+        from datetime import timedelta
+        from decimal import Decimal
+        
+        # Get financial year boundaries
+        financial_year_start = self.tax_year.get_start_date()
+        financial_year_end = self.tax_year.get_end_date()
+        current_date = datetime.now().date()
+        
+        breakdown = {
+            "financial_year": str(self.tax_year),
+            "financial_year_start": financial_year_start.isoformat(),
+            "financial_year_end": financial_year_end.isoformat(),
+            "current_date": current_date.isoformat(),
+            "salary_periods": [],
+            "projections": [],
+            "summary": {
+                "total_salary_periods": 0,
+                "total_from_actual_periods": 0.0,
+                "total_from_projections": 0.0,
+                "total_gross_annual_salary": 0.0
+            }
+        }
+        
+        total_gross_salary = Money.zero()
+        covered_periods = []
+        
+        # Process all salary incomes that fall within the financial year
+        for i, salary_income in enumerate(self.salary_incomes):
+            # Determine the effective period for this salary income within the financial year
+            salary_start = max(
+                salary_income.effective_from.date() if salary_income.effective_from else financial_year_start,
+                financial_year_start
+            )
+            salary_end = min(
+                salary_income.effective_till.date() if salary_income.effective_till else financial_year_end,
+                financial_year_end
+            )
+            
+            # Skip if salary period doesn't overlap with financial year
+            if salary_start > financial_year_end or salary_end < financial_year_start:
+                continue
+            
+            # Calculate the number of months this salary is applicable
+            months_applicable = self._calculate_months_between_dates(salary_start, salary_end)
+            
+            if months_applicable > 0:
+                # Calculate proportional salary for this period
+                monthly_gross = salary_income.calculate_gross_salary()  # This is monthly amount
+                period_gross = monthly_gross.multiply(Decimal(str(months_applicable)))
+                total_gross_salary = total_gross_salary.add(period_gross)
+                
+                # Track covered periods
+                covered_periods.append({
+                    'start': salary_start,
+                    'end': salary_end,
+                    'months': months_applicable,
+                    'monthly_gross': monthly_gross.to_float()
+                })
+                
+                # Add to breakdown
+                breakdown["salary_periods"].append({
+                    "period_index": i + 1,
+                    "effective_from": salary_income.effective_from.isoformat() if salary_income.effective_from else None,
+                    "effective_till": salary_income.effective_till.isoformat() if salary_income.effective_till else None,
+                    "period_start_in_fy": salary_start.isoformat(),
+                    "period_end_in_fy": salary_end.isoformat(),
+                    "months_applicable": round(months_applicable, 2),
+                    "monthly_gross_salary": monthly_gross.to_float(),
+                    "total_for_period": period_gross.to_float(),
+                    "salary_components": {
+                        "basic_salary": salary_income.basic_salary.to_float(),
+                        "dearness_allowance": salary_income.dearness_allowance.to_float(),
+                        "hra_provided": salary_income.hra_provided.to_float(),
+                        "special_allowance": salary_income.special_allowance.to_float(),
+                        "bonus": salary_income.bonus.to_float(),
+                        "commission": salary_income.commission.to_float()
+                    }
+                })
+        
+        # Calculate projections for uncovered periods
+        if current_date < financial_year_end:
+            # Find the latest salary income for projection
+            latest_salary = self.get_latest_salary_income()
+            
+            # Calculate uncovered period from current date to financial year end
+            projection_start = max(current_date, financial_year_start)
+            projection_end = financial_year_end
+            
+            # Check if there's any uncovered period that needs projection
+            uncovered_months = self._get_uncovered_months(covered_periods, projection_start, projection_end)
+            
+            if uncovered_months > 0:
+                # Project salary for uncovered period using latest salary
+                monthly_gross = latest_salary.calculate_gross_salary()
+                projected_gross = monthly_gross.multiply(Decimal(str(uncovered_months)))
+                total_gross_salary = total_gross_salary.add(projected_gross)
+                
+                # Add to breakdown
+                breakdown["projections"].append({
+                    "projection_start": projection_start.isoformat(),
+                    "projection_end": projection_end.isoformat(),
+                    "uncovered_months": round(uncovered_months, 2),
+                    "monthly_gross_salary": monthly_gross.to_float(),
+                    "projected_amount": projected_gross.to_float(),
+                    "based_on_latest_salary": True,
+                    "latest_salary_effective_from": latest_salary.effective_from.isoformat() if latest_salary.effective_from else None
+                })
+                
+                breakdown["summary"]["total_from_projections"] = projected_gross.to_float()
+        
+        # Update summary
+        breakdown["summary"]["total_salary_periods"] = len(breakdown["salary_periods"])
+        breakdown["summary"]["total_from_actual_periods"] = sum(period["total_for_period"] for period in breakdown["salary_periods"])
+        breakdown["summary"]["total_gross_annual_salary"] = total_gross_salary.to_float()
+        
+        return breakdown
+    
+    def _calculate_months_between_dates(self, start_date: date, end_date: date) -> float:
+        """
+        Calculate the number of months between two dates (including fractional months).
+        
+        Args:
+            start_date: Start date
+            end_date: End date
+            
+        Returns:
+            float: Number of months (including fractional months)
+        """
+        if start_date > end_date:
+            return 0.0
+        
+        # Calculate total days
+        total_days = (end_date - start_date).days + 1  # +1 to include both start and end dates
+        
+        # Convert to months (using average of 30.44 days per month)
+        return total_days / 30.44
+    
+    def _get_uncovered_months(self, covered_periods: list, projection_start: date, projection_end: date) -> float:
+        """
+        Calculate uncovered months that need salary projection.
+        
+        Args:
+            covered_periods: List of periods already covered by salary incomes
+            projection_start: Start date for projection period
+            projection_end: End date for projection period
+            
+        Returns:
+            float: Number of uncovered months
+        """
+        if projection_start >= projection_end:
+            return 0.0
+        
+        # For simplicity, calculate the projection period months
+        # This assumes that existing salary incomes cover the past periods completely
+        # and we need to project for the remaining future period
+        
+        total_projection_months = self._calculate_months_between_dates(projection_start, projection_end)
+        
+        # Check if current date is after all covered periods
+        latest_covered_end = None
+        for period in covered_periods:
+            if latest_covered_end is None or period['end'] > latest_covered_end:
+                latest_covered_end = period['end']
+        
+        if latest_covered_end and latest_covered_end >= projection_start:
+            # Calculate only the period after the latest covered end
+            actual_projection_start = max(latest_covered_end + timedelta(days=1), projection_start)
+            if actual_projection_start <= projection_end:
+                return self._calculate_months_between_dates(actual_projection_start, projection_end)
+            else:
+                return 0.0
+        else:
+            return total_projection_months
+    
     def calculate_tax(self, calculation_service: TaxCalculationService) -> TaxCalculationResult:
         """
         Calculate tax using domain service.
@@ -913,7 +1189,7 @@ class SalaryPackageRecord:
         """
         
         # Calculate comprehensive gross income
-        gross_income = self.calculate_comprehensive_gross_income()
+        gross_income = self.compute_gross_annual_salary_income()
         
         # Calculate total exemptions
         total_exemptions = self.calculate_comprehensive_exemptions()
@@ -1486,20 +1762,169 @@ class SalaryPackageRecord:
             "can_switch": self.can_switch_regime()
         }
     
-    def compute_monthly_tax(self, month: int, year: int) -> Money:
-        """Compute monthly tax."""
-
-        #Get latest salary income
-        latest_salary_income = self.get_latest_salary_income()
-
-        #Compute gross income from latest salary income
-        gross_income = latest_salary_income.calculate_gross_salary()
-
-        #TODO: Complete the logic to compute monthly tax
-
-        return self.calculation_result.monthly_tax_liability
-
-
+    def compute_monthly_tax(self) -> Money:
+        """
+        Compute monthly tax based on monthly salary income and comprehensive income sources.
+        
+        IMPORTANT: SalaryPackageRecord stores MONTHLY salary values, so we need to:
+        1. Convert monthly salary values to annual values for tax calculation
+        2. Calculate comprehensive annual income (salary + perquisites + other income)
+        3. Calculate comprehensive annual exemptions
+        4. Calculate annual deductions
+        5. Compute annual tax liability
+        6. Return the monthly tax (annual tax / 12)
+        
+        Args:
+        Returns:
+            Money: Monthly tax liability
+        """
+        from decimal import Decimal
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        # Validate inputs
+        
+        # If we have a valid calculation result, use it
+        if self.is_calculation_valid():
+            return self.calculation_result.monthly_tax_liability
+        
+        # Otherwise, calculate tax
+        
+        # Calculate total annual salary income
+        total_annual_income = self.compute_gross_annual_salary_income()
+        logger.info(f"Total annual income: {total_annual_income}")
+        
+        # Add other income sources (these are typically annual amounts)
+        if self.other_income:
+            other_income_annual = self.other_income.calculate_total_other_income_slab_rates(self.regime, self.age)
+            total_annual_income = total_annual_income.add(other_income_annual)
+            
+            # Subtract losses from house property
+            house_property_losses = self.other_income.loss_from_house_property_income(self.regime)
+            total_annual_income = total_annual_income.subtract(house_property_losses)
+                    
+        # Add perquisites (if any) - typically annual amounts
+        if self.perquisites:
+            perquisites_annual = self.perquisites.calculate_total_perquisites(self.regime)
+            total_annual_income = total_annual_income.add(perquisites_annual)
+        
+        # Add retirement benefits (if any) - typically annual amounts
+        if self.retirement_benefits:
+            retirement_benefits_annual = self.retirement_benefits.calculate_total_retirement_income(self.regime)
+            total_annual_income = total_annual_income.add(retirement_benefits_annual)
+        
+        return total_annual_income
+    
+    def _calculate_tax_liability_for_monthly_computation(self, taxable_income: Money) -> Money:
+        """
+        Calculate annual tax liability based on tax slabs.
+        This is a simplified version for monthly computation.
+        
+        Args:
+            taxable_income: Annual taxable income
+            
+        Returns:
+            Money: Annual tax liability
+        """
+        from decimal import Decimal
+        
+        # Determine citizen categories based on age
+        is_senior_citizen = self.age >= 60
+        is_super_senior_citizen = self.age >= 80
+        
+        # Get tax slabs based on regime
+        if self.regime.regime_type.value == "old":
+            slabs = self._get_old_regime_slabs_for_computation(is_senior_citizen, is_super_senior_citizen)
+        else:
+            slabs = self._get_new_regime_slabs_for_computation()
+        
+        # Calculate tax for each slab
+        tax_amount = Money.zero()
+        remaining_income = taxable_income
+        
+        for slab in slabs:
+            if remaining_income.is_zero() or remaining_income.amount <= 0:
+                break
+            
+            slab_min = Money(slab["min"])
+            slab_max = Money(slab["max"]) if slab["max"] is not None else remaining_income
+            slab_rate = Decimal(str(slab["rate"])) / Decimal('100')
+            
+            if remaining_income.is_greater_than(slab_min):
+                # Calculate taxable amount in this slab
+                income_above_slab_min = remaining_income.subtract(slab_min)
+                slab_range = slab_max.subtract(slab_min) if slab_max != remaining_income else income_above_slab_min
+                
+                # Take minimum of income above slab min and slab range
+                if income_above_slab_min.is_less_than(slab_range):
+                    taxable_in_slab = income_above_slab_min
+                else:
+                    taxable_in_slab = slab_range
+                
+                slab_tax = taxable_in_slab.multiply(slab_rate)
+                tax_amount = tax_amount.add(slab_tax)
+                
+                # Update remaining income
+                remaining_income = remaining_income.subtract(taxable_in_slab) if remaining_income.is_greater_than(taxable_in_slab) else Money.zero()
+        
+        # Add surcharge if applicable (simplified)
+        if taxable_income.is_greater_than(Money(Decimal('5000000'))):  # Above ₹50 lakh
+            surcharge_rate = Decimal('0.10')  # 10% surcharge
+            if taxable_income.is_greater_than(Money(Decimal('10000000'))):  # Above ₹1 crore
+                surcharge_rate = Decimal('0.15')  # 15% surcharge
+            if taxable_income.is_greater_than(Money(Decimal('20000000'))):  # Above ₹2 crore
+                surcharge_rate = Decimal('0.25')  # 25% surcharge
+            if taxable_income.is_greater_than(Money(Decimal('50000000'))):  # Above ₹5 crore
+                surcharge_rate = Decimal('0.37')  # 37% surcharge
+            
+            surcharge = tax_amount.multiply(surcharge_rate)
+            tax_amount = tax_amount.add(surcharge)
+        
+        # Add health and education cess (4%)
+        cess_rate = Decimal('0.04')
+        cess = tax_amount.multiply(cess_rate)
+        tax_amount = tax_amount.add(cess)
+        
+        return tax_amount
+    
+    def _get_old_regime_slabs_for_computation(self, is_senior_citizen: bool, is_super_senior_citizen: bool) -> List[Dict[str, Any]]:
+        """Get tax slabs for old regime computation."""
+        if is_super_senior_citizen:
+            # Super Senior Citizen (above 80 years)
+            return [
+                {"min": Decimal('0'), "max": Decimal('500000'), "rate": Decimal('0')},
+                {"min": Decimal('500000'), "max": Decimal('1000000'), "rate": Decimal('20')},
+                {"min": Decimal('1000000'), "max": None, "rate": Decimal('30')}
+            ]
+        elif is_senior_citizen:
+            # Senior Citizen (60-80 years)
+            return [
+                {"min": Decimal('0'), "max": Decimal('300000'), "rate": Decimal('0')},
+                {"min": Decimal('300000'), "max": Decimal('500000'), "rate": Decimal('5')},
+                {"min": Decimal('500000'), "max": Decimal('1000000'), "rate": Decimal('20')},
+                {"min": Decimal('1000000'), "max": None, "rate": Decimal('30')}
+            ]
+        else:
+            # Individual (below 60 years)
+            return [
+                {"min": Decimal('0'), "max": Decimal('250000'), "rate": Decimal('0')},
+                {"min": Decimal('250000'), "max": Decimal('500000'), "rate": Decimal('5')},
+                {"min": Decimal('500000'), "max": Decimal('1000000'), "rate": Decimal('20')},
+                {"min": Decimal('1000000'), "max": None, "rate": Decimal('30')}
+            ]
+    
+    def _get_new_regime_slabs_for_computation(self) -> List[Dict[str, Any]]:
+        """Get tax slabs for new regime computation."""
+        # New regime slabs are same for all age groups
+        return [
+            {"min": Decimal('0'), "max": Decimal('300000'), "rate": Decimal('0')},
+            {"min": Decimal('300000'), "max": Decimal('600000'), "rate": Decimal('5')},
+            {"min": Decimal('600000'), "max": Decimal('900000'), "rate": Decimal('10')},
+            {"min": Decimal('900000'), "max": Decimal('1200000'), "rate": Decimal('15')},
+            {"min": Decimal('1200000'), "max": Decimal('1500000'), "rate": Decimal('20')},
+            {"min": Decimal('1500000'), "max": None, "rate": Decimal('30')}
+        ]
+    
     # Backward compatibility properties
     @property
     def salary_income(self) -> SalaryIncome:

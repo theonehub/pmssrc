@@ -252,7 +252,9 @@ class DependencyContainer:
             
             # Tax calculation service
             self._services['tax_calculation'] = TaxCalculationServiceImpl(
-                taxation_repository=self._repositories['taxation']
+                taxation_repository=self._repositories['taxation'],
+                salary_package_repository=self._repositories['salary_package'],
+                user_repository=self._repositories['user']
             )
             
             # Regime comparison service

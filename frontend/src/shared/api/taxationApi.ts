@@ -864,6 +864,61 @@ class TaxationAPI {
       throw error;
     }
   }
+
+  // =============================================================================
+  // MONTHLY TAX COMPUTATION ENDPOINTS
+  // =============================================================================
+
+  /**
+   * Compute detailed monthly tax for an employee based on their salary package record
+   * Includes comprehensive breakdown of tax calculation components
+   */
+  async computeMonthlyTax(
+    employeeId: string,
+  ): Promise<any> {
+    try {
+      return await this.baseApi.get(
+        `/api/v2/taxation/monthly-tax/employee/${employeeId}`
+      );
+    } catch (error) {
+      console.error('Error computing monthly tax:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Compute basic monthly tax for an employee (lighter version)
+   * Returns essential tax information without detailed breakdown
+   */
+  async computeMonthlyTaxSimple(
+    employeeId: string,
+    month: number,
+    year: number
+  ): Promise<any> {
+    try {
+      return await this.baseApi.get(
+        `/api/v2/taxation/monthly-tax-simple/employee/${employeeId}?month=${month}&year=${year}`
+      );
+    } catch (error) {
+      console.error('Error computing simple monthly tax:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Compute current month tax for an employee
+   * Convenience method that uses current month and year
+   */
+  async computeCurrentMonthTax(employeeId: string): Promise<any> {
+    try {
+      return await this.baseApi.get(
+        `/api/v2/taxation/monthly-tax/current/${employeeId}`
+      );
+    } catch (error) {
+      console.error('Error computing current month tax:', error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance

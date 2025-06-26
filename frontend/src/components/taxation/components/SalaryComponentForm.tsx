@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -19,14 +19,13 @@ import {
   Stepper,
   Step,
   StepLabel,
-  StepContent,
-  FormControlLabel,
-  Switch
+  StepContent
 } from '@mui/material';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowBack as ArrowBackIcon, Save as SaveIcon } from '@mui/icons-material';
 import { getUserRole } from '../../../shared/utils/auth';
 import { taxationApi } from '../../../shared/api/taxationApi';
+import { CURRENT_TAX_YEAR } from '../../../shared/constants/taxation';
 
 interface SalaryComponentData {
   basic_salary: number;
@@ -37,6 +36,9 @@ interface SalaryComponentData {
   special_allowance: number;
   bonus: number;
   commission: number;
+  
+  // Effective date fields for salary revisions
+  effective_from?: string;
   // Additional allowances
   city_compensatory_allowance: number;
   rural_allowance: number;
@@ -90,7 +92,12 @@ interface SelectField extends BaseField {
   options: { value: string; label: string; }[];
 }
 
-type FormField = NumberField | SelectField;
+interface DateField extends BaseField {
+  type: 'date';
+  required?: boolean;
+}
+
+type FormField = NumberField | SelectField | DateField;
 
 interface StepConfig {
   label: string;
@@ -102,8 +109,8 @@ const isSelectField = (field: FormField): field is SelectField => {
   return field.type === 'select';
 };
 
-const isNumberFieldWithAutoCalculate = (field: FormField): field is NumberField & { autoCalculate: true } => {
-  return field.type === 'number' && 'autoCalculate' in field && field.autoCalculate === true;
+const isDateField = (field: FormField): field is DateField => {
+  return field.type === 'date';
 };
 
 const initialSalaryData: SalaryComponentData = {
@@ -156,9 +163,8 @@ const SalaryComponentForm: React.FC = () => {
   const [toast, setToast] = useState<ToastState>({ show: false, message: '', severity: 'success' });
   const [salaryData, setSalaryData] = useState<SalaryComponentData>(initialSalaryData);
   const [activeStep, setActiveStep] = useState<number>(0);
-  const [autoComputeHRA, setAutoComputeHRA] = useState<boolean>(false);
   
-  const taxYear = searchParams.get('year') || '2024-25';
+  const taxYear = searchParams.get('year') || CURRENT_TAX_YEAR;
   const mode = searchParams.get('mode') || 'update'; // 'update' or 'new'
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
   const isNewRevision = mode === 'new';
@@ -170,51 +176,7 @@ const SalaryComponentForm: React.FC = () => {
     }
   }, [isAdmin, navigate]);
 
-  // Load existing salary data (only for update mode)
-  useEffect(() => {
-    if (empId && !isNewRevision) {
-      loadSalaryData();
-    } else if (isNewRevision) {
-      // For new revision, show info message
-      showToast('Creating new salary revision. Enter the updated salary components.', 'info');
-    }
-  }, [empId, taxYear, isNewRevision]);
-
-  // Auto-calculate HRA when basic salary or DA changes
-  useEffect(() => {
-    if (autoComputeHRA) {
-      const calculatedHRA = computeHRA();
-      setSalaryData(prev => ({
-        ...prev,
-        hra_provided: calculatedHRA
-      }));
-    }
-  }, [salaryData.basic_salary, salaryData.dearness_allowance, autoComputeHRA]);
-
-  // Early return for authentication and authorization checks
-  if (userRole === null) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="warning">
-          Authentication required. Please log in to access this page.
-        </Alert>
-      </Box>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">
-          Admin privileges required. Current role: {userRole}
-          <br />
-          Only admin and superadmin users can access this page.
-        </Alert>
-      </Box>
-    );
-  }
-
-  const loadSalaryData = async (): Promise<void> => {
+  const loadSalaryData = useCallback(async (): Promise<void> => {
     try {
       setLoading(true);
       setError(null);
@@ -242,7 +204,57 @@ const SalaryComponentForm: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [empId, taxYear]);
+
+  // Compute HRA based on basic salary and DA formula: (Basic+DA) * 0.5
+  const computeHRA = useCallback((): number => {
+    const basic = salaryData.basic_salary || 0;
+    const da = salaryData.dearness_allowance || 0;
+    const baseAmount = basic + da;
+    const defaultRate = 0.5;
+    return Math.round(baseAmount * defaultRate);
+  }, [salaryData.basic_salary, salaryData.dearness_allowance]);
+
+  useEffect(() => {
+    if (empId && !isNewRevision) {
+      loadSalaryData();
+    } else if (isNewRevision) {
+      // For new revision, show info message
+      showToast('Creating new salary revision. Enter the updated salary components.', 'info');
+    }
+  }, [empId, taxYear, isNewRevision, loadSalaryData]);
+
+  // Auto-calculate HRA when basic salary or DA changes
+  useEffect(() => {
+    const calculatedHRA = computeHRA();
+    setSalaryData(prev => ({
+      ...prev,
+      hra_provided: calculatedHRA
+    }));
+  }, [computeHRA]);
+
+  // Early return for authentication and authorization checks
+  if (userRole === null) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="warning">
+          Authentication required. Please log in to access this page.
+        </Alert>
+      </Box>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">
+          Admin privileges required. Current role: {userRole}
+          <br />
+          Only admin and superadmin users can access this page.
+        </Alert>
+      </Box>
+    );
+  }
 
   const handleInputChange = (field: keyof SalaryComponentData, value: number): void => {
     setSalaryData(prev => ({
@@ -258,19 +270,24 @@ const SalaryComponentForm: React.FC = () => {
     }));
   };
 
-  // Compute HRA based on basic salary and DA formula: (Basic+DA) * 0.5
-  const computeHRA = (): number => {
-    const basic = salaryData.basic_salary || 0;
-    const da = salaryData.dearness_allowance || 0;
-    const baseAmount = basic + da;
-    const defaultRate = 0.5;
-    return Math.round(baseAmount * defaultRate);
+  const handleDateChange = (field: keyof SalaryComponentData, value: string): void => {
+    setSalaryData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const handleSave = async (): Promise<void> => {
     try {
       setSaving(true);
       setError(null);
+
+      // Validation for new revision
+      if (isNewRevision && !salaryData.effective_from) {
+        setError('Effective From date is required for new salary revision.');
+        showToast('Please provide Effective From date for the new salary revision', 'error');
+        return;
+      }
 
       const requestData = {
         employee_id: empId!,
@@ -373,6 +390,7 @@ const SalaryComponentForm: React.FC = () => {
     {
       label: 'Basic Salary Components',
       fields: [
+        ...(isNewRevision ? [{ name: 'effective_from', label: 'Effective From Date', type: 'date', required: true } as DateField] : []),
         { name: 'basic_salary', label: 'Basic Salary', type: 'number' } as NumberField,
         { name: 'dearness_allowance', label: 'Dearness Allowance', type: 'number' } as NumberField,
         { name: 'special_allowance', label: 'Special Allowance', type: 'number' } as NumberField,
@@ -383,11 +401,7 @@ const SalaryComponentForm: React.FC = () => {
     {
       label: 'HRA Components',
       fields: [
-        { name: 'hra_provided', label: 'HRA Provided', type: 'number', autoCalculate: true } as NumberField,
-        { name: 'hra_city_type', label: 'HRA City Type', type: 'select', options: [
-          { value: 'metro', label: 'Metro City' },
-          { value: 'non_metro', label: 'Non-Metro City' }
-        ]} as SelectField
+        { name: 'hra_provided', label: 'HRA Provided (Auto-calculated)', type: 'number' } as NumberField
       ]
     },
     {
@@ -520,6 +534,14 @@ const SalaryComponentForm: React.FC = () => {
               <Typography variant="body2" color="text.secondary">Total Salary</Typography>
               <Typography variant="h6" color="primary">₹{calculateTotalSalary().toLocaleString('en-IN')}</Typography>
             </Grid>
+            {isNewRevision && salaryData.effective_from && (
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Effective From</Typography>
+                <Typography variant="h6" color="secondary">
+                  {new Date(salaryData.effective_from).toLocaleDateString('en-IN')}
+                </Typography>
+              </Grid>
+            )}
           </Grid>
         </CardContent>
       </Card>
@@ -554,6 +576,19 @@ const SalaryComponentForm: React.FC = () => {
                               ))}
                             </Select>
                           </FormControl>
+                        ) : isDateField(field) ? (
+                          <TextField
+                            fullWidth
+                            label={field.label}
+                            type="date"
+                            value={salaryData[field.name as keyof SalaryComponentData] as string || ''}
+                            onChange={(e) => handleDateChange(field.name as keyof SalaryComponentData, e.target.value)}
+                            InputLabelProps={{
+                              shrink: true,
+                            }}
+                            required={!!field.required}
+                            helperText={field.required ? "Required for new salary revision" : undefined}
+                          />
                         ) : (
                           <Box>
                             <TextField
@@ -562,33 +597,17 @@ const SalaryComponentForm: React.FC = () => {
                               type="number"
                               value={salaryData[field.name as keyof SalaryComponentData] as number}
                               onChange={(e) => {
-                                if (isNumberFieldWithAutoCalculate(field) && field.name === 'hra_provided') {
-                                  setAutoComputeHRA(false);
-                                }
                                 handleInputChange(field.name as keyof SalaryComponentData, parseFloat(e.target.value) || 0);
                               }}
                               InputProps={{
                                 startAdornment: <Typography variant="body2" sx={{ mr: 1 }}>₹</Typography>
                               }}
                               helperText={
-                                isNumberFieldWithAutoCalculate(field) && field.name === 'hra_provided' 
-                                  ? autoComputeHRA 
-                                    ? "Auto-calculated as (Basic + DA) × 50%" 
-                                    : "Enter HRA amount or enable auto-calculation"
+                                field.name === 'hra_provided' 
+                                  ? "Auto-calculated as (Basic + DA) × 50%. You can modify if needed." 
                                   : undefined
                               }
                             />
-                            {isNumberFieldWithAutoCalculate(field) && field.name === 'hra_provided' && (
-                              <FormControlLabel
-                                control={
-                                  <Switch
-                                    checked={autoComputeHRA}
-                                    onChange={(e) => setAutoComputeHRA(e.target.checked)}
-                                  />
-                                }
-                                label="Auto-calculate HRA"
-                              />
-                            )}
                           </Box>
                         )}
                       </Grid>

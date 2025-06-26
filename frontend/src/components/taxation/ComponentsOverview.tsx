@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -35,6 +35,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getUserRole } from '../../shared/utils/auth';
 import { taxationApi } from '../../shared/api/taxationApi';
 import { TaxRegime } from '../../shared/types/api';
+import { CURRENT_TAX_YEAR } from '../../shared/constants/taxation';
 
 interface ComponentSummary {
   id: string;
@@ -59,55 +60,11 @@ const ComponentsOverview: React.FC = () => {
   const [taxLoading, setTaxLoading] = useState<boolean>(false);
   const [taxError, setTaxError] = useState<string | null>(null);
   
-  const taxYear = searchParams.get('year') || '2024-25';
+  const taxYear = searchParams.get('year') || CURRENT_TAX_YEAR;
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
 
-  useEffect(() => {
-    if (empId) {
-      loadComponentsData();
-    }
-  }, [empId, taxYear]);
-
-  // Calculate tax whenever components change
-  useEffect(() => {
-    if (components.length > 0 && empId) {
-      calculateComputedTax();
-    }
-  }, [components, empId, taxYear]);
-
-  const loadComponentsData = async (): Promise<void> => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const componentPromises = [
-        loadSalaryComponent(),
-        loadDeductionsComponent(),
-        loadHousePropertyComponent(),
-        loadCapitalGainsComponent(),
-        loadOtherIncomeComponent()
-      ];
-      
-      const results = await Promise.allSettled(componentPromises);
-      const loadedComponents: ComponentSummary[] = [];
-      
-      results.forEach((result) => {
-        if (result.status === 'fulfilled' && result.value) {
-          loadedComponents.push(result.value);
-        }
-      });
-      
-      setComponents(loadedComponents);
-      
-    } catch (error: any) {
-      setError('Failed to load components data. Please try again.');
-      console.error('Error loading components:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadSalaryComponent = async (): Promise<ComponentSummary | null> => {
+  // 1. loadSalaryComponent
+  const loadSalaryComponent = useCallback(async (): Promise<ComponentSummary | null> => {
     try {
       const response = await taxationApi.getComponent(empId!, taxYear, 'salary');
       const data = response?.component_data || response;
@@ -139,9 +96,10 @@ const ComponentsOverview: React.FC = () => {
         details: {}
       };
     }
-  };
+  }, [empId, taxYear]);
 
-  const loadDeductionsComponent = async (): Promise<ComponentSummary | null> => {
+  // 2. loadDeductionsComponent
+  const loadDeductionsComponent = useCallback(async (): Promise<ComponentSummary | null> => {
     try {
       const response = await taxationApi.getComponent(empId!, taxYear, 'deductions');
       const data = response?.component_data || response;
@@ -172,9 +130,10 @@ const ComponentsOverview: React.FC = () => {
         details: {}
       };
     }
-  };
+  }, [empId, taxYear]);
 
-  const loadHousePropertyComponent = async (): Promise<ComponentSummary | null> => {
+  // 3. loadHousePropertyComponent
+  const loadHousePropertyComponent = useCallback(async (): Promise<ComponentSummary | null> => {
     try {
       const response = await taxationApi.getComponent(empId!, taxYear, 'house_property');
       const data = response?.component_data || response;
@@ -201,9 +160,10 @@ const ComponentsOverview: React.FC = () => {
         details: {}
       };
     }
-  };
+  }, [empId, taxYear]);
 
-  const loadCapitalGainsComponent = async (): Promise<ComponentSummary | null> => {
+  // 4. loadCapitalGainsComponent
+  const loadCapitalGainsComponent = useCallback(async (): Promise<ComponentSummary | null> => {
     try {
       const response = await taxationApi.getComponent(empId!, taxYear, 'capital_gains');
       const data = response?.component_data || response;
@@ -231,9 +191,10 @@ const ComponentsOverview: React.FC = () => {
         details: {}
       };
     }
-  };
+  }, [empId, taxYear]);
 
-  const loadOtherIncomeComponent = async (): Promise<ComponentSummary | null> => {
+  // 5. loadOtherIncomeComponent
+  const loadOtherIncomeComponent = useCallback(async (): Promise<ComponentSummary | null> => {
     try {
       const response = await taxationApi.getComponent(empId!, taxYear, 'other_income');
       const data = response?.component_data || response;
@@ -261,16 +222,49 @@ const ComponentsOverview: React.FC = () => {
         details: {}
       };
     }
-  };
+  }, [empId, taxYear]);
 
-  const calculateComputedTax = async (): Promise<void> => {
+  // 6. loadComponentsData
+  const loadComponentsData = useCallback(async (): Promise<void> => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const componentPromises = [
+        loadSalaryComponent(),
+        loadDeductionsComponent(),
+        loadHousePropertyComponent(),
+        loadCapitalGainsComponent(),
+        loadOtherIncomeComponent()
+      ];
+      
+      const results = await Promise.allSettled(componentPromises);
+      const loadedComponents: ComponentSummary[] = [];
+      
+      results.forEach((result) => {
+        if (result.status === 'fulfilled' && result.value) {
+          loadedComponents.push(result.value);
+        }
+      });
+      
+      setComponents(loadedComponents);
+      
+    } catch (error: any) {
+      setError('Failed to load components data. Please try again.');
+      console.error('Error loading components:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [empId, taxYear, loadSalaryComponent, loadDeductionsComponent, loadHousePropertyComponent, loadCapitalGainsComponent, loadOtherIncomeComponent]);
+
+  // 7. calculateComputedTax
+  const calculateComputedTax = useCallback(async (): Promise<void> => {
     try {
       setTaxLoading(true);
       setTaxError(null);
       
-      // Get salary component details for tax calculation
+      // Get salary component details to check if there's data
       const salaryComponent = components.find(c => c.id === 'salary');
-      const deductionsComponent = components.find(c => c.id === 'deductions');
       
       if (!salaryComponent || !salaryComponent.hasData) {
         setComputedTax(0);
@@ -278,114 +272,125 @@ const ComponentsOverview: React.FC = () => {
         return;
       }
       
-      // Prepare comprehensive tax input using component data
-      const taxInput: any = {
-        tax_year: taxYear,
-        regime_type: 'new' as TaxRegime, // Default to new regime, could be made configurable
-        age: 30, // Default age, could be fetched from employee data
-        residential_status: 'resident' as const, // Default to resident status
-        
-        // Salary income from components - map to expected SalaryIncomeDTO structure
-        salary_income: {
-          basic_salary: salaryComponent.details.basic_salary || 0,
-          hra: salaryComponent.details.hra_provided || 0, // Map hra_provided to hra
-          special_allowance: salaryComponent.details.special_allowance || 0,
-          other_allowances: (salaryComponent.details.dearness_allowance || 0) + 
-                           (salaryComponent.details.city_compensatory_allowance || 0) +
-                           (salaryComponent.details.rural_allowance || 0) +
-                           (salaryComponent.details.proctorship_allowance || 0) +
-                           (salaryComponent.details.wardenship_allowance || 0) +
-                           (salaryComponent.details.project_allowance || 0) +
-                           (salaryComponent.details.deputation_allowance || 0) +
-                           (salaryComponent.details.interim_relief || 0) +
-                           (salaryComponent.details.tiffin_allowance || 0) +
-                           (salaryComponent.details.overtime_allowance || 0) +
-                           (salaryComponent.details.servant_allowance || 0) +
-                           (salaryComponent.details.hills_high_altd_allowance || 0) +
-                           (salaryComponent.details.border_remote_allowance || 0) +
-                           (salaryComponent.details.transport_employee_allowance || 0) +
-                           (salaryComponent.details.children_education_allowance || 0) +
-                           (salaryComponent.details.hostel_allowance || 0) +
-                           (salaryComponent.details.underground_mines_allowance || 0) +
-                           (salaryComponent.details.govt_employee_entertainment_allowance || 0) +
-                           (salaryComponent.details.supreme_high_court_judges_allowance || 0) +
-                           (salaryComponent.details.judge_compensatory_allowance || 0) +
-                           (salaryComponent.details.section_10_14_special_allowances || 0) +
-                           (salaryComponent.details.travel_on_tour_allowance || 0) +
-                           (salaryComponent.details.tour_daily_charge_allowance || 0) +
-                           (salaryComponent.details.conveyance_in_performace_of_duties || 0) +
-                           (salaryComponent.details.helper_in_performace_of_duties || 0) +
-                           (salaryComponent.details.academic_research || 0) +
-                           (salaryComponent.details.uniform_allowance || 0) +
-                           (salaryComponent.details.any_other_allowance_exemption || 0),
-          bonus: salaryComponent.details.bonus || 0,
-          commission: salaryComponent.details.commission || 0,
-          overtime: 0, // No direct mapping
-          arrears: 0, // No direct mapping
-          gratuity: 0, // No direct mapping
-          leave_encashment: 0, // No direct mapping
-          professional_tax: 0, // No direct mapping
-          tds_deducted: 0, // No direct mapping
-          employer_pf: 0, // No direct mapping
-          employee_pf: 0, // No direct mapping
-          employer_esic: 0, // No direct mapping
-          employee_esic: 0, // No direct mapping
-          lta: 0, // No direct mapping
-          medical_allowance: 0, // No direct mapping
-          conveyance_allowance: 0, // No direct mapping
-          food_allowance: 0, // No direct mapping
-          telephone_allowance: 0, // No direct mapping
-          uniform_allowance: salaryComponent.details.uniform_allowance || 0,
-          educational_allowance: salaryComponent.details.children_education_allowance || 0
-        }
-      };
+      // Use the new monthly tax computation API based on SalaryPackageRecord
+      // This will use the latest salary income data and compute monthly tax
+      const monthlyTaxResult = await taxationApi.computeMonthlyTax(empId!);
       
-      // Include deductions if available - map to DeductionsDTO format
-      if (deductionsComponent?.hasData) {
-        taxInput.deductions = {
-          section_80c: Object.values(deductionsComponent.details.section_80c || {}).reduce((sum: number, val: any) => sum + (Number(val) || 0), 0),
-          section_80ccc: 0,
-          section_80ccd_1: 0,
-          section_80ccd_1b: 0,
-          section_80ccd_2: 0,
-          section_80d_self: Object.values(deductionsComponent.details.section_80d || {}).reduce((sum: number, val: any) => sum + (Number(val) || 0), 0),
-          section_80d_parents: 0,
-          section_80dd: 0,
-          section_80ddb: 0,
-          section_80e: deductionsComponent.details.education_loan_interest || 0,
-          section_80ee: 0,
-          section_80eea: 0,
-          section_80eeb: 0,
-          section_80g: 0,
-          section_80gga: 0,
-          section_80ggc: 0,
-          section_80ia: 0,
-          section_80ib: 0,
-          section_80ic: 0,
-          section_80id: 0,
-          section_80ie: 0,
-          section_80jjaa: 0,
-          section_80tta: 0,
-          section_80ttb: 0,
-          section_80u: 0
-        };
-      }
-      
-      // Call the comprehensive tax calculation API
-      const taxResult = await taxationApi.calculateComprehensiveTax(taxInput);
-      
-      // Extract total tax liability from the response
-      const totalTax = taxResult.tax_breakdown?.total_tax_liability || 0;
-      setComputedTax(totalTax);
+      // Extract monthly tax from the response
+      const monthlyTax = monthlyTaxResult.monthly_tax || 0;
+      setComputedTax(monthlyTax);
       
     } catch (error: any) {
-      console.error('Error calculating tax:', error);
-      setTaxError('Failed to calculate tax. Please try again.');
-      setComputedTax(0);
+      console.error('Error calculating monthly tax:', error);
+      
+      // Fallback to simplified calculation if new API fails
+      try {
+        console.log('Attempting fallback calculation...');
+        
+        // Simple fallback - use comprehensive tax calculation as before
+        const salaryComponent = components.find(c => c.id === 'salary');
+        const deductionsComponent = components.find(c => c.id === 'deductions');
+        
+        if (!salaryComponent || !salaryComponent.hasData) {
+          setComputedTax(0);
+          return;
+        }
+        
+        // Simplified tax input for fallback
+        const taxInput: any = {
+          tax_year: taxYear,
+          regime_type: 'new' as TaxRegime,
+          age: 30,
+          residential_status: 'resident' as const,
+          salary_income: {
+            basic_salary: salaryComponent.details.basic_salary || 0,
+            hra: salaryComponent.details.hra_provided || 0,
+            special_allowance: salaryComponent.details.special_allowance || 0,
+            bonus: salaryComponent.details.bonus || 0,
+            commission: salaryComponent.details.commission || 0,
+            other_allowances: (salaryComponent.details.dearness_allowance || 0) + 
+                             (salaryComponent.details.city_compensatory_allowance || 0),
+            overtime: 0,
+            arrears: 0,
+            gratuity: 0,
+            leave_encashment: 0,
+            professional_tax: 0,
+            tds_deducted: 0,
+            employer_pf: 0,
+            employee_pf: 0,
+            employer_esic: 0,
+            employee_esic: 0,
+            lta: 0,
+            medical_allowance: 0,
+            conveyance_allowance: 0,
+            food_allowance: 0,
+            telephone_allowance: 0,
+            uniform_allowance: salaryComponent.details.uniform_allowance || 0,
+            educational_allowance: salaryComponent.details.children_education_allowance || 0
+          }
+        };
+        
+        // Include basic deductions if available
+        if (deductionsComponent?.hasData) {
+          taxInput.deductions = {
+            section_80c: Object.values(deductionsComponent.details.section_80c || {}).reduce((sum: number, val: any) => sum + (Number(val) || 0), 0),
+            section_80d_self: Object.values(deductionsComponent.details.section_80d || {}).reduce((sum: number, val: any) => sum + (Number(val) || 0), 0),
+            section_80ccc: 0,
+            section_80ccd_1: 0,
+            section_80ccd_1b: 0,
+            section_80ccd_2: 0,
+            section_80d_parents: 0,
+            section_80dd: 0,
+            section_80ddb: 0,
+            section_80e: deductionsComponent.details.education_loan_interest || 0,
+            section_80ee: 0,
+            section_80eea: 0,
+            section_80eeb: 0,
+            section_80g: 0,
+            section_80gga: 0,
+            section_80ggc: 0,
+            section_80ia: 0,
+            section_80ib: 0,
+            section_80ic: 0,
+            section_80id: 0,
+            section_80ie: 0,
+            section_80jjaa: 0,
+            section_80tta: 0,
+            section_80ttb: 0,
+            section_80u: 0
+          };
+        }
+        
+        const taxResult = await taxationApi.calculateComprehensiveTax(taxInput);
+        const annualTax = taxResult.tax_breakdown?.total_tax_liability || 0;
+        const monthlyTax = annualTax / 12; // Convert annual to monthly
+        setComputedTax(monthlyTax);
+        
+        // Clear error since fallback worked
+        setTaxError(null);
+        
+      } catch (fallbackError: any) {
+        console.error('Fallback calculation also failed:', fallbackError);
+        setTaxError('Failed to calculate tax. Please try again.');
+        setComputedTax(0);
+      }
     } finally {
       setTaxLoading(false);
     }
-  };
+  }, [components, empId]);
+
+  useEffect(() => {
+    if (empId) {
+      loadComponentsData();
+    }
+  }, [empId, taxYear, loadComponentsData]);
+
+  // Calculate tax whenever components change
+  useEffect(() => {
+    if (components.length > 0 && empId) {
+      calculateComputedTax();
+    }
+  }, [components, empId, calculateComputedTax]);
 
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('en-IN', {
@@ -637,7 +642,7 @@ const ComponentsOverview: React.FC = () => {
           <Card>
             <CardContent sx={{ textAlign: 'center' }}>
               <Typography variant="h6" color="text.secondary">
-                Computed Tax
+                Monthly Tax
               </Typography>
               {taxLoading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 60 }}>
@@ -655,7 +660,7 @@ const ComponentsOverview: React.FC = () => {
                 </Typography>
               )}
               <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                Based on current salary
+                Monthly tax based on salary package
               </Typography>
             </CardContent>
           </Card>

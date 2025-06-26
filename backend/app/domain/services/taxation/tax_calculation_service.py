@@ -3,6 +3,7 @@ Tax Calculation Service
 Handles all tax calculations for Indian taxation
 """
 
+import logging
 from decimal import Decimal
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
@@ -80,33 +81,274 @@ class TaxCalculationResult:
 class TaxCalculationService:
     """Service for calculating taxes."""
     
-    def __init__(self, taxation_repository=None):
+    def __init__(self, taxation_repository=None, salary_package_repository=None, user_repository=None):
         """
         Initialize the service.
         
         Args:
             taxation_repository: Optional taxation repository for updating records
+            salary_package_repository: Optional salary package repository for monthly computation
+            user_repository: Optional user repository for employee info
         """
         self.taxation_repository = taxation_repository
+        self.salary_package_repository = salary_package_repository
+        self.user_repository = user_repository
+        self.logger = logging.getLogger(__name__)
 
 
-    def compute_monthly_tax(self, employee_id: EmployeeId, month: int, year: int) -> Dict[str, Any]:
-        """Compute monthly tax."""
-        # Get employee info from user_info
-        user_info = self.user_info_repository.get_user_info(employee_id)
-        if not user_info:
-            raise ValueError(f"User info not found for employee {employee_id}")
+    async def compute_monthly_tax(self, employee_id: EmployeeId, organization_id: str) -> Dict[str, Any]:
+        """
+        Compute monthly tax for an employee based on their salary package record.
         
-        # Get employee info from user_info
-        # Get monthly package record based on employee_id, month, year
-        monthly_package_record = self.monthly_package_repository.get_monthly_package_record(employee_id, month, year)
-        if not monthly_package_record:
-            raise ValueError(f"Monthly package record not found for employee {employee_id} in {month}/{year}")
+        Args:
+            employee_id: Employee ID
+            organization_id: Organization ID for database segregation
+            
+        Returns:
+            Dict[str, Any]: Monthly tax computation result
+            
+        Raises:
+            ValueError: If required data is not found or invalid
+            RuntimeError: If computation fails
+        """
+        self.logger.debug(f"compute_monthly_tax: Starting monthly tax computation for employee {employee_id}, organization {organization_id}")
         
-        # Invoke function from salary_package_record to compute monthly tax
-        monthly_tax = monthly_package_record.compute_monthly_tax(month, year)
-
-        return monthly_tax
+        try:
+            # Get current month and year for computation
+            from datetime import datetime
+            now = datetime.now()
+            month = now.month
+            year = now.year
+            
+            self.logger.debug(f"compute_monthly_tax: Using current month={month}, year={year}")
+            
+            # Validate inputs
+            from app.domain.value_objects.tax_year import TaxYear
+            current_tax_year = TaxYear.current()
+            tax_year = str(current_tax_year)
+            
+            self.logger.debug(f"compute_monthly_tax: Current tax year: {tax_year}")
+            
+            # Check if required repositories are configured
+            if not self.salary_package_repository:
+                self.logger.error("compute_monthly_tax: Salary package repository not configured")
+                raise ValueError("Salary package repository not configured for monthly tax computation")
+            
+            self.logger.debug("compute_monthly_tax: Salary package repository is configured")
+            
+            # Get salary package record for the employee and tax year
+            employee_id_str = str(employee_id)
+            self.logger.debug(f"compute_monthly_tax: Fetching salary package record for employee {employee_id_str}, tax_year {tax_year}")
+            
+            salary_package_record = await self.salary_package_repository.get_salary_package_record(
+                employee_id_str, tax_year, organization_id
+            )
+            
+            if not salary_package_record:
+                self.logger.error(f"compute_monthly_tax: No salary package record found for employee {employee_id_str} in tax year {tax_year}")
+                raise ValueError(
+                    f"Salary package record not found for employee {employee_id_str} "
+                    f"in tax year {tax_year}. Please ensure salary data is configured."
+                )
+            
+            self.logger.debug(f"compute_monthly_tax: Found salary package record. Salary incomes count: {len(salary_package_record.salary_incomes)}")
+            self.logger.debug(f"compute_monthly_tax: Record has perquisites: {salary_package_record.perquisites is not None}")
+            self.logger.debug(f"compute_monthly_tax: Record has other_income: {salary_package_record.other_income is not None}")
+            self.logger.debug(f"compute_monthly_tax: Record has retirement_benefits: {salary_package_record.retirement_benefits is not None}")
+            
+            # Compute monthly tax using the salary package record
+            self.logger.debug("compute_monthly_tax: Computing monthly tax from salary package record")
+            monthly_tax_money = salary_package_record.compute_monthly_tax()
+            
+            # Convert Money object to float for API response
+            monthly_tax_amount = monthly_tax_money.to_float()
+            self.logger.debug(f"compute_monthly_tax: Monthly tax amount: {monthly_tax_amount}")
+            
+            # Get additional details from the calculation result if available
+            calculation_details = {}
+            if salary_package_record.calculation_result:
+                self.logger.debug("compute_monthly_tax: Extracting calculation details from salary package record")
+                calculation_details = {
+                    "annual_gross_income": salary_package_record.calculation_result.total_income.to_float(),
+                    "annual_exemptions": salary_package_record.calculation_result.total_exemptions.to_float(),
+                    "annual_deductions": salary_package_record.calculation_result.total_deductions.to_float(),
+                    "annual_taxable_income": salary_package_record.calculation_result.taxable_income.to_float(),
+                    "annual_tax_liability": salary_package_record.calculation_result.tax_liability.to_float(),
+                    "effective_tax_rate": salary_package_record.calculation_result.effective_tax_rate,
+                    "tax_regime": salary_package_record.regime.regime_type.value,
+                    "last_calculated_at": salary_package_record.last_calculated_at.isoformat() if salary_package_record.last_calculated_at else None
+                }
+                self.logger.debug(f"compute_monthly_tax: Annual gross income: {calculation_details['annual_gross_income']}")
+                self.logger.debug(f"compute_monthly_tax: Annual tax liability: {calculation_details['annual_tax_liability']}")
+                self.logger.debug(f"compute_monthly_tax: Tax regime: {calculation_details['tax_regime']}")
+            else:
+                self.logger.warning("compute_monthly_tax: No calculation result found in salary package record")
+            
+            # Build comprehensive response
+            response = {
+                "employee_id": employee_id_str,
+                "computation_month": month,
+                "computation_year": year,
+                "tax_year": tax_year,
+                "monthly_tax_liability": monthly_tax_amount,
+                "monthly_tax_formatted": f"₹{monthly_tax_amount:,.2f}",
+                "salary_package_info": {
+                    "salary_incomes_count": len(salary_package_record.salary_incomes),
+                    "has_perquisites": salary_package_record.perquisites is not None,
+                    "has_other_income": salary_package_record.other_income is not None,
+                    "has_retirement_benefits": salary_package_record.retirement_benefits is not None,
+                    "is_comprehensive": salary_package_record.has_comprehensive_income(),
+                    "age": salary_package_record.age,
+                    "regime": salary_package_record.regime.regime_type.value,
+                    "is_government_employee": salary_package_record.is_government_employee
+                },
+                "calculation_details": calculation_details,
+                "status": "computed",
+                "computed_at": datetime.utcnow().isoformat()
+            }
+            
+            self.logger.debug("compute_monthly_tax: Built response object with salary package info")
+            
+            # Add latest salary breakdown
+            if salary_package_record.salary_incomes:
+                self.logger.debug("compute_monthly_tax: Adding latest salary breakdown")
+                latest_salary = salary_package_record.get_latest_salary_income()
+                response["latest_salary_info"] = {
+                    "basic_salary": latest_salary.basic_salary.to_float(),
+                    "hra_provided": latest_salary.hra_provided.to_float(),
+                    "special_allowance": latest_salary.special_allowance.to_float(),
+                    "bonus": latest_salary.bonus.to_float(),
+                    "commission": latest_salary.commission.to_float(),
+                    "gross_salary": latest_salary.calculate_gross_salary().to_float()
+                }
+                self.logger.debug(f"compute_monthly_tax: Latest salary basic: {response['latest_salary_info']['basic_salary']}")
+                self.logger.debug(f"compute_monthly_tax: Latest salary gross: {response['latest_salary_info']['gross_salary']}")
+            else:
+                self.logger.warning("compute_monthly_tax: No salary incomes found in salary package record")
+            
+            self.logger.debug(f"compute_monthly_tax: Successfully computed monthly tax for employee {employee_id_str}")
+            return response
+            
+        except ValueError as e:
+            self.logger.error(f"compute_monthly_tax: Validation error for employee {employee_id}: {str(e)}")
+            # Re-raise validation errors
+            raise e
+        except Exception as e:
+            self.logger.error(f"compute_monthly_tax: Unexpected error for employee {employee_id}: {str(e)}", exc_info=True)
+            # Wrap other errors in RuntimeError
+            raise RuntimeError(f"Failed to compute monthly tax for employee {employee_id}: {str(e)}")
+    
+    async def compute_monthly_tax_with_details(self, employee_id: EmployeeId, organization_id: str) -> Dict[str, Any]:
+        """
+        Compute monthly tax with detailed breakdown for frontend display.
+        
+        This is an enhanced version that provides more detailed information
+        suitable for frontend tax overview components.
+        
+        Args:
+            employee_id: Employee ID
+            organization_id: Organization ID
+            
+        Returns:
+            Dict[str, Any]: Detailed monthly tax computation result
+        """
+        self.logger.debug(f"compute_monthly_tax_with_details: Starting detailed computation for employee {employee_id}, organization {organization_id}")
+        
+        try:
+            # Get basic computation
+            self.logger.debug("compute_monthly_tax_with_details: Getting basic monthly tax computation")
+            basic_result = await self.compute_monthly_tax(employee_id, organization_id)
+            
+            # Get salary package record for additional details
+            tax_year = basic_result["tax_year"]
+            employee_id_str = str(employee_id)
+            
+            self.logger.debug(f"compute_monthly_tax_with_details: Fetching salary package record for additional details - employee {employee_id_str}, tax_year {tax_year}")
+            
+            salary_package_record = await self.salary_package_repository.get_salary_package_record(
+                employee_id_str, tax_year, organization_id
+            )
+            
+            if not salary_package_record:
+                self.logger.warning(f"compute_monthly_tax_with_details: No salary package record found for detailed breakdown - returning basic result")
+                return basic_result
+            
+            self.logger.debug("compute_monthly_tax_with_details: Building detailed result with additional breakdown")
+            
+            # Add detailed breakdown
+            detailed_result = basic_result.copy()
+            
+            # Income breakdown
+            detailed_result["income_breakdown"] = {}
+            if salary_package_record.calculation_result:
+                self.logger.debug("compute_monthly_tax_with_details: Adding comprehensive income breakdown")
+                income_breakdown = salary_package_record.get_comprehensive_income_breakdown()
+                detailed_result["income_breakdown"] = income_breakdown
+                self.logger.debug(f"compute_monthly_tax_with_details: Income breakdown keys: {list(income_breakdown.keys())}")
+            else:
+                self.logger.warning("compute_monthly_tax_with_details: No calculation result available for income breakdown")
+            
+            # Add component status
+            self.logger.debug("compute_monthly_tax_with_details: Building component status")
+            detailed_result["component_status"] = {
+                "salary": {
+                    "configured": len(salary_package_record.salary_incomes) > 0,
+                    "count": len(salary_package_record.salary_incomes)
+                },
+                "perquisites": {
+                    "configured": salary_package_record.perquisites is not None,
+                    "value": salary_package_record.perquisites.calculate_total_perquisites(salary_package_record.regime).to_float() if salary_package_record.perquisites else 0.0
+                },
+                "deductions": {
+                    "configured": True,  # Always have default deductions
+                    "value": salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime).to_float()
+                },
+                "other_income": {
+                    "configured": salary_package_record.other_income is not None,
+                    "value": salary_package_record.other_income.calculate_total_other_income_slab_rates(salary_package_record.regime, salary_package_record.age).to_float() if salary_package_record.other_income else 0.0
+                },
+                "retirement_benefits": {
+                    "configured": salary_package_record.retirement_benefits is not None,
+                    "value": salary_package_record.retirement_benefits.calculate_total_retirement_income(salary_package_record.regime).to_float() if salary_package_record.retirement_benefits else 0.0
+                }
+            }
+            
+            self.logger.debug(f"compute_monthly_tax_with_details: Component status - Salary configured: {detailed_result['component_status']['salary']['configured']}")
+            self.logger.debug(f"compute_monthly_tax_with_details: Component status - Perquisites configured: {detailed_result['component_status']['perquisites']['configured']}")
+            self.logger.debug(f"compute_monthly_tax_with_details: Component status - Deductions value: {detailed_result['component_status']['deductions']['value']}")
+            
+            # Add recommendation
+            if salary_package_record.calculation_result:
+                self.logger.debug("compute_monthly_tax_with_details: Generating tax recommendation")
+                monthly_tax = salary_package_record.calculation_result.monthly_tax_liability.to_float()
+                annual_income = salary_package_record.calculation_result.total_income.to_float()
+                
+                if monthly_tax == 0:
+                    detailed_result["recommendation"] = "No tax liability"
+                    self.logger.debug("compute_monthly_tax_with_details: Recommendation - No tax liability")
+                elif annual_income > 0:
+                    tax_rate = (monthly_tax * 12 / annual_income) * 100
+                    if tax_rate < 5:
+                        detailed_result["recommendation"] = "Low tax rate - consider new regime"
+                        self.logger.debug(f"compute_monthly_tax_with_details: Recommendation - Low tax rate ({tax_rate:.2f}%)")
+                    elif tax_rate > 20:
+                        detailed_result["recommendation"] = "High tax rate - review deductions"
+                        self.logger.debug(f"compute_monthly_tax_with_details: Recommendation - High tax rate ({tax_rate:.2f}%)")
+                    else:
+                        detailed_result["recommendation"] = "Moderate tax rate"
+                        self.logger.debug(f"compute_monthly_tax_with_details: Recommendation - Moderate tax rate ({tax_rate:.2f}%)")
+                else:
+                    detailed_result["recommendation"] = "Review income configuration"
+                    self.logger.debug("compute_monthly_tax_with_details: Recommendation - Review income configuration")
+            else:
+                self.logger.warning("compute_monthly_tax_with_details: No calculation result available for recommendation")
+            
+            self.logger.debug(f"compute_monthly_tax_with_details: Successfully completed detailed computation for employee {employee_id_str}")
+            return detailed_result
+            
+        except Exception as e:
+            self.logger.error(f"compute_monthly_tax_with_details: Error in detailed computation for employee {employee_id}: {str(e)}", exc_info=True)
+            raise RuntimeError(f"Failed to compute detailed monthly tax for employee {employee_id}: {str(e)}")
     
     def calculate_tax(self, input_data: TaxCalculationInput) -> TaxCalculationResult:
         """
@@ -309,7 +551,7 @@ class TaxCalculationService:
         retirement_total = input_data.retirement_benefits.calculate_total_retirement_income(input_data.regime)
         
         # Other income - use the actual method from OtherIncome entity (now includes house property income)
-        other_income_total = input_data.other_income.calculate_total_other_income(input_data.regime)
+        other_income_total = input_data.other_income.calculate_total_other_income_slab_rates(input_data.regime, input_data.age)
         
         return (
             salary_total
@@ -449,7 +691,7 @@ class TaxCalculationService:
                     "bank_interest": input_data.other_income.bank_interest.to_float(),
                     "fixed_deposit_interest": input_data.other_income.fixed_deposit_interest.to_float(),
                     "recurring_deposit_interest": input_data.other_income.recurring_deposit_interest.to_float(),
-                    "post_office_interest": input_data.other_income.post_office_interest.to_float(),
+                    "post_office_interest": input_data.other_income.other_interest.to_float(),
                     "equity_dividend": input_data.other_income.equity_dividend.to_float(),
                     "mutual_fund_dividend": input_data.other_income.mutual_fund_dividend.to_float(),
                     "other_dividend": input_data.other_income.other_dividend.to_float(),

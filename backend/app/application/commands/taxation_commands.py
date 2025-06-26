@@ -514,7 +514,13 @@ class EnhancedTaxCalculationCommand:
             )
             
             # Build salary income
+            current_tax_year = TaxYear.current()
+            effective_from = datetime.combine(current_tax_year.get_start_date(), datetime.min.time())
+            effective_till = datetime.combine(current_tax_year.get_end_date(), datetime.min.time())
+            
             salary_income = SalaryIncome(
+                effective_from=effective_from,
+                effective_till=effective_till,
                 basic_salary=Money.from_decimal(period_dto.basic_salary),
                 dearness_allowance=Money.from_decimal(period_dto.dearness_allowance),
                 hra_provided=Money.from_decimal(period_dto.hra_provided),
@@ -639,7 +645,13 @@ class MidYearJoinerCommand:
         regime = TaxRegime.old_regime() if regime_type.lower() == "old" else TaxRegime.new_regime()
         
         # Build salary income
+        current_tax_year = TaxYear.current()
+        effective_from = datetime.combine(current_tax_year.get_start_date(), datetime.min.time())
+        effective_till = datetime.combine(current_tax_year.get_end_date(), datetime.min.time())
+        
         salary_income = SalaryIncome(
+            effective_from=effective_from,
+            effective_till=effective_till,
             basic_salary=Money.from_decimal(request.salary_details.basic_salary),
             dearness_allowance=Money.from_decimal(request.salary_details.dearness_allowance),
             hra_provided=Money.from_decimal(request.salary_details.hra_provided),
@@ -705,7 +717,13 @@ class MidYearIncrementCommand:
         regime = TaxRegime.old_regime() if regime_type.lower() == "old" else TaxRegime.new_regime()
         
         # Build pre-increment salary
+        current_tax_year = TaxYear.current()
+        effective_from = datetime.combine(current_tax_year.get_start_date(), datetime.min.time())
+        effective_till = datetime.combine(current_tax_year.get_end_date(), datetime.min.time())
+        
         pre_increment_salary = SalaryIncome(
+            effective_from=effective_from,
+            effective_till=effective_till,
             basic_salary=Money.from_decimal(request.pre_increment_salary.basic_salary),
             dearness_allowance=Money.from_decimal(request.pre_increment_salary.dearness_allowance),
             hra_provided=Money.from_decimal(request.pre_increment_salary.hra_provided),
@@ -713,11 +731,12 @@ class MidYearIncrementCommand:
             actual_rent_paid=Money.from_decimal(request.pre_increment_salary.actual_rent_paid),
             bonus=Money.from_decimal(request.pre_increment_salary.bonus),
             commission=Money.from_decimal(request.pre_increment_salary.commission),
-            special_allowance=Money.from_decimal(request.pre_increment_salary.special_allowance),
         )
         
         # Build post-increment salary
         post_increment_salary = SalaryIncome(
+            effective_from=effective_from,
+            effective_till=effective_till,
             basic_salary=Money.from_decimal(request.post_increment_salary.basic_salary),
             dearness_allowance=Money.from_decimal(request.post_increment_salary.dearness_allowance),
             hra_provided=Money.from_decimal(request.post_increment_salary.hra_provided),

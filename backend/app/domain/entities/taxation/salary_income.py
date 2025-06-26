@@ -4,6 +4,7 @@ Domain entity for handling salary income components and calculations
 """
 
 from dataclasses import dataclass
+from datetime import datetime
 from decimal import Decimal
 from typing import Dict, Any
 
@@ -255,6 +256,8 @@ class SalaryIncome:
     Note: HRA exemption is now handled in the deductions module.
     """
     # Core salary components
+    effective_from: datetime
+    effective_till: datetime
     basic_salary: Money
     dearness_allowance: Money
     hra_provided: Money
@@ -272,9 +275,9 @@ class SalaryIncome:
         """Initialize defaults."""
         if self.specific_allowances is None:
             self.specific_allowances = SpecificAllowances()
-
-
-    
+        # Remove automatic setting of effective_from - it must be provided by user
+        # if self.effective_from is None:
+        #     self.effective_from = datetime.now()
     
     def calculate_gross_salary(self) -> Money:
         """

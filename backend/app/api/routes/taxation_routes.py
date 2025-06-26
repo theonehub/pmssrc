@@ -7,6 +7,7 @@ from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import JSONResponse
 from datetime import datetime
+import logging
 
 from app.auth.auth_dependencies import get_current_user, CurrentUser
 from app.application.dto.taxation_dto import (
@@ -72,6 +73,7 @@ from app.domain.services.taxation.tax_calculation_service import TaxCalculationR
 
 
 router = APIRouter(prefix="/api/v2/taxation", tags=["taxation"])
+logger = logging.getLogger(__name__)
 
 
 # =============================================================================
@@ -1234,20 +1236,161 @@ async def health_check() -> Dict[str, str]:
         "status": "healthy",
         "service": "comprehensive_taxation",
         "version": "2.0.0",
-        "features": [
-            "Comprehensive tax calculation",
-            "All income types supported",
-            "Perquisites calculation", 
-            "House property income",
-            "Capital gains",
-            "Retirement benefits",
-            "Monthly payroll with LWP",
-            "Mid-year scenarios",
-            "Scenario comparison",
-            "Tax optimization"
-        ],
+        "features": "Comprehensive tax calculation, All income types supported, Perquisites calculation, House property income, Capital gains, Retirement benefits, Monthly payroll with LWP, Mid-year scenarios, Scenario comparison, Tax optimization",
         "timestamp": str(datetime.utcnow())
     }
+
+
+# =============================================================================
+# MONTHLY TAX COMPUTATION - NEW SALARY PACKAGE BASED ENDPOINTS  
+# =============================================================================
+
+@router.get("/monthly-tax/employee/{employee_id}",
+            response_model=Dict[str, Any],
+            status_code=status.HTTP_200_OK,
+            summary="Compute monthly tax for employee", 
+            description="Compute monthly tax for an employee based on their salary package record with detailed breakdown")
+async def compute_monthly_tax(
+    employee_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_comprehensive_taxation_controller)
+) -> Dict[str, Any]:
+    """
+    Compute monthly tax for an employee based on their salary package record.
+    
+    This endpoint calculates monthly tax liability using the new SalaryPackageRecord approach:
+    - Gets the latest salary income from salary package history
+    - Calculates comprehensive annual income (salary + perquisites + other income)
+    - Computes annual tax liability based on current tax slabs
+    - Returns monthly tax (annual tax / 12) with detailed breakdown
+    
+    Note: This is the new approach that will replace TaxationRecord-based calculations.
+    """
+    
+    logger.debug(f"compute_monthly_tax route: Starting for employee {employee_id}, user {current_user.username}, hostname {current_user.hostname}")
+    
+    try:
+        logger.debug(f"compute_monthly_tax route: Calling controller.compute_monthly_tax with organization_id {current_user.hostname}")
+        
+        result = await controller.compute_monthly_tax(
+            employee_id, current_user.hostname
+        )
+        
+        logger.debug(f"compute_monthly_tax route: Successfully received result from controller")
+        logger.debug(f"compute_monthly_tax route: Result type: {type(result)}")
+        
+        # Log a summary of the result
+        if isinstance(result, dict):
+            logger.debug(f"compute_monthly_tax route: Result contains {len(result)} keys")
+            if 'monthly_tax_liability' in result:
+                logger.debug(f"compute_monthly_tax route: Monthly tax liability: {result['monthly_tax_liability']}")
+            if 'status' in result:
+                logger.debug(f"compute_monthly_tax route: Status: {result['status']}")
+        
+        return result
+        
+    except ValueError as e:
+        logger.error(f"compute_monthly_tax route: Validation error for employee {employee_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
+    except RuntimeError as e:
+        logger.error(f"compute_monthly_tax route: Runtime error for employee {employee_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"compute_monthly_tax route: Unexpected error for employee {employee_id}: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to compute monthly tax: {str(e)}"
+        )
+
+
+@router.get("/monthly-tax-simple/employee/{employee_id}",
+            response_model=Dict[str, Any],
+            status_code=status.HTTP_200_OK,
+            summary="Compute basic monthly tax for employee",
+            description="Compute monthly tax for an employee with basic information (lighter version)")
+async def compute_monthly_tax_simple(
+    employee_id: str,
+    month: int = Query(..., description="Month (1-12)", ge=1, le=12),
+    year: int = Query(..., description="Year", ge=2000, le=2050),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_comprehensive_taxation_controller)
+) -> Dict[str, Any]:
+    """
+    Compute monthly tax for an employee with basic information only.
+    
+    This is a lighter version suitable for quick calculations and frontend components
+    that need just the basic monthly tax amount without detailed breakdowns.
+    """
+    
+    try:
+        result = await controller.compute_monthly_tax_simple(
+            employee_id, month, year, current_user.hostname
+        )
+        return result
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to compute basic monthly tax: {str(e)}"
+        )
+
+
+@router.get("/monthly-tax/current/{employee_id}",
+            response_model=Dict[str, Any],
+            status_code=status.HTTP_200_OK,
+            summary="Compute current month tax for employee",
+            description="Compute tax for employee for the current month and year")
+async def compute_current_month_tax(
+    employee_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_comprehensive_taxation_controller)
+) -> Dict[str, Any]:
+    """
+    Compute monthly tax for an employee for the current month and year.
+    
+    Convenience endpoint that automatically uses the current month and year.
+    """
+    
+    try:
+        from datetime import datetime
+        now = datetime.now()
+        
+        result = await controller.compute_monthly_tax(
+            employee_id, now.month, now.year, current_user.hostname
+        )
+        return result
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
+    except RuntimeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to compute current month tax: {str(e)}"
+        )
 
 
 # =============================================================================

@@ -184,10 +184,10 @@ class UnifiedTaxationController:
         self.reopen_handler = reopen_handler
         self.delete_handler = delete_handler
         
-        # Enhanced calculation services
+        # Enhanced services
         self.enhanced_tax_service = enhanced_tax_service
         
-        # Repository for direct database access
+        # Repositories
         self.taxation_repository = taxation_repository
         self.user_repository = user_repository
         self.salary_package_repository = salary_package_repository
@@ -252,7 +252,15 @@ class UnifiedTaxationController:
             salary_income = self._convert_salary_dto_to_entity(request.salary_income)
         else:
             # Create default salary income with zero values
+            from datetime import datetime
+            from app.domain.value_objects.tax_year import TaxYear
+            current_tax_year = TaxYear.current()
+            effective_from = datetime.combine(current_tax_year.get_start_date(), datetime.min.time())
+            effective_till = datetime.combine(current_tax_year.get_end_date(), datetime.min.time())
+            
             salary_income = SalaryIncome(
+                effective_from=effective_from,
+                effective_till=effective_till,
                 basic_salary=Money.zero(),
                 dearness_allowance=Money.zero(),
                 hra_provided=Money.zero(),
@@ -863,11 +871,15 @@ class UnifiedTaxationController:
         
         # Convert other components
         perquisites = self._convert_perquisites_dto_to_entity(request.perquisites) if request.perquisites else self._create_default_perquisites()
-        house_property_income = self._convert_house_property_dto_to_entity(request.house_property_income) if request.house_property_income else self._create_default_house_property()
         capital_gains_income = self._convert_capital_gains_dto_to_entity(request.capital_gains_income) if request.capital_gains_income else self._create_default_capital_gains()
         retirement_benefits = self._convert_retirement_benefits_dto_to_entity(request.retirement_benefits) if request.retirement_benefits else self._create_default_retirement_benefits()
         other_income = self._convert_other_income_dto_to_entity(request.other_income) if request.other_income else self._create_default_other_income()
         deductions = self._convert_deductions_dto_to_entity(request.deductions) if request.deductions else self._create_default_deductions()
+        
+        # Handle house property income - it should be part of other_income, not a separate parameter
+        if hasattr(request, 'house_property_income') and request.house_property_income:
+            house_property = self._convert_house_property_dto_to_entity(request.house_property_income)
+            other_income.house_property_income = house_property
         
         # Determine citizen status
         is_senior_citizen = request.age >= 60
@@ -876,7 +888,6 @@ class UnifiedTaxationController:
         return TaxCalculationInput(
             salary_income=salary_income,
             perquisites=perquisites,
-            house_property_income=house_property_income,
             capital_gains_income=capital_gains_income,
             retirement_benefits=retirement_benefits,
             other_income=other_income,
@@ -939,8 +950,16 @@ class UnifiedTaxationController:
         """Create default salary income entity."""
         from app.domain.entities.taxation.salary_income import SalaryIncome, SpecificAllowances
         from app.domain.value_objects.money import Money
+        from datetime import datetime
+        from app.domain.value_objects.tax_year import TaxYear
+        
+        current_tax_year = TaxYear.current()
+        effective_from = datetime.combine(current_tax_year.get_start_date(), datetime.min.time())
+        effective_till = datetime.combine(current_tax_year.get_end_date(), datetime.min.time())
         
         return SalaryIncome(
+            effective_from=effective_from,
+            effective_till=effective_till,
             basic_salary=Money.zero(),
             dearness_allowance=Money.zero(),
             hra_provided=Money.zero(),
@@ -1010,8 +1029,73 @@ class UnifiedTaxationController:
     
     def _convert_salary_dto_to_entity(self, salary_dto) -> SalaryIncome:
         """Convert salary DTO to domain entity."""
+        from datetime import datetime
+        
+        # Handle effective dates - convert from date to datetime if provided
+        # If not provided, use default values for the current tax year
+        if hasattr(salary_dto, 'effective_from') and salary_dto.effective_from:
+            effective_from = datetime.combine(salary_dto.effective_from, datetime.min.time())
+        else:
+            # Default to start of current tax year
+            from app.domain.value_objects.tax_year import TaxYear
+            current_tax_year = TaxYear.current()
+            effective_from = datetime.combine(current_tax_year.get_start_date(), datetime.min.time())
+        
+        if hasattr(salary_dto, 'effective_till') and salary_dto.effective_till:
+            effective_till = datetime.combine(salary_dto.effective_till, datetime.min.time())
+        else:
+            # Default to end of current tax year
+            from app.domain.value_objects.tax_year import TaxYear
+            current_tax_year = TaxYear.current()
+            effective_till = datetime.combine(current_tax_year.get_end_date(), datetime.min.time())
+        
+        # Create SpecificAllowances from DTO fields
+        from app.domain.entities.taxation.salary_income import SpecificAllowances
+        specific_allowances = SpecificAllowances(
+            hills_allowance=Money.from_decimal(getattr(salary_dto, 'hills_high_altd_allowance', 0)),
+            hills_exemption_limit=Money.from_decimal(getattr(salary_dto, 'hills_high_altd_exemption_limit', 0)),
+            border_allowance=Money.from_decimal(getattr(salary_dto, 'border_remote_allowance', 0)),
+            border_exemption_limit=Money.from_decimal(getattr(salary_dto, 'border_remote_exemption_limit', 0)),
+            transport_employee_allowance=Money.from_decimal(getattr(salary_dto, 'transport_employee_allowance', 0)),
+            children_education_allowance=Money.from_decimal(getattr(salary_dto, 'children_education_allowance', 0)),
+            children_count=getattr(salary_dto, 'children_education_count', 0),
+            children_education_months=getattr(salary_dto, 'children_education_months', 12),
+            hostel_allowance=Money.from_decimal(getattr(salary_dto, 'hostel_allowance', 0)),
+            hostel_count=getattr(salary_dto, 'hostel_count', 0),
+            hostel_months=getattr(salary_dto, 'hostel_months', 12),
+            disabled_transport_allowance=Money.from_decimal(getattr(salary_dto, 'disabled_transport_allowance', 0)),
+            transport_months=getattr(salary_dto, 'transport_months', 12),
+            underground_mines_allowance=Money.from_decimal(getattr(salary_dto, 'underground_mines_allowance', 0)),
+            mine_work_months=getattr(salary_dto, 'underground_mines_months', 0),
+            government_entertainment_allowance=Money.from_decimal(getattr(salary_dto, 'govt_employee_entertainment_allowance', 0)),
+            city_compensatory_allowance=Money.from_decimal(getattr(salary_dto, 'city_compensatory_allowance', 0)),
+            rural_allowance=Money.from_decimal(getattr(salary_dto, 'rural_allowance', 0)),
+            proctorship_allowance=Money.from_decimal(getattr(salary_dto, 'proctorship_allowance', 0)),
+            wardenship_allowance=Money.from_decimal(getattr(salary_dto, 'wardenship_allowance', 0)),
+            project_allowance=Money.from_decimal(getattr(salary_dto, 'project_allowance', 0)),
+            deputation_allowance=Money.from_decimal(getattr(salary_dto, 'deputation_allowance', 0)),
+            overtime_allowance=Money.from_decimal(getattr(salary_dto, 'overtime_allowance', 0)),
+            interim_relief=Money.from_decimal(getattr(salary_dto, 'interim_relief', 0)),
+            tiffin_allowance=Money.from_decimal(getattr(salary_dto, 'tiffin_allowance', 0)),
+            fixed_medical_allowance=Money.from_decimal(getattr(salary_dto, 'fixed_medical_allowance', 0)),
+            servant_allowance=Money.from_decimal(getattr(salary_dto, 'servant_allowance', 0)),
+            any_other_allowance=Money.from_decimal(getattr(salary_dto, 'any_other_allowance', 0)),
+            any_other_allowance_exemption=Money.from_decimal(getattr(salary_dto, 'any_other_allowance_exemption', 0)),
+            govt_employees_outside_india_allowance=Money.from_decimal(getattr(salary_dto, 'govt_employees_outside_india_allowance', 0)),
+            supreme_high_court_judges_allowance=Money.from_decimal(getattr(salary_dto, 'supreme_high_court_judges_allowance', 0)),
+            judge_compensatory_allowance=Money.from_decimal(getattr(salary_dto, 'judge_compensatory_allowance', 0)),
+            section_10_14_special_allowances=Money.from_decimal(getattr(salary_dto, 'section_10_14_special_allowances', 0)),
+            travel_on_tour_allowance=Money.from_decimal(getattr(salary_dto, 'travel_on_tour_allowance', 0)),
+            tour_daily_charge_allowance=Money.from_decimal(getattr(salary_dto, 'tour_daily_charge_allowance', 0)),
+            conveyance_in_performace_of_duties=Money.from_decimal(getattr(salary_dto, 'conveyance_in_performace_of_duties', 0)),
+            helper_in_performace_of_duties=Money.from_decimal(getattr(salary_dto, 'helper_in_performace_of_duties', 0)),
+            academic_research=Money.from_decimal(getattr(salary_dto, 'academic_research', 0)),
+            uniform_allowance=Money.from_decimal(getattr(salary_dto, 'uniform_allowance', 0))
+        )
         
         return SalaryIncome(
+            effective_from=effective_from,
+            effective_till=effective_till,
             basic_salary=Money.from_decimal(salary_dto.basic_salary),
             dearness_allowance=Money.from_decimal(salary_dto.dearness_allowance),
             hra_provided=Money.from_decimal(salary_dto.hra_provided),
@@ -1019,6 +1103,8 @@ class UnifiedTaxationController:
             # Optional components with defaults
             bonus=Money.from_decimal(getattr(salary_dto, 'bonus', 0)),
             commission=Money.from_decimal(getattr(salary_dto, 'commission', 0)),
+            arrears=Money.from_decimal(getattr(salary_dto, 'arrears', 0)),
+            specific_allowances=specific_allowances
         )
     
     def _convert_periodic_salary_dto_to_entity(self, periodic_dto) -> PeriodicSalaryIncome:
@@ -1493,8 +1579,16 @@ class UnifiedTaxationController:
         """Convert PeriodicSalaryDataDTO to SalaryIncome entity."""
         from app.domain.entities.taxation.salary_income import SalaryIncome
         from app.domain.value_objects.money import Money
+        from datetime import datetime
+        from app.domain.value_objects.tax_year import TaxYear
+        
+        current_tax_year = TaxYear.current()
+        effective_from = datetime.combine(current_tax_year.get_start_date(), datetime.min.time())
+        effective_till = datetime.combine(current_tax_year.get_end_date(), datetime.min.time())
         
         return SalaryIncome(
+            effective_from=effective_from,
+            effective_till=effective_till,
             basic_salary=Money.from_decimal(salary_data_dto.basic_salary),
             dearness_allowance=Money.from_decimal(salary_data_dto.dearness_allowance),
             hra_provided=Money.from_decimal(salary_data_dto.hra_provided),
@@ -2337,11 +2431,11 @@ class UnifiedTaxationController:
         # Handle frontend component type aliases
         component_type_mapping = {
             "salary": "salary_income",
-            "house-property": "house_property_income",
-            "capital-gains": "capital_gains_income",
-            "retirement-benefits": "retirement_benefits",
-            "other-income": "other_income",
-            "monthly-payroll": "monthly_payroll"
+            "house_property": "house_property_income",
+            "capital_gains": "capital_gains_income",
+            "retirement_benefits": "retirement_benefits",
+            "other_income": "other_income",
+            "monthly_payroll": "monthly_payroll"
         }
         
         # Map frontend component type to backend component type
@@ -2905,9 +2999,83 @@ class UnifiedTaxationController:
         }
 
 
-        async def compute_monthly_tax(self, employee_id: EmployeeId, month: int, year: int) -> Dict[str, Any]:
-            """Compute monthly tax."""
+    async def compute_monthly_tax(self, employee_id: str, organization_id: str) -> Dict[str, Any]:
+        """
+        Compute monthly tax for an employee based on their salary package record.
+        
+        Args:
+            employee_id: Employee ID as string
+            organization_id: Organization ID for database segregation
             
-            return {}
+        Returns:
+            Dict[str, Any]: Monthly tax computation result with details
+            
+        Raises:
+            ValueError: If employee or salary data not found
+            RuntimeError: If computation fails
+        """
+        logger.debug(f"UnifiedTaxationController.compute_monthly_tax: Starting for employee {employee_id}, organization {organization_id}")
+        
+        try:
+            # Convert employee_id to EmployeeId value object
+            logger.debug(f"UnifiedTaxationController.compute_monthly_tax: Converting employee_id {employee_id} to EmployeeId value object")
+            from app.domain.value_objects.employee_id import EmployeeId
+            employee_id_obj = EmployeeId(employee_id)
+            logger.debug(f"UnifiedTaxationController.compute_monthly_tax: Successfully created EmployeeId object: {employee_id_obj}")
+            
+            # Check if enhanced_tax_service is available
+            if not self.enhanced_tax_service:
+                logger.error("UnifiedTaxationController.compute_monthly_tax: Enhanced tax service not configured")
+                raise RuntimeError("Enhanced tax service not configured")
+            
+            logger.debug("UnifiedTaxationController.compute_monthly_tax: Enhanced tax service is available, calling compute_monthly_tax_with_details")
+            
+            # Use the enhanced tax service to compute monthly tax with details
+            result = await self.enhanced_tax_service.compute_monthly_tax_with_details(
+                employee_id_obj, organization_id
+            )
+            
+            logger.debug(f"UnifiedTaxationController.compute_monthly_tax: Successfully received result from enhanced tax service")
+            logger.debug(f"UnifiedTaxationController.compute_monthly_tax: Result keys: {list(result.keys())}")
+            logger.debug(f"UnifiedTaxationController.compute_monthly_tax: Monthly tax liability: {result.get('monthly_tax_liability', 'Not found')}")
+            
+            return result
+            
+        except ValueError as e:
+            logger.error(f"UnifiedTaxationController.compute_monthly_tax: Validation error for employee {employee_id}: {str(e)}")
+            # Re-raise validation errors
+            raise e
+        except Exception as e:
+            logger.error(f"UnifiedTaxationController.compute_monthly_tax: Unexpected error for employee {employee_id}: {str(e)}", exc_info=True)
+            # Wrap other errors
+            raise RuntimeError(f"Failed to compute monthly tax for employee {employee_id}: {str(e)}")
+    
+    async def compute_monthly_tax_simple(self, employee_id: str, organization_id: str) -> Dict[str, Any]:
+        """
+        Compute monthly tax with basic information (lighter version for quick calculations).
+        
+        Args:
+            employee_id: Employee ID as string
+            organization_id: Organization ID
+            
+        Returns:
+            Dict[str, Any]: Basic monthly tax computation result
+        """
+        try:
+            # Convert employee_id to EmployeeId value object
+            from app.domain.value_objects.employee_id import EmployeeId
+            employee_id_obj = EmployeeId(employee_id)
+            
+            # Use basic computation method
+            result = await self.enhanced_tax_service.compute_monthly_tax(
+                employee_id_obj, organization_id
+            )
+            
+            return result
+            
+        except ValueError as e:
+            raise e
+        except Exception as e:
+            raise RuntimeError(f"Failed to compute basic monthly tax for employee {employee_id}: {str(e)}")
         
 

@@ -403,6 +403,8 @@ class MongoDBTaxationRepository(TaxationRepository):
     def _serialize_salary_income(self, salary_income: SalaryIncome) -> dict:
         """Serialize salary income to document format."""
         return {
+            "effective_from": salary_income.effective_from.isoformat() if salary_income.effective_from else None,
+            "effective_till": salary_income.effective_till.isoformat() if salary_income.effective_till else None,
             "basic_salary": salary_income.basic_salary.to_float(),
             "dearness_allowance": salary_income.dearness_allowance.to_float(),
             "hra_provided": salary_income.hra_provided.to_float(),
@@ -830,7 +832,28 @@ class MongoDBTaxationRepository(TaxationRepository):
     
     def _deserialize_salary_income(self, salary_data: dict) -> SalaryIncome:
         """Deserialize salary income from document format."""
-        from app.domain.entities.taxation.salary_income import SpecificAllowances
+        from app.domain.entities.taxation.salary_income import SalaryIncome, SpecificAllowances
+        from app.domain.value_objects.money import Money
+        from datetime import datetime
+        from app.domain.value_objects.tax_year import TaxYear
+        
+        # Get effective dates from document or use defaults
+        effective_from = None
+        effective_till = None
+        
+        if salary_data.get("effective_from"):
+            effective_from = datetime.fromisoformat(salary_data["effective_from"])
+        else:
+            # Default to start of current tax year
+            current_tax_year = TaxYear.current()
+            effective_from = datetime.combine(current_tax_year.get_start_date(), datetime.min.time())
+        
+        if salary_data.get("effective_till"):
+            effective_till = datetime.fromisoformat(salary_data["effective_till"])
+        else:
+            # Default to end of current tax year
+            current_tax_year = TaxYear.current()
+            effective_till = datetime.combine(current_tax_year.get_end_date(), datetime.min.time())
         
         # Create SpecificAllowances with overtime_allowance
         specific_allowances = SpecificAllowances(
@@ -838,6 +861,8 @@ class MongoDBTaxationRepository(TaxationRepository):
         )
         
         return SalaryIncome(
+            effective_from=effective_from,
+            effective_till=effective_till,
             basic_salary=Money(salary_data.get("basic_salary", 0)),
             dearness_allowance=Money(salary_data.get("dearness_allowance", 0)),
             hra_provided=Money(salary_data.get("hra_provided", 0)),

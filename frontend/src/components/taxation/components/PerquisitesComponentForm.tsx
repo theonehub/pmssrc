@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -27,6 +27,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowBack as ArrowBackIcon, Save as SaveIcon } from '@mui/icons-material';
 import { getUserRole } from '../../../shared/utils/auth';
 import { taxationApi } from '../../../shared/api/taxationApi';
+import { CURRENT_TAX_YEAR } from '../../../shared/constants/taxation';
 
 interface PerquisitesComponentData {
   // Accommodation
@@ -197,7 +198,7 @@ const PerquisitesComponentForm: React.FC = () => {
   const [perquisitesData, setPerquisitesData] = useState<PerquisitesComponentData>(initialPerquisitesData);
   const [activeStep, setActiveStep] = useState<number>(0);
   
-  const taxYear = searchParams.get('year') || '2024-25';
+  const taxYear = searchParams.get('year') || CURRENT_TAX_YEAR;
   const mode = searchParams.get('mode') || 'update';
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
   const isNewRevision = mode === 'new';
@@ -209,39 +210,7 @@ const PerquisitesComponentForm: React.FC = () => {
     }
   }, [isAdmin, navigate]);
 
-  // Load existing perquisites data
-  useEffect(() => {
-    if (empId && !isNewRevision) {
-      loadPerquisitesData();
-    } else if (isNewRevision) {
-      showToast('Creating new perquisites revision. Enter the updated perquisites data.', 'info');
-    }
-  }, [empId, taxYear, isNewRevision]);
-
-  // Early return for authentication and authorization checks
-  if (userRole === null) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="warning">
-          Authentication required. Please log in to access this page.
-        </Alert>
-      </Box>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">
-          Admin privileges required. Current role: {userRole}
-          <br />
-          Only admin and superadmin users can access this page.
-        </Alert>
-      </Box>
-    );
-  }
-
-  const loadPerquisitesData = async (): Promise<void> => {
+  const loadPerquisitesData = useCallback(async (): Promise<void> => {
     try {
       setLoading(true);
       setError(null);
@@ -265,7 +234,38 @@ const PerquisitesComponentForm: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [empId, taxYear]);
+
+  useEffect(() => {
+    if (empId && !isNewRevision) {
+      loadPerquisitesData();
+    } else if (isNewRevision) {
+      showToast('Creating new perquisites revision. Enter the updated perquisites data.', 'info');
+    }
+  }, [empId, taxYear, isNewRevision, loadPerquisitesData]);
+
+  // Early return for authentication and authorization checks
+  if (userRole === null) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="warning">
+          Authentication required. Please log in to access this page.
+        </Alert>
+      </Box>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">
+          Admin privileges required. Current role: {userRole}
+          <br />
+          Only admin and superadmin users can access this page.
+        </Alert>
+      </Box>
+    );
+  }
 
   const handleInputChange = (field: keyof PerquisitesComponentData, value: number | string | boolean): void => {
     setPerquisitesData(prev => ({

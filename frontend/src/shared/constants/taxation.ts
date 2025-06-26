@@ -9,11 +9,11 @@ import { TaxRegime } from '../types/api';
 // TAX YEAR CONSTANTS
 // =============================================================================
 
-export const CURRENT_TAX_YEAR = '2024-25';
-export const CURRENT_ASSESSMENT_YEAR = '2025-26';
+export const CURRENT_TAX_YEAR = '2025-26';
+export const CURRENT_ASSESSMENT_YEAR = '2026-27';
 
 export const AVAILABLE_TAX_YEARS = [
-  '2024-25', '2023-24', '2022-23', '2021-22', '2020-21'
+  '2025-26', '2024-25', '2023-24', '2022-23', '2021-22'
 ];
 
 // =============================================================================

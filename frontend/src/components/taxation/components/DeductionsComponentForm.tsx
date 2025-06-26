@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -25,6 +25,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowBack as ArrowBackIcon, Save as SaveIcon } from '@mui/icons-material';
 import { getUserRole } from '../../../shared/utils/auth';
 import { taxationApi } from '../../../shared/api/taxationApi';
+import { CURRENT_TAX_YEAR } from '../../../shared/constants/taxation';
 
 interface DeductionsComponentData {
   // HRA Exemption
@@ -206,7 +207,7 @@ const DeductionsComponentForm: React.FC = () => {
   const [deductionsData, setDeductionsData] = useState<DeductionsComponentData>(initialDeductionsData);
   const [activeStep, setActiveStep] = useState<number>(0);
   
-  const taxYear = searchParams.get('year') || '2024-25';
+  const taxYear = searchParams.get('year') || CURRENT_TAX_YEAR;
   const mode = searchParams.get('mode') || 'update';
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
   const isNewRevision = mode === 'new';
@@ -219,38 +220,7 @@ const DeductionsComponentForm: React.FC = () => {
   }, [isAdmin, navigate]);
 
   // Load existing deductions data
-  useEffect(() => {
-    if (empId && !isNewRevision) {
-      loadDeductionsData();
-    } else if (isNewRevision) {
-      showToast('Creating new deductions revision. Enter the updated deductions data.', 'info');
-    }
-  }, [empId, taxYear, isNewRevision]);
-
-  // Early return for authentication and authorization checks
-  if (userRole === null) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="warning">
-          Authentication required. Please log in to access this page.
-        </Alert>
-      </Box>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Alert severity="error">
-          Admin privileges required. Current role: {userRole}
-          <br />
-          Only admin and superadmin users can access this page.
-        </Alert>
-      </Box>
-    );
-  }
-
-  const loadDeductionsData = async (): Promise<void> => {
+  const loadDeductionsData = useCallback(async (): Promise<void> => {
     try {
       setLoading(true);
       setError(null);
@@ -274,7 +244,38 @@ const DeductionsComponentForm: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [empId, taxYear]);
+
+  useEffect(() => {
+    if (empId && !isNewRevision) {
+      loadDeductionsData();
+    } else if (isNewRevision) {
+      showToast('Creating new deductions revision. Enter the updated deductions data.', 'info');
+    }
+  }, [empId, taxYear, isNewRevision, loadDeductionsData]);
+
+  // Early return for authentication and authorization checks
+  if (userRole === null) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="warning">
+          Authentication required. Please log in to access this page.
+        </Alert>
+      </Box>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">
+          Admin privileges required. Current role: {userRole}
+          <br />
+          Only admin and superadmin users can access this page.
+        </Alert>
+      </Box>
+    );
+  }
 
   const handleInputChange = (field: keyof DeductionsComponentData, value: number | string): void => {
     setDeductionsData(prev => ({

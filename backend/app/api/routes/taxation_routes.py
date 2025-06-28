@@ -1326,21 +1326,18 @@ async def compute_monthly_tax(
     Note: This is the new approach that will replace TaxationRecord-based calculations.
     """
     
-    logger.debug(f"compute_monthly_tax route: Starting for employee {employee_id}, user {current_user.username}, hostname {current_user.hostname}")
+    logger.debug(f"compute_monthly_tax route: "
+                    f"Starting for employee {employee_id}, "
+                    f"user {current_user.username}, "
+                    f"hostname {current_user.hostname}")
     
     try:
-        logger.debug(f"compute_monthly_tax route: Calling controller.compute_monthly_tax with organization_id {current_user.hostname}")
-        
         result = await controller.compute_monthly_tax(
             employee_id, current_user.hostname
         )
         
-        logger.debug(f"compute_monthly_tax route: Successfully received result from controller")
-        logger.debug(f"compute_monthly_tax route: Result type: {type(result)}")
-        
         # Log a summary of the result
         if isinstance(result, dict):
-            logger.debug(f"compute_monthly_tax route: Result contains {len(result)} keys")
             if 'monthly_tax_liability' in result:
                 logger.debug(f"compute_monthly_tax route: Monthly tax liability: {result['monthly_tax_liability']}")
             if 'status' in result:

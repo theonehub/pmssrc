@@ -146,11 +146,6 @@ class HousePropertyIncome:
     
     # Properties for TaxCalculationService compatibility
     @property
-    def actual_rent(self) -> Money:
-        """Get actual rent for TaxCalculationService compatibility."""
-        return self.annual_rent_received
-    
-    @property
     def municipal_tax(self) -> Money:
         """Get municipal tax for TaxCalculationService compatibility."""
         return self.municipal_taxes_paid

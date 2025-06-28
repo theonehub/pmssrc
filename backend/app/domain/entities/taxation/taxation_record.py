@@ -1627,7 +1627,7 @@ class SalaryPackageRecord:
             return total_projection_months
         
 
-    def get_gross_salary(self) -> Money:
+    def get_gross_salary_income(self) -> Money:
         """
         Get the gross salary of the employee.
         
@@ -1646,24 +1646,65 @@ class SalaryPackageRecord:
         Returns:
             TaxCalculationResult: Complete calculation result
         """
-        
-        # Calculate comprehensive gross income
-        gross_income = self.get_gross_salary()
+
+        gross_income = self.calculate_gross_income()
+        logger.info(f"TheOne: Total income: {gross_income}")
         
         # Calculate total exemptions
-        total_exemptions = self.calculate_comprehensive_exemptions()
-        
+        total_exemptions = self.calculate_exemptions()
+        logger.info(f"TheOne: Total exemptions: {total_exemptions}")
+
         # Calculate total deductions
         total_deductions = self.deductions.calculate_total_deductions(self.regime)
+        logger.info(f"TheOne: Total deductions: {total_deductions}")
+
+        income_after_exemptions = gross_income.subtract(total_exemptions)
+        logger.info(f"TheOne: Income after exemptions: {income_after_exemptions}")
+
+        taxable_income = income_after_exemptions.subtract(total_deductions)
+        logger.info(f"TheOne: Taxable income: {taxable_income}")
         
         # Perform tax calculation
-        self.calculation_result = calculation_service.calculate_income_tax(
-            gross_income=gross_income,
+        tax_liability = self._calculate_tax_liability(
+            taxable_income,
+            self.regime,
+            self.age,
+            self.is_senior_citizen,
+            self.is_super_senior_citizen
+        )
+        
+        # Create simplified tax breakdown
+        tax_breakdown = {
+            "income_details": {
+                "gross_income": gross_income.to_float(),
+                "total_exemptions": total_exemptions.to_float(),
+                "income_after_exemptions": income_after_exemptions.to_float(),
+                "total_deductions": total_deductions.to_float(),
+                "taxable_income": taxable_income.to_float()
+            },
+            "tax_calculation": {
+                "regime": self.regime.regime_type.value,
+                "age_category": "super_senior" if self.is_super_senior_citizen else "senior" if self.is_senior_citizen else "regular",
+                "basic_tax": tax_liability.to_float(),
+                "total_tax_liability": tax_liability.to_float()
+            },
+            "summary": {
+                "effective_tax_rate": (tax_liability.to_float() / gross_income.to_float() * 100) if not gross_income.is_zero() else 0.0,
+                "monthly_tax": tax_liability.divide(Decimal('12')).to_float()
+            }
+        }
+        self.calculation_result = TaxCalculationResult(
+            total_income=gross_income,
             total_exemptions=total_exemptions,
             total_deductions=total_deductions,
-            regime=self.regime,
-            age=self.age
+            taxable_income=taxable_income,
+            tax_liability=tax_liability,
+            tax_breakdown=tax_breakdown,
+            regime_comparison=None
         )
+        print(f"**************************************************")
+        print(f"TheOne: Result: {self.calculation_result}")
+        print(f"**************************************************")
         
         # Update metadata
         self.last_calculated_at = datetime.utcnow()
@@ -1681,23 +1722,23 @@ class SalaryPackageRecord:
         
         return self.calculation_result
     
-    def calculate_comprehensive_gross_income(self) -> Money:
+    
+    def calculate_gross_income(self) -> Money:
         """
         Calculate comprehensive gross income from all sources.
         
         Returns:
             Money: Total gross income from all sources
         """
-        total_income = Money.zero()
-        
-        # Use the latest salary income for calculation
-        latest_salary = self.get_latest_salary_income()
-        total_income = total_income.add(latest_salary.calculate_gross_salary())
+
+        # Calculate comprehensive gross income
+        total_income = self.get_gross_salary_income()
 
         # Other income (if any) - now includes house property income and capital gains
         if self.other_income:
-            total_income = total_income.add(self.other_income.calculate_total_other_income_slab_rates(self.regime, self.age))
-            adjustments_less = self.other_income.loss_from_house_property_income(self.regime)
+            other_income_slab_amount = self.other_income.calculate_total_other_income_slab_rates(self.regime, self.age)
+            total_income = total_income.add(other_income_slab_amount)
+            adjustments_less = self.other_income.house_property_income.get_house_property_loss(self.regime)
             total_income = total_income.subtract(adjustments_less)
                     
         # Perquisites (if any)
@@ -1709,8 +1750,8 @@ class SalaryPackageRecord:
             total_income = total_income.add(self.retirement_benefits.calculate_total_retirement_income(self.regime))
         
         return total_income
-    
-    def calculate_comprehensive_exemptions(self) -> Money:
+
+    def calculate_exemptions(self) -> Money:
         """
         Calculate comprehensive exemptions from all sources.
         
@@ -1720,12 +1761,8 @@ class SalaryPackageRecord:
         total_exemptions = Money.zero()
         
         # Salary exemptions (core) - use latest salary income
-        latest_salary = self.get_latest_salary_income()
-        total_exemptions = total_exemptions.add(latest_salary.calculate_total_exemptions(self.regime, self.is_government_employee))
+        total_exemptions = total_exemptions.add(self.annual_salary_income.calculate_total_exemptions(self.regime, self.is_government_employee))
         
-        # Capital gains exemptions
-        if self.other_income and self.other_income.capital_gains_income:
-            total_exemptions = total_exemptions.add(self.other_income.calculate_capital_gains_exemptions(self.regime))
         
         # Retirement benefits exemptions
         if self.retirement_benefits:

@@ -3017,22 +3017,15 @@ class UnifiedTaxationController:
         logger.debug(f"UnifiedTaxationController.compute_monthly_tax: Starting for employee {employee_id}, organization {organization_id}")
         
         try:
-            # Convert employee_id to EmployeeId value object
-            logger.debug(f"UnifiedTaxationController.compute_monthly_tax: Converting employee_id {employee_id} to EmployeeId value object")
-            from app.domain.value_objects.employee_id import EmployeeId
-            employee_id_obj = EmployeeId(employee_id)
-            logger.debug(f"UnifiedTaxationController.compute_monthly_tax: Successfully created EmployeeId object: {employee_id_obj}")
             
             # Check if enhanced_tax_service is available
             if not self.enhanced_tax_service:
                 logger.error("UnifiedTaxationController.compute_monthly_tax: Enhanced tax service not configured")
                 raise RuntimeError("Enhanced tax service not configured")
             
-            logger.debug("UnifiedTaxationController.compute_monthly_tax: Enhanced tax service is available, calling compute_monthly_tax_with_details")
-            
             # Use the enhanced tax service to compute monthly tax with details
             result = await self.enhanced_tax_service.compute_monthly_tax_with_details(
-                employee_id_obj, organization_id
+                employee_id, organization_id
             )
             
             logger.debug(f"UnifiedTaxationController.compute_monthly_tax: Successfully received result from enhanced tax service")

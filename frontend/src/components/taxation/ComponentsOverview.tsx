@@ -29,7 +29,8 @@ import {
   Home as HomeIcon,
   TrendingUp as TrendingUpIcon,
   Business as BusinessIcon,
-  Edit as EditIcon
+  Edit as EditIcon,
+  CardGiftcard as CardGiftcardIcon
 } from '@mui/icons-material';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getUserRole } from '../../shared/utils/auth';
@@ -224,7 +225,44 @@ const ComponentsOverview: React.FC = () => {
     }
   }, [empId, taxYear]);
 
-  // 6. loadComponentsData
+  // 6. loadPerquisitesComponent
+  const loadPerquisitesComponent = useCallback(async (): Promise<ComponentSummary | null> => {
+    try {
+      const response = await taxationApi.getComponent(empId!, taxYear, 'perquisites');
+      const data = response?.component_data || response;
+      
+      // Calculate total perquisites value from various perquisite types
+      const totalPerquisites = (data.accommodation_value || 0) + 
+                              (data.car_value || 0) + 
+                              (data.medical_reimbursement_value || 0) + 
+                              (data.lta_value || 0) + 
+                              (data.loan_value || 0) + 
+                              (data.esop_value || 0) + 
+                              (data.other_perquisites_value || 0);
+      
+      return {
+        id: 'perquisites',
+        name: 'Perquisites',
+        icon: <CardGiftcardIcon />,
+        color: 'error',
+        hasData: totalPerquisites > 0,
+        totalValue: totalPerquisites,
+        details: data
+      };
+    } catch (error) {
+      return {
+        id: 'perquisites',
+        name: 'Perquisites',
+        icon: <CardGiftcardIcon />,
+        color: 'error',
+        hasData: false,
+        totalValue: 0,
+        details: {}
+      };
+    }
+  }, [empId, taxYear]);
+
+  // 7. loadComponentsData
   const loadComponentsData = useCallback(async (): Promise<void> => {
     try {
       setLoading(true);
@@ -235,7 +273,8 @@ const ComponentsOverview: React.FC = () => {
         loadDeductionsComponent(),
         loadHousePropertyComponent(),
         loadCapitalGainsComponent(),
-        loadOtherIncomeComponent()
+        loadOtherIncomeComponent(),
+        loadPerquisitesComponent()
       ];
       
       const results = await Promise.allSettled(componentPromises);
@@ -255,9 +294,9 @@ const ComponentsOverview: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [empId, taxYear, loadSalaryComponent, loadDeductionsComponent, loadHousePropertyComponent, loadCapitalGainsComponent, loadOtherIncomeComponent]);
+  }, [empId, taxYear, loadSalaryComponent, loadDeductionsComponent, loadHousePropertyComponent, loadCapitalGainsComponent, loadOtherIncomeComponent, loadPerquisitesComponent]);
 
-  // 7. calculateComputedTax
+  // 8. calculateComputedTax
   const calculateComputedTax = useCallback(async (): Promise<void> => {
     try {
       setTaxLoading(true);

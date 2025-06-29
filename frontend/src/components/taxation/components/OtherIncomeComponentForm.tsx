@@ -23,8 +23,15 @@ import { taxationApi } from '../../../shared/api/taxationApi';
 import { CURRENT_TAX_YEAR } from '../../../shared/constants/taxation';
 import { UserRole } from '../../../shared/types';
 
+interface InterestIncomeData {
+  savings_interest: number;
+  fd_interest: number;
+  rd_interest: number;
+  post_office_interest: number;
+}
+
 interface OtherIncomeComponentData {
-  interest_income: number;
+  interest_income: InterestIncomeData;
   dividend_income: number;
   gifts_received: number;
   business_professional_income: number;
@@ -51,7 +58,12 @@ interface NumberField extends BaseField {
 
 // Initial data structure
 const initialOtherIncomeData: OtherIncomeComponentData = {
-  interest_income: 0,
+  interest_income: {
+    savings_interest: 0,
+    fd_interest: 0,
+    rd_interest: 0,
+    post_office_interest: 0
+  },
   dividend_income: 0,
   gifts_received: 0,
   business_professional_income: 0,
@@ -60,12 +72,17 @@ const initialOtherIncomeData: OtherIncomeComponentData = {
 
 // Function to flatten nested backend response to flat frontend structure
 const flattenOtherIncomeData = (nestedData: any): OtherIncomeComponentData => {
-  console.log('Flattening other income data:', nestedData);
   const flattened: OtherIncomeComponentData = { ...initialOtherIncomeData };
-  
   try {
     if (nestedData) {
-      flattened.interest_income = nestedData.interest_income || 0;
+      if (nestedData.interest_income && typeof nestedData.interest_income === 'object') {
+        flattened.interest_income = {
+          savings_interest: nestedData.interest_income.savings_interest || 0,
+          fd_interest: nestedData.interest_income.fd_interest || 0,
+          rd_interest: nestedData.interest_income.rd_interest || 0,
+          post_office_interest: nestedData.interest_income.post_office_interest || 0
+        };
+      }
       flattened.dividend_income = nestedData.dividend_income || 0;
       flattened.gifts_received = nestedData.gifts_received || 0;
       flattened.business_professional_income = nestedData.business_professional_income || 0;
@@ -74,7 +91,6 @@ const flattenOtherIncomeData = (nestedData: any): OtherIncomeComponentData => {
   } catch (error) {
     console.error('Error flattening other income data:', error);
   }
-  
   return flattened;
 };
 
@@ -168,11 +184,22 @@ const OtherIncomeComponentForm: React.FC = () => {
     loadOtherIncomeData();
   }, [loadOtherIncomeData]);
 
-  const handleInputChange = (field: keyof OtherIncomeComponentData, value: number): void => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const handleInputChange = (field: keyof OtherIncomeComponentData, value: number, subfield?: keyof InterestIncomeData): void => {
+    setFormData(prev => {
+      if (field === 'interest_income' && subfield) {
+        return {
+          ...prev,
+          interest_income: {
+            ...prev.interest_income,
+            [subfield]: value
+          }
+        };
+      }
+      return {
+        ...prev,
+        [field]: value
+      };
+    });
   };
 
   const handleSave = async (): Promise<void> => {
@@ -227,7 +254,14 @@ const OtherIncomeComponentForm: React.FC = () => {
   };
 
   const calculateTotalOtherIncome = (): number => {
-    return Object.values(formData).reduce((sum, value) => sum + value, 0);
+    const interestSum = Object.values(formData.interest_income).reduce((sum, v) => sum + v, 0);
+    return (
+      interestSum +
+      formData.dividend_income +
+      formData.gifts_received +
+      formData.business_professional_income +
+      formData.other_miscellaneous_income
+    );
   };
 
   if (loading) {
@@ -313,19 +347,61 @@ const OtherIncomeComponentForm: React.FC = () => {
                   <Grid container spacing={3}>
                     {step.fields.map((field) => (
                       <Grid item xs={12} md={6} key={field.name}>
-                        <TextField
-                          fullWidth
-                          label={field.label}
-                          type="number"
-                          value={formData[field.name as keyof OtherIncomeComponentData]}
-                          onChange={(e) => handleInputChange(
-                            field.name as keyof OtherIncomeComponentData,
-                            parseFloat(e.target.value) || 0
-                          )}
-                          InputProps={{ startAdornment: '₹' }}
-                          helperText={field.helperText}
-                          sx={{ mb: 2 }}
-                        />
+                        {field.name === 'interest_income' ? (
+                          <Box>
+                            <TextField
+                              fullWidth
+                              label="Savings Interest"
+                              type="number"
+                              value={formData.interest_income.savings_interest}
+                              onChange={(e) => handleInputChange('interest_income', parseFloat(e.target.value) || 0, 'savings_interest')}
+                              InputProps={{ startAdornment: '₹' }}
+                              helperText="From savings accounts"
+                              sx={{ mb: 2 }}
+                            />
+                            <TextField
+                              fullWidth
+                              label="FD Interest"
+                              type="number"
+                              value={formData.interest_income.fd_interest}
+                              onChange={(e) => handleInputChange('interest_income', parseFloat(e.target.value) || 0, 'fd_interest')}
+                              InputProps={{ startAdornment: '₹' }}
+                              helperText="From fixed deposits"
+                              sx={{ mb: 2 }}
+                            />
+                            <TextField
+                              fullWidth
+                              label="RD Interest"
+                              type="number"
+                              value={formData.interest_income.rd_interest}
+                              onChange={(e) => handleInputChange('interest_income', parseFloat(e.target.value) || 0, 'rd_interest')}
+                              InputProps={{ startAdornment: '₹' }}
+                              helperText="From recurring deposits"
+                              sx={{ mb: 2 }}
+                            />
+                            <TextField
+                              fullWidth
+                              label="Post Office Interest"
+                              type="number"
+                              value={formData.interest_income.post_office_interest}
+                              onChange={(e) => handleInputChange('interest_income', parseFloat(e.target.value) || 0, 'post_office_interest')}
+                              InputProps={{ startAdornment: '₹' }}
+                              helperText="From post office savings"
+                              sx={{ mb: 2 }}
+                            />
+                          </Box>
+                        ) : (
+                          <TextField
+                            fullWidth
+                            label={field.label}
+                            type="number"
+                            value={formData[field.name as keyof OtherIncomeComponentData] as number}
+                            onChange={(e) => handleInputChange(field.name as keyof OtherIncomeComponentData, parseFloat(e.target.value) || 0)}
+                            InputProps={{ startAdornment: '₹' }}
+                            helperText={field.helperText}
+                            sx={{ mb: 2 }}
+                          />
+                        )}
                       </Grid>
                     ))}
                   </Grid>

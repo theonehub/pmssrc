@@ -5,7 +5,7 @@ Data Transfer Objects for taxation API covering all scenarios including mid-year
 
 from datetime import datetime, date
 from decimal import Decimal
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 from pydantic import BaseModel, Field, validator, model_validator
 
 
@@ -1274,11 +1274,14 @@ class RetirementBenefitsDTO(BaseModel):
 
 class InterestIncomeDTO(BaseModel):
     """Interest income DTO."""
-    savings_account_interest: Decimal = Field(default=0, ge=0)
-    fixed_deposit_interest: Decimal = Field(default=0, ge=0)
-    recurring_deposit_interest: Decimal = Field(default=0, ge=0)
+    savings_account_interest: Decimal = Field(default=0, ge=0, alias="savings_interest")
+    fixed_deposit_interest: Decimal = Field(default=0, ge=0, alias="fd_interest")
+    recurring_deposit_interest: Decimal = Field(default=0, ge=0, alias="rd_interest")
     post_office_interest: Decimal = Field(default=0, ge=0)
     age: int = Field(default=25, ge=18, le=100)
+    
+    class Config:
+        populate_by_name = True
 
 
 class OtherIncomeDTO(BaseModel):
@@ -1475,6 +1478,52 @@ class EmployeeSelectionResponse(BaseModel):
 # INDIVIDUAL COMPONENT UPDATE DTOs
 # =============================================================================
 
+class FlatRetirementBenefitsDTO(BaseModel):
+    """Flat retirement benefits DTO for frontend compatibility."""
+    gratuity_amount: Decimal = Field(default=0, ge=0, description="Gratuity amount")
+    leave_encashment_amount: Decimal = Field(default=0, ge=0, description="Leave encashment amount")
+    vrs_amount: Decimal = Field(default=0, ge=0, description="VRS amount")
+    pension_amount: Decimal = Field(default=0, ge=0, description="Pension amount")
+    commuted_pension_amount: Decimal = Field(default=0, ge=0, description="Commuted pension amount")
+    other_retirement_benefits: Decimal = Field(default=0, ge=0, description="Other retirement benefits")
+    
+    def to_nested_structure(self) -> RetirementBenefitsDTO:
+        """Convert flat structure to nested structure."""
+        return RetirementBenefitsDTO(
+            gratuity=GratuityDTO(
+                gratuity_amount=self.gratuity_amount,
+                monthly_salary=Decimal(0),
+                service_years=Decimal(0),
+                is_govt_employee=False
+            ) if self.gratuity_amount > 0 else None,
+            leave_encashment=LeaveEncashmentDTO(
+                leave_encashment_amount=self.leave_encashment_amount,
+                average_monthly_salary=Decimal(0),
+                leave_days_encashed=0,
+                is_govt_employee=False,
+                during_employment=False
+            ) if self.leave_encashment_amount > 0 else None,
+            vrs=VRSDTO(
+                vrs_amount=self.vrs_amount,
+                monthly_salary=Decimal(0),
+                age=25,
+                service_years=Decimal(0)
+            ) if self.vrs_amount > 0 else None,
+            pension=PensionDTO(
+                regular_pension=self.pension_amount,
+                commuted_pension=self.commuted_pension_amount,
+                total_pension=self.pension_amount + self.commuted_pension_amount,
+                is_govt_employee=False,
+                gratuity_received=False
+            ) if (self.pension_amount > 0 or self.commuted_pension_amount > 0) else None,
+            retrenchment_compensation=RetrenchmentCompensationDTO(
+                retrenchment_amount=self.other_retirement_benefits,
+                monthly_salary=Decimal(0),
+                service_years=Decimal(0)
+            ) if self.other_retirement_benefits > 0 else None
+        )
+
+
 class UpdateSalaryComponentRequest(BaseModel):
     """Request to update salary component individually."""
     employee_id: str = Field(..., description="Employee ID")
@@ -1520,7 +1569,7 @@ class UpdateRetirementBenefitsComponentRequest(BaseModel):
     """Request to update retirement benefits component individually."""
     employee_id: str = Field(..., description="Employee ID")
     tax_year: str = Field(..., description="Tax year (e.g., '2024-25')")
-    retirement_benefits: RetirementBenefitsDTO = Field(..., description="Retirement benefits data")
+    retirement_benefits: Union[RetirementBenefitsDTO, FlatRetirementBenefitsDTO] = Field(..., description="Retirement benefits data")
     notes: Optional[str] = Field(None, description="Optional notes for the update")
 
 

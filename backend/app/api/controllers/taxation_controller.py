@@ -66,6 +66,7 @@ from app.application.dto.taxation_dto import (
     GetComponentRequest,
     ComponentResponse,
     TaxationRecordStatusResponse,
+    FlatRetirementBenefitsDTO,
 )
 
 # Import command handlers
@@ -1011,10 +1012,19 @@ class UnifiedTaxationController:
     
     def _create_default_other_income(self):
         """Create default other income entity."""
-        from app.domain.entities.taxation.other_income import OtherIncome
+        from app.domain.entities.taxation.other_income import OtherIncome, InterestIncome
         from app.domain.value_objects.money import Money
         
+        # Create default interest income
+        default_interest_income = InterestIncome(
+            savings_account_interest=Money.zero(),
+            fixed_deposit_interest=Money.zero(),
+            recurring_deposit_interest=Money.zero(),
+            post_office_interest=Money.zero()
+        )
+        
         return OtherIncome(
+            interest_income=default_interest_income,
             dividend_income=Money.zero(),
             gifts_received=Money.zero(),
             business_professional_income=Money.zero(),
@@ -1554,6 +1564,19 @@ class UnifiedTaxationController:
     
     def _convert_retirement_benefits_dto_to_entity(self, retirement_dto) -> RetirementBenefits:
         """Convert retirement benefits DTO to entity."""
+        # Handle flat structure (from frontend)
+        if hasattr(retirement_dto, 'gratuity_amount'):
+            # Convert flat structure to nested structure first
+            flat_dto = FlatRetirementBenefitsDTO(
+                gratuity_amount=retirement_dto.gratuity_amount,
+                leave_encashment_amount=retirement_dto.leave_encashment_amount,
+                vrs_amount=retirement_dto.vrs_amount,
+                pension_amount=retirement_dto.pension_amount,
+                commuted_pension_amount=retirement_dto.commuted_pension_amount,
+                other_retirement_benefits=retirement_dto.other_retirement_benefits
+            )
+            retirement_dto = flat_dto.to_nested_structure()
+        
         # Convert leave encashment
         leave_encashment = None
         if retirement_dto.leave_encashment:
@@ -1624,11 +1647,30 @@ class UnifiedTaxationController:
         interest_income = None
         if other_income_dto.interest_income:
             int_dto = other_income_dto.interest_income
+            # Handle field name mapping between frontend and backend
+            # Frontend uses: savings_interest, fd_interest, rd_interest, post_office_interest
+            # Backend expects: savings_account_interest, fixed_deposit_interest, recurring_deposit_interest, post_office_interest
+            
+            # Get values with fallback to handle both naming conventions
+            savings_interest = getattr(int_dto, 'savings_account_interest', None)
+            if savings_interest is None:
+                savings_interest = getattr(int_dto, 'savings_interest', 0)
+            
+            fd_interest = getattr(int_dto, 'fixed_deposit_interest', None)
+            if fd_interest is None:
+                fd_interest = getattr(int_dto, 'fd_interest', 0)
+            
+            rd_interest = getattr(int_dto, 'recurring_deposit_interest', None)
+            if rd_interest is None:
+                rd_interest = getattr(int_dto, 'rd_interest', 0)
+            
+            post_office_interest = getattr(int_dto, 'post_office_interest', 0)
+            
             interest_income = InterestIncome(
-                savings_account_interest=Money.from_decimal(int_dto.savings_account_interest),
-                fixed_deposit_interest=Money.from_decimal(int_dto.fixed_deposit_interest),
-                recurring_deposit_interest=Money.from_decimal(int_dto.recurring_deposit_interest),
-                post_office_interest=Money.from_decimal(int_dto.post_office_interest)
+                savings_account_interest=Money.from_decimal(savings_interest),
+                fixed_deposit_interest=Money.from_decimal(fd_interest),
+                recurring_deposit_interest=Money.from_decimal(rd_interest),
+                post_office_interest=Money.from_decimal(post_office_interest)
             )
         
         # Convert house property income if present
@@ -3458,9 +3500,9 @@ class UnifiedTaxationController:
         if other_income.interest_income:
             interest = other_income.interest_income
             result["interest_income"] = {
-                "savings_interest": float(interest.savings_interest.amount),
-                "fd_interest": float(interest.fd_interest.amount),
-                "rd_interest": float(interest.rd_interest.amount),
+                "savings_interest": float(interest.savings_account_interest.amount),
+                "fd_interest": float(interest.fixed_deposit_interest.amount),
+                "rd_interest": float(interest.recurring_deposit_interest.amount),
                 "post_office_interest": float(interest.post_office_interest.amount)
             }
         

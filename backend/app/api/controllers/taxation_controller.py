@@ -271,7 +271,7 @@ class UnifiedTaxationController:
         
         # Convert comprehensive income components
         perquisites = self._convert_perquisites_dto_to_entity(request.perquisites) if request.perquisites else None
-        house_property_income = self._convert_house_property_dto_to_entity(request.house_property_income) if request.house_property_income else None
+        house_property_income = self._convert_house_property_income_dto_to_entity(request.house_property_income) if request.house_property_income else None
         capital_gains_income = self._convert_capital_gains_dto_to_entity(request.capital_gains_income) if request.capital_gains_income else None
         retirement_benefits = self._convert_retirement_benefits_dto_to_entity(request.retirement_benefits) if request.retirement_benefits else None
         other_income = self._convert_other_income_dto_to_entity(request.other_income) if request.other_income else None
@@ -753,23 +753,23 @@ class UnifiedTaxationController:
             logger.error(f"Error calculating perquisites for org {organization_id}: {str(e)}")
             raise
     
-    async def calculate_house_property_only(self,
-                                          house_property: HousePropertyIncomeDTO,
+    async def calculate_house_property_income_only(self,
+                                          house_property_income: HousePropertyIncomeDTO,
                                           regime_type: str,
                                           organization_id: str) -> Dict[str, Any]:
         """Calculate only house property income."""
         try:
             # Convert DTO to entity
-            house_property_entity = self._convert_house_property_dto_to_entity(house_property)
+            house_property_entity = self._convert_house_property_income_dto_to_entity(house_property_income)
             regime = TaxRegime(TaxRegimeType.OLD if regime_type.lower() == "old" else TaxRegimeType.NEW)
             
             # Calculate house property income
-            net_income = house_property_entity.calculate_net_income_from_house_property(regime)
-            breakdown = house_property_entity.get_house_property_breakdown(regime)
+            net_income = house_property_entity.calculate_net_income_from_house_property_income(regime)
+            breakdown = house_property_entity.get_house_property_income_breakdown(regime)
             
             return {
                 "net_house_property_income": net_income.to_float(),
-                "house_property_breakdown": breakdown,
+                "house_property_income_breakdown": breakdown,
                 "regime_used": regime_type
             }
             
@@ -878,8 +878,8 @@ class UnifiedTaxationController:
         
         # Handle house property income - it should be part of other_income, not a separate parameter
         if hasattr(request, 'house_property_income') and request.house_property_income:
-            house_property = self._convert_house_property_dto_to_entity(request.house_property_income)
-            other_income.house_property_income = house_property
+            house_property_income = self._convert_house_property_income_dto_to_entity(request.house_property_income)
+            other_income.house_property_income = house_property_income
         
         # Determine citizen status
         is_senior_citizen = request.age >= 60
@@ -976,8 +976,8 @@ class UnifiedTaxationController:
         
         return Perquisites()
     
-    def _create_default_house_property(self):
-        """Create default house property entity."""
+    def _create_default_house_property_income(self):
+        """Create default house property income entity."""
         from app.domain.entities.taxation.house_property_income import HousePropertyIncome, PropertyType
         from app.domain.value_objects.money import Money
         
@@ -1521,7 +1521,7 @@ class UnifiedTaxationController:
             domestic_help=domestic_help
         )
     
-    def _convert_house_property_dto_to_entity(self, house_dto) -> HousePropertyIncome:
+    def _convert_house_property_income_dto_to_entity(self, house_property_income_dto) -> HousePropertyIncome:
         """Convert house property DTO to entity."""
         from app.domain.entities.taxation.house_property_income import PropertyType
         
@@ -1530,15 +1530,15 @@ class UnifiedTaxationController:
             "Self-Occupied": PropertyType.SELF_OCCUPIED,
             "Let-Out": PropertyType.LET_OUT
         }
-        property_type = property_type_mapping.get(house_dto.property_type, PropertyType.SELF_OCCUPIED)
+        property_type = property_type_mapping.get(house_property_income_dto.property_type, PropertyType.SELF_OCCUPIED)
         
         return HousePropertyIncome(
             property_type=property_type,
-            address=getattr(house_dto, 'address', ''),
-            annual_rent_received=Money.from_decimal(house_dto.annual_rent_received),
-            municipal_taxes_paid=Money.from_decimal(house_dto.municipal_taxes_paid),
-            home_loan_interest=Money.from_decimal(house_dto.home_loan_interest),
-            pre_construction_interest=Money.from_decimal(house_dto.pre_construction_interest)
+            address=getattr(house_property_income_dto, 'address', ''),
+            annual_rent_received=Money.from_decimal(house_property_income_dto.annual_rent_received),
+            municipal_taxes_paid=Money.from_decimal(house_property_income_dto.municipal_taxes_paid),
+            home_loan_interest=Money.from_decimal(house_property_income_dto.home_loan_interest),
+            pre_construction_interest=Money.from_decimal(house_property_income_dto.pre_construction_interest)
         )
     
     def _convert_capital_gains_dto_to_entity(self, capital_gains_dto) -> CapitalGainsIncome:
@@ -1634,7 +1634,7 @@ class UnifiedTaxationController:
         # Convert house property income if present
         house_property_income = None
         if hasattr(other_income_dto, 'house_property_income') and other_income_dto.house_property_income:
-            house_property_income = self._convert_house_property_dto_to_entity(other_income_dto.house_property_income)
+            house_property_income = self._convert_house_property_income_dto_to_entity(other_income_dto.house_property_income)
         
         # Convert capital gains income if present
         capital_gains_income = None
@@ -1861,8 +1861,8 @@ class UnifiedTaxationController:
             
             # Add house property income if provided separately
             if request.house_property_income:
-                house_property = self._convert_house_property_dto_to_entity(request.house_property_income)
-                other_income.house_property_income = house_property
+                house_property_income = self._convert_house_property_income_dto_to_entity(request.house_property_income)
+                other_income.house_property_income = house_property_income
             
             # Add capital gains income if provided separately
             if request.capital_gains_income:
@@ -2247,7 +2247,7 @@ class UnifiedTaxationController:
         
         try:
             # Convert DTO to entity
-            house_property = self._convert_house_property_dto_to_entity(request.house_property_income)
+            house_property_income = self._convert_house_property_income_dto_to_entity(request.house_property_income)
             
             # Get or create salary package record (it should ideally be present)
             salary_package_record, found_record = await self._get_or_create_salary_package_record(
@@ -2262,7 +2262,7 @@ class UnifiedTaxationController:
                 salary_package_record.other_income = self._create_default_other_income()
             
             # Update house property in other income
-            salary_package_record.other_income.house_property_income = house_property
+            salary_package_record.other_income.house_property_income = house_property_income
             salary_package_record.updated_at = datetime.utcnow()
             
             # Save to database using salary package repository
@@ -2652,7 +2652,7 @@ class UnifiedTaxationController:
         # Handle frontend component type aliases
         component_type_mapping = {
             "salary": "salary_income",
-            "house_property": "house_property_income",
+            "house_property_income": "house_property_income",
             "capital_gains": "capital_gains_income",
             "retirement_benefits": "retirement_benefits",
             "other_income": "other_income",
@@ -2727,7 +2727,7 @@ class UnifiedTaxationController:
         # Component type mapping for frontend compatibility
         component_type_mapping = {
             "salary": "salary_income",
-            "house-property": "house_property_income",
+            "house_property_income": "house_property_income",
             "capital-gains": "capital_gains_income",
             "retirement-benefits": "retirement_benefits",
             "other-income": "other_income",
@@ -2758,7 +2758,7 @@ class UnifiedTaxationController:
         # House property income
         has_house_property = (taxation_record.other_income and 
                             taxation_record.other_income.house_property_income)
-        components_status["house-property"] = {
+        components_status["house_property_income"] = {
             "has_data": has_house_property,
             "last_updated": taxation_record.updated_at.isoformat() if has_house_property else None,
             "status": "complete" if has_house_property else "not_provided"
@@ -2809,7 +2809,7 @@ class UnifiedTaxationController:
         """Determine overall status based on component statuses."""
         
         required_components = ["salary", "deductions", "regime"]
-        optional_components = ["perquisites", "house-property", "capital-gains", 
+        optional_components = ["perquisites", "house_property_income", "capital-gains", 
                              "retirement-benefits", "other-income", "monthly-payroll"]
         
         # Check required components
@@ -3359,15 +3359,15 @@ class UnifiedTaxationController:
             "regime_applicable": "old"
         }
     
-    def _serialize_house_property_income(self, house_property: HousePropertyIncome) -> Dict[str, Any]:
+    def _serialize_house_property_income(self, house_property_income: HousePropertyIncome) -> Dict[str, Any]:
         """Serialize house property income to dict."""
         return {
-            "property_type": house_property.property_type.value,
-            "address": house_property.address,
-            "annual_rent_received": float(house_property.annual_rent_received.amount),
-            "municipal_taxes_paid": float(house_property.municipal_taxes_paid.amount),
-            "home_loan_interest": float(house_property.home_loan_interest.amount),
-            "pre_construction_interest": float(house_property.pre_construction_interest.amount)
+            "property_type": house_property_income.property_type.value,
+            "address": house_property_income.address,
+            "annual_rent_received": float(house_property_income.annual_rent_received.amount),
+            "municipal_taxes_paid": float(house_property_income.municipal_taxes_paid.amount),
+            "home_loan_interest": float(house_property_income.home_loan_interest.amount),
+            "pre_construction_interest": float(house_property_income.pre_construction_interest.amount)
         }
     
     def _serialize_capital_gains_income(self, capital_gains: CapitalGainsIncome) -> Dict[str, Any]:

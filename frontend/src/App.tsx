@@ -38,6 +38,7 @@ import IndividualComponentManagement from './components/taxation/IndividualCompo
 import SalaryComponentForm from './components/taxation/components/SalaryComponentForm';
 import PerquisitesComponentForm from './components/taxation/components/PerquisitesComponentForm';
 import DeductionsComponentForm from './components/taxation/components/DeductionsComponentForm';
+import HousePropertyComponentForm from './components/taxation/components/HousePropertyComponentForm';
 import ComponentsOverview from './components/taxation/ComponentsOverview';
 
 // Salary Processing Pages
@@ -197,6 +198,10 @@ const AppContent: React.FC = () => {
           <Route
             path="/taxation/component/deductions/new/:empId"
             element={withLayout(<DeductionsComponentForm />, 'New Deductions Revision', ['admin', 'superadmin'])}
+          />
+          <Route
+            path="/taxation/component/house-property/:empId"
+            element={withLayout(<HousePropertyComponentForm />, 'House Property Component Management', ['admin', 'superadmin'])}
           />
           <Route
             path="/taxation/monthly-projections"

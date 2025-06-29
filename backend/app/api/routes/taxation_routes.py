@@ -192,7 +192,7 @@ async def calculate_perquisites(
              summary="Calculate house property income",
              description="Calculate income from house property")
 async def calculate_house_property(
-    house_property: HousePropertyIncomeDTO,
+    house_property_income: HousePropertyIncomeDTO,
     regime_type: str = Query(..., description="Tax regime: 'old' or 'new'"),
     current_user: CurrentUser = Depends(get_current_user),
     controller: UnifiedTaxationController = Depends(get_comprehensive_taxation_controller)
@@ -200,8 +200,8 @@ async def calculate_house_property(
     """Calculate house property income tax."""
     
     try:
-        response = await controller.calculate_house_property_only(
-            house_property, regime_type, current_user.hostname
+        response = await controller.calculate_house_property_income_only(
+            house_property_income, regime_type, current_user.hostname
         )
         return response
         

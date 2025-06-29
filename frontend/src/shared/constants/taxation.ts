@@ -314,7 +314,7 @@ export const VALIDATION_RULES = {
   },
   conditional_validations: {
     hra_exemption: 'Required if HRA > 0',
-    house_property: 'Required if property income > 0',
+    house_property_income: 'Required if property income > 0',
     capital_gains: 'Required if gains > 0'
   }
 } as const;

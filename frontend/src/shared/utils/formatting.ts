@@ -308,7 +308,7 @@ export const formatDeductionSection = (section: string): string => {
 export const formatIncomeSource = (source: string): string => {
   const sourceMap: Record<string, string> = {
     'salary_income': 'Salary Income',
-    'house_property': 'House Property',
+    'house_property_income': 'House Property Income',
     'capital_gains': 'Capital Gains',
     'other_income': 'Other Income',
     'business_income': 'Business Income'

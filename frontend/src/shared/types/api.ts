@@ -6,7 +6,7 @@
 // Base types
 export type TaxRegime = 'old' | 'new';
 export type FilingStatus = 'pending' | 'filed' | 'reviewed' | 'finalized';
-export type IncomeType = 'salary' | 'house_property' | 'capital_gains' | 'other';
+export type IncomeType = 'salary' | 'house_property_income' | 'capital_gains' | 'other';
 
 // =============================================================================
 // COMPREHENSIVE TAX INPUT DTO
@@ -178,7 +178,7 @@ export interface ComprehensiveTaxInputDTO {
   // Income sources
   salary_income?: SalaryIncomeDTO;
   perquisites?: PerquisitesDTO;
-  house_property?: HousePropertyIncomeDTO;
+  house_property_income?: HousePropertyIncomeDTO;
   multiple_house_properties?: MultipleHousePropertiesDTO;
   capital_gains?: CapitalGainsIncomeDTO;
   retirement_benefits?: RetirementBenefitsDTO;

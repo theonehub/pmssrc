@@ -772,18 +772,18 @@ class MongoDBTaxationRepository(TaxationRepository):
             }
         }
     
-    def _serialize_house_property_income(self, house_property: Optional[HousePropertyIncome]) -> Optional[dict]:
+    def _serialize_house_property_income(self, house_property_income: Optional[HousePropertyIncome]) -> Optional[dict]:
         """Serialize house property income to document format."""
-        if not house_property:
+        if not house_property_income:
             return None
         
         return {
-            "property_type": house_property.property_type.value,
-            "address": house_property.address,
-            "annual_rent_received": house_property.annual_rent_received.to_float(),
-            "municipal_taxes_paid": house_property.municipal_taxes_paid.to_float(),
-            "home_loan_interest": house_property.home_loan_interest.to_float(),
-            "pre_construction_interest": house_property.pre_construction_interest.to_float()
+            "property_type": house_property_income.property_type.value,
+            "address": house_property_income.address,
+            "annual_rent_received": house_property_income.annual_rent_received.to_float(),
+            "municipal_taxes_paid": house_property_income.municipal_taxes_paid.to_float(),
+            "home_loan_interest": house_property_income.home_loan_interest.to_float(),
+            "pre_construction_interest": house_property_income.pre_construction_interest.to_float()
         }
     
     def _serialize_capital_gains_income(self, capital_gains: Optional[CapitalGainsIncome]) -> Optional[dict]:

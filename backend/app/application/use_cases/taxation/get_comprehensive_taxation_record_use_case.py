@@ -440,11 +440,11 @@ class GetComprehensiveTaxationRecordUseCase:
             domestic_help=None  # Would need proper conversion
         )
     
-    def _convert_house_property_entity_to_dto(self, house_property):
+    def _convert_house_property_income_entity_to_dto(self, house_property_income):
         """Convert HousePropertyIncome entity to HousePropertyIncomeDTO."""
         from app.application.dto.taxation_dto import HousePropertyIncomeDTO
         
-        if not house_property:
+        if not house_property_income:
             return None
         
         # Map property type from entity format to DTO format
@@ -455,16 +455,16 @@ class GetComprehensiveTaxationRecordUseCase:
             'Let-Out': 'Let-Out'  # Already correct format
         }
         
-        raw_property_type = getattr(house_property, 'property_type', 'self_occupied')
+        raw_property_type = getattr(house_property_income, 'property_type', 'self_occupied')
         property_type = property_type_mapping.get(raw_property_type, 'Self-Occupied')  # Default to Self-Occupied
             
         return HousePropertyIncomeDTO(
             property_type=property_type,
-            address=house_property.address if hasattr(house_property, 'address') else "",
-            annual_rent_received=house_property.annual_rent_received.to_float() if hasattr(house_property, 'annual_rent_received') and hasattr(house_property.annual_rent_received, 'to_float') else 0,
-            municipal_taxes_paid=house_property.municipal_taxes_paid.to_float() if hasattr(house_property, 'municipal_taxes_paid') and hasattr(house_property.municipal_taxes_paid, 'to_float') else 0,
-            home_loan_interest=house_property.home_loan_interest.to_float() if hasattr(house_property, 'home_loan_interest') and hasattr(house_property.home_loan_interest, 'to_float') else 0,
-            pre_construction_interest=house_property.pre_construction_interest.to_float() if hasattr(house_property, 'pre_construction_interest') and hasattr(house_property.pre_construction_interest, 'to_float') else 0
+            address=house_property_income.address if hasattr(house_property_income, 'address') else "",
+            annual_rent_received=house_property_income.annual_rent_received.to_float() if hasattr(house_property_income, 'annual_rent_received') and hasattr(house_property_income.annual_rent_received, 'to_float') else 0,
+            municipal_taxes_paid=house_property_income.municipal_taxes_paid.to_float() if hasattr(house_property_income, 'municipal_taxes_paid') and hasattr(house_property_income.municipal_taxes_paid, 'to_float') else 0,
+            home_loan_interest=house_property_income.home_loan_interest.to_float() if hasattr(house_property_income, 'home_loan_interest') and hasattr(house_property_income.home_loan_interest, 'to_float') else 0,
+            pre_construction_interest=house_property_income.pre_construction_interest.to_float() if hasattr(house_property_income, 'pre_construction_interest') and hasattr(house_property_income.pre_construction_interest, 'to_float') else 0
         )
     
     def _convert_retirement_benefits_entity_to_dto(self, retirement_benefits):

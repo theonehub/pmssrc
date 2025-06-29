@@ -742,7 +742,7 @@ class TaxationAPI {
     request: {
       employee_id: string;
       tax_year: string;
-      house_property: any;
+      house_property_income: any;
       notes?: string;
     }
   ): Promise<any> {

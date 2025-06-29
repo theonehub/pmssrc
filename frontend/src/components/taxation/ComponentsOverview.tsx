@@ -135,13 +135,13 @@ const ComponentsOverview: React.FC = () => {
   // 3. loadHousePropertyComponent
   const loadHousePropertyComponent = useCallback(async (): Promise<ComponentSummary | null> => {
     try {
-      const response = await taxationApi.getComponent(empId!, taxYear, 'house_property');
+      const response = await taxationApi.getComponent(empId!, taxYear, 'house_property_income');
       const data = response?.component_data || response;
       
       const totalValue = (data.annual_rent_received || 0);
       
       return {
-        id: 'house_property',
+        id: 'house_property_income',
         name: 'House Property',
         icon: <HomeIcon />,
         color: 'warning',
@@ -151,7 +151,7 @@ const ComponentsOverview: React.FC = () => {
       };
     } catch (error) {
       return {
-        id: 'house_property',
+        id: 'house_property_income',
         name: 'House Property',
         icon: <HomeIcon />,
         color: 'warning',

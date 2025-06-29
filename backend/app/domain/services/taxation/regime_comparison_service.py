@@ -253,7 +253,7 @@ class RegimeComparisonService:
                     'other_perquisites': input_data.perquisites.other_perquisites
                 },
                 'other_income': {
-                    'house_property': (input_data.other_income.house_property_income.municipal_value 
+                    'house_property_income': (input_data.other_income.house_property_income.municipal_value 
                                      if input_data.other_income.house_property_income else Money.zero()),
                     'capital_gains': input_data.capital_gains_income.sale_price,
                     'other_sources': input_data.other_income.bank_interest

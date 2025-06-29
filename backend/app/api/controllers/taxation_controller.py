@@ -2931,8 +2931,6 @@ class UnifiedTaxationController:
                 "city_population": acc.city_population.value,
                 "license_fees": float(acc.license_fees.amount),
                 "employee_rent_payment": float(acc.employee_rent_payment.amount),
-                "basic_salary": float(acc.basic_salary.amount),
-                "dearness_allowance": float(acc.dearness_allowance.amount),
                 "rent_paid_by_employer": float(acc.rent_paid_by_employer.amount),
                 "hotel_charges": float(acc.hotel_charges.amount),
                 "stay_days": acc.stay_days,

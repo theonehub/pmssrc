@@ -905,7 +905,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         
         return {
             "has_retirement_benefits": True,
-            "total_value": retirement_benefits.calculate_total_retirement_income(TaxRegime.old_regime()).to_float(),
             
             # Leave encashment
             "leave_encashment": {
@@ -915,7 +914,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
                 "leave_days_encashed": retirement_benefits.leave_encashment.leave_days_encashed if retirement_benefits.leave_encashment else 0,
                 "is_govt_employee": retirement_benefits.leave_encashment.is_govt_employee if retirement_benefits.leave_encashment else False,
                 "during_employment": retirement_benefits.leave_encashment.during_employment if retirement_benefits.leave_encashment else False,
-                "taxable_value": retirement_benefits.leave_encashment.calculate_taxable_value(TaxRegime.old_regime()).to_float() if retirement_benefits.leave_encashment else 0.0
             },
             
             # Gratuity
@@ -925,7 +923,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
                 "monthly_salary": retirement_benefits.gratuity.monthly_salary.to_float() if retirement_benefits.gratuity else 0.0,
                 "service_years": float(retirement_benefits.gratuity.service_years) if retirement_benefits.gratuity else 0.0,
                 "is_govt_employee": retirement_benefits.gratuity.is_govt_employee if retirement_benefits.gratuity else False,
-                "taxable_value": retirement_benefits.gratuity.calculate_taxable_value(TaxRegime.old_regime()).to_float() if retirement_benefits.gratuity else 0.0
             },
             
             # VRS
@@ -935,7 +932,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
                 "monthly_salary": retirement_benefits.vrs.monthly_salary.to_float() if retirement_benefits.vrs else 0.0,
                 "age": retirement_benefits.vrs.age if retirement_benefits.vrs else 0,
                 "service_years": float(retirement_benefits.vrs.service_years) if retirement_benefits.vrs else 0.0,
-                "taxable_value": retirement_benefits.vrs.calculate_taxable_value(TaxRegime.old_regime()).to_float() if retirement_benefits.vrs else 0.0
             },
             
             # Pension
@@ -946,7 +942,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
                 "total_pension": retirement_benefits.pension.total_pension.to_float() if retirement_benefits.pension else 0.0,
                 "is_govt_employee": retirement_benefits.pension.is_govt_employee if retirement_benefits.pension else False,
                 "gratuity_received": retirement_benefits.pension.gratuity_received if retirement_benefits.pension else False,
-                "taxable_value": retirement_benefits.pension.calculate_taxable_value(TaxRegime.old_regime()).to_float() if retirement_benefits.pension else 0.0
             },
             
             # Retrenchment compensation
@@ -955,7 +950,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
                 "retrenchment_amount": retirement_benefits.retrenchment_compensation.retrenchment_amount.to_float() if retirement_benefits.retrenchment_compensation else 0.0,
                 "monthly_salary": retirement_benefits.retrenchment_compensation.monthly_salary.to_float() if retirement_benefits.retrenchment_compensation else 0.0,
                 "service_years": float(retirement_benefits.retrenchment_compensation.service_years) if retirement_benefits.retrenchment_compensation else 0.0,
-                "taxable_value": retirement_benefits.retrenchment_compensation.calculate_taxable_value(TaxRegime.old_regime()).to_float() if retirement_benefits.retrenchment_compensation else 0.0
             }
         }
     
@@ -966,7 +960,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         
         return {
             "has_other_income": True,
-            "total_value": other_income.calculate_total_other_income(TaxRegime.old_regime(), 30).to_float(),
             
             # Interest income
             "interest_income": {
@@ -975,10 +968,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
                 "fixed_deposit_interest": other_income.interest_income.fixed_deposit_interest.to_float() if other_income.interest_income else 0.0,
                 "recurring_deposit_interest": other_income.interest_income.recurring_deposit_interest.to_float() if other_income.interest_income else 0.0,
                 "post_office_interest": other_income.interest_income.post_office_interest.to_float() if other_income.interest_income else 0.0,
-                "age": other_income.interest_income.age if other_income.interest_income else 25,
-                "total_interest": other_income.interest_income.calculate_total_interest().to_float() if other_income.interest_income else 0.0,
-                "exempt_interest": other_income.interest_income.calculate_exempt_interest(TaxRegime.old_regime()).to_float() if other_income.interest_income else 0.0,
-                "taxable_interest": other_income.interest_income.calculate_taxable_interest(TaxRegime.old_regime()).to_float() if other_income.interest_income else 0.0
             },
             
             # House property income
@@ -991,7 +980,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
                 "home_loan_interest": other_income.house_property_income.home_loan_interest.to_float() if other_income.house_property_income else 0.0,
                 "pre_construction_interest": other_income.house_property_income.pre_construction_interest.to_float() if other_income.house_property_income else 0.0,
                 "net_annual_value": other_income.house_property_income.calculate_net_annual_value().to_float() if other_income.house_property_income else 0.0,
-                "taxable_income": other_income.house_property_income.calculate_taxable_income().to_float() if other_income.house_property_income else 0.0
             },
             
             # Capital gains income
@@ -1003,9 +991,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
                 "ltcg_112a_equity_stt": other_income.capital_gains_income.ltcg_112a_equity_stt.to_float() if other_income.capital_gains_income else 0.0,
                 "ltcg_other_assets": other_income.capital_gains_income.ltcg_other_assets.to_float() if other_income.capital_gains_income else 0.0,
                 "ltcg_debt_mf": other_income.capital_gains_income.ltcg_debt_mf.to_float() if other_income.capital_gains_income else 0.0,
-                "total_stcg": other_income.capital_gains_income.calculate_total_stcg().to_float() if other_income.capital_gains_income else 0.0,
-                "total_ltcg": other_income.capital_gains_income.calculate_total_ltcg().to_float() if other_income.capital_gains_income else 0.0,
-                "total_capital_gains": other_income.capital_gains_income.calculate_total_capital_gains().to_float() if other_income.capital_gains_income else 0.0
             },
             
             # Other miscellaneous income

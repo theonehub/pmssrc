@@ -39,6 +39,9 @@ import SalaryComponentForm from './components/taxation/components/SalaryComponen
 import PerquisitesComponentForm from './components/taxation/components/PerquisitesComponentForm';
 import DeductionsComponentForm from './components/taxation/components/DeductionsComponentForm';
 import HousePropertyComponentForm from './components/taxation/components/HousePropertyComponentForm';
+import CapitalGainsComponentForm from './components/taxation/components/CapitalGainsComponentForm';
+import RetirementBenefitsComponentForm from './components/taxation/components/RetirementBenefitsComponentForm';
+import OtherIncomeComponentForm from './components/taxation/components/OtherIncomeComponentForm';
 import ComponentsOverview from './components/taxation/ComponentsOverview';
 
 // Salary Processing Pages
@@ -202,6 +205,30 @@ const AppContent: React.FC = () => {
           <Route
             path="/taxation/component/house-property/:empId"
             element={withLayout(<HousePropertyComponentForm />, 'House Property Component Management', ['admin', 'superadmin'])}
+          />
+          <Route
+            path="/taxation/component/capital-gains/:empId"
+            element={withLayout(<CapitalGainsComponentForm />, 'Capital Gains Component Management', ['admin', 'superadmin'])}
+          />
+          <Route
+            path="/taxation/component/capital-gains/new/:empId"
+            element={withLayout(<CapitalGainsComponentForm />, 'New Capital Gains Revision', ['admin', 'superadmin'])}
+          />
+          <Route
+            path="/taxation/component/retirement-benefits/:empId"
+            element={withLayout(<RetirementBenefitsComponentForm />, 'Retirement Benefits Component Management', ['admin', 'superadmin'])}
+          />
+          <Route
+            path="/taxation/component/other-income/:empId"
+            element={withLayout(<OtherIncomeComponentForm />, 'Other Income Component Management', ['admin', 'superadmin'])}
+          />
+          <Route
+            path="/taxation/component/retirement-benefits/new/:empId"
+            element={withLayout(<RetirementBenefitsComponentForm />, 'New Retirement Benefits Revision', ['admin', 'superadmin'])}
+          />
+          <Route
+            path="/taxation/component/other-income/new/:empId"
+            element={withLayout(<OtherIncomeComponentForm />, 'New Other Income Revision', ['admin', 'superadmin'])}
           />
           <Route
             path="/taxation/monthly-projections"

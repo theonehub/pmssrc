@@ -979,7 +979,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
                 "municipal_taxes_paid": other_income.house_property_income.municipal_taxes_paid.to_float() if other_income.house_property_income else 0.0,
                 "home_loan_interest": other_income.house_property_income.home_loan_interest.to_float() if other_income.house_property_income else 0.0,
                 "pre_construction_interest": other_income.house_property_income.pre_construction_interest.to_float() if other_income.house_property_income else 0.0,
-                "net_annual_value": other_income.house_property_income.calculate_net_annual_value().to_float() if other_income.house_property_income else 0.0,
             },
             
             # Capital gains income

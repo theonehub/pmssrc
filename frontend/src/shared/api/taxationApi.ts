@@ -761,7 +761,7 @@ class TaxationAPI {
     request: {
       employee_id: string;
       tax_year: string;
-      capital_gains: any;
+      capital_gains_income: any;
       notes?: string;
     }
   ): Promise<any> {

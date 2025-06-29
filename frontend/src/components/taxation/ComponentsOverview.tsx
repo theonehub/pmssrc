@@ -277,7 +277,7 @@ const ComponentsOverview: React.FC = () => {
       const monthlyTaxResult = await taxationApi.computeMonthlyTax(empId!);
       
       // Extract monthly tax from the response
-      const monthlyTax = monthlyTaxResult.monthly_tax || 0;
+      const monthlyTax = monthlyTaxResult.monthly_tax_liability || 0;
       setComputedTax(monthlyTax);
       
     } catch (error: any) {

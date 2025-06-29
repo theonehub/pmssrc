@@ -15,11 +15,20 @@ from app.domain.entities.taxation.salary_income import SalaryIncome, SpecificAll
 from app.domain.entities.taxation.deductions import (
     TaxDeductions, DeductionSection80C, DeductionSection80D, DeductionSection80E, DeductionSection80G, DeductionSection80TTA_TTB, OtherDeductions
 )
-from app.domain.entities.taxation.perquisites import Perquisites
-from app.domain.entities.taxation.other_income import OtherIncome
+from app.domain.entities.taxation.perquisites import (
+    Perquisites, AccommodationPerquisite, CarPerquisite, MedicalReimbursement, 
+    LTAPerquisite, InterestFreeConcessionalLoan, ESOPPerquisite, UtilitiesPerquisite,
+    FreeEducationPerquisite, LunchRefreshmentPerquisite, DomesticHelpPerquisite,
+    MovableAssetUsage, MovableAssetTransfer, GiftVoucherPerquisite, 
+    MonetaryBenefitsPerquisite, ClubExpensesPerquisite,
+    AccommodationType, CityPopulation, CarUseType, AssetType
+)
+from app.domain.entities.taxation.other_income import OtherIncome, InterestIncome
 from app.domain.entities.taxation.house_property_income import HousePropertyIncome
 from app.domain.entities.taxation.capital_gains import CapitalGainsIncome
-from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
+from app.domain.entities.taxation.retirement_benefits import (
+    RetirementBenefits, LeaveEncashment, Gratuity, VRS, Pension, RetrenchmentCompensation
+)
 from app.domain.value_objects.money import Money
 from app.domain.value_objects.employee_id import EmployeeId
 from app.domain.value_objects.tax_year import TaxYear
@@ -100,26 +109,72 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         Returns:
             SalaryPackageRecord: Saved salary package record
         """
-        collection = await self._get_collection(organization_id)
-        document = self._convert_to_document(salary_package_record)
+        import logging
+        logger = logging.getLogger(__name__)
         
-        # Check if record already exists - convert value objects to strings for MongoDB query
-        existing = await collection.find_one({
-            "employee_id": str(salary_package_record.employee_id),
-            "tax_year": str(salary_package_record.tax_year)
-        })
+        logger.info(f"Starting save operation for employee {salary_package_record.employee_id}, tax_year {salary_package_record.tax_year}")
         
-        if existing:
-            # Update existing record
-            document["_id"] = existing["_id"]
-            await collection.replace_one({"_id": existing["_id"]}, document)
-        else:
-            # Insert new record
-            result = await collection.insert_one(document)
-            document["_id"] = result.inserted_id
-        
-        # Return the saved record
-        return self._convert_to_entity(document)
+        try:
+            collection = await self._get_collection(organization_id)
+            logger.info(f"Successfully got collection for organization {organization_id}")
+            
+            # Log deductions before conversion
+            deductions_total = salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime)
+            logger.info(f"Record deductions total before conversion: {deductions_total}")
+            
+            document = self._convert_to_document(salary_package_record)
+            logger.info(f"Successfully converted record to document")
+            logger.debug(f"Document deductions section: {document.get('deductions', {})}")
+            
+            # Check if record already exists - convert value objects to strings for MongoDB query
+            query = {
+                "employee_id": str(salary_package_record.employee_id),
+                "tax_year": str(salary_package_record.tax_year)
+            }
+            logger.info(f"Checking for existing record with query: {query}")
+            
+            existing = await collection.find_one(query)
+            
+            if existing:
+                logger.info(f"Found existing record with _id: {existing['_id']}")
+                # Update existing record
+                document["_id"] = existing["_id"]
+                
+                # Log before update
+                logger.info(f"Updating existing record in database")
+                result = await collection.replace_one({"_id": existing["_id"]}, document)
+                logger.info(f"Update result - matched: {result.matched_count}, modified: {result.modified_count}")
+                
+                if result.modified_count == 0:
+                    logger.warning("No documents were modified during update operation")
+                else:
+                    logger.info("Document successfully updated in database")
+            else:
+                logger.info("No existing record found, inserting new record")
+                # Insert new record
+                result = await collection.insert_one(document)
+                logger.info(f"Insert result - inserted_id: {result.inserted_id}")
+                document["_id"] = result.inserted_id
+            
+            # Verify the save by reading back from database
+            logger.info("Verifying save operation by reading back from database")
+            verification_doc = await collection.find_one(query)
+            if verification_doc:
+                logger.info("Successfully verified save - record exists in database")
+                logger.debug(f"Verification document deductions: {verification_doc.get('deductions', {})}")
+            else:
+                logger.error("SAVE VERIFICATION FAILED - record not found in database after save")
+            
+            # Return the saved record
+            logger.info("Converting saved document back to entity")
+            saved_record = self._convert_to_entity(document)
+            logger.info(f"Save operation completed successfully for record ID: {saved_record.salary_package_id}")
+            
+            return saved_record
+            
+        except Exception as e:
+            logger.error(f"Error during save operation: {str(e)}", exc_info=True)
+            raise
     
     async def get_by_id(self, salary_package_id: str, organization_id: str) -> Optional[SalaryPackageRecord]:
         """
@@ -400,6 +455,19 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
     
     def _convert_to_document(self, record: SalaryPackageRecord) -> dict:
         """Convert salary package record to MongoDB document."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.debug(f"Converting salary package record to document for employee {record.employee_id}")
+        
+        # Log deductions before serialization
+        deductions_total = record.deductions.calculate_total_deductions(record.regime)
+        logger.debug(f"Deductions total before serialization: {deductions_total}")
+        
+        # Serialize deductions
+        deductions_doc = self._serialize_deductions(record.deductions)
+        logger.debug(f"Serialized deductions document: {deductions_doc}")
+        
         document = {
             # Core identification
             "employee_id": str(record.employee_id),
@@ -411,7 +479,7 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             "salary_incomes": [self._serialize_salary_income(salary) for salary in record.salary_incomes],
             
             # Core data - Tax deductions
-            "deductions": self._serialize_deductions(record.deductions),
+            "deductions": deductions_doc,
             
             # Tax regime
             "regime": {
@@ -437,6 +505,7 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             "version": record.version
         }
         
+        logger.debug(f"Successfully converted record to document with {len(document)} fields")
         return document
     
     def _convert_to_entity(self, document: dict) -> SalaryPackageRecord:
@@ -685,10 +754,148 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         if not perquisites:
             return None
         
+        # Get detailed breakdown
+        
         return {
             "has_perquisites": True,
-            "total_value": perquisites.calculate_total_perquisites(TaxRegime.old_regime()).to_float(),
-            # Store summary for now - detailed structure can be added later
+            
+            # Core perquisites
+            "accommodation": {
+                "has_accommodation": perquisites.accommodation is not None,
+                "accommodation_type": perquisites.accommodation.accommodation_type.value if perquisites.accommodation else None,
+                "city_population": perquisites.accommodation.city_population.value if perquisites.accommodation else None,
+                "license_fees": perquisites.accommodation.license_fees.to_float() if perquisites.accommodation else 0.0,
+                "employee_rent_payment": perquisites.accommodation.employee_rent_payment.to_float() if perquisites.accommodation else 0.0,
+                "rent_paid_by_employer": perquisites.accommodation.rent_paid_by_employer.to_float() if perquisites.accommodation else 0.0,
+                "hotel_charges": perquisites.accommodation.hotel_charges.to_float() if perquisites.accommodation else 0.0,
+                "stay_days": perquisites.accommodation.stay_days if perquisites.accommodation else 0,
+                "furniture_cost": perquisites.accommodation.furniture_cost.to_float() if perquisites.accommodation else 0.0,
+                "furniture_employee_payment": perquisites.accommodation.furniture_employee_payment.to_float() if perquisites.accommodation else 0.0,
+                "is_furniture_owned_by_employer": perquisites.accommodation.is_furniture_owned_by_employer if perquisites.accommodation else False,
+            },
+            
+            "car": {
+                "has_car": perquisites.car is not None,
+                "car_use_type": perquisites.car.car_use_type.value if perquisites.car else None,
+                "engine_capacity_cc": perquisites.car.engine_capacity_cc if perquisites.car else 0,
+                "months_used": perquisites.car.months_used if perquisites.car else 0,
+                "car_cost_to_employer": perquisites.car.car_cost_to_employer.to_float() if perquisites.car else 0.0,
+                "other_vehicle_cost": perquisites.car.other_vehicle_cost.to_float() if perquisites.car else 0.0,
+                "has_expense_reimbursement": perquisites.car.has_expense_reimbursement if perquisites.car else False,
+                "driver_provided": perquisites.car.driver_provided if perquisites.car else False,
+            },
+            
+            # Medical and travel perquisites
+            "medical_reimbursement": {
+                "has_medical_reimbursement": perquisites.medical_reimbursement is not None,
+                "medical_reimbursement_amount": perquisites.medical_reimbursement.medical_reimbursement_amount.to_float() if perquisites.medical_reimbursement else 0.0,
+                "is_overseas_treatment": perquisites.medical_reimbursement.is_overseas_treatment if perquisites.medical_reimbursement else False,
+                "travel_expenses": perquisites.medical_reimbursement.travel_expenses.to_float() if perquisites.medical_reimbursement else 0.0,
+                "medical_expenses": perquisites.medical_reimbursement.medical_expenses.to_float() if perquisites.medical_reimbursement else 0.0,
+                "rbi_limit": perquisites.medical_reimbursement.rbi_limit.to_float() if perquisites.medical_reimbursement else 0.0,
+                "gross_salary": perquisites.medical_reimbursement.gross_salary.to_float() if perquisites.medical_reimbursement else 0.0,
+            },
+            
+            "lta": {
+                "has_lta": perquisites.lta is not None,
+                "lta_amount_claimed": perquisites.lta.lta_amount_claimed.to_float() if perquisites.lta else 0.0,
+                "lta_claimed_count": perquisites.lta.lta_claimed_count if perquisites.lta else 0,
+                "public_transport_cost": perquisites.lta.public_transport_cost.to_float() if perquisites.lta else 0.0,
+                "travel_mode": perquisites.lta.travel_mode if perquisites.lta else "Air",
+            },
+            
+            # Financial perquisites
+            "interest_free_loan": {
+                "has_loan": perquisites.interest_free_loan is not None,
+                "loan_amount": perquisites.interest_free_loan.loan_amount.to_float() if perquisites.interest_free_loan else 0.0,
+                "outstanding_amount": perquisites.interest_free_loan.outstanding_amount.to_float() if perquisites.interest_free_loan else 0.0,
+                "company_interest_rate": float(perquisites.interest_free_loan.company_interest_rate) if perquisites.interest_free_loan else 0.0,
+                "sbi_interest_rate": float(perquisites.interest_free_loan.sbi_interest_rate) if perquisites.interest_free_loan else 0.0,
+                "loan_months": perquisites.interest_free_loan.loan_months if perquisites.interest_free_loan else 0,
+                "is_medical_loan": perquisites.interest_free_loan.is_medical_loan if perquisites.interest_free_loan else False,
+                "loan_type": perquisites.interest_free_loan.loan_type if perquisites.interest_free_loan else "Personal",
+            },
+            
+            "esop": {
+                "has_esop": perquisites.esop is not None,
+                "shares_exercised": perquisites.esop.shares_exercised if perquisites.esop else 0,
+                "exercise_price": perquisites.esop.exercise_price.to_float() if perquisites.esop else 0.0,
+                "allotment_price": perquisites.esop.allotment_price.to_float() if perquisites.esop else 0.0,
+            },
+            
+            # Utilities and facilities
+            "utilities": {
+                "has_utilities": perquisites.utilities is not None,
+                "gas_paid_by_employer": perquisites.utilities.gas_paid_by_employer.to_float() if perquisites.utilities else 0.0,
+                "electricity_paid_by_employer": perquisites.utilities.electricity_paid_by_employer.to_float() if perquisites.utilities else 0.0,
+                "water_paid_by_employer": perquisites.utilities.water_paid_by_employer.to_float() if perquisites.utilities else 0.0,
+                "gas_paid_by_employee": perquisites.utilities.gas_paid_by_employee.to_float() if perquisites.utilities else 0.0,
+                "electricity_paid_by_employee": perquisites.utilities.electricity_paid_by_employee.to_float() if perquisites.utilities else 0.0,
+                "water_paid_by_employee": perquisites.utilities.water_paid_by_employee.to_float() if perquisites.utilities else 0.0,
+                "is_gas_manufactured_by_employer": perquisites.utilities.is_gas_manufactured_by_employer if perquisites.utilities else False,
+                "is_electricity_manufactured_by_employer": perquisites.utilities.is_electricity_manufactured_by_employer if perquisites.utilities else False,
+                "is_water_manufactured_by_employer": perquisites.utilities.is_water_manufactured_by_employer if perquisites.utilities else False,
+            },
+            
+            "free_education": {
+                "has_free_education": perquisites.free_education is not None,
+                "monthly_expenses_child1": perquisites.free_education.monthly_expenses_child1.to_float() if perquisites.free_education else 0.0,
+                "monthly_expenses_child2": perquisites.free_education.monthly_expenses_child2.to_float() if perquisites.free_education else 0.0,
+                "months_child1": perquisites.free_education.months_child1 if perquisites.free_education else 0,
+                "months_child2": perquisites.free_education.months_child2 if perquisites.free_education else 0,
+                "employer_maintained_1st_child": perquisites.free_education.employer_maintained_1st_child if perquisites.free_education else False,
+                "employer_maintained_2nd_child": perquisites.free_education.employer_maintained_2nd_child if perquisites.free_education else False,
+            },
+            
+            "lunch_refreshment": {
+                "has_lunch_refreshment": perquisites.lunch_refreshment is not None,
+                "employer_cost": perquisites.lunch_refreshment.employer_cost.to_float() if perquisites.lunch_refreshment else 0.0,
+                "employee_payment": perquisites.lunch_refreshment.employee_payment.to_float() if perquisites.lunch_refreshment else 0.0,
+                "meal_days_per_year": perquisites.lunch_refreshment.meal_days_per_year if perquisites.lunch_refreshment else 0,
+            },
+            
+            "domestic_help": {
+                "has_domestic_help": perquisites.domestic_help is not None,
+                "domestic_help_paid_by_employer": perquisites.domestic_help.domestic_help_paid_by_employer.to_float() if perquisites.domestic_help else 0.0,
+                "domestic_help_paid_by_employee": perquisites.domestic_help.domestic_help_paid_by_employee.to_float() if perquisites.domestic_help else 0.0,    
+            },
+            
+            # Asset-related perquisites
+            "movable_asset_usage": {
+                "has_movable_asset_usage": perquisites.movable_asset_usage is not None,
+                "asset_type": perquisites.movable_asset_usage.asset_type.value if perquisites.movable_asset_usage else None,
+                "asset_value": perquisites.movable_asset_usage.asset_value.to_float() if perquisites.movable_asset_usage else 0.0,
+                "employee_payment": perquisites.movable_asset_usage.employee_payment.to_float() if perquisites.movable_asset_usage else 0.0,
+                "is_employer_owned": perquisites.movable_asset_usage.is_employer_owned if perquisites.movable_asset_usage else False,
+            },
+            
+            "movable_asset_transfer": {
+                "has_movable_asset_transfer": perquisites.movable_asset_transfer is not None,
+                "asset_type": perquisites.movable_asset_transfer.asset_type.value if perquisites.movable_asset_transfer else None,
+                "asset_cost": perquisites.movable_asset_transfer.asset_cost.to_float() if perquisites.movable_asset_transfer else 0.0,
+                "years_of_use": perquisites.movable_asset_transfer.years_of_use if perquisites.movable_asset_transfer else 0,
+                "employee_payment": perquisites.movable_asset_transfer.employee_payment.to_float() if perquisites.movable_asset_transfer else 0.0,
+            },
+            
+            # Miscellaneous perquisites
+            "gift_voucher": {
+                "has_gift_voucher": perquisites.gift_voucher is not None,
+                "gift_voucher_amount": perquisites.gift_voucher.gift_voucher_amount.to_float() if perquisites.gift_voucher else 0.0,
+            },
+            
+            "monetary_benefits": {
+                "has_monetary_benefits": perquisites.monetary_benefits is not None,
+                "monetary_amount_paid_by_employer": perquisites.monetary_benefits.monetary_amount_paid_by_employer.to_float() if perquisites.monetary_benefits else 0.0,
+                "expenditure_for_official_purpose": perquisites.monetary_benefits.expenditure_for_official_purpose.to_float() if perquisites.monetary_benefits else 0.0,
+                "amount_paid_by_employee": perquisites.monetary_benefits.amount_paid_by_employee.to_float() if perquisites.monetary_benefits else 0.0,
+            },
+            
+            "club_expenses": {
+                "has_club_expenses": perquisites.club_expenses is not None,
+                "club_expenses_paid_by_employer": perquisites.club_expenses.club_expenses_paid_by_employer.to_float() if perquisites.club_expenses else 0.0,
+                "club_expenses_paid_by_employee": perquisites.club_expenses.club_expenses_paid_by_employee.to_float() if perquisites.club_expenses else 0.0,
+                "club_expenses_for_official_purpose": perquisites.club_expenses.club_expenses_for_official_purpose.to_float() if perquisites.club_expenses else 0.0,
+            }
         }
     
     def _serialize_retirement_benefits(self, retirement_benefits: Optional[RetirementBenefits]) -> Optional[dict]:
@@ -699,7 +906,57 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         return {
             "has_retirement_benefits": True,
             "total_value": retirement_benefits.calculate_total_retirement_income(TaxRegime.old_regime()).to_float(),
-            # Store summary for now - detailed structure can be added later
+            
+            # Leave encashment
+            "leave_encashment": {
+                "has_leave_encashment": retirement_benefits.leave_encashment is not None,
+                "leave_encashment_amount": retirement_benefits.leave_encashment.leave_encashment_amount.to_float() if retirement_benefits.leave_encashment else 0.0,
+                "average_monthly_salary": retirement_benefits.leave_encashment.average_monthly_salary.to_float() if retirement_benefits.leave_encashment else 0.0,
+                "leave_days_encashed": retirement_benefits.leave_encashment.leave_days_encashed if retirement_benefits.leave_encashment else 0,
+                "is_govt_employee": retirement_benefits.leave_encashment.is_govt_employee if retirement_benefits.leave_encashment else False,
+                "during_employment": retirement_benefits.leave_encashment.during_employment if retirement_benefits.leave_encashment else False,
+                "taxable_value": retirement_benefits.leave_encashment.calculate_taxable_value(TaxRegime.old_regime()).to_float() if retirement_benefits.leave_encashment else 0.0
+            },
+            
+            # Gratuity
+            "gratuity": {
+                "has_gratuity": retirement_benefits.gratuity is not None,
+                "gratuity_amount": retirement_benefits.gratuity.gratuity_amount.to_float() if retirement_benefits.gratuity else 0.0,
+                "monthly_salary": retirement_benefits.gratuity.monthly_salary.to_float() if retirement_benefits.gratuity else 0.0,
+                "service_years": float(retirement_benefits.gratuity.service_years) if retirement_benefits.gratuity else 0.0,
+                "is_govt_employee": retirement_benefits.gratuity.is_govt_employee if retirement_benefits.gratuity else False,
+                "taxable_value": retirement_benefits.gratuity.calculate_taxable_value(TaxRegime.old_regime()).to_float() if retirement_benefits.gratuity else 0.0
+            },
+            
+            # VRS
+            "vrs": {
+                "has_vrs": retirement_benefits.vrs is not None,
+                "vrs_amount": retirement_benefits.vrs.vrs_amount.to_float() if retirement_benefits.vrs else 0.0,
+                "monthly_salary": retirement_benefits.vrs.monthly_salary.to_float() if retirement_benefits.vrs else 0.0,
+                "age": retirement_benefits.vrs.age if retirement_benefits.vrs else 0,
+                "service_years": float(retirement_benefits.vrs.service_years) if retirement_benefits.vrs else 0.0,
+                "taxable_value": retirement_benefits.vrs.calculate_taxable_value(TaxRegime.old_regime()).to_float() if retirement_benefits.vrs else 0.0
+            },
+            
+            # Pension
+            "pension": {
+                "has_pension": retirement_benefits.pension is not None,
+                "regular_pension": retirement_benefits.pension.regular_pension.to_float() if retirement_benefits.pension else 0.0,
+                "commuted_pension": retirement_benefits.pension.commuted_pension.to_float() if retirement_benefits.pension else 0.0,
+                "total_pension": retirement_benefits.pension.total_pension.to_float() if retirement_benefits.pension else 0.0,
+                "is_govt_employee": retirement_benefits.pension.is_govt_employee if retirement_benefits.pension else False,
+                "gratuity_received": retirement_benefits.pension.gratuity_received if retirement_benefits.pension else False,
+                "taxable_value": retirement_benefits.pension.calculate_taxable_value(TaxRegime.old_regime()).to_float() if retirement_benefits.pension else 0.0
+            },
+            
+            # Retrenchment compensation
+            "retrenchment_compensation": {
+                "has_retrenchment_compensation": retirement_benefits.retrenchment_compensation is not None,
+                "retrenchment_amount": retirement_benefits.retrenchment_compensation.retrenchment_amount.to_float() if retirement_benefits.retrenchment_compensation else 0.0,
+                "monthly_salary": retirement_benefits.retrenchment_compensation.monthly_salary.to_float() if retirement_benefits.retrenchment_compensation else 0.0,
+                "service_years": float(retirement_benefits.retrenchment_compensation.service_years) if retirement_benefits.retrenchment_compensation else 0.0,
+                "taxable_value": retirement_benefits.retrenchment_compensation.calculate_taxable_value(TaxRegime.old_regime()).to_float() if retirement_benefits.retrenchment_compensation else 0.0
+            }
         }
     
     def _serialize_other_income(self, other_income: Optional[OtherIncome]) -> Optional[dict]:
@@ -710,7 +967,52 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         return {
             "has_other_income": True,
             "total_value": other_income.calculate_total_other_income(TaxRegime.old_regime(), 30).to_float(),
-            # Store summary for now - detailed structure can be added later
+            
+            # Interest income
+            "interest_income": {
+                "has_interest_income": other_income.interest_income is not None,
+                "savings_account_interest": other_income.interest_income.savings_account_interest.to_float() if other_income.interest_income else 0.0,
+                "fixed_deposit_interest": other_income.interest_income.fixed_deposit_interest.to_float() if other_income.interest_income else 0.0,
+                "recurring_deposit_interest": other_income.interest_income.recurring_deposit_interest.to_float() if other_income.interest_income else 0.0,
+                "post_office_interest": other_income.interest_income.post_office_interest.to_float() if other_income.interest_income else 0.0,
+                "age": other_income.interest_income.age if other_income.interest_income else 25,
+                "total_interest": other_income.interest_income.calculate_total_interest().to_float() if other_income.interest_income else 0.0,
+                "exempt_interest": other_income.interest_income.calculate_exempt_interest(TaxRegime.old_regime()).to_float() if other_income.interest_income else 0.0,
+                "taxable_interest": other_income.interest_income.calculate_taxable_interest(TaxRegime.old_regime()).to_float() if other_income.interest_income else 0.0
+            },
+            
+            # House property income
+            "house_property_income": {
+                "has_house_property_income": other_income.house_property_income is not None,
+                "property_type": other_income.house_property_income.property_type.value if other_income.house_property_income else None,
+                "address": other_income.house_property_income.address if other_income.house_property_income else "",
+                "annual_rent_received": other_income.house_property_income.annual_rent_received.to_float() if other_income.house_property_income else 0.0,
+                "municipal_taxes_paid": other_income.house_property_income.municipal_taxes_paid.to_float() if other_income.house_property_income else 0.0,
+                "home_loan_interest": other_income.house_property_income.home_loan_interest.to_float() if other_income.house_property_income else 0.0,
+                "pre_construction_interest": other_income.house_property_income.pre_construction_interest.to_float() if other_income.house_property_income else 0.0,
+                "net_annual_value": other_income.house_property_income.calculate_net_annual_value().to_float() if other_income.house_property_income else 0.0,
+                "taxable_income": other_income.house_property_income.calculate_taxable_income().to_float() if other_income.house_property_income else 0.0
+            },
+            
+            # Capital gains income
+            "capital_gains_income": {
+                "has_capital_gains_income": other_income.capital_gains_income is not None,
+                "stcg_111a_equity_stt": other_income.capital_gains_income.stcg_111a_equity_stt.to_float() if other_income.capital_gains_income else 0.0,
+                "stcg_other_assets": other_income.capital_gains_income.stcg_other_assets.to_float() if other_income.capital_gains_income else 0.0,
+                "stcg_debt_mf": other_income.capital_gains_income.stcg_debt_mf.to_float() if other_income.capital_gains_income else 0.0,
+                "ltcg_112a_equity_stt": other_income.capital_gains_income.ltcg_112a_equity_stt.to_float() if other_income.capital_gains_income else 0.0,
+                "ltcg_other_assets": other_income.capital_gains_income.ltcg_other_assets.to_float() if other_income.capital_gains_income else 0.0,
+                "ltcg_debt_mf": other_income.capital_gains_income.ltcg_debt_mf.to_float() if other_income.capital_gains_income else 0.0,
+                "total_stcg": other_income.capital_gains_income.calculate_total_stcg().to_float() if other_income.capital_gains_income else 0.0,
+                "total_ltcg": other_income.capital_gains_income.calculate_total_ltcg().to_float() if other_income.capital_gains_income else 0.0,
+                "total_capital_gains": other_income.capital_gains_income.calculate_total_capital_gains().to_float() if other_income.capital_gains_income else 0.0
+            },
+            
+            # Other miscellaneous income
+            "dividend_income": other_income.dividend_income.to_float(),
+            "gifts_received": other_income.gifts_received.to_float(),
+            "business_professional_income": other_income.business_professional_income.to_float(),
+            "other_miscellaneous_income": other_income.other_miscellaneous_income.to_float()
         }
     
     def _serialize_calculation_result(self, calculation_result: Optional[TaxCalculationResult]) -> Optional[dict]:
@@ -738,7 +1040,7 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             border_exemption_limit=Money.from_float(specific_allowances_doc.get("border_exemption_limit", 0.0)),
 
             transport_employee_allowance=Money.from_float(specific_allowances_doc.get("transport_employee_allowance", 0.0)),
-
+            
             children_education_allowance=Money.from_float(specific_allowances_doc.get("children_education_allowance", 0.0)),
             children_count=specific_allowances_doc.get("children_count", 0),
             children_education_months=specific_allowances_doc.get("children_education_months", 0),
@@ -941,29 +1243,357 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
     def _deserialize_perquisites(self, perquisites_doc: Optional[dict]) -> Optional[Perquisites]:
         """Deserialize perquisites from document format."""
         if not perquisites_doc:
-            return None
+            return Perquisites()
         
-        # For now, return a basic Perquisites object
-        # Detailed deserialization can be added later
-        return Perquisites()
+        # Deserialize accommodation perquisite
+        accommodation = None
+        if perquisites_doc.get("accommodation", {}).get("has_accommodation"):
+            acc_doc = perquisites_doc["accommodation"]
+            try:
+                accommodation_type = AccommodationType(acc_doc.get("accommodation_type", "Employer-Owned"))
+            except ValueError:
+                accommodation_type = AccommodationType.EMPLOYER_OWNED
+            
+            try:
+                city_population = CityPopulation(acc_doc.get("city_population", "Below 15 lakhs"))
+            except ValueError:
+                city_population = CityPopulation.BELOW_15_LAKHS
+            
+            accommodation = AccommodationPerquisite(
+                accommodation_type=accommodation_type,
+                city_population=city_population,
+                license_fees=Money.from_float(acc_doc.get("license_fees", 0.0)),
+                employee_rent_payment=Money.from_float(acc_doc.get("employee_rent_payment", 0.0)),
+                rent_paid_by_employer=Money.from_float(acc_doc.get("rent_paid_by_employer", 0.0)),
+                hotel_charges=Money.from_float(acc_doc.get("hotel_charges", 0.0)),
+                stay_days=acc_doc.get("stay_days", 0),
+                furniture_cost=Money.from_float(acc_doc.get("furniture_cost", 0.0)),
+                furniture_employee_payment=Money.from_float(acc_doc.get("furniture_employee_payment", 0.0)),
+                is_furniture_owned_by_employer=acc_doc.get("is_furniture_owned_by_employer", True)
+            )
+        
+        # Deserialize car perquisite
+        car = None
+        if perquisites_doc.get("car", {}).get("has_car"):
+            car_doc = perquisites_doc["car"]
+            try:
+                car_use_type = CarUseType(car_doc.get("car_use_type", "Personal"))
+            except ValueError:
+                car_use_type = CarUseType.PERSONAL
+            
+            car = CarPerquisite(
+                car_use_type=car_use_type,
+                engine_capacity_cc=car_doc.get("engine_capacity_cc", 1600),
+                months_used=car_doc.get("months_used", 12),
+                car_cost_to_employer=Money.from_float(car_doc.get("car_cost_to_employer", 0.0)),
+                other_vehicle_cost=Money.from_float(car_doc.get("other_vehicle_cost", 0.0)),
+                has_expense_reimbursement=car_doc.get("has_expense_reimbursement", False),
+                driver_provided=car_doc.get("driver_provided", False)
+            )
+        
+        # Deserialize medical reimbursement
+        medical_reimbursement = None
+        if perquisites_doc.get("medical_reimbursement", {}).get("has_medical_reimbursement"):
+            med_doc = perquisites_doc["medical_reimbursement"]
+            medical_reimbursement = MedicalReimbursement(
+                medical_reimbursement_amount=Money.from_float(med_doc.get("medical_reimbursement_amount", 0.0)),
+                is_overseas_treatment=med_doc.get("is_overseas_treatment", False),
+                travel_expenses=Money.from_float(med_doc.get("travel_expenses", 0.0)),
+                medical_expenses=Money.from_float(med_doc.get("medical_expenses", 0.0)),
+                rbi_limit=Money.from_float(med_doc.get("rbi_limit", 0.0)),
+                gross_salary=Money.from_float(med_doc.get("gross_salary", 0.0))
+            )
+        
+        # Deserialize LTA
+        lta = None
+        if perquisites_doc.get("lta", {}).get("has_lta"):
+            lta_doc = perquisites_doc["lta"]
+            lta = LTAPerquisite(
+                lta_amount_claimed=Money.from_float(lta_doc.get("lta_amount_claimed", 0.0)),
+                lta_claimed_count=lta_doc.get("lta_claimed_count", 0),
+                public_transport_cost=Money.from_float(lta_doc.get("public_transport_cost", 0.0)),
+                travel_mode=lta_doc.get("travel_mode", "Air")
+            )
+        
+        # Deserialize interest-free loan
+        interest_free_loan = None
+        if perquisites_doc.get("interest_free_loan", {}).get("has_loan"):
+            loan_doc = perquisites_doc["interest_free_loan"]
+            interest_free_loan = InterestFreeConcessionalLoan(
+                loan_amount=Money.from_float(loan_doc.get("loan_amount", 0.0)),
+                outstanding_amount=Money.from_float(loan_doc.get("outstanding_amount", 0.0)),
+                company_interest_rate=Decimal(str(loan_doc.get("company_interest_rate", 0.0))),
+                sbi_interest_rate=Decimal(str(loan_doc.get("sbi_interest_rate", 8.5))),
+                loan_months=loan_doc.get("loan_months", 12),
+                is_medical_loan=loan_doc.get("is_medical_loan", False),
+                loan_type=loan_doc.get("loan_type", "Personal")
+            )
+        
+        # Deserialize ESOP
+        esop = None
+        if perquisites_doc.get("esop", {}).get("has_esop"):
+            esop_doc = perquisites_doc["esop"]
+            esop = ESOPPerquisite(
+                shares_exercised=esop_doc.get("shares_exercised", 0),
+                exercise_price=Money.from_float(esop_doc.get("exercise_price", 0.0)),
+                allotment_price=Money.from_float(esop_doc.get("allotment_price", 0.0))
+            )
+        
+        # Deserialize utilities
+        utilities = None
+        if perquisites_doc.get("utilities", {}).get("has_utilities"):
+            util_doc = perquisites_doc["utilities"]
+            utilities = UtilitiesPerquisite(
+                gas_paid_by_employer=Money.from_float(util_doc.get("gas_paid_by_employer", 0.0)),
+                electricity_paid_by_employer=Money.from_float(util_doc.get("electricity_paid_by_employer", 0.0)),
+                water_paid_by_employer=Money.from_float(util_doc.get("water_paid_by_employer", 0.0)),
+                gas_paid_by_employee=Money.from_float(util_doc.get("gas_paid_by_employee", 0.0)),
+                electricity_paid_by_employee=Money.from_float(util_doc.get("electricity_paid_by_employee", 0.0)),
+                water_paid_by_employee=Money.from_float(util_doc.get("water_paid_by_employee", 0.0)),
+                is_gas_manufactured_by_employer=util_doc.get("is_gas_manufactured_by_employer", False),
+                is_electricity_manufactured_by_employer=util_doc.get("is_electricity_manufactured_by_employer", False),
+                is_water_manufactured_by_employer=util_doc.get("is_water_manufactured_by_employer", False)
+            )
+        
+        # Deserialize free education
+        free_education = None
+        if perquisites_doc.get("free_education", {}).get("has_free_education"):
+            edu_doc = perquisites_doc["free_education"]
+            free_education = FreeEducationPerquisite(
+                monthly_expenses_child1=Money.from_float(edu_doc.get("monthly_expenses_child1", 0.0)),
+                monthly_expenses_child2=Money.from_float(edu_doc.get("monthly_expenses_child2", 0.0)),
+                months_child1=edu_doc.get("months_child1", 12),
+                months_child2=edu_doc.get("months_child2", 12),
+                employer_maintained_1st_child=edu_doc.get("employer_maintained_1st_child", False),
+                employer_maintained_2nd_child=edu_doc.get("employer_maintained_2nd_child", False)
+            )
+        
+        # Deserialize lunch refreshment
+        lunch_refreshment = None
+        if perquisites_doc.get("lunch_refreshment", {}).get("has_lunch_refreshment"):
+            lunch_doc = perquisites_doc["lunch_refreshment"]
+            lunch_refreshment = LunchRefreshmentPerquisite(
+                employer_cost=Money.from_float(lunch_doc.get("employer_cost", 0.0)),
+                employee_payment=Money.from_float(lunch_doc.get("employee_payment", 0.0)),
+                meal_days_per_year=lunch_doc.get("meal_days_per_year", 250)
+            )
+        
+        # Deserialize domestic help
+        domestic_help = None
+        if perquisites_doc.get("domestic_help", {}).get("has_domestic_help"):
+            help_doc = perquisites_doc["domestic_help"]
+            domestic_help = DomesticHelpPerquisite(
+                domestic_help_paid_by_employer=Money.from_float(help_doc.get("domestic_help_paid_by_employer", 0.0)),
+                domestic_help_paid_by_employee=Money.from_float(help_doc.get("domestic_help_paid_by_employee", 0.0))
+            )
+        
+        # Deserialize movable asset usage
+        movable_asset_usage = None
+        if perquisites_doc.get("movable_asset_usage", {}).get("has_movable_asset_usage"):
+            asset_doc = perquisites_doc["movable_asset_usage"]
+            try:
+                asset_type = AssetType(asset_doc.get("asset_type", "Electronics"))
+            except ValueError:
+                asset_type = AssetType.ELECTRONICS
+            
+            movable_asset_usage = MovableAssetUsage(
+                asset_type=asset_type,
+                asset_value=Money.from_float(asset_doc.get("asset_value", 0.0)),
+                hire_cost=Money.from_float(asset_doc.get("hire_cost", 0.0)),
+                employee_payment=Money.from_float(asset_doc.get("employee_payment", 0.0)),
+                is_employer_owned=asset_doc.get("is_employer_owned", True)
+            )
+        
+        # Deserialize movable asset transfer
+        movable_asset_transfer = None
+        if perquisites_doc.get("movable_asset_transfer", {}).get("has_movable_asset_transfer"):
+            transfer_doc = perquisites_doc["movable_asset_transfer"]
+            try:
+                asset_type = AssetType(transfer_doc.get("asset_type", "Electronics"))
+            except ValueError:
+                asset_type = AssetType.ELECTRONICS
+            
+            movable_asset_transfer = MovableAssetTransfer(
+                asset_type=asset_type,
+                asset_cost=Money.from_float(transfer_doc.get("asset_cost", 0.0)),
+                years_of_use=transfer_doc.get("years_of_use", 1),
+                employee_payment=Money.from_float(transfer_doc.get("employee_payment", 0.0))
+            )
+        
+        # Deserialize gift voucher
+        gift_voucher = None
+        if perquisites_doc.get("gift_voucher", {}).get("has_gift_voucher"):
+            gift_doc = perquisites_doc["gift_voucher"]
+            gift_voucher = GiftVoucherPerquisite(
+                gift_voucher_amount=Money.from_float(gift_doc.get("gift_voucher_amount", 0.0))
+            )
+        
+        # Deserialize monetary benefits
+        monetary_benefits = None
+        if perquisites_doc.get("monetary_benefits", {}).get("has_monetary_benefits"):
+            money_doc = perquisites_doc["monetary_benefits"]
+            monetary_benefits = MonetaryBenefitsPerquisite(
+                monetary_amount_paid_by_employer=Money.from_float(money_doc.get("monetary_amount_paid_by_employer", 0.0)),
+                expenditure_for_official_purpose=Money.from_float(money_doc.get("expenditure_for_official_purpose", 0.0)),
+                amount_paid_by_employee=Money.from_float(money_doc.get("amount_paid_by_employee", 0.0))
+            )
+        
+        # Deserialize club expenses
+        club_expenses = None
+        if perquisites_doc.get("club_expenses", {}).get("has_club_expenses"):
+            club_doc = perquisites_doc["club_expenses"]
+            club_expenses = ClubExpensesPerquisite(
+                club_expenses_paid_by_employer=Money.from_float(club_doc.get("club_expenses_paid_by_employer", 0.0)),
+                club_expenses_paid_by_employee=Money.from_float(club_doc.get("club_expenses_paid_by_employee", 0.0)),
+                club_expenses_for_official_purpose=Money.from_float(club_doc.get("club_expenses_for_official_purpose", 0.0))
+            )
+        
+        return Perquisites(
+            accommodation=accommodation,
+            car=car,
+            medical_reimbursement=medical_reimbursement,
+            lta=lta,
+            interest_free_loan=interest_free_loan,
+            esop=esop,
+            utilities=utilities,
+            free_education=free_education,
+            lunch_refreshment=lunch_refreshment,
+            domestic_help=domestic_help,
+            movable_asset_usage=movable_asset_usage,
+            movable_asset_transfer=movable_asset_transfer,
+            gift_voucher=gift_voucher,
+            monetary_benefits=monetary_benefits,
+            club_expenses=club_expenses
+        )
     
     def _deserialize_retirement_benefits(self, retirement_benefits_doc: Optional[dict]) -> Optional[RetirementBenefits]:
         """Deserialize retirement benefits from document format."""
         if not retirement_benefits_doc:
-            return None
+            return RetirementBenefits()
         
-        # For now, return a basic RetirementBenefits object
-        # Detailed deserialization can be added later
-        return RetirementBenefits()
+        # Deserialize leave encashment
+        leave_encashment = None
+        if retirement_benefits_doc.get("leave_encashment", {}).get("has_leave_encashment"):
+            leave_doc = retirement_benefits_doc["leave_encashment"]
+            leave_encashment = LeaveEncashment(
+                leave_encashment_amount=Money.from_float(leave_doc.get("leave_encashment_amount", 0.0)),
+                average_monthly_salary=Money.from_float(leave_doc.get("average_monthly_salary", 0.0)),
+                leave_days_encashed=leave_doc.get("leave_days_encashed", 0),
+                is_govt_employee=leave_doc.get("is_govt_employee", False),
+                is_deceased=leave_doc.get("is_deceased", False),
+                during_employment=leave_doc.get("during_employment", False)
+            )
+        
+        # Deserialize gratuity
+        gratuity = None
+        if retirement_benefits_doc.get("gratuity", {}).get("has_gratuity"):
+            grat_doc = retirement_benefits_doc["gratuity"]
+            gratuity = Gratuity(
+                gratuity_amount=Money.from_float(grat_doc.get("gratuity_amount", 0.0)),
+                monthly_salary=Money.from_float(grat_doc.get("monthly_salary", 0.0)),
+                service_years=Decimal(str(grat_doc.get("service_years", 0.0))),
+                is_govt_employee=grat_doc.get("is_govt_employee", False)
+            )
+        
+        # Deserialize VRS
+        vrs = None
+        if retirement_benefits_doc.get("vrs", {}).get("has_vrs"):
+            vrs_doc = retirement_benefits_doc["vrs"]
+            vrs = VRS(
+                vrs_amount=Money.from_float(vrs_doc.get("vrs_amount", 0.0)),
+                monthly_salary=Money.from_float(vrs_doc.get("monthly_salary", 0.0)),
+                age=vrs_doc.get("age", 25),
+                service_years=Decimal(str(vrs_doc.get("service_years", 0.0)))
+            )
+        
+        # Deserialize pension
+        pension = None
+        if retirement_benefits_doc.get("pension", {}).get("has_pension"):
+            pension_doc = retirement_benefits_doc["pension"]
+            pension = Pension(
+                regular_pension=Money.from_float(pension_doc.get("regular_pension", 0.0)),
+                commuted_pension=Money.from_float(pension_doc.get("commuted_pension", 0.0)),
+                total_pension=Money.from_float(pension_doc.get("total_pension", 0.0)),
+                is_govt_employee=pension_doc.get("is_govt_employee", False),
+                gratuity_received=pension_doc.get("gratuity_received", False)
+            )
+        
+        # Deserialize retrenchment compensation
+        retrenchment_compensation = None
+        if retirement_benefits_doc.get("retrenchment_compensation", {}).get("has_retrenchment_compensation"):
+            retrench_doc = retirement_benefits_doc["retrenchment_compensation"]
+            retrenchment_compensation = RetrenchmentCompensation(
+                retrenchment_amount=Money.from_float(retrench_doc.get("retrenchment_amount", 0.0)),
+                monthly_salary=Money.from_float(retrench_doc.get("monthly_salary", 0.0)),
+                service_years=Decimal(str(retrench_doc.get("service_years", 0.0)))
+            )
+        
+        return RetirementBenefits(
+            leave_encashment=leave_encashment,
+            gratuity=gratuity,
+            vrs=vrs,
+            pension=pension,
+            retrenchment_compensation=retrenchment_compensation
+        )
     
     def _deserialize_other_income(self, other_income_doc: Optional[dict]) -> Optional[OtherIncome]:
         """Deserialize other income from document format."""
         if not other_income_doc:
-            return None
+            return OtherIncome()
         
-        # For now, return a basic OtherIncome object
-        # Detailed deserialization can be added later
-        return OtherIncome()
+        # Deserialize interest income
+        interest_income = None
+        if other_income_doc.get("interest_income", {}).get("has_interest_income"):
+            interest_doc = other_income_doc["interest_income"]
+            interest_income = InterestIncome(
+                savings_account_interest=Money.from_float(interest_doc.get("savings_account_interest", 0.0)),
+                fixed_deposit_interest=Money.from_float(interest_doc.get("fixed_deposit_interest", 0.0)),
+                recurring_deposit_interest=Money.from_float(interest_doc.get("recurring_deposit_interest", 0.0)),
+                post_office_interest=Money.from_float(interest_doc.get("post_office_interest", 0.0))
+            )
+        
+        # Deserialize house property income
+        house_property_income = None
+        if other_income_doc.get("house_property_income", {}).get("has_house_property_income"):
+            house_doc = other_income_doc["house_property_income"]
+            from app.domain.entities.taxation.house_property_income import PropertyType
+            
+            try:
+                property_type = PropertyType(house_doc.get("property_type", "Residential"))
+            except ValueError:
+                property_type = PropertyType.RESIDENTIAL
+            
+            house_property_income = HousePropertyIncome(
+                property_type=property_type,
+                address=house_doc.get("address", ""),
+                annual_rent_received=Money.from_float(house_doc.get("annual_rent_received", 0.0)),
+                municipal_taxes_paid=Money.from_float(house_doc.get("municipal_taxes_paid", 0.0)),
+                home_loan_interest=Money.from_float(house_doc.get("home_loan_interest", 0.0)),
+                pre_construction_interest=Money.from_float(house_doc.get("pre_construction_interest", 0.0))
+            )
+        
+        # Deserialize capital gains income
+        capital_gains_income = None
+        if other_income_doc.get("capital_gains_income", {}).get("has_capital_gains_income"):
+            cap_gains_doc = other_income_doc["capital_gains_income"]
+            capital_gains_income = CapitalGainsIncome(
+                stcg_111a_equity_stt=Money.from_float(cap_gains_doc.get("stcg_111a_equity_stt", 0.0)),
+                stcg_other_assets=Money.from_float(cap_gains_doc.get("stcg_other_assets", 0.0)),
+                stcg_debt_mf=Money.from_float(cap_gains_doc.get("stcg_debt_mf", 0.0)),
+                ltcg_112a_equity_stt=Money.from_float(cap_gains_doc.get("ltcg_112a_equity_stt", 0.0)),
+                ltcg_other_assets=Money.from_float(cap_gains_doc.get("ltcg_other_assets", 0.0)),
+                ltcg_debt_mf=Money.from_float(cap_gains_doc.get("ltcg_debt_mf", 0.0))
+            )
+        
+        return OtherIncome(
+            business_professional_income=Money.from_float(other_income_doc.get("business_professional_income", 0.0)),
+            house_property_income=house_property_income,
+            interest_income=interest_income,
+            dividend_income=Money.from_float(other_income_doc.get("dividend_income", 0.0)),
+            gifts_received=Money.from_float(other_income_doc.get("gifts_received", 0.0)),
+            other_miscellaneous_income=Money.from_float(other_income_doc.get("other_miscellaneous_income", 0.0)),
+            capital_gains_income=capital_gains_income
+        )
     
     def _deserialize_calculation_result(self, calc_data: Optional[dict]) -> Optional[TaxCalculationResult]:
         """Deserialize calculation result from document format."""

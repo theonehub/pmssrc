@@ -666,27 +666,44 @@ async def update_deductions_component(
     current_user: CurrentUser = Depends(get_current_user),
     controller: UnifiedTaxationController = Depends(get_taxation_controller)
 ) -> ComponentUpdateResponse:
-    """Update deductions component individually."""
+    """Update deductions component individually for a specific employee and tax year."""
+    
+    logger.info(f"Starting individual deductions component update for employee {employee_id}")
+    logger.debug(f"Deductions update request: tax_year={request.tax_year}, notes={request.notes}")
     
     try:
-        # Ensure employee_id in path matches request
+        # Validate employee_id in request matches URL parameter
         if request.employee_id != employee_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Employee ID in path must match employee_id in request body"
+                detail=f"Employee ID mismatch: URL parameter '{employee_id}' does not match request body '{request.employee_id}'"
             )
         
-        response = await controller.update_deductions_component(
-            request, current_user.hostname
-        )
+        response = await controller.update_deductions_component(request, current_user.hostname)
+        
+        logger.info(f"Successfully updated deductions component for employee {employee_id}")
         return response
         
-    except ValueError as e:
+    except TaxationRecordNotFoundError as e:
+        logger.warning(f"Taxation record not found for employee {employee_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except TaxationValidationError as e:
+        logger.error(f"Validation error in deductions update: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(e)
         )
+    except FinalizedRecordError as e:
+        logger.warning(f"Attempted to update finalized record: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(e)
+        )
     except Exception as e:
+        logger.error(f"Failed to update deductions component for employee {employee_id}: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update deductions component: {str(e)}"

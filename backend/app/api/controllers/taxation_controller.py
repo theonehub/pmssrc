@@ -1133,229 +1133,375 @@ class UnifiedTaxationController:
         deductions = TaxDeductions()
         
         if not deductions_dto:
+            logger.debug("Deductions DTO is None or empty, returning default deductions")
             return deductions
+
+        try:
+            # Handle both nested DTO structure and flat dictionary structure from frontend
+            if hasattr(deductions_dto, 'dict'):
+                # If it's a Pydantic model, convert to dict
+                deductions_data = deductions_dto.dict()
+            elif isinstance(deductions_dto, dict):
+                # If it's already a dictionary (from frontend)
+                deductions_data = deductions_dto
+            else:
+                # If it's an object with attributes
+                deductions_data = deductions_dto.__dict__ if hasattr(deductions_dto, '__dict__') else {}
+            
+            logger.info(f"Processing deductions data: {type(deductions_data)} with keys: {list(deductions_data.keys()) if isinstance(deductions_data, dict) else 'N/A'}")
+            logger.debug(f"Full deductions data received: {deductions_data}")
+        except Exception as e:
+            logger.error(f"Error processing deductions DTO structure: {str(e)}")
+            return deductions
+
+        # Helper function to safely get values
+        def safe_get(data, key, default=0):
+            if isinstance(data, dict):
+                return data.get(key, default)
+            return getattr(data, key, default) if hasattr(data, key) else default
         
-        # Map Section 80C fields using the new nested structure
-        if deductions_dto.section_80c:
-            sec_80c_dto = deductions_dto.section_80c
-            deductions.section_80c.life_insurance_premium = Money.from_decimal(sec_80c_dto.life_insurance_premium)
-            deductions.section_80c.epf_contribution = Money.from_decimal(sec_80c_dto.epf_contribution)
-            deductions.section_80c.ppf_contribution = Money.from_decimal(sec_80c_dto.ppf_contribution)
-            deductions.section_80c.nsc_investment = Money.from_decimal(sec_80c_dto.nsc_investment)
-            deductions.section_80c.tax_saving_fd = Money.from_decimal(sec_80c_dto.tax_saving_fd)
-            deductions.section_80c.elss_investment = Money.from_decimal(sec_80c_dto.elss_investment)
-            deductions.section_80c.home_loan_principal = Money.from_decimal(sec_80c_dto.home_loan_principal)
-            deductions.section_80c.tuition_fees = Money.from_decimal(sec_80c_dto.tuition_fees)
-            deductions.section_80c.sukanya_samriddhi = Money.from_decimal(sec_80c_dto.sukanya_samriddhi)
-            deductions.section_80c.other_80c_investments = Money.from_decimal(sec_80c_dto.other_80c_investments)
-        
-        # Map Section 80D fields using the new nested structure
-        if deductions_dto.section_80d:
-            sec_80d_dto = deductions_dto.section_80d
-            deductions.section_80d.self_family_premium = Money.from_decimal(sec_80d_dto.self_family_premium)
-            deductions.section_80d.parent_premium = Money.from_decimal(sec_80d_dto.parent_premium)
-            deductions.section_80d.preventive_health_checkup = Money.from_decimal(sec_80d_dto.preventive_health_checkup)
-            deductions.section_80d.parent_age = sec_80d_dto.parent_age if hasattr(sec_80d_dto, 'parent_age') else 55
-        
-        # Map HRA Exemption fields using the new nested structure
-        if deductions_dto.hra_exemption:
-            hra_dto = deductions_dto.hra_exemption
-            from app.domain.entities.taxation.deductions import HRAExemption
-            deductions.hra_exemption = HRAExemption(
-                actual_rent_paid=Money.from_decimal(hra_dto.actual_rent_paid),
-                hra_city_type=hra_dto.hra_city_type
-            )
-        
-        # Map Other Deductions fields using the new nested structure
-        if deductions_dto.other_deductions:
-            other_dto = deductions_dto.other_deductions
-            deductions.other_deductions.education_loan_interest = Money.from_decimal(other_dto.education_loan_interest)
-            deductions.other_deductions.charitable_donations = Money.from_decimal(other_dto.charitable_donations)
-            deductions.other_deductions.savings_interest = Money.from_decimal(other_dto.savings_interest)
-            deductions.other_deductions.nps_contribution = Money.from_decimal(other_dto.nps_contribution)
-            deductions.other_deductions.other_deductions = Money.from_decimal(other_dto.other_deductions)
+        # Helper function to safely convert values to Money
+        def safe_money_from_value(value, default=0):
+            """Safely convert a value to Money, handling various edge cases."""
+            import decimal
+            try:
+                # Handle None or empty values
+                if value is None or value == "":
+                    return Money.from_decimal(default)
+                
+                # Handle string values that might be invalid
+                if isinstance(value, str):
+                    # Strip whitespace and handle common invalid values
+                    value = value.strip()
+                    if value.lower() in ['null', 'undefined', 'nan', 'none', '']:
+                        return Money.from_decimal(default)
+                
+                # Try to convert to float first, then to decimal
+                if isinstance(value, (int, float)):
+                    return Money.from_decimal(float(value))
+                elif isinstance(value, str):
+                    return Money.from_decimal(float(value))
+                else:
+                    # For any other type, try direct conversion
+                    return Money.from_decimal(value)
+                    
+            except (ValueError, TypeError, decimal.InvalidOperation, decimal.ConversionSyntax) as e:
+                logger.warning(f"Failed to convert value '{value}' to Money, using default {default}: {str(e)}")
+                return Money.from_decimal(default)
+
+        # Map Section 80C fields - handle both nested and flat structures
+        try:
+            section_80c_data = safe_get(deductions_data, 'section_80c', {})
+            section_80c_keys = [
+                'life_insurance_premium', 'epf_contribution', 'ppf_contribution', 
+                'nsc_investment', 'tax_saving_fd', 'elss_investment', 'home_loan_principal',
+                'tuition_fees', 'ulip_premium', 'sukanya_samriddhi', 'stamp_duty_property',
+                'senior_citizen_savings', 'other_80c_investments'
+            ]
+            
+            if section_80c_data or any(key in deductions_data for key in section_80c_keys):
+                logger.debug(f"Processing Section 80C data. Nested: {section_80c_data}, Flat keys present: {[k for k in section_80c_keys if k in deductions_data]}")
+                
+                # Handle nested structure
+                if section_80c_data:
+                    deductions.section_80c.life_insurance_premium = safe_money_from_value(safe_get(section_80c_data, 'life_insurance_premium', 0))
+                    deductions.section_80c.epf_contribution = safe_money_from_value(safe_get(section_80c_data, 'epf_contribution', 0))
+                    deductions.section_80c.ppf_contribution = safe_money_from_value(safe_get(section_80c_data, 'ppf_contribution', 0))
+                    deductions.section_80c.nsc_investment = safe_money_from_value(safe_get(section_80c_data, 'nsc_investment', 0))
+                    deductions.section_80c.tax_saving_fd = safe_money_from_value(safe_get(section_80c_data, 'tax_saving_fd', 0))
+                    deductions.section_80c.elss_investment = safe_money_from_value(safe_get(section_80c_data, 'elss_investment', 0))
+                    deductions.section_80c.home_loan_principal = safe_money_from_value(safe_get(section_80c_data, 'home_loan_principal', 0))
+                    deductions.section_80c.tuition_fees = safe_money_from_value(safe_get(section_80c_data, 'tuition_fees', 0))
+                    deductions.section_80c.ulip_premium = safe_money_from_value(safe_get(section_80c_data, 'ulip_premium', 0))
+                    deductions.section_80c.sukanya_samriddhi = safe_money_from_value(safe_get(section_80c_data, 'sukanya_samriddhi', 0))
+                    deductions.section_80c.stamp_duty_property = safe_money_from_value(safe_get(section_80c_data, 'stamp_duty_property', 0))
+                    deductions.section_80c.senior_citizen_savings = safe_money_from_value(safe_get(section_80c_data, 'senior_citizen_savings', 0))
+                    deductions.section_80c.other_80c_investments = safe_money_from_value(safe_get(section_80c_data, 'other_80c_investments', 0))
+                else:
+                    # Handle flat structure (from frontend)
+                    deductions.section_80c.life_insurance_premium = safe_money_from_value(safe_get(deductions_data, 'life_insurance_premium', 0))
+                    deductions.section_80c.epf_contribution = safe_money_from_value(safe_get(deductions_data, 'epf_contribution', 0))
+                    deductions.section_80c.ppf_contribution = safe_money_from_value(safe_get(deductions_data, 'ppf_contribution', 0))
+                    deductions.section_80c.nsc_investment = safe_money_from_value(safe_get(deductions_data, 'nsc_investment', 0))
+                    deductions.section_80c.tax_saving_fd = safe_money_from_value(safe_get(deductions_data, 'tax_saving_fd', 0))
+                    deductions.section_80c.elss_investment = safe_money_from_value(safe_get(deductions_data, 'elss_investment', 0))
+                    deductions.section_80c.home_loan_principal = safe_money_from_value(safe_get(deductions_data, 'home_loan_principal', 0))
+                    deductions.section_80c.tuition_fees = safe_money_from_value(safe_get(deductions_data, 'tuition_fees', 0))
+                    deductions.section_80c.ulip_premium = safe_money_from_value(safe_get(deductions_data, 'ulip_premium', 0))
+                    deductions.section_80c.sukanya_samriddhi = safe_money_from_value(safe_get(deductions_data, 'sukanya_samriddhi', 0))
+                    deductions.section_80c.stamp_duty_property = safe_money_from_value(safe_get(deductions_data, 'stamp_duty_property', 0))
+                    deductions.section_80c.senior_citizen_savings = safe_money_from_value(safe_get(deductions_data, 'senior_citizen_savings', 0))
+                    deductions.section_80c.other_80c_investments = safe_money_from_value(safe_get(deductions_data, 'other_80c_investments', 0))
+                
+                logger.debug(f"Section 80C total after conversion: {deductions.section_80c.calculate_total_investment()}")
+        except Exception as e:
+            logger.error(f"Error processing Section 80C deductions: {str(e)}")
+
+        # Map Section 80D fields - handle both nested and flat structures
+        try:
+            section_80d_data = safe_get(deductions_data, 'section_80d', {})
+            section_80d_keys = ['self_family_premium', 'parent_premium', 'preventive_health_checkup']
+            
+            if section_80d_data or any(key in deductions_data for key in section_80d_keys):
+                logger.debug(f"Processing Section 80D data. Nested: {section_80d_data}, Flat keys present: {[k for k in section_80d_keys if k in deductions_data]}")
+                
+                # Handle nested structure
+                if section_80d_data:
+                    deductions.section_80d.self_family_premium = safe_money_from_value(safe_get(section_80d_data, 'self_family_premium', 0))
+                    deductions.section_80d.parent_premium = safe_money_from_value(safe_get(section_80d_data, 'parent_premium', 0))
+                    deductions.section_80d.preventive_health_checkup = safe_money_from_value(safe_get(section_80d_data, 'preventive_health_checkup', 0))
+                    deductions.section_80d.parent_age = safe_get(section_80d_data, 'parent_age', 55)
+                else:
+                    # Handle flat structure (from frontend)
+                    deductions.section_80d.self_family_premium = safe_money_from_value(safe_get(deductions_data, 'self_family_premium', 0))
+                    deductions.section_80d.parent_premium = safe_money_from_value(safe_get(deductions_data, 'parent_premium', 0))
+                    deductions.section_80d.preventive_health_checkup = safe_money_from_value(safe_get(deductions_data, 'preventive_health_checkup', 0))
+                
+                logger.debug(f"Section 80D total after conversion: {deductions.section_80d.self_family_premium.add(deductions.section_80d.parent_premium).add(deductions.section_80d.preventive_health_checkup)}")
+        except Exception as e:
+            logger.error(f"Error processing Section 80D deductions: {str(e)}")
+
+        # Map HRA Exemption fields - handle both nested and flat structures
+        try:
+            hra_exemption_data = safe_get(deductions_data, 'hra_exemption', {})
+            hra_keys = ['actual_rent_paid', 'hra_city_type']
+            
+            if hra_exemption_data or any(key in deductions_data for key in hra_keys):
+                logger.debug(f"Processing HRA exemption data. Nested: {hra_exemption_data}, Flat keys present: {[k for k in hra_keys if k in deductions_data]}")
+                
+                from app.domain.entities.taxation.deductions import HRAExemption
+                if hra_exemption_data:
+                    actual_rent_paid = safe_get(hra_exemption_data, 'actual_rent_paid', 0)
+                    hra_city_type = safe_get(hra_exemption_data, 'hra_city_type', 'non_metro')
+                else:
+                    # Handle flat structure (from frontend)
+                    actual_rent_paid = safe_get(deductions_data, 'actual_rent_paid', 0)
+                    hra_city_type = safe_get(deductions_data, 'hra_city_type', 'non_metro')
+                
+                deductions.hra_exemption = HRAExemption(
+                    actual_rent_paid=safe_money_from_value(actual_rent_paid),
+                    hra_city_type=hra_city_type
+                )
+                logger.debug(f"HRA exemption created with actual_rent_paid: {actual_rent_paid}, city_type: {hra_city_type}")
+        except Exception as e:
+            logger.error(f"Error processing HRA exemption deductions: {str(e)}")
+
+        # Map Other Deductions fields - handle both nested and flat structures
+        try:
+            other_deductions_data = safe_get(deductions_data, 'other_deductions', {})
+            other_deduction_keys = [
+                'education_loan_interest', 'charitable_donations', 'savings_interest', 
+                'nps_contribution', 'other_deductions', 'ev_loan_interest', 'political_party_contribution',
+                'savings_account_interest', 'deposit_interest_senior', 'additional_nps_50k',
+                'donation_100_percent_without_limit', 'donation_50_percent_without_limit',
+                'donation_100_percent_with_limit', 'donation_50_percent_with_limit'
+            ]
+            
+            # Check if we have any other deduction data (either nested or flat)
+            has_nested_data = other_deductions_data and isinstance(other_deductions_data, dict) and len(other_deductions_data) > 0
+            has_flat_data = any(key in deductions_data for key in other_deduction_keys)
+            
+            if has_nested_data or has_flat_data:
+                logger.debug(f"Processing other deductions data. Nested: {other_deductions_data}, Flat keys present: {[k for k in other_deduction_keys if k in deductions_data]}")
+                
+                # Handle nested structure
+                if has_nested_data:
+                    deductions.other_deductions.education_loan_interest = safe_money_from_value(safe_get(other_deductions_data, 'education_loan_interest', 0))
+                    deductions.other_deductions.charitable_donations = safe_money_from_value(safe_get(other_deductions_data, 'charitable_donations', 0))
+                    deductions.other_deductions.savings_interest = safe_money_from_value(safe_get(other_deductions_data, 'savings_interest', 0))
+                    deductions.other_deductions.nps_contribution = safe_money_from_value(safe_get(other_deductions_data, 'nps_contribution', 0))
+                    deductions.other_deductions.other_deductions = safe_money_from_value(safe_get(other_deductions_data, 'other_deductions', 0))
+                else:
+                    # Handle flat structure (from frontend) - map field names correctly
+                    deductions.other_deductions.education_loan_interest = safe_money_from_value(safe_get(deductions_data, 'education_loan_interest', 0))
+                    
+                    # Map donation fields from frontend to backend
+                    donation_100_percent_wo_limit = safe_money_from_value(safe_get(deductions_data, 'donation_100_percent_without_limit', 0))
+                    donation_50_percent_wo_limit = safe_money_from_value(safe_get(deductions_data, 'donation_50_percent_without_limit', 0))
+                    donation_100_percent_w_limit = safe_money_from_value(safe_get(deductions_data, 'donation_100_percent_with_limit', 0))
+                    donation_50_percent_w_limit = safe_money_from_value(safe_get(deductions_data, 'donation_50_percent_with_limit', 0))
+                    political_party_contribution = safe_money_from_value(safe_get(deductions_data, 'political_party_contribution', 0))
+                    
+                    # Sum all donations for charitable_donations
+                    total_donations = (
+                        donation_100_percent_wo_limit.amount + 
+                        donation_50_percent_wo_limit.amount + 
+                        donation_100_percent_w_limit.amount + 
+                        donation_50_percent_w_limit.amount + 
+                        political_party_contribution.amount
+                    )
+                    deductions.other_deductions.charitable_donations = Money.from_decimal(total_donations)
+                    
+                    # Map savings interest (frontend field name is different)
+                    deductions.other_deductions.savings_interest = safe_money_from_value(safe_get(deductions_data, 'savings_account_interest', 0))
+                    
+                    # Map NPS contribution (frontend field name is different)
+                    deductions.other_deductions.nps_contribution = safe_money_from_value(safe_get(deductions_data, 'additional_nps_50k', 0))
+                    
+                    # Map other deductions
+                    deductions.other_deductions.other_deductions = safe_money_from_value(safe_get(deductions_data, 'other_deductions', 0))
+                
+                # Use the correct method name for total calculation
+                logger.debug(f"Other deductions total after conversion: {deductions.other_deductions.calculate_total()}")
+        except Exception as e:
+            logger.error(f"Error processing other deductions: {str(e)}")
+
+        # Log final deductions total
+        try:
+            from app.domain.value_objects.taxation.tax_regime import TaxRegime, TaxRegimeType
+            regime = TaxRegime(TaxRegimeType.NEW)  # Default to new regime for calculation
+            total_deductions = deductions.calculate_total_deductions(regime)
+            logger.info(f"Final deductions total after conversion: {total_deductions}")
+        except Exception as e:
+            logger.error(f"Error calculating total deductions: {str(e)}")
         
         return deductions
     
     def _convert_comprehensive_deductions_dto_to_entity(self, comp_deductions_dto) -> TaxDeductions:
         """Convert comprehensive deductions DTO to entity."""
+        # Add defensive check for None input
+        if comp_deductions_dto is None:
+            logger.warning("Received None for comprehensive deductions DTO, creating default deductions")
+            return self._create_default_deductions()
+        
         # This method would handle the comprehensive deductions conversion
         # For now, we'll use the existing deductions conversion logic
         return self._convert_deductions_dto_to_entity(comp_deductions_dto)
     
     def _convert_perquisites_dto_to_entity(self, perquisites_dto) -> Perquisites:
         """Convert perquisites DTO to entity."""
-        # Convert accommodation
-        accommodation = None
-        if perquisites_dto.accommodation:
-            acc_dto = perquisites_dto.accommodation
-            accommodation = AccommodationPerquisite(
-                accommodation_type=AccommodationType(acc_dto.accommodation_type),
-                city_population=CityPopulation(acc_dto.city_population),
-                license_fees=Money.from_decimal(acc_dto.license_fees),
-                employee_rent_payment=Money.from_decimal(acc_dto.employee_rent_payment),
-                basic_salary=Money.from_decimal(acc_dto.basic_salary),
-                dearness_allowance=Money.from_decimal(acc_dto.dearness_allowance),
-                rent_paid_by_employer=Money.from_decimal(acc_dto.rent_paid_by_employer),
-                hotel_charges=Money.from_decimal(acc_dto.hotel_charges),
-                stay_days=acc_dto.stay_days,
-                furniture_cost=Money.from_decimal(acc_dto.furniture_cost),
-                furniture_employee_payment=Money.from_decimal(acc_dto.furniture_employee_payment),
-                is_furniture_owned_by_employer=acc_dto.is_furniture_owned_by_employer
-            )
+        from app.domain.entities.taxation.perquisites import (
+            AccommodationPerquisite, CarPerquisite, MedicalReimbursement, 
+            LTAPerquisite, InterestFreeConcessionalLoan, ESOPPerquisite,
+            UtilitiesPerquisite, FreeEducationPerquisite, MovableAssetUsage,
+            LunchRefreshmentPerquisite, GiftVoucherPerquisite, 
+            MonetaryBenefitsPerquisite, ClubExpensesPerquisite, DomesticHelpPerquisite,
+            AccommodationType, CityPopulation, CarUseType, AssetType
+        )
         
-        # Convert car
-        car = None
-        if perquisites_dto.car:
-            car_dto = perquisites_dto.car
-            car = CarPerquisite(
-                car_use_type=CarUseType(car_dto.car_use_type),
-                engine_capacity_cc=car_dto.engine_capacity_cc,
-                months_used=car_dto.months_used,
-                car_cost_to_employer=Money.from_decimal(car_dto.car_cost_to_employer),
-                other_vehicle_cost=Money.from_decimal(car_dto.other_vehicle_cost),
-                has_expense_reimbursement=car_dto.has_expense_reimbursement,
-                driver_provided=car_dto.driver_provided
-            )
+        # Helper function to safely convert to Money
+        def safe_money_from_value(value, default=0):
+            if value is None:
+                return Money.from_decimal(Decimal(str(default)))
+            return Money.from_decimal(Decimal(str(value)))
+        
+        # Convert accommodation perquisite
+        accommodation = AccommodationPerquisite(
+            accommodation_type=AccommodationType(perquisites_dto.accommodation_type),
+            city_population=CityPopulation(perquisites_dto.city_population),
+            license_fees=safe_money_from_value(perquisites_dto.license_fees),
+            employee_rent_payment=safe_money_from_value(perquisites_dto.employee_rent_payment),
+            rent_paid_by_employer=safe_money_from_value(perquisites_dto.rent_paid_by_employer),
+            hotel_charges=safe_money_from_value(perquisites_dto.hotel_charges),
+            stay_days=perquisites_dto.stay_days,
+            furniture_cost=safe_money_from_value(perquisites_dto.furniture_cost),
+            furniture_employee_payment=safe_money_from_value(perquisites_dto.furniture_employee_payment),
+            is_furniture_owned_by_employer=perquisites_dto.is_furniture_owned_by_employer
+        )
+        # Note: basic_salary and dearness_allowance are not fields of AccommodationPerquisite; use them at calculation time if needed.
+        
+        # Convert car perquisite
+        car = CarPerquisite(
+            car_use_type=CarUseType(perquisites_dto.car_use_type),
+            engine_capacity_cc=perquisites_dto.engine_capacity_cc,
+            months_used=perquisites_dto.months_used,
+            car_cost_to_employer=safe_money_from_value(perquisites_dto.car_cost_to_employer),
+            other_vehicle_cost=safe_money_from_value(perquisites_dto.other_vehicle_cost),
+            has_expense_reimbursement=perquisites_dto.has_expense_reimbursement,
+            driver_provided=perquisites_dto.driver_provided
+        )
         
         # Convert medical reimbursement
-        medical_reimbursement = None
-        if perquisites_dto.medical_reimbursement:
-            med_dto = perquisites_dto.medical_reimbursement
-            medical_reimbursement = MedicalReimbursement(
-                medical_reimbursement_amount=Money.from_decimal(med_dto.medical_reimbursement_amount),
-                is_overseas_treatment=med_dto.is_overseas_treatment
-            )
+        medical_reimbursement = MedicalReimbursement(
+            medical_reimbursement_amount=safe_money_from_value(perquisites_dto.medical_reimbursement_amount),
+            is_overseas_treatment=perquisites_dto.is_overseas_treatment
+        )
         
         # Convert LTA
-        lta = None
-        if perquisites_dto.lta:
-            lta_dto = perquisites_dto.lta
-            lta = LTAPerquisite(
-                lta_amount_claimed=Money.from_decimal(lta_dto.lta_amount_claimed),
-                lta_claimed_count=lta_dto.lta_claimed_count,
-                public_transport_cost=Money.from_decimal(lta_dto.public_transport_cost)
-            )
+        lta = LTAPerquisite(
+            lta_amount_claimed=safe_money_from_value(perquisites_dto.lta_amount_claimed),
+            lta_claimed_count=perquisites_dto.lta_claimed_count,
+            public_transport_cost=safe_money_from_value(perquisites_dto.public_transport_cost)
+        )
         
         # Convert interest free loan
-        interest_free_loan = None
-        if perquisites_dto.interest_free_loan:
-            loan_dto = perquisites_dto.interest_free_loan
-            interest_free_loan = InterestFreeConcessionalLoan(
-                loan_amount=Money.from_decimal(loan_dto.loan_amount),
-                outstanding_amount=Money.from_decimal(loan_dto.outstanding_amount),
-                company_interest_rate=Decimal(str(loan_dto.company_interest_rate)),
-                sbi_interest_rate=Decimal(str(loan_dto.sbi_interest_rate)),
-                loan_months=loan_dto.loan_months
-            )
+        interest_free_loan = InterestFreeConcessionalLoan(
+            loan_amount=safe_money_from_value(perquisites_dto.loan_amount),
+            outstanding_amount=safe_money_from_value(perquisites_dto.loan_amount),  # Assuming same as loan amount
+            company_interest_rate=Decimal(str(perquisites_dto.interest_rate_charged)),
+            sbi_interest_rate=Decimal(str(perquisites_dto.sbi_rate)),
+            loan_months=perquisites_dto.asset_usage_months  # Using asset_usage_months as loan_months
+        )
         
         # Convert ESOP
-        esop = None
-        if perquisites_dto.esop:
-            esop_dto = perquisites_dto.esop
-            esop = ESOPPerquisite(
-                shares_exercised=esop_dto.shares_exercised,
-                exercise_price=Money.from_decimal(esop_dto.exercise_price),
-                allotment_price=Money.from_decimal(esop_dto.allotment_price)
-            )
+        esop = ESOPPerquisite(
+            shares_exercised=perquisites_dto.esop_shares_exercised,
+            exercise_price=safe_money_from_value(perquisites_dto.esop_exercise_value),
+            allotment_price=safe_money_from_value(perquisites_dto.esop_fair_market_value)
+        )
         
         # Convert utilities
-        utilities = None
-        if perquisites_dto.utilities:
-            util_dto = perquisites_dto.utilities
-            utilities = UtilitiesPerquisite(
-                gas_paid_by_employer=Money.from_decimal(util_dto.gas_paid_by_employer),
-                electricity_paid_by_employer=Money.from_decimal(util_dto.electricity_paid_by_employer),
-                water_paid_by_employer=Money.from_decimal(util_dto.water_paid_by_employer),
-                gas_paid_by_employee=Money.from_decimal(util_dto.gas_paid_by_employee),
-                electricity_paid_by_employee=Money.from_decimal(util_dto.electricity_paid_by_employee),
-                water_paid_by_employee=Money.from_decimal(util_dto.water_paid_by_employee),
-                is_gas_manufactured_by_employer=util_dto.is_gas_manufactured_by_employer,
-                is_electricity_manufactured_by_employer=util_dto.is_electricity_manufactured_by_employer,
-                is_water_manufactured_by_employer=util_dto.is_water_manufactured_by_employer
-            )
+        utilities = UtilitiesPerquisite(
+            gas_paid_by_employer=safe_money_from_value(perquisites_dto.gas_electricity_water_amount),
+            electricity_paid_by_employer=Money.zero(),
+            water_paid_by_employer=Money.zero(),
+            gas_paid_by_employee=Money.zero(),
+            electricity_paid_by_employee=Money.zero(),
+            water_paid_by_employee=Money.zero(),
+            is_gas_manufactured_by_employer=False,
+            is_electricity_manufactured_by_employer=False,
+            is_water_manufactured_by_employer=False
+        )
         
         # Convert free education
-        free_education = None
-        if perquisites_dto.free_education:
-            edu_dto = perquisites_dto.free_education
-            free_education = FreeEducationPerquisite(
-                monthly_expenses_child1=Money.from_decimal(edu_dto.monthly_expenses_child1),
-                monthly_expenses_child2=Money.from_decimal(edu_dto.monthly_expenses_child2),
-                months_child1=edu_dto.months_child1,
-                months_child2=edu_dto.months_child2,
-                employer_maintained_1st_child=edu_dto.employer_maintained_1st_child,
-                employer_maintained_2nd_child=edu_dto.employer_maintained_2nd_child
-            )
+        free_education = FreeEducationPerquisite(
+            monthly_expenses_child1=safe_money_from_value(perquisites_dto.free_education_amount if perquisites_dto.is_children_education else 0),
+            monthly_expenses_child2=Money.zero(),
+            months_child1=12 if perquisites_dto.is_children_education else 0,
+            months_child2=0,
+            employer_maintained_1st_child=perquisites_dto.is_children_education,
+            employer_maintained_2nd_child=False
+        )
         
         # Convert movable asset usage
-        movable_asset_usage = None
-        if perquisites_dto.movable_asset_usage:
-            asset_dto = perquisites_dto.movable_asset_usage
-            movable_asset_usage = MovableAssetUsage(
-                asset_type=AssetType(asset_dto.asset_type),
-                asset_value=Money.from_decimal(asset_dto.asset_value),
-                employee_payment=Money.from_decimal(asset_dto.employee_payment),
-                is_employer_owned=asset_dto.is_employer_owned
-            )
-        
-        # Convert movable asset transfer
-        movable_asset_transfer = None
-        if perquisites_dto.movable_asset_transfer:
-            transfer_dto = perquisites_dto.movable_asset_transfer
-            movable_asset_transfer = MovableAssetTransfer(
-                asset_type=AssetType(transfer_dto.asset_type),
-                asset_cost=Money.from_decimal(transfer_dto.asset_cost),
-                years_of_use=transfer_dto.years_of_use,
-                employee_payment=Money.from_decimal(transfer_dto.employee_payment)
-            )
+        movable_asset_usage = MovableAssetUsage(
+            asset_type=AssetType("Others"),
+            asset_value=safe_money_from_value(perquisites_dto.movable_asset_value),
+            employee_payment=Money.zero(),
+            is_employer_owned=True
+        )
         
         # Convert lunch refreshment
-        lunch_refreshment = None
-        if perquisites_dto.lunch_refreshment:
-            lunch_dto = perquisites_dto.lunch_refreshment
-            lunch_refreshment = LunchRefreshmentPerquisite(
-                employer_cost=Money.from_decimal(lunch_dto.employer_cost),
-                employee_payment=Money.from_decimal(lunch_dto.employee_payment),
-                meal_days_per_year=lunch_dto.meal_days_per_year
-            )
-        
-        # Convert gift voucher
-        gift_voucher = None
-        if perquisites_dto.gift_voucher:
-            gift_dto = perquisites_dto.gift_voucher
-            gift_voucher = GiftVoucherPerquisite(
-                gift_voucher_amount=Money.from_decimal(gift_dto.gift_voucher_amount)
-            )
-        
-        # Convert monetary benefits
-        monetary_benefits = None
-        if perquisites_dto.monetary_benefits:
-            money_dto = perquisites_dto.monetary_benefits
-            monetary_benefits = MonetaryBenefitsPerquisite(
-                monetary_amount_paid_by_employer=Money.from_decimal(money_dto.monetary_amount_paid_by_employer),
-                expenditure_for_official_purpose=Money.from_decimal(money_dto.expenditure_for_official_purpose),
-                amount_paid_by_employee=Money.from_decimal(money_dto.amount_paid_by_employee)
-            )
-        
-        # Convert club expenses
-        club_expenses = None
-        if perquisites_dto.club_expenses:
-            club_dto = perquisites_dto.club_expenses
-            club_expenses = ClubExpensesPerquisite(
-                club_expenses_paid_by_employer=Money.from_decimal(club_dto.club_expenses_paid_by_employer),
-                club_expenses_paid_by_employee=Money.from_decimal(club_dto.club_expenses_paid_by_employee),
-                club_expenses_for_official_purpose=Money.from_decimal(club_dto.club_expenses_for_official_purpose)
-            )
+        lunch_refreshment = LunchRefreshmentPerquisite(
+            employer_cost=safe_money_from_value(perquisites_dto.lunch_refreshment_amount),
+            employee_payment=Money.zero(),
+            meal_days_per_year=365
+        )
         
         # Convert domestic help
-        domestic_help = None
-        if perquisites_dto.domestic_help:
-            help_dto = perquisites_dto.domestic_help
-            domestic_help = DomesticHelpPerquisite(
-                domestic_help_paid_by_employer=Money.from_decimal(help_dto.domestic_help_paid_by_employer),
-                domestic_help_paid_by_employee=Money.from_decimal(help_dto.domestic_help_paid_by_employee)
-            )
+        domestic_help = DomesticHelpPerquisite(
+            domestic_help_paid_by_employer=safe_money_from_value(perquisites_dto.domestic_help_amount),
+            domestic_help_paid_by_employee=Money.zero()
+        )
+        
+        # Convert gift voucher
+        gift_voucher = GiftVoucherPerquisite(
+            gift_voucher_amount=Money.zero()
+        )
+        
+        # Convert monetary benefits
+        monetary_benefits = MonetaryBenefitsPerquisite(
+            monetary_amount_paid_by_employer=Money.zero(),
+            expenditure_for_official_purpose=Money.zero(),
+            amount_paid_by_employee=Money.zero()
+        )
+        
+        # Convert club expenses
+        club_expenses = ClubExpensesPerquisite(
+            club_expenses_paid_by_employer=Money.zero(),
+            club_expenses_paid_by_employee=Money.zero(),
+            club_expenses_for_official_purpose=Money.zero()
+        )
         
         return Perquisites(
             accommodation=accommodation,
@@ -1367,7 +1513,7 @@ class UnifiedTaxationController:
             utilities=utilities,
             free_education=free_education,
             movable_asset_usage=movable_asset_usage,
-            movable_asset_transfer=movable_asset_transfer,
+            movable_asset_transfer=None,  # Not in flat structure
             lunch_refreshment=lunch_refreshment,
             gift_voucher=gift_voucher,
             monetary_benefits=monetary_benefits,
@@ -1867,7 +2013,15 @@ class UnifiedTaxationController:
         if salary_income:
             default_salary_income = salary_income
         else:
+            # Use tax year boundaries for effective dates
+            tax_year_start = tax_year_vo.get_start_date()
+            tax_year_end = tax_year_vo.get_end_date()
+            effective_from = datetime.combine(tax_year_start, datetime.min.time())
+            effective_till = datetime.combine(tax_year_end, datetime.min.time())
+            
             default_salary_income = SalaryIncome(
+                effective_from=effective_from,
+                effective_till=effective_till,
                 basic_salary=Money.zero(),
                 dearness_allowance=Money.zero(),
                 hra_provided=Money.zero(),
@@ -1886,6 +2040,15 @@ class UnifiedTaxationController:
             other_deductions=OtherDeductions()
         )
         
+        # Create default perquisites
+        default_perquisites = self._create_default_perquisites()
+        
+        # Create default retirement benefits
+        default_retirement_benefits = self._create_default_retirement_benefits()
+        
+        # Create default other income
+        default_other_income = self._create_default_other_income()
+        
         # Create new salary package record with correct parameters
         salary_package_record = SalaryPackageRecord(
             employee_id=employee_id_vo,
@@ -1894,6 +2057,9 @@ class UnifiedTaxationController:
             regime=TaxRegime.old_regime(),  # Default to old regime
             salary_incomes=[default_salary_income],
             deductions=default_deductions,
+            perquisites=default_perquisites,  # Add default perquisites
+            retirement_benefits=default_retirement_benefits,  # Add default retirement benefits
+            other_income=default_other_income,  # Add default other income
             organization_id=organization_id
         )
         
@@ -1958,32 +2124,35 @@ class UnifiedTaxationController:
         request: "UpdatePerquisitesComponentRequest",
         organization_id: str
     ) -> "ComponentUpdateResponse":
-        """Update perquisites component individually."""
+        """Update perquisites component individually using SalaryPackageRecord."""
         
         try:
-            # Get or create taxation record
-            taxation_record = await self._get_or_create_taxation_record(
-                request.employee_id, request.tax_year, organization_id
-            )
-            
             # Convert DTO to entity
             perquisites = self._convert_perquisites_dto_to_entity(request.perquisites)
             
-            # Update the record
-            taxation_record.perquisites = perquisites
-            taxation_record.updated_at = datetime.utcnow()
+            # Get or create salary package record (it should ideally be present)
+            salary_package_record, found_record = await self._get_or_create_salary_package_record(
+                request.employee_id, request.tax_year, organization_id
+            )
             
-            # Save to database
-            await self.taxation_repository.save(taxation_record, organization_id)
+            if not found_record:
+                logger.warning(f"Salary package record not found for employee {request.employee_id} in {request.tax_year}, created new one")
+            
+            # Update perquisites in salary package record
+            salary_package_record.perquisites = perquisites
+            salary_package_record.updated_at = datetime.utcnow()
+            
+            # Save to database using salary package repository
+            await self.salary_package_repository.save(salary_package_record, organization_id)
             
             return ComponentUpdateResponse(
-                taxation_id=taxation_record.taxation_id,
+                taxation_id=salary_package_record.salary_package_id,
                 employee_id=request.employee_id,
                 tax_year=request.tax_year,
                 component_type="perquisites",
                 status="success",
                 message="Perquisites component updated successfully",
-                updated_at=taxation_record.updated_at,
+                updated_at=salary_package_record.updated_at,
                 notes=request.notes
             )
             
@@ -1996,32 +2165,72 @@ class UnifiedTaxationController:
         request: "UpdateDeductionsComponentRequest",
         organization_id: str
     ) -> "ComponentUpdateResponse":
-        """Update deductions component individually."""
+        """Update deductions component individually using SalaryPackageRecord."""
         
         try:
-            # Get or create taxation record
-            taxation_record = await self._get_or_create_taxation_record(
+            logger.info(f"Starting deductions component update for employee {request.employee_id}, tax_year {request.tax_year}")
+            logger.info(f"Deductions data received: {request.deductions}")
+            logger.debug(f"Full request data: {request}")
+            
+            # Convert DTO to entity
+            if request.deductions is None:
+                logger.info("No deductions data provided, creating default deductions")
+                deductions = self._create_default_deductions()
+            else:
+                logger.info("Converting deductions DTO to entity")
+                deductions = self._convert_comprehensive_deductions_dto_to_entity(request.deductions)
+                logger.debug(f"Converted deductions entity - Section 80C total: {deductions.section_80c.calculate_total_investment()}")
+
+            # Get or create salary package record (it should ideally be present)
+            logger.info(f"Getting or creating salary package record for employee {request.employee_id}")
+            salary_package_record, found_record = await self._get_or_create_salary_package_record(
                 request.employee_id, request.tax_year, organization_id
             )
             
-            # Convert DTO to entity
-            deductions = self._convert_comprehensive_deductions_dto_to_entity(request.deductions)
+            if not found_record:
+                logger.warning(f"Salary package record not found for employee {request.employee_id} in {request.tax_year}, created new one")
+            else:
+                logger.info(f"Found existing salary package record with ID: {salary_package_record.salary_package_id}")
+
+            # Log existing deductions before update
+            existing_deductions_total = salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime)
+            logger.info(f"Existing deductions total before update: {existing_deductions_total}")
             
-            # Update the record
-            taxation_record.deductions = deductions
-            taxation_record.updated_at = datetime.utcnow()
+            # Update deductions using the salary package record's method
+            logger.info("Updating deductions on salary package record")
+            salary_package_record.update_deductions(deductions)
+            salary_package_record.updated_at = datetime.utcnow()
             
-            # Save to database
-            await self.taxation_repository.save(taxation_record, organization_id)
+            # Log new deductions after update
+            new_deductions_total = salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime) 
+            logger.info(f"New deductions total after update: {new_deductions_total}")
+            
+            # Save to database using salary package repository
+            logger.info(f"Saving salary package record to database for organization {organization_id}")
+            saved_record = await self.salary_package_repository.save(salary_package_record, organization_id)
+            logger.info(f"Successfully saved salary package record. Returned record ID: {saved_record.salary_package_id}")
+            
+            # Verify the save by attempting to read back
+            logger.info("Verifying save operation by reading back the record")
+            verification_record = await self.salary_package_repository.get_salary_package_record(
+                request.employee_id, request.tax_year, organization_id
+            )
+            if verification_record:
+                verify_deductions_total = verification_record.deductions.calculate_total_deductions(verification_record.regime)
+                logger.info(f"Verification successful - Deductions total in database: {verify_deductions_total}")
+                if verify_deductions_total != new_deductions_total:
+                    logger.error(f"MISMATCH: Expected {new_deductions_total}, but found {verify_deductions_total} in database")
+            else:
+                logger.error("VERIFICATION FAILED: Could not read back the saved record from database")
             
             return ComponentUpdateResponse(
-                taxation_id=taxation_record.taxation_id,
+                taxation_id=salary_package_record.salary_package_id,
                 employee_id=request.employee_id,
                 tax_year=request.tax_year,
                 component_type="deductions",
                 status="success",
                 message="Deductions component updated successfully",
-                updated_at=taxation_record.updated_at,
+                updated_at=salary_package_record.updated_at,
                 notes=request.notes
             )
             
@@ -2034,36 +2243,39 @@ class UnifiedTaxationController:
         request: "UpdateHousePropertyComponentRequest",
         organization_id: str
     ) -> "ComponentUpdateResponse":
-        """Update house property component individually."""
+        """Update house property component individually using SalaryPackageRecord."""
         
         try:
-            # Get or create taxation record
-            taxation_record = await self._get_or_create_taxation_record(
-                request.employee_id, request.tax_year, organization_id
-            )
-            
             # Convert DTO to entity
             house_property = self._convert_house_property_dto_to_entity(request.house_property_income)
             
+            # Get or create salary package record (it should ideally be present)
+            salary_package_record, found_record = await self._get_or_create_salary_package_record(
+                request.employee_id, request.tax_year, organization_id
+            )
+            
+            if not found_record:
+                logger.warning(f"Salary package record not found for employee {request.employee_id} in {request.tax_year}, created new one")
+            
             # Create or update other_income
-            if not taxation_record.other_income:
-                taxation_record.other_income = self._create_default_other_income()
+            if not salary_package_record.other_income:
+                salary_package_record.other_income = self._create_default_other_income()
             
             # Update house property in other income
-            taxation_record.other_income.house_property_income = house_property
-            taxation_record.updated_at = datetime.utcnow()
+            salary_package_record.other_income.house_property_income = house_property
+            salary_package_record.updated_at = datetime.utcnow()
             
-            # Save to database
-            await self.taxation_repository.save(taxation_record, organization_id)
+            # Save to database using salary package repository
+            await self.salary_package_repository.save(salary_package_record, organization_id)
             
             return ComponentUpdateResponse(
-                taxation_id=taxation_record.taxation_id,
+                taxation_id=salary_package_record.salary_package_id,
                 employee_id=request.employee_id,
                 tax_year=request.tax_year,
                 component_type="house_property_income",
                 status="success",
                 message="House property component updated successfully",
-                updated_at=taxation_record.updated_at,
+                updated_at=salary_package_record.updated_at,
                 notes=request.notes
             )
             
@@ -2076,36 +2288,39 @@ class UnifiedTaxationController:
         request: "UpdateCapitalGainsComponentRequest",
         organization_id: str
     ) -> "ComponentUpdateResponse":
-        """Update capital gains component individually."""
+        """Update capital gains component individually using SalaryPackageRecord."""
         
         try:
-            # Get or create taxation record
-            taxation_record = await self._get_or_create_taxation_record(
-                request.employee_id, request.tax_year, organization_id
-            )
-            
             # Convert DTO to entity
             capital_gains = self._convert_capital_gains_dto_to_entity(request.capital_gains_income)
             
+            # Get or create salary package record (it should ideally be present)
+            salary_package_record, found_record = await self._get_or_create_salary_package_record(
+                request.employee_id, request.tax_year, organization_id
+            )
+            
+            if not found_record:
+                logger.warning(f"Salary package record not found for employee {request.employee_id} in {request.tax_year}, created new one")
+            
             # Create or update other_income
-            if not taxation_record.other_income:
-                taxation_record.other_income = self._create_default_other_income()
+            if not salary_package_record.other_income:
+                salary_package_record.other_income = self._create_default_other_income()
             
             # Update capital gains in other income
-            taxation_record.other_income.capital_gains_income = capital_gains
-            taxation_record.updated_at = datetime.utcnow()
+            salary_package_record.other_income.capital_gains_income = capital_gains
+            salary_package_record.updated_at = datetime.utcnow()
             
-            # Save to database
-            await self.taxation_repository.save(taxation_record, organization_id)
+            # Save to database using salary package repository
+            await self.salary_package_repository.save(salary_package_record, organization_id)
             
             return ComponentUpdateResponse(
-                taxation_id=taxation_record.taxation_id,
+                taxation_id=salary_package_record.salary_package_id,
                 employee_id=request.employee_id,
                 tax_year=request.tax_year,
                 component_type="capital_gains_income",
                 status="success",
                 message="Capital gains component updated successfully",
-                updated_at=taxation_record.updated_at,
+                updated_at=salary_package_record.updated_at,
                 notes=request.notes
             )
             
@@ -2118,32 +2333,35 @@ class UnifiedTaxationController:
         request: "UpdateRetirementBenefitsComponentRequest",
         organization_id: str
     ) -> "ComponentUpdateResponse":
-        """Update retirement benefits component individually."""
+        """Update retirement benefits component individually using SalaryPackageRecord."""
         
         try:
-            # Get or create taxation record
-            taxation_record = await self._get_or_create_taxation_record(
-                request.employee_id, request.tax_year, organization_id
-            )
-            
             # Convert DTO to entity
             retirement_benefits = self._convert_retirement_benefits_dto_to_entity(request.retirement_benefits)
             
-            # Update the record
-            taxation_record.retirement_benefits = retirement_benefits
-            taxation_record.updated_at = datetime.utcnow()
+            # Get or create salary package record (it should ideally be present)
+            salary_package_record, found_record = await self._get_or_create_salary_package_record(
+                request.employee_id, request.tax_year, organization_id
+            )
             
-            # Save to database
-            await self.taxation_repository.save(taxation_record, organization_id)
+            if not found_record:
+                logger.warning(f"Salary package record not found for employee {request.employee_id} in {request.tax_year}, created new one")
+            
+            # Update retirement benefits in salary package record
+            salary_package_record.retirement_benefits = retirement_benefits
+            salary_package_record.updated_at = datetime.utcnow()
+            
+            # Save to database using salary package repository
+            await self.salary_package_repository.save(salary_package_record, organization_id)
             
             return ComponentUpdateResponse(
-                taxation_id=taxation_record.taxation_id,
+                taxation_id=salary_package_record.salary_package_id,
                 employee_id=request.employee_id,
                 tax_year=request.tax_year,
                 component_type="retirement_benefits",
                 status="success",
                 message="Retirement benefits component updated successfully",
-                updated_at=taxation_record.updated_at,
+                updated_at=salary_package_record.updated_at,
                 notes=request.notes
             )
             
@@ -2156,32 +2374,35 @@ class UnifiedTaxationController:
         request: "UpdateOtherIncomeComponentRequest",
         organization_id: str
     ) -> "ComponentUpdateResponse":
-        """Update other income component individually."""
+        """Update other income component individually using SalaryPackageRecord."""
         
         try:
-            # Get or create taxation record
-            taxation_record = await self._get_or_create_taxation_record(
-                request.employee_id, request.tax_year, organization_id
-            )
-            
             # Convert DTO to entity
             other_income = self._convert_other_income_dto_to_entity(request.other_income)
             
-            # Update the record
-            taxation_record.other_income = other_income
-            taxation_record.updated_at = datetime.utcnow()
+            # Get or create salary package record (it should ideally be present)
+            salary_package_record, found_record = await self._get_or_create_salary_package_record(
+                request.employee_id, request.tax_year, organization_id
+            )
             
-            # Save to database
-            await self.taxation_repository.save(taxation_record, organization_id)
+            if not found_record:
+                logger.warning(f"Salary package record not found for employee {request.employee_id} in {request.tax_year}, created new one")
+            
+            # Update other income in salary package record
+            salary_package_record.other_income = other_income
+            salary_package_record.updated_at = datetime.utcnow()
+            
+            # Save to database using salary package repository
+            await self.salary_package_repository.save(salary_package_record, organization_id)
             
             return ComponentUpdateResponse(
-                taxation_id=taxation_record.taxation_id,
+                taxation_id=salary_package_record.salary_package_id,
                 employee_id=request.employee_id,
                 tax_year=request.tax_year,
                 component_type="other_income",
                 status="success",
                 message="Other income component updated successfully",
-                updated_at=taxation_record.updated_at,
+                updated_at=salary_package_record.updated_at,
                 notes=request.notes
             )
             
@@ -2751,8 +2972,8 @@ class UnifiedTaxationController:
             }
         
         # Serialize interest free loan
-        if perquisites.interest_free_concessional_loan:
-            loan = perquisites.interest_free_concessional_loan
+        if perquisites.interest_free_loan:
+            loan = perquisites.interest_free_loan
             result["interest_free_loan"] = {
                 "loan_amount": float(loan.loan_amount.amount),
                 "outstanding_amount": float(loan.outstanding_amount.amount),
@@ -2817,58 +3038,327 @@ class UnifiedTaxationController:
         return result
     
     def _serialize_deductions(self, deductions: TaxDeductions) -> Dict[str, Any]:
-        """Serialize deductions to dict."""
+        """Serialize deductions to dict with comprehensive breakdown."""
         if not deductions:
             return {
-                "section_80c_investments": 0.0,
-                "section_80d_health_insurance": 0.0,
-                "section_80d_parents_health_insurance": 0.0,
-                "section_80e_education_loan": 0.0,
-                "section_80g_donations": 0.0,
-                "section_80tta_savings_interest": 0.0,
-                "section_80ccd1b_nps": 0.0
+                "hra_exemption": {"actual_rent_paid": 0.0, "hra_city_type": "non_metro"},
+                "section_80c": {
+                    "life_insurance_premium": 0.0, "epf_contribution": 0.0, "ppf_contribution": 0.0,
+                    "nsc_investment": 0.0, "tax_saving_fd": 0.0, "elss_investment": 0.0,
+                    "home_loan_principal": 0.0, "tuition_fees": 0.0, "ulip_premium": 0.0,
+                    "sukanya_samriddhi": 0.0, "stamp_duty_property": 0.0, "senior_citizen_savings": 0.0,
+                    "other_80c_investments": 0.0, "total_invested": 0.0, "limit": 150000, "remaining_limit": 150000
+                },
+                "section_80ccc": {"pension_fund_contribution": 0.0},
+                "section_80ccd": {
+                    "employee_nps_contribution": 0.0, "additional_nps_contribution": 0.0,
+                    "employer_nps_contribution": 0.0, "limit_80ccd_1b": 50000
+                },
+                "section_80d": {
+                    "self_family_premium": 0.0, "parent_premium": 0.0, "preventive_health_checkup": 0.0,
+                    "parent_age": 55, "self_family_limit": 25000, "parent_limit": 25000, "preventive_limit": 5000
+                },
+                "section_80dd": {"relation": None, "disability_percentage": None, "eligible_deduction": 0.0},
+                "section_80ddb": {"dependent_age": 0, "medical_expenses": 0.0, "relation": None, "eligible_deduction": 0.0},
+                "section_80e": {"education_loan_interest": 0.0, "relation": None},
+                "section_80eeb": {"ev_loan_interest": 0.0, "ev_purchase_date": None, "eligible_deduction": 0.0},
+                "section_80g": {
+                    "pm_relief_fund": 0.0, "national_defence_fund": 0.0, "national_foundation_communal_harmony": 0.0,
+                    "zila_saksharta_samiti": 0.0, "national_illness_assistance_fund": 0.0, "national_blood_transfusion_council": 0.0,
+                    "national_trust_autism_fund": 0.0, "national_sports_fund": 0.0, "national_cultural_fund": 0.0,
+                    "technology_development_fund": 0.0, "national_children_fund": 0.0, "cm_relief_fund": 0.0,
+                    "army_naval_air_force_funds": 0.0, "swachh_bharat_kosh": 0.0, "clean_ganga_fund": 0.0,
+                    "drug_abuse_control_fund": 0.0, "other_100_percent_wo_limit": 0.0, "jn_memorial_fund": 0.0,
+                    "pm_drought_relief": 0.0, "indira_gandhi_memorial_trust": 0.0, "rajiv_gandhi_foundation": 0.0,
+                    "other_50_percent_wo_limit": 0.0, "family_planning_donation": 0.0, "indian_olympic_association": 0.0,
+                    "other_100_percent_w_limit": 0.0, "govt_charitable_donations": 0.0, "housing_authorities_donations": 0.0,
+                    "religious_renovation_donations": 0.0, "other_charitable_donations": 0.0, "other_50_percent_w_limit": 0.0,
+                    "total_donations": 0.0
+                },
+                "section_80ggc": {"political_party_contribution": 0.0},
+                "section_80u": {"disability_percentage": None, "eligible_deduction": 0.0},
+                "section_80tta_ttb": {
+                    "savings_interest": 0.0, "fd_interest": 0.0, "rd_interest": 0.0, "post_office_interest": 0.0,
+                    "age": 25, "applicable_section": "80TTA", "exemption_limit": 10000, "eligible_exemption": 0.0
+                },
+                "other_deductions": {
+                    "education_loan_interest": 0.0, "charitable_donations": 0.0, "savings_interest": 0.0,
+                    "nps_contribution": 0.0, "other_deductions": 0.0, "total": 0.0
+                },
+                "summary": {"total_deductions": 0.0, "total_interest_exemptions": 0.0, "combined_80c_80ccc_80ccd1": 0.0, "regime_applicable": "old"}
             }
         
-        # Calculate section 80C total investments
-        section_80c_total = 0.0
-        if deductions.section_80c:
-            section_80c_total = float(deductions.section_80c.calculate_total_investment().amount)
+        # Create comprehensive deductions structure
+        result = {
+            # HRA Exemption
+            "hra_exemption": {
+                "actual_rent_paid": float(deductions.hra_exemption.actual_rent_paid.amount) if deductions.hra_exemption else 0.0,
+                "hra_city_type": deductions.hra_exemption.hra_city_type if deductions.hra_exemption else "non_metro"
+            },
+            
+            # Section 80C - Detailed breakdown
+            "section_80c": self._serialize_section_80c(deductions.section_80c),
+            
+            # Section 80CCC
+            "section_80ccc": {
+                "pension_fund_contribution": float(deductions.section_80ccc.pension_fund_contribution.amount) if deductions.section_80ccc else 0.0
+            },
+            
+            # Section 80CCD - NPS contributions
+            "section_80ccd": {
+                "employee_nps_contribution": float(deductions.section_80ccd.employee_nps_contribution.amount) if deductions.section_80ccd else 0.0,
+                "additional_nps_contribution": float(deductions.section_80ccd.additional_nps_contribution.amount) if deductions.section_80ccd else 0.0,
+                "employer_nps_contribution": float(deductions.section_80ccd.employer_nps_contribution.amount) if deductions.section_80ccd else 0.0,
+                "limit_80ccd_1b": 50000
+            },
+            
+            # Section 80D - Health insurance
+            "section_80d": self._serialize_section_80d(deductions.section_80d),
+            
+            # Section 80DD - Disability (Dependent)
+            "section_80dd": self._serialize_section_80dd(deductions.section_80dd),
+            
+            # Section 80DDB - Medical treatment
+            "section_80ddb": self._serialize_section_80ddb(deductions.section_80ddb),
+            
+            # Section 80E - Education loan interest
+            "section_80e": {
+                "education_loan_interest": float(deductions.section_80e.education_loan_interest.amount) if deductions.section_80e else 0.0,
+                "relation": deductions.section_80e.relation.value if deductions.section_80e and deductions.section_80e.relation else None
+            },
+            
+            # Section 80EEB - Electric vehicle loan interest
+            "section_80eeb": self._serialize_section_80eeb(deductions.section_80eeb),
+            
+            # Section 80G - Charitable donations
+            "section_80g": self._serialize_section_80g(deductions.section_80g),
+            
+            # Section 80GGC - Political party contributions
+            "section_80ggc": {
+                "political_party_contribution": float(deductions.section_80ggc.political_party_contribution.amount) if deductions.section_80ggc else 0.0
+            },
+            
+            # Section 80U - Self disability
+            "section_80u": {
+                "disability_percentage": deductions.section_80u.disability_percentage.value if deductions.section_80u and deductions.section_80u.disability_percentage else None,
+                "eligible_deduction": self._calculate_80u_deduction(deductions.section_80u)
+            },
+            
+            # Section 80TTA/TTB - Interest exemptions
+            "section_80tta_ttb": self._serialize_section_80tta_ttb(deductions.section_80tta_ttb),
+            
+            # Other deductions
+            "other_deductions": {
+                "education_loan_interest": float(deductions.other_deductions.education_loan_interest.amount) if deductions.other_deductions else 0.0,
+                "charitable_donations": float(deductions.other_deductions.charitable_donations.amount) if deductions.other_deductions else 0.0,
+                "savings_interest": float(deductions.other_deductions.savings_interest.amount) if deductions.other_deductions else 0.0,
+                "nps_contribution": float(deductions.other_deductions.nps_contribution.amount) if deductions.other_deductions else 0.0,
+                "other_deductions": float(deductions.other_deductions.other_deductions.amount) if deductions.other_deductions else 0.0,
+                "total": float(deductions.other_deductions.calculate_total().amount) if deductions.other_deductions else 0.0
+            },
+            
+            # Summary totals
+            "summary": self._calculate_deductions_summary(deductions)
+        }
         
-        # Get section 80D health insurance amounts
-        section_80d_health_insurance = 0.0
-        section_80d_parents_health_insurance = 0.0
-        if deductions.section_80d:
-            section_80d_health_insurance = float(deductions.section_80d.self_family_premium.amount)
-            section_80d_parents_health_insurance = float(deductions.section_80d.parent_premium.amount)
+        return result
+    
+    def _serialize_section_80c(self, section_80c) -> Dict[str, Any]:
+        """Serialize Section 80C details."""
+        if not section_80c:
+            return {
+                "life_insurance_premium": 0.0, "epf_contribution": 0.0, "ppf_contribution": 0.0,
+                "nsc_investment": 0.0, "tax_saving_fd": 0.0, "elss_investment": 0.0,
+                "home_loan_principal": 0.0, "tuition_fees": 0.0, "ulip_premium": 0.0,
+                "sukanya_samriddhi": 0.0, "stamp_duty_property": 0.0, "senior_citizen_savings": 0.0,
+                "other_80c_investments": 0.0, "total_invested": 0.0, "limit": 150000, "remaining_limit": 150000
+            }
         
-        # Get section 80E education loan interest
-        section_80e_education_loan = 0.0
-        if deductions.section_80e:
-            section_80e_education_loan = float(deductions.section_80e.education_loan_interest.amount)
-        
-        # Get section 80G donations
-        section_80g_donations = 0.0
-        if deductions.section_80g:
-            section_80g_donations = float(deductions.section_80g.calculate_total_donations().amount)
-        
-        # Get section 80TTA savings interest
-        section_80tta_savings_interest = 0.0
-        if deductions.section_80tta_ttb:
-            section_80tta_savings_interest = float(deductions.section_80tta_ttb.savings_interest.amount)
-        
-        # Get section 80CCD(1B) NPS contribution
-        section_80ccd1b_nps = 0.0
-        if deductions.section_80ccd:
-            section_80ccd1b_nps = float(deductions.section_80ccd.additional_nps_contribution.amount)
+        total_invested = float(section_80c.calculate_total_investment().amount)
+        limit = 150000
+        remaining_limit = max(0, limit - total_invested)
         
         return {
-            "section_80c_investments": section_80c_total,
-            "section_80d_health_insurance": section_80d_health_insurance,
-            "section_80d_parents_health_insurance": section_80d_parents_health_insurance,
-            "section_80e_education_loan": section_80e_education_loan,
-            "section_80g_donations": section_80g_donations,
-            "section_80tta_savings_interest": section_80tta_savings_interest,
-            "section_80ccd1b_nps": section_80ccd1b_nps
+            "life_insurance_premium": float(section_80c.life_insurance_premium.amount),
+            "epf_contribution": float(section_80c.epf_contribution.amount),
+            "ppf_contribution": float(section_80c.ppf_contribution.amount),
+            "nsc_investment": float(section_80c.nsc_investment.amount),
+            "tax_saving_fd": float(section_80c.tax_saving_fd.amount),
+            "elss_investment": float(section_80c.elss_investment.amount),
+            "home_loan_principal": float(section_80c.home_loan_principal.amount),
+            "tuition_fees": float(section_80c.tuition_fees.amount),
+            "ulip_premium": float(section_80c.ulip_premium.amount),
+            "sukanya_samriddhi": float(section_80c.sukanya_samriddhi.amount),
+            "stamp_duty_property": float(section_80c.stamp_duty_property.amount),
+            "senior_citizen_savings": float(section_80c.senior_citizen_savings.amount),
+            "other_80c_investments": float(section_80c.other_80c_investments.amount),
+            "total_invested": total_invested,
+            "limit": limit,
+            "remaining_limit": remaining_limit
+        }
+    
+    def _serialize_section_80d(self, section_80d) -> Dict[str, Any]:
+        """Serialize Section 80D details."""
+        if not section_80d:
+            return {
+                "self_family_premium": 0.0, "parent_premium": 0.0, "preventive_health_checkup": 0.0,
+                "parent_age": 55, "self_family_limit": 25000, "parent_limit": 25000, "preventive_limit": 5000
+            }
+        
+        return {
+            "self_family_premium": float(section_80d.self_family_premium.amount),
+            "parent_premium": float(section_80d.parent_premium.amount),
+            "preventive_health_checkup": float(section_80d.preventive_health_checkup.amount),
+            "parent_age": section_80d.parent_age,
+            "self_family_limit": float(section_80d.calculate_self_family_limit(30).amount),
+            "parent_limit": float(section_80d.calculate_parent_limit().amount),
+            "preventive_limit": 5000.0
+        }
+    
+    def _serialize_section_80dd(self, section_80dd) -> Dict[str, Any]:
+        """Serialize Section 80DD details."""
+        if not section_80dd:
+            return {"relation": None, "disability_percentage": None, "eligible_deduction": 0.0}
+        
+        from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
+        regime = TaxRegime(TaxRegimeType.OLD)
+        
+        return {
+            "relation": section_80dd.relation.value if section_80dd.relation else None,
+            "disability_percentage": section_80dd.disability_percentage.value if section_80dd.disability_percentage else None,
+            "eligible_deduction": float(section_80dd.calculate_eligible_deduction(regime).amount)
+        }
+    
+    def _serialize_section_80ddb(self, section_80ddb) -> Dict[str, Any]:
+        """Serialize Section 80DDB details."""
+        if not section_80ddb:
+            return {"dependent_age": 0, "medical_expenses": 0.0, "relation": None, "eligible_deduction": 0.0}
+        
+        from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
+        regime = TaxRegime(TaxRegimeType.OLD)
+        
+        return {
+            "dependent_age": section_80ddb.dependent_age,
+            "medical_expenses": float(section_80ddb.medical_expenses.amount),
+            "relation": section_80ddb.relation.value if section_80ddb.relation else None,
+            "eligible_deduction": float(section_80ddb.calculate_eligible_deduction(regime).amount)
+        }
+    
+    def _serialize_section_80eeb(self, section_80eeb) -> Dict[str, Any]:
+        """Serialize Section 80EEB details."""
+        if not section_80eeb:
+            return {"ev_loan_interest": 0.0, "ev_purchase_date": None, "eligible_deduction": 0.0}
+        
+        from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
+        regime = TaxRegime(TaxRegimeType.OLD)
+        
+        return {
+            "ev_loan_interest": float(section_80eeb.ev_loan_interest.amount),
+            "ev_purchase_date": section_80eeb.ev_purchase_date.isoformat() if section_80eeb.ev_purchase_date else None,
+            "eligible_deduction": float(section_80eeb.calculate_eligible_deduction(regime).amount)
+        }
+    
+    def _serialize_section_80g(self, section_80g) -> Dict[str, Any]:
+        """Serialize Section 80G details."""
+        if not section_80g:
+            return {
+                "pm_relief_fund": 0.0, "national_defence_fund": 0.0, "national_foundation_communal_harmony": 0.0,
+                "zila_saksharta_samiti": 0.0, "national_illness_assistance_fund": 0.0, "national_blood_transfusion_council": 0.0,
+                "national_trust_autism_fund": 0.0, "national_sports_fund": 0.0, "national_cultural_fund": 0.0,
+                "technology_development_fund": 0.0, "national_children_fund": 0.0, "cm_relief_fund": 0.0,
+                "army_naval_air_force_funds": 0.0, "swachh_bharat_kosh": 0.0, "clean_ganga_fund": 0.0,
+                "drug_abuse_control_fund": 0.0, "other_100_percent_wo_limit": 0.0, "jn_memorial_fund": 0.0,
+                "pm_drought_relief": 0.0, "indira_gandhi_memorial_trust": 0.0, "rajiv_gandhi_foundation": 0.0,
+                "other_50_percent_wo_limit": 0.0, "family_planning_donation": 0.0, "indian_olympic_association": 0.0,
+                "other_100_percent_w_limit": 0.0, "govt_charitable_donations": 0.0, "housing_authorities_donations": 0.0,
+                "religious_renovation_donations": 0.0, "other_charitable_donations": 0.0, "other_50_percent_w_limit": 0.0,
+                "total_donations": 0.0
+            }
+        
+        return {
+            "pm_relief_fund": float(section_80g.pm_relief_fund.amount),
+            "national_defence_fund": float(section_80g.national_defence_fund.amount),
+            "national_foundation_communal_harmony": float(section_80g.national_foundation_communal_harmony.amount),
+            "zila_saksharta_samiti": float(section_80g.zila_saksharta_samiti.amount),
+            "national_illness_assistance_fund": float(section_80g.national_illness_assistance_fund.amount),
+            "national_blood_transfusion_council": float(section_80g.national_blood_transfusion_council.amount),
+            "national_trust_autism_fund": float(section_80g.national_trust_autism_fund.amount),
+            "national_sports_fund": float(section_80g.national_sports_fund.amount),
+            "national_cultural_fund": float(section_80g.national_cultural_fund.amount),
+            "technology_development_fund": float(section_80g.technology_development_fund.amount),
+            "national_children_fund": float(section_80g.national_children_fund.amount),
+            "cm_relief_fund": float(section_80g.cm_relief_fund.amount),
+            "army_naval_air_force_funds": float(section_80g.army_naval_air_force_funds.amount),
+            "swachh_bharat_kosh": float(section_80g.swachh_bharat_kosh.amount),
+            "clean_ganga_fund": float(section_80g.clean_ganga_fund.amount),
+            "drug_abuse_control_fund": float(section_80g.drug_abuse_control_fund.amount),
+            "other_100_percent_wo_limit": float(section_80g.other_100_percent_wo_limit.amount),
+            "jn_memorial_fund": float(section_80g.jn_memorial_fund.amount),
+            "pm_drought_relief": float(section_80g.pm_drought_relief.amount),
+            "indira_gandhi_memorial_trust": float(section_80g.indira_gandhi_memorial_trust.amount),
+            "rajiv_gandhi_foundation": float(section_80g.rajiv_gandhi_foundation.amount),
+            "other_50_percent_wo_limit": float(section_80g.other_50_percent_wo_limit.amount),
+            "family_planning_donation": float(section_80g.family_planning_donation.amount),
+            "indian_olympic_association": float(section_80g.indian_olympic_association.amount),
+            "other_100_percent_w_limit": float(section_80g.other_100_percent_w_limit.amount),
+            "govt_charitable_donations": float(section_80g.govt_charitable_donations.amount),
+            "housing_authorities_donations": float(section_80g.housing_authorities_donations.amount),
+            "religious_renovation_donations": float(section_80g.religious_renovation_donations.amount),
+            "other_charitable_donations": float(section_80g.other_charitable_donations.amount),
+            "other_50_percent_w_limit": float(section_80g.other_50_percent_w_limit.amount),
+            "total_donations": float(section_80g.calculate_total_donations().amount)
+        }
+    
+    def _serialize_section_80tta_ttb(self, section_80tta_ttb) -> Dict[str, Any]:
+        """Serialize Section 80TTA/TTB details."""
+        if not section_80tta_ttb:
+            return {
+                "savings_interest": 0.0, "fd_interest": 0.0, "rd_interest": 0.0, "post_office_interest": 0.0,
+                "age": 25, "applicable_section": "80TTA", "exemption_limit": 10000, "eligible_exemption": 0.0
+            }
+        
+        from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
+        regime = TaxRegime(TaxRegimeType.OLD)
+        
+        breakdown = section_80tta_ttb.get_exemption_breakdown(regime)
+        
+        return {
+            "savings_interest": float(section_80tta_ttb.savings_interest.amount),
+            "fd_interest": float(section_80tta_ttb.fd_interest.amount),
+            "rd_interest": float(section_80tta_ttb.rd_interest.amount),
+            "post_office_interest": float(section_80tta_ttb.post_office_interest.amount),
+            "age": section_80tta_ttb.age,
+            "applicable_section": breakdown.get("applicable_section", "80TTA"),
+            "exemption_limit": breakdown.get("exemption_limit", 10000),
+            "eligible_exemption": breakdown.get("eligible_exemption", 0.0)
+        }
+    
+    def _calculate_80u_deduction(self, section_80u) -> float:
+        """Calculate Section 80U deduction."""
+        if not section_80u:
+            return 0.0
+        
+        from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
+        regime = TaxRegime(TaxRegimeType.OLD)
+        
+        return float(section_80u.calculate_eligible_deduction(regime).amount)
+    
+    def _calculate_deductions_summary(self, deductions: TaxDeductions) -> Dict[str, Any]:
+        """Calculate summary totals for deductions."""
+        from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
+        
+        # Use old regime for calculation (deductions are primarily for old regime)
+        regime = TaxRegime(TaxRegimeType.OLD)
+        
+        total_deductions = float(deductions.calculate_total_deductions(regime).amount)
+        total_interest_exemptions = float(deductions.calculate_interest_exemptions(regime).amount)
+        combined_80c_80ccc_80ccd1 = float(deductions.calculate_combined_80c_80ccc_80ccd1_deduction(regime).amount)
+        
+        return {
+            "total_deductions": total_deductions,
+            "total_interest_exemptions": total_interest_exemptions,
+            "combined_80c_80ccc_80ccd1": combined_80c_80ccc_80ccd1,
+            "regime_applicable": "old"
         }
     
     def _serialize_house_property_income(self, house_property: HousePropertyIncome) -> Dict[str, Any]:

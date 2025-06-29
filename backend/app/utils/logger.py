@@ -287,7 +287,7 @@ def add_custom_logger(name: str, level: str = None, file_path: str = None):
 # Convenience function for backward compatibility
 def setup_logging():
     """Setup logging configuration (called automatically on import)."""
-    set_log_level('DEBUG') # TODO: Remove this after testing
+    #set_log_level('DEBUG') # TODO: Remove this after testing
     pass  # Configuration is done automatically when the module is imported
 
 # Auto-setup logging when module is imported

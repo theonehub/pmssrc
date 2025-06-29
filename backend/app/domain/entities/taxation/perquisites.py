@@ -101,9 +101,9 @@ class AccommodationPerquisite:
         
         return furniture_value.subtract(self.furniture_employee_payment).max(Money.zero())
     
-    def calculate_total_value(self) -> Money:
+    def calculate_total_value(self, basic_plus_da: Money) -> Money:
         """Calculate total accommodation perquisite value."""
-        accommodation_value = self.calculate_accommodation_value()
+        accommodation_value = self.calculate_accommodation_value(basic_plus_da)
         furniture_value = self.calculate_furniture_value()
         return accommodation_value.add(furniture_value)
 
@@ -521,7 +521,7 @@ class Perquisites:
     monetary_benefits: Optional[MonetaryBenefitsPerquisite] = None
     club_expenses: Optional[ClubExpensesPerquisite] = None
     
-    def calculate_total_perquisites(self, regime: TaxRegime) -> Money:
+    def calculate_total_perquisites(self, regime: TaxRegime, basic_plus_da: Money) -> Money:
         """
         Calculate total perquisite value for all perquisite types.
         
@@ -539,7 +539,7 @@ class Perquisites:
         
         # Core perquisites
         if self.accommodation:
-            total = total.add(self.accommodation.calculate_total_value())
+            total = total.add(self.accommodation.calculate_total_value(basic_plus_da))
         
         if self.car:
             total = total.add(self.car.calculate_car_value())
@@ -590,7 +590,7 @@ class Perquisites:
         
         return total
     
-    def get_perquisites_breakdown(self, regime: TaxRegime) -> Dict[str, Any]:
+    def get_perquisites_breakdown(self, regime: TaxRegime, basic_plus_da: Money) -> Dict[str, Any]:
         """
         Get detailed breakdown of all perquisites.
         
@@ -608,7 +608,7 @@ class Perquisites:
         if regime.regime_type == TaxRegimeType.OLD:
             breakdown.update({
                 # Core perquisites
-                "accommodation": self.accommodation.calculate_total_value().to_float() if self.accommodation else 0,
+                "accommodation": self.accommodation.calculate_total_value(basic_plus_da).to_float() if self.accommodation else 0,
                 "car": self.car.calculate_car_value().to_float() if self.car else 0,
                 
                 # Medical and travel perquisites
@@ -683,7 +683,7 @@ class Perquisites:
         
         return breakdown
     
-    def get_perquisites_summary(self, regime: TaxRegime) -> Dict[str, Any]:
+    def get_perquisites_summary(self, regime: TaxRegime, basic_plus_da: Money) -> Dict[str, Any]:
         """
         Get a summary of perquisites by category.
         
@@ -703,7 +703,7 @@ class Perquisites:
         # Core perquisites
         core_total = Money.zero()
         if self.accommodation:
-            core_total = core_total.add(self.accommodation.calculate_total_value())
+            core_total = core_total.add(self.accommodation.calculate_total_value(basic_plus_da))
         if self.car:
             core_total = core_total.add(self.car.calculate_car_value())
         
@@ -779,22 +779,6 @@ class Perquisites:
         
         max_category = max(amounts.keys(), key=lambda k: amounts[k].to_float())
         return max_category if amounts[max_category].is_positive() else "None"
-    
-    # Backward compatibility properties for legacy code
-    @property
-    def rent_free_accommodation(self) -> Money:
-        """Backward compatibility: Get accommodation perquisite value."""
-        if self.accommodation:
-            return self.accommodation.calculate_total_value()
-        return Money.zero()
-    
-    @property
-    def concessional_accommodation(self) -> Money:
-        """Backward compatibility: Get concessional accommodation value."""
-        # This is typically part of accommodation perquisite
-        if self.accommodation and self.accommodation.accommodation_type == AccommodationType.EMPLOYER_LEASED:
-            return self.accommodation.calculate_accommodation_value()
-        return Money.zero()
     
     @property
     def car_perquisite(self) -> Money:

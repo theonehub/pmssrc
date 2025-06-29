@@ -249,7 +249,6 @@ class RegimeComparisonService:
                     'arrears': input_data.salary_income.arrears
                 },
                 'perquisites': {
-                    'rent_free_accommodation': input_data.perquisites.rent_free_accommodation,
                     'car_perquisite': input_data.perquisites.car_perquisite,
                     'other_perquisites': input_data.perquisites.other_perquisites
                 },

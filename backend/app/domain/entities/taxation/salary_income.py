@@ -299,6 +299,12 @@ class SalaryIncome:
             gross = gross.add(self.specific_allowances.calculate_total_specific_allowances())
         
         return gross
+
+    def calculate_basic_da(self) -> Money:
+        """
+        Calculate basic DA.
+        """
+        return self.basic_salary.add(self.dearness_allowance)
     
     def calculate_total_exemptions(self, regime: TaxRegime, is_government_employee: bool = False) -> Money:
         """

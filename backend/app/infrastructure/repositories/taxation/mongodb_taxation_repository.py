@@ -628,10 +628,148 @@ class MongoDBTaxationRepository(TaxationRepository):
         if not perquisites:
             return None
         
+        # Get detailed breakdown
+        
         return {
             "has_perquisites": True,
-            "total_value": perquisites.calculate_total_perquisites(TaxRegime.old_regime()).to_float(),
-            # Store summary for now - detailed structure can be added later
+            
+            # Core perquisites
+            "accommodation": {
+                "has_accommodation": perquisites.accommodation is not None,
+                "accommodation_type": perquisites.accommodation.accommodation_type.value if perquisites.accommodation else None,
+                "city_population": perquisites.accommodation.city_population.value if perquisites.accommodation else None,
+                "license_fees": perquisites.accommodation.license_fees.to_float() if perquisites.accommodation else 0.0,
+                "employee_rent_payment": perquisites.accommodation.employee_rent_payment.to_float() if perquisites.accommodation else 0.0,
+                "rent_paid_by_employer": perquisites.accommodation.rent_paid_by_employer.to_float() if perquisites.accommodation else 0.0,
+                "hotel_charges": perquisites.accommodation.hotel_charges.to_float() if perquisites.accommodation else 0.0,
+                "stay_days": perquisites.accommodation.stay_days if perquisites.accommodation else 0,
+                "furniture_cost": perquisites.accommodation.furniture_cost.to_float() if perquisites.accommodation else 0.0,
+                "furniture_employee_payment": perquisites.accommodation.furniture_employee_payment.to_float() if perquisites.accommodation else 0.0,
+                "is_furniture_owned_by_employer": perquisites.accommodation.is_furniture_owned_by_employer if perquisites.accommodation else False,
+            },
+            
+            "car": {
+                "has_car": perquisites.car is not None,
+                "car_use_type": perquisites.car.car_use_type.value if perquisites.car else None,
+                "engine_capacity_cc": perquisites.car.engine_capacity_cc if perquisites.car else 0,
+                "months_used": perquisites.car.months_used if perquisites.car else 0,
+                "car_cost_to_employer": perquisites.car.car_cost_to_employer.to_float() if perquisites.car else 0.0,
+                "other_vehicle_cost": perquisites.car.other_vehicle_cost.to_float() if perquisites.car else 0.0,
+                "has_expense_reimbursement": perquisites.car.has_expense_reimbursement if perquisites.car else False,
+                "driver_provided": perquisites.car.driver_provided if perquisites.car else False,
+            },
+            
+            # Medical and travel perquisites
+            "medical_reimbursement": {
+                "has_medical_reimbursement": perquisites.medical_reimbursement is not None,
+                "medical_reimbursement_amount": perquisites.medical_reimbursement.medical_reimbursement_amount.to_float() if perquisites.medical_reimbursement else 0.0,
+                "is_overseas_treatment": perquisites.medical_reimbursement.is_overseas_treatment if perquisites.medical_reimbursement else False,
+                "travel_expenses": perquisites.medical_reimbursement.travel_expenses.to_float() if perquisites.medical_reimbursement else 0.0,
+                "medical_expenses": perquisites.medical_reimbursement.medical_expenses.to_float() if perquisites.medical_reimbursement else 0.0,
+                "rbi_limit": perquisites.medical_reimbursement.rbi_limit.to_float() if perquisites.medical_reimbursement else 0.0,
+                "gross_salary": perquisites.medical_reimbursement.gross_salary.to_float() if perquisites.medical_reimbursement else 0.0,
+            },
+            
+            "lta": {
+                "has_lta": perquisites.lta is not None,
+                "lta_amount_claimed": perquisites.lta.lta_amount_claimed.to_float() if perquisites.lta else 0.0,
+                "lta_claimed_count": perquisites.lta.lta_claimed_count if perquisites.lta else 0,
+                "public_transport_cost": perquisites.lta.public_transport_cost.to_float() if perquisites.lta else 0.0,
+                "travel_mode": perquisites.lta.travel_mode if perquisites.lta else "Air",
+            },
+            
+            # Financial perquisites
+            "interest_free_loan": {
+                "has_loan": perquisites.interest_free_loan is not None,
+                "loan_amount": perquisites.interest_free_loan.loan_amount.to_float() if perquisites.interest_free_loan else 0.0,
+                "outstanding_amount": perquisites.interest_free_loan.outstanding_amount.to_float() if perquisites.interest_free_loan else 0.0,
+                "company_interest_rate": float(perquisites.interest_free_loan.company_interest_rate) if perquisites.interest_free_loan else 0.0,
+                "sbi_interest_rate": float(perquisites.interest_free_loan.sbi_interest_rate) if perquisites.interest_free_loan else 0.0,
+                "loan_months": perquisites.interest_free_loan.loan_months if perquisites.interest_free_loan else 0,
+                "is_medical_loan": perquisites.interest_free_loan.is_medical_loan if perquisites.interest_free_loan else False,
+                "loan_type": perquisites.interest_free_loan.loan_type if perquisites.interest_free_loan else "Personal",
+            },
+            
+            "esop": {
+                "has_esop": perquisites.esop is not None,
+                "shares_exercised": perquisites.esop.shares_exercised if perquisites.esop else 0,
+                "exercise_price": perquisites.esop.exercise_price.to_float() if perquisites.esop else 0.0,
+                "allotment_price": perquisites.esop.allotment_price.to_float() if perquisites.esop else 0.0,
+            },
+            
+            # Utilities and facilities
+            "utilities": {
+                "has_utilities": perquisites.utilities is not None,
+                "gas_paid_by_employer": perquisites.utilities.gas_paid_by_employer.to_float() if perquisites.utilities else 0.0,
+                "electricity_paid_by_employer": perquisites.utilities.electricity_paid_by_employer.to_float() if perquisites.utilities else 0.0,
+                "water_paid_by_employer": perquisites.utilities.water_paid_by_employer.to_float() if perquisites.utilities else 0.0,
+                "gas_paid_by_employee": perquisites.utilities.gas_paid_by_employee.to_float() if perquisites.utilities else 0.0,
+                "electricity_paid_by_employee": perquisites.utilities.electricity_paid_by_employee.to_float() if perquisites.utilities else 0.0,
+                "water_paid_by_employee": perquisites.utilities.water_paid_by_employee.to_float() if perquisites.utilities else 0.0,
+                "is_gas_manufactured_by_employer": perquisites.utilities.is_gas_manufactured_by_employer if perquisites.utilities else False,
+                "is_electricity_manufactured_by_employer": perquisites.utilities.is_electricity_manufactured_by_employer if perquisites.utilities else False,
+                "is_water_manufactured_by_employer": perquisites.utilities.is_water_manufactured_by_employer if perquisites.utilities else False,
+            },
+            
+            "free_education": {
+                "has_free_education": perquisites.free_education is not None,
+                "monthly_expenses_child1": perquisites.free_education.monthly_expenses_child1.to_float() if perquisites.free_education else 0.0,
+                "monthly_expenses_child2": perquisites.free_education.monthly_expenses_child2.to_float() if perquisites.free_education else 0.0,
+                "months_child1": perquisites.free_education.months_child1 if perquisites.free_education else 0,
+                "months_child2": perquisites.free_education.months_child2 if perquisites.free_education else 0,
+                "employer_maintained_1st_child": perquisites.free_education.employer_maintained_1st_child if perquisites.free_education else False,
+                "employer_maintained_2nd_child": perquisites.free_education.employer_maintained_2nd_child if perquisites.free_education else False,
+            },
+            
+            "lunch_refreshment": {
+                "has_lunch_refreshment": perquisites.lunch_refreshment is not None,
+                "employer_cost": perquisites.lunch_refreshment.employer_cost.to_float() if perquisites.lunch_refreshment else 0.0,
+                "employee_payment": perquisites.lunch_refreshment.employee_payment.to_float() if perquisites.lunch_refreshment else 0.0,
+                "meal_days_per_year": perquisites.lunch_refreshment.meal_days_per_year if perquisites.lunch_refreshment else 0,
+            },
+            
+            "domestic_help": {
+                "has_domestic_help": perquisites.domestic_help is not None,
+                "domestic_help_paid_by_employer": perquisites.domestic_help.domestic_help_paid_by_employer.to_float() if perquisites.domestic_help else 0.0,
+                "domestic_help_paid_by_employee": perquisites.domestic_help.domestic_help_paid_by_employee.to_float() if perquisites.domestic_help else 0.0,
+            },
+            
+            # Asset-related perquisites
+            "movable_asset_usage": {
+                "has_movable_asset_usage": perquisites.movable_asset_usage is not None,
+                "asset_type": perquisites.movable_asset_usage.asset_type.value if perquisites.movable_asset_usage else None,
+                "asset_value": perquisites.movable_asset_usage.asset_value.to_float() if perquisites.movable_asset_usage else 0.0,
+                "employee_payment": perquisites.movable_asset_usage.employee_payment.to_float() if perquisites.movable_asset_usage else 0.0,
+                "is_employer_owned": perquisites.movable_asset_usage.is_employer_owned if perquisites.movable_asset_usage else False,
+            },
+            
+            "movable_asset_transfer": {
+                "has_movable_asset_transfer": perquisites.movable_asset_transfer is not None,
+                "asset_type": perquisites.movable_asset_transfer.asset_type.value if perquisites.movable_asset_transfer else None,
+                "asset_cost": perquisites.movable_asset_transfer.asset_cost.to_float() if perquisites.movable_asset_transfer else 0.0,
+                "years_of_use": perquisites.movable_asset_transfer.years_of_use if perquisites.movable_asset_transfer else 0,
+                "employee_payment": perquisites.movable_asset_transfer.employee_payment.to_float() if perquisites.movable_asset_transfer else 0.0,
+            },
+            
+            # Miscellaneous perquisites
+            "gift_voucher": {
+                "has_gift_voucher": perquisites.gift_voucher is not None,
+                "gift_voucher_amount": perquisites.gift_voucher.gift_voucher_amount.to_float() if perquisites.gift_voucher else 0.0,
+            },
+            
+            "monetary_benefits": {
+                "has_monetary_benefits": perquisites.monetary_benefits is not None,
+                "monetary_amount_paid_by_employer": perquisites.monetary_benefits.monetary_amount_paid_by_employer.to_float() if perquisites.monetary_benefits else 0.0,
+                "expenditure_for_official_purpose": perquisites.monetary_benefits.expenditure_for_official_purpose.to_float() if perquisites.monetary_benefits else 0.0,
+                "amount_paid_by_employee": perquisites.monetary_benefits.amount_paid_by_employee.to_float() if perquisites.monetary_benefits else 0.0,
+            },
+            
+            "club_expenses": {
+                "has_club_expenses": perquisites.club_expenses is not None,
+                "club_expenses_paid_by_employer": perquisites.club_expenses.club_expenses_paid_by_employer.to_float() if perquisites.club_expenses else 0.0,
+                "club_expenses_paid_by_employee": perquisites.club_expenses.club_expenses_paid_by_employee.to_float() if perquisites.club_expenses else 0.0,
+                "club_expenses_for_official_purpose": perquisites.club_expenses.club_expenses_for_official_purpose.to_float() if perquisites.club_expenses else 0.0,
+            }
         }
     
     def _serialize_house_property_income(self, house_property: Optional[HousePropertyIncome]) -> Optional[dict]:

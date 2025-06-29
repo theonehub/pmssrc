@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from app.domain.value_objects.money import Money
-from app.domain.value_objects.taxation.tax_regime import TaxRegime, TaxRegimeType
+from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
 from app.domain.entities.taxation.salary_income import SalaryIncome
 from app.domain.entities.taxation.deductions import TaxDeductions
 from app.domain.entities.taxation.perquisites import Perquisites
@@ -553,25 +553,35 @@ class TaxCalculationService:
 
         print(f"TheOne: Slabs: {slabs}")
         
-        # Calculate tax for each slab
+        # Calculate tax for each slab using progressive taxation
         tax_amount = Money(Decimal('0'))
-        remaining_income = taxable_income
         
         for slab in slabs:
-            if remaining_income <= Money(Decimal('0')):
-                break
-            
             slab_min = Money(slab["min"])
-            slab_max = Money(slab["max"]) if slab["max"] is not None else remaining_income
+            slab_max = Money(slab["max"]) if slab["max"] is not None else taxable_income
             slab_rate = Decimal(str(slab["rate"])) / Decimal('100')
             
-            if remaining_income > slab_min:
-                # Calculate taxable amount in this slab using Money methods
-                income_above_slab_min = remaining_income.subtract(slab_min)
-                slab_range = slab_max.subtract(slab_min) if slab_max != remaining_income else income_above_slab_min
-                taxable_in_slab = income_above_slab_min.min(slab_range)
-                tax_amount = tax_amount.add(taxable_in_slab.multiply(slab_rate))
-                remaining_income = remaining_income.subtract(taxable_in_slab) if remaining_income.is_greater_than(taxable_in_slab) else Money.zero()
+            # Calculate taxable amount in this slab
+            if taxable_income > slab_min:
+                # Amount of income that falls in this slab
+                if slab["max"] is not None:
+                    # For slabs with upper limit: min(taxable_income, slab_max) - slab_min
+                    income_in_slab = taxable_income.min(slab_max).subtract(slab_min)
+                else:
+                    # For highest slab (no upper limit): taxable_income - slab_min
+                    income_in_slab = taxable_income.subtract(slab_min)
+                
+                # Ensure we don't have negative income in slab
+                if income_in_slab.is_greater_than(Money.zero()):
+                    tax_for_slab = income_in_slab.multiply(slab_rate)
+                    tax_amount = tax_amount.add(tax_for_slab)
+                    
+                    logger.info(f"TheOne: Slab ({slab_min.to_float()}-{slab_max.to_float() if slab['max'] else 'unlimited'}): "
+                               f"income_in_slab={income_in_slab.to_float()}, rate={slab_rate}, "
+                               f"tax_for_slab={tax_for_slab.to_float()}, total_tax={tax_amount.to_float()}")
+            else:
+                logger.info(f"TheOne: Skipping slab ({slab_min.to_float()}-{slab_max.to_float() if slab['max'] else 'unlimited'}): "
+                           f"taxable_income {taxable_income.to_float()} <= slab_min {slab_min.to_float()}")
         
         # Add surcharge if applicable
         if taxable_income > Money(Decimal('5000000')):  # Above ₹50 lakh
@@ -616,8 +626,6 @@ class TaxCalculationService:
 
                 },
                 "perquisites": {
-                    "rent_free_accommodation": input_data.perquisites.rent_free_accommodation.to_float(),
-                    "concessional_accommodation": input_data.perquisites.concessional_accommodation.to_float(),
                     "car_perquisite": input_data.perquisites.car_perquisite.to_float(),
                     "driver_perquisite": input_data.perquisites.driver_perquisite.to_float(),
                     "fuel_perquisite": input_data.perquisites.fuel_perquisite.to_float(),

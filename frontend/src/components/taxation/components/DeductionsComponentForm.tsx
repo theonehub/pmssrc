@@ -128,6 +128,171 @@ const isSelectField = (field: FormField): field is SelectField => {
   return field.type === 'select';
 };
 
+// Function to flatten nested backend response to flat frontend structure
+const flattenDeductionsData = (nestedData: any): DeductionsComponentData => {
+  console.log('Flattening deductions data:', nestedData);
+  const flattened: DeductionsComponentData = { ...initialDeductionsData };
+  
+  try {
+    // HRA Exemption
+    if (nestedData.hra_exemption) {
+      console.log('Processing HRA exemption:', nestedData.hra_exemption);
+      flattened.actual_rent_paid = nestedData.hra_exemption.actual_rent_paid || 0;
+      flattened.hra_city_type = nestedData.hra_exemption.hra_city_type || 'non_metro';
+    }
+    
+    // Section 80C
+    if (nestedData.section_80c) {
+      console.log('Processing Section 80C:', nestedData.section_80c);
+      flattened.life_insurance_premium = nestedData.section_80c.life_insurance_premium || 0;
+      flattened.epf_contribution = nestedData.section_80c.epf_contribution || 0;
+      flattened.ppf_contribution = nestedData.section_80c.ppf_contribution || 0;
+      flattened.nsc_investment = nestedData.section_80c.nsc_investment || 0;
+      flattened.tax_saving_fd = nestedData.section_80c.tax_saving_fd || 0;
+      flattened.elss_investment = nestedData.section_80c.elss_investment || 0;
+      flattened.home_loan_principal = nestedData.section_80c.home_loan_principal || 0;
+      flattened.tuition_fees = nestedData.section_80c.tuition_fees || 0;
+      flattened.ulip_premium = nestedData.section_80c.ulip_premium || 0;
+      flattened.sukanya_samriddhi = nestedData.section_80c.sukanya_samriddhi || 0;
+      flattened.stamp_duty_property = nestedData.section_80c.stamp_duty_property || 0;
+      flattened.senior_citizen_savings = nestedData.section_80c.senior_citizen_savings || 0;
+      flattened.other_80c_investments = nestedData.section_80c.other_80c_investments || 0;
+      console.log('Section 80C flattened - life_insurance_premium:', flattened.life_insurance_premium);
+    }
+    
+    // Section 80CCC
+    if (nestedData.section_80ccc) {
+      console.log('Processing Section 80CCC:', nestedData.section_80ccc);
+      flattened.pension_plan_insurance_company = nestedData.section_80ccc.pension_fund_contribution || 0;
+    }
+    
+    // Section 80CCD
+    if (nestedData.section_80ccd) {
+      console.log('Processing Section 80CCD:', nestedData.section_80ccd);
+      flattened.nps_contribution_10_percent = nestedData.section_80ccd.employee_nps_contribution || 0;
+      flattened.additional_nps_50k = nestedData.section_80ccd.additional_nps_contribution || 0;
+      flattened.employer_nps_contribution = nestedData.section_80ccd.employer_nps_contribution || 0;
+    }
+    
+    // Section 80D
+    if (nestedData.section_80d) {
+      console.log('Processing Section 80D:', nestedData.section_80d);
+      flattened.self_family_premium = nestedData.section_80d.self_family_premium || 0;
+      flattened.parent_premium = nestedData.section_80d.parent_premium || 0;
+      flattened.preventive_health_checkup = nestedData.section_80d.preventive_health_checkup || 0;
+    }
+    
+    // Section 80DD
+    if (nestedData.section_80dd) {
+      console.log('Processing Section 80DD:', nestedData.section_80dd);
+      flattened.disability_amount = nestedData.section_80dd.eligible_deduction || 0;
+      flattened.disability_relation = nestedData.section_80dd.relation || 'Parents';
+      flattened.disability_percentage = nestedData.section_80dd.disability_percentage || '40-79%';
+    }
+    
+    // Section 80DDB
+    if (nestedData.section_80ddb) {
+      console.log('Processing Section 80DDB:', nestedData.section_80ddb);
+      flattened.medical_expenses = nestedData.section_80ddb.medical_expenses || 0;
+      flattened.medical_relation = nestedData.section_80ddb.relation || 'Self';
+    }
+    
+    // Section 80E
+    if (nestedData.section_80e) {
+      console.log('Processing Section 80E:', nestedData.section_80e);
+      flattened.education_loan_interest = nestedData.section_80e.education_loan_interest || 0;
+    }
+    
+    // Section 80EEB
+    if (nestedData.section_80eeb) {
+      console.log('Processing Section 80EEB:', nestedData.section_80eeb);
+      flattened.ev_loan_interest = nestedData.section_80eeb.ev_loan_interest || 0;
+    }
+    
+    // Section 80G - Map from individual fields to donation categories
+    if (nestedData.section_80g) {
+      console.log('Processing Section 80G:', nestedData.section_80g);
+      // Map 100% without limit donations
+      flattened.donation_100_percent_without_limit = 
+        (nestedData.section_80g.pm_relief_fund || 0) +
+        (nestedData.section_80g.national_defence_fund || 0) +
+        (nestedData.section_80g.national_foundation_communal_harmony || 0) +
+        (nestedData.section_80g.zila_saksharta_samiti || 0) +
+        (nestedData.section_80g.national_illness_assistance_fund || 0) +
+        (nestedData.section_80g.national_blood_transfusion_council || 0) +
+        (nestedData.section_80g.national_trust_autism_fund || 0) +
+        (nestedData.section_80g.national_sports_fund || 0) +
+        (nestedData.section_80g.national_cultural_fund || 0) +
+        (nestedData.section_80g.technology_development_fund || 0) +
+        (nestedData.section_80g.national_children_fund || 0) +
+        (nestedData.section_80g.cm_relief_fund || 0) +
+        (nestedData.section_80g.army_naval_air_force_funds || 0) +
+        (nestedData.section_80g.swachh_bharat_kosh || 0) +
+        (nestedData.section_80g.clean_ganga_fund || 0) +
+        (nestedData.section_80g.drug_abuse_control_fund || 0) +
+        (nestedData.section_80g.other_100_percent_wo_limit || 0) +
+        (nestedData.section_80g.jn_memorial_fund || 0) +
+        (nestedData.section_80g.pm_drought_relief || 0) +
+        (nestedData.section_80g.indira_gandhi_memorial_trust || 0) +
+        (nestedData.section_80g.rajiv_gandhi_foundation || 0);
+      
+      // Map 50% without limit donations
+      flattened.donation_50_percent_without_limit = 
+        (nestedData.section_80g.other_50_percent_wo_limit || 0) +
+        (nestedData.section_80g.family_planning_donation || 0) +
+        (nestedData.section_80g.indian_olympic_association || 0);
+      
+      // Map 100% with limit donations
+      flattened.donation_100_percent_with_limit = 
+        (nestedData.section_80g.other_100_percent_w_limit || 0) +
+        (nestedData.section_80g.govt_charitable_donations || 0) +
+        (nestedData.section_80g.housing_authorities_donations || 0) +
+        (nestedData.section_80g.religious_renovation_donations || 0) +
+        (nestedData.section_80g.other_charitable_donations || 0);
+      
+      // Map 50% with limit donations
+      flattened.donation_50_percent_with_limit = 
+        (nestedData.section_80g.other_50_percent_w_limit || 0);
+    }
+    
+    // Section 80GGC
+    if (nestedData.section_80ggc) {
+      console.log('Processing Section 80GGC:', nestedData.section_80ggc);
+      flattened.political_party_contribution = nestedData.section_80ggc.political_party_contribution || 0;
+    }
+    
+    // Section 80U
+    if (nestedData.section_80u) {
+      console.log('Processing Section 80U:', nestedData.section_80u);
+      flattened.self_disability_amount = nestedData.section_80u.eligible_deduction || 0;
+      flattened.self_disability_percentage = nestedData.section_80u.disability_percentage || '40-79%';
+    }
+    
+    // Section 80TTA/TTB
+    if (nestedData.section_80tta_ttb) {
+      console.log('Processing Section 80TTA/TTB:', nestedData.section_80tta_ttb);
+      flattened.savings_account_interest = nestedData.section_80tta_ttb.savings_interest || 0;
+      flattened.deposit_interest_senior = nestedData.section_80tta_ttb.fd_interest || 0;
+    }
+    
+    // Other deductions
+    if (nestedData.other_deductions) {
+      console.log('Processing other deductions:', nestedData.other_deductions);
+      // Map education loan interest from other_deductions if not already set from section_80e
+      if (!flattened.education_loan_interest) {
+        flattened.education_loan_interest = nestedData.other_deductions.education_loan_interest || 0;
+      }
+    }
+    
+    console.log('Final flattened data:', flattened);
+    
+  } catch (error) {
+    console.error('Error flattening deductions data:', error);
+  }
+  
+  return flattened;
+};
+
 const initialDeductionsData: DeductionsComponentData = {
   // HRA Exemption
   actual_rent_paid: 0,
@@ -228,10 +393,16 @@ const DeductionsComponentForm: React.FC = () => {
       const response = await taxationApi.getComponent(empId!, taxYear, 'deductions');
       
       if (response && response.component_data) {
-        setDeductionsData({ ...initialDeductionsData, ...response.component_data } as DeductionsComponentData);
+        console.log('Backend response component_data:', response.component_data);
+        const flattenedData = flattenDeductionsData(response.component_data);
+        console.log('Flattened data:', flattenedData);
+        setDeductionsData(flattenedData);
         showToast('Deductions data loaded successfully', 'success');
       } else if (response) {
-        setDeductionsData({ ...initialDeductionsData, ...response } as DeductionsComponentData);
+        console.log('Backend response:', response);
+        const flattenedData = flattenDeductionsData(response);
+        console.log('Flattened data:', flattenedData);
+        setDeductionsData(flattenedData);
         showToast('Deductions data loaded successfully', 'success');
       }
     } catch (error: any) {
@@ -298,6 +469,8 @@ const DeductionsComponentForm: React.FC = () => {
           ? 'New deductions revision created via individual component management'
           : 'Updated via individual component management'
       };
+
+      console.log(requestData);
 
       await taxationApi.updateDeductionsComponent(requestData);
       
@@ -465,7 +638,7 @@ const DeductionsComponentForm: React.FC = () => {
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
             <Box>
               <Typography variant="h5" component="h1" gutterBottom>
-                {isNewRevision ? 'New Deductions Revision' : 'Update Deductions Components'}
+                {isNewRevision ? 'New Deductions Revision(Declaration)' : 'Update Deductions Components(Declaration)'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 {isNewRevision 

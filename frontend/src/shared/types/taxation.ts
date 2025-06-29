@@ -407,8 +407,6 @@ export interface ComprehensiveTaxCalculationResponse {
         other_allowances: number;
       };
       perquisites: {
-        rent_free_accommodation: number;
-        concessional_accommodation: number;
         car_perquisite: number;
         driver_perquisite: number;
         fuel_perquisite: number;

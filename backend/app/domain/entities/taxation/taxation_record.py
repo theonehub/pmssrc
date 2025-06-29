@@ -22,6 +22,7 @@ from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 from app.domain.entities.taxation.other_income import OtherIncome
 from app.domain.entities.taxation.payout import PayoutMonthlyProjection
 from app.domain.services.taxation.tax_calculation_service import TaxCalculationService, TaxCalculationResult
+from app.domain.value_objects.taxation.tax_regime import TaxRegimeType
 
 logger = get_logger(__name__)
 
@@ -145,6 +146,7 @@ class TaxationRecord:
         
         # Salary income (core)
         total_income = total_income.add(self.salary_income.calculate_gross_salary())
+        basic_plus_da = self.salary_income.calculate_basic_da()
         #taxable_salary = self.salary_income.calculate_taxable_salary(self.regime)
 
         # Other income (if any) - now includes house property income and capital gains
@@ -155,7 +157,7 @@ class TaxationRecord:
                     
         # Perquisites (if any)
         if self.perquisites:
-            total_income = total_income.add(self.perquisites.calculate_total_perquisites(self.regime))
+            total_income = total_income.add(self.perquisites.calculate_total_perquisites(self.regime, basic_plus_da))
         
         # Retirement benefits (if any)
         if self.retirement_benefits:
@@ -804,6 +806,8 @@ class SalaryPackageRecord:
     perquisites: Optional[Perquisites] = None
     retirement_benefits: Optional[RetirementBenefits] = None
     other_income: Optional[OtherIncome] = None
+    is_senior_citizen: bool = False
+    is_super_senior_citizen: bool = False
     
     # Identifiers
     salary_package_id: Optional[str] = None
@@ -958,7 +962,7 @@ class SalaryPackageRecord:
         """
         return self.salary_incomes.copy()
     
-    def compute_gross_annual_salary_income(self) -> Money:
+    def compute_annual_salary_income(self) -> Money:
         """
         Compute gross annual salary from all salary components applicable in the current financial year.
         This includes actual salary earned from different periods and projected salary for remaining period.
@@ -1184,12 +1188,12 @@ class SalaryPackageRecord:
         
         # Special handling for complete financial year
         if start_date <= financial_year_start and end_date >= financial_year_end:
-            logger.info(f"Complete financial year detected: {start_date} to {end_date} covers {financial_year_start} to {financial_year_end}")
+            logger.debug(f"Complete financial year detected: {start_date} to {end_date} covers {financial_year_start} to {financial_year_end}")
             return 12.0
         
         # Special handling for exact financial year period
         if start_date == financial_year_start and end_date == financial_year_end:
-            logger.info(f"Exact financial year period: {start_date} to {end_date}")
+            logger.debug(f"Exact financial year period: {start_date} to {end_date}")
             return 12.0
         
         # Calculate months using a more accurate approach
@@ -1239,17 +1243,17 @@ class SalaryPackageRecord:
         # (e.g., July 1 to March 31 should be exactly 9 months)
         if self._is_period_exact_months(start_date, end_date):
             exact_months = self._calculate_exact_months(start_date, end_date)
-            logger.info(f"Period {start_date} to {end_date} is exact months: {exact_months}")
+            logger.debug(f"Period {start_date} to {end_date} is exact months: {exact_months}")
             return exact_months
         
         # Ensure we don't exceed 12 months for a financial year period
         if (start_date >= financial_year_start and end_date <= financial_year_end and 
             months_diff > 12.0):
-            logger.info(f"Capping months at 12.0 for financial year period: {start_date} to {end_date}")
+            logger.debug(f"Capping months at 12.0 for financial year period: {start_date} to {end_date}")
             return 12.0
         
         result = max(0.0, months_diff)
-        logger.info(f"Calculated months between {start_date} and {end_date}: {result}")
+        logger.debug(f"Calculated months between {start_date} and {end_date}: {result}")
         return result
     
     def _get_last_day_of_month(self, year: int, month: int) -> int:
@@ -1627,7 +1631,7 @@ class SalaryPackageRecord:
             return total_projection_months
         
 
-    def get_gross_salary_income(self) -> Money:
+    def _get_gross_salary_income(self) -> Money:
         """
         Get the gross salary of the employee.
         
@@ -1636,6 +1640,59 @@ class SalaryPackageRecord:
         """
         return self.get_annual_salary_income().calculate_gross_salary()
     
+
+    # def compute_monthly_tax(self) -> Money:
+    #     """
+    #     Compute monthly tax based on monthly salary income and comprehensive income sources.
+        
+    #     IMPORTANT: SalaryPackageRecord stores MONTHLY salary values, so we need to:
+    #     1. Convert monthly salary values to annual values for tax calculation
+    #     2. Calculate comprehensive annual income (salary + perquisites + other income)
+    #     3. Calculate comprehensive annual exemptions
+    #     4. Calculate annual deductions
+    #     5. Compute annual tax liability
+    #     6. Return the monthly tax (annual tax / 12)
+        
+    #     Args:
+    #     Returns:
+    #         Money: Monthly tax liability
+    #     """
+    #     from decimal import Decimal
+    #     # Validate inputs
+        
+    #     # If we have a valid calculation result, use it
+    #     if self.is_calculation_valid():
+    #         return self.calculation_result.monthly_tax_liability
+        
+    #     # Otherwise, calculate tax
+        
+    #     # Calculate total annual salary income
+    #     total_annual_income = self.compute_annual_salary_income()
+    #     logger.info(f"Total annual income: {total_annual_income}/{self.get_annual_salary_income().calculate_gross_salary()}")
+
+        
+    #     # Add other income sources (these are typically annual amounts)
+    #     if self.other_income:
+    #         other_income_annual = self.other_income.calculate_total_other_income_slab_rates(self.regime, self.age)
+    #         total_annual_income = total_annual_income.add(other_income_annual)
+            
+    #         # Subtract losses from house property
+    #         house_property_losses = self.other_income.loss_from_house_property_income(self.regime)
+    #         total_annual_income = total_annual_income.subtract(house_property_losses)
+                    
+    #     # Add perquisites (if any) - typically annual amounts
+    #     if self.perquisites:
+    #         perquisites_annual = self.perquisites.calculate_total_perquisites(self.regime)
+    #         total_annual_income = total_annual_income.add(perquisites_annual)
+        
+    #     # Add retirement benefits (if any) - typically annual amounts
+    #     if self.retirement_benefits:
+    #         retirement_benefits_annual = self.retirement_benefits.calculate_total_retirement_income(self.regime)
+    #         total_annual_income = total_annual_income.add(retirement_benefits_annual)
+        
+    #     return total_annual_income
+    
+
     def calculate_tax(self, calculation_service: TaxCalculationService) -> TaxCalculationResult:
         """
         Calculate tax using domain service.
@@ -1646,6 +1703,8 @@ class SalaryPackageRecord:
         Returns:
             TaxCalculationResult: Complete calculation result
         """
+        is_senior_citizen = False
+        is_super_senior_citizen = False
 
         gross_income = self.calculate_gross_income()
         logger.info(f"TheOne: Total income: {gross_income}")
@@ -1665,12 +1724,12 @@ class SalaryPackageRecord:
         logger.info(f"TheOne: Taxable income: {taxable_income}")
         
         # Perform tax calculation
-        tax_liability = self._calculate_tax_liability(
+        tax_liability = calculation_service._calculate_tax_liability(
             taxable_income,
             self.regime,
             self.age,
-            self.is_senior_citizen,
-            self.is_super_senior_citizen
+            is_senior_citizen,
+            is_super_senior_citizen
         )
         
         # Create simplified tax breakdown
@@ -1732,7 +1791,7 @@ class SalaryPackageRecord:
         """
 
         # Calculate comprehensive gross income
-        total_income = self.get_gross_salary_income()
+        total_income = self._get_gross_salary_income()
 
         # Other income (if any) - now includes house property income and capital gains
         if self.other_income:
@@ -1935,32 +1994,6 @@ class SalaryPackageRecord:
             "tax_year": str(self.tax_year),
             "old_deductions": old_deductions.to_float(),
             "new_deductions": new_deductions_total.to_float(),
-            "updated_at": self.updated_at.isoformat()
-        })
-    
-    def change_regime(self, new_regime: TaxRegime) -> None:
-        """
-        Change tax regime.
-        
-        Args:
-            new_regime: New tax regime
-        """
-        if self.is_final:
-            raise ValueError("Cannot update finalized salary package record")
-        
-        old_regime = self.regime
-        self.regime = new_regime
-        
-        # Invalidate calculation
-        self._invalidate_calculation()
-        
-        # Raise domain event
-        self._add_domain_event({
-            "event_type": "RegimeChanged",
-            "employee_id": str(self.employee_id),
-            "tax_year": str(self.tax_year),
-            "old_regime": old_regime.regime_type.value,
-            "new_regime": new_regime.regime_type.value,
             "updated_at": self.updated_at.isoformat()
         })
     
@@ -2217,207 +2250,6 @@ class SalaryPackageRecord:
             warnings.append(f"Multiple salary revisions detected ({len(self.salary_incomes)} versions)")
         
         return warnings
-    
-    def can_switch_regime(self) -> bool:
-        """
-        Check if regime can be switched.
-        
-        Returns:
-            bool: True if regime switch is allowed
-        """
-        return not self.is_final
-    
-    def get_regime_switch_impact(self, calculation_service: TaxCalculationService) -> Dict[str, Any]:
-        """
-        Calculate impact of switching tax regime.
-        
-        Args:
-            calculation_service: Tax calculation service
-            
-        Returns:
-            Dict: Impact analysis of regime switch
-        """
-        from app.domain.services.tax_calculation_service import RegimeComparisonService
-        
-        # Create comparison service
-        comparison_service = RegimeComparisonService(calculation_service)
-        
-        # Get comparison
-        latest_salary = self.get_latest_salary_income()
-        gross_income = latest_salary.calculate_gross_salary()
-        total_exemptions = latest_salary.calculate_total_exemptions(self.regime, self.is_government_employee)
-        total_deductions = self.deductions.calculate_total_deductions(TaxRegime.old_regime())
-        
-        comparison = comparison_service.compare_regimes(
-            gross_income, total_exemptions, total_deductions, self.age
-        )
-        
-        return {
-            "current_regime": self.regime.regime_type.value,
-            "comparison": comparison,
-            "can_switch": self.can_switch_regime()
-        }
-    
-    def compute_monthly_tax(self) -> Money:
-        """
-        Compute monthly tax based on monthly salary income and comprehensive income sources.
-        
-        IMPORTANT: SalaryPackageRecord stores MONTHLY salary values, so we need to:
-        1. Convert monthly salary values to annual values for tax calculation
-        2. Calculate comprehensive annual income (salary + perquisites + other income)
-        3. Calculate comprehensive annual exemptions
-        4. Calculate annual deductions
-        5. Compute annual tax liability
-        6. Return the monthly tax (annual tax / 12)
-        
-        Args:
-        Returns:
-            Money: Monthly tax liability
-        """
-        from decimal import Decimal
-        # Validate inputs
-        
-        # If we have a valid calculation result, use it
-        if self.is_calculation_valid():
-            return self.calculation_result.monthly_tax_liability
-        
-        # Otherwise, calculate tax
-        
-        # Calculate total annual salary income
-        total_annual_income = self.compute_gross_annual_salary_income()
-        logger.info(f"Total annual income: {total_annual_income}/{self.get_annual_salary_income().calculate_gross_salary()}")
-
-        
-        # Add other income sources (these are typically annual amounts)
-        if self.other_income:
-            other_income_annual = self.other_income.calculate_total_other_income_slab_rates(self.regime, self.age)
-            total_annual_income = total_annual_income.add(other_income_annual)
-            
-            # Subtract losses from house property
-            house_property_losses = self.other_income.loss_from_house_property_income(self.regime)
-            total_annual_income = total_annual_income.subtract(house_property_losses)
-                    
-        # Add perquisites (if any) - typically annual amounts
-        if self.perquisites:
-            perquisites_annual = self.perquisites.calculate_total_perquisites(self.regime)
-            total_annual_income = total_annual_income.add(perquisites_annual)
-        
-        # Add retirement benefits (if any) - typically annual amounts
-        if self.retirement_benefits:
-            retirement_benefits_annual = self.retirement_benefits.calculate_total_retirement_income(self.regime)
-            total_annual_income = total_annual_income.add(retirement_benefits_annual)
-        
-        return total_annual_income
-    
-    def _calculate_tax_liability_for_monthly_computation(self, taxable_income: Money) -> Money:
-        """
-        Calculate annual tax liability based on tax slabs.
-        This is a simplified version for monthly computation.
-        
-        Args:
-            taxable_income: Annual taxable income
-            
-        Returns:
-            Money: Annual tax liability
-        """
-        from decimal import Decimal
-        
-        # Determine citizen categories based on age
-        is_senior_citizen = self.age >= 60
-        is_super_senior_citizen = self.age >= 80
-        
-        # Get tax slabs based on regime
-        if self.regime.regime_type.value == "old":
-            slabs = self._get_old_regime_slabs_for_computation(is_senior_citizen, is_super_senior_citizen)
-        else:
-            slabs = self._get_new_regime_slabs_for_computation()
-        
-        # Calculate tax for each slab
-        tax_amount = Money.zero()
-        remaining_income = taxable_income
-        
-        for slab in slabs:
-            if remaining_income.is_zero() or remaining_income.amount <= 0:
-                break
-            
-            slab_min = Money(slab["min"])
-            slab_max = Money(slab["max"]) if slab["max"] is not None else remaining_income
-            slab_rate = Decimal(str(slab["rate"])) / Decimal('100')
-            
-            if remaining_income.is_greater_than(slab_min):
-                # Calculate taxable amount in this slab
-                income_above_slab_min = remaining_income.subtract(slab_min)
-                slab_range = slab_max.subtract(slab_min) if slab_max != remaining_income else income_above_slab_min
-                
-                # Take minimum of income above slab min and slab range
-                if income_above_slab_min.is_less_than(slab_range):
-                    taxable_in_slab = income_above_slab_min
-                else:
-                    taxable_in_slab = slab_range
-                
-                slab_tax = taxable_in_slab.multiply(slab_rate)
-                tax_amount = tax_amount.add(slab_tax)
-                
-                # Update remaining income
-                remaining_income = remaining_income.subtract(taxable_in_slab) if remaining_income.is_greater_than(taxable_in_slab) else Money.zero()
-        
-        # Add surcharge if applicable (simplified)
-        if taxable_income.is_greater_than(Money(Decimal('5000000'))):  # Above ₹50 lakh
-            surcharge_rate = Decimal('0.10')  # 10% surcharge
-            if taxable_income.is_greater_than(Money(Decimal('10000000'))):  # Above ₹1 crore
-                surcharge_rate = Decimal('0.15')  # 15% surcharge
-            if taxable_income.is_greater_than(Money(Decimal('20000000'))):  # Above ₹2 crore
-                surcharge_rate = Decimal('0.25')  # 25% surcharge
-            if taxable_income.is_greater_than(Money(Decimal('50000000'))):  # Above ₹5 crore
-                surcharge_rate = Decimal('0.37')  # 37% surcharge
-            
-            surcharge = tax_amount.multiply(surcharge_rate)
-            tax_amount = tax_amount.add(surcharge)
-        
-        # Add health and education cess (4%)
-        cess_rate = Decimal('0.04')
-        cess = tax_amount.multiply(cess_rate)
-        tax_amount = tax_amount.add(cess)
-        
-        return tax_amount
-    
-    def _get_old_regime_slabs_for_computation(self, is_senior_citizen: bool, is_super_senior_citizen: bool) -> List[Dict[str, Any]]:
-        """Get tax slabs for old regime computation."""
-        if is_super_senior_citizen:
-            # Super Senior Citizen (above 80 years)
-            return [
-                {"min": Decimal('0'), "max": Decimal('500000'), "rate": Decimal('0')},
-                {"min": Decimal('500000'), "max": Decimal('1000000'), "rate": Decimal('20')},
-                {"min": Decimal('1000000'), "max": None, "rate": Decimal('30')}
-            ]
-        elif is_senior_citizen:
-            # Senior Citizen (60-80 years)
-            return [
-                {"min": Decimal('0'), "max": Decimal('300000'), "rate": Decimal('0')},
-                {"min": Decimal('300000'), "max": Decimal('500000'), "rate": Decimal('5')},
-                {"min": Decimal('500000'), "max": Decimal('1000000'), "rate": Decimal('20')},
-                {"min": Decimal('1000000'), "max": None, "rate": Decimal('30')}
-            ]
-        else:
-            # Individual (below 60 years)
-            return [
-                {"min": Decimal('0'), "max": Decimal('250000'), "rate": Decimal('0')},
-                {"min": Decimal('250000'), "max": Decimal('500000'), "rate": Decimal('5')},
-                {"min": Decimal('500000'), "max": Decimal('1000000'), "rate": Decimal('20')},
-                {"min": Decimal('1000000'), "max": None, "rate": Decimal('30')}
-            ]
-    
-    def _get_new_regime_slabs_for_computation(self) -> List[Dict[str, Any]]:
-        """Get tax slabs for new regime computation."""
-        # New regime slabs are same for all age groups
-        return [
-            {"min": Decimal('0'), "max": Decimal('300000'), "rate": Decimal('0')},
-            {"min": Decimal('300000'), "max": Decimal('600000'), "rate": Decimal('5')},
-            {"min": Decimal('600000'), "max": Decimal('900000'), "rate": Decimal('10')},
-            {"min": Decimal('900000'), "max": Decimal('1200000'), "rate": Decimal('15')},
-            {"min": Decimal('1200000'), "max": Decimal('1500000'), "rate": Decimal('20')},
-            {"min": Decimal('1500000'), "max": None, "rate": Decimal('30')}
-        ]
     
     # Backward compatibility properties
     @property

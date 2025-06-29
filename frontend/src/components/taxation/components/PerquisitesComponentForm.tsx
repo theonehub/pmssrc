@@ -185,6 +185,119 @@ const initialPerquisitesData: PerquisitesComponentData = {
   other_perquisites_amount: 0
 };
 
+// Function to flatten nested backend response to flat frontend structure
+const flattenPerquisitesData = (nestedData: any): PerquisitesComponentData => {
+  console.log('Flattening perquisites data:', nestedData);
+  const flattened: PerquisitesComponentData = { ...initialPerquisitesData };
+  
+  try {
+    // Accommodation
+    if (nestedData.accommodation) {
+      console.log('Processing accommodation:', nestedData.accommodation);
+      flattened.accommodation_type = nestedData.accommodation.accommodation_type || 'Employer-Owned';
+      flattened.city_population = nestedData.accommodation.city_population || 'Below 15 lakhs';
+      flattened.license_fees = nestedData.accommodation.license_fees || 0;
+      flattened.employee_rent_payment = nestedData.accommodation.employee_rent_payment || 0;
+      flattened.rent_paid_by_employer = nestedData.accommodation.rent_paid_by_employer || 0;
+      flattened.hotel_charges = nestedData.accommodation.hotel_charges || 0;
+      flattened.stay_days = nestedData.accommodation.stay_days || 0;
+      flattened.furniture_cost = nestedData.accommodation.furniture_cost || 0;
+      flattened.furniture_employee_payment = nestedData.accommodation.furniture_employee_payment || 0;
+      flattened.is_furniture_owned_by_employer = nestedData.accommodation.is_furniture_owned_by_employer || false;
+    }
+    
+    // Car
+    if (nestedData.car) {
+      console.log('Processing car:', nestedData.car);
+      flattened.car_use_type = nestedData.car.car_use_type || 'Personal';
+      flattened.engine_capacity_cc = nestedData.car.engine_capacity_cc || 1600;
+      flattened.months_used = nestedData.car.months_used || 12;
+      flattened.car_cost_to_employer = nestedData.car.car_cost_to_employer || 0;
+      flattened.other_vehicle_cost = nestedData.car.other_vehicle_cost || 0;
+      flattened.has_expense_reimbursement = nestedData.car.has_expense_reimbursement || false;
+      flattened.driver_provided = nestedData.car.driver_provided || false;
+    }
+    
+    // Medical Reimbursement
+    if (nestedData.medical_reimbursement) {
+      console.log('Processing medical reimbursement:', nestedData.medical_reimbursement);
+      flattened.medical_reimbursement_amount = nestedData.medical_reimbursement.medical_reimbursement_amount || 0;
+      flattened.is_overseas_treatment = nestedData.medical_reimbursement.is_overseas_treatment || false;
+    }
+    
+    // LTA
+    if (nestedData.lta) {
+      console.log('Processing LTA:', nestedData.lta);
+      flattened.lta_amount_claimed = nestedData.lta.lta_amount_claimed || 0;
+      flattened.lta_claimed_count = nestedData.lta.lta_claimed_count || 0;
+      flattened.public_transport_cost = nestedData.lta.public_transport_cost || 0;
+    }
+    
+    // ESOP
+    if (nestedData.esop) {
+      console.log('Processing ESOP:', nestedData.esop);
+      flattened.esop_exercise_value = nestedData.esop.exercise_price || 0;
+      flattened.esop_fair_market_value = nestedData.esop.allotment_price || 0;
+      flattened.esop_shares_exercised = nestedData.esop.shares_exercised || 0;
+    }
+    
+    // Free Education
+    if (nestedData.free_education) {
+      console.log('Processing free education:', nestedData.free_education);
+      flattened.free_education_amount = (nestedData.free_education.monthly_expenses_child1 || 0) + (nestedData.free_education.monthly_expenses_child2 || 0);
+      flattened.is_children_education = true;
+    }
+    
+    // Utilities
+    if (nestedData.utilities) {
+      console.log('Processing utilities:', nestedData.utilities);
+      flattened.gas_electricity_water_amount = (nestedData.utilities.gas_paid_by_employer || 0) + 
+                                              (nestedData.utilities.electricity_paid_by_employer || 0) + 
+                                              (nestedData.utilities.water_paid_by_employer || 0);
+    }
+    
+    // Interest Free Loan
+    if (nestedData.interest_free_loan) {
+      console.log('Processing interest free loan:', nestedData.interest_free_loan);
+      flattened.loan_amount = nestedData.interest_free_loan.loan_amount || 0;
+      flattened.interest_rate_charged = nestedData.interest_free_loan.company_interest_rate || 0;
+      flattened.sbi_rate = nestedData.interest_free_loan.sbi_interest_rate || 6.5;
+    }
+    
+    // Movable Assets
+    if (nestedData.movable_asset_usage) {
+      console.log('Processing movable assets:', nestedData.movable_asset_usage);
+      flattened.movable_asset_value = nestedData.movable_asset_usage.asset_value || 0;
+      flattened.asset_usage_months = nestedData.movable_asset_usage.usage_months || 12;
+    }
+    
+    // Lunch Refreshment
+    if (nestedData.lunch_refreshment) {
+      console.log('Processing lunch refreshment:', nestedData.lunch_refreshment);
+      flattened.lunch_refreshment_amount = nestedData.lunch_refreshment.employer_cost || 0;
+    }
+    
+    // Domestic Help
+    if (nestedData.domestic_help) {
+      console.log('Processing domestic help:', nestedData.domestic_help);
+      flattened.domestic_help_amount = nestedData.domestic_help.domestic_help_paid_by_employer || 0;
+    }
+    
+    // Other Perquisites
+    if (nestedData.other_perquisites) {
+      console.log('Processing other perquisites:', nestedData.other_perquisites);
+      flattened.other_perquisites_amount = nestedData.other_perquisites || 0;
+    }
+    
+    console.log('Flattened perquisites data:', flattened);
+    return flattened;
+    
+  } catch (error) {
+    console.error('Error flattening perquisites data:', error);
+    return initialPerquisitesData;
+  }
+};
+
 const PerquisitesComponentForm: React.FC = () => {
   const { empId } = useParams<{ empId: string }>();
   const [searchParams] = useSearchParams();
@@ -218,10 +331,16 @@ const PerquisitesComponentForm: React.FC = () => {
       const response = await taxationApi.getComponent(empId!, taxYear, 'perquisites');
       
       if (response && response.component_data) {
-        setPerquisitesData({ ...initialPerquisitesData, ...response.component_data } as PerquisitesComponentData);
+        console.log('Backend response component_data:', response.component_data);
+        const flattenedData = flattenPerquisitesData(response.component_data);
+        console.log('Flattened data:', flattenedData);
+        setPerquisitesData(flattenedData);
         showToast('Perquisites data loaded successfully', 'success');
       } else if (response) {
-        setPerquisitesData({ ...initialPerquisitesData, ...response } as PerquisitesComponentData);
+        console.log('Backend response:', response);
+        const flattenedData = flattenPerquisitesData(response);
+        console.log('Flattened data:', flattenedData);
+        setPerquisitesData(flattenedData);
         showToast('Perquisites data loaded successfully', 'success');
       }
     } catch (error: any) {

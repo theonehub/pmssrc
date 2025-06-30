@@ -26,7 +26,7 @@ import {
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowBack as ArrowBackIcon, Save as SaveIcon } from '@mui/icons-material';
 import { getUserRole } from '../../../shared/utils/auth';
-import { taxationApi } from '../../../shared/api/taxationApi';
+import taxationApi from '../../../shared/api/taxationApi';
 import { CURRENT_TAX_YEAR } from '../../../shared/constants/taxation';
 
 interface PerquisitesComponentData {

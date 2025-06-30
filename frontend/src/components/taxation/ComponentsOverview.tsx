@@ -34,7 +34,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getUserRole } from '../../shared/utils/auth';
-import { taxationApi } from '../../shared/api/taxationApi';
+import taxationApi from '../../shared/api/taxationApi';
 import { TaxRegime } from '../../shared/types/api';
 import { CURRENT_TAX_YEAR } from '../../shared/constants/taxation';
 

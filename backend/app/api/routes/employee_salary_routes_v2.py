@@ -11,10 +11,10 @@ from datetime import date, datetime
 from app.api.controllers.employee_salary_controller import EmployeeSalaryController
 from app.application.dto.employee_salary_dto import (
     EmployeeSalaryCreateRequestDTO, EmployeeSalaryUpdateRequestDTO,
-    BulkEmployeeSalaryAssignRequestDTO, SalaryStructureQueryRequestDTO,
+    BulkEmployeeSalaryAssignRequestDTO,
     SalaryCalculationRequestDTO, EmployeeSalaryResponseDTO, SalaryStructureResponseDTO,
     SalaryAssignmentStatusResponseDTO, BulkSalaryAssignmentResponseDTO,
-    SalaryCalculationResponseDTO, SalaryFrequencyEnum, SalaryStatusEnum
+    SalaryCalculationResponseDTO
 )
 from app.auth.auth_dependencies import CurrentUser, get_current_user, require_role
 from app.config.dependency_container import get_dependency_container

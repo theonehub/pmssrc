@@ -13,7 +13,6 @@ from app.domain.services.taxation.tax_calculation_service import (
 )
 from app.domain.value_objects.money import Money
 from app.domain.value_objects.taxation.tax_regime import TaxRegime, TaxRegimeType
-from app.domain.entities.taxation.taxation_record import TaxationRecord
 from app.domain.entities.taxation.salary_income import SalaryIncome
 from app.domain.entities.taxation.deductions import TaxDeductions
 from app.domain.entities.taxation.perquisites import Perquisites
@@ -26,10 +25,9 @@ from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 class TaxCalculationServiceImpl(TaxCalculationService):
     """Infrastructure implementation of the tax calculation service."""
     
-    def __init__(self, taxation_repository=None, salary_package_repository=None, user_repository=None):
+    def __init__(self, salary_package_repository=None, user_repository=None):
         """Initialize the service with repositories."""
         super().__init__(
-            taxation_repository=taxation_repository,
             salary_package_repository=salary_package_repository,
             user_repository=user_repository
         )
@@ -45,24 +43,7 @@ class TaxCalculationServiceImpl(TaxCalculationService):
             TaxCalculationResult: Tax calculation result
         """
         return super().calculate_tax(input_data)
-    
-    def calculate_tax_for_record(self, record: TaxationRecord) -> TaxCalculationResult:
-        """
-        Calculate tax for a taxation record.
-        
-        Args:
-            record: Taxation record
-            
-        Returns:
-            TaxCalculationResult: Tax calculation result
-        """
-        # Convert record to input data
-        input_data = self._convert_record_to_input(record)
-        
-        # Calculate tax
-        return self.calculate_tax(input_data)
-    
-    def _convert_record_to_input(self, record: TaxationRecord) -> TaxCalculationInput:
+
         """
         Convert taxation record to tax calculation input.
         

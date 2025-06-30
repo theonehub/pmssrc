@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { taxationApi } from '../api/taxationApi';
+import taxationApi from '../api/taxationApi';
 import { EmployeeSelectionQuery, EmployeeSelectionResponse } from '../types/api';
 import { useQueryClient } from '@tanstack/react-query';
 

@@ -49,47 +49,6 @@ export interface TaxCalculationResult {
   };
 }
 
-export interface TaxRecord {
-  id: string;
-  employee_id: string;
-  financial_year: string;
-  tax_input_data: TaxInputData;
-  calculation_result: TaxCalculationResult;
-  created_at: string;
-  updated_at: string;
-  is_finalized: boolean;
-  notes?: string;
-}
-
-export interface TaxRecordFilters {
-  skip?: number;
-  limit?: number;
-  financial_year?: string;
-  employee_id?: string;
-  is_finalized?: boolean;
-  search?: string;
-}
-
-export interface TaxRecordListResponse {
-  total: number;
-  records: TaxRecord[];
-  skip: number;
-  limit: number;
-}
-
-export interface CreateTaxRecordRequest {
-  employee_id: string;
-  financial_year: string;
-  tax_input_data: TaxInputData;
-  notes?: string;
-}
-
-export interface UpdateTaxRecordRequest {
-  tax_input_data?: Partial<TaxInputData>;
-  notes?: string;
-  is_finalized?: boolean;
-}
-
 export interface TaxOptimizationSuggestion {
   type: 'section_80c' | 'section_80d' | 'nps' | 'regime_switch';
   title: string;
@@ -203,7 +162,7 @@ class TaxationAPI {
   }
 
   /**
-   * Calculate house property income tax
+   * Calculate house property income tax impact only
    */
   async calculateHouseProperty(
     houseProperty: Types.HousePropertyIncomeDTO,
@@ -215,13 +174,13 @@ class TaxationAPI {
         houseProperty
       );
     } catch (error) {
-      console.error('Error calculating house property income:', error);
+      console.error('Error calculating house property:', error);
       throw error;
     }
   }
 
   /**
-   * Calculate capital gains tax
+   * Calculate capital gains tax impact only
    */
   async calculateCapitalGains(
     capitalGains: Types.CapitalGainsIncomeDTO,
@@ -239,89 +198,35 @@ class TaxationAPI {
   }
 
   // =============================================================================
-  // RECORD MANAGEMENT ENDPOINTS
+  // UTILITY AND INFORMATION ENDPOINTS
   // =============================================================================
 
   /**
-   * Create a new taxation record
-   */
-  async createRecord(
-    request: Types.CreateTaxationRecordRequest
-  ): Promise<Types.CreateTaxationRecordResponse> {
-    try {
-      return await this.baseApi.post('/api/v2/taxation/records', request);
-    } catch (error) {
-      console.error('Error creating taxation record:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get list of taxation records with optional filters
-   */
-  async listRecords(
-    query?: Types.TaxationRecordQuery
-  ): Promise<Types.TaxationRecordListResponse> {
-    try {
-      const params = query ? new URLSearchParams(
-        Object.entries(query).reduce((acc, [key, value]) => {
-          if (value !== undefined && value !== null) {
-            acc[key] = value.toString();
-          }
-          return acc;
-        }, {} as Record<string, string>)
-      ) : undefined;
-
-      const url = params ? `/api/v2/taxation/records?${params}` : '/api/v2/taxation/records';
-      return await this.baseApi.get<Types.TaxationRecordListResponse>(url);
-    } catch (error) {
-      console.error('Error listing taxation records:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get taxation record by ID
-   */
-  async getRecord(taxationId: string): Promise<Types.TaxationRecordSummaryDTO> {
-    try {
-      return await this.baseApi.get<Types.TaxationRecordSummaryDTO>(`/api/v2/taxation/records/${taxationId}`);
-    } catch (error) {
-      console.error('Error getting taxation record:', error);
-      throw error;
-    }
-  }
-
-  // =============================================================================
-  // INFORMATION AND UTILITY ENDPOINTS
-  // =============================================================================
-
-  /**
-   * Get comparison between old and new tax regimes
+   * Get tax regime comparison information
    */
   async getTaxRegimeComparison(): Promise<any> {
     try {
-      return await this.baseApi.get('/api/v2/taxation/tax-regimes/comparison');
+      return await this.baseApi.get('/api/v2/taxation/regime-comparison');
     } catch (error) {
-      console.error('Error getting tax regime comparison:', error);
+      console.error('Error fetching tax regime comparison:', error);
       throw error;
     }
   }
 
   /**
-   * Get available tax years for selection
+   * Get available tax years
    */
   async getAvailableTaxYears(): Promise<Types.TaxYearInfoDTO[]> {
     try {
       return await this.baseApi.get('/api/v2/taxation/tax-years');
     } catch (error) {
-      console.error('Error getting available tax years:', error);
+      console.error('Error fetching available tax years:', error);
       throw error;
     }
   }
 
   /**
-   * Check taxation service health
+   * Health check endpoint
    */
   async healthCheck(): Promise<Types.HealthCheckResponse> {
     try {
@@ -332,25 +237,27 @@ class TaxationAPI {
     }
   }
 
+  // =============================================================================
+  // EMPLOYEE SELECTION ENDPOINTS
+  // =============================================================================
+
   /**
-   * Get employees for selection in taxation module
+   * Get employees for selection with filtering and pagination
    */
   async getEmployeesForSelection(
     query?: Types.EmployeeSelectionQuery
   ): Promise<Types.EmployeeSelectionResponse> {
     try {
       const params = new URLSearchParams();
-      
-      if (query?.skip !== undefined) params.append('skip', query.skip.toString());
-      if (query?.limit !== undefined) params.append('limit', query.limit.toString());
-      if (query?.search) params.append('search', query.search);
-      if (query?.department) params.append('department', query.department);
-      if (query?.role) params.append('role', query.role);
-      if (query?.status) params.append('status', query.status);
-      if (query?.has_tax_record !== undefined) params.append('has_tax_record', query.has_tax_record.toString());
-      if (query?.tax_year) params.append('tax_year', query.tax_year);
+      if (query) {
+        Object.entries(query).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            params.append(key, value.toString());
+          }
+        });
+      }
 
-      const url = `/api/v2/taxation/employee-selection${params.toString() ? `?${params.toString()}` : ''}`;
+      const url = `/api/v2/taxation/employees/selection${params.toString() ? `?${params.toString()}` : ''}`;
       return await this.baseApi.get(url);
     } catch (error) {
       console.error('Error fetching employees for selection:', error);
@@ -358,24 +265,9 @@ class TaxationAPI {
     }
   }
 
-  /**
-   * Get detailed taxation record by employee ID
-   */
-  async getEmployeeTaxationRecord(
-    employeeId: string,
-    taxYear?: string
-  ): Promise<Types.TaxationRecordSummaryDTO> {
-    try {
-      const params = new URLSearchParams();
-      if (taxYear) params.append('tax_year', taxYear);
-
-      const url = `/api/v2/taxation/records/employee/${employeeId}${params.toString() ? `?${params.toString()}` : ''}`;
-      return await this.baseApi.get(url);
-    } catch (error) {
-      console.error('Error fetching employee taxation record:', error);
-      throw error;
-    }
-  }
+  // =============================================================================
+  // LEGACY TAX CALCULATION ENDPOINTS (for backward compatibility)
+  // =============================================================================
 
   /**
    * Calculate tax for given input data
@@ -416,152 +308,9 @@ class TaxationAPI {
     }
   }
 
-  /**
-   * Create new tax record
-   */
-  async createTaxRecord(recordData: CreateTaxRecordRequest): Promise<TaxRecord> {
-    try {
-      const response = await this.baseApi.post<TaxRecord>('/api/v2/taxation/records', recordData);
-      return response;
-    } catch (error: any) {
-      console.error('Error creating tax record:', error);
-      throw new Error(error.response?.data?.detail || 'Failed to create tax record');
-    }
-  }
-
-  /**
-   * Get list of tax records with filtering and pagination
-   */
-  async getTaxRecords(filters: TaxRecordFilters = {}): Promise<TaxRecordListResponse> {
-    try {
-      const {
-        skip = 0,
-        limit = 10,
-        financial_year,
-        employee_id,
-        is_finalized,
-        search
-      } = filters;
-
-      const params: Record<string, any> = {
-        skip,
-        limit
-      };
-
-      if (financial_year) params.financial_year = financial_year;
-      if (employee_id) params.employee_id = employee_id;
-      if (is_finalized !== undefined) params.is_finalized = is_finalized;
-      if (search) params.search = search;
-
-      const response = await this.baseApi.get<TaxRecordListResponse>('/api/v2/taxation/records', { params });
-      return response;
-    } catch (error: any) {
-      console.error('Error fetching tax records:', error);
-      throw new Error(error.response?.data?.detail || 'Failed to fetch tax records');
-    }
-  }
-
-  /**
-   * Get tax record by ID
-   */
-  async getTaxRecordById(recordId: string): Promise<TaxRecord> {
-    try {
-      const response = await this.baseApi.get<TaxRecord>(`/api/v2/taxation/records/${recordId}`);
-      return response;
-    } catch (error: any) {
-      console.error('Error fetching tax record:', error);
-      throw new Error(error.response?.data?.detail || 'Failed to fetch tax record');
-    }
-  }
-
-  /**
-   * Update tax record
-   */
-  async updateTaxRecord(recordId: string, updateData: UpdateTaxRecordRequest): Promise<TaxRecord> {
-    try {
-      const response = await this.baseApi.patch<TaxRecord>(`/api/v2/taxation/records/${recordId}`, updateData);
-      return response;
-    } catch (error: any) {
-      console.error('Error updating tax record:', error);
-      throw new Error(error.response?.data?.detail || 'Failed to update tax record');
-    }
-  }
-
-  /**
-   * Delete tax record
-   */
-  async deleteTaxRecord(recordId: string): Promise<{ message: string }> {
-    try {
-      const response = await this.baseApi.delete<{ message: string }>(`/api/v2/taxation/records/${recordId}`);
-      return response;
-    } catch (error: any) {
-      console.error('Error deleting tax record:', error);
-      throw new Error(error.response?.data?.detail || 'Failed to delete tax record');
-    }
-  }
-
-  /**
-   * Finalize tax record (make it immutable)
-   */
-  async finalizeTaxRecord(recordId: string): Promise<TaxRecord> {
-    try {
-      const response = await this.baseApi.patch<TaxRecord>(`/api/v2/taxation/records/${recordId}/finalize`);
-      return response;
-    } catch (error: any) {
-      console.error('Error finalizing tax record:', error);
-      throw new Error(error.response?.data?.detail || 'Failed to finalize tax record');
-    }
-  }
-
-  /**
-   * Get tax analytics for dashboard
-   */
-  async getTaxAnalytics(financialYear?: string): Promise<TaxAnalytics> {
-    try {
-      const params = financialYear ? { financial_year: financialYear } : {};
-      const response = await this.baseApi.get<TaxAnalytics>('/api/v2/taxation/analytics', { params });
-      return response;
-    } catch (error: any) {
-      console.error('Error fetching tax analytics:', error);
-      throw new Error(error.response?.data?.detail || 'Failed to fetch tax analytics');
-    }
-  }
-
-  /**
-   * Export tax records to PDF/Excel
-   */
-  async exportTaxRecords(
-    format: 'pdf' | 'excel',
-    filters: TaxRecordFilters = {}
-  ): Promise<Blob> {
-    try {
-      const params = { ...filters, format };
-      const response = await this.baseApi.download('/api/v2/taxation/records/export', { params });
-      return response;
-    } catch (error: any) {
-      console.error('Error exporting tax records:', error);
-      throw new Error(error.response?.data?.detail || 'Failed to export tax records');
-    }
-  }
-
-  /**
-   * Import tax records from file
-   */
-  async importTaxRecords(file: File): Promise<{ message: string; imported_count: number; errors?: any[] }> {
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await this.baseApi.upload<{ message: string; imported_count: number; errors?: any[] }>(
-        '/api/v2/taxation/records/import',
-        formData
-      );
-      return response;
-    } catch (error: any) {
-      console.error('Error importing tax records:', error);
-      throw new Error(error.response?.data?.detail || 'Failed to import tax records');
-    }
-  }
+  // =============================================================================
+  // TEMPLATE AND UTILITY ENDPOINTS
+  // =============================================================================
 
   /**
    * Get tax calculation templates
@@ -577,7 +326,7 @@ class TaxationAPI {
   }
 
   /**
-   * Save tax calculation as template
+   * Save tax calculation template
    */
   async saveTaxTemplate(templateData: TaxInputData & { name: string }): Promise<{ message: string }> {
     try {
@@ -594,9 +343,7 @@ class TaxationAPI {
    */
   async getCurrentFinancialYear(): Promise<{ financial_year: string; start_date: string; end_date: string }> {
     try {
-      const response = await this.baseApi.get<{ financial_year: string; start_date: string; end_date: string }>(
-        '/api/v2/taxation/financial-year/current'
-      );
+      const response = await this.baseApi.get<{ financial_year: string; start_date: string; end_date: string }>('/api/v2/taxation/current-financial-year');
       return response;
     } catch (error: any) {
       console.error('Error fetching current financial year:', error);
@@ -605,7 +352,7 @@ class TaxationAPI {
   }
 
   /**
-   * Get tax slabs for a specific financial year
+   * Get tax slabs for a specific financial year and regime
    */
   async getTaxSlabs(financialYear: string, regime: 'old' | 'new'): Promise<{
     financial_year: string;
@@ -617,9 +364,7 @@ class TaxationAPI {
     }>;
   }> {
     try {
-        const response = await this.baseApi.get(`/api/v2/taxation/tax-slabs`, {
-        params: { financial_year: financialYear, regime }
-      });
+      const response = await this.baseApi.get(`/api/v2/taxation/slabs?financial_year=${financialYear}&regime=${regime}`);
       return response;
     } catch (error: any) {
       console.error('Error fetching tax slabs:', error);
@@ -627,43 +372,46 @@ class TaxationAPI {
     }
   }
 
+  // =============================================================================
+  // LEGACY ENDPOINTS (for backward compatibility)
+  // =============================================================================
+
   /**
-   * Get all taxation data (admin only)
+   * Get all taxation records (legacy endpoint)
    */
   async getAllTaxation(taxYear?: string | null, filingStatus?: string | null): Promise<any> {
     try {
-      const params = new URLSearchParams();
-      if (taxYear) params.append('tax_year', taxYear);
-      if (filingStatus) params.append('filing_status', filingStatus);
-      
-      const queryString = params.toString();
-      const url = queryString ? `/api/v2/taxation/all?${queryString}` : '/api/v2/taxation/all';
-      
-      return await this.baseApi.get(url);
+      const params: Record<string, string> = {};
+      if (taxYear) params.financial_year = taxYear;
+      if (filingStatus) params.filing_status = filingStatus;
+
+      const response = await this.baseApi.get('/api/v2/taxation/records', { params });
+      return response;
     } catch (error: any) {
-      console.error('Error getting all taxation data:', error);
-      throw new Error(error.response?.data?.detail || 'Failed to get all taxation data');
+      console.error('Error fetching all taxation:', error);
+      throw new Error(error.response?.data?.detail || 'Failed to fetch taxation records');
     }
   }
 
   /**
-   * Get current user's taxation data
+   * Get my taxation records (legacy endpoint)
    */
   async getMyTaxation(): Promise<any> {
     try {
-      return await this.baseApi.get('/api/v2/taxation/my');
+      const response = await this.baseApi.get('/api/v2/taxation/records/my');
+      return response;
     } catch (error: any) {
-      console.error('Error getting my taxation data:', error);
-      throw new Error(error.response?.data?.detail || 'Failed to get my taxation data');
+      console.error('Error fetching my taxation:', error);
+      throw new Error(error.response?.data?.detail || 'Failed to fetch my taxation records');
     }
   }
 
   // =============================================================================
-  // INDIVIDUAL COMPONENT MANAGEMENT ENDPOINTS
+  // COMPONENT MANAGEMENT ENDPOINTS
   // =============================================================================
 
   /**
-   * Get a specific component from taxation record
+   * Get specific component data for an employee
    */
   async getComponent(
     employeeId: string,
@@ -671,15 +419,16 @@ class TaxationAPI {
     componentType: string
   ): Promise<Types.ComponentResponse> {
     try {
-      return await this.baseApi.get(`/api/v2/taxation/records/employee/${employeeId}/component/${componentType}?tax_year=${taxYear}`);
+      const url = `/api/v2/taxation/records/employee/${employeeId}/component/${componentType}?tax_year=${taxYear}`;
+      return await this.baseApi.get(url);
     } catch (error) {
-      console.error('Error getting component:', error);
+      console.error('Error fetching component:', error);
       throw error;
     }
   }
 
   /**
-   * Update salary component individually
+   * Update salary component for an employee
    */
   async updateSalaryComponent(
     request: {
@@ -690,7 +439,12 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      return await this.baseApi.put(`/api/v2/taxation/records/employee/${request.employee_id}/salary`, request);
+      const url = `/api/v2/taxation/records/employee/${request.employee_id}/component/salary_income`;
+      return await this.baseApi.patch(url, {
+        tax_year: request.tax_year,
+        salary_income: request.salary_income,
+        notes: request.notes
+      });
     } catch (error) {
       console.error('Error updating salary component:', error);
       throw error;
@@ -698,7 +452,7 @@ class TaxationAPI {
   }
 
   /**
-   * Update perquisites component individually
+   * Update perquisites component for an employee
    */
   async updatePerquisitesComponent(
     request: {
@@ -709,7 +463,12 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      return await this.baseApi.put(`/api/v2/taxation/records/employee/${request.employee_id}/perquisites`, request);
+      const url = `/api/v2/taxation/records/employee/${request.employee_id}/component/perquisites`;
+      return await this.baseApi.patch(url, {
+        tax_year: request.tax_year,
+        perquisites: request.perquisites,
+        notes: request.notes
+      });
     } catch (error) {
       console.error('Error updating perquisites component:', error);
       throw error;
@@ -717,7 +476,7 @@ class TaxationAPI {
   }
 
   /**
-   * Update deductions component individually
+   * Update deductions component for an employee
    */
   async updateDeductionsComponent(
     request: {
@@ -728,7 +487,12 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      return await this.baseApi.put(`/api/v2/taxation/records/employee/${request.employee_id}/deductions`, request);
+      const url = `/api/v2/taxation/records/employee/${request.employee_id}/component/deductions`;
+      return await this.baseApi.patch(url, {
+        tax_year: request.tax_year,
+        deductions: request.deductions,
+        notes: request.notes
+      });
     } catch (error) {
       console.error('Error updating deductions component:', error);
       throw error;
@@ -736,7 +500,7 @@ class TaxationAPI {
   }
 
   /**
-   * Update house property component individually
+   * Update house property component for an employee
    */
   async updateHousePropertyComponent(
     request: {
@@ -747,7 +511,12 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      return await this.baseApi.put(`/api/v2/taxation/records/employee/${request.employee_id}/house-property`, request);
+      const url = `/api/v2/taxation/records/employee/${request.employee_id}/component/house_property_income`;
+      return await this.baseApi.patch(url, {
+        tax_year: request.tax_year,
+        house_property_income: request.house_property_income,
+        notes: request.notes
+      });
     } catch (error) {
       console.error('Error updating house property component:', error);
       throw error;
@@ -755,7 +524,7 @@ class TaxationAPI {
   }
 
   /**
-   * Update capital gains component individually
+   * Update capital gains component for an employee
    */
   async updateCapitalGainsComponent(
     request: {
@@ -766,7 +535,12 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      return await this.baseApi.put(`/api/v2/taxation/records/employee/${request.employee_id}/capital-gains`, request);
+      const url = `/api/v2/taxation/records/employee/${request.employee_id}/component/capital_gains_income`;
+      return await this.baseApi.patch(url, {
+        tax_year: request.tax_year,
+        capital_gains_income: request.capital_gains_income,
+        notes: request.notes
+      });
     } catch (error) {
       console.error('Error updating capital gains component:', error);
       throw error;
@@ -774,7 +548,7 @@ class TaxationAPI {
   }
 
   /**
-   * Update retirement benefits component individually
+   * Update retirement benefits component for an employee
    */
   async updateRetirementBenefitsComponent(
     request: {
@@ -785,7 +559,12 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      return await this.baseApi.put(`/api/v2/taxation/records/employee/${request.employee_id}/retirement-benefits`, request);
+      const url = `/api/v2/taxation/records/employee/${request.employee_id}/component/retirement_benefits`;
+      return await this.baseApi.patch(url, {
+        tax_year: request.tax_year,
+        retirement_benefits: request.retirement_benefits,
+        notes: request.notes
+      });
     } catch (error) {
       console.error('Error updating retirement benefits component:', error);
       throw error;
@@ -793,7 +572,7 @@ class TaxationAPI {
   }
 
   /**
-   * Update other income component individually
+   * Update other income component for an employee
    */
   async updateOtherIncomeComponent(
     request: {
@@ -804,7 +583,12 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      return await this.baseApi.put(`/api/v2/taxation/records/employee/${request.employee_id}/other-income`, request);
+      const url = `/api/v2/taxation/records/employee/${request.employee_id}/component/other_income`;
+      return await this.baseApi.patch(url, {
+        tax_year: request.tax_year,
+        other_income: request.other_income,
+        notes: request.notes
+      });
     } catch (error) {
       console.error('Error updating other income component:', error);
       throw error;
@@ -812,7 +596,7 @@ class TaxationAPI {
   }
 
   /**
-   * Update monthly payroll component individually
+   * Update monthly payroll component for an employee
    */
   async updateMonthlyPayrollComponent(
     request: {
@@ -823,7 +607,12 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      return await this.baseApi.put(`/api/v2/taxation/records/employee/${request.employee_id}/monthly-payroll`, request);
+      const url = `/api/v2/taxation/records/employee/${request.employee_id}/component/monthly_payroll`;
+      return await this.baseApi.patch(url, {
+        tax_year: request.tax_year,
+        monthly_payroll: request.monthly_payroll,
+        notes: request.notes
+      });
     } catch (error) {
       console.error('Error updating monthly payroll component:', error);
       throw error;
@@ -831,7 +620,7 @@ class TaxationAPI {
   }
 
   /**
-   * Update regime component individually
+   * Update regime component for an employee
    */
   async updateRegimeComponent(
     request: {
@@ -843,7 +632,13 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      return await this.baseApi.put(`/api/v2/taxation/records/employee/${request.employee_id}/regime`, request);
+      const url = `/api/v2/taxation/records/employee/${request.employee_id}/component/regime`;
+      return await this.baseApi.patch(url, {
+        tax_year: request.tax_year,
+        regime_type: request.regime_type,
+        age: request.age,
+        notes: request.notes
+      });
     } catch (error) {
       console.error('Error updating regime component:', error);
       throw error;
@@ -851,16 +646,17 @@ class TaxationAPI {
   }
 
   /**
-   * Get taxation record status for all components
+   * Get taxation record status for an employee
    */
   async getTaxationRecordStatus(
     employeeId: string,
     taxYear: string
   ): Promise<any> {
     try {
-      return await this.baseApi.get(`/api/v2/taxation/records/employee/${employeeId}/status?tax_year=${taxYear}`);
+      const url = `/api/v2/taxation/records/employee/${employeeId}/status?tax_year=${taxYear}`;
+      return await this.baseApi.get(url);
     } catch (error) {
-      console.error('Error getting taxation record status:', error);
+      console.error('Error fetching taxation record status:', error);
       throw error;
     }
   }
@@ -870,16 +666,14 @@ class TaxationAPI {
   // =============================================================================
 
   /**
-   * Compute detailed monthly tax for an employee based on their salary package record
-   * Includes comprehensive breakdown of tax calculation components
+   * Compute monthly tax for an employee
    */
   async computeMonthlyTax(
     employeeId: string,
   ): Promise<any> {
     try {
-      return await this.baseApi.get(
-        `/api/v2/taxation/monthly-tax/employee/${employeeId}`
-      );
+      const url = `/api/v2/taxation/records/employee/${employeeId}/compute-monthly-tax`;
+      return await this.baseApi.post(url);
     } catch (error) {
       console.error('Error computing monthly tax:', error);
       throw error;
@@ -887,8 +681,7 @@ class TaxationAPI {
   }
 
   /**
-   * Compute basic monthly tax for an employee (lighter version)
-   * Returns essential tax information without detailed breakdown
+   * Compute monthly tax for a specific month and year
    */
   async computeMonthlyTaxSimple(
     employeeId: string,
@@ -896,24 +689,21 @@ class TaxationAPI {
     year: number
   ): Promise<any> {
     try {
-      return await this.baseApi.get(
-        `/api/v2/taxation/monthly-tax-simple/employee/${employeeId}?month=${month}&year=${year}`
-      );
+      const url = `/api/v2/taxation/records/employee/${employeeId}/compute-monthly-tax-simple`;
+      return await this.baseApi.post(url, { month, year });
     } catch (error) {
-      console.error('Error computing simple monthly tax:', error);
+      console.error('Error computing monthly tax simple:', error);
       throw error;
     }
   }
 
   /**
    * Compute current month tax for an employee
-   * Convenience method that uses current month and year
    */
   async computeCurrentMonthTax(employeeId: string): Promise<any> {
     try {
-      return await this.baseApi.get(
-        `/api/v2/taxation/monthly-tax/current/${employeeId}`
-      );
+      const url = `/api/v2/taxation/records/employee/${employeeId}/compute-current-month-tax`;
+      return await this.baseApi.post(url);
     } catch (error) {
       console.error('Error computing current month tax:', error);
       throw error;
@@ -922,5 +712,5 @@ class TaxationAPI {
 }
 
 // Export singleton instance
-export const taxationApi = TaxationAPI.getInstance();
+const taxationApi = TaxationAPI.getInstance();
 export default taxationApi; 

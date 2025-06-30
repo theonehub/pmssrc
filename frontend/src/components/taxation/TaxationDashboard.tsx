@@ -32,7 +32,7 @@ import {
   Perquisites,
   ExtendedTaxBreakup 
 } from '../../shared/types';
-import { taxationApi } from '../../shared/api/taxationApi';
+import taxationApi from '../../shared/api/taxationApi';
 
 // Import the specific functions we need
 const { getAllTaxation, getMyTaxation } = taxationApi;

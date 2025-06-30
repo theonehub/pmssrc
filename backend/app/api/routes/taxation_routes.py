@@ -5,7 +5,6 @@ Production-ready REST API endpoints for all taxation operations and income types
 
 from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import JSONResponse
 from datetime import datetime
 
 # Import centralized logger
@@ -14,31 +13,10 @@ from app.utils.logger import get_logger
 from app.auth.auth_dependencies import get_current_user, CurrentUser
 from app.application.dto.taxation_dto import (
     # Comprehensive DTOs
-    ComprehensiveTaxInputDTO,
-    PeriodicTaxCalculationResponseDTO,
-    ComprehensiveTaxOutputDTO,
     PerquisitesDTO,
     HousePropertyIncomeDTO,
-    MultipleHousePropertiesDTO,
     CapitalGainsIncomeDTO,
     RetirementBenefitsDTO,
-    OtherIncomeDTO,
-    AnnualPayrollWithLWPDTO,
-    
-    # Scenario DTOs
-    ScenarioComparisonRequestDTO,
-    ScenarioComparisonResponseDTO,
-    MidYearJoinerDTO,
-    MidYearIncrementDTO,
-    
-    # Record management DTOs
-    CreateTaxationRecordRequest,
-    CreateTaxationRecordResponse,
-    TaxationRecordSummaryDTO,
-    TaxationRecordListResponse,
-    TaxationRecordQuery,
-    UpdateResponse,
-    
     # Employee Selection DTOs
     EmployeeSelectionQuery,
     EmployeeSelectionResponse,
@@ -61,7 +39,6 @@ from app.application.dto.taxation_dto import (
 )
 from app.api.controllers.taxation_controller import UnifiedTaxationController
 from app.config.dependency_container import (
-    get_comprehensive_taxation_controller,
     get_taxation_controller
 )
 from app.domain.exceptions.taxation_exceptions import (
@@ -78,79 +55,6 @@ logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/v2/taxation", tags=["taxation"])
 
-
-# =============================================================================
-# COMPREHENSIVE TAX CALCULATION - MAIN ENDPOINTS
-# =============================================================================
-
-@router.post("/calculate-comprehensive",
-             response_model=TaxCalculationResult,
-             status_code=status.HTTP_200_OK,
-             summary="Calculate comprehensive tax",
-             description="Calculate tax including all income sources and components")
-async def calculate_comprehensive_tax(
-    request: ComprehensiveTaxInputDTO,
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_comprehensive_taxation_controller)
-) -> TaxCalculationResult:
-    """Calculate comprehensive tax including all income sources."""
-    
-    logger.info(f"Starting comprehensive tax calculation for user {current_user.username}")
-    logger.debug(f"Tax calculation request: regime={request.regime_type}, tax_year={request.tax_year}")
-    
-    try:
-        response = await controller.calculate_comprehensive_tax(
-            request, current_user.hostname
-        )
-        logger.info(f"Successfully calculated comprehensive tax. Total liability: {response.total_tax_liability}")
-        return response
-        
-    except ValueError as e:
-        logger.error(f"Validation error in tax calculation: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
-        )
-    except Exception as e:
-        logger.error(f"Failed to calculate comprehensive tax: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to calculate comprehensive tax: {str(e)}"
-        )
-
-
-@router.post("/records/employee/{employee_id}/calculate-comprehensive",
-             response_model=TaxCalculationResult,
-             status_code=status.HTTP_200_OK,
-             summary="Calculate and update comprehensive tax for employee",
-             description="Calculate comprehensive tax for a specific employee and update their taxation record in database")
-async def calculate_comprehensive_tax_for_employee(
-    employee_id: str,
-    request: ComprehensiveTaxInputDTO,
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_comprehensive_taxation_controller)
-) -> TaxCalculationResult:
-    """Calculate comprehensive tax for a specific employee and update their record."""
-    
-    try:
-        # Add employee_id to the request context
-        response = await controller.calculate_comprehensive_tax_for_employee(
-            employee_id, request, current_user.hostname
-        )
-        return response
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to calculate comprehensive tax for employee {employee_id}: {str(e)}"
-        )
-
-
 # =============================================================================
 # INDIVIDUAL INCOME COMPONENT CALCULATIONS
 # =============================================================================
@@ -164,7 +68,7 @@ async def calculate_perquisites(
     perquisites: PerquisitesDTO,
     regime_type: str = Query(..., description="Tax regime: 'old' or 'new'"),
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_comprehensive_taxation_controller)
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
 ) -> Dict[str, Any]:
     """Calculate perquisites tax impact only."""
     
@@ -195,7 +99,7 @@ async def calculate_house_property(
     house_property_income: HousePropertyIncomeDTO,
     regime_type: str = Query(..., description="Tax regime: 'old' or 'new'"),
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_comprehensive_taxation_controller)
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
 ) -> Dict[str, Any]:
     """Calculate house property income tax."""
     
@@ -226,7 +130,7 @@ async def calculate_capital_gains(
     capital_gains: CapitalGainsIncomeDTO,
     regime_type: str = Query(..., description="Tax regime: 'old' or 'new'"),
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_comprehensive_taxation_controller)
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
 ) -> Dict[str, Any]:
     """Calculate capital gains tax."""
     
@@ -257,7 +161,7 @@ async def calculate_retirement_benefits(
     retirement_benefits: RetirementBenefitsDTO,
     regime_type: str = Query(..., description="Tax regime: 'old' or 'new'"),
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_comprehensive_taxation_controller)
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
 ) -> Dict[str, Any]:
     """Calculate retirement benefits tax."""
     
@@ -277,297 +181,6 @@ async def calculate_retirement_benefits(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to calculate retirement benefits: {str(e)}"
         )
-
-
-@router.post("/payroll/calculate",
-             response_model=Dict[str, Any],
-             status_code=status.HTTP_200_OK,
-             summary="Calculate payroll tax with LWP",
-             description="Calculate monthly payroll tax with Leave Without Pay considerations")
-async def calculate_payroll_tax(
-    payroll: AnnualPayrollWithLWPDTO,
-    regime_type: str = Query(..., description="Tax regime: 'old' or 'new'"),
-    age: int = Query(..., description="Employee age"),
-    section_80c: float = Query(0, description="Section 80C investments"),
-    section_80d: float = Query(0, description="Section 80D health insurance"),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_comprehensive_taxation_controller)
-) -> Dict[str, Any]:
-    """Calculate payroll tax with LWP considerations."""
-    
-    try:
-        deductions_data = {
-            "section_80c": section_80c,
-            "section_80d": section_80d
-        }
-        
-        response = await controller.calculate_payroll_tax(
-            payroll, deductions_data, regime_type, age, current_user.hostname
-        )
-        return response
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to calculate payroll tax: {str(e)}"
-        )
-
-
-# =============================================================================
-# SCENARIO CALCULATION ENDPOINTS
-# =============================================================================
-
-@router.post("/mid-year/joiner",
-             response_model=PeriodicTaxCalculationResponseDTO,
-             status_code=status.HTTP_200_OK,
-             summary="Calculate mid-year joiner tax",
-             description="Calculate tax for mid-year joiner scenario")
-async def calculate_mid_year_joiner(
-    request: MidYearJoinerDTO,
-    tax_year: str = Query(..., description="Tax year (e.g., '2024-25')"),
-    regime_type: str = Query(..., description="Tax regime: 'old' or 'new'"),
-    age: int = Query(..., description="Employee age"),
-    section_80c: float = Query(0, description="Section 80C investments"),
-    section_80d: float = Query(0, description="Section 80D health insurance"),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_comprehensive_taxation_controller)
-) -> PeriodicTaxCalculationResponseDTO:
-    """Calculate tax for mid-year joiner scenario."""
-    
-    try:
-        # Convert to comprehensive input and calculate
-        comprehensive_request = _convert_mid_year_joiner_to_comprehensive(
-            request, tax_year, regime_type, age, section_80c, section_80d
-        )
-        
-        response = await controller.calculate_comprehensive_tax(
-            comprehensive_request, current_user.hostname
-        )
-        return response
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to calculate mid-year joiner tax: {str(e)}"
-        )
-
-
-@router.post("/mid-year/increment",
-             response_model=PeriodicTaxCalculationResponseDTO,
-             status_code=status.HTTP_200_OK,
-             summary="Calculate mid-year increment tax",
-             description="Calculate tax for mid-year increment scenario")
-async def calculate_mid_year_increment(
-    request: MidYearIncrementDTO,
-    tax_year: str = Query(..., description="Tax year (e.g., '2024-25')"),
-    regime_type: str = Query(..., description="Tax regime: 'old' or 'new'"),
-    age: int = Query(..., description="Employee age"),
-    section_80c: float = Query(0, description="Section 80C investments"),
-    section_80d: float = Query(0, description="Section 80D health insurance"),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_comprehensive_taxation_controller)
-) -> PeriodicTaxCalculationResponseDTO:
-    """Calculate tax for mid-year increment scenario."""
-    
-    try:
-        # Convert to comprehensive input and calculate
-        comprehensive_request = _convert_mid_year_increment_to_comprehensive(
-            request, tax_year, regime_type, age, section_80c, section_80d
-        )
-        
-        response = await controller.calculate_comprehensive_tax(
-            comprehensive_request, current_user.hostname
-        )
-        return response
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to calculate mid-year increment tax: {str(e)}"
-        )
-
-
-@router.post("/scenarios/compare",
-             response_model=ScenarioComparisonResponseDTO,
-             status_code=status.HTTP_200_OK,
-             summary="Compare tax scenarios",
-             description="Compare different tax scenarios")
-async def compare_scenarios(
-    request: ScenarioComparisonRequestDTO,
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_comprehensive_taxation_controller)
-) -> ScenarioComparisonResponseDTO:
-    """Compare different tax scenarios."""
-    
-    try:
-        # Calculate base scenario
-        base_result = await controller.calculate_comprehensive_tax(
-            request.base_request, current_user.hostname
-        )
-        
-        # Build comparison response
-        return ScenarioComparisonResponseDTO(
-            base_scenario=base_result,
-            comparison_scenarios=[],
-            recommendations=[
-                "Consider optimizing deductions based on regime",
-                "Review salary structure for tax efficiency",
-                "Plan investments for tax benefits"
-            ],
-            summary={
-                "base_tax_liability": base_result.total_tax_liability,
-                "regime_used": base_result.regime_used,
-                "effective_rate": base_result.effective_tax_rate
-            }
-        )
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to compare scenarios: {str(e)}"
-        )
-
-
-# =============================================================================
-# RECORD MANAGEMENT ENDPOINTS
-# =============================================================================
-
-@router.post("/records", 
-             response_model=CreateTaxationRecordResponse,
-             status_code=status.HTTP_201_CREATED,
-             summary="Create new taxation record",
-             description="Create a new taxation record for a user and tax year")
-async def create_taxation_record(
-    request: CreateTaxationRecordRequest,
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_taxation_controller)
-) -> CreateTaxationRecordResponse:
-    """Create new taxation record."""
-    
-    try:
-        response = await controller.create_taxation_record(
-            request, current_user.hostname
-        )
-        return response
-        
-    except DuplicateTaxationRecordError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=str(e)
-        )
-    except TaxationValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create taxation record: {str(e)}"
-        )
-
-
-@router.get("/records",
-            response_model=TaxationRecordListResponse,
-            summary="List taxation records",
-            description="Get list of taxation records with optional filters")
-async def list_taxation_records(
-    query: TaxationRecordQuery = Depends(),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_taxation_controller)
-) -> TaxationRecordListResponse:
-    """List taxation records with filtering and pagination."""
-    
-    try:
-        response = await controller.list_taxation_records(
-            query, current_user.hostname
-        )
-        return response
-        
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to list taxation records: {str(e)}"
-        )
-
-@router.get("/records/employee/{employee_id}",
-            response_model=ComprehensiveTaxOutputDTO,
-            summary="Get comprehensive taxation record by employee ID",
-            description="Get comprehensive taxation record by employee ID and optional tax year with computed values")
-async def get_taxation_record_by_employee(
-    employee_id: str,
-    tax_year: Optional[str] = Query(None, description="Tax year (e.g., '2024-25')"),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_taxation_controller)
-) -> ComprehensiveTaxOutputDTO:
-    """Get comprehensive taxation record by employee ID and optional tax year."""
-    
-    logger.info(f"Fetching taxation record for employee {employee_id}, tax year: {tax_year or 'current'}")
-    
-    try:
-        response = await controller.get_taxation_record_by_employee(
-            employee_id, current_user.hostname, tax_year
-        )
-        logger.info(f"Successfully retrieved taxation record for employee {employee_id}")
-        logger.debug(f"Record details: regime={response.regime_type}, status={response.status}")
-        return response
-        
-    except Exception as e:
-        logger.error(f"Failed to get taxation record for employee {employee_id}: {str(e)}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get comprehensive taxation record: {str(e)}"
-        )
-
-
-@router.get("/records/{taxation_id}",
-            response_model=TaxationRecordSummaryDTO,
-            summary="Get taxation record",
-            description="Get taxation record by ID")
-async def get_taxation_record(
-    taxation_id: str,
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_taxation_controller)
-) -> TaxationRecordSummaryDTO:
-    """Get taxation record by ID."""
-    
-    try:
-        response = await controller.get_taxation_record(
-            taxation_id, current_user.hostname
-        )
-        return response
-        
-    except TaxationRecordNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Taxation record not found: {taxation_id}"
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get taxation record: {str(e)}"
-        )
-
 
 # =============================================================================
 # INDIVIDUAL COMPONENT UPDATE ENDPOINTS
@@ -1007,7 +620,7 @@ async def get_taxation_record_status(
 # EMPLOYEE SELECTION ENDPOINTS
 # =============================================================================
 
-@router.get("/employee-selection",
+@router.get("/employees/selection",
             response_model=EmployeeSelectionResponse,
             summary="Get employees for taxation selection",
             description="Get list of employees with tax information for admin selection interface")
@@ -1248,41 +861,6 @@ async def get_available_tax_years() -> List[Dict[str, str]]:
     return tax_years
 
 
-@router.get("/optimization-strategies",
-            response_model=Dict[str, Any],
-            summary="Get tax optimization strategies",
-            description="Get comprehensive tax optimization strategies")
-async def get_optimization_strategies() -> Dict[str, Any]:
-    """Get tax optimization strategies."""
-    
-    return {
-        "general_strategies": {
-            "regime_selection": {
-                "strategy": "Choose optimal tax regime based on deductions",
-                "considerations": ["Total deduction amount", "Perquisites value", "Income level", "Investment preferences"]
-            },
-            "income_structuring": {
-                "strategy": "Optimize income structure for tax efficiency",
-                "methods": ["Salary vs perquisites balance", "Bonus timing optimization", "Leave encashment planning"]
-            },
-            "investment_planning": {
-                "strategy": "Structure investments for maximum tax benefit",
-                "approaches": ["Tax-saving investments (80C, 80D, etc.)", "Capital gains optimization", "Tax-efficient mutual funds"]
-            }
-        },
-        "regime_specific_strategies": {
-            "old_regime": {
-                "focus": "Maximize deductions and exemptions",
-                "strategies": ["Utilize full Section 80C limit", "Optimize health insurance under 80D", "Plan charitable donations"]
-            },
-            "new_regime": {
-                "focus": "Benefit from lower tax rates",
-                "strategies": ["Focus on salary optimization", "Minimize taxable perquisites", "Plan capital gains efficiently"]
-            }
-        }
-    }
-
-
 @router.get("/health",
             summary="Health check for taxation service",
             description="Check if taxation service is healthy")
@@ -1329,7 +907,7 @@ async def health_check() -> Dict[str, str]:
 async def compute_monthly_tax(
     employee_id: str,
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_comprehensive_taxation_controller)
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
 ) -> Dict[str, Any]:
     """
     Compute monthly tax for an employee based on their salary package record.
@@ -1392,7 +970,7 @@ async def compute_monthly_tax_simple(
     month: int = Query(..., description="Month (1-12)", ge=1, le=12),
     year: int = Query(..., description="Year", ge=2000, le=2050),
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_comprehensive_taxation_controller)
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
 ) -> Dict[str, Any]:
     """
     Compute monthly tax for an employee with basic information only.
@@ -1432,7 +1010,7 @@ async def compute_monthly_tax_simple(
 async def compute_current_month_tax(
     employee_id: str,
     current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_comprehensive_taxation_controller)
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
 ) -> Dict[str, Any]:
     """
     Compute monthly tax for an employee for the current month and year.
@@ -1465,81 +1043,3 @@ async def compute_current_month_tax(
             detail=f"Failed to compute current month tax: {str(e)}"
         )
 
-
-# =============================================================================
-# HELPER FUNCTIONS
-# =============================================================================
-
-def _convert_mid_year_joiner_to_comprehensive(
-    request: MidYearJoinerDTO, 
-    tax_year: str, 
-    regime_type: str, 
-    age: int, 
-    section_80c: float, 
-    section_80d: float
-) -> ComprehensiveTaxInputDTO:
-    """Convert mid-year joiner request to comprehensive input."""
-    
-    from app.application.dto.taxation_dto import SalaryIncomeDTO, TaxDeductionsDTO
-    
-    salary_dto = SalaryIncomeDTO(
-        basic_salary=request.salary_details.basic_salary,
-        dearness_allowance=request.salary_details.dearness_allowance,
-                    hra_provided=request.salary_details.hra_provided,
-        hra_city_type=request.salary_details.hra_city_type,
-        actual_rent_paid=request.salary_details.actual_rent_paid,
-        bonus=request.salary_details.bonus,
-        commission=request.salary_details.commission,
-        special_allowance=request.salary_details.special_allowance
-    )
-    
-    deductions_dto = TaxDeductionsDTO(
-        section_80c_investments=section_80c,
-        section_80d_health_insurance=section_80d
-    )
-    
-    return ComprehensiveTaxInputDTO(
-        salary_income=salary_dto,
-        deductions=deductions_dto,
-        regime_type=regime_type,
-        age=age,
-        tax_year=tax_year
-    )
-
-
-def _convert_mid_year_increment_to_comprehensive(
-    request: MidYearIncrementDTO, 
-    tax_year: str, 
-    regime_type: str, 
-    age: int, 
-    section_80c: float, 
-    section_80d: float
-) -> ComprehensiveTaxInputDTO:
-    """Convert mid-year increment request to comprehensive input."""
-    
-    from app.application.dto.taxation_dto import SalaryIncomeDTO, TaxDeductionsDTO
-    
-    # Use post-increment salary for calculation
-    salary_dto = SalaryIncomeDTO(
-        basic_salary=request.post_increment_salary.basic_salary,
-        dearness_allowance=request.post_increment_salary.dearness_allowance,
-                    hra_provided=request.post_increment_salary.hra_provided,
-        hra_city_type=request.post_increment_salary.hra_city_type,
-        actual_rent_paid=request.post_increment_salary.actual_rent_paid,
-        special_allowance=request.post_increment_salary.special_allowance,
-        bonus=request.post_increment_salary.bonus,
-        commission=request.post_increment_salary.commission
-    )
-    
-    deductions_dto = TaxDeductionsDTO(
-        section_80c_investments=section_80c,
-        section_80d_health_insurance=section_80d
-    )
-    
-    return ComprehensiveTaxInputDTO(
-        salary_income=salary_dto,
-        deductions=deductions_dto,
-        regime_type=regime_type,
-        age=age,
-        tax_year=tax_year
-    ) 

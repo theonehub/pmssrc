@@ -212,36 +212,21 @@ const EmployeeSelection: React.FC = () => {
     }
 
     try {
-      showToast('Loading employee taxation details...', 'info');
+      showToast('Navigating to taxation declaration...', 'info');
       
-      // Fetch detailed taxation record for the employee
-      const taxationApi = (await import('../../shared/api/taxationApi')).default;
-      const detailedRecord = await taxationApi.getEmployeeTaxationRecord(empId, selectedTaxYear);
-      
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.log('Fetched detailed taxation record:', detailedRecord);
-      }
-      
-      // Navigate to edit page with the employee ID and tax year
-      // Use the correct route that exists in App.tsx
+      // Navigate directly to edit page with the employee ID and tax year
+      // Since we're using SalaryPackage instead of TaxationRecord, we don't need to fetch a detailed record first
       navigate(`/taxation/declaration/${empId}?year=${selectedTaxYear}`);
       
-      showToast('Taxation details loaded successfully', 'success');
+      showToast('Navigating to taxation declaration...', 'success');
       
     } catch (error: any) {
       if (process.env.NODE_ENV === 'development') {
         // eslint-disable-next-line no-console
-        console.error('Error fetching taxation details:', error);
+        console.error('Error navigating to taxation declaration:', error);
       }
       
-      // If no record exists, still allow navigation to create new record
-      if (error.response?.status === 404) {
-        showToast('No existing record found. Creating new declaration...', 'info');
-        navigate(`/taxation/declaration/${empId}?year=${selectedTaxYear}`);
-      } else {
-        showToast('Failed to load taxation details. Please try again.', 'error');
-      }
+      showToast('Failed to navigate to declaration page. Please try again.', 'error');
     }
   };
 

@@ -11,9 +11,6 @@ interface TaxationState {
   calculationLoading: LoadingState;
   calculationError: ErrorState;
   formData: Types.ComprehensiveTaxInputDTO;
-  records: Types.TaxationRecordSummaryDTO[];
-  recordsLoading: LoadingState;
-  selectedRecord: Types.TaxationRecordSummaryDTO | null;
   currentStep: number;
   isMobileView: boolean;
 }
@@ -21,10 +18,9 @@ interface TaxationState {
 interface TaxationActions {
   calculateTax: (input: Types.ComprehensiveTaxInputDTO) => Promise<void>;
   updateFormData: (section: string, data: any) => void;
-  loadRecords: (query?: Types.TaxationRecordQuery) => Promise<void>;
   setCurrentStep: (step: number) => void;
   setMobileView: (isMobile: boolean) => void;
-  clearError: (errorType: 'calculation' | 'records') => void;
+  clearError: () => void;
 }
 
 const initialFormData: Types.ComprehensiveTaxInputDTO = {
@@ -43,9 +39,6 @@ export const useTaxationStore = create<TaxationState & TaxationActions>()(
         calculationLoading: { isLoading: false },
         calculationError: { hasError: false },
         formData: initialFormData,
-        records: [],
-        recordsLoading: { isLoading: false },
-        selectedRecord: null,
         currentStep: 0,
         isMobileView: false,
         
@@ -84,26 +77,6 @@ export const useTaxationStore = create<TaxationState & TaxationActions>()(
           });
         },
         
-        loadRecords: async (query?: Types.TaxationRecordQuery) => {
-          set((state) => {
-            state.recordsLoading = { isLoading: true, operation: 'Loading records...' };
-          });
-          
-          try {
-            const result = await taxationApi.listRecords(query);
-            
-            set((state) => {
-              state.records = result.records;
-              state.recordsLoading = { isLoading: false };
-            });
-          } catch (error: any) {
-            set((state) => {
-              state.recordsLoading = { isLoading: false };
-            });
-            throw error;
-          }
-        },
-        
         setCurrentStep: (step: number) => {
           set((state) => {
             state.currentStep = step;
@@ -116,11 +89,9 @@ export const useTaxationStore = create<TaxationState & TaxationActions>()(
           });
         },
         
-        clearError: (errorType: 'calculation' | 'records') => {
+        clearError: () => {
           set((state) => {
-            if (errorType === 'calculation') {
-              state.calculationError = { hasError: false };
-            }
+            state.calculationError = { hasError: false };
           });
         }
       })),

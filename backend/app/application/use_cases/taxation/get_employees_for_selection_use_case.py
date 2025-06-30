@@ -13,8 +13,8 @@ from app.application.dto.taxation_dto import (
 )
 from app.application.dto.user_dto import UserSearchFiltersDTO
 from app.application.interfaces.services.user_service import UserQueryService
-from app.domain.repositories.taxation_repository import TaxationRepository
 from app.auth.auth_dependencies import CurrentUser
+from app.application.interfaces.repositories.salary_package_repository import SalaryPackageRepository
 
 
 class GetEmployeesForSelectionUseCase:
@@ -30,10 +30,10 @@ class GetEmployeesForSelectionUseCase:
     def __init__(
         self,
         user_query_service: UserQueryService,
-        taxation_repository: TaxationRepository
+        salary_package_repository: SalaryPackageRepository
     ):
         self._user_query_service = user_query_service
-        self._taxation_repository = taxation_repository
+        self._salary_package_repository = salary_package_repository
     
     async def execute(
         self,
@@ -130,7 +130,7 @@ class GetEmployeesForSelectionUseCase:
         # Try to get tax record information
         try:
             # Get the tax record for the specific year
-            tax_record = await self._taxation_repository.get_taxation_record(
+            tax_record = await self._salary_package_repository.get_salary_package(
                 user_summary.employee_id, 
                 tax_year, 
                 organization_id

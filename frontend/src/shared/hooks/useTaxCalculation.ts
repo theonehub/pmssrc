@@ -120,7 +120,7 @@ export const useTaxCalculation = (): UseTaxCalculationReturn => {
   }, [updateFormData]);
   
   const resetCalculation = useCallback(() => {
-    clearError('calculation');
+    clearError();
     // Additional reset logic can be added here
   }, [clearError]);
   

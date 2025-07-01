@@ -9,7 +9,6 @@ import {
 import { perquisiteSections } from '../utils/taxationConstants';
 import AccommodationSection from './perquisites/AccommodationSection';
 import CarTransportSection from './perquisites/CarTransportSection';
-import MedicalReimbursementSection from './perquisites/MedicalReimbursementSection';
 import LeaveTravelAllowanceSection from './perquisites/LeaveTravelAllowanceSection';
 import FreeEducationSection from './perquisites/FreeEducationSection';
 import GasElectricityWaterSection from './perquisites/GasElectricityWaterSection';
@@ -119,19 +118,17 @@ const PerquisitesSection: React.FC<PerquisitesSectionProps> = ({
           />
         </TabPanel>
 
-        {/* Medical Reimbursement Section */}
-        <TabPanel value={activeTab} index={2}>
-          <MedicalReimbursementSection
-            handleNestedInputChange={handleNestedInputChange}
-            handleNestedFocus={handleNestedFocus}
-          />
-        </TabPanel>
-
         {/* Leave Travel Allowance Section */}
         <TabPanel value={activeTab} index={3}>
           <LeaveTravelAllowanceSection
             handleNestedInputChange={handleNestedInputChange}
             handleNestedFocus={handleNestedFocus}
+            formData={{
+              travel_mode: taxationData.perquisites?.leave_travel_allowance?.travel_mode || 'Air',
+              lta_amount_claimed: taxationData.perquisites?.leave_travel_allowance?.lta_claimed || 0,
+              public_transport_cost: 0, // This field doesn't exist in PerquisitesDTO
+              lta_claimed_count: 0
+            }}
           />
         </TabPanel>
 

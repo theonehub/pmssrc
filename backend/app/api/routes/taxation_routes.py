@@ -586,34 +586,34 @@ async def get_component(
         )
 
 
-@router.get("/records/employee/{employee_id}/status",
-            response_model=TaxationRecordStatusResponse,
-            summary="Get taxation record status",
-            description="Get status of all components in a taxation record")
-async def get_taxation_record_status(
-    employee_id: str,
-    tax_year: str = Query(..., description="Tax year (e.g., '2024-25')"),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_taxation_controller)
-) -> TaxationRecordStatusResponse:
-    """Get status of all components in a taxation record."""
+# @router.get("/records/employee/{employee_id}/status",
+#             response_model=TaxationRecordStatusResponse,
+#             summary="Get taxation record status",
+#             description="Get status of all components in a taxation record")
+# async def get_taxation_record_status(
+#     employee_id: str,
+#     tax_year: str = Query(..., description="Tax year (e.g., '2024-25')"),
+#     current_user: CurrentUser = Depends(get_current_user),
+#     controller: UnifiedTaxationController = Depends(get_taxation_controller)
+# ) -> TaxationRecordStatusResponse:
+#     """Get status of all components in a taxation record."""
     
-    try:
-        response = await controller.get_taxation_record_status(
-            employee_id, tax_year, current_user.hostname
-        )
-        return response
+#     try:
+#         response = await controller.get_taxation_record_status(
+#             employee_id, tax_year, current_user.hostname
+#         )
+#         return response
         
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get taxation record status: {str(e)}"
-        )
+#     except ValueError as e:
+#         raise HTTPException(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             detail=str(e)
+#         )
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=f"Failed to get taxation record status: {str(e)}"
+#         )
 
 
 # =============================================================================
@@ -651,7 +651,7 @@ async def get_employees_for_selection(
             search=search,
             department=department,
             role=role,
-            employee_status=employee_status,
+            status=employee_status,
             has_tax_record=has_tax_record,
             tax_year=tax_year
         )
@@ -754,10 +754,6 @@ async def get_perquisites_types() -> Dict[str, Any]:
                 }
             },
             "medical_travel": {
-                "medical_reimbursement": {
-                    "description": "Medical expenses reimbursed by employer",
-                    "overseas_treatment_applicable": True
-                },
                 "lta": {
                     "description": "Leave Travel Allowance",
                     "exemption_conditions": "Travel within India, public transport"
@@ -958,49 +954,6 @@ async def compute_monthly_tax(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to compute monthly tax: {str(e)}"
         )
-
-
-@router.get("/monthly-tax-simple/employee/{employee_id}",
-            response_model=Dict[str, Any],
-            status_code=status.HTTP_200_OK,
-            summary="Compute basic monthly tax for employee",
-            description="Compute monthly tax for an employee with basic information (lighter version)")
-async def compute_monthly_tax_simple(
-    employee_id: str,
-    month: int = Query(..., description="Month (1-12)", ge=1, le=12),
-    year: int = Query(..., description="Year", ge=2000, le=2050),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_taxation_controller)
-) -> Dict[str, Any]:
-    """
-    Compute monthly tax for an employee with basic information only.
-    
-    This is a lighter version suitable for quick calculations and frontend components
-    that need just the basic monthly tax amount without detailed breakdowns.
-    """
-    
-    try:
-        result = await controller.compute_monthly_tax_simple(
-            employee_id, month, year, current_user.hostname
-        )
-        return result
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
-        )
-    except RuntimeError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to compute basic monthly tax: {str(e)}"
-        )
-
 
 @router.get("/monthly-tax/current/{employee_id}",
             response_model=Dict[str, Any],

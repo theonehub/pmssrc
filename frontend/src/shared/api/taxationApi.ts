@@ -439,8 +439,9 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      const url = `/api/v2/taxation/records/employee/${request.employee_id}/component/salary_income`;
-      return await this.baseApi.patch(url, {
+      const url = `/api/v2/taxation/records/employee/${request.employee_id}/salary`;
+      return await this.baseApi.put(url, {
+        employee_id: request.employee_id,
         tax_year: request.tax_year,
         salary_income: request.salary_income,
         notes: request.notes
@@ -463,8 +464,9 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      const url = `/api/v2/taxation/records/employee/${request.employee_id}/component/perquisites`;
-      return await this.baseApi.patch(url, {
+      const url = `/api/v2/taxation/records/employee/${request.employee_id}/perquisites`;
+      return await this.baseApi.put(url, {
+        employee_id: request.employee_id,
         tax_year: request.tax_year,
         perquisites: request.perquisites,
         notes: request.notes
@@ -487,8 +489,9 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      const url = `/api/v2/taxation/records/employee/${request.employee_id}/component/deductions`;
-      return await this.baseApi.patch(url, {
+      const url = `/api/v2/taxation/records/employee/${request.employee_id}/deductions`;
+      return await this.baseApi.put(url, {
+        employee_id: request.employee_id,
         tax_year: request.tax_year,
         deductions: request.deductions,
         notes: request.notes
@@ -511,8 +514,9 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      const url = `/api/v2/taxation/records/employee/${request.employee_id}/component/house_property_income`;
-      return await this.baseApi.patch(url, {
+      const url = `/api/v2/taxation/records/employee/${request.employee_id}/house-property`;
+      return await this.baseApi.put(url, {
+        employee_id: request.employee_id,
         tax_year: request.tax_year,
         house_property_income: request.house_property_income,
         notes: request.notes
@@ -535,8 +539,9 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      const url = `/api/v2/taxation/records/employee/${request.employee_id}/component/capital_gains_income`;
-      return await this.baseApi.patch(url, {
+      const url = `/api/v2/taxation/records/employee/${request.employee_id}/capital-gains`;
+      return await this.baseApi.put(url, {
+        employee_id: request.employee_id,
         tax_year: request.tax_year,
         capital_gains_income: request.capital_gains_income,
         notes: request.notes
@@ -559,8 +564,9 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      const url = `/api/v2/taxation/records/employee/${request.employee_id}/component/retirement_benefits`;
-      return await this.baseApi.patch(url, {
+      const url = `/api/v2/taxation/records/employee/${request.employee_id}/retirement-benefits`;
+      return await this.baseApi.put(url, {
+        employee_id: request.employee_id,
         tax_year: request.tax_year,
         retirement_benefits: request.retirement_benefits,
         notes: request.notes
@@ -583,8 +589,9 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      const url = `/api/v2/taxation/records/employee/${request.employee_id}/component/other_income`;
-      return await this.baseApi.patch(url, {
+      const url = `/api/v2/taxation/records/employee/${request.employee_id}/other-income`;
+      return await this.baseApi.put(url, {
+        employee_id: request.employee_id,
         tax_year: request.tax_year,
         other_income: request.other_income,
         notes: request.notes
@@ -672,8 +679,8 @@ class TaxationAPI {
     employeeId: string,
   ): Promise<any> {
     try {
-      const url = `/api/v2/taxation/records/employee/${employeeId}/compute-monthly-tax`;
-      return await this.baseApi.post(url);
+      const url = `/api/v2/taxation/monthly-tax/employee/${employeeId}`;
+      return await this.baseApi.get(url);
     } catch (error) {
       console.error('Error computing monthly tax:', error);
       throw error;
@@ -689,8 +696,8 @@ class TaxationAPI {
     year: number
   ): Promise<any> {
     try {
-      const url = `/api/v2/taxation/records/employee/${employeeId}/compute-monthly-tax-simple`;
-      return await this.baseApi.post(url, { month, year });
+      const url = `/api/v2/taxation/monthly-tax/employee/${employeeId}?month=${month}&year=${year}`;
+      return await this.baseApi.get(url);
     } catch (error) {
       console.error('Error computing monthly tax simple:', error);
       throw error;
@@ -702,8 +709,8 @@ class TaxationAPI {
    */
   async computeCurrentMonthTax(employeeId: string): Promise<any> {
     try {
-      const url = `/api/v2/taxation/records/employee/${employeeId}/compute-current-month-tax`;
-      return await this.baseApi.post(url);
+      const url = `/api/v2/taxation/monthly-tax/current/${employeeId}`;
+      return await this.baseApi.get(url);
     } catch (error) {
       console.error('Error computing current month tax:', error);
       throw error;

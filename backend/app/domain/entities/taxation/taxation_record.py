@@ -1640,59 +1640,6 @@ class SalaryPackageRecord:
         """
         return self.get_annual_salary_income().calculate_gross_salary()
     
-
-    # def compute_monthly_tax(self) -> Money:
-    #     """
-    #     Compute monthly tax based on monthly salary income and comprehensive income sources.
-        
-    #     IMPORTANT: SalaryPackageRecord stores MONTHLY salary values, so we need to:
-    #     1. Convert monthly salary values to annual values for tax calculation
-    #     2. Calculate comprehensive annual income (salary + perquisites + other income)
-    #     3. Calculate comprehensive annual exemptions
-    #     4. Calculate annual deductions
-    #     5. Compute annual tax liability
-    #     6. Return the monthly tax (annual tax / 12)
-        
-    #     Args:
-    #     Returns:
-    #         Money: Monthly tax liability
-    #     """
-    #     from decimal import Decimal
-    #     # Validate inputs
-        
-    #     # If we have a valid calculation result, use it
-    #     if self.is_calculation_valid():
-    #         return self.calculation_result.monthly_tax_liability
-        
-    #     # Otherwise, calculate tax
-        
-    #     # Calculate total annual salary income
-    #     total_annual_income = self.compute_annual_salary_income()
-    #     logger.info(f"Total annual income: {total_annual_income}/{self.get_annual_salary_income().calculate_gross_salary()}")
-
-        
-    #     # Add other income sources (these are typically annual amounts)
-    #     if self.other_income:
-    #         other_income_annual = self.other_income.calculate_total_other_income_slab_rates(self.regime, self.age)
-    #         total_annual_income = total_annual_income.add(other_income_annual)
-            
-    #         # Subtract losses from house property
-    #         house_property_losses = self.other_income.loss_from_house_property_income(self.regime)
-    #         total_annual_income = total_annual_income.subtract(house_property_losses)
-                    
-    #     # Add perquisites (if any) - typically annual amounts
-    #     if self.perquisites:
-    #         perquisites_annual = self.perquisites.calculate_total_perquisites(self.regime)
-    #         total_annual_income = total_annual_income.add(perquisites_annual)
-        
-    #     # Add retirement benefits (if any) - typically annual amounts
-    #     if self.retirement_benefits:
-    #         retirement_benefits_annual = self.retirement_benefits.calculate_total_retirement_income(self.regime)
-    #         total_annual_income = total_annual_income.add(retirement_benefits_annual)
-        
-    #     return total_annual_income
-    
-
     def calculate_tax(self, calculation_service: TaxCalculationService) -> TaxCalculationResult:
         """
         Calculate tax using domain service.
@@ -1781,6 +1728,15 @@ class SalaryPackageRecord:
         
         return self.calculation_result
     
+    def calculate_basic_plus_da(self) -> Money:
+        """
+        Calculate basic plus DA from all sources.
+        
+        Returns:
+            Money: Total basic plus DA from all sources
+        """
+        basic_plus_da = self.annual_salary_income.calculate_basic_plus_da()
+        return basic_plus_da
     
     def calculate_gross_income(self) -> Money:
         """
@@ -1792,17 +1748,21 @@ class SalaryPackageRecord:
 
         # Calculate comprehensive gross income
         total_income = self._get_gross_salary_income()
+        
 
         # Other income (if any) - now includes house property income and capital gains
         if self.other_income:
             other_income_slab_amount = self.other_income.calculate_total_other_income_slab_rates(self.regime, self.age)
+            logger.info(f"Other income slab amount: {other_income_slab_amount}")
             total_income = total_income.add(other_income_slab_amount)
+
             adjustments_less = self.other_income.house_property_income.get_house_property_loss(self.regime)
+            logger.info(f"HPI: Loss from house property: {adjustments_less}")
             total_income = total_income.subtract(adjustments_less)
                     
         # Perquisites (if any)
         if self.perquisites:
-            total_income = total_income.add(self.perquisites.calculate_total_perquisites(self.regime))
+            total_income = total_income.add(self.perquisites.calculate_total_perquisites(self.regime, self.calculate_basic_plus_da()))
         
         # Retirement benefits (if any)
         if self.retirement_benefits:

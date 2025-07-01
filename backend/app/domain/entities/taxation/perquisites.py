@@ -11,6 +11,9 @@ from enum import Enum
 
 from app.domain.value_objects.money import Money
 from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
+from app.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class AccommodationType(Enum):
@@ -67,9 +70,13 @@ class AccommodationPerquisite:
     
     def calculate_accommodation_value(self, basic_plus_da: Money) -> Money:
         """Calculate accommodation perquisite value."""
-        
+
+        logger.info(f"Accommodation: employee_rent_payment: {self.employee_rent_payment}")
+        logger.info(f"Accommodation: license_fees: {self.license_fees}")
         if self.accommodation_type == AccommodationType.GOVERNMENT:
-            return self.license_fees.subtract(self.employee_rent_payment).max(Money.zero())
+            taxable_value = self.employee_rent_payment.subtract(self.license_fees).max(Money.zero())
+            logger.info(f"Accommodation: Government Provided, Taxable Value: {taxable_value}")
+            return taxable_value
         
         elif self.accommodation_type == AccommodationType.EMPLOYER_OWNED:
             if self.city_population == CityPopulation.ABOVE_40_LAKHS:
@@ -78,17 +85,27 @@ class AccommodationPerquisite:
                 rate = Decimal('0.075')  # 7.5%
             else:
                 rate = Decimal('0.05')  # 5%
-            
-            return basic_plus_da.percentage(rate * 100)
+            taxable_value = basic_plus_da.percentage(rate * 100)
+            logger.info(f"Accommodation: Employer Owned, Taxable Value: {rate * 100}% of {basic_plus_da} = {taxable_value}")
+            return taxable_value
         
         elif self.accommodation_type == AccommodationType.EMPLOYER_LEASED:
             max_limit = basic_plus_da.percentage(10)  # 10% of basic + DA
-            return self.rent_paid_by_employer.min(max_limit)
+            logger.info(f"Accommodation: Employer Leased, Max Limit: {10}% of {basic_plus_da} = {max_limit}")
+            logger.info(f"Accommodation: Employer Leased, Rent Paid by Employer: {self.rent_paid_by_employer}")
+            taxable_value = self.rent_paid_by_employer.min(max_limit)
+            logger.info(f"Accommodation: Employer Leased, Taxable Value: {taxable_value}")
+            return taxable_value
         
         elif self.accommodation_type == AccommodationType.HOTEL:
+            logger.info(f"Accommodation: Hotel, Stay Days: {self.stay_days}")
             if self.stay_days >= 15:
                 max_limit = basic_plus_da.percentage(24)  # 24% of basic + DA
-                return self.hotel_charges.min(max_limit)
+                logger.info(f"Accommodation: Hotel, Max Limit: {24}% of {basic_plus_da} = {max_limit}")
+                logger.info(f"Accommodation: Hotel, Hotel Charges: {self.hotel_charges}")
+                taxable_value = self.hotel_charges.min(max_limit)
+                logger.info(f"Accommodation: Hotel, Taxable Value: {taxable_value}")
+                return taxable_value
         
         return Money.zero()
     
@@ -96,16 +113,25 @@ class AccommodationPerquisite:
         """Calculate furniture perquisite value."""
         if self.is_furniture_owned_by_employer:
             furniture_value = self.furniture_cost.percentage(10)  # 10% of cost
+            logger.info(f"Accommodation: Furniture Value(10% of {self.furniture_cost}): {furniture_value}")
         else:
             furniture_value = self.furniture_cost  # Full hire/lease cost
+            logger.info(f"Accommodation: Furniture Value(Full Hire/Lease Cost): {furniture_value}")
         
-        return furniture_value.subtract(self.furniture_employee_payment).max(Money.zero())
+        taxable_value = furniture_value.subtract(self.furniture_employee_payment).max(Money.zero())
+        logger.info(f"Accommodation: Taxable Value(Furniture): {taxable_value}")
+        return taxable_value
     
-    def calculate_total_value(self, basic_plus_da: Money) -> Money:
+    def calculate_taxable_accommodation_value(self, basic_plus_da: Money) -> Money:
         """Calculate total accommodation perquisite value."""
+        logger.info(f"Accommodation: basic_plus_da: {basic_plus_da}")
         accommodation_value = self.calculate_accommodation_value(basic_plus_da)
         furniture_value = self.calculate_furniture_value()
-        return accommodation_value.add(furniture_value)
+        logger.info(f"Accommodation: Furniture Value: {furniture_value}")
+        logger.info(f"Accommodation: Accommodation Value: {accommodation_value}")
+        taxable_value = accommodation_value.add(furniture_value)
+        logger.info(f"Accommodation: Taxable Value(Accommodation + Furniture): {taxable_value}")
+        return taxable_value
 
 
 @dataclass
@@ -115,6 +141,7 @@ class CarPerquisite:
     car_use_type: CarUseType
     engine_capacity_cc: int = 1600
     months_used: int = 12
+    months_used_other_vehicle: int = 12
     
     # For personal use
     car_cost_to_employer: Money = Money.zero()
@@ -124,17 +151,29 @@ class CarPerquisite:
     has_expense_reimbursement: bool = False
     driver_provided: bool = False
     
-    def calculate_car_value(self) -> Money:
+    def calculate_taxable_car_value(self) -> Money:
         """Calculate car perquisite value."""
         if self.car_use_type == CarUseType.BUSINESS:
+            logger.info(f"Car: Business Use, Not taxable")
             return Money.zero()  # Not taxable
         
         elif self.car_use_type == CarUseType.PERSONAL:
-            monthly_cost = self.car_cost_to_employer.add(self.other_vehicle_cost)
-            return monthly_cost.multiply(self.months_used)
+            logger.info(f"Car: Personal Use, Car Cost to Employer: {self.car_cost_to_employer}")
+            logger.info(f"Car: Personal Use, Other Vehicle Cost: {self.other_vehicle_cost}")
+            logger.info(f"Car: Personal Use, Months Used: {self.months_used}")
+            logger.info(f"Car: Personal Use, Months Used Other Vehicle: {self.months_used_other_vehicle}")
+            
+            monthly_cost = self.car_cost_to_employer.multiply(self.months_used)
+            monthly_cost_other_vehicle = self.other_vehicle_cost.multiply(self.months_used_other_vehicle)
+            monthly_cost_total = monthly_cost.add(monthly_cost_other_vehicle)
+            logger.info(f"Car: Personal Use, Monthly Cost: {monthly_cost_total}")
+            return monthly_cost_total
         
         elif self.car_use_type == CarUseType.MIXED:
             # Monthly rates based on engine capacity
+            logger.info(f"Car: Mixed Use, Engine Capacity: {self.engine_capacity_cc}")
+            logger.info(f"Car: Mixed Use, Has Expense Reimbursement: {self.has_expense_reimbursement}")
+            logger.info(f"Car: Mixed Use, Driver Provided: {self.driver_provided}")
             if self.engine_capacity_cc > 1600:
                 if self.has_expense_reimbursement:
                     monthly_rate = Money.from_int(2400)
@@ -145,51 +184,24 @@ class CarPerquisite:
                     monthly_rate = Money.from_int(1800)
                 else:
                     monthly_rate = Money.from_int(600)
-            
-            total_value = monthly_rate.multiply(self.months_used)
-            
+            logger.info(f"Car: Mixed Use, tax free value: {monthly_rate} * {self.months_used} = {monthly_rate.multiply(self.months_used)}")
+            car_tax_free_value = monthly_rate.multiply(self.months_used)
             # Add driver cost if provided
             if self.driver_provided:
-                driver_cost = Money.from_int(900).multiply(self.months_used)
-                total_value = total_value.add(driver_cost)
-            
-            return total_value
+                driver_tax_free_value = Money.from_int(900).multiply(self.months_used)
+                tax_free_value = car_tax_free_value.add(driver_tax_free_value)
+            logger.info(f"Car: Mixed Use, Total Tax Free Value: {tax_free_value}")
+            taxable_value = self.car_cost_to_employer.multiply(self.months_used).subtract(tax_free_value)
+            logger.info(f"Car: Mixed Use, First Vehicle Taxable Value: {taxable_value}")
+            if self.other_vehicle_cost.is_greater_than(Money.zero()):
+                exepmt_limit = Money.from_int(900).multiply(self.months_used_other_vehicle)
+                other_vehicle_taxable_value = self.other_vehicle_cost.subtract(exepmt_limit).max(Money.zero())
+                logger.info(f"Car: Mixed Use, Other Vehicle Taxable Value: {other_vehicle_taxable_value}")
+                taxable_value = taxable_value.add(other_vehicle_taxable_value)
+            logger.info(f"Car: Mixed Use, Total Taxable Value: {taxable_value}")
+            return taxable_value
         
         return Money.zero()
-
-
-@dataclass
-class MedicalReimbursement:
-    """Medical reimbursement perquisite."""
-    
-    medical_reimbursement_amount: Money = Money.zero()
-    is_overseas_treatment: bool = False
-    travel_expenses: Money = Money.zero()
-    medical_expenses: Money = Money.zero()
-    rbi_limit: Money = Money.zero()
-    gross_salary: Money = Money.zero()
-    
-    def calculate_taxable_value(self) -> Money:
-        """Calculate taxable medical reimbursement value."""
-        if not self.is_overseas_treatment:
-            # Treatment in India - Rs. 15,000 exemption
-            exemption = Money.from_int(15000)
-            if self.medical_reimbursement_amount.is_greater_than(exemption):
-                return self.medical_reimbursement_amount.subtract(exemption)
-            else:
-                return Money.zero()
-        else:
-            # Overseas treatment
-            travel_value = Money.zero()
-            if self.gross_salary.is_greater_than(Money.from_int(200000)):
-                travel_value = self.travel_expenses
-            
-            if self.medical_expenses.is_greater_than(self.rbi_limit):
-                medical_excess = self.medical_expenses.subtract(self.rbi_limit)
-            else:
-                medical_excess = Money.zero()
-            return travel_value.add(medical_excess)
-
 
 @dataclass
 class LTAPerquisite:
@@ -200,7 +212,7 @@ class LTAPerquisite:
     public_transport_cost: Money = Money.zero()
     travel_mode: str = 'Air'  # Railway, Air, Public Transport
     
-    def calculate_taxable_value(self) -> Money:
+    def calculate_taxable_lta_value(self) -> Money:
         """Calculate taxable LTA value."""
         if self.lta_claimed_count > 2:
             return self.lta_amount_claimed  # Fully taxable if more than 2 journeys in 4 years
@@ -221,35 +233,63 @@ class LTAPerquisite:
         else:
             return Money.zero()
 
+@dataclass
+class MonthlyPaymentSchedule:
+    """Monthly payment schedule for a loan."""
+    
+    month: int
+    outstanding_amount: Money
+    principal_amount: Money
+    interest_amount: Money
 
 @dataclass
 class InterestFreeConcessionalLoan:
     """Interest-free/concessional loan perquisite."""
     
     loan_amount: Money = Money.zero()
+    emi_amount: Money = Money.zero()
     outstanding_amount: Money = Money.zero()
     company_interest_rate: Decimal = Decimal('0')
     sbi_interest_rate: Decimal = Decimal('8.5')
-    loan_months: int = 12
-    is_medical_loan: bool = False
+    loan_start_date: date = date.today()
     loan_type: str = 'Personal'  # Personal, Medical, etc.
+    #monthly_payment_schedule: list[MonthlyPaymentSchedule] = []
+
+    def calculate_monthly_payment_schedule(self, interest_rate: Decimal) -> list[MonthlyPaymentSchedule]:
+        """Calculate monthly payment schedule for a loan."""
+        #TODO: Add a condition to check if the loan start date is before tax year start date
+        interest_paid = Money.zero()
+        outstanding_amount = self.outstanding_amount
+        monthly_payment_schedule = []
+        logger.info(f"Opening Balance: {outstanding_amount.to_float():.2f}")
+        logger.info(f"Interest Rate: {interest_rate}")
+        logger.info(f"====================================================================")
+        logger.info(f"Month   |  Outstanding Amount |  Interest Amount |  Principal Amount")
+        logger.info(f"====================================================================")
+        for month in range(1, 13):
+            if outstanding_amount.is_zero():
+                break
+            interest_amount = outstanding_amount.percentage(interest_rate.divide(12))
+            interest_paid = interest_paid.add(interest_amount)
+            principal_amount = self.emi_amount.subtract(interest_amount)
+            monthly_payment_schedule.append(MonthlyPaymentSchedule(month, outstanding_amount, principal_amount, interest_amount))
+            outstanding_amount = outstanding_amount.subtract(principal_amount)
+            logger.info(f"{month:02d}      |  {outstanding_amount.to_float():.2f}      |  {interest_amount.to_float():.2f}      |  {principal_amount.to_float():.2f}")
+        logger.info(f"====================================================================")
+        return monthly_payment_schedule, interest_paid
+
     
-    def calculate_taxable_value(self) -> Money:
+    def calculate_taxable_loan_value(self) -> Money:
         """Calculate taxable benefit from interest-free/concessional loan."""
-        if self.is_medical_loan or self.loan_type == 'Medical' or self.loan_amount <= Money.from_int(20000):
-            return Money.zero()  # Fully exempt
-        
-        interest_rate_diff = self.sbi_interest_rate - self.company_interest_rate
-        if interest_rate_diff <= 0:
+
+        monthly_payment_schedule_company, interest_paid_company = self.calculate_monthly_payment_schedule(self.company_interest_rate)
+        monthly_payment_schedule_sbi, interest_paid_sbi = self.calculate_monthly_payment_schedule(self.sbi_interest_rate)
+        if interest_paid_sbi.is_greater_than(interest_paid_company):
+            interest_saved = interest_paid_sbi.subtract(interest_paid_company)
+            logger.info(f"CL: Interest Saved: {interest_saved.to_float():.2f}")
+            return interest_saved
+        else:
             return Money.zero()
-        
-        principal = self.outstanding_amount if self.outstanding_amount.is_positive() else self.loan_amount
-        annual_benefit = principal.percentage(float(interest_rate_diff))
-        
-        if self.loan_months < 12:
-            return annual_benefit.multiply(self.loan_months).divide(12)
-        
-        return annual_benefit
 
 
 @dataclass
@@ -260,7 +300,7 @@ class ESOPPerquisite:
     exercise_price: Money = Money.zero()
     allotment_price: Money = Money.zero()
     
-    def calculate_allocation_gain(self) -> Money:
+    def calculate_esop_allocation_gain(self) -> Money:
         """Calculate ESOP allocation gain."""
         if self.shares_exercised <= 0:
             return Money.zero()
@@ -286,7 +326,7 @@ class UtilitiesPerquisite:
     is_electricity_manufactured_by_employer: bool = False
     is_water_manufactured_by_employer: bool = False
     
-    def calculate_taxable_value(self) -> Money:
+    def calculate_taxable_utilities_value(self) -> Money:
         """Calculate taxable utilities value."""
         employer_total = (self.gas_paid_by_employer
                          .add(self.electricity_paid_by_employer)
@@ -313,7 +353,7 @@ class FreeEducationPerquisite:
     employer_maintained_1st_child: bool = False
     employer_maintained_2nd_child: bool = False
     
-    def calculate_taxable_value(self) -> Money:
+    def calculate_taxable_education_value(self) -> Money:
         """Calculate taxable free education value."""
         exemption_per_child_per_month = Money.from_int(1000)
         total_taxable = Money.zero()
@@ -349,7 +389,7 @@ class MovableAssetUsage:
     employee_payment: Money = Money.zero()
     is_employer_owned: bool = True
     
-    def calculate_taxable_value(self) -> Money:
+    def calculate_taxable_movable_asset_usage_value(self) -> Money:
         """Calculate taxable movable asset usage value."""
         if self.is_employer_owned:
             # Employer-owned: 10% of asset value
@@ -382,7 +422,7 @@ class MovableAssetTransfer:
         else:
             return Decimal('0.1')  # 10% per year
     
-    def calculate_taxable_value(self) -> Money:
+    def calculate_taxable_movable_asset_transfer_value(self) -> Money:
         """Calculate taxable movable asset transfer value."""
         depreciation_rate = self.get_depreciation_rate()
         annual_depreciation = self.asset_cost.percentage(float(depreciation_rate * 100))
@@ -403,7 +443,7 @@ class LunchRefreshmentPerquisite:
     employee_payment: Money = Money.zero()
     meal_days_per_year: int = 250
     
-    def calculate_taxable_value(self) -> Money:
+    def calculate_taxable_meal_value(self) -> Money:
         """Calculate taxable lunch/refreshment value."""
         exemption_per_meal = Money.from_int(50)
         annual_exemption = exemption_per_meal.multiply(self.meal_days_per_year)
@@ -473,7 +513,7 @@ class DomesticHelpPerquisite:
     domestic_help_paid_by_employer: Money = Money.zero()
     domestic_help_paid_by_employee: Money = Money.zero()
     
-    def calculate_taxable_value(self) -> Money:
+    def calculate_taxable_domestic_help_value(self) -> Money:
         """Calculate taxable domestic help value."""
         return (self.domestic_help_paid_by_employer
                 .subtract(self.domestic_help_paid_by_employee)
@@ -498,8 +538,6 @@ class Perquisites:
     accommodation: Optional[AccommodationPerquisite] = None
     car: Optional[CarPerquisite] = None
     
-    # Medical and travel perquisites
-    medical_reimbursement: Optional[MedicalReimbursement] = None
     lta: Optional[LTAPerquisite] = None
     
     # Financial perquisites
@@ -539,44 +577,40 @@ class Perquisites:
         
         # Core perquisites
         if self.accommodation:
-            total = total.add(self.accommodation.calculate_total_value(basic_plus_da))
+            total = total.add(self.accommodation.calculate_taxable_accommodation_value(basic_plus_da))
         
         if self.car:
-            total = total.add(self.car.calculate_car_value())
-        
-        # Medical and travel perquisites
-        if self.medical_reimbursement:
-            total = total.add(self.medical_reimbursement.calculate_taxable_value())
+            total = total.add(self.car.calculate_taxable_car_value())
         
         if self.lta:
-            total = total.add(self.lta.calculate_taxable_value())
+            total = total.add(self.lta.calculate_taxable_lta_value())
         
         # Financial perquisites
         if self.interest_free_loan:
-            total = total.add(self.interest_free_loan.calculate_taxable_value())
+            total = total.add(self.interest_free_loan.calculate_taxable_loan_value())
         
         if self.esop:
-            total = total.add(self.esop.calculate_allocation_gain())
+            total = total.add(self.esop.calculate_esop_allocation_gain())
         
         # Utilities and facilities
         if self.utilities:
-            total = total.add(self.utilities.calculate_taxable_value())
+            total = total.add(self.utilities.calculate_taxable_utilities_value())
         
         if self.free_education:
-            total = total.add(self.free_education.calculate_taxable_value())
+            total = total.add(self.free_education.calculate_taxable_education_value())
         
         if self.lunch_refreshment:
-            total = total.add(self.lunch_refreshment.calculate_taxable_value())
+            total = total.add(self.lunch_refreshment.calculate_taxable_meal_value())
         
         if self.domestic_help:
-            total = total.add(self.domestic_help.calculate_taxable_value())
+            total = total.add(self.domestic_help.calculate_taxable_domestic_help_value())
         
         # Asset-related perquisites
         if self.movable_asset_usage:
-            total = total.add(self.movable_asset_usage.calculate_taxable_value())
+            total = total.add(self.movable_asset_usage.calculate_taxable_movable_asset_usage_value())
         
         if self.movable_asset_transfer:
-            total = total.add(self.movable_asset_transfer.calculate_taxable_value())
+            total = total.add(self.movable_asset_transfer.calculate_taxable_movable_asset_transfer_value())
         
         # Miscellaneous perquisites
         if self.gift_voucher:
@@ -609,15 +643,10 @@ class Perquisites:
             breakdown.update({
                 # Core perquisites
                 "accommodation": self.accommodation.calculate_total_value(basic_plus_da).to_float() if self.accommodation else 0,
-                "car": self.car.calculate_car_value().to_float() if self.car else 0,
+                "car": self.car.calculate_taxable_car_value().to_float() if self.car else 0,
                 
-                # Medical and travel perquisites
-                "medical_reimbursement": (
-                    self.medical_reimbursement.calculate_taxable_value().to_float()
-                    if self.medical_reimbursement else 0
-                ),
                 "lta": (
-                    self.lta.calculate_taxable_value().to_float()
+                    self.lta.calculate_taxable_lta_value().to_float()
                     if self.lta else 0
                 ),
                 
@@ -705,7 +734,7 @@ class Perquisites:
         if self.accommodation:
             core_total = core_total.add(self.accommodation.calculate_total_value(basic_plus_da))
         if self.car:
-            core_total = core_total.add(self.car.calculate_car_value())
+            core_total = core_total.add(self.car.calculate_taxable_car_value())
         
         # Financial perquisites
         financial_total = Money.zero()
@@ -716,10 +745,8 @@ class Perquisites:
         
         # Benefits and facilities
         benefits_total = Money.zero()
-        if self.medical_reimbursement:
-            benefits_total = benefits_total.add(self.medical_reimbursement.calculate_taxable_value())
         if self.lta:
-            benefits_total = benefits_total.add(self.lta.calculate_taxable_value())
+            benefits_total = benefits_total.add(self.lta.calculate_taxable_lta_value())
         if self.free_education:
             benefits_total = benefits_total.add(self.free_education.calculate_taxable_value())
         if self.lunch_refreshment:
@@ -784,7 +811,7 @@ class Perquisites:
     def car_perquisite(self) -> Money:
         """Backward compatibility: Get car perquisite value."""
         if self.car:
-            return self.car.calculate_car_value()
+            return self.car.calculate_taxable_car_value()
         return Money.zero()
     
     @property

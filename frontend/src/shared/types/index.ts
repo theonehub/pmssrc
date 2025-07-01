@@ -119,12 +119,10 @@ export interface Perquisites {
   // Gas, electricity, water
   gas_electricity_water: number;
   
-  // Medical reimbursement
-  medical_reimbursement: number;
-  
   // Leave travel allowance
   lta_claimed: number;
   lta_exempt: number;
+  travel_mode?: string;
   
   // Free education
   education_provided: boolean;
@@ -538,7 +536,7 @@ export interface LeaveEncashment {
 export interface HouseProperty {
   property_type?: string; // Add missing property_type field
   annual_rent: number;
-  municipal_tax: number;
+  municipal_taxes_paid: number;
   standard_deduction: number;
   interest_on_loan: number;
   net_income: number;

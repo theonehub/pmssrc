@@ -4,7 +4,7 @@ MongoDB implementation of the salary package repository
 """
 
 from typing import List, Optional
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from bson import ObjectId
 
@@ -16,7 +16,7 @@ from app.domain.entities.taxation.deductions import (
     TaxDeductions, DeductionSection80C, DeductionSection80D, DeductionSection80E, DeductionSection80G, DeductionSection80TTA_TTB, OtherDeductions
 )
 from app.domain.entities.taxation.perquisites import (
-    Perquisites, AccommodationPerquisite, CarPerquisite, MedicalReimbursement, 
+    Perquisites, AccommodationPerquisite, CarPerquisite, 
     LTAPerquisite, InterestFreeConcessionalLoan, ESOPPerquisite, UtilitiesPerquisite,
     FreeEducationPerquisite, LunchRefreshmentPerquisite, DomesticHelpPerquisite,
     MovableAssetUsage, MovableAssetTransfer, GiftVoucherPerquisite, 
@@ -779,21 +779,11 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
                 "car_use_type": perquisites.car.car_use_type.value if perquisites.car else None,
                 "engine_capacity_cc": perquisites.car.engine_capacity_cc if perquisites.car else 0,
                 "months_used": perquisites.car.months_used if perquisites.car else 0,
+                "months_used_other_vehicle": perquisites.car.months_used_other_vehicle if perquisites.car else 0,
                 "car_cost_to_employer": perquisites.car.car_cost_to_employer.to_float() if perquisites.car else 0.0,
                 "other_vehicle_cost": perquisites.car.other_vehicle_cost.to_float() if perquisites.car else 0.0,
                 "has_expense_reimbursement": perquisites.car.has_expense_reimbursement if perquisites.car else False,
                 "driver_provided": perquisites.car.driver_provided if perquisites.car else False,
-            },
-            
-            # Medical and travel perquisites
-            "medical_reimbursement": {
-                "has_medical_reimbursement": perquisites.medical_reimbursement is not None,
-                "medical_reimbursement_amount": perquisites.medical_reimbursement.medical_reimbursement_amount.to_float() if perquisites.medical_reimbursement else 0.0,
-                "is_overseas_treatment": perquisites.medical_reimbursement.is_overseas_treatment if perquisites.medical_reimbursement else False,
-                "travel_expenses": perquisites.medical_reimbursement.travel_expenses.to_float() if perquisites.medical_reimbursement else 0.0,
-                "medical_expenses": perquisites.medical_reimbursement.medical_expenses.to_float() if perquisites.medical_reimbursement else 0.0,
-                "rbi_limit": perquisites.medical_reimbursement.rbi_limit.to_float() if perquisites.medical_reimbursement else 0.0,
-                "gross_salary": perquisites.medical_reimbursement.gross_salary.to_float() if perquisites.medical_reimbursement else 0.0,
             },
             
             "lta": {
@@ -807,13 +797,13 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             # Financial perquisites
             "interest_free_loan": {
                 "has_loan": perquisites.interest_free_loan is not None,
+                "emi_amount": perquisites.interest_free_loan.emi_amount.to_float() if perquisites.interest_free_loan else 0.0,
                 "loan_amount": perquisites.interest_free_loan.loan_amount.to_float() if perquisites.interest_free_loan else 0.0,
                 "outstanding_amount": perquisites.interest_free_loan.outstanding_amount.to_float() if perquisites.interest_free_loan else 0.0,
                 "company_interest_rate": float(perquisites.interest_free_loan.company_interest_rate) if perquisites.interest_free_loan else 0.0,
                 "sbi_interest_rate": float(perquisites.interest_free_loan.sbi_interest_rate) if perquisites.interest_free_loan else 0.0,
-                "loan_months": perquisites.interest_free_loan.loan_months if perquisites.interest_free_loan else 0,
-                "is_medical_loan": perquisites.interest_free_loan.is_medical_loan if perquisites.interest_free_loan else False,
                 "loan_type": perquisites.interest_free_loan.loan_type if perquisites.interest_free_loan else "Personal",
+                "loan_start_date": perquisites.interest_free_loan.loan_start_date.isoformat() if perquisites.interest_free_loan and perquisites.interest_free_loan.loan_start_date else None,
             },
             
             "esop": {
@@ -912,7 +902,7 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
                 "leave_encashment_amount": retirement_benefits.leave_encashment.leave_encashment_amount.to_float() if retirement_benefits.leave_encashment else 0.0,
                 "average_monthly_salary": retirement_benefits.leave_encashment.average_monthly_salary.to_float() if retirement_benefits.leave_encashment else 0.0,
                 "leave_days_encashed": retirement_benefits.leave_encashment.leave_days_encashed if retirement_benefits.leave_encashment else 0,
-                "is_govt_employee": retirement_benefits.leave_encashment.is_govt_employee if retirement_benefits.leave_encashment else False,
+                "is_deceased": retirement_benefits.leave_encashment.is_deceased if retirement_benefits.leave_encashment else False,
                 "during_employment": retirement_benefits.leave_encashment.during_employment if retirement_benefits.leave_encashment else False,
             },
             
@@ -1269,23 +1259,11 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
                 car_use_type=car_use_type,
                 engine_capacity_cc=car_doc.get("engine_capacity_cc", 1600),
                 months_used=car_doc.get("months_used", 12),
+                months_used_other_vehicle=car_doc.get("months_used_other_vehicle", 12),
                 car_cost_to_employer=Money.from_float(car_doc.get("car_cost_to_employer", 0.0)),
                 other_vehicle_cost=Money.from_float(car_doc.get("other_vehicle_cost", 0.0)),
                 has_expense_reimbursement=car_doc.get("has_expense_reimbursement", False),
                 driver_provided=car_doc.get("driver_provided", False)
-            )
-        
-        # Deserialize medical reimbursement
-        medical_reimbursement = None
-        if perquisites_doc.get("medical_reimbursement", {}).get("has_medical_reimbursement"):
-            med_doc = perquisites_doc["medical_reimbursement"]
-            medical_reimbursement = MedicalReimbursement(
-                medical_reimbursement_amount=Money.from_float(med_doc.get("medical_reimbursement_amount", 0.0)),
-                is_overseas_treatment=med_doc.get("is_overseas_treatment", False),
-                travel_expenses=Money.from_float(med_doc.get("travel_expenses", 0.0)),
-                medical_expenses=Money.from_float(med_doc.get("medical_expenses", 0.0)),
-                rbi_limit=Money.from_float(med_doc.get("rbi_limit", 0.0)),
-                gross_salary=Money.from_float(med_doc.get("gross_salary", 0.0))
             )
         
         # Deserialize LTA
@@ -1303,14 +1281,21 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         interest_free_loan = None
         if perquisites_doc.get("interest_free_loan", {}).get("has_loan"):
             loan_doc = perquisites_doc["interest_free_loan"]
+            loan_start_date = None
+            if loan_doc.get("loan_start_date"):
+                try:
+                    loan_start_date = datetime.fromisoformat(loan_doc.get("loan_start_date")).date()
+                except (ValueError, TypeError):
+                    loan_start_date = None
+            
             interest_free_loan = InterestFreeConcessionalLoan(
                 loan_amount=Money.from_float(loan_doc.get("loan_amount", 0.0)),
+                emi_amount=Money.from_float(loan_doc.get("emi_amount", 0.0)),
                 outstanding_amount=Money.from_float(loan_doc.get("outstanding_amount", 0.0)),
                 company_interest_rate=Decimal(str(loan_doc.get("company_interest_rate", 0.0))),
                 sbi_interest_rate=Decimal(str(loan_doc.get("sbi_interest_rate", 8.5))),
-                loan_months=loan_doc.get("loan_months", 12),
-                is_medical_loan=loan_doc.get("is_medical_loan", False),
-                loan_type=loan_doc.get("loan_type", "Personal")
+                loan_type=loan_doc.get("loan_type", "Personal"),
+                loan_start_date=loan_start_date
             )
         
         # Deserialize ESOP
@@ -1435,7 +1420,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         return Perquisites(
             accommodation=accommodation,
             car=car,
-            medical_reimbursement=medical_reimbursement,
             lta=lta,
             interest_free_loan=interest_free_loan,
             esop=esop,
@@ -1463,7 +1447,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
                 leave_encashment_amount=Money.from_float(leave_doc.get("leave_encashment_amount", 0.0)),
                 average_monthly_salary=Money.from_float(leave_doc.get("average_monthly_salary", 0.0)),
                 leave_days_encashed=leave_doc.get("leave_days_encashed", 0),
-                is_govt_employee=leave_doc.get("is_govt_employee", False),
                 is_deceased=leave_doc.get("is_deceased", False),
                 during_employment=leave_doc.get("during_employment", False)
             )
@@ -1475,8 +1458,7 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             gratuity = Gratuity(
                 gratuity_amount=Money.from_float(grat_doc.get("gratuity_amount", 0.0)),
                 monthly_salary=Money.from_float(grat_doc.get("monthly_salary", 0.0)),
-                service_years=Decimal(str(grat_doc.get("service_years", 0.0))),
-                is_govt_employee=grat_doc.get("is_govt_employee", False)
+                service_years=Decimal(str(grat_doc.get("service_years", 0.0)))
             )
         
         # Deserialize VRS
@@ -1486,7 +1468,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             vrs = VRS(
                 vrs_amount=Money.from_float(vrs_doc.get("vrs_amount", 0.0)),
                 monthly_salary=Money.from_float(vrs_doc.get("monthly_salary", 0.0)),
-                age=vrs_doc.get("age", 25),
                 service_years=Decimal(str(vrs_doc.get("service_years", 0.0)))
             )
         

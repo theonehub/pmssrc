@@ -98,7 +98,7 @@ export const calculateTax = async (
           capital_gains_income: createDefaultCapitalGains(),
           house_property_income: {
             annual_rent: 0,
-            municipal_tax: 0,
+            municipal_taxes_paid: 0,
             standard_deduction: 0,
             interest_on_loan: 0,
             net_income: 0
@@ -221,7 +221,7 @@ export const calculateTax = async (
       house_property_income: inputData.house_property_income ? {
         property_type: 'Self-Occupied',
         annual_rent_received: inputData.house_property_income.annual_rent || 0,
-        municipal_taxes_paid: inputData.house_property_income.municipal_tax || 0,
+        municipal_taxes_paid: inputData.house_property_income.municipal_taxes_paid || 0,
         home_loan_interest: inputData.house_property_income.interest_on_loan || 0,
         pre_construction_interest: inputData.house_property_income.pre_construction_loan_interest || 0,
 
@@ -502,7 +502,7 @@ export const createDefaultLeaveEncashment = (): LeaveEncashment => ({
 export const createDefaultHouseProperty = (): HouseProperty => ({
   property_type: 'Self-Occupied',
   annual_rent: 0,
-  municipal_tax: 0,
+  municipal_taxes_paid: 0,
   standard_deduction: 0,
   interest_on_loan: 0,
   net_income: 0,
@@ -655,32 +655,30 @@ const transformPerquisitesToDTO = (perquisites: any, salaryData?: any) => {
       car_use_type: perquisites.car_use || 'Personal',
       engine_capacity_cc: 1600, // Default value
       months_used: perquisites.month_counts || 0,
+      months_used_other_vehicle: perquisites.months_used_other_vehicle || 0,
       car_cost_to_employer: perquisites.car_cost_to_employer || 0,
       other_vehicle_cost: perquisites.other_vehicle_cost_to_employer || 0,
       has_expense_reimbursement: false,
       driver_provided: false
     },
     
-    // Medical reimbursement
-    medical_reimbursement: {
-      medical_reimbursement_amount: perquisites.medical_reimbursement_by_employer || 0,
-      is_overseas_treatment: !perquisites.is_treated_in_India
-    },
-    
     // LTA perquisite
     lta: {
       lta_amount_claimed: perquisites.lta_amount_claimed || 0,
       lta_claimed_count: perquisites.lta_claimed_count || 0,
-      public_transport_cost: perquisites.public_transport_travel_amount_for_same_distance || 0
+      public_transport_cost: perquisites.public_transport_cost || 0,
+      travel_mode: perquisites.travel_mode || 'Air'
     },
     
     // Interest free loan
     interest_free_loan: {
       loan_amount: perquisites.loan_amount || 0,
+      emi_amount: perquisites.emi_amount || 0,
       outstanding_amount: perquisites.loan_amount || 0,
-      company_interest_rate: perquisites.loan_interest_rate_company || 0,
-      sbi_interest_rate: perquisites.loan_interest_rate_sbi || 0,
-      loan_months: perquisites.loan_month_count || 0
+      company_interest_rate: perquisites.company_interest_rate || 0,
+      sbi_interest_rate: perquisites.sbi_interest_rate || 6.5,
+      loan_type: perquisites.loan_type || 'Personal',
+      loan_start_date: perquisites.loan_start_date || null
     },
     
     // ESOP perquisite
@@ -715,25 +713,26 @@ const transformPerquisitesToDTO = (perquisites: any, salaryData?: any) => {
     
     // Movable asset usage
     movable_asset_usage: {
-      asset_type: perquisites.mat_type || 'Electronics',
-      asset_value: perquisites.mau_value_to_employer || 0,
-      employee_payment: perquisites.mau_value_to_employee || 0,
-      is_employer_owned: perquisites.mau_ownership === 'Employer-Owned'
+      asset_type: perquisites.movable_asset_type || perquisites.movable_asset_type || 'Electronics',
+      asset_value: perquisites.movable_asset_usage_value || perquisites.movable_asset_value || 0,
+      hire_cost: perquisites.movable_asset_hire_cost || 0,
+      employee_payment: perquisites.movable_asset_employee_payment || 0,
+      is_employer_owned: perquisites.movable_asset_is_employer_owned !== undefined ? perquisites.movable_asset_is_employer_owned : true
     },
     
     // Movable asset transfer
     movable_asset_transfer: {
-      asset_type: perquisites.mat_type || 'Electronics',
-      asset_cost: perquisites.mat_value_to_employer || 0,
-      years_of_use: perquisites.mat_number_of_completed_years_of_use || 0,
-      employee_payment: perquisites.mat_value_to_employee || 0
+      asset_type: perquisites.movable_asset_transfer_type || 'Electronics',
+      asset_cost: perquisites.movable_asset_transfer_cost || 0,
+      years_of_use: perquisites.movable_asset_years_of_use || 1,
+      employee_payment: perquisites.movable_asset_transfer_employee_payment || 0
     },
     
     // Lunch refreshment
     lunch_refreshment: {
-      employer_cost: perquisites.lunch_amount_paid_by_employer || 0,
-      employee_payment: perquisites.lunch_amount_paid_by_employee || 0,
-      meal_days_per_year: 250 // Default working days
+      employer_cost: perquisites.lunch_employer_cost || perquisites.lunch_amount_paid_by_employer || 0,
+      employee_payment: perquisites.lunch_employee_payment || perquisites.lunch_amount_paid_by_employee || 0,
+      meal_days_per_year: perquisites.lunch_meal_days_per_year || 250
     },
     
     // Gift voucher
@@ -757,8 +756,8 @@ const transformPerquisitesToDTO = (perquisites: any, salaryData?: any) => {
     
     // Domestic help
     domestic_help: {
-      domestic_help_paid_by_employer: perquisites.domestic_help_amount_paid_by_employer || 0,
-      domestic_help_paid_by_employee: perquisites.domestic_help_amount_paid_by_employee || 0
+      domestic_help_paid_by_employer: perquisites.domestic_help_paid_by_employer || perquisites.domestic_help_amount_paid_by_employer || 0,
+      domestic_help_paid_by_employee: perquisites.domestic_help_paid_by_employee || perquisites.domestic_help_amount_paid_by_employee || 0
     }
   };
 };

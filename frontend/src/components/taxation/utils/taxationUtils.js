@@ -135,7 +135,7 @@ export const getDefaultTaxationState = (empId) => ({
   house_property_income: {
     property_type: 'Self-Occupied',
     annual_rent: 0,
-    municipal_tax: 0,
+    municipal_taxes_paid: 0,
     standard_deduction: 0,
     interest_on_loan: 0,
     net_income: 0,
@@ -268,9 +268,6 @@ export const getDefaultTaxationState = (empId) => ({
       fuel_value: 0,
     },
     gas_electricity_water: {
-      amount: 0,
-    },
-    medical_reimbursement: {
       amount: 0,
     },
     leave_travel_allowance: {

@@ -363,45 +363,98 @@ class PerquisitesDTO(BaseModel):
     car_use_type: str = Field(default="Personal", description="Personal, Business, Mixed")
     engine_capacity_cc: int = Field(default=1600, ge=0, description="Engine capacity in CC")
     months_used: int = Field(default=12, ge=0, le=12, description="Months used")
+    months_used_other_vehicle: int = Field(default=12, ge=0, le=12, description="Months used other vehicle")
     car_cost_to_employer: Decimal = Field(default=0, ge=0, description="Car cost to employer")
     other_vehicle_cost: Decimal = Field(default=0, ge=0, description="Other vehicle cost")
     has_expense_reimbursement: bool = Field(default=False, description="Has expense reimbursement")
     driver_provided: bool = Field(default=False, description="Driver provided")
     
-    # Medical reimbursement fields
-    medical_reimbursement_amount: Decimal = Field(default=0, ge=0, description="Medical reimbursement amount")
-    is_overseas_treatment: bool = Field(default=False, description="Is overseas treatment")
-    
     # LTA fields
     lta_amount_claimed: Decimal = Field(default=0, ge=0, description="LTA amount claimed")
     lta_claimed_count: int = Field(default=0, ge=0, description="LTA claimed count")
     public_transport_cost: Decimal = Field(default=0, ge=0, description="Public transport cost")
+    travel_mode: str = Field(default="Air", description="Travel mode: Air, Rail, Bus, Public Transport")
     
     # ESOP fields
     esop_exercise_value: Decimal = Field(default=0, ge=0, description="ESOP exercise value")
     esop_fair_market_value: Decimal = Field(default=0, ge=0, description="ESOP fair market value")
     esop_shares_exercised: int = Field(default=0, ge=0, description="ESOP shares exercised")
     
-    # Free education fields
-    free_education_amount: Decimal = Field(default=0, ge=0, description="Free education amount")
-    is_children_education: bool = Field(default=True, description="Is children education")
+    # Free education fields - Individual components
+    monthly_expenses_child1: Decimal = Field(default=0, ge=0, description="Monthly expenses for 1st child")
+    monthly_expenses_child2: Decimal = Field(default=0, ge=0, description="Monthly expenses for 2nd child")
+    months_child1: int = Field(default=12, ge=0, le=12, description="Number of months for 1st child")
+    months_child2: int = Field(default=12, ge=0, le=12, description="Number of months for 2nd child")
+    employer_maintained_1st_child: bool = Field(default=False, description="Is 1st child maintained by employer")
+    employer_maintained_2nd_child: bool = Field(default=False, description="Is 2nd child maintained by employer")
     
-    # Utilities fields
-    gas_electricity_water_amount: Decimal = Field(default=0, ge=0, description="Gas, electricity, water amount")
+    # Legacy free education fields for backward compatibility
+    free_education_amount: Decimal = Field(default=0, ge=0, description="Free education amount (legacy)")
+    is_children_education: bool = Field(default=True, description="Is children education (legacy)")
+    
+    # Utilities fields - Individual components
+    gas_paid_by_employer: Decimal = Field(default=0, ge=0, description="Gas amount paid by employer")
+    electricity_paid_by_employer: Decimal = Field(default=0, ge=0, description="Electricity amount paid by employer")
+    water_paid_by_employer: Decimal = Field(default=0, ge=0, description="Water amount paid by employer")
+    gas_paid_by_employee: Decimal = Field(default=0, ge=0, description="Gas amount paid by employee")
+    electricity_paid_by_employee: Decimal = Field(default=0, ge=0, description="Electricity amount paid by employee")
+    water_paid_by_employee: Decimal = Field(default=0, ge=0, description="Water amount paid by employee")
+    is_gas_manufactured_by_employer: bool = Field(default=False, description="Is gas manufactured by employer")
+    is_electricity_manufactured_by_employer: bool = Field(default=False, description="Is electricity manufactured by employer")
+    is_water_manufactured_by_employer: bool = Field(default=False, description="Is water manufactured by employer")
+    
+    # Legacy utilities field for backward compatibility
+    gas_electricity_water_amount: Decimal = Field(default=0, ge=0, description="Gas, electricity, water amount (legacy)")
     
     # Interest free loan fields
     loan_amount: Decimal = Field(default=0, ge=0, description="Loan amount")
-    interest_rate_charged: Decimal = Field(default=0, ge=0, description="Interest rate charged")
-    sbi_rate: Decimal = Field(default=6.5, ge=0, description="SBI rate")
+    emi_amount: Decimal = Field(default=0, ge=0, description="EMI amount")
+    company_interest_rate: Decimal = Field(default=0, ge=0, description="Interest rate charged")
+    sbi_interest_rate: Decimal = Field(default=6.5, ge=0, description="SBI rate")
+    loan_type: str = Field(default="Personal", description="Loan type: Personal, Medical, etc.")
+    loan_start_date: Optional[date] = Field(None, description="Loan start date")
     
     # Movable assets fields
     movable_asset_value: Decimal = Field(default=0, ge=0, description="Movable asset value")
     asset_usage_months: int = Field(default=12, ge=0, le=12, description="Asset usage months")
     
+    # Lunch refreshment fields - Individual components
+    lunch_employer_cost: Decimal = Field(default=0, ge=0, description="Lunch/refreshment cost paid by employer")
+    lunch_employee_payment: Decimal = Field(default=0, ge=0, description="Lunch/refreshment payment by employee")
+    lunch_meal_days_per_year: int = Field(default=250, ge=0, le=365, description="Number of meal days per year")
+    
+    # Legacy lunch refreshment field for backward compatibility
+    lunch_refreshment_amount: Decimal = Field(default=0, ge=0, description="Lunch refreshment amount (legacy)")
+    
+    # Domestic help fields - Individual components
+    domestic_help_paid_by_employer: Decimal = Field(default=0, ge=0, description="Domestic help cost paid by employer")
+    domestic_help_paid_by_employee: Decimal = Field(default=0, ge=0, description="Domestic help payment by employee")
+    
+    # Movable Asset Usage fields - Individual components
+    movable_asset_type: str = Field(default="Electronics", description="Asset type: Electronics, Motor Vehicle, Others")
+    movable_asset_usage_value: Decimal = Field(default=0, ge=0, description="Asset value for usage")
+    movable_asset_hire_cost: Decimal = Field(default=0, ge=0, description="Hire cost for asset")
+    movable_asset_employee_payment: Decimal = Field(default=0, ge=0, description="Employee payment for asset usage")
+    movable_asset_is_employer_owned: bool = Field(default=True, description="Is asset owned by employer")
+    
+    # Movable Asset Transfer fields - Individual components
+    movable_asset_transfer_type: str = Field(default="Electronics", description="Asset type for transfer: Electronics, Motor Vehicle, Others")
+    movable_asset_transfer_cost: Decimal = Field(default=0, ge=0, description="Original cost of asset for transfer")
+    movable_asset_years_of_use: int = Field(default=1, ge=0, le=50, description="Years of use for asset transfer")
+    movable_asset_transfer_employee_payment: Decimal = Field(default=0, ge=0, description="Employee payment for asset transfer")
+    
     # Other perquisites fields
-    lunch_refreshment_amount: Decimal = Field(default=0, ge=0, description="Lunch refreshment amount")
-    domestic_help_amount: Decimal = Field(default=0, ge=0, description="Domestic help amount")
     other_perquisites_amount: Decimal = Field(default=0, ge=0, description="Other perquisites amount")
+    
+    # Monetary Benefits fields - Individual components
+    monetary_amount_paid_by_employer: Decimal = Field(default=0, ge=0, description="Monetary amount paid by employer")
+    expenditure_for_official_purpose: Decimal = Field(default=0, ge=0, description="Expenditure for official purpose")
+    amount_paid_by_employee: Decimal = Field(default=0, ge=0, description="Amount paid by employee")
+    
+    # Club Expenses fields - Individual components
+    club_expenses_paid_by_employer: Decimal = Field(default=0, ge=0, description="Club expenses paid by employer")
+    club_expenses_paid_by_employee: Decimal = Field(default=0, ge=0, description="Club expenses paid by employee")
+    club_expenses_for_official_purpose: Decimal = Field(default=0, ge=0, description="Club expenses for official purpose")
     
     # Additional fields for backward compatibility
     basic_salary: Decimal = Field(default=0, ge=0, description="Basic salary for accommodation calculation")
@@ -428,6 +481,20 @@ class PerquisitesDTO(BaseModel):
             raise ValueError(f"Car use type must be one of: {valid_types}")
         return v
     
+    @validator('travel_mode')
+    def validate_travel_mode(cls, v):
+        valid_modes = ["Air", "Rail", "Bus", "Public Transport"]
+        if v not in valid_modes:
+            raise ValueError(f"Travel mode must be one of: {valid_modes}")
+        return v
+    
+    @validator('loan_type')
+    def validate_loan_type(cls, v):
+        valid_types = ["Personal", "Medical", "Education", "Housing", "Vehicle", "Other"]
+        if v not in valid_types:
+            raise ValueError(f"Loan type must be one of: {valid_types}")
+        return v
+    
     def to_nested_structure(self) -> Dict[str, Any]:
         """Convert flat structure to nested structure for backward compatibility."""
         return {
@@ -449,26 +516,26 @@ class PerquisitesDTO(BaseModel):
                 "car_use_type": self.car_use_type,
                 "engine_capacity_cc": self.engine_capacity_cc,
                 "months_used": self.months_used,
+                "months_used_other_vehicle": self.months_used_other_vehicle,
                 "car_cost_to_employer": self.car_cost_to_employer,
                 "other_vehicle_cost": self.other_vehicle_cost,
                 "has_expense_reimbursement": self.has_expense_reimbursement,
                 "driver_provided": self.driver_provided
             },
-            "medical_reimbursement": {
-                "medical_reimbursement_amount": self.medical_reimbursement_amount,
-                "is_overseas_treatment": self.is_overseas_treatment
-            },
             "lta": {
                 "lta_amount_claimed": self.lta_amount_claimed,
                 "lta_claimed_count": self.lta_claimed_count,
-                "public_transport_cost": self.public_transport_cost
+                "public_transport_cost": self.public_transport_cost,
+                "travel_mode": self.travel_mode
             },
             "interest_free_loan": {
                 "loan_amount": self.loan_amount,
+                "emi_amount": self.emi_amount,
                 "outstanding_amount": self.loan_amount,  # Assuming same as loan amount
-                "company_interest_rate": self.interest_rate_charged,
-                "sbi_interest_rate": self.sbi_rate,
-                "loan_months": self.asset_usage_months  # Using asset_usage_months as loan_months
+                "company_interest_rate": self.company_interest_rate,
+                "sbi_interest_rate": self.sbi_interest_rate,
+                "loan_type": self.loan_type,
+                "loan_start_date": self.loan_start_date
             },
             "esop": {
                 "shares_exercised": self.esop_shares_exercised,
@@ -476,51 +543,58 @@ class PerquisitesDTO(BaseModel):
                 "allotment_price": self.esop_fair_market_value
             },
             "utilities": {
-                "gas_paid_by_employer": self.gas_electricity_water_amount,
-                "electricity_paid_by_employer": 0,
-                "water_paid_by_employer": 0,
-                "gas_paid_by_employee": 0,
-                "electricity_paid_by_employee": 0,
-                "water_paid_by_employee": 0,
-                "is_gas_manufactured_by_employer": False,
-                "is_electricity_manufactured_by_employer": False,
-                "is_water_manufactured_by_employer": False
+                "gas_paid_by_employer": self.gas_paid_by_employer,
+                "electricity_paid_by_employer": self.electricity_paid_by_employer,
+                "water_paid_by_employer": self.water_paid_by_employer,
+                "gas_paid_by_employee": self.gas_paid_by_employee,
+                "electricity_paid_by_employee": self.electricity_paid_by_employee,
+                "water_paid_by_employee": self.water_paid_by_employee,
+                "is_gas_manufactured_by_employer": self.is_gas_manufactured_by_employer,
+                "is_electricity_manufactured_by_employer": self.is_electricity_manufactured_by_employer,
+                "is_water_manufactured_by_employer": self.is_water_manufactured_by_employer
             },
             "free_education": {
-                "monthly_expenses_child1": self.free_education_amount if self.is_children_education else 0,
-                "monthly_expenses_child2": 0,
-                "months_child1": 12 if self.is_children_education else 0,
-                "months_child2": 0,
-                "employer_maintained_1st_child": self.is_children_education,
-                "employer_maintained_2nd_child": False
+                "monthly_expenses_child1": self.monthly_expenses_child1,
+                "monthly_expenses_child2": self.monthly_expenses_child2,
+                "months_child1": self.months_child1,
+                "months_child2": self.months_child2,
+                "employer_maintained_1st_child": self.employer_maintained_1st_child,
+                "employer_maintained_2nd_child": self.employer_maintained_2nd_child
             },
             "lunch_refreshment": {
-                "employer_cost": self.lunch_refreshment_amount,
-                "employee_payment": 0,
-                "meal_days_per_year": 365
+                "employer_cost": self.lunch_employer_cost,
+                "employee_payment": self.lunch_employee_payment,
+                "meal_days_per_year": self.lunch_meal_days_per_year
             },
             "domestic_help": {
-                "domestic_help_paid_by_employer": self.domestic_help_amount,
-                "domestic_help_paid_by_employee": 0
+                "domestic_help_paid_by_employer": self.domestic_help_paid_by_employer,
+                "domestic_help_paid_by_employee": self.domestic_help_paid_by_employee
             },
             "movable_asset_usage": {
-                "asset_type": "Others",
-                "asset_value": self.movable_asset_value,
-                "employee_payment": 0,
-                "is_employer_owned": True
+                "asset_type": self.movable_asset_type,
+                "asset_value": self.movable_asset_usage_value,
+                "hire_cost": self.movable_asset_hire_cost,
+                "employee_payment": self.movable_asset_employee_payment,
+                "is_employer_owned": self.movable_asset_is_employer_owned
+            },
+            "movable_asset_transfer": {
+                "asset_type": self.movable_asset_transfer_type,
+                "asset_cost": self.movable_asset_transfer_cost,
+                "years_of_use": self.movable_asset_years_of_use,
+                "employee_payment": self.movable_asset_transfer_employee_payment
             },
             "gift_voucher": {
                 "gift_voucher_amount": 0
             },
             "monetary_benefits": {
-                "monetary_amount_paid_by_employer": 0,
-                "expenditure_for_official_purpose": 0,
-                "amount_paid_by_employee": 0
+                "monetary_amount_paid_by_employer": self.monetary_amount_paid_by_employer,
+                "expenditure_for_official_purpose": self.expenditure_for_official_purpose,
+                "amount_paid_by_employee": self.amount_paid_by_employee
             },
             "club_expenses": {
-                "club_expenses_paid_by_employer": 0,
-                "club_expenses_paid_by_employee": 0,
-                "club_expenses_for_official_purpose": 0
+                "club_expenses_paid_by_employer": self.club_expenses_paid_by_employer,
+                "club_expenses_paid_by_employee": self.club_expenses_paid_by_employee,
+                "club_expenses_for_official_purpose": self.club_expenses_for_official_purpose
             }
         }
 
@@ -568,11 +642,11 @@ class CapitalGainsIncomeDTO(BaseModel):
 
 class LeaveEncashmentDTO(BaseModel):
     """Leave encashment DTO."""
-    leave_encashment_amount: Decimal = Field(default=0, ge=0)
-    average_monthly_salary: Decimal = Field(default=0, ge=0)
-    leave_days_encashed: int = Field(default=0, ge=0)
-    is_govt_employee: bool = Field(default=False)
-    during_employment: bool = Field(default=False)
+    leave_encashment_amount: Decimal = Field(default=0, ge=0, description="Leave encashment amount received")
+    average_monthly_salary: Decimal = Field(default=0, ge=0, description="Average monthly salary for calculation")
+    leave_days_encashed: int = Field(default=0, ge=0, description="Number of leave days encashed")
+    is_deceased: bool = Field(default=False, description="Whether the employee is deceased")
+    during_employment: bool = Field(default=False, description="Whether encashment was during employment")
 
 
 class GratuityDTO(BaseModel):

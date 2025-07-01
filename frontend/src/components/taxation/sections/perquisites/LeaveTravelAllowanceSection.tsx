@@ -26,6 +26,12 @@ interface LeaveTravelAllowanceSectionProps {
     field: string,
     value: string | number
   ) => void;
+  formData?: {
+    travel_mode?: string;
+    lta_amount_claimed?: number;
+    public_transport_cost?: number;
+    lta_claimed_count?: number;
+  };
 }
 
 /**
@@ -33,7 +39,8 @@ interface LeaveTravelAllowanceSectionProps {
  */
 const LeaveTravelAllowanceSection: React.FC<LeaveTravelAllowanceSectionProps> = ({
   handleNestedInputChange,
-  handleNestedFocus
+  handleNestedFocus,
+  formData = {}
 }) => {
   const handleSelectChange = (field: string, event: SelectChangeEvent<string>): void => {
     handleNestedInputChange('salary', 'perquisites', field, event.target.value);
@@ -63,9 +70,9 @@ const LeaveTravelAllowanceSection: React.FC<LeaveTravelAllowanceSectionProps> = 
         <FormControl fullWidth>
           <InputLabel>Travel Via</InputLabel>
           <Select
-            value={'Public Transport'}
+            value={formData.travel_mode || 'Air'}
             label="Travel Via"
-            onChange={(e) => handleSelectChange('travel_through', e)}
+            onChange={(e) => handleSelectChange('travel_mode', e)}
           >
             <MenuItem value="Air">Air</MenuItem>
             <MenuItem value="Rail">Rail</MenuItem>
@@ -79,7 +86,7 @@ const LeaveTravelAllowanceSection: React.FC<LeaveTravelAllowanceSectionProps> = 
           fullWidth
           label="LTA Amount Claimed"
           type="text"
-          value={formatIndianNumber(0)}
+          value={formatIndianNumber(formData.lta_amount_claimed || 0)}
           onChange={(e) => handleTextFieldChange('lta_amount_claimed', e)}
           InputProps={{ startAdornment: '₹' }}
           onFocus={(e) => handleTextFieldFocus('lta_amount_claimed', e)}
@@ -102,32 +109,13 @@ const LeaveTravelAllowanceSection: React.FC<LeaveTravelAllowanceSectionProps> = 
             fullWidth
             label="Public Transport Amount for Same Distance"
             type="text"
-            value={formatIndianNumber(0)}
-            onChange={(e) => handleTextFieldChange('public_transport_travel_amount_for_same_distance', e)}
+            value={formatIndianNumber(formData.public_transport_cost || 0)}
+            onChange={(e) => handleTextFieldChange('public_transport_cost', e)}
             InputProps={{ startAdornment: '₹' }}
-            onFocus={(e) => handleTextFieldFocus('public_transport_travel_amount_for_same_distance', e)}
+            onFocus={(e) => handleTextFieldFocus('public_transport_cost', e)}
           />
         </Tooltip>
        
-        {/* LTA claim start date */}
-        <TextField
-          fullWidth
-          label="LTA Claim Start Date"
-          type="date"
-          value={''}
-          onChange={(e) => handleTextFieldChange('lta_claim_start_date', e)}
-          InputLabelProps={{ shrink: true }}
-        />
-        
-        {/* LTA claim end date */}
-        <TextField
-          fullWidth
-          label="LTA Claim End Date"
-          type="date"
-          value={''}
-          onChange={(e) => handleTextFieldChange('lta_claim_end_date', e)}
-          InputLabelProps={{ shrink: true }}
-        />
         
         {/* LTA claimed count */}
         <Tooltip 
@@ -140,7 +128,7 @@ const LeaveTravelAllowanceSection: React.FC<LeaveTravelAllowanceSectionProps> = 
             label="Number of LTA Claims"
             type="number"
             inputProps={{ min: 0, max: 2 }}
-            value={0}
+            value={formData.lta_claimed_count || 0}
             onChange={(e) => handleTextFieldChange('lta_claimed_count', e)}
             onFocus={(e) => handleTextFieldFocus('lta_claimed_count', e)}
           />

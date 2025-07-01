@@ -57,7 +57,7 @@ from app.domain.entities.taxation.deductions import (
 )
 from app.domain.entities.taxation.perquisites import (
     Perquisites, AccommodationPerquisite, CarPerquisite, AccommodationType,
-    CityPopulation, CarUseType, AssetType, MedicalReimbursement, LTAPerquisite,
+    CityPopulation, CarUseType, AssetType, LTAPerquisite,
     InterestFreeConcessionalLoan, ESOPPerquisite, UtilitiesPerquisite,
     FreeEducationPerquisite, MovableAssetUsage, MovableAssetTransfer,
     LunchRefreshmentPerquisite, GiftVoucherPerquisite, MonetaryBenefitsPerquisite,
@@ -105,7 +105,17 @@ class UnifiedTaxationController:
                  
         self.user_repository = user_repository
         self.salary_package_repository = salary_package_repository
-        self.get_employees_for_selection_use_case = GetEmployeesForSelectionUseCase(user_repository, salary_package_repository)
+        self.tax_calculation_service = TaxCalculationService(salary_package_repository)
+        
+        # Get user service from dependency container
+        from app.config.dependency_container import get_dependency_container
+        container = get_dependency_container()
+        user_service = container.get_user_service()
+        
+        self.get_employees_for_selection_use_case = GetEmployeesForSelectionUseCase(
+            user_query_service=user_service,  # Pass the service that implements UserQueryService
+            salary_package_repository=salary_package_repository
+        )
     
     # =============================================================================
     # EMPLOYEE SELECTION OPERATIONS
@@ -642,7 +652,7 @@ class UnifiedTaxationController:
 
         # Log final deductions total
         try:
-            from app.domain.value_objects.taxation.tax_regime import TaxRegime, TaxRegimeType
+            from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
             regime = TaxRegime(TaxRegimeType.NEW)  # Default to new regime for calculation
             total_deductions = deductions.calculate_total_deductions(regime)
             logger.info(f"Final deductions total after conversion: {total_deductions}")
@@ -665,9 +675,9 @@ class UnifiedTaxationController:
     def _convert_perquisites_dto_to_entity(self, perquisites_dto) -> Perquisites:
         """Convert perquisites DTO to entity."""
         from app.domain.entities.taxation.perquisites import (
-            AccommodationPerquisite, CarPerquisite, MedicalReimbursement, 
+            AccommodationPerquisite, CarPerquisite, 
             LTAPerquisite, InterestFreeConcessionalLoan, ESOPPerquisite,
-            UtilitiesPerquisite, FreeEducationPerquisite, MovableAssetUsage,
+            UtilitiesPerquisite, FreeEducationPerquisite, MovableAssetUsage, MovableAssetTransfer,
             LunchRefreshmentPerquisite, GiftVoucherPerquisite, 
             MonetaryBenefitsPerquisite, ClubExpensesPerquisite, DomesticHelpPerquisite,
             AccommodationType, CityPopulation, CarUseType, AssetType
@@ -699,32 +709,30 @@ class UnifiedTaxationController:
             car_use_type=CarUseType(perquisites_dto.car_use_type),
             engine_capacity_cc=perquisites_dto.engine_capacity_cc,
             months_used=perquisites_dto.months_used,
+            months_used_other_vehicle=perquisites_dto.months_used_other_vehicle,
             car_cost_to_employer=safe_money_from_value(perquisites_dto.car_cost_to_employer),
             other_vehicle_cost=safe_money_from_value(perquisites_dto.other_vehicle_cost),
             has_expense_reimbursement=perquisites_dto.has_expense_reimbursement,
             driver_provided=perquisites_dto.driver_provided
         )
         
-        # Convert medical reimbursement
-        medical_reimbursement = MedicalReimbursement(
-            medical_reimbursement_amount=safe_money_from_value(perquisites_dto.medical_reimbursement_amount),
-            is_overseas_treatment=perquisites_dto.is_overseas_treatment
-        )
-        
         # Convert LTA
         lta = LTAPerquisite(
             lta_amount_claimed=safe_money_from_value(perquisites_dto.lta_amount_claimed),
             lta_claimed_count=perquisites_dto.lta_claimed_count,
-            public_transport_cost=safe_money_from_value(perquisites_dto.public_transport_cost)
+            public_transport_cost=safe_money_from_value(perquisites_dto.public_transport_cost),
+            travel_mode=perquisites_dto.travel_mode
         )
         
         # Convert interest free loan
         interest_free_loan = InterestFreeConcessionalLoan(
             loan_amount=safe_money_from_value(perquisites_dto.loan_amount),
+            emi_amount=safe_money_from_value(perquisites_dto.emi_amount),
             outstanding_amount=safe_money_from_value(perquisites_dto.loan_amount),  # Assuming same as loan amount
-            company_interest_rate=Decimal(str(perquisites_dto.interest_rate_charged)),
-            sbi_interest_rate=Decimal(str(perquisites_dto.sbi_rate)),
-            loan_months=perquisites_dto.asset_usage_months  # Using asset_usage_months as loan_months
+            company_interest_rate=Decimal(str(perquisites_dto.company_interest_rate)),
+            sbi_interest_rate=Decimal(str(perquisites_dto.sbi_interest_rate)),
+            loan_type=perquisites_dto.loan_type,
+            loan_start_date=perquisites_dto.loan_start_date
         )
         
         # Convert ESOP
@@ -736,46 +744,55 @@ class UnifiedTaxationController:
         
         # Convert utilities
         utilities = UtilitiesPerquisite(
-            gas_paid_by_employer=safe_money_from_value(perquisites_dto.gas_electricity_water_amount),
-            electricity_paid_by_employer=Money.zero(),
-            water_paid_by_employer=Money.zero(),
-            gas_paid_by_employee=Money.zero(),
-            electricity_paid_by_employee=Money.zero(),
-            water_paid_by_employee=Money.zero(),
-            is_gas_manufactured_by_employer=False,
-            is_electricity_manufactured_by_employer=False,
-            is_water_manufactured_by_employer=False
+            gas_paid_by_employer=safe_money_from_value(perquisites_dto.gas_paid_by_employer),
+            electricity_paid_by_employer=safe_money_from_value(perquisites_dto.electricity_paid_by_employer),
+            water_paid_by_employer=safe_money_from_value(perquisites_dto.water_paid_by_employer),
+            gas_paid_by_employee=safe_money_from_value(perquisites_dto.gas_paid_by_employee),
+            electricity_paid_by_employee=safe_money_from_value(perquisites_dto.electricity_paid_by_employee),
+            water_paid_by_employee=safe_money_from_value(perquisites_dto.water_paid_by_employee),
+            is_gas_manufactured_by_employer=perquisites_dto.is_gas_manufactured_by_employer,
+            is_electricity_manufactured_by_employer=perquisites_dto.is_electricity_manufactured_by_employer,
+            is_water_manufactured_by_employer=perquisites_dto.is_water_manufactured_by_employer
         )
         
         # Convert free education
         free_education = FreeEducationPerquisite(
-            monthly_expenses_child1=safe_money_from_value(perquisites_dto.free_education_amount if perquisites_dto.is_children_education else 0),
-            monthly_expenses_child2=Money.zero(),
-            months_child1=12 if perquisites_dto.is_children_education else 0,
-            months_child2=0,
-            employer_maintained_1st_child=perquisites_dto.is_children_education,
-            employer_maintained_2nd_child=False
+            monthly_expenses_child1=safe_money_from_value(perquisites_dto.monthly_expenses_child1),
+            monthly_expenses_child2=safe_money_from_value(perquisites_dto.monthly_expenses_child2),
+            months_child1=perquisites_dto.months_child1,
+            months_child2=perquisites_dto.months_child2,
+            employer_maintained_1st_child=perquisites_dto.employer_maintained_1st_child,
+            employer_maintained_2nd_child=perquisites_dto.employer_maintained_2nd_child
         )
         
         # Convert movable asset usage
         movable_asset_usage = MovableAssetUsage(
-            asset_type=AssetType("Others"),
-            asset_value=safe_money_from_value(perquisites_dto.movable_asset_value),
-            employee_payment=Money.zero(),
-            is_employer_owned=True
+            asset_type=AssetType(perquisites_dto.movable_asset_type),
+            asset_value=safe_money_from_value(perquisites_dto.movable_asset_usage_value),
+            hire_cost=safe_money_from_value(perquisites_dto.movable_asset_hire_cost),
+            employee_payment=safe_money_from_value(perquisites_dto.movable_asset_employee_payment),
+            is_employer_owned=perquisites_dto.movable_asset_is_employer_owned
+        )
+        
+        # Convert movable asset transfer
+        movable_asset_transfer = MovableAssetTransfer(
+            asset_type=AssetType(perquisites_dto.movable_asset_transfer_type),
+            asset_cost=safe_money_from_value(perquisites_dto.movable_asset_transfer_cost),
+            years_of_use=perquisites_dto.movable_asset_years_of_use,
+            employee_payment=safe_money_from_value(perquisites_dto.movable_asset_transfer_employee_payment)
         )
         
         # Convert lunch refreshment
         lunch_refreshment = LunchRefreshmentPerquisite(
-            employer_cost=safe_money_from_value(perquisites_dto.lunch_refreshment_amount),
-            employee_payment=Money.zero(),
-            meal_days_per_year=365
+            employer_cost=safe_money_from_value(perquisites_dto.lunch_employer_cost),
+            employee_payment=safe_money_from_value(perquisites_dto.lunch_employee_payment),
+            meal_days_per_year=perquisites_dto.lunch_meal_days_per_year
         )
         
         # Convert domestic help
         domestic_help = DomesticHelpPerquisite(
-            domestic_help_paid_by_employer=safe_money_from_value(perquisites_dto.domestic_help_amount),
-            domestic_help_paid_by_employee=Money.zero()
+            domestic_help_paid_by_employer=safe_money_from_value(perquisites_dto.domestic_help_paid_by_employer),
+            domestic_help_paid_by_employee=safe_money_from_value(perquisites_dto.domestic_help_paid_by_employee)
         )
         
         # Convert gift voucher
@@ -785,29 +802,28 @@ class UnifiedTaxationController:
         
         # Convert monetary benefits
         monetary_benefits = MonetaryBenefitsPerquisite(
-            monetary_amount_paid_by_employer=Money.zero(),
-            expenditure_for_official_purpose=Money.zero(),
-            amount_paid_by_employee=Money.zero()
+            monetary_amount_paid_by_employer=safe_money_from_value(perquisites_dto.monetary_amount_paid_by_employer),
+            expenditure_for_official_purpose=safe_money_from_value(perquisites_dto.expenditure_for_official_purpose),
+            amount_paid_by_employee=safe_money_from_value(perquisites_dto.amount_paid_by_employee)
         )
         
         # Convert club expenses
         club_expenses = ClubExpensesPerquisite(
-            club_expenses_paid_by_employer=Money.zero(),
-            club_expenses_paid_by_employee=Money.zero(),
-            club_expenses_for_official_purpose=Money.zero()
+            club_expenses_paid_by_employer=safe_money_from_value(perquisites_dto.club_expenses_paid_by_employer),
+            club_expenses_paid_by_employee=safe_money_from_value(perquisites_dto.club_expenses_paid_by_employee),
+            club_expenses_for_official_purpose=safe_money_from_value(perquisites_dto.club_expenses_for_official_purpose)
         )
         
         return Perquisites(
             accommodation=accommodation,
             car=car,
-            medical_reimbursement=medical_reimbursement,
             lta=lta,
             interest_free_loan=interest_free_loan,
             esop=esop,
             utilities=utilities,
             free_education=free_education,
             movable_asset_usage=movable_asset_usage,
-            movable_asset_transfer=None,  # Not in flat structure
+            movable_asset_transfer=movable_asset_transfer,
             lunch_refreshment=lunch_refreshment,
             gift_voucher=gift_voucher,
             monetary_benefits=monetary_benefits,
@@ -869,7 +885,7 @@ class UnifiedTaxationController:
                 leave_encashment_amount=Money.from_decimal(le_dto.leave_encashment_amount),
                 average_monthly_salary=Money.from_decimal(le_dto.average_monthly_salary),
                 leave_days_encashed=le_dto.leave_days_encashed,
-                is_govt_employee=le_dto.is_govt_employee,
+                is_deceased=le_dto.is_deceased,
                 during_employment=le_dto.during_employment
             )
         
@@ -881,7 +897,6 @@ class UnifiedTaxationController:
                 gratuity_amount=Money.from_decimal(gr_dto.gratuity_amount),
                 monthly_salary=Money.from_decimal(gr_dto.monthly_salary),
                 service_years=Decimal(str(gr_dto.service_years)),
-                is_govt_employee=gr_dto.is_govt_employee
             )
         
         # Convert VRS
@@ -891,7 +906,6 @@ class UnifiedTaxationController:
             vrs = VRS(
                 vrs_amount=Money.from_decimal(vrs_dto.vrs_amount),
                 monthly_salary=Money.from_decimal(vrs_dto.monthly_salary),
-                age=vrs_dto.age,
                 service_years=Decimal(str(vrs_dto.service_years))
             )
         
@@ -1506,44 +1520,44 @@ class UnifiedTaxationController:
             logger.error(f"Failed to get component {component_type}: {str(e)}")
             raise
     
-    async def get_taxation_record_status(
-        self,
-        employee_id: str,
-        tax_year: str,
-        organization_id: str
-    ) -> "TaxationRecordStatusResponse":
-        """Get status of all components in a taxation record."""
+    # async def get_taxation_record_status(
+    #     self,
+    #     employee_id: str,
+    #     tax_year: str,
+    #     organization_id: str
+    # ) -> "TaxationRecordStatusResponse":
+    #     """Get status of all components in a taxation record."""
         
-        try:
-            # Get taxation record
-            taxation_record = await self.taxation_repository.get_taxation_record(
-                employee_id, tax_year, organization_id
-            )
+    #     try:
+    #         # Get taxation record
+    #         taxation_record = await self.taxation_repository.get_taxation_record(
+    #             employee_id, tax_year, organization_id
+    #         )
             
-            if not taxation_record:
-                raise ValueError(f"Taxation record not found for employee {employee_id} and tax year {tax_year}")
+    #         if not taxation_record:
+    #             raise ValueError(f"Taxation record not found for employee {employee_id} and tax year {tax_year}")
             
-            # Build components status
-            components_status = self._build_components_status(taxation_record)
+    #         # Build components status
+    #         components_status = self._build_components_status(taxation_record)
             
-            # Determine overall status
-            overall_status = self._determine_overall_status(components_status)
+    #         # Determine overall status
+    #         overall_status = self._determine_overall_status(components_status)
             
-            return TaxationRecordStatusResponse(
-                taxation_id=taxation_record.taxation_id,
-                employee_id=employee_id,
-                tax_year=tax_year,
-                regime_type=taxation_record.regime.regime_type.value,
-                age=taxation_record.age,
-                components_status=components_status,
-                overall_status=overall_status,
-                last_updated=taxation_record.updated_at,
-                is_final=taxation_record.is_final
-            )
+    #         return TaxationRecordStatusResponse(
+    #             taxation_id=taxation_record.taxation_id,
+    #             employee_id=employee_id,
+    #             tax_year=tax_year,
+    #             regime_type=taxation_record.regime.regime_type.value,
+    #             age=taxation_record.age,
+    #             components_status=components_status,
+    #             overall_status=overall_status,
+    #             last_updated=taxation_record.updated_at,
+    #             is_final=taxation_record.is_final
+    #         )
             
-        except Exception as e:
-            logger.error(f"Failed to get taxation record status: {str(e)}")
-            raise
+    #     except Exception as e:
+    #         logger.error(f"Failed to get taxation record status: {str(e)}")
+    #         raise
     
     def _extract_component_data_from_salary_package(self, salary_package_record: SalaryPackageRecord, component_type: str) -> Dict[str, Any]:
         """Extract component data from salary package record."""
@@ -1759,18 +1773,11 @@ class UnifiedTaxationController:
                 "car_use_type": car.car_use_type.value,
                 "engine_capacity_cc": car.engine_capacity_cc,
                 "months_used": car.months_used,
+                "months_used_other_vehicle": car.months_used_other_vehicle,
                 "car_cost_to_employer": float(car.car_cost_to_employer.amount),
                 "other_vehicle_cost": float(car.other_vehicle_cost.amount),
                 "has_expense_reimbursement": car.has_expense_reimbursement,
                 "driver_provided": car.driver_provided
-            }
-        
-        # Serialize medical reimbursement
-        if perquisites.medical_reimbursement:
-            med = perquisites.medical_reimbursement
-            result["medical_reimbursement"] = {
-                "medical_reimbursement_amount": float(med.medical_reimbursement_amount.amount),
-                "is_overseas_treatment": med.is_overseas_treatment
             }
         
         # Serialize LTA
@@ -1787,10 +1794,11 @@ class UnifiedTaxationController:
             loan = perquisites.interest_free_loan
             result["interest_free_loan"] = {
                 "loan_amount": float(loan.loan_amount.amount),
+                "emi_amount": float(loan.emi_amount.amount),
                 "outstanding_amount": float(loan.outstanding_amount.amount),
                 "company_interest_rate": float(loan.company_interest_rate),
                 "sbi_interest_rate": float(loan.sbi_interest_rate),
-                "loan_months": loan.loan_months
+                "loan_start_date": loan.loan_start_date.isoformat() if loan.loan_start_date else None,
             }
         
         # Serialize ESOP
@@ -2208,7 +2216,6 @@ class UnifiedTaxationController:
                 "leave_encashment_amount": float(le.leave_encashment_amount.amount),
                 "average_monthly_salary": float(le.average_monthly_salary.amount),
                 "leave_days_encashed": le.leave_days_encashed,
-                "is_govt_employee": le.is_govt_employee,
                 "is_deceased": le.is_deceased,
                 "during_employment": le.during_employment
             }
@@ -2307,12 +2314,12 @@ class UnifiedTaxationController:
         try:
             
             # Check if enhanced_tax_service is available
-            if not self.enhanced_tax_service:
+            if not self.tax_calculation_service:
                 logger.error("UnifiedTaxationController.compute_monthly_tax: Enhanced tax service not configured")
                 raise RuntimeError("Enhanced tax service not configured")
             
             # Use the enhanced tax service to compute monthly tax with details
-            result = await self.enhanced_tax_service.compute_monthly_tax_with_details(
+            result = await self.tax_calculation_service.compute_monthly_tax_with_details(
                 employee_id, organization_id
             )
             

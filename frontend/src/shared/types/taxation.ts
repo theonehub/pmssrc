@@ -82,7 +82,7 @@ export interface CapitalGainsIncomeDTO {
 
 export interface HousePropertyIncomeDTO {
   annual_rent: number;
-  municipal_tax: number;
+  municipal_taxes_paid: number;
   standard_deduction: number;
   interest_on_loan: number;
   net_income: number;
@@ -257,12 +257,10 @@ export interface PerquisitesDTO {
   gas_electricity_water?: {
     amount: number;
   };
-  medical_reimbursement?: {
-    amount: number;
-  };
   leave_travel_allowance?: {
     lta_claimed: number;
     lta_exempt: number;
+    travel_mode?: string;
   };
   free_education?: {
     education_provided: boolean;
@@ -421,7 +419,7 @@ export interface ComprehensiveTaxCalculationResponse {
       house_property_income: {
         property_type: string;
         annual_rent_received: number;
-        municipal_tax: number;
+        municipal_taxes_paid: number;
         interest_on_loan: number;
         pre_construction_interest: number;
         other_deductions: number;

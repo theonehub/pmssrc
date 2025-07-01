@@ -300,9 +300,9 @@ class SalaryIncome:
         
         return gross
 
-    def calculate_basic_da(self) -> Money:
+    def calculate_basic_plus_da(self) -> Money:
         """
-        Calculate basic DA.
+        Calculate basic plus DA.
         """
         return self.basic_salary.add(self.dearness_allowance)
     

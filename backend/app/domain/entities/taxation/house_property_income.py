@@ -8,7 +8,9 @@ from typing import Dict, Any, Optional
 from enum import Enum
 from app.domain.value_objects.money import Money
 from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
+from app.utils.logger import get_logger
 
+logger = get_logger(__name__)
 
 class PropertyType(Enum):
     """Types of house property."""
@@ -27,12 +29,12 @@ class HousePropertyIncome:
     home_loan_interest: Money = Money.zero()
     pre_construction_interest: Money = Money.zero()
     
-    def calculate_annual_value(self) -> Money:
+    def calculate_annual_rent_received(self) -> Money:
         """
-        Calculate annual value of property.
+        Calculate annual rent received.
         
         Returns:
-            Money: Annual value
+            Money: Annual rent received
         """
         if self.property_type == PropertyType.SELF_OCCUPIED:
             return Money.zero()
@@ -42,14 +44,14 @@ class HousePropertyIncome:
         
         return Money.zero()
     
-    def calculate_net_annual_value(self) -> Money:
+    def calculate_net_annual_income_after_taxes(self) -> Money:
         """
         Calculate net annual value (annual value minus municipal taxes).
         
         Returns:
             Money: Net annual value
         """
-        annual_value = self.calculate_annual_value()
+        annual_value = self.calculate_annual_rent_received()
         return annual_value.subtract(self.municipal_taxes_paid).max(Money.zero())
     
     def calculate_standard_deduction(self) -> Money:
@@ -62,7 +64,7 @@ class HousePropertyIncome:
         if self.property_type == PropertyType.SELF_OCCUPIED:
             return Money.zero()
         
-        net_annual_value = self.calculate_net_annual_value()
+        net_annual_value = self.calculate_net_annual_income_after_taxes()
         return net_annual_value.percentage(30)  # 30% standard deduction
     
     def calculate_interest_deduction(self) -> Money:
@@ -103,21 +105,31 @@ class HousePropertyIncome:
         Returns:
             Money: Net income from house property (returns zero for losses)
         """
-        net_annual_value = self.calculate_net_annual_value()
+        logger.info(f"HPI: regime: {regime}")
+        logger.info(f"HPI: HousePropertyIncome: {self}")
+
+        net_annual_value = self.calculate_net_annual_income_after_taxes()
+        logger.info(f"HPI: Effective net annual income after taxes: {net_annual_value}")
         standard_deduction = self.calculate_standard_deduction()
+        logger.info(f"HPI: Effective standard deduction: {standard_deduction}")
         interest_deduction = self.calculate_interest_deduction()
+        logger.info(f"HPI: Effective interest deduction: {interest_deduction}")
         pre_construction_deduction = self.calculate_pre_construction_deduction()
+        logger.info(f"HPI: Effective pre-construction deduction: {pre_construction_deduction}")
         
         total_deductions = (standard_deduction
                           .add(interest_deduction)
                           .add(pre_construction_deduction))
+        logger.info(f"HPI: Effective total deductions: {total_deductions}")
         
         # Income from house property can be negative (loss)
         # Since Money class doesn't allow negative amounts, we return zero for losses
         # The actual loss amount can be retrieved via get_house_property_breakdown
         if total_deductions.is_greater_than(net_annual_value):
+            logger.info(f"HPI: Total deductions are greater than net annual value, returning zero, need to invoke get_house_property_loss")
             return Money.zero()  # Loss case - return zero
         else:
+            logger.info(f"HPI: Total deductions are less than net annual value, returning net annual value minus total deductions")
             return net_annual_value.subtract(total_deductions)
     
     def get_house_property_loss(self, regime: TaxRegime) -> Money:
@@ -130,7 +142,7 @@ class HousePropertyIncome:
         Returns:
             Money: Loss amount (zero if no loss)
         """
-        net_annual_value = self.calculate_net_annual_value()
+        net_annual_value = self.calculate_net_annual_income_after_taxes()
         standard_deduction = self.calculate_standard_deduction()
         interest_deduction = self.calculate_interest_deduction()
         pre_construction_deduction = self.calculate_pre_construction_deduction()
@@ -140,16 +152,14 @@ class HousePropertyIncome:
                           .add(pre_construction_deduction))
         
         if total_deductions.is_greater_than(net_annual_value):
-            return total_deductions.subtract(net_annual_value)
+            loss = total_deductions.subtract(net_annual_value)
+            logger.info(f"HPI: Total deductions are greater than net annual value, loss: {loss}")
+            return loss
         else:
+            logger.info(f"HPI: Total deductions are less than net annual value, returning zero")
             return Money.zero()
     
-    # Properties for TaxCalculationService compatibility
-    @property
-    def municipal_tax(self) -> Money:
-        """Get municipal tax for TaxCalculationService compatibility."""
-        return self.municipal_taxes_paid
-    
+
     @property
     def interest_on_loan(self) -> Money:
         """Get interest on loan for TaxCalculationService compatibility."""
@@ -190,8 +200,8 @@ class HousePropertyIncome:
         Returns:
             Dict: Complete house property breakdown
         """
-        annual_value = self.calculate_annual_value()
-        net_annual_value = self.calculate_net_annual_value()
+        annual_value = self.calculate_annual_rent_received()
+        net_annual_value = self.calculate_net_annual_income_after_taxes()
         standard_deduction = self.calculate_standard_deduction()
         interest_deduction = self.calculate_interest_deduction()
         pre_construction_deduction = self.calculate_pre_construction_deduction()

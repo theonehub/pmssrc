@@ -84,16 +84,14 @@ class TaxCalculationResult:
 class TaxCalculationService:
     """Service for calculating taxes."""
     
-    def __init__(self, taxation_repository=None, salary_package_repository=None, user_repository=None):
+    def __init__(self, salary_package_repository=None, user_repository=None):
         """
         Initialize the service.
         
         Args:
-            taxation_repository: Optional taxation repository for updating records
             salary_package_repository: Optional salary package repository for monthly computation
             user_repository: Optional user repository for employee info
         """
-        self.taxation_repository = taxation_repository
         self.salary_package_repository = salary_package_repository
         self.user_repository = user_repository
         self.logger = get_logger(__name__)
@@ -159,6 +157,7 @@ class TaxCalculationService:
             
             # Compute monthly tax using the salary package record
             self.logger.debug("compute_monthly_tax: Computing monthly tax from salary package record")
+            logger.info(f"*********************************************************************************************************")
             calculation_result = salary_package_record.calculate_tax(self)
             
             # Extract monthly tax amount from calculation result
@@ -276,71 +275,61 @@ class TaxCalculationService:
             # Add detailed breakdown
             detailed_result = basic_result.copy()
             
-            # Income breakdown
-            detailed_result["income_breakdown"] = {}
-            if salary_package_record.calculation_result:
-                self.logger.debug("compute_monthly_tax_with_details: Adding comprehensive income breakdown")
-                income_breakdown = salary_package_record.get_comprehensive_income_breakdown()
-                detailed_result["income_breakdown"] = income_breakdown
-                self.logger.debug(f"compute_monthly_tax_with_details: Income breakdown keys: {list(income_breakdown.keys())}")
-            else:
-                self.logger.warning("compute_monthly_tax_with_details: No calculation result available for income breakdown")
+            # # Add component status
+            # self.logger.debug("compute_monthly_tax_with_details: Building component status")
+            # detailed_result["component_status"] = {
+            #     "salary": {
+            #         "configured": len(salary_package_record.salary_incomes) > 0,
+            #         "count": len(salary_package_record.salary_incomes)
+            #     },
+            #     "perquisites": {
+            #         "configured": salary_package_record.perquisites is not None,
+            #         "value": salary_package_record.perquisites.calculate_total_perquisites(salary_package_record.regime).to_float() if salary_package_record.perquisites else 0.0
+            #     },
+            #     "deductions": {
+            #         "configured": True,  # Always have default deductions
+            #         "value": salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime).to_float()
+            #     },
+            #     "other_income": {
+            #         "configured": salary_package_record.other_income is not None,
+            #         "value": salary_package_record.other_income.calculate_total_other_income_slab_rates(salary_package_record.regime, salary_package_record.age).to_float() if salary_package_record.other_income else 0.0
+            #     },
+            #     "retirement_benefits": {
+            #         "configured": salary_package_record.retirement_benefits is not None,
+            #         "value": salary_package_record.retirement_benefits.calculate_total_retirement_income(salary_package_record.regime).to_float() if salary_package_record.retirement_benefits else 0.0
+            #     }
+            # }
             
-            # Add component status
-            self.logger.debug("compute_monthly_tax_with_details: Building component status")
-            detailed_result["component_status"] = {
-                "salary": {
-                    "configured": len(salary_package_record.salary_incomes) > 0,
-                    "count": len(salary_package_record.salary_incomes)
-                },
-                "perquisites": {
-                    "configured": salary_package_record.perquisites is not None,
-                    "value": salary_package_record.perquisites.calculate_total_perquisites(salary_package_record.regime).to_float() if salary_package_record.perquisites else 0.0
-                },
-                "deductions": {
-                    "configured": True,  # Always have default deductions
-                    "value": salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime).to_float()
-                },
-                "other_income": {
-                    "configured": salary_package_record.other_income is not None,
-                    "value": salary_package_record.other_income.calculate_total_other_income_slab_rates(salary_package_record.regime, salary_package_record.age).to_float() if salary_package_record.other_income else 0.0
-                },
-                "retirement_benefits": {
-                    "configured": salary_package_record.retirement_benefits is not None,
-                    "value": salary_package_record.retirement_benefits.calculate_total_retirement_income(salary_package_record.regime).to_float() if salary_package_record.retirement_benefits else 0.0
-                }
-            }
-            
-            self.logger.debug(f"compute_monthly_tax_with_details: Component status - Salary configured: {detailed_result['component_status']['salary']['configured']}")
-            self.logger.debug(f"compute_monthly_tax_with_details: Component status - Perquisites configured: {detailed_result['component_status']['perquisites']['configured']}")
-            self.logger.debug(f"compute_monthly_tax_with_details: Component status - Deductions value: {detailed_result['component_status']['deductions']['value']}")
+            # self.logger.debug(f"compute_monthly_tax_with_details: Component status - Salary configured: {detailed_result['component_status']['salary']['configured']}")
+            # self.logger.debug(f"compute_monthly_tax_with_details: Component status - Perquisites configured: {detailed_result['component_status']['perquisites']['configured']}")
+            # self.logger.debug(f"compute_monthly_tax_with_details: Component status - Deductions value: {detailed_result['component_status']['deductions']['value']}")
             
             # Add recommendation - compute fresh calculation result
-            fresh_calculation_result = salary_package_record.calculate_tax(self)
-            if fresh_calculation_result:
-                self.logger.debug("compute_monthly_tax_with_details: Generating tax recommendation")
-                monthly_tax = fresh_calculation_result.monthly_tax_liability.to_float()
-                annual_income = fresh_calculation_result.total_income.to_float()
+            # fresh_calculation_result = salary_package_record.calculate_tax(self)
+            # if fresh_calculation_result:
+            #     self.logger.debug("compute_monthly_tax_with_details: Generating tax recommendation")
+            #     monthly_tax = fresh_calculation_result.monthly_tax_liability.to_float()
+            #     annual_income = fresh_calculation_result.total_income.to_float()
                 
-                if monthly_tax == 0:
-                    detailed_result["recommendation"] = "No tax liability"
-                    self.logger.debug("compute_monthly_tax_with_details: Recommendation - No tax liability")
-                elif annual_income > 0:
-                    tax_rate = (monthly_tax * 12 / annual_income) * 100
-                    if tax_rate < 5:
-                        detailed_result["recommendation"] = "Low tax rate - consider new regime"
-                        self.logger.debug(f"compute_monthly_tax_with_details: Recommendation - Low tax rate ({tax_rate:.2f}%)")
-                    elif tax_rate > 20:
-                        detailed_result["recommendation"] = "High tax rate - review deductions"
-                        self.logger.debug(f"compute_monthly_tax_with_details: Recommendation - High tax rate ({tax_rate:.2f}%)")
-                    else:
-                        detailed_result["recommendation"] = "Moderate tax rate"
-                        self.logger.debug(f"compute_monthly_tax_with_details: Recommendation - Moderate tax rate ({tax_rate:.2f}%)")
-                else:
-                    detailed_result["recommendation"] = "Review income configuration"
-                    self.logger.debug("compute_monthly_tax_with_details: Recommendation - Review income configuration")
-            else:
-                self.logger.warning("compute_monthly_tax_with_details: No fresh calculation result available for recommendation")
+            #     if monthly_tax == 0:
+            #         detailed_result["recommendation"] = "No tax liability"
+            #         self.logger.debug("compute_monthly_tax_with_details: Recommendation - No tax liability")
+            #     elif annual_income > 0:
+            #         tax_rate = (monthly_tax * 12 / annual_income) * 100
+            #         if tax_rate < 5:
+            #             detailed_result["recommendation"] = "Low tax rate - consider new regime"
+            #             self.logger.debug(f"compute_monthly_tax_with_details: Recommendation - Low tax rate ({tax_rate:.2f}%)")
+            #         elif tax_rate > 20:
+            #             detailed_result["recommendation"] = "High tax rate - review deductions"
+            #             self.logger.debug(f"compute_monthly_tax_with_details: Recommendation - High tax rate ({tax_rate:.2f}%)")
+            #         else:
+            #             detailed_result["recommendation"] = "Moderate tax rate"
+            #             self.logger.debug(f"compute_monthly_tax_with_details: Recommendation - Moderate tax rate ({tax_rate:.2f}%)")
+            #     else:
+            #         detailed_result["recommendation"] = "Review income configuration"
+            #         self.logger.debug("compute_monthly_tax_with_details: Recommendation - Review income configuration")
+            # else:
+            #     self.logger.warning("compute_monthly_tax_with_details: No fresh calculation result available for recommendation")
             
             self.logger.debug(f"compute_monthly_tax_with_details: Successfully completed detailed computation for employee {employee_id}")
             return detailed_result
@@ -435,68 +424,7 @@ class TaxCalculationService:
         logger.error(f"TheOne: Should not be used")
 
         return 0
-
-    async def calculate_and_update_taxation_record(self, 
-                                                 input_data, 
-                                                 organization_id: str) -> TaxCalculationResult:
-        """
-        Calculate tax for input data and update the corresponding taxation record in the database.
-        
-        This method can accept either:
-        1. TaxationRecord - will calculate and update the record directly
-        2. TaxCalculationInput - will calculate using the input and optionally update if repository is available
-        
-        Args:
-            input_data: Either TaxationRecord or TaxCalculationInput
-            organization_id: Organization ID for database operations
-            
-        Returns:
-            TaxCalculationResult: Tax calculation result
-            
-        Raises:
-            ValueError: If taxation repository is not configured when needed
-            RuntimeError: If database update fails
-        """
-        
-        # Check if input is a TaxationRecord
-        from app.domain.entities.taxation.taxation_record import TaxationRecord
-        
-        if isinstance(input_data, TaxationRecord):
-            # Handle TaxationRecord input (new approach)
-            taxation_record = input_data
-            
-            if not self.taxation_repository:
-                raise ValueError("Taxation repository not configured for this service")
-            
-            # Calculate tax using the record's built-in method 
-            calculation_result = taxation_record.calculate_tax(self)
-            
-            # Create monthly payout record based on the tax calculation
-            monthly_payout = self._create_monthly_payout_from_taxation_record(
-                taxation_record, calculation_result
-            )
-            
-            # Update the taxation record with the monthly payout
-            taxation_record.monthly_payroll = monthly_payout
-            
-            # Add the monthly payroll to the calculation result
-            calculation_result.monthly_payroll = monthly_payout
-            
-            try:
-                # Update the record in the database
-                await self.taxation_repository.save(taxation_record, organization_id)
-                
-                return calculation_result
-                
-            except Exception as e:
-                # Reset calculation state on update failure
-                taxation_record._invalidate_calculation()
-                raise RuntimeError(f"Failed to update taxation record in database: {e}")
-        
-        else:
-            # Handle TaxCalculationInput (legacy approach)
-            return self.calculate_tax(input_data)
-    
+  
     def _calculate_total_income(self, input_data: TaxCalculationInput) -> Money:
         """Calculate total income from all sources."""
         # Salary income - use the actual method from SalaryIncome entity

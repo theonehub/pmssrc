@@ -111,7 +111,6 @@ export const transformComprehensiveRecordToFormData = (comprehensiveRecord, empI
       perquisites: safeExtract(comprehensiveRecord.perquisites, {
         accommodation: null,
         car: null,
-        medical_reimbursement: null,
         lta: null,
         interest_free_loan: null,
         esop: null,

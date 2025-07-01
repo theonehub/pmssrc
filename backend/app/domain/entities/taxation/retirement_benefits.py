@@ -17,18 +17,17 @@ class LeaveEncashment:
     leave_encashment_amount: Money = Money.zero()
     average_monthly_salary: Money = Money.zero()
     leave_days_encashed: int = 0
-    is_govt_employee: bool = False
     is_deceased: bool = False
     during_employment: bool = False
     
-    def calculate_exemption(self) -> Money:
+    def calculate_exemption(self, regime: TaxRegime, is_govt_employee: bool) -> Money:
         """
         Calculate leave encashment exemption.
         
         Returns:
             Money: Exemption amount
         """
-        if self.is_govt_employee or self.is_deceased:
+        if is_govt_employee or self.is_deceased:
             return self.leave_encashment_amount  # Fully exempt
         
         if self.during_employment:
@@ -49,14 +48,14 @@ class LeaveEncashment:
         min_amount = min_amount.min(unexpired_leave_value)
         return min_amount
     
-    def calculate_taxable_amount(self) -> Money:
+    def calculate_taxable_amount(self, regime: TaxRegime, is_govt_employee: bool) -> Money:
         """
         Calculate taxable leave encashment amount.
         
         Returns:
             Money: Taxable amount
         """
-        exemption = self.calculate_exemption()
+        exemption = self.calculate_exemption(regime, is_govt_employee)
         return self.leave_encashment_amount.subtract(exemption).max(Money.zero())
 
 
@@ -67,16 +66,15 @@ class Gratuity:
     gratuity_amount: Money = Money.zero()
     monthly_salary: Money = Money.zero()
     service_years: Decimal = Decimal('0')
-    is_govt_employee: bool = False
     
-    def calculate_exemption(self) -> Money:
+    def calculate_exemption(self, regime: TaxRegime, is_govt_employee: bool) -> Money:
         """
         Calculate gratuity exemption.
         
         Returns:
             Money: Exemption amount
         """
-        if self.is_govt_employee:
+        if is_govt_employee:
             return self.gratuity_amount  # Fully exempt for government employees
         
         # Non-government employees - minimum of 3 amounts
@@ -90,14 +88,14 @@ class Gratuity:
         min_amount = min_amount.min(statutory_limit)
         return min_amount
     
-    def calculate_taxable_amount(self) -> Money:
+    def calculate_taxable_amount(self, regime: TaxRegime, is_govt_employee: bool) -> Money:
         """
         Calculate taxable gratuity amount.
         
         Returns:
             Money: Taxable amount
         """
-        exemption = self.calculate_exemption()
+        exemption = self.calculate_exemption(regime, is_govt_employee)
         return self.gratuity_amount.subtract(exemption).max(Money.zero())
 
 
@@ -107,10 +105,9 @@ class VRS:
     
     vrs_amount: Money = Money.zero()
     monthly_salary: Money = Money.zero()
-    age: int = 25
     service_years: Decimal = Decimal('0')
     
-    def is_eligible(self) -> bool:
+    def is_eligible(self, regime: TaxRegime) -> bool:
         """
         Check VRS eligibility.
         
@@ -119,14 +116,14 @@ class VRS:
         """
         return self.age >= 40 and self.service_years >= 10
     
-    def calculate_vrs_value(self) -> Money:
+    def calculate_vrs_value(self, age: int) -> Money:
         """
         Calculate VRS value as per formula.
         
         Returns:
             Money: Calculated VRS value
         """
-        if not self.is_eligible():
+        if not self.is_eligible(age):
             return Money.zero()
         
         single_day_salary = self.monthly_salary.divide(30)
@@ -170,17 +167,17 @@ class Pension:
     regular_pension: Money = Money.zero()
     commuted_pension: Money = Money.zero()
     total_pension: Money = Money.zero()
-    is_govt_employee: bool = False
     gratuity_received: bool = False
+    is_govt_employee: bool = False
     
-    def calculate_commuted_pension_exemption(self) -> Money:
+    def calculate_commuted_pension_exemption(self, regime: TaxRegime, is_govt_employee: bool) -> Money:
         """
         Calculate commuted pension exemption.
         
         Returns:
             Money: Exemption amount
         """
-        if self.is_govt_employee:
+        if is_govt_employee:
             return self.commuted_pension  # Fully exempt for government employees
         
         # For non-government employees
@@ -192,7 +189,7 @@ class Pension:
         exemption_limit = self.total_pension.percentage(float(exemption_fraction * 100))
         return self.commuted_pension.min(exemption_limit)
     
-    def calculate_taxable_pension(self) -> Money:
+    def calculate_taxable_pension(self, regime: TaxRegime, is_govt_employee: bool) -> Money:
         """
         Calculate taxable pension amount.
         
@@ -200,7 +197,7 @@ class Pension:
             Money: Taxable pension
         """
         # Regular pension is fully taxable
-        commuted_exemption = self.calculate_commuted_pension_exemption()
+        commuted_exemption = self.calculate_commuted_pension_exemption(regime, is_govt_employee)
         taxable_commuted = self.commuted_pension.subtract(commuted_exemption)
         
         return self.regular_pension.add(taxable_commuted)
@@ -230,7 +227,7 @@ class RetrenchmentCompensation:
         
         return completed_years
     
-    def calculate_exemption(self) -> Money:
+    def calculate_exemption(self, regime: TaxRegime, is_govt_employee: bool) -> Money:
         """
         Calculate retrenchment compensation exemption.
         
@@ -250,14 +247,14 @@ class RetrenchmentCompensation:
         min_amount = min_amount.min(statutory_limit)
         return min_amount
     
-    def calculate_taxable_amount(self) -> Money:
+    def calculate_taxable_amount(self, regime: TaxRegime, is_govt_employee: bool) -> Money:
         """
         Calculate taxable retrenchment compensation.
         
         Returns:
             Money: Taxable amount
         """
-        exemption = self.calculate_exemption()
+        exemption = self.calculate_exemption(regime, is_govt_employee)
         return self.retrenchment_amount.subtract(exemption).max(Money.zero())
 
 
@@ -284,7 +281,7 @@ class RetirementBenefits:
         if self.retrenchment_compensation is None:
             self.retrenchment_compensation = RetrenchmentCompensation()
     
-    def calculate_total_retirement_income(self, regime: TaxRegime) -> Money:
+    def calculate_total_retirement_income(self, regime: TaxRegime, is_govt_employee: bool) -> Money:
         """
         Calculate total taxable retirement income.
         
@@ -297,11 +294,11 @@ class RetirementBenefits:
         total_income = Money.zero()
         
         # Add taxable amounts from each benefit
-        total_income = total_income.add(self.leave_encashment.calculate_taxable_amount())
-        total_income = total_income.add(self.gratuity.calculate_taxable_amount())
-        total_income = total_income.add(self.vrs.calculate_taxable_amount())
-        total_income = total_income.add(self.pension.calculate_taxable_pension())
-        total_income = total_income.add(self.retrenchment_compensation.calculate_taxable_amount())
+        total_income = total_income.add(self.leave_encashment.calculate_taxable_amount(regime, is_govt_employee))
+        total_income = total_income.add(self.gratuity.calculate_taxable_amount(regime, is_govt_employee))
+        total_income = total_income.add(self.vrs.calculate_taxable_amount(regime, is_govt_employee))
+        total_income = total_income.add(self.pension.calculate_taxable_pension(regime, is_govt_employee))
+        total_income = total_income.add(self.retrenchment_compensation.calculate_taxable_amount(regime, is_govt_employee))
         
         return total_income
     

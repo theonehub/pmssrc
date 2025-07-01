@@ -360,7 +360,7 @@ const useTaxationForm = (empId) => {
       'accommodation_provided', 'accommodation_city_population', 'car_use', 
       'travel_through', 'loan_type', 'lta_claim_start_date', 'lta_claim_end_date',
       'grant_date', 'vesting_date', 'exercise_date', 'mat_type', 'mau_ownership',
-      'loan_start_date', 'loan_end_date', 'uncomputed_pension_frequency', 'mat_number_of_completed_years_of_use',
+      'loan_start_date', 'uncomputed_pension_frequency', 'mat_number_of_completed_years_of_use',
       'property_type', 'occupancy_status'
     ];
     

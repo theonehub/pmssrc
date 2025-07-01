@@ -9,6 +9,9 @@ from enum import Enum
 from decimal import Decimal
 from app.domain.value_objects.money import Money
 from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
+from app.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 class CapitalGainsType(Enum):
@@ -92,6 +95,8 @@ class CapitalGainsIncome:
         Returns:
             Money: STCG amount for slab taxation
         """
+        logger.info(f"CGI: stcg_other_assets: {self.stcg_other_assets}")
+        logger.info(f"CGI: stcg_debt_mf: {self.stcg_debt_mf}")
         return self.stcg_other_assets.add(self.stcg_debt_mf)
     
     def calculate_total_capital_gains_income(self) -> Money:
@@ -176,38 +181,5 @@ class CapitalGainsIncome:
                                           .add(self.ltcg_debt_mf)).to_float()
             }
         }
-    
-    # Backward compatibility properties for legacy code
-    @property
-    def asset_type(self) -> str:
-        """Backward compatibility: Get asset type (default to 'equity')."""
-        # Legacy systems expect an asset_type field
-        return "equity"
-    
-    @property
-    def purchase_date(self):
-        """Backward compatibility: Get purchase date (default to current year)."""
-        from datetime import date
-        return date.today().replace(month=1, day=1)  # Start of current year as date object
-    
-    @property
-    def sale_date(self):
-        """Backward compatibility: Get sale date (default to current year)."""
-        from datetime import date
-        return date.today()  # Current date as date object
-    
-    @property
-    def purchase_price(self) -> Money:
-        """Backward compatibility: Get purchase price (sum of all gains as proxy)."""
-        # This is a rough approximation for backward compatibility
-        return self.calculate_total_capital_gains_income()
-    
-    @property
-    def sale_price(self) -> Money:
-        """Backward compatibility: Get sale price (purchase price + gains)."""
-        # This is a rough approximation for backward compatibility
-        total_gains = self.calculate_total_capital_gains_income()
-        return total_gains.add(total_gains)  # Approximate: gains + cost basis
-    
 
     

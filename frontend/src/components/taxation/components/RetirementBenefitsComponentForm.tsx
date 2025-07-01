@@ -14,7 +14,9 @@ import {
   Stepper,
   Step,
   StepLabel,
-  StepContent
+  StepContent,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowBack as ArrowBackIcon, Save as SaveIcon } from '@mui/icons-material';
@@ -24,12 +26,31 @@ import { CURRENT_TAX_YEAR } from '../../../shared/constants/taxation';
 import { UserRole } from '../../../shared/types';
 
 interface RetirementBenefitsComponentData {
-  gratuity_amount: number;
-  leave_encashment_amount: number;
+  // Legacy fields for backward compatibility
   vrs_amount: number;
   pension_amount: number;
   commuted_pension_amount: number;
   other_retirement_benefits: number;
+  
+  // Detailed Leave Encashment fields
+  leave_encashment_amount: number;
+  average_monthly_salary: number;
+  leave_days_encashed: number;
+  is_deceased: boolean;
+  during_employment: boolean;
+  
+  // Detailed Gratuity fields
+  gratuity_amount: number;
+  gratuity_monthly_salary: number;
+  gratuity_service_years: number;
+  gratuity_is_govt_employee: boolean;
+  
+  // Detailed Pension fields
+  pension_regular_pension: number;
+  pension_commuted_pension: number;
+  pension_total_pension: number;
+  pension_is_govt_employee: boolean;
+  pension_gratuity_received: boolean;
 }
 
 interface ToastState {
@@ -49,15 +70,40 @@ interface NumberField extends BaseField {
   type: 'number';
 }
 
+interface CheckboxField extends BaseField {
+  type: 'checkbox';
+}
+
+type FormField = NumberField | CheckboxField;
+
 
 // Initial data structure
 const initialRetirementBenefitsData: RetirementBenefitsComponentData = {
-  gratuity_amount: 0,
-  leave_encashment_amount: 0,
+  // Legacy fields for backward compatibility
   vrs_amount: 0,
   pension_amount: 0,
   commuted_pension_amount: 0,
-  other_retirement_benefits: 0
+  other_retirement_benefits: 0,
+  
+  // Detailed Leave Encashment fields
+  leave_encashment_amount: 0,
+  average_monthly_salary: 0,
+  leave_days_encashed: 0,
+  is_deceased: false,
+  during_employment: false,
+  
+  // Detailed Gratuity fields
+  gratuity_amount: 0,
+  gratuity_monthly_salary: 0,
+  gratuity_service_years: 0,
+  gratuity_is_govt_employee: false,
+  
+  // Detailed Pension fields
+  pension_regular_pension: 0,
+  pension_commuted_pension: 0,
+  pension_total_pension: 0,
+  pension_is_govt_employee: false,
+  pension_gratuity_received: false
 };
 
 // Function to flatten nested backend response to flat frontend structure
@@ -67,12 +113,42 @@ const flattenRetirementBenefitsData = (nestedData: any): RetirementBenefitsCompo
   
   try {
     if (nestedData) {
+      // Legacy fields
       flattened.gratuity_amount = nestedData.gratuity_amount || 0;
       flattened.leave_encashment_amount = nestedData.leave_encashment_amount || 0;
       flattened.vrs_amount = nestedData.vrs_amount || 0;
       flattened.pension_amount = nestedData.pension_amount || 0;
       flattened.commuted_pension_amount = nestedData.commuted_pension_amount || 0;
       flattened.other_retirement_benefits = nestedData.other_retirement_benefits || 0;
+      
+      // Detailed Leave Encashment fields
+      if (nestedData.leave_encashment) {
+        console.log('Processing detailed leave encashment:', nestedData.leave_encashment);
+        flattened.leave_encashment_amount = nestedData.leave_encashment.leave_encashment_amount || 0;
+        flattened.average_monthly_salary = nestedData.leave_encashment.average_monthly_salary || 0;
+        flattened.leave_days_encashed = nestedData.leave_encashment.leave_days_encashed || 0;
+        flattened.is_deceased = nestedData.leave_encashment.is_deceased || false;
+        flattened.during_employment = nestedData.leave_encashment.during_employment || false;
+      }
+      
+      // Detailed Gratuity fields
+      if (nestedData.gratuity) {
+        console.log('Processing detailed gratuity:', nestedData.gratuity);
+        flattened.gratuity_amount = nestedData.gratuity.gratuity_amount || 0;
+        flattened.gratuity_monthly_salary = nestedData.gratuity.monthly_salary || 0;
+        flattened.gratuity_service_years = nestedData.gratuity.service_years || 0;
+        flattened.gratuity_is_govt_employee = nestedData.gratuity.is_govt_employee || false;
+      }
+      
+      // Detailed Pension fields
+      if (nestedData.pension) {
+        console.log('Processing detailed pension:', nestedData.pension);
+        flattened.pension_regular_pension = nestedData.pension.regular_pension || 0;
+        flattened.pension_commuted_pension = nestedData.pension.commuted_pension || 0;
+        flattened.pension_total_pension = nestedData.pension.total_pension || 0;
+        flattened.pension_is_govt_employee = nestedData.pension.is_govt_employee || false;
+        flattened.pension_gratuity_received = nestedData.pension.gratuity_received || false;
+      }
     }
   } catch (error) {
     console.error('Error flattening retirement benefits data:', error);
@@ -81,22 +157,44 @@ const flattenRetirementBenefitsData = (nestedData: any): RetirementBenefitsCompo
   return flattened;
 };
 
-const steps = [
+const steps: { label: string; description: string; fields: FormField[] }[] = [
   {
-    label: 'Gratuity & Leave Encashment',
-    description: 'Retirement benefits from employment',
+    label: 'Gratuity',
+    description: 'Detailed gratuity information',
     fields: [
-      { name: 'gratuity_amount', label: 'Gratuity Amount', type: 'number', helperText: 'Tax exempt up to ₹20L' } as NumberField,
-      { name: 'leave_encashment_amount', label: 'Leave Encashment Amount', type: 'number', helperText: 'Tax exempt up to ₹3L' } as NumberField
+      { name: 'gratuity_amount', label: 'Gratuity Amount', type: 'number', helperText: 'Total gratuity amount received' } as NumberField,
+      { name: 'gratuity_monthly_salary', label: 'Monthly Salary', type: 'number', helperText: 'Monthly salary for calculation' } as NumberField,
+      { name: 'gratuity_service_years', label: 'Years of Service', type: 'number', helperText: 'Number of years of service' } as NumberField,
+      { name: 'gratuity_is_govt_employee', label: 'Government Employee', type: 'checkbox', helperText: 'Check if government employee (fully exempt)' } as CheckboxField
     ]
   },
   {
-    label: 'VRS & Pension',
-    description: 'Voluntary retirement and pension benefits',
+    label: 'Leave Encashment',
+    description: 'Detailed leave encashment information',
     fields: [
-      { name: 'vrs_amount', label: 'VRS Amount', type: 'number', helperText: 'Voluntary retirement benefits' } as NumberField,
-      { name: 'pension_amount', label: 'Pension Amount', type: 'number', helperText: 'Regular pension income' } as NumberField,
-      { name: 'commuted_pension_amount', label: 'Commuted Pension Amount', type: 'number', helperText: 'Lump sum pension payment' } as NumberField
+      { name: 'leave_encashment_amount', label: 'Leave Encashment Amount', type: 'number', helperText: 'Total leave encashment amount received' } as NumberField,
+      { name: 'average_monthly_salary', label: 'Average Monthly Salary', type: 'number', helperText: 'Average monthly salary for calculation' } as NumberField,
+      { name: 'leave_days_encashed', label: 'Leave Days Encashed', type: 'number', helperText: 'Number of leave days encashed' } as NumberField,
+      { name: 'is_deceased', label: 'Employee is Deceased', type: 'checkbox', helperText: 'Check if employee is deceased (fully exempt)' } as CheckboxField,
+      { name: 'during_employment', label: 'During Employment', type: 'checkbox', helperText: 'Check if encashment was during employment' } as CheckboxField
+    ]
+  },
+  {
+    label: 'VRS',
+    description: 'Voluntary retirement benefits',
+    fields: [
+      { name: 'vrs_amount', label: 'VRS Amount', type: 'number', helperText: 'Voluntary retirement benefits' } as NumberField
+    ]
+  },
+  {
+    label: 'Pension',
+    description: 'Detailed pension information',
+    fields: [
+      { name: 'pension_regular_pension', label: 'Regular Pension', type: 'number', helperText: 'Regular monthly pension income' } as NumberField,
+      { name: 'pension_commuted_pension', label: 'Commuted Pension', type: 'number', helperText: 'Lump sum commuted pension amount' } as NumberField,
+      { name: 'pension_total_pension', label: 'Total Pension', type: 'number', helperText: 'Total pension amount (regular + commuted)' } as NumberField,
+      { name: 'pension_is_govt_employee', label: 'Government Employee', type: 'checkbox', helperText: 'Check if government employee (commuted pension fully exempt)' } as CheckboxField,
+      { name: 'pension_gratuity_received', label: 'Gratuity Received', type: 'checkbox', helperText: 'Check if gratuity was also received (affects commuted pension exemption)' } as CheckboxField
     ]
   },
   {
@@ -172,7 +270,7 @@ const RetirementBenefitsComponentForm: React.FC = () => {
     loadRetirementBenefitsData();
   }, [loadRetirementBenefitsData]);
 
-  const handleInputChange = (field: keyof RetirementBenefitsComponentData, value: number): void => {
+  const handleInputChange = (field: keyof RetirementBenefitsComponentData, value: number | boolean): void => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -231,7 +329,13 @@ const RetirementBenefitsComponentForm: React.FC = () => {
   };
 
   const calculateTotalRetirementBenefits = (): number => {
-    return Object.values(formData).reduce((sum, value) => sum + value, 0);
+    // Calculate total from numeric fields only
+    return formData.gratuity_amount + 
+           formData.leave_encashment_amount + 
+           formData.vrs_amount + 
+           formData.pension_regular_pension + 
+           formData.pension_commuted_pension + 
+           formData.other_retirement_benefits;
   };
 
   if (loading) {
@@ -317,19 +421,34 @@ const RetirementBenefitsComponentForm: React.FC = () => {
                   <Grid container spacing={3}>
                     {step.fields.map((field) => (
                       <Grid item xs={12} md={6} key={field.name}>
-                        <TextField
-                          fullWidth
-                          label={field.label}
-                          type="number"
-                          value={formData[field.name as keyof RetirementBenefitsComponentData]}
-                          onChange={(e) => handleInputChange(
-                            field.name as keyof RetirementBenefitsComponentData,
-                            parseFloat(e.target.value) || 0
-                          )}
-                          InputProps={{ startAdornment: '₹' }}
-                          helperText={field.helperText}
-                          sx={{ mb: 2 }}
-                        />
+                        {field.type === 'checkbox' ? (
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                checked={formData[field.name as keyof RetirementBenefitsComponentData] as boolean}
+                                onChange={(e) => handleInputChange(
+                                  field.name as keyof RetirementBenefitsComponentData,
+                                  e.target.checked
+                                )}
+                              />
+                            }
+                            label={field.label}
+                          />
+                        ) : (
+                          <TextField
+                            fullWidth
+                            label={field.label}
+                            type="number"
+                            value={formData[field.name as keyof RetirementBenefitsComponentData]}
+                            onChange={(e) => handleInputChange(
+                              field.name as keyof RetirementBenefitsComponentData,
+                              parseFloat(e.target.value) || 0
+                            )}
+                            InputProps={{ startAdornment: '₹' }}
+                            helperText={field.helperText}
+                            sx={{ mb: 2 }}
+                          />
+                        )}
                       </Grid>
                     ))}
                   </Grid>

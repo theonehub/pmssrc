@@ -38,6 +38,7 @@ type FieldType =
   | 'percentage' 
   | 'interest_rate' 
   | 'loan_amount' 
+  | 'emi_amount'
   | 'text' 
   | 'select'
   | string; // Allow other field types that include 'amount'

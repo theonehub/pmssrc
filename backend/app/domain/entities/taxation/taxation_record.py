@@ -1766,7 +1766,7 @@ class SalaryPackageRecord:
         
         # Retirement benefits (if any)
         if self.retirement_benefits:
-            total_income = total_income.add(self.retirement_benefits.calculate_total_retirement_income(self.regime))
+            total_income = total_income.add(self.retirement_benefits.calculate_total_retirement_income(self.regime, self.is_government_employee, self.age))
         
         return total_income
 
@@ -1785,7 +1785,7 @@ class SalaryPackageRecord:
         
         # Retirement benefits exemptions
         if self.retirement_benefits:
-            total_exemptions = total_exemptions.add(self.retirement_benefits.calculate_total_retirement_income(self.regime))
+            total_exemptions = total_exemptions.add(self.retirement_benefits.calculate_total_exemptions(self.regime, self.age))
         
         # Other income exemptions (interest exemptions)
         if self.other_income:
@@ -1876,13 +1876,13 @@ class SalaryPackageRecord:
         
         old_benefits = Money.zero()
         if self.retirement_benefits:
-            old_benefits = self.retirement_benefits.calculate_total_retirement_income(self.regime)
+            old_benefits = self.retirement_benefits.calculate_total_retirement_income(self.regime, self.is_government_employee, self.age)
         
         self.retirement_benefits = new_retirement_benefits
         
         new_benefits = Money.zero()
         if new_retirement_benefits:
-            new_benefits = new_retirement_benefits.calculate_total_retirement_income(self.regime)
+            new_benefits = new_retirement_benefits.calculate_total_retirement_income(self.regime, self.is_government_employee, self.age)
         
         # Invalidate calculation
         self._invalidate_calculation()
@@ -2166,9 +2166,9 @@ class SalaryPackageRecord:
         
         if self.retirement_benefits:
             breakdown["retirement_benefits"] = {
-                "taxable_amount": self.retirement_benefits.calculate_total_retirement_income(self.regime).to_float(),
-                "exemptions": self.retirement_benefits.calculate_total_exemptions().to_float(),
-                "breakdown": self.retirement_benefits.get_retirement_benefits_breakdown()
+                "taxable_amount": self.retirement_benefits.calculate_total_retirement_income(self.regime, self.is_government_employee, self.age).to_float(),
+                "exemptions": self.retirement_benefits.calculate_total_exemptions(self.regime, self.age).to_float(),
+                "breakdown": self.retirement_benefits.get_retirement_benefits_breakdown(self.regime, self.age)
             }
         
         if self.other_income:

@@ -107,19 +107,25 @@ class VRS:
     monthly_salary: Money = Money.zero()
     service_years: Decimal = Decimal('0')
     
-    def is_eligible(self, regime: TaxRegime) -> bool:
+    def is_eligible(self, age: int) -> bool:
         """
         Check VRS eligibility.
         
+        Args:
+            age: Employee age
+            
         Returns:
             bool: Eligibility status
         """
-        return self.age >= 40 and self.service_years >= 10
+        return age >= 40 and self.service_years >= 10
     
     def calculate_vrs_value(self, age: int) -> Money:
         """
         Calculate VRS value as per formula.
         
+        Args:
+            age: Employee age
+            
         Returns:
             Money: Calculated VRS value
         """
@@ -129,34 +135,40 @@ class VRS:
         single_day_salary = self.monthly_salary.divide(30)
         salary_45_days = single_day_salary.multiply(45)
         
-        months_remaining = (60 - self.age) * 12
+        months_remaining = (60 - age) * 12
         salary_for_remaining_months = self.monthly_salary.multiply(months_remaining)
         
         salary_for_service = salary_45_days.multiply(float(self.service_years))
         
         return salary_for_remaining_months.min(salary_for_service)
     
-    def calculate_exemption(self) -> Money:
+    def calculate_exemption(self, age: int) -> Money:
         """
         Calculate VRS exemption (₹5 lakh).
         
+        Args:
+            age: Employee age
+            
         Returns:
             Money: Exemption amount
         """
-        if not self.is_eligible():
+        if not self.is_eligible(age):
             return Money.zero()
         
         exemption_limit = Money.from_int(500000)  # ₹5 lakh
         return self.vrs_amount.min(exemption_limit)
     
-    def calculate_taxable_amount(self) -> Money:
+    def calculate_taxable_amount(self, age: int) -> Money:
         """
         Calculate taxable VRS amount.
         
+        Args:
+            age: Employee age
+            
         Returns:
             Money: Taxable amount
         """
-        exemption = self.calculate_exemption()
+        exemption = self.calculate_exemption(age)
         return self.vrs_amount.subtract(exemption).max(Money.zero())
 
 
@@ -168,7 +180,6 @@ class Pension:
     commuted_pension: Money = Money.zero()
     total_pension: Money = Money.zero()
     gratuity_received: bool = False
-    is_govt_employee: bool = False
     
     def calculate_commuted_pension_exemption(self, regime: TaxRegime, is_govt_employee: bool) -> Money:
         """
@@ -281,12 +292,14 @@ class RetirementBenefits:
         if self.retrenchment_compensation is None:
             self.retrenchment_compensation = RetrenchmentCompensation()
     
-    def calculate_total_retirement_income(self, regime: TaxRegime, is_govt_employee: bool) -> Money:
+    def calculate_total_retirement_income(self, regime: TaxRegime, is_govt_employee: bool, age: int) -> Money:
         """
         Calculate total taxable retirement income.
         
         Args:
             regime: Tax regime
+            is_govt_employee: Whether employee is government employee
+            age: Employee age
             
         Returns:
             Money: Total taxable retirement income
@@ -296,7 +309,7 @@ class RetirementBenefits:
         # Add taxable amounts from each benefit
         total_income = total_income.add(self.leave_encashment.calculate_taxable_amount(regime, is_govt_employee))
         total_income = total_income.add(self.gratuity.calculate_taxable_amount(regime, is_govt_employee))
-        total_income = total_income.add(self.vrs.calculate_taxable_amount(regime, is_govt_employee))
+        total_income = total_income.add(self.vrs.calculate_taxable_amount(age))
         total_income = total_income.add(self.pension.calculate_taxable_pension(regime, is_govt_employee))
         total_income = total_income.add(self.retrenchment_compensation.calculate_taxable_amount(regime, is_govt_employee))
         
@@ -366,12 +379,35 @@ class RetirementBenefits:
         """Get other retirement benefits for TaxCalculationService."""
         return self.retrenchment_compensation.retrenchment_amount if self.retrenchment_compensation else Money.zero()
 
-    def get_retirement_benefits_breakdown(self, regime: TaxRegime) -> Dict[str, Any]:
+    def calculate_total_exemptions(self, regime: TaxRegime, age: int) -> Money:
+        """
+        Calculate total exemptions from all retirement benefits.
+        
+        Args:
+            regime: Tax regime
+            age: Employee age
+            
+        Returns:
+            Money: Total exemptions from all retirement benefits
+        """
+        total_exemptions = Money.zero()
+        
+        # Add exemptions from each benefit
+        total_exemptions = total_exemptions.add(self.leave_encashment.calculate_exemption(regime, False))
+        total_exemptions = total_exemptions.add(self.gratuity.calculate_exemption(regime, False))
+        total_exemptions = total_exemptions.add(self.vrs.calculate_exemption(age))
+        total_exemptions = total_exemptions.add(self.pension.calculate_commuted_pension_exemption(regime, False))
+        total_exemptions = total_exemptions.add(self.retrenchment_compensation.calculate_exemption(regime, False))
+        
+        return total_exemptions
+
+    def get_retirement_benefits_breakdown(self, regime: TaxRegime, age: int) -> Dict[str, Any]:
         """
         Get detailed breakdown of retirement benefits.
         
         Args:
             regime: Tax regime
+            age: Employee age
             
         Returns:
             Dict: Complete retirement benefits breakdown
@@ -380,50 +416,43 @@ class RetirementBenefits:
             "regime": regime.regime_type.value,
             "leave_encashment": {
                 "total_amount": self.leave_encashment.leave_encashment_amount.to_float(),
-                "exemption": self.leave_encashment.calculate_exemption().to_float(),
-                "taxable_amount": self.leave_encashment.calculate_taxable_amount().to_float(),
-                "is_govt_employee": self.leave_encashment.is_govt_employee,
+                "exemption": self.leave_encashment.calculate_exemption(regime, False).to_float(),
+                "taxable_amount": self.leave_encashment.calculate_taxable_amount(regime, False).to_float(),
+                "is_govt_employee": getattr(self.leave_encashment, 'is_govt_employee', False),
                 "during_employment": self.leave_encashment.during_employment
             },
             "gratuity": {
                 "total_amount": self.gratuity.gratuity_amount.to_float(),
-                "exemption": self.gratuity.calculate_exemption().to_float(),
-                "taxable_amount": self.gratuity.calculate_taxable_amount().to_float(),
-                "is_govt_employee": self.gratuity.is_govt_employee,
+                "exemption": self.gratuity.calculate_exemption(regime, False).to_float(),
+                "taxable_amount": self.gratuity.calculate_taxable_amount(regime, False).to_float(),
+                "is_govt_employee": getattr(self.gratuity, 'is_govt_employee', False),
                 "service_years": float(self.gratuity.service_years)
             },
             "vrs": {
                 "total_amount": self.vrs.vrs_amount.to_float(),
-                "eligible": self.vrs.is_eligible(),
-                "calculated_vrs_value": self.vrs.calculate_vrs_value().to_float(),
-                "exemption": self.vrs.calculate_exemption().to_float(),
-                "taxable_amount": self.vrs.calculate_taxable_amount().to_float(),
-                "age": self.vrs.age,
+                "eligible": self.vrs.is_eligible(age),
+                "calculated_vrs_value": self.vrs.calculate_vrs_value(age).to_float(),
+                "exemption": self.vrs.calculate_exemption(age).to_float(),
+                "taxable_amount": self.vrs.calculate_taxable_amount(age).to_float(),
                 "service_years": float(self.vrs.service_years)
             },
             "pension": {
                 "regular_pension": self.pension.regular_pension.to_float(),
                 "commuted_pension": self.pension.commuted_pension.to_float(),
-                "commuted_exemption": self.pension.calculate_commuted_pension_exemption().to_float(),
-                "total_taxable_pension": self.pension.calculate_taxable_pension().to_float(),
-                "is_govt_employee": self.pension.is_govt_employee,
+                "commuted_exemption": self.pension.calculate_commuted_pension_exemption(regime, False).to_float(),
+                "total_taxable_pension": self.pension.calculate_taxable_pension(regime, False).to_float(),
+                "is_govt_employee": getattr(self.pension, 'is_govt_employee', False),
                 "gratuity_received": self.pension.gratuity_received
             },
             "retrenchment_compensation": {
                 "total_amount": self.retrenchment_compensation.retrenchment_amount.to_float(),
-                "exemption": self.retrenchment_compensation.calculate_exemption().to_float(),
-                "taxable_amount": self.retrenchment_compensation.calculate_taxable_amount().to_float(),
+                "exemption": self.retrenchment_compensation.calculate_exemption(regime, False).to_float(),
+                "taxable_amount": self.retrenchment_compensation.calculate_taxable_amount(regime, False).to_float(),
                 "completed_years": self.retrenchment_compensation.calculate_completed_years(),
                 "service_years": float(self.retrenchment_compensation.service_years)
             },
             "summary": {
-                "total_retirement_income": self.calculate_total_retirement_income(regime).to_float(),
-                "total_exemptions": (
-                    self.leave_encashment.calculate_exemption()
-                    .add(self.gratuity.calculate_exemption())
-                    .add(self.vrs.calculate_exemption())
-                    .add(self.pension.calculate_commuted_pension_exemption())
-                    .add(self.retrenchment_compensation.calculate_exemption())
-                ).to_float()
+                "total_retirement_income": self.calculate_total_retirement_income(regime, False, age).to_float(),
+                "total_exemptions": self.calculate_total_exemptions(regime, age).to_float()
             }
         } 

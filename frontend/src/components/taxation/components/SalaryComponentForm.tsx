@@ -388,7 +388,7 @@ const SalaryComponentForm: React.FC = () => {
 
   const steps: StepConfig[] = [
     {
-      label: 'Basic Salary Components',
+      label: 'Basic Salary Components(Monthly)',
       fields: [
         ...(isNewRevision ? [{ name: 'effective_from', label: 'Effective From Date', type: 'date', required: true } as DateField] : []),
         { name: 'basic_salary', label: 'Basic Salary', type: 'number' } as NumberField,
@@ -399,13 +399,13 @@ const SalaryComponentForm: React.FC = () => {
       ]
     },
     {
-      label: 'HRA Components',
+      label: 'HRA Components(Monthly)',
       fields: [
         { name: 'hra_provided', label: 'HRA Provided (Auto-calculated)', type: 'number' } as NumberField
       ]
     },
     {
-      label: 'Additional Allowances',
+      label: 'Additional Allowances(Monthly)',
       fields: [
         { name: 'city_compensatory_allowance', label: 'City Compensatory Allowance', type: 'number' } as NumberField,
         { name: 'rural_allowance', label: 'Rural Allowance', type: 'number' } as NumberField,
@@ -418,7 +418,7 @@ const SalaryComponentForm: React.FC = () => {
       ]
     },
     {
-      label: 'Special Allowances',
+      label: 'Special Allowances(Monthly)',
       fields: [
         { name: 'proctorship_allowance', label: 'Proctorship Allowance', type: 'number' } as NumberField,
         { name: 'wardenship_allowance', label: 'Wardenship Allowance', type: 'number' } as NumberField,
@@ -431,7 +431,7 @@ const SalaryComponentForm: React.FC = () => {
       ]
     },
     {
-      label: 'Other Components',
+      label: 'Other Components(Monthly)',
       fields: [
         { name: 'underground_mines_allowance', label: 'Underground Mines Allowance', type: 'number' } as NumberField,
         { name: 'govt_employee_entertainment_allowance', label: 'Govt Employee Entertainment Allowance', type: 'number' } as NumberField,

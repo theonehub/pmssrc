@@ -912,7 +912,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
                 "gratuity_amount": retirement_benefits.gratuity.gratuity_amount.to_float() if retirement_benefits.gratuity else 0.0,
                 "monthly_salary": retirement_benefits.gratuity.monthly_salary.to_float() if retirement_benefits.gratuity else 0.0,
                 "service_years": float(retirement_benefits.gratuity.service_years) if retirement_benefits.gratuity else 0.0,
-                "is_govt_employee": retirement_benefits.gratuity.is_govt_employee if retirement_benefits.gratuity else False,
             },
             
             # VRS
@@ -920,7 +919,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
                 "has_vrs": retirement_benefits.vrs is not None,
                 "vrs_amount": retirement_benefits.vrs.vrs_amount.to_float() if retirement_benefits.vrs else 0.0,
                 "monthly_salary": retirement_benefits.vrs.monthly_salary.to_float() if retirement_benefits.vrs else 0.0,
-                "age": retirement_benefits.vrs.age if retirement_benefits.vrs else 0,
                 "service_years": float(retirement_benefits.vrs.service_years) if retirement_benefits.vrs else 0.0,
             },
             
@@ -930,7 +928,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
                 "regular_pension": retirement_benefits.pension.regular_pension.to_float() if retirement_benefits.pension else 0.0,
                 "commuted_pension": retirement_benefits.pension.commuted_pension.to_float() if retirement_benefits.pension else 0.0,
                 "total_pension": retirement_benefits.pension.total_pension.to_float() if retirement_benefits.pension else 0.0,
-                "is_govt_employee": retirement_benefits.pension.is_govt_employee if retirement_benefits.pension else False,
                 "gratuity_received": retirement_benefits.pension.gratuity_received if retirement_benefits.pension else False,
             },
             
@@ -1479,7 +1476,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
                 regular_pension=Money.from_float(pension_doc.get("regular_pension", 0.0)),
                 commuted_pension=Money.from_float(pension_doc.get("commuted_pension", 0.0)),
                 total_pension=Money.from_float(pension_doc.get("total_pension", 0.0)),
-                is_govt_employee=pension_doc.get("is_govt_employee", False),
                 gratuity_received=pension_doc.get("gratuity_received", False)
             )
         

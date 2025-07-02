@@ -917,7 +917,6 @@ class UnifiedTaxationController:
                 regular_pension=Money.from_decimal(pen_dto.regular_pension),
                 commuted_pension=Money.from_decimal(pen_dto.commuted_pension),
                 total_pension=Money.from_decimal(pen_dto.total_pension),
-                is_govt_employee=pen_dto.is_govt_employee,
                 gratuity_received=pen_dto.gratuity_received
             )
         
@@ -2226,8 +2225,7 @@ class UnifiedTaxationController:
             result["gratuity"] = {
                 "gratuity_amount": float(gr.gratuity_amount.amount),
                 "monthly_salary": float(gr.monthly_salary.amount),
-                "service_years": float(gr.service_years),
-                "is_govt_employee": gr.is_govt_employee
+                "service_years": float(gr.service_years)
             }
         
         # Serialize VRS
@@ -2236,7 +2234,6 @@ class UnifiedTaxationController:
             result["vrs"] = {
                 "vrs_amount": float(vrs.vrs_amount.amount),
                 "monthly_salary": float(vrs.monthly_salary.amount),
-                "age": vrs.age,
                 "service_years": float(vrs.service_years)
             }
         
@@ -2247,7 +2244,6 @@ class UnifiedTaxationController:
                 "regular_pension": float(pen.regular_pension.amount),
                 "commuted_pension": float(pen.commuted_pension.amount),
                 "total_pension": float(pen.total_pension.amount),
-                "is_govt_employee": pen.is_govt_employee,
                 "gratuity_received": pen.gratuity_received
             }
         

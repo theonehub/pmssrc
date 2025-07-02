@@ -661,7 +661,6 @@ class VRSDTO(BaseModel):
     """VRS DTO."""
     vrs_amount: Decimal = Field(default=0, ge=0)
     monthly_salary: Decimal = Field(default=0, ge=0)
-    age: int = Field(default=25, ge=18, le=100)
     service_years: Decimal = Field(default=0, ge=0)
 
 
@@ -863,7 +862,6 @@ class FlatRetirementBenefitsDTO(BaseModel):
             vrs=VRSDTO(
                 vrs_amount=self.vrs_amount,
                 monthly_salary=Decimal(0),
-                age=25,
                 service_years=Decimal(0)
             ) if self.vrs_amount > 0 else None,
             pension=PensionDTO(

@@ -43,13 +43,11 @@ interface RetirementBenefitsComponentData {
   gratuity_amount: number;
   gratuity_monthly_salary: number;
   gratuity_service_years: number;
-  gratuity_is_govt_employee: boolean;
   
   // Detailed Pension fields
   pension_regular_pension: number;
   pension_commuted_pension: number;
   pension_total_pension: number;
-  pension_is_govt_employee: boolean;
   pension_gratuity_received: boolean;
 }
 
@@ -96,13 +94,11 @@ const initialRetirementBenefitsData: RetirementBenefitsComponentData = {
   gratuity_amount: 0,
   gratuity_monthly_salary: 0,
   gratuity_service_years: 0,
-  gratuity_is_govt_employee: false,
   
   // Detailed Pension fields
   pension_regular_pension: 0,
   pension_commuted_pension: 0,
   pension_total_pension: 0,
-  pension_is_govt_employee: false,
   pension_gratuity_received: false
 };
 
@@ -137,7 +133,6 @@ const flattenRetirementBenefitsData = (nestedData: any): RetirementBenefitsCompo
         flattened.gratuity_amount = nestedData.gratuity.gratuity_amount || 0;
         flattened.gratuity_monthly_salary = nestedData.gratuity.monthly_salary || 0;
         flattened.gratuity_service_years = nestedData.gratuity.service_years || 0;
-        flattened.gratuity_is_govt_employee = nestedData.gratuity.is_govt_employee || false;
       }
       
       // Detailed Pension fields
@@ -146,7 +141,6 @@ const flattenRetirementBenefitsData = (nestedData: any): RetirementBenefitsCompo
         flattened.pension_regular_pension = nestedData.pension.regular_pension || 0;
         flattened.pension_commuted_pension = nestedData.pension.commuted_pension || 0;
         flattened.pension_total_pension = nestedData.pension.total_pension || 0;
-        flattened.pension_is_govt_employee = nestedData.pension.is_govt_employee || false;
         flattened.pension_gratuity_received = nestedData.pension.gratuity_received || false;
       }
     }
@@ -164,8 +158,7 @@ const steps: { label: string; description: string; fields: FormField[] }[] = [
     fields: [
       { name: 'gratuity_amount', label: 'Gratuity Amount', type: 'number', helperText: 'Total gratuity amount received' } as NumberField,
       { name: 'gratuity_monthly_salary', label: 'Monthly Salary', type: 'number', helperText: 'Monthly salary for calculation' } as NumberField,
-      { name: 'gratuity_service_years', label: 'Years of Service', type: 'number', helperText: 'Number of years of service' } as NumberField,
-      { name: 'gratuity_is_govt_employee', label: 'Government Employee', type: 'checkbox', helperText: 'Check if government employee (fully exempt)' } as CheckboxField
+      { name: 'gratuity_service_years', label: 'Years of Service', type: 'number', helperText: 'Number of years of service' } as NumberField
     ]
   },
   {
@@ -193,7 +186,6 @@ const steps: { label: string; description: string; fields: FormField[] }[] = [
       { name: 'pension_regular_pension', label: 'Regular Pension', type: 'number', helperText: 'Regular monthly pension income' } as NumberField,
       { name: 'pension_commuted_pension', label: 'Commuted Pension', type: 'number', helperText: 'Lump sum commuted pension amount' } as NumberField,
       { name: 'pension_total_pension', label: 'Total Pension', type: 'number', helperText: 'Total pension amount (regular + commuted)' } as NumberField,
-      { name: 'pension_is_govt_employee', label: 'Government Employee', type: 'checkbox', helperText: 'Check if government employee (commuted pension fully exempt)' } as CheckboxField,
       { name: 'pension_gratuity_received', label: 'Gratuity Received', type: 'checkbox', helperText: 'Check if gratuity was also received (affects commuted pension exemption)' } as CheckboxField
     ]
   },

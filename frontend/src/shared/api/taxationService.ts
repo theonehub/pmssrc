@@ -246,7 +246,6 @@ export const calculateTax = async (
         vrs: inputData.retirement_benefits.vrs ? {
           vrs_amount: inputData.retirement_benefits.vrs.compensation_received || 0,
           monthly_salary: 0,
-          age: inputData.age,
           service_years: 0
         } : null,
         pension: inputData.retirement_benefits.pension ? {

@@ -1650,7 +1650,7 @@ class SalaryPackageRecord:
 
     def calculate_tax(self, calculation_service: TaxCalculationService) -> TaxCalculationResult:
         """
-        Calculate tax using domain service.
+        Calculate tax using domain service and update SalaryPackageRecord with results.
         
         Args:
             calculation_service: Tax calculation service
@@ -1708,6 +1708,8 @@ class SalaryPackageRecord:
                 "monthly_tax": tax_liability.divide(Decimal('12')).to_float()
             }
         }
+        
+        # Create TaxCalculationResult
         self.calculation_result = TaxCalculationResult(
             total_income=gross_income,
             total_exemptions=total_exemptions,
@@ -1717,6 +1719,10 @@ class SalaryPackageRecord:
             tax_breakdown=tax_breakdown,
             regime_comparison=None
         )
+        
+        # Update SalaryPackageRecord with calculation results
+        self._update_salary_package_with_calculation_result()
+        
         print(f"**************************************************")
         print(f"TheOne: Result: {self.calculation_result}")
         print(f"**************************************************")
@@ -1736,6 +1742,66 @@ class SalaryPackageRecord:
         })
         
         return self.calculation_result
+    
+    def _update_salary_package_with_calculation_result(self) -> None:
+        """
+        Update SalaryPackageRecord fields with TaxCalculationResult data.
+        This method extracts key values from the calculation result and stores them
+        in the SalaryPackageRecord for easy access and persistence.
+        """
+        if not self.calculation_result:
+            logger.warning("Cannot update salary package: no calculation result available")
+            return
+        
+        # Store key calculation values as attributes for easy access
+        # These can be used by repositories to update database records
+        self._calculated_gross_income = self.calculation_result.total_income
+        self._calculated_total_exemptions = self.calculation_result.total_exemptions
+        self._calculated_total_deductions = self.calculation_result.total_deductions
+        self._calculated_taxable_income = self.calculation_result.taxable_income
+        self._calculated_tax_liability = self.calculation_result.tax_liability
+        self._calculated_monthly_tax = self.calculation_result.monthly_tax_liability
+        self._calculated_effective_tax_rate = self.calculation_result.effective_tax_rate
+        
+        # Store additional calculation metadata
+        self._calculation_breakdown = self.calculation_result.tax_breakdown
+        self._regime_comparison = self.calculation_result.regime_comparison
+        
+        logger.info(f"Updated SalaryPackageRecord with calculation results for employee {self.employee_id}")
+        logger.info(f"Gross Income: {self._calculated_gross_income}")
+        logger.info(f"Taxable Income: {self._calculated_taxable_income}")
+        logger.info(f"Tax Liability: {self._calculated_tax_liability}")
+        logger.info(f"Monthly Tax: {self._calculated_monthly_tax}")
+        logger.info(f"Effective Tax Rate: {self._calculated_effective_tax_rate}%")
+    
+    def get_calculation_summary(self) -> Dict[str, Any]:
+        """
+        Get a summary of the calculation results stored in the SalaryPackageRecord.
+        
+        Returns:
+            Dict[str, Any]: Summary of calculation results
+        """
+        if not self.calculation_result:
+            return {
+                "status": "no_calculation",
+                "message": "No calculation result available"
+            }
+        
+        return {
+            "status": "calculated",
+            "employee_id": str(self.employee_id),
+            "tax_year": str(self.tax_year),
+            "regime": self.regime.regime_type.value,
+            "gross_income": getattr(self, '_calculated_gross_income', Money.zero()).to_float(),
+            "total_exemptions": getattr(self, '_calculated_total_exemptions', Money.zero()).to_float(),
+            "total_deductions": getattr(self, '_calculated_total_deductions', Money.zero()).to_float(),
+            "taxable_income": getattr(self, '_calculated_taxable_income', Money.zero()).to_float(),
+            "tax_liability": getattr(self, '_calculated_tax_liability', Money.zero()).to_float(),
+            "monthly_tax": getattr(self, '_calculated_monthly_tax', Money.zero()).to_float(),
+            "effective_tax_rate": getattr(self, '_calculated_effective_tax_rate', 0.0),
+            "last_calculated": self.last_calculated_at.isoformat() if self.last_calculated_at else None,
+            "calculation_valid": self.is_calculation_valid()
+        }
     
     def calculate_basic_plus_da(self) -> Money:
         """
@@ -1790,7 +1856,6 @@ class SalaryPackageRecord:
         
         # Salary exemptions (core) - use latest salary income
         total_exemptions = total_exemptions.add(self.annual_salary_income.calculate_total_exemptions(self.regime, self.is_government_employee))
-        
         
         # Retirement benefits exemptions
         if self.retirement_benefits:
@@ -1984,7 +2049,7 @@ class SalaryPackageRecord:
             "event_type": "SalaryPackageRecordFinalized",
             "employee_id": str(self.employee_id),
             "tax_year": str(self.tax_year),
-            "total_tax": self.calculation_result.total_tax_liability.to_float(),
+            "total_tax": self.calculation_result.total_tax_liability.to_float() if self.calculation_result else 0.0,
             "finalized_at": self.submitted_at.isoformat()
         })
     

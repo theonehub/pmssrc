@@ -50,12 +50,14 @@ import {
   Work as WorkIcon,
   CarRental as CarRentalIcon,
   Business as BusinessIcon,
-  Calculate as CalculateIcon
+  Calculate as CalculateIcon,
+  Functions as FunctionsIcon
 } from '@mui/icons-material';
 import { getUserRole } from '../../shared/utils/auth';
 import { UserRole } from '../../shared/types';
 import { EmployeeSelectionDTO, EmployeeSelectionQuery, FilingStatus } from '../../shared/types/api';
 import { useEmployeeSelection, useRefreshEmployeeSelection } from '../../shared/hooks/useEmployeeSelection';
+import taxationApi from '../../shared/api/taxationApi';
 
 interface EmployeeRecord extends EmployeeSelectionDTO {
   // Additional fields if needed
@@ -316,6 +318,24 @@ const IndividualComponentManagement: React.FC = () => {
   const handleManageComponents = (employee: EmployeeRecord): void => {
     setSelectedEmployee(employee);
     setComponentDialogOpen(true);
+  };
+
+  const handleComputeTax = async (employee: EmployeeRecord): Promise<void> => {
+    try {
+      showToast('Computing tax...', 'info');
+      
+      // Call the monthly tax computation API
+      await taxationApi.computeMonthlyTax(employee.employee_id);
+      
+      showToast(`Tax computed successfully for ${employee.user_name || employee.employee_id}`, 'success');
+      
+      // Refresh the employee data to show updated tax values
+      await handleRefresh();
+      
+    } catch (error) {
+      console.error('Error computing tax:', error);
+      showToast(`Failed to compute tax for ${employee.user_name || employee.employee_id}`, 'error');
+    }
   };
 
   const handleComponentSelect = (componentId: string): void => {
@@ -643,6 +663,15 @@ const IndividualComponentManagement: React.FC = () => {
                               onClick={() => handleManageComponents(employee)}
                             >
                               <SettingsIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Compute Tax">
+                            <IconButton
+                              size="small"
+                              color="success"
+                              onClick={() => handleComputeTax(employee)}
+                            >
+                              <FunctionsIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                         </Box>

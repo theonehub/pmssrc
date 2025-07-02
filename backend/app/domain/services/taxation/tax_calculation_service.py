@@ -176,6 +176,16 @@ class TaxCalculationService:
             logger.info(f"*********************************************************************************************************")
             calculation_result = salary_package_record.calculate_tax(self)
             
+            # Save the updated salary package record with calculation result to database
+            self.logger.debug("compute_monthly_tax: Saving updated salary package record to database")
+            try:
+                await self.salary_package_repository.save(salary_package_record, organization_id)
+                self.logger.debug("compute_monthly_tax: Successfully saved updated salary package record to database")
+            except Exception as save_error:
+                self.logger.error(f"compute_monthly_tax: Failed to save updated salary package record to database: {str(save_error)}")
+                # Continue with computation even if save fails
+                self.logger.warning("compute_monthly_tax: Continuing with computation despite save failure")
+            
             # Extract monthly tax amount from calculation result
             monthly_tax_amount = calculation_result.monthly_tax_liability.to_float()
             self.logger.debug(f"compute_monthly_tax: Monthly tax amount: {monthly_tax_amount}")
@@ -290,6 +300,9 @@ class TaxCalculationService:
             
             # Add detailed breakdown
             detailed_result = basic_result.copy()
+            
+            # Note: The salary package record has already been saved to database in compute_monthly_tax method
+            # No additional save needed here as the calculation result is already persisted
             
             # # Add component status
             # self.logger.debug("compute_monthly_tax_with_details: Building component status")

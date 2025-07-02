@@ -19,7 +19,12 @@ import {
   AccordionSummary,
   AccordionDetails,
   IconButton,
-  Tooltip
+  Tooltip,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Snackbar
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -30,7 +35,9 @@ import {
   TrendingUp as TrendingUpIcon,
   Business as BusinessIcon,
   Edit as EditIcon,
-  CardGiftcard as CardGiftcardIcon
+  CardGiftcard as CardGiftcardIcon,
+  MoreVert as MoreVertIcon,
+  FileDownload as FileDownloadIcon
 } from '@mui/icons-material';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getUserRole } from '../../shared/utils/auth';
@@ -60,6 +67,16 @@ const ComponentsOverview: React.FC = () => {
   const [computedTax, setComputedTax] = useState<number>(0);
   const [taxLoading, setTaxLoading] = useState<boolean>(false);
   const [taxError, setTaxError] = useState<string | null>(null);
+  
+  // Action menu state
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [selectedComponent, setSelectedComponent] = useState<string | null>(null);
+  const [exportLoading, setExportLoading] = useState<boolean>(false);
+  const [exportMessage, setExportMessage] = useState<{ 
+    show: boolean; 
+    message: string; 
+    severity: 'success' | 'error' | 'info' | 'warning';
+  }>({ show: false, message: '', severity: 'success' });
   
   const taxYear = searchParams.get('year') || CURRENT_TAX_YEAR;
   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
@@ -294,7 +311,7 @@ const ComponentsOverview: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [empId, taxYear, loadSalaryComponent, loadDeductionsComponent, loadHousePropertyComponent, loadCapitalGainsComponent, loadOtherIncomeComponent, loadPerquisitesComponent]);
+  }, [loadSalaryComponent, loadDeductionsComponent, loadHousePropertyComponent, loadCapitalGainsComponent, loadOtherIncomeComponent, loadPerquisitesComponent]);
 
   // 8. calculateComputedTax
   const calculateComputedTax = useCallback(async (): Promise<void> => {
@@ -416,7 +433,7 @@ const ComponentsOverview: React.FC = () => {
     } finally {
       setTaxLoading(false);
     }
-  }, [components, empId]);
+  }, [components, empId, taxYear]);
 
   useEffect(() => {
     if (empId) {
@@ -440,6 +457,9 @@ const ComponentsOverview: React.FC = () => {
   };
 
   const handleEditComponent = (componentId: string): void => {
+    setAnchorEl(null);
+    setSelectedComponent(null);
+    
     let path = `/taxation/component/${componentId}/${empId}?year=${taxYear}`;
     
     if (componentId === 'salary') {
@@ -447,6 +467,74 @@ const ComponentsOverview: React.FC = () => {
     }
     
     navigate(path);
+  };
+
+  const handleExportSalaryPackage = async () => {
+    if (!empId) return;
+    
+    setExportLoading(true);
+    try {
+      const blob = await taxationApi.exportSalaryPackageToExcel(empId, taxYear);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `salary_package_${empId}_${taxYear || 'current'}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      setExportMessage({
+        show: true,
+        message: 'Salary package exported successfully!',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error exporting salary package:', error);
+      setExportMessage({
+        show: true,
+        message: 'Failed to export salary package',
+        severity: 'error'
+      });
+    } finally {
+      setExportLoading(false);
+      setAnchorEl(null);
+    }
+  };
+
+  const handleExportSalaryPackageSingle = async () => {
+    if (!empId) return;
+    
+    setExportLoading(true);
+    try {
+      const blob = await taxationApi.exportSalaryPackageSingleSheet(empId, taxYear);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `salary_package_single_${empId}_${taxYear || 'current'}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      setExportMessage({
+        show: true,
+        message: 'Salary package (single sheet) exported successfully!',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('Error exporting salary package (single sheet):', error);
+      setExportMessage({
+        show: true,
+        message: 'Failed to export salary package (single sheet)',
+        severity: 'error'
+      });
+    } finally {
+      setExportLoading(false);
+      setAnchorEl(null);
+    }
+  };
+
+  const handleCloseSnackbar = (): void => {
+    setExportMessage({ ...exportMessage, show: false });
   };
 
   const renderComponentCard = (component: ComponentSummary): React.ReactElement => (
@@ -469,12 +557,16 @@ const ComponentsOverview: React.FC = () => {
               </Typography>
             </Box>
             {isAdmin && (
-              <Tooltip title="Edit Component">
+              <Tooltip title="Actions">
                 <IconButton 
                   size="small" 
-                  onClick={() => handleEditComponent(component.id)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setAnchorEl(event.currentTarget);
+                    setSelectedComponent(component.id);
+                  }}
                 >
-                  <EditIcon fontSize="small" />
+                  <MoreVertIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
             )}
@@ -721,6 +813,58 @@ const ComponentsOverview: React.FC = () => {
       <Box>
         {components.map(renderComponentDetails)}
       </Box>
+
+      {/* Action Menu */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={() => setAnchorEl(null)}
+      >
+        <MenuItem onClick={() => handleEditComponent(selectedComponent!)}>
+          <ListItemIcon>
+            <EditIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Edit</ListItemText>
+        </MenuItem>
+        <MenuItem 
+          onClick={handleExportSalaryPackage}
+          disabled={exportLoading}
+        >
+          <ListItemIcon>
+            <FileDownloadIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>
+            {exportLoading ? 'Exporting...' : 'Download Excel'}
+          </ListItemText>
+        </MenuItem>
+        <MenuItem 
+          onClick={handleExportSalaryPackageSingle}
+          disabled={exportLoading}
+        >
+          <ListItemIcon>
+            <FileDownloadIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>
+            {exportLoading ? 'Exporting...' : 'Download Single Sheet Excel'}
+          </ListItemText>
+        </MenuItem>
+      </Menu>
+
+      {/* Success/Error Messages */}
+      <Snackbar
+        open={exportMessage.show}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={exportMessage.severity}
+          sx={{ width: '100%' }}
+        >
+          {exportMessage.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

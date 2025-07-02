@@ -39,6 +39,7 @@ interface SalaryComponentData {
   
   // Effective date fields for salary revisions
   effective_from?: string;
+  
   // Additional allowances
   city_compensatory_allowance: number;
   rural_allowance: number;
@@ -55,6 +56,8 @@ interface SalaryComponentData {
   transport_employee_allowance: number;
   children_education_allowance: number;
   hostel_allowance: number;
+  children_education_count: number;
+  children_hostel_count: number;
   underground_mines_allowance: number;
   govt_employee_entertainment_allowance: number;
   supreme_high_court_judges_allowance: number;
@@ -67,6 +70,16 @@ interface SalaryComponentData {
   academic_research: number;
   uniform_allowance: number;
   any_other_allowance_exemption: number;
+  
+  // Additional fields from SpecificAllowances that were missing
+  hills_high_altd_exemption_limit: number;
+  border_remote_exemption_limit: number;
+  disabled_transport_allowance: number;
+  is_disabled: boolean;
+  mine_work_months: number;
+  fixed_medical_allowance: number;
+  any_other_allowance: number;
+  govt_employees_outside_india_allowance: number;
 }
 
 interface ToastState {
@@ -97,7 +110,11 @@ interface DateField extends BaseField {
   required?: boolean;
 }
 
-type FormField = NumberField | SelectField | DateField;
+interface BooleanField extends BaseField {
+  type: 'boolean';
+}
+
+type FormField = NumberField | SelectField | DateField | BooleanField;
 
 interface StepConfig {
   label: string;
@@ -111,6 +128,10 @@ const isSelectField = (field: FormField): field is SelectField => {
 
 const isDateField = (field: FormField): field is DateField => {
   return field.type === 'date';
+};
+
+const isBooleanField = (field: FormField): field is BooleanField => {
+  return field.type === 'boolean';
 };
 
 const initialSalaryData: SalaryComponentData = {
@@ -137,6 +158,8 @@ const initialSalaryData: SalaryComponentData = {
   transport_employee_allowance: 0,
   children_education_allowance: 0,
   hostel_allowance: 0,
+  children_hostel_count: 0,
+  children_education_count: 0,
   underground_mines_allowance: 0,
   govt_employee_entertainment_allowance: 0,
   supreme_high_court_judges_allowance: 0,
@@ -148,7 +171,17 @@ const initialSalaryData: SalaryComponentData = {
   helper_in_performace_of_duties: 0,
   academic_research: 0,
   uniform_allowance: 0,
-  any_other_allowance_exemption: 0
+  any_other_allowance_exemption: 0,
+  
+  // Additional fields from SpecificAllowances that were missing
+  hills_high_altd_exemption_limit: 0,
+  border_remote_exemption_limit: 0,
+  disabled_transport_allowance: 0,
+  is_disabled: false,
+  mine_work_months: 0,
+  fixed_medical_allowance: 0,
+  any_other_allowance: 0,
+  govt_employees_outside_india_allowance: 0
 };
 
 const SalaryComponentForm: React.FC = () => {
@@ -277,6 +310,13 @@ const SalaryComponentForm: React.FC = () => {
     }));
   };
 
+  const handleBooleanChange = (field: keyof SalaryComponentData, value: boolean): void => {
+    setSalaryData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   const handleSave = async (): Promise<void> => {
     try {
       setSaving(true);
@@ -347,7 +387,7 @@ const SalaryComponentForm: React.FC = () => {
     // This is more precise than excluding fields
     const allowanceFields = [
       'dearness_allowance',
-              'hra_provided', 
+      'hra_provided', 
       'special_allowance',
       'bonus',
       'commission',
@@ -366,6 +406,8 @@ const SalaryComponentForm: React.FC = () => {
       'transport_employee_allowance',
       'children_education_allowance',
       'hostel_allowance',
+      'children_hostel_count',
+      'children_education_count',
       'underground_mines_allowance',
       'govt_employee_entertainment_allowance',
       'supreme_high_court_judges_allowance',
@@ -377,7 +419,11 @@ const SalaryComponentForm: React.FC = () => {
       'helper_in_performace_of_duties',
       'academic_research',
       'uniform_allowance',
-      'any_other_allowance_exemption'
+      'any_other_allowance_exemption',
+      'disabled_transport_allowance',
+      'fixed_medical_allowance',
+      'any_other_allowance',
+      'govt_employees_outside_india_allowance'
     ];
     
     return allowanceFields.reduce((sum, field) => {
@@ -413,8 +459,10 @@ const SalaryComponentForm: React.FC = () => {
         { name: 'deputation_allowance', label: 'Deputation Allowance', type: 'number' } as NumberField,
         { name: 'overtime_allowance', label: 'Overtime Allowance', type: 'number' } as NumberField,
         { name: 'children_education_allowance', label: 'Children Education Allowance', type: 'number' } as NumberField,
-        { name: 'hostel_allowance', label: 'Hostel Allowance', type: 'number' } as NumberField,
-        { name: 'uniform_allowance', label: 'Uniform Allowance', type: 'number' } as NumberField
+        { name: 'children_hostel_count', label: 'Number of Children (Hostel)', type: 'number' } as NumberField,
+        { name: 'uniform_allowance', label: 'Uniform Allowance', type: 'number' } as NumberField,
+        { name: 'fixed_medical_allowance', label: 'Fixed Medical Allowance', type: 'number' } as NumberField,
+        { name: 'any_other_allowance', label: 'Any Other Allowance', type: 'number' } as NumberField
       ]
     },
     {
@@ -427,7 +475,9 @@ const SalaryComponentForm: React.FC = () => {
         { name: 'servant_allowance', label: 'Servant Allowance', type: 'number' } as NumberField,
         { name: 'hills_high_altd_allowance', label: 'Hills/High Altitude Allowance', type: 'number' } as NumberField,
         { name: 'border_remote_allowance', label: 'Border/Remote Allowance', type: 'number' } as NumberField,
-        { name: 'transport_employee_allowance', label: 'Transport Employee Allowance', type: 'number' } as NumberField
+        { name: 'transport_employee_allowance', label: 'Transport Employee Allowance', type: 'number' } as NumberField,
+        { name: 'disabled_transport_allowance', label: 'Disabled Transport Allowance', type: 'number' } as NumberField,
+        { name: 'govt_employees_outside_india_allowance', label: 'Govt Employees Outside India Allowance', type: 'number' } as NumberField
       ]
     },
     {
@@ -444,6 +494,17 @@ const SalaryComponentForm: React.FC = () => {
         { name: 'helper_in_performace_of_duties', label: 'Helper in Performance of Duties', type: 'number' } as NumberField,
         { name: 'academic_research', label: 'Academic Research', type: 'number' } as NumberField,
         { name: 'any_other_allowance_exemption', label: 'Any Other Allowance/Exemption', type: 'number' } as NumberField
+      ]
+    },
+    {
+      label: 'Exemption Limits & Metadata',
+      fields: [
+        { name: 'hills_high_altd_exemption_limit', label: 'Hills Allowance Exemption Limit', type: 'number' } as NumberField,
+        { name: 'border_remote_exemption_limit', label: 'Border Allowance Exemption Limit', type: 'number' } as NumberField,
+        { name: 'children_education_count', label: 'Number of Children (Education)', type: 'number' } as NumberField,
+        { name: 'children_hostel_count', label: 'Number of Children (Hostel)', type: 'number' } as NumberField,
+        { name: 'is_disabled', label: 'Is Disabled', type: 'boolean' } as BooleanField,
+        { name: 'mine_work_months', label: 'Underground Mines Work Months', type: 'number' } as NumberField,
       ]
     }
   ];
@@ -589,6 +650,20 @@ const SalaryComponentForm: React.FC = () => {
                             required={!!field.required}
                             helperText={field.required ? "Required for new salary revision" : undefined}
                           />
+                        ) : isBooleanField(field) ? (
+                          <FormControl fullWidth>
+                            <InputLabel>{field.label}</InputLabel>
+                            <Select
+                              value={salaryData[field.name as keyof SalaryComponentData] as boolean ? 'true' : 'false'}
+                              label={field.label}
+                              onChange={(e: SelectChangeEvent) => 
+                                handleBooleanChange(field.name as keyof SalaryComponentData, e.target.value === 'true')
+                              }
+                            >
+                              <MenuItem value="true">Yes</MenuItem>
+                              <MenuItem value="false">No</MenuItem>
+                            </Select>
+                          </FormControl>
                         ) : (
                           <Box>
                             <TextField

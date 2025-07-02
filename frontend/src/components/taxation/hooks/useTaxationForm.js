@@ -78,14 +78,8 @@ const transformComprehensiveRecordToFormData = (comprehensiveRecord, empId) => {
         transport_employee_allowance: toNumber(salaryData.transport_employee_allowance),
         children_education_allowance: toNumber(salaryData.children_education_allowance),
         children_education_count: toNumber(salaryData.children_education_count),
-        children_education_months: toNumber(salaryData.children_education_months),
-        hostel_allowance: toNumber(salaryData.hostel_allowance),
-        hostel_count: toNumber(salaryData.hostel_count),
-        hostel_months: toNumber(salaryData.hostel_months),
-
-        transport_months: toNumber(salaryData.transport_months),
+        children_hostel_count: toNumber(salaryData.children_hostel_count),
         underground_mines_allowance: toNumber(salaryData.underground_mines_allowance),
-        underground_mines_months: toNumber(salaryData.underground_mines_months),
 
         govt_employee_entertainment_allowance: toNumber(salaryData.govt_employee_entertainment_allowance),
         govt_employees_outside_india_allowance: toNumber(salaryData.govt_employees_outside_india_allowance),

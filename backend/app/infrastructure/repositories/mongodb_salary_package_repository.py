@@ -7,6 +7,8 @@ from typing import List, Optional
 from datetime import date, datetime
 from decimal import Decimal
 from bson import ObjectId
+from app.utils.logger import get_logger
+
 
 from app.application.interfaces.repositories.salary_package_repository import SalaryPackageRepository
 from app.domain.entities.taxation.taxation_record import SalaryPackageRecord
@@ -35,6 +37,8 @@ from app.domain.value_objects.tax_year import TaxYear
 from app.domain.services.taxation.tax_calculation_service import TaxCalculationResult
 from app.infrastructure.database.database_connector import DatabaseConnector
 
+logger = get_logger(__name__)
+
 
 class MongoDBSalaryPackageRepository(SalaryPackageRepository):
     """MongoDB implementation of salary package repository."""
@@ -51,8 +55,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         
         Ensures database connection is established in the correct event loop.
         """
-        import logging
-        logger = logging.getLogger(__name__)
         
         db_name = organisation_id if organisation_id else "pms_global_database"
         logger.debug(f"_get_collection: Getting collection for db_name: {db_name}, organisation_id: {organisation_id}")
@@ -109,8 +111,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         Returns:
             SalaryPackageRecord: Saved salary package record
         """
-        import logging
-        logger = logging.getLogger(__name__)
         
         logger.info(f"Starting save operation for employee {salary_package_record.employee_id}, tax_year {salary_package_record.tax_year}")
         
@@ -119,7 +119,9 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             logger.info(f"Successfully got collection for organization {organization_id}")
             
             # Log deductions before conversion
-            deductions_total = salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime)
+            # Calculate gross income for deduction calculations
+            gross_income = salary_package_record.calculate_gross_income()
+            deductions_total = salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income)
             logger.info(f"Record deductions total before conversion: {deductions_total}")
             
             document = self._convert_to_document(salary_package_record)
@@ -206,8 +208,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         Returns:
             Optional[SalaryPackageRecord]: Salary package record if found
         """
-        import logging
-        logger = logging.getLogger(__name__)
         
         logger.debug(f"get_salary_package_record: Starting search for employee {employee_id}, tax_year {tax_year}, organization {organization_id}")
         
@@ -461,7 +461,9 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         logger.debug(f"Converting salary package record to document for employee {record.employee_id}")
         
         # Log deductions before serialization
-        deductions_total = record.deductions.calculate_total_deductions(record.regime)
+        # Calculate gross income for deduction calculations
+        gross_income = record.calculate_gross_income()
+        deductions_total = record.deductions.calculate_total_deductions(record.regime, record.age, gross_income)
         logger.debug(f"Deductions total before serialization: {deductions_total}")
         
         # Serialize deductions
@@ -561,24 +563,21 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             return {}
         
         return {
-            "hills_allowance": specific_allowances.hills_allowance.to_float(),
-            "hills_exemption_limit": specific_allowances.hills_exemption_limit.to_float(),
+            "hills_allowance": specific_allowances.monthly_hills_allowance.to_float(),
+            "hills_exemption_limit": specific_allowances.monthly_hills_exemption_limit.to_float(),
 
-            "border_allowance": specific_allowances.border_allowance.to_float(),
-            "border_exemption_limit": specific_allowances.border_exemption_limit.to_float(),
+            "border_allowance": specific_allowances.monthly_border_allowance.to_float(),
+            "border_exemption_limit": specific_allowances.monthly_border_exemption_limit.to_float(),
 
             "transport_employee_allowance": specific_allowances.transport_employee_allowance.to_float(),
             
             "children_education_allowance": specific_allowances.children_education_allowance.to_float(),
-            "children_count": specific_allowances.children_count,
-            "children_education_months": specific_allowances.children_education_months,
+            "children_education_count": specific_allowances.children_education_count,
 
             "hostel_allowance": specific_allowances.hostel_allowance.to_float(),
-            "hostel_count": specific_allowances.hostel_count,
-            "hostel_months": specific_allowances.hostel_months,
+            "children_hostel_count": specific_allowances.children_hostel_count,
 
             "disabled_transport_allowance": specific_allowances.disabled_transport_allowance.to_float(),
-            "transport_months": specific_allowances.transport_months,
             "is_disabled": specific_allowances.is_disabled,
 
             "underground_mines_allowance": specific_allowances.underground_mines_allowance.to_float(),
@@ -741,10 +740,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             return {}
         
         return {
-            "education_loan_interest": other_deductions.education_loan_interest.to_float(),
-            "charitable_donations": other_deductions.charitable_donations.to_float(),
-            "savings_interest": other_deductions.savings_interest.to_float(),
-            "nps_contribution": other_deductions.nps_contribution.to_float(),
             "other_deductions": other_deductions.other_deductions.to_float(),
             "total": other_deductions.calculate_total().to_float()
         }
@@ -1004,24 +999,21 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
     def _deserialize_specific_allowances(self, specific_allowances_doc: dict) -> SpecificAllowances:
         """Deserialize specific allowances from document format."""
         return SpecificAllowances(
-            hills_allowance=Money.from_float(specific_allowances_doc.get("hills_allowance", 0.0)),
-            hills_exemption_limit=Money.from_float(specific_allowances_doc.get("hills_exemption_limit", 0.0)),
+            monthly_hills_allowance=Money.from_float(specific_allowances_doc.get("hills_allowance", 0.0)),
+            monthly_hills_exemption_limit=Money.from_float(specific_allowances_doc.get("hills_exemption_limit", 0.0)),
 
-            border_allowance=Money.from_float(specific_allowances_doc.get("border_allowance", 0.0)),
-            border_exemption_limit=Money.from_float(specific_allowances_doc.get("border_exemption_limit", 0.0)),
+            monthly_border_allowance=Money.from_float(specific_allowances_doc.get("border_allowance", 0.0)),
+            monthly_border_exemption_limit=Money.from_float(specific_allowances_doc.get("border_exemption_limit", 0.0)),
 
             transport_employee_allowance=Money.from_float(specific_allowances_doc.get("transport_employee_allowance", 0.0)),
             
             children_education_allowance=Money.from_float(specific_allowances_doc.get("children_education_allowance", 0.0)),
-            children_count=specific_allowances_doc.get("children_count", 0),
-            children_education_months=specific_allowances_doc.get("children_education_months", 0),
+            children_education_count=specific_allowances_doc.get("children_education_count", 0),
 
             hostel_allowance=Money.from_float(specific_allowances_doc.get("hostel_allowance", 0.0)),
-            hostel_count=specific_allowances_doc.get("hostel_count", 0),
-            hostel_months=specific_allowances_doc.get("hostel_months", 0),
+            children_hostel_count=specific_allowances_doc.get("children_hostel_count", 0),
 
             disabled_transport_allowance=Money.from_float(specific_allowances_doc.get("disabled_transport_allowance", 0.0)),
-            transport_months=specific_allowances_doc.get("transport_months", 0),
             is_disabled=specific_allowances_doc.get("is_disabled", False),
 
             underground_mines_allowance=Money.from_float(specific_allowances_doc.get("underground_mines_allowance", 0.0)),
@@ -1204,10 +1196,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
     def _deserialize_other_deductions(self, other_deductions_doc: dict) -> OtherDeductions:
         """Deserialize other deductions from document format."""
         return OtherDeductions(
-            education_loan_interest=Money.from_float(other_deductions_doc.get("education_loan_interest", 0.0)),
-            charitable_donations=Money.from_float(other_deductions_doc.get("charitable_donations", 0.0)),
-            savings_interest=Money.from_float(other_deductions_doc.get("savings_interest", 0.0)),
-            nps_contribution=Money.from_float(other_deductions_doc.get("nps_contribution", 0.0)),
             other_deductions=Money.from_float(other_deductions_doc.get("other_deductions", 0.0))
         )
     
@@ -1520,9 +1508,9 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             from app.domain.entities.taxation.house_property_income import PropertyType
             
             try:
-                property_type = PropertyType(house_doc.get("property_type", "Residential"))
+                property_type = PropertyType(house_doc.get("property_type", "Self-Occupied"))
             except ValueError:
-                property_type = PropertyType.RESIDENTIAL
+                property_type = PropertyType.SELF_OCCUPIED
             
             house_property_income = HousePropertyIncome(
                 property_type=property_type,
@@ -1561,12 +1549,51 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         if not calc_data:
             return None
         
-        return TaxCalculationResult(
-            total_income=Money(calc_data.get("total_income", 0)),
-            total_exemptions=Money(calc_data.get("total_exemptions", 0)),
-            total_deductions=Money(calc_data.get("total_deductions", 0)),
-            taxable_income=Money(calc_data.get("taxable_income", 0)),
-            tax_liability=Money(calc_data.get("tax_liability", 0)),
+        # Helper function to safely convert values to Money
+        def safe_money_from_value(value, default=0):
+            """Safely convert a value to Money, handling various edge cases."""
+            import decimal
+            try:
+                # Handle None or empty values
+                if value is None or value == "":
+                    return Money.from_decimal(default)
+                
+                # Handle string values that might be invalid
+                if isinstance(value, str):
+                    # Strip whitespace and handle common invalid values
+                    value = value.strip()
+                    if value.lower() in ['null', 'undefined', 'nan', 'none', '']:
+                        return Money.from_decimal(default)
+                
+                # Handle Decimal objects (common when retrieving from MongoDB)
+                if isinstance(value, decimal.Decimal):
+                    return Money.from_decimal(value)
+                
+                # Try to convert to float first, then to decimal
+                if isinstance(value, (int, float)):
+                    return Money.from_decimal(float(value))
+                elif isinstance(value, str):
+                    return Money.from_decimal(float(value))
+                else:
+                    # For any other type, try direct conversion
+                    return Money.from_decimal(value)
+                    
+            except (ValueError, TypeError, decimal.InvalidOperation, decimal.ConversionSyntax) as e:
+                logger.warning(f"Failed to convert value '{value}' (type: {type(value)}) to Money, using default {default}: {str(e)}")
+                return Money.from_decimal(default)
+        
+        # Add debugging to log the values being processed
+        tax_liability_value = calc_data.get("tax_liability", 0)
+        logger.debug(f"Deserializing tax_liability: value={tax_liability_value}, type={type(tax_liability_value)}")
+        
+        result = TaxCalculationResult(
+            total_income=safe_money_from_value(calc_data.get("total_income", 0)),
+            total_exemptions=safe_money_from_value(calc_data.get("total_exemptions", 0)),
+            total_deductions=safe_money_from_value(calc_data.get("total_deductions", 0)),
+            taxable_income=safe_money_from_value(calc_data.get("taxable_income", 0)),
+            tax_liability=safe_money_from_value(tax_liability_value),
             tax_breakdown=calc_data.get("tax_breakdown", {}),
             regime_comparison=calc_data.get("regime_comparison")
-        ) 
+        )
+        
+        return result 

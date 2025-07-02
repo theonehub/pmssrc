@@ -4,7 +4,7 @@ Production-ready REST API endpoints for all taxation operations and income types
 """
 
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Response
 from datetime import datetime
 
 # Import centralized logger
@@ -898,58 +898,34 @@ async def health_check() -> Dict[str, str]:
 @router.get("/monthly-tax/employee/{employee_id}",
             response_model=Dict[str, Any],
             status_code=status.HTTP_200_OK,
-            summary="Compute monthly tax for employee", 
-            description="Compute monthly tax for an employee based on their salary package record with detailed breakdown")
+            summary="Compute monthly tax for employee",
+            description="Compute tax for employee for the current month and year")
 async def compute_monthly_tax(
     employee_id: str,
     current_user: CurrentUser = Depends(get_current_user),
     controller: UnifiedTaxationController = Depends(get_taxation_controller)
 ) -> Dict[str, Any]:
     """
-    Compute monthly tax for an employee based on their salary package record.
+    Compute monthly tax for an employee for the current month and year.
     
-    This endpoint calculates monthly tax liability using the new SalaryPackageRecord approach:
-    - Gets the latest salary income from salary package history
-    - Calculates comprehensive annual income (salary + perquisites + other income)
-    - Computes annual tax liability based on current tax slabs
-    - Returns monthly tax (annual tax / 12) with detailed breakdown
-    
-    Note: This is the new approach that will replace TaxationRecord-based calculations.
+    Convenience endpoint that automatically uses the current month and year.
     """
     
-    logger.debug(f"compute_monthly_tax route: "
-                    f"Starting for employee {employee_id}, "
-                    f"user {current_user.username}, "
-                    f"hostname {current_user.hostname}")
-    
     try:
-        result = await controller.compute_monthly_tax(
-            employee_id, current_user.hostname
-        )
-        
-        # Log a summary of the result
-        if isinstance(result, dict):
-            if 'monthly_tax_liability' in result:
-                logger.debug(f"compute_monthly_tax route: Monthly tax liability: {result['monthly_tax_liability']}")
-            if 'status' in result:
-                logger.debug(f"compute_monthly_tax route: Status: {result['status']}")
-        
+        result = await controller.compute_monthly_tax(employee_id, current_user.hostname)
         return result
         
     except ValueError as e:
-        logger.error(f"compute_monthly_tax route: Validation error for employee {employee_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(e)
         )
     except RuntimeError as e:
-        logger.error(f"compute_monthly_tax route: Runtime error for employee {employee_id}: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
     except Exception as e:
-        logger.error(f"compute_monthly_tax route: Unexpected error for employee {employee_id}: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to compute monthly tax: {str(e)}"
@@ -994,5 +970,75 @@ async def compute_current_month_tax(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to compute current month tax: {str(e)}"
+        )
+
+@router.get("/export/salary-package/{employee_id}",
+            status_code=status.HTTP_200_OK,
+            summary="Export comprehensive salary package to Excel (multiple sheets)",
+            description="Export complete salary package with all components to Excel with multiple sheets")
+async def export_salary_package_to_excel(
+    employee_id: str,
+    tax_year: Optional[str] = Query(None, description="Tax year (e.g., '2025-26')"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> Response:
+    """
+    Export comprehensive salary package data to Excel format with multiple sheets.
+    """
+    try:
+        excel_content = await controller.export_salary_package_to_excel(
+            employee_id, tax_year, current_user.hostname
+        )
+        
+        # Generate filename
+        year_suffix = f"_{tax_year}" if tax_year else ""
+        filename = f"salary_package_{employee_id}{year_suffix}.xlsx"
+        
+        return Response(
+            content=excel_content,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    
+    except Exception as e:
+        logger.error(f"Error exporting salary package to Excel: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to export salary package: {str(e)}"
+        )
+
+@router.get("/export/salary-package-single/{employee_id}",
+            status_code=status.HTTP_200_OK,
+            summary="Export comprehensive salary package to Excel (single sheet)",
+            description="Export complete salary package with all components to Excel in a single sheet")
+async def export_salary_package_single_sheet(
+    employee_id: str,
+    tax_year: Optional[str] = Query(None, description="Tax year (e.g., '2025-26')"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> Response:
+    """
+    Export comprehensive salary package data to Excel format in a single sheet.
+    """
+    try:
+        excel_content = await controller.export_salary_package_single_sheet(
+            employee_id, tax_year, current_user.hostname
+        )
+        
+        # Generate filename
+        year_suffix = f"_{tax_year}" if tax_year else ""
+        filename = f"salary_package_single_{employee_id}{year_suffix}.xlsx"
+        
+        return Response(
+            content=excel_content,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    
+    except Exception as e:
+        logger.error(f"Error exporting salary package to single Excel sheet: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to export salary package to single sheet: {str(e)}"
         )
 

@@ -479,14 +479,10 @@ export interface SalaryComponents {
   transport_employee_allowance: number;
   children_education_allowance: number;
   children_education_count: number;
-  children_education_months: number;
+  children_hostel_count: number;
   hostel_allowance: number;
-  hostel_count: number;
-  hostel_months: number;
   transport_allowance: number;
-  transport_months: number;
   underground_mines_allowance: number;
-  underground_mines_months: number;
   govt_employee_entertainment_allowance: number;
   govt_employees_outside_india_allowance: number;
   supreme_high_court_judges_allowance: number;

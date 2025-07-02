@@ -414,15 +414,6 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           helperText="Enter number of children (max 2)"
         />
 
-        <ValidatedTextField
-          label="Number of Months"
-          value={formatSalaryValue(taxationData.salary_income?.children_education_months)}
-          onChange={(value) => handleInputChange('salary_income', 'children_education_months', value)}
-          onFocus={(e) => handleTextFieldFocus('salary_income', 'children_education_months', e)}
-          fieldType="number"
-          helperText="Enter number of months (max 12)"
-        />
-
         {/* Section Header: Hostel Allowance */}
         <Box sx={{ gridColumn: '1 / -1', width: '100%', display: 'flex', justifyContent: 'left' }}>
           <Typography variant="h6" color="primary">Hostel Allowance</Typography>
@@ -453,20 +444,11 @@ const SalarySection: React.FC<SalarySectionProps> = ({
 
         <ValidatedTextField
           label="Number of Children in Hostel"
-          value={formatSalaryValue(taxationData.salary_income?.hostel_count)}
-          onChange={(value) => handleInputChange('salary_income', 'hostel_count', value)}
-          onFocus={(e) => handleTextFieldFocus('salary_income', 'hostel_count', e)}
+          value={formatSalaryValue(taxationData.salary_income?.children_hostel_count)}
+          onChange={(value) => handleInputChange('salary_income', 'children_hostel_count', value)}
+          onFocus={(e) => handleTextFieldFocus('salary_income', 'children_hostel_count', e)}
           fieldType="number"
           helperText="Enter number of children in hostel (max 2)"
-        />
-
-        <ValidatedTextField
-          label="Hostel Months"
-          value={formatSalaryValue(taxationData.salary_income?.hostel_months)}
-          onChange={(value) => handleInputChange('salary_income', 'hostel_months', value)}
-          onFocus={(e) => handleTextFieldFocus('salary_income', 'hostel_months', e)}
-          fieldType="number"
-          helperText="Enter number of hostel months (max 12)"
         />
 
         {/* Section Header: Transport Allowance */}
@@ -496,15 +478,6 @@ const SalarySection: React.FC<SalarySectionProps> = ({
           />
         </Tooltip>
 
-        <ValidatedTextField
-          label="Transport Months"
-          value={formatSalaryValue(taxationData.salary_income?.transport_months)}
-          onChange={(value) => handleInputChange('salary_income', 'transport_months', value)}
-          onFocus={(e) => handleTextFieldFocus('salary_income', 'transport_months', e)}
-          fieldType="number"
-          helperText="Enter number of transport months (max 12)"
-        />
-
         {/* Section Header: Underground Mines Allowance */}
         <Box sx={{ gridColumn: '1 / -1', width: '100%', display: 'flex', justifyContent: 'left' }}>
           <Typography variant="h6" color="primary">Underground Mines Allowance</Typography>
@@ -532,15 +505,6 @@ const SalarySection: React.FC<SalarySectionProps> = ({
             helperText="Enter allowance for underground mine workers"
           />
         </Tooltip>
-
-        <ValidatedTextField
-          label="Underground Mines Months"
-          value={formatSalaryValue(taxationData.salary_income?.underground_mines_months)}
-          onChange={(value) => handleInputChange('salary_income', 'underground_mines_months', value)}
-          onFocus={(e) => handleTextFieldFocus('salary_income', 'underground_mines_months', e)}
-          fieldType="number"
-          helperText="Enter number of underground mines months (max 12)"
-        />
 
         {/* Section Header: Government Employee Specific Allowances */}
         <Box sx={{ gridColumn: '1 / -1', width: '100%', display: 'flex', justifyContent: 'left' }}>

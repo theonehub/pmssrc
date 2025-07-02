@@ -255,27 +255,46 @@ class InterestFreeConcessionalLoan:
     loan_type: str = 'Personal'  # Personal, Medical, etc.
     #monthly_payment_schedule: list[MonthlyPaymentSchedule] = []
 
-    def calculate_monthly_payment_schedule(self, interest_rate: Decimal) -> list[MonthlyPaymentSchedule]:
+    def calculate_monthly_payment_schedule(self, interest_rate: Decimal) -> tuple[list[MonthlyPaymentSchedule], Money]:
         """Calculate monthly payment schedule for a loan."""
         #TODO: Add a condition to check if the loan start date is before tax year start date
         interest_paid = Money.zero()
         outstanding_amount = self.outstanding_amount
         monthly_payment_schedule = []
         logger.info(f"Opening Balance: {outstanding_amount.to_float():.2f}")
+        logger.info(f"EMI Amount: {self.emi_amount.to_float():.2f}")
         logger.info(f"Interest Rate: {interest_rate}")
-        logger.info(f"====================================================================")
-        logger.info(f"Month   |  Outstanding Amount |  Interest Amount |  Principal Amount")
-        logger.info(f"====================================================================")
+        logger.info(f"====================================================================================")
+        logger.info(f"Month   |  Outstanding Amount |  Interest Amount |  Principal Amount |  EMI Deducted")
+        logger.info(f"====================================================================================")
         for month in range(1, 13):
             if outstanding_amount.is_zero():
                 break
-            interest_amount = outstanding_amount.percentage(interest_rate.divide(12))
+            monthly_interest_rate = interest_rate/12
+            interest_amount = outstanding_amount.percentage(monthly_interest_rate)
             interest_paid = interest_paid.add(interest_amount)
-            principal_amount = self.emi_amount.subtract(interest_amount)
+            
+            # Handle case where outstanding amount is less than EMI
+            if outstanding_amount.is_less_than(self.emi_amount):
+                # If outstanding amount is less than EMI, principal amount equals outstanding amount
+                principal_amount = outstanding_amount
+                # Adjust interest amount to ensure total payment doesn't exceed outstanding amount
+                total_payment = principal_amount.add(interest_amount)
+                if total_payment.is_greater_than(outstanding_amount):
+                    # Reduce interest amount to fit within outstanding amount
+                    interest_amount = outstanding_amount.subtract(principal_amount).max(Money.zero())
+                    interest_paid = interest_paid.subtract(outstanding_amount.percentage(monthly_interest_rate)).add(interest_amount)
+            else:
+                # Normal case: principal amount is EMI minus interest
+                principal_amount = self.emi_amount.subtract(interest_amount)
+            
             monthly_payment_schedule.append(MonthlyPaymentSchedule(month, outstanding_amount, principal_amount, interest_amount))
             outstanding_amount = outstanding_amount.subtract(principal_amount)
-            logger.info(f"{month:02d}      |  {outstanding_amount.to_float():.2f}      |  {interest_amount.to_float():.2f}      |  {principal_amount.to_float():.2f}")
-        logger.info(f"====================================================================")
+            
+            # Calculate EMI deducted (principal + interest)
+            emi_deducted = principal_amount.add(interest_amount)
+            logger.info(f"{month:02d}      |  {outstanding_amount.to_float():.2f}      |  {interest_amount.to_float():.2f}      |  {principal_amount.to_float():.2f}      |  {emi_deducted.to_float():.2f}")
+        logger.info(f"====================================================================================")
         return monthly_payment_schedule, interest_paid
 
     

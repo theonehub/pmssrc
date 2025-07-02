@@ -1,12 +1,21 @@
 """
 Unified Taxation Controller
-Production-ready controller for all taxation operations and comprehensive income calculations
+Handles all taxation-related operations and calculations for both comprehensive and employee-specific use cases
 """
 
-import logging
-from datetime import datetime
-from typing import Dict, Any, List, Optional, Tuple
+from typing import List, Dict, Any, Optional, Union, Tuple
+from datetime import datetime, date
 from decimal import Decimal
+
+# Import centralized logger
+from app.utils.logger import get_logger
+
+# Excel-related imports
+import pandas as pd
+from io import BytesIO
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
+from openpyxl.utils.dataframe import dataframe_to_rows
 
 # Import all DTOs from both controllers
 from app.application.dto.taxation_dto import (
@@ -77,7 +86,7 @@ from app.domain.services.taxation.tax_calculation_service import (
 )
 from app.application.use_cases.taxation.get_employees_for_selection_use_case import GetEmployeesForSelectionUseCase
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class UnifiedTaxationController:
@@ -326,6 +335,7 @@ class UnifiedTaxationController:
     def _create_default_other_income(self):
         """Create default other income entity."""
         from app.domain.entities.taxation.other_income import OtherIncome, InterestIncome
+        from app.domain.entities.taxation.capital_gains import CapitalGainsIncome
         from app.domain.value_objects.money import Money
         
         # Create default interest income
@@ -336,8 +346,19 @@ class UnifiedTaxationController:
             post_office_interest=Money.zero()
         )
         
+        # Create default capital gains income
+        default_capital_gains_income = CapitalGainsIncome(
+            stcg_111a_equity_stt=Money.zero(),
+            stcg_other_assets=Money.zero(),
+            stcg_debt_mf=Money.zero(),
+            ltcg_112a_equity_stt=Money.zero(),
+            ltcg_other_assets=Money.zero(),
+            ltcg_debt_mf=Money.zero()
+        )
+        
         return OtherIncome(
             interest_income=default_interest_income,
+            capital_gains_income=default_capital_gains_income,
             dividend_income=Money.zero(),
             gifts_received=Money.zero(),
             business_professional_income=Money.zero(),
@@ -375,21 +396,19 @@ class UnifiedTaxationController:
         # Create SpecificAllowances from DTO fields
         from app.domain.entities.taxation.salary_income import SpecificAllowances
         specific_allowances = SpecificAllowances(
-            hills_allowance=Money.from_decimal(getattr(salary_dto, 'hills_high_altd_allowance', 0)),
-            hills_exemption_limit=Money.from_decimal(getattr(salary_dto, 'hills_high_altd_exemption_limit', 0)),
-            border_allowance=Money.from_decimal(getattr(salary_dto, 'border_remote_allowance', 0)),
-            border_exemption_limit=Money.from_decimal(getattr(salary_dto, 'border_remote_exemption_limit', 0)),
+            monthly_hills_allowance=Money.from_decimal(getattr(salary_dto, 'hills_high_altd_allowance', 0)),
+            monthly_hills_exemption_limit=Money.from_decimal(getattr(salary_dto, 'hills_high_altd_exemption_limit', 0)),
+            monthly_border_allowance=Money.from_decimal(getattr(salary_dto, 'border_remote_allowance', 0)),
+            monthly_border_exemption_limit=Money.from_decimal(getattr(salary_dto, 'border_remote_exemption_limit', 0)),
             transport_employee_allowance=Money.from_decimal(getattr(salary_dto, 'transport_employee_allowance', 0)),
             children_education_allowance=Money.from_decimal(getattr(salary_dto, 'children_education_allowance', 0)),
-            children_count=getattr(salary_dto, 'children_education_count', 0),
-            children_education_months=getattr(salary_dto, 'children_education_months', 12),
+            children_education_count=getattr(salary_dto, 'children_education_count', 0),
             hostel_allowance=Money.from_decimal(getattr(salary_dto, 'hostel_allowance', 0)),
-            hostel_count=getattr(salary_dto, 'hostel_count', 0),
-            hostel_months=getattr(salary_dto, 'hostel_months', 12),
+            children_hostel_count=getattr(salary_dto, 'children_hostel_count', 0),
             disabled_transport_allowance=Money.from_decimal(getattr(salary_dto, 'disabled_transport_allowance', 0)),
-            transport_months=getattr(salary_dto, 'transport_months', 12),
+            is_disabled=getattr(salary_dto, 'is_disabled', False),
             underground_mines_allowance=Money.from_decimal(getattr(salary_dto, 'underground_mines_allowance', 0)),
-            mine_work_months=getattr(salary_dto, 'underground_mines_months', 0),
+            mine_work_months=getattr(salary_dto, 'mine_work_months', 0),
             government_entertainment_allowance=Money.from_decimal(getattr(salary_dto, 'govt_employee_entertainment_allowance', 0)),
             city_compensatory_allowance=Money.from_decimal(getattr(salary_dto, 'city_compensatory_allowance', 0)),
             rural_allowance=Money.from_decimal(getattr(salary_dto, 'rural_allowance', 0)),
@@ -594,11 +613,7 @@ class UnifiedTaxationController:
         try:
             other_deductions_data = safe_get(deductions_data, 'other_deductions', {})
             other_deduction_keys = [
-                'education_loan_interest', 'charitable_donations', 'savings_interest', 
-                'nps_contribution', 'other_deductions', 'ev_loan_interest', 'political_party_contribution',
-                'savings_account_interest', 'deposit_interest_senior', 'additional_nps_50k',
-                'donation_100_percent_without_limit', 'donation_50_percent_without_limit',
-                'donation_100_percent_with_limit', 'donation_50_percent_with_limit'
+                'other_deductions', 'ev_loan_interest', 'political_party_contribution'
             ]
             
             # Check if we have any other deduction data (either nested or flat)
@@ -610,38 +625,9 @@ class UnifiedTaxationController:
                 
                 # Handle nested structure
                 if has_nested_data:
-                    deductions.other_deductions.education_loan_interest = safe_money_from_value(safe_get(other_deductions_data, 'education_loan_interest', 0))
-                    deductions.other_deductions.charitable_donations = safe_money_from_value(safe_get(other_deductions_data, 'charitable_donations', 0))
-                    deductions.other_deductions.savings_interest = safe_money_from_value(safe_get(other_deductions_data, 'savings_interest', 0))
-                    deductions.other_deductions.nps_contribution = safe_money_from_value(safe_get(other_deductions_data, 'nps_contribution', 0))
                     deductions.other_deductions.other_deductions = safe_money_from_value(safe_get(other_deductions_data, 'other_deductions', 0))
                 else:
                     # Handle flat structure (from frontend) - map field names correctly
-                    deductions.other_deductions.education_loan_interest = safe_money_from_value(safe_get(deductions_data, 'education_loan_interest', 0))
-                    
-                    # Map donation fields from frontend to backend
-                    donation_100_percent_wo_limit = safe_money_from_value(safe_get(deductions_data, 'donation_100_percent_without_limit', 0))
-                    donation_50_percent_wo_limit = safe_money_from_value(safe_get(deductions_data, 'donation_50_percent_without_limit', 0))
-                    donation_100_percent_w_limit = safe_money_from_value(safe_get(deductions_data, 'donation_100_percent_with_limit', 0))
-                    donation_50_percent_w_limit = safe_money_from_value(safe_get(deductions_data, 'donation_50_percent_with_limit', 0))
-                    political_party_contribution = safe_money_from_value(safe_get(deductions_data, 'political_party_contribution', 0))
-                    
-                    # Sum all donations for charitable_donations
-                    total_donations = (
-                        donation_100_percent_wo_limit.amount + 
-                        donation_50_percent_wo_limit.amount + 
-                        donation_100_percent_w_limit.amount + 
-                        donation_50_percent_w_limit.amount + 
-                        political_party_contribution.amount
-                    )
-                    deductions.other_deductions.charitable_donations = Money.from_decimal(total_donations)
-                    
-                    # Map savings interest (frontend field name is different)
-                    deductions.other_deductions.savings_interest = safe_money_from_value(safe_get(deductions_data, 'savings_account_interest', 0))
-                    
-                    # Map NPS contribution (frontend field name is different)
-                    deductions.other_deductions.nps_contribution = safe_money_from_value(safe_get(deductions_data, 'additional_nps_50k', 0))
-                    
                     # Map other deductions
                     deductions.other_deductions.other_deductions = safe_money_from_value(safe_get(deductions_data, 'other_deductions', 0))
                 
@@ -653,8 +639,10 @@ class UnifiedTaxationController:
         # Log final deductions total
         try:
             from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
+            from app.domain.value_objects.money import Money
             regime = TaxRegime(TaxRegimeType.NEW)  # Default to new regime for calculation
-            total_deductions = deductions.calculate_total_deductions(regime)
+            # Use default values for age and gross_income since we don't have them in this context
+            total_deductions = deductions.calculate_total_deductions(regime, 30, Money.zero())
             logger.info(f"Final deductions total after conversion: {total_deductions}")
         except Exception as e:
             logger.error(f"Error calculating total deductions: {str(e)}")
@@ -689,10 +677,21 @@ class UnifiedTaxationController:
                 return Money.from_decimal(Decimal(str(default)))
             return Money.from_decimal(Decimal(str(value)))
         
+        # Helper function to safely convert enum values
+        def safe_enum_from_value(enum_class, value, default_value):
+            """Safely convert a value to enum, handling empty strings and None."""
+            if value is None or value == "":
+                return default_value
+            try:
+                return enum_class(value)
+            except ValueError:
+                logger.warning(f"Invalid value '{value}' for {enum_class.__name__}, using default: {default_value}")
+                return default_value
+        
         # Convert accommodation perquisite
         accommodation = AccommodationPerquisite(
-            accommodation_type=AccommodationType(perquisites_dto.accommodation_type),
-            city_population=CityPopulation(perquisites_dto.city_population),
+            accommodation_type=safe_enum_from_value(AccommodationType, perquisites_dto.accommodation_type, AccommodationType.EMPLOYER_OWNED),
+            city_population=safe_enum_from_value(CityPopulation, perquisites_dto.city_population, CityPopulation.BELOW_15_LAKHS),
             license_fees=safe_money_from_value(perquisites_dto.license_fees),
             employee_rent_payment=safe_money_from_value(perquisites_dto.employee_rent_payment),
             rent_paid_by_employer=safe_money_from_value(perquisites_dto.rent_paid_by_employer),
@@ -706,7 +705,7 @@ class UnifiedTaxationController:
         
         # Convert car perquisite
         car = CarPerquisite(
-            car_use_type=CarUseType(perquisites_dto.car_use_type),
+            car_use_type=safe_enum_from_value(CarUseType, perquisites_dto.car_use_type, CarUseType.PERSONAL),
             engine_capacity_cc=perquisites_dto.engine_capacity_cc,
             months_used=perquisites_dto.months_used,
             months_used_other_vehicle=perquisites_dto.months_used_other_vehicle,
@@ -767,7 +766,7 @@ class UnifiedTaxationController:
         
         # Convert movable asset usage
         movable_asset_usage = MovableAssetUsage(
-            asset_type=AssetType(perquisites_dto.movable_asset_type),
+            asset_type=safe_enum_from_value(AssetType, perquisites_dto.movable_asset_type, AssetType.OTHERS),
             asset_value=safe_money_from_value(perquisites_dto.movable_asset_usage_value),
             hire_cost=safe_money_from_value(perquisites_dto.movable_asset_hire_cost),
             employee_payment=safe_money_from_value(perquisites_dto.movable_asset_employee_payment),
@@ -776,7 +775,7 @@ class UnifiedTaxationController:
         
         # Convert movable asset transfer
         movable_asset_transfer = MovableAssetTransfer(
-            asset_type=AssetType(perquisites_dto.movable_asset_transfer_type),
+            asset_type=safe_enum_from_value(AssetType, perquisites_dto.movable_asset_transfer_type, AssetType.OTHERS),
             asset_cost=safe_money_from_value(perquisites_dto.movable_asset_transfer_cost),
             years_of_use=perquisites_dto.movable_asset_years_of_use,
             employee_payment=safe_money_from_value(perquisites_dto.movable_asset_transfer_employee_payment)
@@ -1195,7 +1194,9 @@ class UnifiedTaxationController:
                 logger.info(f"Found existing salary package record with ID: {salary_package_record.salary_package_id}")
 
             # Log existing deductions before update
-            existing_deductions_total = salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime)
+            # Calculate gross income for deduction calculations
+            gross_income = salary_package_record.calculate_gross_income()
+            existing_deductions_total = salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income)
             logger.info(f"Existing deductions total before update: {existing_deductions_total}")
             
             # Update deductions using the salary package record's method
@@ -1204,7 +1205,7 @@ class UnifiedTaxationController:
             salary_package_record.updated_at = datetime.utcnow()
             
             # Log new deductions after update
-            new_deductions_total = salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime) 
+            new_deductions_total = salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income) 
             logger.info(f"New deductions total after update: {new_deductions_total}")
             
             # Save to database using salary package repository
@@ -1218,7 +1219,9 @@ class UnifiedTaxationController:
                 request.employee_id, request.tax_year, organization_id
             )
             if verification_record:
-                verify_deductions_total = verification_record.deductions.calculate_total_deductions(verification_record.regime)
+                # Calculate gross income for verification record
+                verify_gross_income = verification_record.calculate_gross_income()
+                verify_deductions_total = verification_record.deductions.calculate_total_deductions(verification_record.regime, verification_record.age, verify_gross_income)
                 logger.info(f"Verification successful - Deductions total in database: {verify_deductions_total}")
                 if verify_deductions_total != new_deductions_total:
                     logger.error(f"MISMATCH: Expected {new_deductions_total}, but found {verify_deductions_total} in database")
@@ -1704,7 +1707,16 @@ class UnifiedTaxationController:
                 "helper_in_performace_of_duties": float(salary_income.specific_allowances.helper_in_performace_of_duties.amount),
                 "academic_research": float(salary_income.specific_allowances.academic_research.amount),
                 "uniform_allowance": float(salary_income.specific_allowances.uniform_allowance.amount),
-                "any_other_allowance_exemption": float(salary_income.specific_allowances.any_other_allowance.amount)
+                "any_other_allowance_exemption": float(salary_income.specific_allowances.any_other_allowance_exemption.amount),
+                "any_other_allowance": float(salary_income.specific_allowances.any_other_allowance.amount),
+                "hills_exemption_limit": float(salary_income.specific_allowances.hills_exemption_limit.amount),
+                "border_exemption_limit": float(salary_income.specific_allowances.border_exemption_limit.amount),
+                "children_count": salary_income.specific_allowances.children_count,
+                "disabled_transport_allowance": float(salary_income.specific_allowances.disabled_transport_allowance.amount),
+                "is_disabled": salary_income.specific_allowances.is_disabled,
+                "mine_work_months": salary_income.specific_allowances.mine_work_months,
+                "fixed_medical_allowance": float(salary_income.specific_allowances.fixed_medical_allowance.amount),
+                "govt_employees_outside_india_allowance": float(salary_income.specific_allowances.govt_employees_outside_india_allowance.amount)
             }
             result.update(specific_allowances_data)
         else:
@@ -1736,7 +1748,16 @@ class UnifiedTaxationController:
                 "helper_in_performace_of_duties": 0.0,
                 "academic_research": 0.0,
                 "uniform_allowance": 0.0,
-                "any_other_allowance_exemption": 0.0
+                "any_other_allowance_exemption": 0.0,
+                "any_other_allowance": 0.0,
+                "hills_exemption_limit": 0.0,
+                "border_exemption_limit": 0.0,
+                "children_count": 0,
+                "disabled_transport_allowance": 0.0,
+                "is_disabled": False,
+                "mine_work_months": 0,
+                "fixed_medical_allowance": 0.0,
+                "govt_employees_outside_india_allowance": 0.0
             }
             result.update(default_allowances)
         
@@ -2168,7 +2189,8 @@ class UnifiedTaxationController:
         # Use old regime for calculation (deductions are primarily for old regime)
         regime = TaxRegime(TaxRegimeType.OLD)
         
-        total_deductions = float(deductions.calculate_total_deductions(regime).amount)
+        # Use default values for age and gross_income since we don't have them in this context
+        total_deductions = float(deductions.calculate_total_deductions(regime, 30, Money.zero()).amount)
         total_interest_exemptions = float(deductions.calculate_interest_exemptions(regime).amount)
         combined_80c_80ccc_80ccd1 = float(deductions.calculate_combined_80c_80ccc_80ccd1_deduction(regime).amount)
         
@@ -2333,4 +2355,1128 @@ class UnifiedTaxationController:
             logger.error(f"UnifiedTaxationController.compute_monthly_tax: Unexpected error for employee {employee_id}: {str(e)}", exc_info=True)
             # Wrap other errors
             raise RuntimeError(f"Failed to compute monthly tax for employee {employee_id}: {str(e)}")
+    
+    async def export_salary_package_to_excel(
+        self, 
+        employee_id: str, 
+        tax_year: Optional[str], 
+        hostname: str
+    ) -> bytes:
+        """
+        Export comprehensive SalaryPackageRecord data to Excel format.
+        
+        Args:
+            employee_id: Employee ID to export data for
+            tax_year: Tax year (optional, defaults to current)
+            hostname: Organization hostname
+            
+        Returns:
+            bytes: Excel file content as bytes
+        """
+        try:
+            logger.info(f"Exporting salary package to Excel for employee: {employee_id}, tax_year: {tax_year}")
+            
+            # Get or create the salary package record
+            salary_package_record = await self._get_or_create_salary_package_record(
+                employee_id, tax_year, hostname
+            )
+            
+            # Create Excel workbook
+            wb = openpyxl.Workbook()
+            
+            # Remove default sheet
+            if 'Sheet' in wb.sheetnames:
+                wb.remove(wb['Sheet'])
+            
+            # Define styles
+            header_font = Font(bold=True, color="FFFFFF")
+            header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+            subheader_font = Font(bold=True, color="000000")
+            subheader_fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+            border = Border(
+                left=Side(border_style="thin"),
+                right=Side(border_style="thin"),
+                top=Side(border_style="thin"),
+                bottom=Side(border_style="thin")
+            )
+            
+            # 1. Summary Sheet
+            summary_ws = wb.create_sheet("Summary")
+            self._create_summary_sheet(summary_ws, salary_package_record, header_font, header_fill, border)
+            
+            # 2. Salary History Sheet
+            salary_history_ws = wb.create_sheet("Salary History")
+            self._create_salary_history_sheet(salary_history_ws, salary_package_record, header_font, header_fill, subheader_font, subheader_fill, border)
+            
+            # 3. Annual Salary Components Sheet
+            annual_salary_ws = wb.create_sheet("Annual Salary")
+            self._create_annual_salary_sheet(annual_salary_ws, salary_package_record, header_font, header_fill, border)
+            
+            # 4. Specific Allowances Sheet
+            allowances_ws = wb.create_sheet("Specific Allowances")
+            self._create_specific_allowances_sheet(allowances_ws, salary_package_record, header_font, header_fill, border)
+            
+            # 5. Perquisites Sheet (if available)
+            if salary_package_record.perquisites:
+                perquisites_ws = wb.create_sheet("Perquisites")
+                self._create_perquisites_sheet(perquisites_ws, salary_package_record, header_font, header_fill, border)
+            
+            # 6. Other Income Sheet (if available)
+            if salary_package_record.other_income:
+                other_income_ws = wb.create_sheet("Other Income")
+                self._create_other_income_sheet(other_income_ws, salary_package_record, header_font, header_fill, border)
+            
+            # 7. Deductions Sheet
+            deductions_ws = wb.create_sheet("Deductions")
+            self._create_deductions_sheet(deductions_ws, salary_package_record, header_font, header_fill, subheader_font, subheader_fill, border)
+            
+            # 8. Tax Calculation Sheet (if calculated)
+            if salary_package_record.calculation_result:
+                tax_calc_ws = wb.create_sheet("Tax Calculation")
+                self._create_tax_calculation_sheet(tax_calc_ws, salary_package_record, header_font, header_fill, border)
+            
+            # 9. Raw Data Sheet (for debugging/reference)
+            raw_data_ws = wb.create_sheet("Raw Data")
+            self._create_raw_data_sheet(raw_data_ws, salary_package_record, header_font, header_fill, border)
+            
+            # Save workbook to bytes
+            excel_buffer = BytesIO()
+            wb.save(excel_buffer)
+            excel_buffer.seek(0)
+            
+            logger.info(f"Successfully exported salary package to Excel for employee: {employee_id}")
+            return excel_buffer.getvalue()
+            
+        except Exception as e:
+            logger.error(f"Error exporting salary package to Excel: {e}")
+            raise RuntimeError(f"Failed to export salary package to Excel: {str(e)}")
+    
+    def _create_summary_sheet(self, ws, salary_package_record, header_font, header_fill, border):
+        """Create summary sheet with key information."""
+        ws.title = "Summary"
+        
+        # Headers
+        headers = ["Field", "Value"]
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.border = border
+            cell.alignment = Alignment(horizontal="center")
+        
+        # Data rows
+        summary_data = [
+            ("Employee ID", str(salary_package_record.employee_id)),
+            ("Tax Year", str(salary_package_record.tax_year)),
+            ("Age", salary_package_record.age),
+            ("Tax Regime", salary_package_record.regime.regime_type.value),
+            ("Organization ID", salary_package_record.organization_id or "N/A"),
+            ("Is Government Employee", "Yes" if salary_package_record.is_government_employee else "No"),
+            ("Is Final", "Yes" if salary_package_record.is_final else "No"),
+            ("Salary Revisions Count", len(salary_package_record.salary_incomes)),
+            ("Has Perquisites", "Yes" if salary_package_record.perquisites else "No"),
+            ("Has Other Income", "Yes" if salary_package_record.other_income else "No"),
+            ("Has Retirement Benefits", "Yes" if salary_package_record.retirement_benefits else "No"),
+            ("Created At", salary_package_record.created_at.strftime("%Y-%m-%d %H:%M:%S")),
+            ("Updated At", salary_package_record.updated_at.strftime("%Y-%m-%d %H:%M:%S")),
+            ("Last Calculated", salary_package_record.last_calculated_at.strftime("%Y-%m-%d %H:%M:%S") if salary_package_record.last_calculated_at else "Never"),
+        ]
+        
+        if salary_package_record.calculation_result:
+            summary_data.extend([
+                ("", ""),  # Empty row
+                ("TAX CALCULATION RESULTS", ""),
+                ("Gross Income", f"₹{salary_package_record.calculation_result.gross_income.to_float():,.2f}"),
+                ("Total Exemptions", f"₹{salary_package_record.calculation_result.total_exemptions.to_float():,.2f}"),
+                ("Total Deductions", f"₹{salary_package_record.calculation_result.total_deductions.to_float():,.2f}"),
+                ("Taxable Income", f"₹{salary_package_record.calculation_result.taxable_income.to_float():,.2f}"),
+                ("Tax Liability", f"₹{salary_package_record.calculation_result.tax_liability.to_float():,.2f}"),
+                ("Monthly Tax", f"₹{salary_package_record.calculation_result.tax_liability.divide(12).to_float():,.2f}"),
+            ])
+        
+        for row, (field, value) in enumerate(summary_data, 2):
+            ws.cell(row=row, column=1, value=field).border = border
+            ws.cell(row=row, column=2, value=value).border = border
+        
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+    
+    def _create_salary_history_sheet(self, ws, salary_package_record, header_font, header_fill, subheader_font, subheader_fill, border):
+        """Create salary history sheet showing all salary revisions."""
+        ws.title = "Salary History"
+        
+        # Headers
+        headers = [
+            "Revision #", "Effective From", "Effective Till", "Months Applicable",
+            "Basic Salary", "DA", "HRA", "Special Allowance", "Bonus", "Commission",
+            "Total Specific Allowances", "Monthly Gross", "Period Total"
+        ]
+        
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.border = border
+            cell.alignment = Alignment(horizontal="center")
+        
+        # Get salary breakdown
+        breakdown = salary_package_record.get_annual_salary_breakdown()
+        
+        # Add salary periods
+        row = 2
+        for period in breakdown.get("salary_periods", []):
+            components = period.get("salary_components", {})
+            specific_breakdown = components.get("specific_allowances_breakdown", {})
+            total_specific = sum(specific_breakdown.values())
+            
+            data = [
+                period.get("period_index"),
+                period.get("effective_from", "N/A"),
+                period.get("effective_till", "N/A"),
+                period.get("months_applicable", 0),
+                components.get("basic_salary", 0),
+                components.get("dearness_allowance", 0),
+                components.get("hra_provided", 0),
+                components.get("special_allowance", 0),
+                components.get("bonus", 0),
+                components.get("commission", 0),
+                total_specific,
+                period.get("monthly_gross_salary", 0),
+                period.get("total_for_period", 0)
+            ]
+            
+            for col, value in enumerate(data, 1):
+                cell = ws.cell(row=row, column=col, value=value)
+                cell.border = border
+                # Format currency columns
+                if col >= 5:  # Currency columns
+                    if isinstance(value, (int, float)) and value != 0:
+                        cell.value = f"₹{value:,.2f}"
+            row += 1
+        
+        # Add projections if any
+        if breakdown.get("projections"):
+            # Add separator row
+            ws.cell(row=row, column=1, value="PROJECTIONS").font = subheader_font
+            ws.cell(row=row, column=1).fill = subheader_fill
+            row += 1
+            
+            for projection in breakdown["projections"]:
+                data = [
+                    "Projection",
+                    projection.get("projection_start", "N/A"),
+                    projection.get("projection_end", "N/A"),
+                    projection.get("uncovered_months", 0),
+                    "", "", "", "", "", "",  # Empty cells for individual components
+                    "",  # Empty for total specific allowances
+                    projection.get("monthly_gross_salary", 0),
+                    projection.get("projected_amount", 0)
+                ]
+                
+                for col, value in enumerate(data, 1):
+                    cell = ws.cell(row=row, column=col, value=value)
+                    cell.border = border
+                    # Format currency columns
+                    if col in [12, 13] and isinstance(value, (int, float)) and value != 0:
+                        cell.value = f"₹{value:,.2f}"
+                row += 1
+        
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 30)
+            ws.column_dimensions[column_letter].width = adjusted_width
+    
+    def _create_annual_salary_sheet(self, ws, salary_package_record, header_font, header_fill, border):
+        """Create annual salary components sheet."""
+        ws.title = "Annual Salary"
+        
+        annual_salary = salary_package_record.get_annual_salary_income()
+        
+        # Headers
+        headers = ["Component", "Annual Amount", "Monthly Equivalent"]
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.border = border
+            cell.alignment = Alignment(horizontal="center")
+        
+        # Core salary components
+        core_components = [
+            ("Basic Salary", annual_salary.basic_salary.to_float()),
+            ("Dearness Allowance", annual_salary.dearness_allowance.to_float()),
+            ("HRA Provided", annual_salary.hra_provided.to_float()),
+            ("Special Allowance", annual_salary.special_allowance.to_float()),
+            ("Bonus", annual_salary.bonus.to_float()),
+            ("Commission", annual_salary.commission.to_float()),
+        ]
+        
+        row = 2
+        for component, annual_amount in core_components:
+            monthly_equivalent = annual_amount / 12 if annual_amount > 0 else 0
+            
+            ws.cell(row=row, column=1, value=component).border = border
+            ws.cell(row=row, column=2, value=f"₹{annual_amount:,.2f}").border = border
+            ws.cell(row=row, column=3, value=f"₹{monthly_equivalent:,.2f}").border = border
+            row += 1
+        
+        # Add total row
+        total_annual = annual_salary.calculate_gross_salary().to_float()
+        total_monthly = total_annual / 12
+        
+        ws.cell(row=row, column=1, value="TOTAL GROSS SALARY").border = border
+        ws.cell(row=row, column=1).font = Font(bold=True)
+        ws.cell(row=row, column=2, value=f"₹{total_annual:,.2f}").border = border
+        ws.cell(row=row, column=2).font = Font(bold=True)
+        ws.cell(row=row, column=3, value=f"₹{total_monthly:,.2f}").border = border
+        ws.cell(row=row, column=3).font = Font(bold=True)
+        
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 30)
+            ws.column_dimensions[column_letter].width = adjusted_width
+    
+    def _create_specific_allowances_sheet(self, ws, salary_package_record, header_font, header_fill, border):
+        """Create specific allowances breakdown sheet."""
+        ws.title = "Specific Allowances"
+        
+        annual_salary = salary_package_record.get_annual_salary_income()
+        
+        if not annual_salary.specific_allowances:
+            ws.cell(row=1, column=1, value="No specific allowances data available")
+            return
+        
+        # Headers
+        headers = ["Allowance Type", "Annual Amount", "Monthly Equivalent", "Exemption Limit", "Taxable Amount"]
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.border = border
+            cell.alignment = Alignment(horizontal="center")
+        
+        specific_allowances = annual_salary.specific_allowances
+        
+        # Define allowance fields with their display names
+        allowance_fields = [
+            ("hills_allowance", "Hills Allowance", "hills_exemption_limit"),
+            ("border_allowance", "Border Allowance", "border_exemption_limit"),
+            ("transport_employee_allowance", "Transport Allowance", None),
+            ("children_education_allowance", "Children Education Allowance", None),
+            ("hostel_allowance", "Hostel Allowance", None),
+            ("disabled_transport_allowance", "Disabled Transport Allowance", None),
+            ("underground_mines_allowance", "Underground Mines Allowance", None),
+            ("government_entertainment_allowance", "Government Entertainment Allowance", None),
+            ("city_compensatory_allowance", "City Compensatory Allowance", None),
+            ("rural_allowance", "Rural Allowance", None),
+            ("proctorship_allowance", "Proctorship Allowance", None),
+            ("wardenship_allowance", "Wardenship Allowance", None),
+            ("project_allowance", "Project Allowance", None),
+            ("deputation_allowance", "Deputation Allowance", None),
+            ("overtime_allowance", "Overtime Allowance", None),
+            ("any_other_allowance", "Any Other Allowance", "any_other_allowance_exemption"),
+        ]
+        
+        row = 2
+        total_allowances = 0
+        total_exemptions = 0
+        
+        for field_name, display_name, exemption_field in allowance_fields:
+            if hasattr(specific_allowances, field_name):
+                annual_amount = getattr(specific_allowances, field_name).to_float()
+                
+                if annual_amount > 0:  # Only show allowances with values
+                    monthly_equivalent = annual_amount / 12
+                    
+                    # Get exemption limit if available
+                    exemption_limit = 0
+                    if exemption_field and hasattr(specific_allowances, exemption_field):
+                        exemption_limit = getattr(specific_allowances, exemption_field).to_float()
+                    
+                    # Calculate taxable amount (simplified - actual calculation is more complex)
+                    taxable_amount = max(0, annual_amount - exemption_limit)
+                    
+                    ws.cell(row=row, column=1, value=display_name).border = border
+                    ws.cell(row=row, column=2, value=f"₹{annual_amount:,.2f}").border = border
+                    ws.cell(row=row, column=3, value=f"₹{monthly_equivalent:,.2f}").border = border
+                    ws.cell(row=row, column=4, value=f"₹{exemption_limit:,.2f}" if exemption_limit > 0 else "N/A").border = border
+                    ws.cell(row=row, column=5, value=f"₹{taxable_amount:,.2f}").border = border
+                    
+                    total_allowances += annual_amount
+                    total_exemptions += exemption_limit
+                    row += 1
+        
+        # Add total row
+        if total_allowances > 0:
+            total_taxable = total_allowances - total_exemptions
+            ws.cell(row=row, column=1, value="TOTAL").border = border
+            ws.cell(row=row, column=1).font = Font(bold=True)
+            ws.cell(row=row, column=2, value=f"₹{total_allowances:,.2f}").border = border
+            ws.cell(row=row, column=2).font = Font(bold=True)
+            ws.cell(row=row, column=3, value=f"₹{total_allowances/12:,.2f}").border = border
+            ws.cell(row=row, column=3).font = Font(bold=True)
+            ws.cell(row=row, column=4, value=f"₹{total_exemptions:,.2f}").border = border
+            ws.cell(row=row, column=4).font = Font(bold=True)
+            ws.cell(row=row, column=5, value=f"₹{total_taxable:,.2f}").border = border
+            ws.cell(row=row, column=5).font = Font(bold=True)
+        
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 25)
+            ws.column_dimensions[column_letter].width = adjusted_width
+    
+    def _create_perquisites_sheet(self, ws, salary_package_record, header_font, header_fill, border):
+        """Create perquisites sheet if available."""
+        ws.title = "Perquisites"
+        
+        if not salary_package_record.perquisites:
+            ws.cell(row=1, column=1, value="No perquisites data available")
+            return
+        
+        # Headers
+        headers = ["Perquisite Type", "Value", "Taxable Amount"]
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.border = border
+            cell.alignment = Alignment(horizontal="center")
+        
+        # Add perquisites data (this would need to be expanded based on actual perquisites structure)
+        row = 2
+        ws.cell(row=row, column=1, value="Accommodation").border = border
+        ws.cell(row=row, column=2, value="Data available in perquisites object").border = border
+        ws.cell(row=row, column=3, value="Calculated based on regime").border = border
+        
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 30)
+            ws.column_dimensions[column_letter].width = adjusted_width
+    
+    def _create_other_income_sheet(self, ws, salary_package_record, header_font, header_fill, border):
+        """Create other income sheet if available."""
+        ws.title = "Other Income"
+        
+        if not salary_package_record.other_income:
+            ws.cell(row=1, column=1, value="No other income data available")
+            return
+        
+        # Headers
+        headers = ["Income Type", "Amount", "Tax Treatment"]
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.border = border
+            cell.alignment = Alignment(horizontal="center")
+        
+        # Add other income data
+        other_income = salary_package_record.other_income
+        row = 2
+        
+        # Dividend income
+        dividend_amount = other_income.dividend_income.to_float() if other_income.dividend_income else 0
+        if dividend_amount > 0:
+            ws.cell(row=row, column=1, value="Dividend Income").border = border
+            ws.cell(row=row, column=2, value=f"₹{dividend_amount:,.2f}").border = border
+            ws.cell(row=row, column=3, value="Added to total income").border = border
+            row += 1
+        
+        # Business/Professional income
+        business_amount = other_income.business_professional_income.to_float() if other_income.business_professional_income else 0
+        if business_amount > 0:
+            ws.cell(row=row, column=1, value="Business/Professional Income").border = border
+            ws.cell(row=row, column=2, value=f"₹{business_amount:,.2f}").border = border
+            ws.cell(row=row, column=3, value="Added to total income").border = border
+            row += 1
+        
+        # House property income
+        if other_income.house_property_income:
+            hpi_amount = other_income.house_property_income.calculate_net_income_from_house_property(salary_package_record.regime).to_float()
+            ws.cell(row=row, column=1, value="House Property Income").border = border
+            ws.cell(row=row, column=2, value=f"₹{hpi_amount:,.2f}").border = border
+            ws.cell(row=row, column=3, value="Net income after deductions").border = border
+            row += 1
+        
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 30)
+            ws.column_dimensions[column_letter].width = adjusted_width
+    
+    def _create_deductions_sheet(self, ws, salary_package_record, header_font, header_fill, subheader_font, subheader_fill, border):
+        """Create deductions sheet."""
+        ws.title = "Deductions"
+        
+        # Headers
+        headers = ["Deduction Section", "Item", "Amount"]
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.border = border
+            cell.alignment = Alignment(horizontal="center")
+        
+        deductions = salary_package_record.deductions
+        row = 2
+        
+        # Section 80C
+        ws.cell(row=row, column=1, value="Section 80C").font = subheader_font
+        ws.cell(row=row, column=1).fill = subheader_fill
+        ws.cell(row=row, column=1).border = border
+        row += 1
+        
+        section_80c_fields = [
+            ("epf", "EPF"),
+            ("ppf", "PPF"),
+            ("life_insurance_premium", "Life Insurance Premium"),
+            ("elss", "ELSS"),
+            ("nsc", "NSC"),
+            ("home_loan_principal", "Home Loan Principal"),
+            ("tuition_fees", "Tuition Fees"),
+            ("tax_saver_fd", "Tax Saver FD"),
+            ("sukanya_samriddhi", "Sukanya Samriddhi"),
+            ("ulip", "ULIP"),
+            ("other_80c", "Other 80C Investments"),
+        ]
+        
+        for field_name, display_name in section_80c_fields:
+            if hasattr(deductions.section_80c, field_name):
+                amount = getattr(deductions.section_80c, field_name).to_float()
+                if amount > 0:
+                    ws.cell(row=row, column=2, value=display_name).border = border
+                    ws.cell(row=row, column=3, value=f"₹{amount:,.2f}").border = border
+                    row += 1
+        
+        # Section 80D
+        row += 1  # Empty row
+        ws.cell(row=row, column=1, value="Section 80D").font = subheader_font
+        ws.cell(row=row, column=1).fill = subheader_fill
+        ws.cell(row=row, column=1).border = border
+        row += 1
+        
+        section_80d_fields = [
+            ("health_insurance_self", "Health Insurance - Self"),
+            ("health_insurance_parents", "Health Insurance - Parents"),
+            ("preventive_health_checkup", "Preventive Health Checkup"),
+        ]
+        
+        for field_name, display_name in section_80d_fields:
+            if hasattr(deductions.section_80d, field_name):
+                amount = getattr(deductions.section_80d, field_name).to_float()
+                if amount > 0:
+                    ws.cell(row=row, column=2, value=display_name).border = border
+                    ws.cell(row=row, column=3, value=f"₹{amount:,.2f}").border = border
+                    row += 1
+        
+        # Other Deductions
+        row += 1  # Empty row
+        ws.cell(row=row, column=1, value="Other Deductions").font = subheader_font
+        ws.cell(row=row, column=1).fill = subheader_fill
+        ws.cell(row=row, column=1).border = border
+        row += 1
+        
+        other_deduction_fields = [
+            ("section_80e", "Section 80E - Education Loan"),
+            ("section_80g", "Section 80G - Donations"),
+            ("section_24b", "Section 24B - Home Loan Interest"),
+        ]
+        
+        for field_name, display_name in other_deduction_fields:
+            if hasattr(deductions, field_name):
+                amount = getattr(deductions, field_name).to_float()
+                if amount > 0:
+                    ws.cell(row=row, column=2, value=display_name).border = border
+                    ws.cell(row=row, column=3, value=f"₹{amount:,.2f}").border = border
+                    row += 1
+        
+        # Total deductions
+        row += 1  # Empty row
+        # Calculate gross income for deduction calculations
+        gross_income = salary_package_record.calculate_gross_income()
+        total_deductions = deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income).to_float()
+        ws.cell(row=row, column=2, value="TOTAL DEDUCTIONS").border = border
+        ws.cell(row=row, column=2).font = Font(bold=True)
+        ws.cell(row=row, column=3, value=f"₹{total_deductions:,.2f}").border = border
+        ws.cell(row=row, column=3).font = Font(bold=True)
+        
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 30)
+            ws.column_dimensions[column_letter].width = adjusted_width
+    
+    def _create_tax_calculation_sheet(self, ws, salary_package_record, header_font, header_fill, border):
+        """Create tax calculation sheet if calculation result is available."""
+        ws.title = "Tax Calculation"
+        
+        if not salary_package_record.calculation_result:
+            ws.cell(row=1, column=1, value="No tax calculation data available")
+            return
+        
+        # Headers
+        headers = ["Description", "Amount"]
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.border = border
+            cell.alignment = Alignment(horizontal="center")
+        
+        calc_result = salary_package_record.calculation_result
+        
+        # Tax calculation data
+        calc_data = [
+            ("Gross Income", calc_result.gross_income.to_float()),
+            ("Total Exemptions", calc_result.total_exemptions.to_float()),
+            ("Income After Exemptions", calc_result.gross_income.subtract(calc_result.total_exemptions).to_float()),
+            ("Total Deductions", calc_result.total_deductions.to_float()),
+            ("Taxable Income", calc_result.taxable_income.to_float()),
+            ("Tax Liability", calc_result.tax_liability.to_float()),
+            ("Monthly Tax", calc_result.tax_liability.divide(12).to_float()),
+        ]
+        
+        # Add effective tax rate
+        gross_income_float = calc_result.gross_income.to_float()
+        tax_liability_float = calc_result.tax_liability.to_float()
+        effective_rate = (tax_liability_float / gross_income_float * 100) if gross_income_float > 0 else 0
+        calc_data.append(("Effective Tax Rate", f"{effective_rate:.2f}%"))
+        
+        row = 2
+        for description, amount in calc_data:
+            ws.cell(row=row, column=1, value=description).border = border
+            if isinstance(amount, str):  # For percentage
+                ws.cell(row=row, column=2, value=amount).border = border
+            else:
+                ws.cell(row=row, column=2, value=f"₹{amount:,.2f}").border = border
+            row += 1
+        
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 30)
+            ws.column_dimensions[column_letter].width = adjusted_width
+    
+    def _create_raw_data_sheet(self, ws, salary_package_record, header_font, header_fill, border):
+        """Create raw data sheet for debugging/reference."""
+        ws.title = "Raw Data"
+        
+        # Headers
+        headers = ["Field Path", "Value", "Type"]
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.border = border
+            cell.alignment = Alignment(horizontal="center")
+        
+        # Get detailed breakdown
+        detailed_breakdown = salary_package_record.get_detailed_breakdown()
+        
+        def flatten_dict(d, parent_key='', sep='.'):
+            """Flatten nested dictionary for raw data view."""
+            items = []
+            for k, v in d.items():
+                new_key = f"{parent_key}{sep}{k}" if parent_key else k
+                if isinstance(v, dict):
+                    items.extend(flatten_dict(v, new_key, sep=sep).items())
+                elif isinstance(v, list):
+                    for i, item in enumerate(v):
+                        if isinstance(item, dict):
+                            items.extend(flatten_dict(item, f"{new_key}[{i}]", sep=sep).items())
+                        else:
+                            items.append((f"{new_key}[{i}]", str(item)))
+                else:
+                    items.append((new_key, v))
+            return dict(items)
+        
+        # Flatten the data
+        flat_data = flatten_dict(detailed_breakdown)
+        
+        row = 2
+        for field_path, value in flat_data.items():
+            ws.cell(row=row, column=1, value=field_path).border = border
+            ws.cell(row=row, column=2, value=str(value)).border = border
+            ws.cell(row=row, column=3, value=type(value).__name__).border = border
+            row += 1
+        
+        # Auto-adjust column widths
+        for column in ws.columns:
+            max_length = 0
+            column_letter = column[0].column_letter
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            adjusted_width = min(max_length + 2, 50)
+            ws.column_dimensions[column_letter].width = adjusted_width
+    
+    async def export_salary_package_single_sheet(
+        self, 
+        employee_id: str, 
+        tax_year: Optional[str], 
+        hostname: str
+    ) -> bytes:
+        """
+        Export comprehensive SalaryPackageRecord data to Excel format in a single sheet.
+        
+        Args:
+            employee_id: Employee ID to export data for
+            tax_year: Tax year (optional, defaults to current)
+            hostname: Organization hostname
+            
+        Returns:
+            bytes: Excel file content as bytes
+        """
+        try:
+            logger.info(f"Exporting salary package to single Excel sheet for employee: {employee_id}, tax_year: {tax_year}")
+            
+            # Get or create the salary package record
+            salary_package_record = await self._get_or_create_salary_package_record(
+                employee_id, tax_year, hostname
+            )
+            
+            # Create Excel workbook with single sheet
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "Complete Salary Package"
+            
+            # Define styles
+            header_font = Font(bold=True, color="FFFFFF")
+            header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+            section_font = Font(bold=True, color="000000", size=12)
+            section_fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+            subsection_font = Font(bold=True, color="000000", size=10)
+            border = Border(
+                left=Side(border_style="thin"),
+                right=Side(border_style="thin"),
+                top=Side(border_style="thin"),
+                bottom=Side(border_style="thin")
+            )
+            
+            current_row = 1
+            
+            # 1. Employee Summary Section
+            current_row = self._add_employee_summary_section(ws, salary_package_record, current_row, section_font, section_fill, border)
+            current_row += 2  # Add spacing
+            
+            # 2. Salary Components Section
+            current_row = self._add_salary_components_section(ws, salary_package_record, current_row, section_font, section_fill, subsection_font, border)
+            current_row += 2  # Add spacing
+            
+            # 3. Specific Allowances Section
+            current_row = self._add_specific_allowances_section(ws, salary_package_record, current_row, section_font, section_fill, border)
+            current_row += 2  # Add spacing
+            
+            # 4. Perquisites Section (if available)
+            if salary_package_record.perquisites:
+                current_row = self._add_perquisites_section(ws, salary_package_record, current_row, section_font, section_fill, border)
+                current_row += 2  # Add spacing
+            
+            # 5. Other Income Section (if available)
+            if salary_package_record.other_income:
+                current_row = self._add_other_income_section(ws, salary_package_record, current_row, section_font, section_fill, border)
+                current_row += 2  # Add spacing
+            
+            # 6. Deductions Section
+            current_row = self._add_deductions_section(ws, salary_package_record, current_row, section_font, section_fill, subsection_font, border)
+            current_row += 2  # Add spacing
+            
+            # 7. Tax Calculation Section (if calculated)
+            if salary_package_record.calculation_result:
+                current_row = self._add_tax_calculation_section(ws, salary_package_record, current_row, section_font, section_fill, border)
+            
+            # Auto-adjust column widths
+            for column in ws.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)
+                ws.column_dimensions[column_letter].width = adjusted_width
+            
+            # Save workbook to bytes
+            excel_buffer = BytesIO()
+            wb.save(excel_buffer)
+            excel_buffer.seek(0)
+            
+            logger.info(f"Successfully exported salary package to single Excel sheet for employee: {employee_id}")
+            return excel_buffer.getvalue()
+            
+        except Exception as e:
+            logger.error(f"Error exporting salary package to single Excel sheet: {e}")
+            raise RuntimeError(f"Failed to export salary package to single Excel sheet: {str(e)}")
+    
+    def _add_employee_summary_section(self, ws, salary_package_record, start_row, section_font, section_fill, border):
+        """Add employee summary section to single sheet."""
+        # Section header
+        ws.cell(row=start_row, column=1, value="EMPLOYEE SUMMARY").font = section_font
+        ws.cell(row=start_row, column=1).fill = section_fill
+        ws.merge_cells(f'A{start_row}:B{start_row}')
+        
+        current_row = start_row + 1
+        
+        # Employee data
+        summary_data = [
+            ("Employee ID", str(salary_package_record.employee_id)),
+            ("Tax Year", str(salary_package_record.tax_year)),
+            ("Age", salary_package_record.age),
+            ("Tax Regime", salary_package_record.regime.regime_type.value),
+            ("Is Government Employee", "Yes" if salary_package_record.is_government_employee else "No"),
+            ("Salary Revisions", len(salary_package_record.salary_incomes)),
+            ("Record Status", "Final" if salary_package_record.is_final else "Draft"),
+        ]
+        
+        for field, value in summary_data:
+            ws.cell(row=current_row, column=1, value=field).border = border
+            ws.cell(row=current_row, column=2, value=value).border = border
+            current_row += 1
+        
+        return current_row
+    
+    def _add_salary_components_section(self, ws, salary_package_record, start_row, section_font, section_fill, subsection_font, border):
+        """Add salary components section to single sheet."""
+        # Section header
+        ws.cell(row=start_row, column=1, value="SALARY COMPONENTS").font = section_font
+        ws.cell(row=start_row, column=1).fill = section_fill
+        ws.merge_cells(f'A{start_row}:C{start_row}')
+        
+        current_row = start_row + 1
+        
+        # Headers
+        headers = ["Component", "Annual Amount", "Monthly Amount"]
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=current_row, column=col, value=header)
+            cell.font = subsection_font
+            cell.border = border
+        current_row += 1
+        
+        # Get annual salary
+        annual_salary = salary_package_record.get_annual_salary_income()
+        
+        # Core components
+        components = [
+            ("Basic Salary", annual_salary.basic_salary.to_float()),
+            ("Dearness Allowance", annual_salary.dearness_allowance.to_float()),
+            ("HRA Provided", annual_salary.hra_provided.to_float()),
+            ("Special Allowance", annual_salary.special_allowance.to_float()),
+            ("Bonus", annual_salary.bonus.to_float()),
+            ("Commission", annual_salary.commission.to_float()),
+        ]
+        
+        total_annual = 0
+        for component, annual_amount in components:
+            if annual_amount > 0:
+                monthly_amount = annual_amount / 12
+                total_annual += annual_amount
+                
+                ws.cell(row=current_row, column=1, value=component).border = border
+                ws.cell(row=current_row, column=2, value=f"₹{annual_amount:,.2f}").border = border
+                ws.cell(row=current_row, column=3, value=f"₹{monthly_amount:,.2f}").border = border
+                current_row += 1
+        
+        # Total row
+        ws.cell(row=current_row, column=1, value="TOTAL GROSS SALARY").border = border
+        ws.cell(row=current_row, column=1).font = Font(bold=True)
+        ws.cell(row=current_row, column=2, value=f"₹{total_annual:,.2f}").border = border
+        ws.cell(row=current_row, column=2).font = Font(bold=True)
+        ws.cell(row=current_row, column=3, value=f"₹{total_annual/12:,.2f}").border = border
+        ws.cell(row=current_row, column=3).font = Font(bold=True)
+        current_row += 1
+        
+        return current_row
+    
+    def _add_specific_allowances_section(self, ws, salary_package_record, start_row, section_font, section_fill, border):
+        """Add specific allowances section to single sheet."""
+        annual_salary = salary_package_record.get_annual_salary_income()
+        
+        if not annual_salary.specific_allowances:
+            return start_row
+        
+        # Section header
+        ws.cell(row=start_row, column=1, value="SPECIFIC ALLOWANCES").font = section_font
+        ws.cell(row=start_row, column=1).fill = section_fill
+        ws.merge_cells(f'A{start_row}:C{start_row}')
+        
+        current_row = start_row + 1
+        
+        # Headers
+        headers = ["Allowance Type", "Annual Amount", "Monthly Amount"]
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=current_row, column=col, value=header)
+            cell.font = Font(bold=True)
+            cell.border = border
+        current_row += 1
+        
+        specific_allowances = annual_salary.specific_allowances
+        
+        # Define allowance fields with their display names
+        allowance_fields = [
+            ("hills_allowance", "Hills Allowance"),
+            ("border_allowance", "Border Allowance"),
+            ("transport_employee_allowance", "Transport Allowance"),
+            ("children_education_allowance", "Children Education Allowance"),
+            ("hostel_allowance", "Hostel Allowance"),
+            ("city_compensatory_allowance", "City Compensatory Allowance"),
+            ("rural_allowance", "Rural Allowance"),
+            ("project_allowance", "Project Allowance"),
+            ("overtime_allowance", "Overtime Allowance"),
+            ("any_other_allowance", "Any Other Allowance"),
+        ]
+        
+        total_specific = 0
+        for field_name, display_name in allowance_fields:
+            if hasattr(specific_allowances, field_name):
+                annual_amount = getattr(specific_allowances, field_name).to_float()
+                if annual_amount > 0:
+                    monthly_amount = annual_amount / 12
+                    total_specific += annual_amount
+                    
+                    ws.cell(row=current_row, column=1, value=display_name).border = border
+                    ws.cell(row=current_row, column=2, value=f"₹{annual_amount:,.2f}").border = border
+                    ws.cell(row=current_row, column=3, value=f"₹{monthly_amount:,.2f}").border = border
+                    current_row += 1
+        
+        # Total row if any allowances exist
+        if total_specific > 0:
+            ws.cell(row=current_row, column=1, value="TOTAL SPECIFIC ALLOWANCES").border = border
+            ws.cell(row=current_row, column=1).font = Font(bold=True)
+            ws.cell(row=current_row, column=2, value=f"₹{total_specific:,.2f}").border = border
+            ws.cell(row=current_row, column=2).font = Font(bold=True)
+            ws.cell(row=current_row, column=3, value=f"₹{total_specific/12:,.2f}").border = border
+            ws.cell(row=current_row, column=3).font = Font(bold=True)
+            current_row += 1
+        
+        return current_row
+    
+    def _add_perquisites_section(self, ws, salary_package_record, start_row, section_font, section_fill, border):
+        """Add perquisites section to single sheet."""
+        # Section header
+        ws.cell(row=start_row, column=1, value="PERQUISITES").font = section_font
+        ws.cell(row=start_row, column=1).fill = section_fill
+        ws.merge_cells(f'A{start_row}:B{start_row}')
+        
+        current_row = start_row + 1
+        
+        # For now, add placeholder data - can be expanded based on actual perquisites structure
+        ws.cell(row=current_row, column=1, value="Perquisites Available").border = border
+        ws.cell(row=current_row, column=2, value="Yes").border = border
+        current_row += 1
+        
+        ws.cell(row=current_row, column=1, value="Details").border = border
+        ws.cell(row=current_row, column=2, value="Available in detailed view").border = border
+        current_row += 1
+        
+        return current_row
+    
+    def _add_other_income_section(self, ws, salary_package_record, start_row, section_font, section_fill, border):
+        """Add other income section to single sheet."""
+        # Section header
+        ws.cell(row=start_row, column=1, value="OTHER INCOME").font = section_font
+        ws.cell(row=start_row, column=1).fill = section_fill
+        ws.merge_cells(f'A{start_row}:B{start_row}')
+        
+        current_row = start_row + 1
+        
+        other_income = salary_package_record.other_income
+        
+        # Dividend income
+        dividend_amount = other_income.dividend_income.to_float() if other_income.dividend_income else 0
+        if dividend_amount > 0:
+            ws.cell(row=current_row, column=1, value="Dividend Income").border = border
+            ws.cell(row=current_row, column=2, value=f"₹{dividend_amount:,.2f}").border = border
+            current_row += 1
+        
+        # Business/Professional income
+        business_amount = other_income.business_professional_income.to_float() if other_income.business_professional_income else 0
+        if business_amount > 0:
+            ws.cell(row=current_row, column=1, value="Business/Professional Income").border = border
+            ws.cell(row=current_row, column=2, value=f"₹{business_amount:,.2f}").border = border
+            current_row += 1
+        
+        # House property income
+        if other_income.house_property_income:
+            hpi_amount = other_income.house_property_income.calculate_net_income_from_house_property(salary_package_record.regime).to_float()
+            ws.cell(row=current_row, column=1, value="House Property Income").border = border
+            ws.cell(row=current_row, column=2, value=f"₹{hpi_amount:,.2f}").border = border
+            current_row += 1
+        
+        return current_row
+    
+    def _add_deductions_section(self, ws, salary_package_record, start_row, section_font, section_fill, subsection_font, border):
+        """Add deductions section to single sheet."""
+        # Section header
+        ws.cell(row=start_row, column=1, value="DEDUCTIONS").font = section_font
+        ws.cell(row=start_row, column=1).fill = section_fill
+        ws.merge_cells(f'A{start_row}:B{start_row}')
+        
+        current_row = start_row + 1
+        
+        deductions = salary_package_record.deductions
+        
+        # Section 80C
+        ws.cell(row=current_row, column=1, value="Section 80C").font = subsection_font
+        ws.merge_cells(f'A{current_row}:B{current_row}')
+        current_row += 1
+        
+        section_80c_fields = [
+            ("epf", "EPF"),
+            ("ppf", "PPF"),
+            ("life_insurance_premium", "Life Insurance Premium"),
+            ("elss", "ELSS"),
+            ("nsc", "NSC"),
+            ("home_loan_principal", "Home Loan Principal"),
+            ("tuition_fees", "Tuition Fees"),
+            ("tax_saver_fd", "Tax Saver FD"),
+            ("sukanya_samriddhi", "Sukanya Samriddhi"),
+            ("ulip", "ULIP"),
+            ("other_80c", "Other 80C Investments"),
+        ]
+        
+        for field_name, display_name in section_80c_fields:
+            if hasattr(deductions.section_80c, field_name):
+                amount = getattr(deductions.section_80c, field_name).to_float()
+                if amount > 0:
+                    ws.cell(row=current_row, column=1, value=display_name).border = border
+                    ws.cell(row=current_row, column=2, value=f"₹{amount:,.2f}").border = border
+                    current_row += 1
+        
+        # Section 80D
+        current_row += 1
+        ws.cell(row=current_row, column=1, value="Section 80D").font = subsection_font
+        ws.merge_cells(f'A{current_row}:B{current_row}')
+        current_row += 1
+        
+        section_80d_fields = [
+            ("health_insurance_self", "Health Insurance - Self"),
+            ("health_insurance_parents", "Health Insurance - Parents"),
+            ("preventive_health_checkup", "Preventive Health Checkup"),
+        ]
+        
+        for field_name, display_name in section_80d_fields:
+            if hasattr(deductions.section_80d, field_name):
+                amount = getattr(deductions.section_80d, field_name).to_float()
+                if amount > 0:
+                    ws.cell(row=current_row, column=1, value=display_name).border = border
+                    ws.cell(row=current_row, column=2, value=f"₹{amount:,.2f}").border = border
+                    current_row += 1
+        
+        # Total deductions
+        current_row += 1
+        # Calculate gross income for deduction calculation
+        gross_income = salary_package_record.calculate_gross_income()
+        total_deductions = deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income).to_float()
+        ws.cell(row=current_row, column=1, value="TOTAL DEDUCTIONS").border = border
+        ws.cell(row=current_row, column=1).font = Font(bold=True)
+        ws.cell(row=current_row, column=2, value=f"₹{total_deductions:,.2f}").border = border
+        ws.cell(row=current_row, column=2).font = Font(bold=True)
+        current_row += 1
+        
+        return current_row
+    
+    def _add_tax_calculation_section(self, ws, salary_package_record, start_row, section_font, section_fill, border):
+        """Add tax calculation section to single sheet."""
+        # Section header
+        ws.cell(row=start_row, column=1, value="TAX CALCULATION").font = section_font
+        ws.cell(row=start_row, column=1).fill = section_fill
+        ws.merge_cells(f'A{start_row}:B{start_row}')
+        
+        current_row = start_row + 1
+        
+        calc_result = salary_package_record.calculation_result
+        
+        # Tax calculation data
+        calc_data = [
+            ("Gross Income", calc_result.gross_income.to_float()),
+            ("Total Exemptions", calc_result.total_exemptions.to_float()),
+            ("Total Deductions", calc_result.total_deductions.to_float()),
+            ("Taxable Income", calc_result.taxable_income.to_float()),
+            ("Tax Liability", calc_result.tax_liability.to_float()),
+            ("Monthly Tax", calc_result.tax_liability.divide(12).to_float()),
+        ]
+        
+        for description, amount in calc_data:
+            ws.cell(row=current_row, column=1, value=description).border = border
+            ws.cell(row=current_row, column=2, value=f"₹{amount:,.2f}").border = border
+            current_row += 1
+        
+        # Effective tax rate
+        gross_income_float = calc_result.gross_income.to_float()
+        tax_liability_float = calc_result.tax_liability.to_float()
+        effective_rate = (tax_liability_float / gross_income_float * 100) if gross_income_float > 0 else 0
+        
+        ws.cell(row=current_row, column=1, value="Effective Tax Rate").border = border
+        ws.cell(row=current_row, column=2, value=f"{effective_rate:.2f}%").border = border
+        current_row += 1
+        
+        return current_row
  

@@ -45,13 +45,9 @@ class SalaryIncomeDTO(BaseModel):
     transport_employee_allowance: Decimal = Field(default=0, ge=0)
     children_education_allowance: Decimal = Field(default=0, ge=0)
     children_education_count: int = Field(default=0, ge=0)
-    children_education_months: int = Field(default=0, ge=0, le=12)
+    children_hostel_count: int = Field(default=0, ge=0)
     hostel_allowance: Decimal = Field(default=0, ge=0)
-    hostel_count: int = Field(default=0, ge=0)
-    hostel_months: int = Field(default=0, ge=0, le=12)
-    transport_months: int = Field(default=0, ge=0, le=12)
     underground_mines_allowance: Decimal = Field(default=0, ge=0)
-    underground_mines_months: int = Field(default=0, ge=0, le=12)
     govt_employee_entertainment_allowance: Decimal = Field(default=0, ge=0)
     govt_employees_outside_india_allowance: Decimal = Field(default=0, ge=0)
     supreme_high_court_judges_allowance: Decimal = Field(default=0, ge=0)
@@ -64,6 +60,16 @@ class SalaryIncomeDTO(BaseModel):
     academic_research: Decimal = Field(default=0, ge=0)
     uniform_allowance: Decimal = Field(default=0, ge=0)
     any_other_allowance_exemption: Decimal = Field(default=0, ge=0)
+    
+    # Additional fields from SpecificAllowances that were missing
+    hills_exemption_limit: Decimal = Field(default=0, ge=0, description="Hills allowance exemption limit")
+    border_exemption_limit: Decimal = Field(default=0, ge=0, description="Border allowance exemption limit")
+    children_count: int = Field(default=0, ge=0, description="Number of children for education allowance")
+    disabled_transport_allowance: Decimal = Field(default=0, ge=0, description="Disabled transport allowance")
+    is_disabled: bool = Field(default=False, description="Whether employee is disabled")
+    mine_work_months: int = Field(default=0, ge=0, le=12, description="Underground mines work months")
+    fixed_medical_allowance: Decimal = Field(default=0, ge=0, description="Fixed medical allowance")
+    any_other_allowance: Decimal = Field(default=0, ge=0, description="Any other allowance (separate from exemption)")
     
     @validator('effective_till')
     def validate_effective_till(cls, v, values):

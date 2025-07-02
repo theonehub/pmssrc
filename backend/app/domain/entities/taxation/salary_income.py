@@ -17,28 +17,25 @@ class SpecificAllowances:
     """Specific allowances with their own exemption rules."""
     
     # Hills/High Altitude Allowances
-    hills_allowance: Money = Money.zero()           #considered for doc
-    hills_exemption_limit: Money = Money.zero()  # Varies by employee
+    monthly_hills_allowance: Money = Money.zero()           #considered for doc
+    monthly_hills_exemption_limit: Money = Money.zero()  # Varies by employee
     
     # Border/Remote Area Allowance
-    border_allowance: Money = Money.zero()           #considered for doc
-    border_exemption_limit: Money = Money.zero()  # Varies by employee
+    monthly_border_allowance: Money = Money.zero()           #considered for doc
+    monthly_border_exemption_limit: Money = Money.zero()  # Varies by employee
     
     # Transport Employee Allowance
     transport_employee_allowance: Money = Money.zero()       #considered for doc
     
     # Children Allowances
     children_education_allowance: Money = Money.zero()       #considered for doc
-    children_count: int = 0
-    children_education_months: int = 12
+    children_education_count: int = 0
 
     hostel_allowance: Money = Money.zero()                   #considered for doc
-    hostel_count: int = 0
-    hostel_months: int = 12
+    children_hostel_count: int = 0
     
     # Disabled Transport Allowance
     disabled_transport_allowance: Money = Money.zero()       #considered for doc
-    transport_months: int = 12
     is_disabled: bool = False
     
     # Underground Mines Allowance
@@ -47,37 +44,70 @@ class SpecificAllowances:
     
     # Government Employee Entertainment
     government_entertainment_allowance: Money = Money.zero()    #considered for doc
-    
+
     # Additional allowances from old project
     city_compensatory_allowance: Money = Money.zero()           #considered for doc
-    rural_allowance: Money = Money.zero()                       #considered for doc
-    proctorship_allowance: Money = Money.zero()                 #considered for doc
-    wardenship_allowance: Money = Money.zero()                  #considered for doc
-    project_allowance: Money = Money.zero()                     #considered for doc
-    deputation_allowance: Money = Money.zero()                  #considered for doc
-    overtime_allowance: Money = Money.zero()                    #considered for doc
-    interim_relief: Money = Money.zero()                        #considered for doc
-    tiffin_allowance: Money = Money.zero()                      #considered for doc
-    fixed_medical_allowance: Money = Money.zero()               #considered for doc
-    servant_allowance: Money = Money.zero()                     #considered for doc
 
+    rural_allowance: Money = Money.zero()                       #considered for doc
+
+    proctorship_allowance: Money = Money.zero()                 #considered for doc
+
+    wardenship_allowance: Money = Money.zero()                  #considered for doc
+
+    project_allowance: Money = Money.zero()                     #considered for doc
+
+    deputation_allowance: Money = Money.zero()                  #considered for doc
+
+    overtime_allowance: Money = Money.zero()                    #considered for doc
+
+    interim_relief: Money = Money.zero()                        #considered for doc
+
+    tiffin_allowance: Money = Money.zero()                      #considered for doc
+
+    fixed_medical_allowance: Money = Money.zero()               #considered for doc
+
+    servant_allowance: Money = Money.zero()                     #considered for doc
 
     any_other_allowance: Money = Money.zero()                   #considered for doc
     any_other_allowance_exemption: Money = Money.zero()
-    
+
     # Section 10 exempted allowances
     govt_employees_outside_india_allowance: Money = Money.zero()  #considered for doc
+
     supreme_high_court_judges_allowance: Money = Money.zero()     #considered for doc
+
     judge_compensatory_allowance: Money = Money.zero()            #considered for doc
+
     section_10_14_special_allowances: Money = Money.zero()        #considered for doc
+
     travel_on_tour_allowance: Money = Money.zero()                #considered for doc
+
     tour_daily_charge_allowance: Money = Money.zero()             #considered for doc
+
     conveyance_in_performace_of_duties: Money = Money.zero()       #considered for doc
+
     helper_in_performace_of_duties: Money = Money.zero()           #considered for doc
+
     academic_research: Money = Money.zero()                        #considered for doc
+
     uniform_allowance: Money = Money.zero()                        #considered for doc
     
-
+    # Additional fields for backward compatibility and code access
+    hills_allowance: Money = Money.zero()                          # Alias for monthly_hills_allowance
+    border_allowance: Money = Money.zero()                         # Alias for monthly_border_allowance
+    hills_exemption_limit: Money = Money.zero()                    # Alias for monthly_hills_exemption_limit
+    border_exemption_limit: Money = Money.zero()                   # Alias for monthly_border_exemption_limit
+    children_count: int = 0                                        # Alias for children_education_count
+    
+    def __post_init__(self):
+        """Sync alias fields with their corresponding monthly fields."""
+        # Sync alias fields
+        self.hills_allowance = self.monthly_hills_allowance
+        self.border_allowance = self.monthly_border_allowance
+        self.hills_exemption_limit = self.monthly_hills_exemption_limit
+        self.border_exemption_limit = self.monthly_border_exemption_limit
+        self.children_count = self.children_education_count
+    
     #########################################################
     # Calculate exemptions for specific allowances
     #########################################################
@@ -86,14 +116,14 @@ class SpecificAllowances:
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
         
-        return self.hills_allowance.min(self.hills_exemption_limit)
+        return self.monthly_hills_allowance.min(self.monthly_hills_exemption_limit)
     
     def calculate_border_exemption(self, regime: TaxRegime) -> Money:
         """Calculate border area allowance exemption."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
         
-        return self.border_allowance.min(self.border_exemption_limit)
+        return self.monthly_border_allowance.min(self.monthly_border_exemption_limit)
     
     def calculate_transport_employee_exemption(self, regime: TaxRegime) -> Money:
         """Calculate transport employee allowance exemption."""
@@ -112,8 +142,8 @@ class SpecificAllowances:
             return Money.zero()
         
         # Rs. 100 per month per child (max 2 children)
-        max_children = min(self.children_count, 2)
-        exemption_limit = Money.from_int(100 * self.children_education_months * max_children)
+        max_children = min(self.children_education_count, 2)
+        exemption_limit = Money.from_int(100 * max_children)
         
         return self.children_education_allowance.min(exemption_limit)
     
@@ -123,8 +153,8 @@ class SpecificAllowances:
             return Money.zero()
         
         # Rs. 300 per month per child (max 2 children)
-        max_children = min(self.hostel_count, 2)
-        exemption_limit = Money.from_int(300 * self.hostel_months * max_children)
+        max_children = min(self.children_hostel_count, 2)
+        exemption_limit = Money.from_int(300 * max_children)
         
         return self.hostel_allowance.min(exemption_limit)
     
@@ -137,7 +167,7 @@ class SpecificAllowances:
             return Money.zero()
         
         # Rs. 3,200 per month
-        exemption_limit = Money.from_int(3200 * self.transport_months)
+        exemption_limit = Money.from_int(3200)
         return self.disabled_transport_allowance.min(exemption_limit)
     
     def calculate_underground_mines_exemption(self, regime: TaxRegime) -> Money:
@@ -146,7 +176,7 @@ class SpecificAllowances:
             return Money.zero()
         
         # Rs. 800 per month
-        exemption_limit = Money.from_int(800 * self.mine_work_months)
+        exemption_limit = Money.from_int(800)
         return self.underground_mines_allowance.min(exemption_limit)
     
     def calculate_government_entertainment_exemption(self, regime: TaxRegime, basic_salary: Money, is_government_employee: bool) -> Money:
@@ -200,8 +230,8 @@ class SpecificAllowances:
     
     def calculate_total_specific_allowances(self) -> Money:
         """Calculate total specific allowances received."""
-        return (self.hills_allowance
-                .add(self.border_allowance)
+        return (self.monthly_hills_allowance    
+                .add(self.monthly_border_allowance)
                 .add(self.transport_employee_allowance)
                 .add(self.children_education_allowance)
                 .add(self.hostel_allowance)

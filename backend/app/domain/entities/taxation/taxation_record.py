@@ -1458,8 +1458,7 @@ class SalaryPackageRecord:
         
         # Integer fields that need special handling
         integer_fields = [
-            'children_count', 'children_education_months', 'hostel_count', 'hostel_months',
-            'transport_months', 'mine_work_months'
+            'children_education_count', 'children_hostel_count'
         ]
         
         # Boolean fields that need special handling
@@ -1529,8 +1528,7 @@ class SalaryPackageRecord:
         
         # Update integer and boolean fields (these were set to latest values)
         integer_and_boolean_fields = [
-            'children_count', 'children_education_months', 'hostel_count', 'hostel_months',
-            'transport_months', 'mine_work_months', 'is_disabled'
+            'children_education_count', 'children_hostel_count'
         ]
         
         for field in integer_and_boolean_fields:
@@ -1583,8 +1581,7 @@ class SalaryPackageRecord:
         
         # Update integer and boolean fields (these were set to latest values)
         integer_and_boolean_fields = [
-            'children_count', 'children_education_months', 'hostel_count', 'hostel_months',
-            'transport_months', 'mine_work_months', 'is_disabled'
+            'children_education_count', 'children_hostel_count'
         ]
         
         for field in integer_and_boolean_fields:
@@ -1640,6 +1637,17 @@ class SalaryPackageRecord:
         """
         return self.get_annual_salary_income().calculate_gross_salary()
     
+    def additional_tax_liability(self) -> Money:
+        """
+        Calculate additional tax liability from all sources.
+        
+        Returns:
+            Money: Additional tax liability from all sources
+        """
+        if self.capital_gains_income:
+            return self.capital_gains_income.calculate_stcg_111a_tax().add(self.capital_gains_income.calculate_ltcg_112a_tax())
+        return Money.zero()
+
     def calculate_tax(self, calculation_service: TaxCalculationService) -> TaxCalculationResult:
         """
         Calculate tax using domain service.
@@ -1661,7 +1669,7 @@ class SalaryPackageRecord:
         logger.info(f"TheOne: Total exemptions: {total_exemptions}")
 
         # Calculate total deductions
-        total_deductions = self.deductions.calculate_total_deductions(self.regime)
+        total_deductions = self.deductions.calculate_total_deductions(self.regime, self.age, gross_income)
         logger.info(f"TheOne: Total deductions: {total_deductions}")
 
         income_after_exemptions = gross_income.subtract(total_exemptions)
@@ -1675,6 +1683,7 @@ class SalaryPackageRecord:
             taxable_income,
             self.regime,
             self.age,
+            self.additional_tax_liability(),
             is_senior_citizen,
             is_super_senior_citizen
         )
@@ -1940,9 +1949,11 @@ class SalaryPackageRecord:
         if self.is_final:
             raise ValueError("Cannot update finalized salary package record")
         
-        old_deductions = self.deductions.calculate_total_deductions(self.regime)
+        # Calculate gross income for deduction calculations
+        gross_income = self.calculate_gross_income()
+        old_deductions = self.deductions.calculate_total_deductions(self.regime, self.age, gross_income)
         self.deductions = new_deductions
-        new_deductions_total = new_deductions.calculate_total_deductions(self.regime)
+        new_deductions_total = new_deductions.calculate_total_deductions(self.regime, self.age, gross_income)
         
         # Invalidate calculation
         self._invalidate_calculation()
@@ -2192,7 +2203,8 @@ class SalaryPackageRecord:
         # Deduction warnings
         if self.regime.allows_deductions():
             # Check if deductions are underutilized
-            total_deductions = self.deductions.calculate_total_deductions(self.regime)
+            gross_income = self.calculate_gross_income()
+            total_deductions = self.deductions.calculate_total_deductions(self.regime, self.age, gross_income)
             if total_deductions.is_less_than(Money.from_int(100000)):  # Less than 1 lakh
                 warnings.append("Consider maximizing tax-saving investments under Section 80C")
             

@@ -29,13 +29,9 @@ export interface SalaryIncomeDTO {
   transport_employee_allowance?: number;
   children_education_allowance?: number;
   children_education_count?: number;
-  children_education_months?: number;
+  children_hostel_count?: number;
   hostel_allowance?: number;
-  hostel_count?: number;
-  hostel_months?: number;
-  transport_months?: number;
   underground_mines_allowance?: number;
-  underground_mines_months?: number;
   govt_employee_entertainment_allowance?: number;
   govt_employees_outside_india_allowance?: number;
   supreme_high_court_judges_allowance?: number;
@@ -48,6 +44,20 @@ export interface SalaryIncomeDTO {
   academic_research?: number;
   uniform_allowance?: number;
   any_other_allowance_exemption?: number;
+  
+  // Additional fields from SpecificAllowances that were missing
+  hills_exemption_limit?: number;
+  border_exemption_limit?: number;
+  children_count?: number;
+  disabled_transport_allowance?: number;
+  is_disabled?: boolean;
+  mine_work_months?: number;
+  fixed_medical_allowance?: number;
+  any_other_allowance?: number;
+  
+  // Effective date fields for salary revisions
+  effective_from?: string;
+  effective_till?: string;
 }
 
 export interface OtherIncomeDTO {

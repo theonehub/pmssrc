@@ -51,6 +51,22 @@ class TaxCalculationResult:
     tax_breakdown: Dict[str, Any]
     regime_comparison: Optional[Dict[str, Any]] = None
     monthly_payroll: Optional[Any] = None  # Add monthly payroll projection
+    
+    def __post_init__(self):
+        """Validate that all monetary fields are Money objects."""
+        from app.domain.value_objects.money import Money
+        
+        # Check that all monetary fields are Money objects
+        if not isinstance(self.total_income, Money):
+            raise ValueError(f"total_income must be a Money object, got {type(self.total_income)}")
+        if not isinstance(self.total_exemptions, Money):
+            raise ValueError(f"total_exemptions must be a Money object, got {type(self.total_exemptions)}")
+        if not isinstance(self.total_deductions, Money):
+            raise ValueError(f"total_deductions must be a Money object, got {type(self.total_deductions)}")
+        if not isinstance(self.taxable_income, Money):
+            raise ValueError(f"taxable_income must be a Money object, got {type(self.taxable_income)}")
+        if not isinstance(self.tax_liability, Money):
+            raise ValueError(f"tax_liability must be a Money object, got {type(self.tax_liability)}")
 
     # Additional convenience properties
     @property
@@ -367,6 +383,8 @@ class TaxCalculationService:
             taxable_income,
             input_data.regime,
             input_data.age,
+            input_data.capital_gains_income.calculate_stcg_111a_tax(),
+            input_data.capital_gains_income.calculate_ltcg_112a_tax(),
             input_data.is_senior_citizen,
             input_data.is_super_senior_citizen
         )
@@ -398,6 +416,8 @@ class TaxCalculationService:
                            gross_income: Money,
                            total_exemptions: Money, 
                            total_deductions: Money,
+                           stcg_tax: Money,
+                           ltcg_tax: Money,
                            regime: TaxRegime, 
                            age: int) -> TaxCalculationResult:
         """
@@ -421,9 +441,39 @@ class TaxCalculationService:
         income_after_exemptions = gross_income.subtract(total_exemptions) if gross_income.is_greater_than(total_exemptions) else Money.zero()
         taxable_income = income_after_exemptions.subtract(total_deductions) if income_after_exemptions.is_greater_than(total_deductions) else Money.zero()
         logger.info(f"TheOne: Taxable income: {taxable_income.to_float()}")
-        logger.error(f"TheOne: Should not be used")
-
-        return 0
+        
+        # Calculate tax liability
+        tax_liability = self._calculate_tax_liability(
+            taxable_income,
+            regime,
+            age,
+            stcg_tax,
+            ltcg_tax,
+            is_senior_citizen,
+            is_super_senior_citizen
+        )
+        
+        # Create tax breakdown
+        tax_breakdown = {
+            "income_details": {
+                "gross_income": gross_income.to_float(),
+                "total_exemptions": total_exemptions.to_float(),
+                "income_after_exemptions": income_after_exemptions.to_float(),
+                "total_deductions": total_deductions.to_float(),
+                "taxable_income": taxable_income.to_float(),
+                "tax_liability": tax_liability.to_float()
+            }
+        }
+        
+        return TaxCalculationResult(
+            total_income=gross_income,
+            total_exemptions=total_exemptions,
+            total_deductions=total_deductions,
+            taxable_income=taxable_income,
+            tax_liability=tax_liability,
+            tax_breakdown=tax_breakdown,
+            regime_comparison=None
+        )
   
     def _calculate_total_income(self, input_data: TaxCalculationInput) -> Money:
         """Calculate total income from all sources."""
@@ -470,6 +520,7 @@ class TaxCalculationService:
                                taxable_income: Money,
                                regime: TaxRegime,
                                age: int,
+                               additional_tax_liability: Money,
                                is_senior_citizen: bool,
                                is_super_senior_citizen: bool) -> Money:
         """Calculate tax liability based on tax slabs."""
@@ -510,6 +561,9 @@ class TaxCalculationService:
             else:
                 logger.info(f"TheOne: Skipping slab ({slab_min.to_float()}-{slab_max.to_float() if slab['max'] else 'unlimited'}): "
                            f"taxable_income {taxable_income.to_float()} <= slab_min {slab_min.to_float()}")
+        
+        # Add STCG tax
+        tax_amount = tax_amount.add(additional_tax_liability)
         
         # Add surcharge if applicable
         if taxable_income > Money(Decimal('5000000')):  # Above ₹50 lakh

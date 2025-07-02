@@ -688,6 +688,48 @@ class TaxationAPI {
   }
 
   /**
+   * Export salary package data to Excel
+   */
+  async exportSalaryPackageToExcel(
+    employeeId: string,
+    taxYear?: string
+  ): Promise<Blob> {
+    try {
+      const url = `/api/v2/taxation/export/salary-package/${employeeId}`;
+      const params: Record<string, string> = {};
+      if (taxYear) {
+        params.tax_year = taxYear;
+      }
+
+      return await this.baseApi.download(url, { params });
+    } catch (error) {
+      console.error('Error exporting salary package to Excel:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Export salary package data to Excel (single sheet)
+   */
+  async exportSalaryPackageSingleSheet(
+    employeeId: string,
+    taxYear?: string
+  ): Promise<Blob> {
+    try {
+      const url = `/api/v2/taxation/export/salary-package-single/${employeeId}`;
+      const params: Record<string, string> = {};
+      if (taxYear) {
+        params.tax_year = taxYear;
+      }
+
+      return await this.baseApi.download(url, { params });
+    } catch (error) {
+      console.error('Error exporting salary package to single Excel sheet:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Compute monthly tax for a specific month and year
    */
   async computeMonthlyTaxSimple(

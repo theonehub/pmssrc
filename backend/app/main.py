@@ -15,7 +15,6 @@ from app.utils.logger import get_logger
 # from app.infrastructure.services.legacy_migration_service import create_default_user
 
 from app.api.routes.auth_routes_v2 import router as auth_routes_v2_router
-from app.api.routes.employee_salary_routes_v2 import router as employee_salary_routes_v2_router
 from app.api.routes.user_routes_v2 import router as user_routes_v2_router
 from app.api.routes.organisation_routes_v2 import organisation_v2_router
 from app.api.routes.reimbursement_routes_v2 import router as reimbursement_routes_v2_router
@@ -69,7 +68,6 @@ app.mount("/files", StaticFiles(directory=UPLOAD_DIR), name="files")
 app.include_router(auth_routes_v2_router, tags=["🔐 Authentication V2 (SOLID)"])
 app.include_router(user_routes_v2_router, tags=["👥 Users V2 (SOLID)"])
 app.include_router(organisation_v2_router, tags=["🏛️ Organisation V2 (SOLID)"])
-app.include_router(employee_salary_routes_v2_router, tags=["💰 Employee Salary V2 (SOLID)"])
 app.include_router(company_leave_routes_v2_router, tags=["🏢 Company Leaves V2 (SOLID)"])
 app.include_router(employee_leave_routes_v2_router, tags=["🏖️ Employee Leaves V2 (SOLID)"])
 app.include_router(leaves_routes_v2_router, tags=["🏖️ Leaves V2 (Frontend Compatible)"])
@@ -107,53 +105,6 @@ logger.info("✅ Critical routes registered: taxation, payout, user management, 
 #             "error": str(e),
 #             "version": "2.0.0"
 #         }
-
-# @app.get("/")
-# async def root():
-#     """Root endpoint with API info"""
-    
-#     # Build available endpoints dynamically
-#     solid_v2_endpoints = {
-#         "auth": "/api/v2/auth/",
-#         "employee_salary": "/api/v2/employee-salary/",
-#         "payslips": "/api/v2/payslips/",
-#         "taxation": "/api/v2/taxation/",
-#         "payouts": "/api/v2/payouts/",
-#         "users": "/api/v2/users/",
-#         "organisations": "/api/v2/organisations/",
-#         "attendance": "/api/v2/attendance/",
-#         "reimbursements": "/api/v2/reimbursements/",
-#         "public_holidays": "/api/v2/public-holidays/",
-#         "company_leaves": "/api/v2/company-leaves/",
-#         "project_attributes": "/api/v2/project-attributes/",
-#         "employee_leave": "/api/v2/employee-leave/"
-#     }
-    
-#     return {
-#         "message": "Payroll Management System - SOLID Architecture",
-#         "version": "2.0.0",
-#         "docs": "/docs",
-#         "health": "/health",
-#         "solid_v2_endpoints": solid_v2_endpoints,
-#         "core_features": [
-#             "🔐 Complete Authentication System",
-#             "💰 Employee Salary Management", 
-#             "📄 Payslip Generation and Management",
-#             "📊 Comprehensive Taxation System",
-#             "💰 Payout Processing and Management",
-#             "👥 User Management System",
-#             "🏛️ Organisation Management System",
-#             "⏰ Attendance Tracking System",
-#             "💳 Reimbursement Management System",
-#             "🎉 Public Holiday Management System",
-#             "🏢 Company Leave Management System",
-#             "📊 Project Attributes Management System",
-#             "🏖️ Employee Leave Management System"
-#         ],
-#         "architecture": "SOLID-compliant with graceful degradation",
-#         "total_endpoints": len(solid_v2_endpoints),
-#         "status": "Production Ready"
-#     }
 
 # Run the server
 if __name__ == "__main__":

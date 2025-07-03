@@ -146,29 +146,6 @@ export interface DeductionsDTO {
   section_80u: number;
 }
 
-export interface AnnualPayrollWithLWPDTO {
-  months_data: MonthlyPayrollDTO[];
-  lwp_days_per_month: number[];
-  total_lwp_days: number;
-  adjusted_annual_salary: number;
-}
-
-export interface MonthlyPayrollDTO {
-  month: string;
-  basic_pay: number;
-  hra: number;
-  special_allowance: number;
-  other_allowances: number;
-  gross_salary: number;
-  pf_employee: number;
-  professional_tax: number;
-  tds: number;
-  other_deductions: number;
-  net_salary: number;
-  lwp_days: number;
-  working_days: number;
-}
-
 export interface ComprehensiveTaxInputDTO {
   tax_year: string;
   regime_type: TaxRegime;
@@ -183,7 +160,6 @@ export interface ComprehensiveTaxInputDTO {
   capital_gains?: CapitalGainsIncomeDTO;
   retirement_benefits?: RetirementBenefitsDTO;
   other_income?: OtherIncomeDTO;
-  annual_payroll_with_lwp?: AnnualPayrollWithLWPDTO;
   
   // Deductions
   deductions?: DeductionsDTO;

@@ -31,7 +31,6 @@ import TaxationDashboard from './components/taxation/TaxationDashboard';
 import TaxDeclaration from './components/taxation/TaxDeclaration';
 import EmployeeTaxDetail from './components/taxation/EmployeeTaxDetail';
 import EmployeeSelection from './components/taxation/EmployeeSelection';
-import MonthlyProjections from './components/taxation/MonthlyProjections';
 import IndividualComponentManagement from './components/taxation/IndividualComponentManagement';
 
 // Individual Component Forms
@@ -229,10 +228,6 @@ const AppContent: React.FC = () => {
           <Route
             path="/taxation/component/other-income/new/:empId"
             element={withLayout(<OtherIncomeComponentForm />, 'New Other Income Revision', ['admin', 'superadmin'])}
-          />
-          <Route
-            path="/taxation/monthly-projections"
-            element={withLayout(<MonthlyProjections />, 'Monthly Projections', ['user', 'manager', 'admin', 'superadmin'])}
           />
           <Route
             path="/taxation/salary-processing"

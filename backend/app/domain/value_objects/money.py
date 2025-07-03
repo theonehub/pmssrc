@@ -238,4 +238,11 @@ class Money:
     
     def __abs__(self) -> 'Money':
         """Absolute value operator."""
-        return self  # Money is always positive 
+        return self  # Money is always positive
+    
+    def to_dict(self) -> dict:
+        """Serialize Money object to dictionary."""
+        return {
+            "amount": float(self.amount),
+            "currency": self.currency
+        } 

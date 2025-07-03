@@ -122,12 +122,6 @@ const TaxDeclaration: React.FC = () => {
     setStepErrors(newStepErrors);
   }, [taxationData]);
 
-  // Handle next step without validation blocking
-  const handleNext = (): void => {
-    setActiveStep((prevActiveStep) => prevActiveStep + 1);
-    window.scrollTo(0, 0);
-  };
-
   // Handle back step
   const handleBack = (): void => {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
@@ -225,18 +219,7 @@ const TaxDeclaration: React.FC = () => {
     }
   };
 
-  // Handle form submission with warning notifications instead of blocking
-  const onSubmit = (): void => {
-    const finalValidation: any = validateTaxationForm(taxationData);
-    
-    // Show warnings dialog if there are warnings, but don't block submission
-    if (finalValidation.hasWarnings) {
-      setShowValidationDialog(true);
-    }
-    
-    // Always allow submission, backend will handle final validation
-    handleSubmit(navigate);
-  };
+
 
   // Render validation warnings dialog
   const renderValidationDialog = (): React.ReactElement => (
@@ -387,52 +370,6 @@ const TaxDeclaration: React.FC = () => {
             >
               Back
             </Button>
-
-            <Box>
-              {activeStep === formSteps.length - 1 ? (
-                // Show Monthly Projections button if tax calculation is complete, otherwise show Submit Declaration
-                taxCalculationResponse && taxCalculationResponse.monthly_payroll ? (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => {
-                      navigate('/taxation/monthly-projections', { 
-                        state: { 
-                          monthlyPayroll: taxCalculationResponse.monthly_payroll,
-                          taxationData,
-                          taxCalculationResponse
-                        }
-                      });
-                    }}
-                    size="large"
-                    sx={{ 
-                      minWidth: 200,
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    Monthly Projections
-                  </Button>
-                ) : (
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={onSubmit}
-                    disabled={submitting}
-                    startIcon={submitting && <CircularProgress size={20} />}
-                  >
-                    {submitting ? 'Submitting...' : 'Submit Declaration'}
-                  </Button>
-                )
-              ) : (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={handleNext}
-                >
-                  Next
-                </Button>
-              )}
-            </Box>
           </Box>
 
           {/* Show validation summary at bottom if there are warnings */}

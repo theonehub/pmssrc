@@ -734,15 +734,6 @@ class LWPDetailsDTO(BaseModel):
     working_days_in_month: int = Field(..., ge=1, le=31)
 
 
-class MonthlyPayrollDTO(BaseModel):
-    """Monthly payroll DTO."""
-    month: int = Field(..., ge=1, le=12)
-    year: int = Field(..., ge=2020, le=2030)
-    base_monthly_gross: Decimal = Field(..., ge=0)
-    lwp_days: int = Field(default=0, ge=0, le=31)
-    working_days_in_month: int = Field(default=30, ge=1, le=31)
-
-
 class PayoutMonthlyProjectionDTO(BaseModel):
     """Payout monthly projection DTO."""
     employee_id: str = Field(..., description="Employee ID")

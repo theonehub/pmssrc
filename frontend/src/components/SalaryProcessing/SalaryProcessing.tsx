@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -30,7 +30,9 @@ import {
   ListItemIcon,
   ListItemText,
   TextField,
-  Divider
+  Divider,
+  FormControlLabel,
+  Switch
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
@@ -100,6 +102,7 @@ const SalaryProcessing: React.FC = () => {
   const [paymentReference, setPaymentReference] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [showOnlyLoans, setShowOnlyLoans] = useState(false);
 
   // Month options
   const monthOptions = [
@@ -215,6 +218,14 @@ const SalaryProcessing: React.FC = () => {
     fetchSalaries();
     fetchSummary();
   };
+
+  // Filter salaries based on loan status
+  const filteredSalaries = useMemo(() => {
+    if (showOnlyLoans) {
+      return salaries.filter(salary => salary.loan_deduction > 0);
+    }
+    return salaries;
+  }, [salaries, showOnlyLoans]);
 
   const handleBulkCompute = async () => {
     setBulkComputing(true);
@@ -461,7 +472,7 @@ const SalaryProcessing: React.FC = () => {
             </Grid>
             
             <Grid item xs={12} sm={8}>
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
                 <Button
                   variant="outlined"
                   startIcon={<RefreshIcon />}
@@ -480,6 +491,29 @@ const SalaryProcessing: React.FC = () => {
                 >
                   {bulkComputing ? 'Computing...' : 'Bulk Compute Salaries'}
                 </Button>
+                
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={showOnlyLoans}
+                      onChange={(e) => setShowOnlyLoans(e.target.checked)}
+                      color="warning"
+                    />
+                  }
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography variant="body2">Show Only Loans</Typography>
+                      {salaries.filter(s => s.loan_deduction > 0).length > 0 && (
+                        <Chip 
+                          label={salaries.filter(s => s.loan_deduction > 0).length} 
+                          size="small" 
+                          color="warning" 
+                          variant="outlined"
+                        />
+                      )}
+                    </Box>
+                  }
+                />
               </Box>
             </Grid>
           </Grid>
@@ -495,7 +529,7 @@ const SalaryProcessing: React.FC = () => {
             </Typography>
             
             <Grid container spacing={3}>
-              <Grid item xs={6} sm={3}>
+              <Grid item xs={6} sm={2}>
                 <Box textAlign="center">
                   <Typography variant="h4" color="primary">
                     {summary.total_employees}
@@ -506,7 +540,7 @@ const SalaryProcessing: React.FC = () => {
                 </Box>
               </Grid>
               
-              <Grid item xs={6} sm={3}>
+              <Grid item xs={6} sm={2}>
                 <Box textAlign="center">
                   <Typography variant="h4" color="success.main">
                     {summary.computed_count}
@@ -517,7 +551,7 @@ const SalaryProcessing: React.FC = () => {
                 </Box>
               </Grid>
               
-              <Grid item xs={6} sm={3}>
+              <Grid item xs={6} sm={2}>
                 <Box textAlign="center">
                   <Typography variant="h4" color="info.main">
                     {formatCurrency(summary.total_gross_payroll)}
@@ -528,7 +562,7 @@ const SalaryProcessing: React.FC = () => {
                 </Box>
               </Grid>
               
-              <Grid item xs={6} sm={3}>
+              <Grid item xs={6} sm={2}>
                 <Box textAlign="center">
                   <Typography variant="h4" color="success.main">
                     {summary.computation_completion_rate.toFixed(1)}%
@@ -538,7 +572,83 @@ const SalaryProcessing: React.FC = () => {
                   </Typography>
                 </Box>
               </Grid>
+              
+              <Grid item xs={6} sm={2}>
+                <Box textAlign="center">
+                  <Typography variant="h4" color="warning.main">
+                    {formatCurrency(summary.total_deductions)}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Total Deductions
+                  </Typography>
+                </Box>
+              </Grid>
+              
+              <Grid item xs={6} sm={2}>
+                <Box textAlign="center">
+                  <Typography variant="h4" color="error.main">
+                    {formatCurrency(summary.total_tds)}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Total TDS
+                  </Typography>
+                </Box>
+              </Grid>
             </Grid>
+            
+            {/* Loan Summary Section */}
+            {salaries.some(s => s.loan_deduction > 0) && (
+              <Box sx={{ mt: 3, pt: 3, borderTop: 1, borderColor: 'divider' }}>
+                <Typography variant="h6" gutterBottom color="warning.main">
+                  Loan Summary
+                </Typography>
+                <Grid container spacing={3}>
+                  <Grid item xs={6} sm={3}>
+                    <Box textAlign="center">
+                      <Typography variant="h5" color="warning.main">
+                        {salaries.filter(s => s.loan_deduction > 0).length}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Employees with Loans
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  
+                  <Grid item xs={6} sm={3}>
+                    <Box textAlign="center">
+                      <Typography variant="h5" color="warning.main">
+                        {formatCurrency(salaries.reduce((sum, s) => sum + s.loan_deduction, 0))}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Total Loan Deductions
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  
+                  <Grid item xs={6} sm={3}>
+                    <Box textAlign="center">
+                      <Typography variant="h5" color="warning.main">
+                        {formatCurrency(salaries.reduce((sum, s) => sum + s.loan_principal_amount, 0))}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Total Principal
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  
+                  <Grid item xs={6} sm={3}>
+                    <Box textAlign="center">
+                      <Typography variant="h5" color="warning.main">
+                        {formatCurrency(salaries.reduce((sum, s) => sum + s.loan_outstanding_amount, 0))}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Total Outstanding
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Box>
+            )}
           </CardContent>
         </Card>
       )}
@@ -623,12 +733,13 @@ const SalaryProcessing: React.FC = () => {
                     <TableCell align="right">Gross Salary</TableCell>
                     <TableCell align="right">Net Salary</TableCell>
                     <TableCell align="right">TDS</TableCell>
+                    <TableCell align="right">Loan Deduction</TableCell>
                     <TableCell align="center">Status</TableCell>
                     <TableCell align="center">Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {salaries.map((salary) => (
+                  {filteredSalaries.map((salary) => (
                     <TableRow key={`${salary.employee_id}-${salary.month}-${salary.year}`}>
                       <TableCell>
                         <Box>
@@ -649,6 +760,37 @@ const SalaryProcessing: React.FC = () => {
                       </TableCell>
                       <TableCell align="right">
                         {formatCurrency(salary.tds)}
+                      </TableCell>
+                      <TableCell align="right">
+                        {salary.loan_deduction > 0 ? (
+                          <Tooltip
+                            title={
+                              <Box>
+                                <Typography variant="body2"><strong>Loan Details:</strong></Typography>
+                                <Typography variant="body2">Type: {salary.loan_type || 'N/A'}</Typography>
+                                <Typography variant="body2">Principal: {formatCurrency(salary.loan_principal_amount)}</Typography>
+                                <Typography variant="body2">Interest: {formatCurrency(salary.loan_interest_amount)}</Typography>
+                                <Typography variant="body2">Outstanding: {formatCurrency(salary.loan_outstanding_amount)}</Typography>
+                              </Box>
+                            }
+                            arrow
+                          >
+                            <Box>
+                              <Typography variant="body2" color="warning.main" fontWeight="medium">
+                                {formatCurrency(salary.loan_deduction)}
+                              </Typography>
+                              {salary.loan_type && (
+                                <Typography variant="caption" color="text.secondary">
+                                  {salary.loan_type}
+                                </Typography>
+                              )}
+                            </Box>
+                          </Tooltip>
+                        ) : (
+                          <Typography variant="body2" color="text.secondary">
+                            -
+                          </Typography>
+                        )}
                       </TableCell>
                       <TableCell align="center">
                         {getStatusChip(salary.status)}
@@ -679,11 +821,14 @@ const SalaryProcessing: React.FC = () => {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {salaries.length === 0 && (
+                  {filteredSalaries.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={7} align="center">
+                      <TableCell colSpan={8} align="center">
                         <Typography color="text.secondary">
-                          No salary records found for the selected period
+                          {showOnlyLoans 
+                            ? 'No employees with loans found for the selected period'
+                            : 'No salary records found for the selected period'
+                          }
                         </Typography>
                       </TableCell>
                     </TableRow>
@@ -916,7 +1061,7 @@ const SalaryProcessing: React.FC = () => {
       <Dialog
         open={salaryDetailDialogOpen}
         onClose={() => setSalaryDetailDialogOpen(false)}
-        maxWidth="md"
+        maxWidth="lg"
         fullWidth
       >
         <DialogTitle>
@@ -924,25 +1069,168 @@ const SalaryProcessing: React.FC = () => {
         </DialogTitle>
         <DialogContent>
           {selectedSalary && (
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="h6" gutterBottom>Employee Information</Typography>
-                <Typography><strong>ID:</strong> {selectedSalary.employee_id}</Typography>
-                <Typography><strong>Name:</strong> {selectedSalary.employee_name}</Typography>
-                <Typography><strong>Department:</strong> {selectedSalary.department}</Typography>
-                <Typography><strong>Designation:</strong> {selectedSalary.designation}</Typography>
+            <Box>
+              {/* Employee and Period Information */}
+              <Grid container spacing={3} sx={{ mb: 3 }}>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="h6" gutterBottom color="primary">
+                    Employee Information
+                  </Typography>
+                  <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                    <Typography><strong>ID:</strong> {selectedSalary.employee_id}</Typography>
+                    <Typography><strong>Name:</strong> {selectedSalary.employee_name}</Typography>
+                    <Typography><strong>Department:</strong> {selectedSalary.department || 'N/A'}</Typography>
+                    <Typography><strong>Designation:</strong> {selectedSalary.designation || 'N/A'}</Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="h6" gutterBottom color="primary">
+                    Period Information
+                  </Typography>
+                  <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                    <Typography><strong>Period:</strong> {monthOptions.find(m => m.value === selectedSalary.month)?.label} {selectedSalary.year}</Typography>
+                    <Typography><strong>Tax Year:</strong> {selectedSalary.tax_year}</Typography>
+                    <Typography><strong>Status:</strong> {getStatusChip(selectedSalary.status)}</Typography>
+                    <Typography><strong>Working Days:</strong> {selectedSalary.effective_working_days}/{selectedSalary.total_days_in_month}</Typography>
+                    <Typography><strong>LWP Days:</strong> {selectedSalary.lwp_days}</Typography>
+                  </Box>
+                </Grid>
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <Typography variant="h6" gutterBottom>Salary Information</Typography>
-                <Typography><strong>Period:</strong> {monthOptions.find(m => m.value === selectedSalary.month)?.label} {selectedSalary.year}</Typography>
-                <Typography><strong>Tax Year:</strong> {selectedSalary.tax_year}</Typography>
-                <Typography><strong>Status:</strong> {getStatusChip(selectedSalary.status)}</Typography>
-                <Typography><strong>Gross:</strong> {formatCurrency(selectedSalary.gross_salary)}</Typography>
-                <Typography><strong>Net:</strong> {formatCurrency(selectedSalary.net_salary)}</Typography>
-                <Typography><strong>Deductions:</strong> {formatCurrency(selectedSalary.total_deductions)}</Typography>
-                <Typography><strong>TDS:</strong> {formatCurrency(selectedSalary.tds)}</Typography>
+
+              {/* Salary Breakdown */}
+              <Typography variant="h6" gutterBottom color="primary">
+                Salary Breakdown
+              </Typography>
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ p: 2, bgcolor: 'success.50', borderRadius: 1 }}>
+                    <Typography variant="subtitle1" gutterBottom><strong>Earnings</strong></Typography>
+                    <Typography><strong>Basic Salary:</strong> {formatCurrency(selectedSalary.basic_salary)}</Typography>
+                    <Typography><strong>DA:</strong> {formatCurrency(selectedSalary.da)}</Typography>
+                    <Typography><strong>HRA:</strong> {formatCurrency(selectedSalary.hra)}</Typography>
+                    <Typography><strong>Special Allowance:</strong> {formatCurrency(selectedSalary.special_allowance)}</Typography>
+                    <Typography><strong>Transport Allowance:</strong> {formatCurrency(selectedSalary.transport_allowance)}</Typography>
+                    <Typography><strong>Medical Allowance:</strong> {formatCurrency(selectedSalary.medical_allowance)}</Typography>
+                    <Typography><strong>Bonus:</strong> {formatCurrency(selectedSalary.bonus)}</Typography>
+                    <Typography><strong>Commission:</strong> {formatCurrency(selectedSalary.commission)}</Typography>
+                    <Typography><strong>Other Allowances:</strong> {formatCurrency(selectedSalary.other_allowances)}</Typography>
+                    <Divider sx={{ my: 1 }} />
+                    <Typography variant="h6" color="success.main">
+                      <strong>Gross Salary: {formatCurrency(selectedSalary.gross_salary)}</strong>
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ p: 2, bgcolor: 'error.50', borderRadius: 1 }}>
+                    <Typography variant="subtitle1" gutterBottom><strong>Deductions</strong></Typography>
+                    <Typography><strong>EPF:</strong> {formatCurrency(selectedSalary.epf_employee)}</Typography>
+                    <Typography><strong>ESI:</strong> {formatCurrency(selectedSalary.esi_employee)}</Typography>
+                    <Typography><strong>Professional Tax:</strong> {formatCurrency(selectedSalary.professional_tax)}</Typography>
+                    <Typography><strong>Advance Deduction:</strong> {formatCurrency(selectedSalary.advance_deduction)}</Typography>
+                    <Typography><strong>Loan Deduction:</strong> {formatCurrency(selectedSalary.loan_deduction)}</Typography>
+                    <Typography><strong>Other Deductions:</strong> {formatCurrency(selectedSalary.other_deductions)}</Typography>
+                    <Typography><strong>TDS:</strong> {formatCurrency(selectedSalary.tds)}</Typography>
+                    <Divider sx={{ my: 1 }} />
+                    <Typography variant="h6" color="error.main">
+                      <strong>Total Deductions: {formatCurrency(selectedSalary.total_deductions)}</strong>
+                    </Typography>
+                  </Box>
+                </Grid>
               </Grid>
-            </Grid>
+
+              {/* Loan Details Section */}
+              {selectedSalary.loan_deduction > 0 && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="h6" gutterBottom color="primary">
+                    Loan Information
+                  </Typography>
+                  <Box sx={{ p: 2, bgcolor: 'warning.50', borderRadius: 1 }}>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} md={6}>
+                        <Typography><strong>Loan Type:</strong> {selectedSalary.loan_type || 'N/A'}</Typography>
+                        <Typography><strong>Monthly Loan Deduction:</strong> {formatCurrency(selectedSalary.loan_deduction)}</Typography>
+                        <Typography><strong>Principal Amount:</strong> {formatCurrency(selectedSalary.loan_principal_amount)}</Typography>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <Typography><strong>Interest Amount:</strong> {formatCurrency(selectedSalary.loan_interest_amount)}</Typography>
+                        <Typography><strong>Outstanding Amount:</strong> {formatCurrency(selectedSalary.loan_outstanding_amount)}</Typography>
+                        <Typography><strong>Tax Regime:</strong> {selectedSalary.tax_regime}</Typography>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                </Box>
+              )}
+
+              {/* Payment Information */}
+              <Typography variant="h6" gutterBottom color="primary">
+                Payment Information
+              </Typography>
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ p: 2, bgcolor: 'info.50', borderRadius: 1 }}>
+                    <Typography variant="subtitle1" gutterBottom><strong>Payment Status</strong></Typography>
+                    <Typography>
+                      <strong>Salary Paid:</strong> 
+                      {selectedSalary.salary_paid ? (
+                        <Chip label="Yes" color="success" size="small" sx={{ ml: 1 }} />
+                      ) : (
+                        <Chip label="No" color="default" size="small" sx={{ ml: 1 }} />
+                      )}
+                    </Typography>
+                    <Typography>
+                      <strong>TDS Paid:</strong> 
+                      {selectedSalary.tds_paid ? (
+                        <Chip label="Yes" color="success" size="small" sx={{ ml: 1 }} />
+                      ) : (
+                        <Chip label="No" color="default" size="small" sx={{ ml: 1 }} />
+                      )}
+                    </Typography>
+                    {selectedSalary.payment_reference && (
+                      <Typography><strong>Payment Reference:</strong> {selectedSalary.payment_reference}</Typography>
+                    )}
+                    {selectedSalary.payment_notes && (
+                      <Typography><strong>Payment Notes:</strong> {selectedSalary.payment_notes}</Typography>
+                    )}
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ p: 2, bgcolor: 'info.50', borderRadius: 1 }}>
+                    <Typography variant="subtitle1" gutterBottom><strong>Net Pay Summary</strong></Typography>
+                    <Typography variant="h5" color="primary" gutterBottom>
+                      <strong>Net Salary: {formatCurrency(selectedSalary.net_salary)}</strong>
+                    </Typography>
+                    <Typography><strong>Annual Gross:</strong> {formatCurrency(selectedSalary.annual_gross_salary)}</Typography>
+                    <Typography><strong>Annual Tax Liability:</strong> {formatCurrency(selectedSalary.annual_tax_liability)}</Typography>
+                    <Typography><strong>Tax Exemptions:</strong> {formatCurrency(selectedSalary.tax_exemptions)}</Typography>
+                    <Typography><strong>Standard Deduction:</strong> {formatCurrency(selectedSalary.standard_deduction)}</Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+
+              {/* Metadata */}
+              <Typography variant="h6" gutterBottom color="primary">
+                Additional Information
+              </Typography>
+              <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <Typography><strong>Computation Date:</strong> {selectedSalary.computation_date || 'N/A'}</Typography>
+                    <Typography><strong>Created By:</strong> {selectedSalary.created_by || 'N/A'}</Typography>
+                    <Typography><strong>Created At:</strong> {new Date(selectedSalary.created_at).toLocaleString()}</Typography>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Typography><strong>Updated By:</strong> {selectedSalary.updated_by || 'N/A'}</Typography>
+                    <Typography><strong>Updated At:</strong> {new Date(selectedSalary.updated_at).toLocaleString()}</Typography>
+                    {selectedSalary.notes && (
+                      <Typography><strong>Notes:</strong> {selectedSalary.notes}</Typography>
+                    )}
+                    {selectedSalary.remarks && (
+                      <Typography><strong>Remarks:</strong> {selectedSalary.remarks}</Typography>
+                    )}
+                  </Grid>
+                </Grid>
+              </Box>
+            </Box>
           )}
         </DialogContent>
         <DialogActions>

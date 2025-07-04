@@ -27,6 +27,7 @@ from app.api.routes.lwp_routes import router as lwp_routes_router
 from app.api.routes.project_attributes_routes_v2 import router as project_attributes_routes_v2_router
 from app.api.routes.reporting_routes_v2 import router as reporting_routes_v2_router
 from app.api.routes.taxation_routes import router as taxation_routes_router
+from app.api.routes.monthly_salary_routes import router as monthly_salary_routes_router
 
 # Configure centralized logging
 logger = get_logger(__name__)
@@ -78,6 +79,7 @@ app.include_router(attendance_routes_v2_router, tags=["⏰ Attendance V2 (SOLID)
 app.include_router(public_holiday_routes_v2_router, tags=["🎉 Public Holidays V2 (SOLID)"])
 app.include_router(reporting_routes_v2_router, tags=["📊 Reporting V2 (SOLID)"])
 app.include_router(taxation_routes_router, tags=["💰 Taxation V2 (SOLID)"])
+app.include_router(monthly_salary_routes_router, tags=["💸 Monthly Salary (Frontend Compatible)"])
 logger.info("✅ Critical routes registered: taxation, payout, user management, reimbursement, attendance, public holidays, employee leave, company leave, project attributes, reporting")
 
 # # Health check endpoint

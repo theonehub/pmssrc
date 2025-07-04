@@ -7,6 +7,7 @@ from datetime import datetime, date
 from decimal import Decimal
 from typing import Dict, Any, List, Optional, Union
 from pydantic import BaseModel, Field, validator, model_validator
+from dataclasses import dataclass
 
 
 # =============================================================================
@@ -996,4 +997,161 @@ class TaxationRecordStatusResponse(BaseModel):
     components_status: Dict[str, Dict[str, Any]] = Field(..., description="Status of each component")
     overall_status: str = Field(..., description="Overall record status")
     last_updated: datetime = Field(..., description="Last update timestamp")
-    is_final: bool = Field(..., description="Whether record is finalized") 
+    is_final: bool = Field(..., description="Whether record is finalized")
+
+
+# =============================================================================
+# MONTHLY SALARY DTOs
+# =============================================================================
+
+@dataclass
+class MonthlySalaryDTO:
+    employee_id: str
+    month: int
+    year: int
+    tax_year: str
+    employee_name: Optional[str] = None
+    employee_email: Optional[str] = None
+    department: Optional[str] = None
+    designation: Optional[str] = None
+    
+    # Salary components
+    basic_salary: Decimal = Decimal('0')
+    da: Decimal = Decimal('0')
+    hra: Decimal = Decimal('0')
+    special_allowance: Decimal = Decimal('0')
+    transport_allowance: Decimal = Decimal('0')
+    medical_allowance: Decimal = Decimal('0')
+    bonus: Decimal = Decimal('0')
+    commission: Decimal = Decimal('0')
+    other_allowances: Decimal = Decimal('0')
+    
+    # Deductions
+    epf_employee: Decimal = Decimal('0')
+    esi_employee: Decimal = Decimal('0')
+    professional_tax: Decimal = Decimal('0')
+    tds: Decimal = Decimal('0')
+    advance_deduction: Decimal = Decimal('0')
+    loan_deduction: Decimal = Decimal('0')
+    other_deductions: Decimal = Decimal('0')
+    
+    # Calculated totals
+    gross_salary: Decimal = Decimal('0')
+    total_deductions: Decimal = Decimal('0')
+    net_salary: Decimal = Decimal('0')
+    
+    # Annual projections
+    annual_gross_salary: Decimal = Decimal('0')
+    annual_tax_liability: Decimal = Decimal('0')
+    
+    # Tax details
+    tax_regime: str = "new"
+    tax_exemptions: Decimal = Decimal('0')
+    standard_deduction: Decimal = Decimal('0')
+    
+    # Working days and LWP
+    total_days_in_month: int = 30
+    working_days_in_period: int = 30
+    lwp_days: int = 0
+    effective_working_days: int = 30
+    
+    # Status management
+    status: str = "not_computed"
+    
+    # Payment tracking
+    salary_paid: bool = False
+    tds_paid: bool = False
+    payment_reference: Optional[str] = None
+    payment_notes: Optional[str] = None
+    
+    # Loan details for transparency
+    loan_principal_amount: Decimal = Decimal('0')
+    loan_interest_amount: Decimal = Decimal('0')
+    loan_outstanding_amount: Decimal = Decimal('0')
+    loan_type: Optional[str] = None
+    
+    # Metadata
+    computation_date: Optional[str] = None
+    notes: Optional[str] = None
+    remarks: Optional[str] = None
+    created_at: str = ""
+    updated_at: str = ""
+    created_by: Optional[str] = None
+    updated_by: Optional[str] = None
+
+@dataclass
+class MonthlySalaryListResponse:
+    items: List[MonthlySalaryDTO]
+    total: int
+    skip: int
+    limit: int
+    has_more: bool
+
+@dataclass
+class MonthlySalarySummaryResponse:
+    month: int
+    year: int
+    tax_year: str
+    total_employees: int
+    computed_count: int
+    pending_count: int
+    approved_count: int
+    paid_count: int
+    total_gross_payroll: Decimal
+    total_net_payroll: Decimal
+    total_deductions: Decimal
+    total_tds: Decimal
+    computation_completion_rate: Decimal
+    last_computed_at: Optional[str] = None
+    next_processing_date: Optional[str] = None
+
+@dataclass
+class MonthlySalaryComputeRequest:
+    employee_id: str
+    month: int
+    year: int
+    tax_year: str
+    force_recompute: bool = False
+    computed_by: Optional[str] = None
+
+@dataclass
+class MonthlySalaryBulkComputeRequest:
+    month: int
+    year: int
+    tax_year: str
+    employee_ids: Optional[List[str]] = None
+    force_recompute: bool = False
+    computed_by: Optional[str] = None
+
+@dataclass
+class MonthlySalaryBulkComputeError:
+    employee_id: str
+    error: str
+
+@dataclass
+class MonthlySalaryBulkComputeResponse:
+    total_requested: int
+    successful: int
+    failed: int
+    skipped: int
+    errors: List[MonthlySalaryBulkComputeError]
+    computation_summary: Optional[dict] = None
+
+@dataclass
+class MonthlySalaryStatusUpdateRequest:
+    employee_id: str
+    month: int
+    year: int
+    status: str
+    notes: Optional[str] = None
+    updated_by: Optional[str] = None
+
+@dataclass
+class MonthlySalaryPaymentRequest:
+    employee_id: str
+    month: int
+    year: int
+    payment_type: str  # 'salary', 'tds', 'both'
+    payment_reference: Optional[str] = None
+    payment_notes: Optional[str] = None
+    paid_by: Optional[str] = None 

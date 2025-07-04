@@ -6,7 +6,6 @@ SOLID-compliant dependency container for managing service dependencies
 from typing import Optional
 
 # Repository implementations
-from app.infrastructure.repositories.mongodb_user_repository import MongoDBUserRepository
 from app.infrastructure.repositories.mongodb_organisation_repository import MongoDBOrganisationRepository
 from app.infrastructure.repositories.mongodb_public_holiday_repository import MongoDBPublicHolidayRepository
 from app.infrastructure.repositories.mongodb_company_leave_repository import MongoDBCompanyLeaveRepository
@@ -15,6 +14,7 @@ from app.infrastructure.repositories.mongodb_reimbursement_repository import Mon
 from app.infrastructure.repositories.project_attributes_repository_impl import ProjectAttributesRepositoryImpl
 from app.infrastructure.repositories.employee_leave_repository_impl import EmployeeLeaveRepositoryImpl
 from app.infrastructure.repositories.mongodb_reporting_repository import MongoDBReportingRepository
+from app.infrastructure.repositories.mongodb_monthly_salary_repository import MongoDBMonthlySalaryRepository
 
 # Service implementations
 from app.infrastructure.services.user_service_impl import UserServiceImpl
@@ -63,7 +63,7 @@ class DependencyContainer:
         self._controllers = {}
         self._initialized = False
         
-        self._db_config = get_database_config()
+        self._db_config = get_mongodb_config()
     
     def initialize(self):
         """Initialize all dependencies."""
@@ -135,15 +135,17 @@ class DependencyContainer:
     def _setup_repositories(self):
         """Setup repository implementations."""
         try:
+            # Lazy imports to avoid circular imports
+            from app.infrastructure.repositories.mongodb_user_repository import MongoDBUserRepository
+            from app.infrastructure.repositories.mongodb_attendance_repository import MongoDBAttendanceRepository
+            
             # Create all repositories with database connector
             user_repository = MongoDBUserRepository(self._database_connector)
             organisation_repository = MongoDBOrganisationRepository(self._database_connector)
             public_holiday_repository = MongoDBPublicHolidayRepository(self._database_connector)
             company_leave_repository = MongoDBCompanyLeaveRepository(self._database_connector)
             salary_package_repository = MongoDBSalaryPackageRepository(self._database_connector)
-            
-            # Lazy import for attendance repository to avoid circular imports
-            from app.infrastructure.repositories.mongodb_attendance_repository import MongoDBAttendanceRepository
+            monthly_salary_repository = MongoDBMonthlySalaryRepository(self._database_connector)
             attendance_repository = MongoDBAttendanceRepository(self._database_connector)
             
             reimbursement_repository = MongoDBReimbursementRepository(self._database_connector)
@@ -158,6 +160,7 @@ class DependencyContainer:
                 public_holiday_repository,
                 company_leave_repository,
                 salary_package_repository,
+                monthly_salary_repository,
                 attendance_repository,
                 reimbursement_repository,
                 project_attributes_repository,
@@ -178,6 +181,7 @@ class DependencyContainer:
             self._repositories['public_holiday'] = public_holiday_repository
             self._repositories['company_leave'] = company_leave_repository
             self._repositories['salary_package'] = salary_package_repository
+            self._repositories['monthly_salary'] = monthly_salary_repository
             self._repositories['attendance'] = attendance_repository
             self._repositories['reimbursement'] = reimbursement_repository
             self._repositories['project_attributes'] = project_attributes_repository
@@ -338,7 +342,7 @@ class DependencyContainer:
     
     # ==================== REPOSITORY GETTERS ====================
     
-    def get_user_repository(self) -> MongoDBUserRepository:
+    def get_user_repository(self):
         """Get user repository instance."""
         self.initialize()
         return self._repositories['user']
@@ -387,6 +391,11 @@ class DependencyContainer:
         """Get salary package repository instance."""
         self.initialize()
         return self._repositories['salary_package']
+    
+    def get_monthly_salary_repository(self) -> MongoDBMonthlySalaryRepository:
+        """Get monthly salary repository instance."""
+        self.initialize()
+        return self._repositories['monthly_salary']
     
     # ==================== SERVICE GETTERS ====================
     
@@ -718,7 +727,8 @@ class DependencyContainer:
         # Create controller with all handlers and services
         self._controllers['taxation'] = UnifiedTaxationController(
             user_repository=self._repositories['user'],
-            salary_package_repository=self._repositories['salary_package']
+            salary_package_repository=self._repositories['salary_package'],
+            monthly_salary_repository=self._repositories['monthly_salary']
         )
         
         return self._controllers['taxation']
@@ -819,7 +829,7 @@ def get_user_service() -> UserServiceImpl:
     return container.get_user_service()
 
 
-def get_user_repository() -> MongoDBUserRepository:
+def get_user_repository():
     """FastAPI dependency for user repository."""
     container = get_dependency_container()
     return container.get_user_repository()

@@ -6,9 +6,11 @@ Handles all taxation-related operations and calculations for both comprehensive 
 from typing import List, Dict, Any, Optional, Union, Tuple
 from datetime import datetime, date
 from decimal import Decimal
+from fastapi import HTTPException
 
 # Import centralized logger
 from app.utils.logger import get_logger
+from app.auth.auth_dependencies import CurrentUser
 
 # Excel-related imports
 import pandas as pd
@@ -51,6 +53,17 @@ from app.application.dto.taxation_dto import (
     ComponentResponse,
     TaxationRecordStatusResponse,
     FlatRetirementBenefitsDTO,
+    
+    # Monthly Salary DTOs
+    MonthlySalaryDTO,
+    MonthlySalaryListResponse,
+    MonthlySalarySummaryResponse,
+    MonthlySalaryComputeRequest,
+    MonthlySalaryBulkComputeRequest,
+    MonthlySalaryBulkComputeResponse,
+    MonthlySalaryBulkComputeError,
+    MonthlySalaryStatusUpdateRequest,
+    MonthlySalaryPaymentRequest,
 )
 
 # Import domain entities and value objects
@@ -85,6 +98,7 @@ from app.domain.services.taxation.tax_calculation_service import (
     TaxCalculationService, TaxCalculationInput, TaxCalculationResult
 )
 from app.application.use_cases.taxation.get_employees_for_selection_use_case import GetEmployeesForSelectionUseCase
+from app.application.use_cases.taxation.compute_monthly_salary_use_case import ComputeMonthlySalaryUseCase
 
 logger = get_logger(__name__)
 
@@ -110,10 +124,12 @@ class UnifiedTaxationController:
     
     def __init__(self,
                  user_repository,
-                 salary_package_repository):
+                 salary_package_repository,
+                 monthly_salary_repository=None):
                  
         self.user_repository = user_repository
         self.salary_package_repository = salary_package_repository
+        self.monthly_salary_repository = monthly_salary_repository
         self.tax_calculation_service = TaxCalculationService(salary_package_repository)
         
         # Get user service from dependency container
@@ -124,6 +140,312 @@ class UnifiedTaxationController:
         self.get_employees_for_selection_use_case = GetEmployeesForSelectionUseCase(
             user_query_service=user_service,  # Pass the service that implements UserQueryService
             salary_package_repository=salary_package_repository
+        )
+        
+        # Initialize monthly salary use case if repository is provided
+        if monthly_salary_repository:
+            self._compute_monthly_salary_use_case = ComputeMonthlySalaryUseCase(
+                monthly_salary_repository=monthly_salary_repository,
+                salary_package_repository=salary_package_repository,
+                user_query_repository=user_repository
+            )
+        else:
+            self._compute_monthly_salary_use_case = None
+    
+    # =============================================================================
+    # MONTHLY SALARY OPERATIONS
+    # =============================================================================
+    
+    async def compute_monthly_salary(
+        self,
+        employee_id: str,
+        month: int,
+        year: int,
+        tax_year: str,
+        force_recompute: bool = False,
+        current_user: CurrentUser = None
+    ) -> MonthlySalaryDTO:
+        """Compute monthly salary for an employee."""
+        try:
+            monthly_salary = await self._compute_monthly_salary_use_case.execute(
+                employee_id=employee_id,
+                month=month,
+                year=year,
+                tax_year=tax_year,
+                force_recompute=force_recompute,
+                computed_by=current_user.employee_id if current_user else None,
+                organisation_id=current_user.hostname if current_user else None
+            )
+            
+            return self._convert_monthly_salary_to_dto(monthly_salary)
+            
+        except Exception as e:
+            logger.error(f"Error computing monthly salary: {e}")
+            raise HTTPException(status_code=400, detail=str(e))
+    
+    async def bulk_compute_monthly_salaries(
+        self,
+        request: MonthlySalaryBulkComputeRequest,
+        current_user: CurrentUser = None
+    ) -> MonthlySalaryBulkComputeResponse:
+        """Bulk compute monthly salaries for multiple employees."""
+        try:
+            result = await self._compute_monthly_salary_use_case.bulk_compute(
+                month=request.month,
+                year=request.year,
+                tax_year=request.tax_year,
+                employee_ids=request.employee_ids,
+                force_recompute=request.force_recompute,
+                computed_by=current_user.employee_id if current_user else None,
+                organisation_id=current_user.hostname if current_user else None
+            )
+            
+            return MonthlySalaryBulkComputeResponse(
+                total_requested=result["total_requested"],
+                successful=result["successful"],
+                failed=result["failed"],
+                skipped=result["skipped"],
+                errors=[MonthlySalaryBulkComputeError(**error) for error in result["errors"]],
+                computation_summary=result.get("computation_summary")
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in bulk compute: {e}")
+            raise HTTPException(status_code=400, detail=str(e))
+    
+    async def get_monthly_salaries_for_period(
+        self,
+        month: int,
+        year: int,
+        status: Optional[str] = None,
+        department: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 100,
+        current_user: CurrentUser = None
+    ) -> MonthlySalaryListResponse:
+        """Get monthly salaries for a period with pagination."""
+        try:
+            result = await self._compute_monthly_salary_use_case.get_monthly_salaries_for_period(
+                month=month,
+                year=year,
+                organisation_id=current_user.hostname if current_user else None,
+                status=status,
+                department=department,
+                skip=skip,
+                limit=limit
+            )
+            
+            # Convert entities to DTOs
+            salary_dtos = []
+            for salary in result["items"]:
+                dto = self._convert_monthly_salary_to_dto(salary)
+                salary_dtos.append(dto)
+            
+            return MonthlySalaryListResponse(
+                items=salary_dtos,
+                total=result["total"],
+                skip=result["skip"],
+                limit=result["limit"],
+                has_more=result["has_more"]
+            )
+            
+        except Exception as e:
+            logger.error(f"Error getting monthly salaries for period: {e}")
+            raise HTTPException(status_code=400, detail=str(e))
+    
+    async def get_monthly_salary_summary(
+        self,
+        month: int,
+        year: int,
+        current_user: CurrentUser = None
+    ) -> MonthlySalarySummaryResponse:
+        """Get summary statistics for a period."""
+        try:
+            summary = await self._compute_monthly_salary_use_case.get_monthly_salary_summary(
+                month=month,
+                year=year,
+                organisation_id=current_user.hostname if current_user else None
+            )
+            
+            return MonthlySalarySummaryResponse(
+                month=summary["month"],
+                year=summary["year"],
+                tax_year="",  # TODO: Get from context
+                total_employees=summary["total_employees"],
+                computed_count=summary["computed_count"],
+                pending_count=summary["pending_count"],
+                approved_count=summary["approved_count"],
+                paid_count=summary["paid_count"],
+                total_gross_payroll=summary["total_gross_payroll"],
+                total_net_payroll=summary["total_net_payroll"],
+                total_deductions=summary["total_deductions"],
+                total_tds=summary["total_tds"],
+                computation_completion_rate=summary["computation_completion_rate"],
+                last_computed_at=summary["last_computed_at"].isoformat() if summary["last_computed_at"] else None,
+                next_processing_date=summary["next_processing_date"]
+            )
+            
+        except Exception as e:
+            logger.error(f"Error getting monthly salary summary: {e}")
+            raise HTTPException(status_code=400, detail=str(e))
+    
+    async def update_monthly_salary_status(
+        self,
+        request: MonthlySalaryStatusUpdateRequest,
+        current_user: CurrentUser = None
+    ) -> MonthlySalaryDTO:
+        """Update the status of a monthly salary record."""
+        try:
+            updated_salary = await self._compute_monthly_salary_use_case.update_monthly_salary_status(
+                employee_id=request.employee_id,
+                month=request.month,
+                year=request.year,
+                status=request.status,
+                notes=request.notes,
+                updated_by=current_user.employee_id if current_user else None,
+                organisation_id=current_user.hostname if current_user else None
+            )
+            
+            if not updated_salary:
+                raise HTTPException(status_code=404, detail="Monthly salary record not found")
+            
+            return self._convert_monthly_salary_to_dto(updated_salary)
+            
+        except Exception as e:
+            logger.error(f"Error updating monthly salary status: {e}")
+            raise HTTPException(status_code=400, detail=str(e))
+    
+    async def mark_salary_payment(
+        self,
+        request: MonthlySalaryPaymentRequest,
+        current_user: CurrentUser = None
+    ) -> MonthlySalaryDTO:
+        """Mark payment for a monthly salary record."""
+        try:
+            updated_salary = await self._compute_monthly_salary_use_case.mark_salary_payment(
+                employee_id=request.employee_id,
+                month=request.month,
+                year=request.year,
+                payment_type=request.payment_type,
+                payment_reference=request.payment_reference,
+                payment_notes=request.payment_notes,
+                paid_by=current_user.employee_id if current_user else None,
+                organisation_id=current_user.hostname if current_user else None
+            )
+            
+            if not updated_salary:
+                raise HTTPException(status_code=404, detail="Monthly salary record not found")
+            
+            return self._convert_monthly_salary_to_dto(updated_salary)
+            
+        except Exception as e:
+            logger.error(f"Error marking salary payment: {e}")
+            raise HTTPException(status_code=400, detail=str(e))
+    
+    async def delete_monthly_salary(
+        self,
+        employee_id: str,
+        month: int,
+        year: int,
+        current_user: CurrentUser = None
+    ) -> Dict[str, str]:
+        """Delete a monthly salary record."""
+        try:
+            deleted = await self._compute_monthly_salary_use_case.delete_monthly_salary(
+                employee_id=employee_id,
+                month=month,
+                year=year,
+                organisation_id=current_user.hostname if current_user else None
+            )
+            
+            if not deleted:
+                raise HTTPException(status_code=404, detail="Monthly salary record not found")
+            
+            return {"message": "Monthly salary record deleted successfully"}
+            
+        except Exception as e:
+            logger.error(f"Error deleting monthly salary: {e}")
+            raise HTTPException(status_code=400, detail=str(e))
+    
+    def _convert_monthly_salary_to_dto(self, monthly_salary) -> MonthlySalaryDTO:
+        """Convert MonthlySalary entity to DTO."""
+        # Get employee details (simplified for now)
+        employee_name = None
+        employee_email = None
+        department = None
+        designation = None
+        
+        return MonthlySalaryDTO(
+            employee_id=monthly_salary.employee_id.value,
+            month=monthly_salary.month,
+            year=monthly_salary.year,
+            tax_year=monthly_salary.tax_year.value,
+            employee_name=employee_name,
+            employee_email=employee_email,
+            department=department,
+            designation=designation,
+            
+            # Salary components
+            basic_salary=monthly_salary.salary.basic_salary.amount,
+            da=monthly_salary.salary.dearness_allowance.amount,
+            hra=monthly_salary.salary.hra_provided.amount,
+            special_allowance=monthly_salary.salary.special_allowance.amount,
+            transport_allowance=monthly_salary.transport_allowance.amount,
+            medical_allowance=monthly_salary.medical_allowance.amount,
+            bonus=monthly_salary.salary.bonus.amount,
+            commission=monthly_salary.salary.commission.amount,
+            other_allowances=monthly_salary.other_allowances.amount,
+            
+            # Deductions
+            epf_employee=monthly_salary.epf_employee.amount,
+            esi_employee=monthly_salary.esi_employee.amount,
+            professional_tax=monthly_salary.professional_tax.amount,
+            tds=monthly_salary.tax_amount.amount,
+            advance_deduction=monthly_salary.advance_deduction.amount,
+            loan_deduction=monthly_salary.loan_deduction.amount,
+            other_deductions=monthly_salary.other_deductions.amount,
+            
+            # Calculated totals
+            gross_salary=monthly_salary.gross_salary.amount,
+            total_deductions=monthly_salary.total_deductions.amount,
+            net_salary=monthly_salary.net_salary.amount,
+            
+            # Annual projections
+            annual_gross_salary=monthly_salary.annual_gross_salary.amount,
+            annual_tax_liability=monthly_salary.annual_tax_liability.amount,
+            
+            # Tax details
+            tax_regime=monthly_salary.tax_regime.value,
+            tax_exemptions=monthly_salary.tax_exemptions.amount,
+            standard_deduction=monthly_salary.standard_deduction.amount,
+            
+            # Working days and LWP
+            total_days_in_month=monthly_salary.total_days_in_month,
+            working_days_in_period=monthly_salary.working_days_in_period,
+            lwp_days=monthly_salary.lwp_days,
+            effective_working_days=monthly_salary.effective_working_days,
+            
+            # Status management
+            status=monthly_salary.status,
+            salary_paid=monthly_salary.salary_paid,
+            tds_paid=monthly_salary.tds_paid,
+            payment_reference=monthly_salary.payment_reference,
+            payment_notes=monthly_salary.payment_notes,
+            
+            # Loan details
+            loan_principal_amount=monthly_salary.loan_principal_amount.amount,
+            loan_interest_amount=monthly_salary.loan_interest_amount.amount,
+            loan_outstanding_amount=monthly_salary.loan_outstanding_amount.amount,
+            loan_type=monthly_salary.loan_type,
+            
+            # Metadata
+            computation_date=monthly_salary.computation_date.isoformat() if monthly_salary.computation_date else None,
+            notes=monthly_salary.notes,
+            remarks=monthly_salary.remarks,
+            created_at=monthly_salary.created_at.isoformat() if monthly_salary.created_at else "",
+            updated_at=monthly_salary.updated_at.isoformat() if monthly_salary.updated_at else "",
+            created_by=monthly_salary.created_by,
+            updated_by=monthly_salary.updated_by
         )
     
     # =============================================================================
@@ -3478,5 +3800,74 @@ class UnifiedTaxationController:
         ws.cell(row=current_row, column=2, value=f"{effective_rate:.2f}%").border = border
         current_row += 1
         
+        
         return current_row
+    
+    async def get_monthly_salary(
+        self,
+        employee_id: str,
+        month: int,
+        year: int,
+        current_user: CurrentUser = None
+    ) -> MonthlySalaryDTO:
+        """Get monthly salary for a specific employee and period."""
+        try:
+            # Get employee details
+            employee_id_vo = EmployeeId(employee_id)
+            employee = await self._user_repository.get_by_id(employee_id_vo, current_user.hostname if current_user else None)
+            
+            if not employee:
+                raise HTTPException(status_code=404, detail="Employee not found")
+            
+            # Get monthly salary record
+            monthly_salary = await self._monthly_salary_repository.get_by_employee_and_period(
+                employee_id_vo, month, year, current_user.hostname if current_user else None
+            )
+            
+            if not monthly_salary:
+                raise HTTPException(status_code=404, detail="Monthly salary record not found")
+            
+            return self._convert_monthly_salary_to_dto(monthly_salary)
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error getting monthly salary: {e}")
+            raise HTTPException(status_code=400, detail=str(e))
+
+    async def get_monthly_salary_summary(
+        self,
+        month: int,
+        year: int,
+        current_user: CurrentUser = None
+    ) -> MonthlySalarySummaryResponse:
+        """Get summary statistics for a period."""
+        try:
+            summary = await self._compute_monthly_salary_use_case.get_monthly_salary_summary(
+                month=month,
+                year=year,
+                organisation_id=current_user.hostname if current_user else None
+            )
+            
+            return MonthlySalarySummaryResponse(
+                month=summary["month"],
+                year=summary["year"],
+                tax_year="",  # TODO: Get from context
+                total_employees=summary["total_employees"],
+                computed_count=summary["computed_count"],
+                pending_count=summary["pending_count"],
+                approved_count=summary["approved_count"],
+                paid_count=summary["paid_count"],
+                total_gross_payroll=summary["total_gross_payroll"],
+                total_net_payroll=summary["total_net_payroll"],
+                total_deductions=summary["total_deductions"],
+                total_tds=summary["total_tds"],
+                computation_completion_rate=summary["computation_completion_rate"],
+                last_computed_at=summary["last_computed_at"].isoformat() if summary["last_computed_at"] else None,
+                next_processing_date=summary["next_processing_date"]
+            )
+            
+        except Exception as e:
+            logger.error(f"Error getting monthly salary summary: {e}")
+            raise HTTPException(status_code=400, detail=str(e))
  

@@ -35,7 +35,17 @@ from app.application.dto.taxation_dto import (
     
     # Component Retrieval DTOs
     ComponentResponse,
-    TaxationRecordStatusResponse
+    TaxationRecordStatusResponse,
+    
+    # Monthly Salary DTOs
+    MonthlySalaryDTO,
+    MonthlySalaryComputeRequest,
+    MonthlySalaryBulkComputeRequest,
+    MonthlySalaryBulkComputeResponse,
+    MonthlySalaryListResponse,
+    MonthlySalarySummaryResponse,
+    MonthlySalaryStatusUpdateRequest,
+    MonthlySalaryPaymentRequest
 )
 from app.api.controllers.taxation_controller import UnifiedTaxationController
 from app.config.dependency_container import (
@@ -1041,4 +1051,185 @@ async def export_salary_package_single_sheet(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to export salary package to single sheet: {str(e)}"
         )
+
+@router.post("/compute-month-salary",
+            response_model=MonthlySalaryDTO,
+            status_code=status.HTTP_200_OK,
+            summary="Compute monthly salary for employee",
+            description="Compute and save monthly salary for an employee based on their latest salary package record")
+async def compute_monthly_salary(
+    employee_id: str = Query(..., description="Employee ID"),
+    month: int = Query(..., ge=1, le=12, description="Month (1-12)"),
+    year: int = Query(..., ge=2020, le=2030, description="Year"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> MonthlySalaryDTO:
+    """Compute monthly salary for an employee."""
+    
+    try:
+        logger.info(f"Computing monthly salary for employee {employee_id}, month {month}, year {year}")
+        
+        # Execute the controller method
+        monthly_salary = await controller.compute_monthly_salary(
+            employee_id=employee_id,
+            month=month,
+            year=year,
+            organization_id=current_user.hostname
+        )
+        
+        # Convert to DTO for response
+        response_dto = controller._convert_monthly_salary_to_dto(monthly_salary)
+        
+        logger.info(f"Successfully computed monthly salary for employee {employee_id}, month {month}, year {year}")
+        return response_dto
+        
+    except ValueError as e:
+        logger.error(f"Validation error computing monthly salary: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
+    except RuntimeError as e:
+        logger.error(f"Runtime error computing monthly salary: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error computing monthly salary: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to compute monthly salary: {str(e)}"
+        )
+
+# =============================================================================
+# MONTHLY SALARY ROUTES
+# =============================================================================
+
+@router.post("/compute-month-salary", response_model=MonthlySalaryDTO)
+async def compute_monthly_salary(
+    employee_id: str,
+    month: int,
+    year: int,
+    tax_year: str,
+    force_recompute: bool = False,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Compute monthly salary for an employee."""
+    return await controller.compute_monthly_salary(
+        employee_id=employee_id,
+        month=month,
+        year=year,
+        tax_year=tax_year,
+        force_recompute=force_recompute,
+        current_user=current_user
+    )
+
+@router.post("/monthly-salary/compute", response_model=MonthlySalaryDTO)
+async def compute_monthly_salary_v2(
+    request: MonthlySalaryComputeRequest,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Compute monthly salary for an employee (v2)."""
+    return await controller.compute_monthly_salary(
+        employee_id=request.employee_id,
+        month=request.month,
+        year=request.year,
+        tax_year=request.tax_year,
+        force_recompute=request.force_recompute,
+        current_user=current_user
+    )
+
+@router.post("/monthly-salary/bulk-compute", response_model=MonthlySalaryBulkComputeResponse)
+async def bulk_compute_monthly_salaries(
+    request: MonthlySalaryBulkComputeRequest,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Bulk compute monthly salaries for multiple employees."""
+    return await controller.bulk_compute_monthly_salaries(
+        request=request,
+        current_user=current_user
+    )
+
+@router.get("/monthly-salary/period/month/{month}/year/{year}", response_model=MonthlySalaryListResponse)
+async def get_monthly_salaries_for_period(
+    month: int,
+    year: int,
+    status: Optional[str] = None,
+    department: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 100,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Get monthly salaries for a period with pagination."""
+    return await controller.get_monthly_salaries_for_period(
+        month=month,
+        year=year,
+        status=status,
+        department=department,
+        skip=skip,
+        limit=limit,
+        current_user=current_user
+    )
+
+@router.get("/monthly-salary/summary/month/{month}/year/{year}", response_model=MonthlySalarySummaryResponse)
+async def get_monthly_salary_summary(
+    month: int,
+    year: int,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Get summary statistics for a period."""
+    return await controller.get_monthly_salary_summary(
+        month=month,
+        year=year,
+        current_user=current_user
+    )
+
+@router.put("/monthly-salary/status", response_model=MonthlySalaryDTO)
+async def update_monthly_salary_status(
+    request: MonthlySalaryStatusUpdateRequest,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Update the status of a monthly salary record."""
+    return await controller.update_monthly_salary_status(
+        request=request,
+        current_user=current_user
+    )
+
+@router.put("/monthly-salary/payment", response_model=MonthlySalaryDTO)
+async def mark_salary_payment(
+    request: MonthlySalaryPaymentRequest,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Mark payment for a monthly salary record."""
+    return await controller.mark_salary_payment(
+        request=request,
+        current_user=current_user
+    )
+
+@router.get("/monthly-salary/employee/{employee_id}/month/{month}/year/{year}", response_model=MonthlySalaryDTO)
+async def get_monthly_salary(
+    employee_id: str,
+    month: int,
+    year: int,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Get monthly salary for a specific employee."""
+    # This would need to be implemented in the controller
+    raise HTTPException(status_code=501, detail="Not implemented yet")
+
+@router.delete("/monthly-salary/employee/{employee_id}/month/{month}/year/{year}")
+async def delete_monthly_salary(
+    employee_id: str,
+    month: int,
+    year: int,
+    current_user: CurrentUser = Depends(get_current_user)
+):
+    """Delete a monthly salary record."""
+    return await controller.delete_monthly_salary(
+        employee_id=employee_id,
+        month=month,
+        year=year,
+        current_user=current_user
+    )
 

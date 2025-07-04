@@ -45,6 +45,18 @@ export interface MonthlySalaryResponse {
   updated_at: string;
   created_by: string | null;
   updated_by: string | null;
+  
+  // Loan details for transparency
+  loan_principal_amount: number;
+  loan_interest_amount: number;
+  loan_outstanding_amount: number;
+  loan_type: string | null;
+  
+  // Payment tracking
+  salary_paid: boolean;
+  tds_paid: boolean;
+  payment_reference: string | null;
+  payment_notes: string | null;
 }
 
 export interface MonthlySalaryListResponse {

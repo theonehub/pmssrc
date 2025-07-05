@@ -35,7 +35,11 @@ from app.application.dto.taxation_dto import (
     
     # Component Retrieval DTOs
     ComponentResponse,
-    TaxationRecordStatusResponse
+    TaxationRecordStatusResponse,
+    
+    # Monthly Salary DTOs
+    MonthlySalaryComputeRequestDTO,
+    MonthlySalaryResponseDTO
 )
 from app.api.controllers.taxation_controller import UnifiedTaxationController
 from app.config.dependency_container import (
@@ -1040,5 +1044,68 @@ async def export_salary_package_single_sheet(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to export salary package to single sheet: {str(e)}"
+        )
+
+
+# =============================================================================
+# MONTHLY SALARY COMPUTATION ENDPOINTS
+# =============================================================================
+
+@router.post("/monthly-salary/compute",
+            response_model=MonthlySalaryResponseDTO,
+            status_code=status.HTTP_200_OK,
+            summary="Compute monthly salary for employee",
+            description="Compute monthly salary with all components and deductions")
+async def compute_monthly_salary(
+    request: MonthlySalaryComputeRequestDTO,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> MonthlySalaryResponseDTO:
+    """
+    Compute monthly salary for an employee.
+    
+    This endpoint:
+    1. Takes monthly salary computation request with month, year, arrears, etc.
+    2. Uses the MonthlySalary entity to compute salary components
+    3. Calculates deductions and tax liability
+    4. Returns detailed monthly salary breakdown
+    
+    Args:
+        request: Monthly salary computation request
+        current_user: Current authenticated user
+        
+    Returns:
+        MonthlySalaryResponseDTO: Computed monthly salary details
+        
+    Raises:
+        HTTPException: If computation fails
+    """
+    
+    try:
+        logger.info(f"Computing monthly salary for employee {request.employee_id}")
+        logger.info(f"Month: {request.month}, Year: {request.year}, Tax Year: {request.tax_year}")
+        
+        result = await controller.compute_monthly_salary(request, current_user.hostname)
+        
+        logger.info(f"Successfully computed monthly salary for employee {request.employee_id}")
+        return result
+        
+    except ValueError as e:
+        logger.error(f"Validation error in monthly salary computation: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
+    except RuntimeError as e:
+        logger.error(f"Runtime error in monthly salary computation: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error in monthly salary computation: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to compute monthly salary: {str(e)}"
         )
 

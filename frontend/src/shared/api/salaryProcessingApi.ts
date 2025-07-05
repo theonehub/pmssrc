@@ -78,6 +78,8 @@ export interface MonthlySalaryComputeRequest {
   month: number;
   year: number;
   tax_year: string;
+  arrears?: number;
+  use_declared_values?: boolean;
   force_recompute?: boolean;
   computed_by?: string;
 }
@@ -170,7 +172,7 @@ export const salaryProcessingApi = {
   async computeMonthlySalary(
     request: MonthlySalaryComputeRequest
   ): Promise<MonthlySalaryResponse> {
-    const response = await apiClient.post('/api/v2/monthly-salary/compute', request);
+    const response = await apiClient.post('/api/v2/taxation/monthly-salary/compute', request);
     return response.data;
   },
 

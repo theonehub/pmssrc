@@ -51,6 +51,10 @@ from app.application.dto.taxation_dto import (
     ComponentResponse,
     TaxationRecordStatusResponse,
     FlatRetirementBenefitsDTO,
+    
+    # Monthly Salary DTOs
+    MonthlySalaryComputeRequestDTO,
+    MonthlySalaryResponseDTO,
 )
 
 # Import domain entities and value objects
@@ -85,6 +89,7 @@ from app.domain.services.taxation.tax_calculation_service import (
     TaxCalculationService, TaxCalculationInput, TaxCalculationResult
 )
 from app.application.use_cases.taxation.get_employees_for_selection_use_case import GetEmployeesForSelectionUseCase
+from app.application.use_cases.taxation.compute_monthly_salary_use_case import ComputeMonthlySalaryUseCase
 
 logger = get_logger(__name__)
 
@@ -110,7 +115,8 @@ class UnifiedTaxationController:
     
     def __init__(self,
                  user_repository,
-                 salary_package_repository):
+                 salary_package_repository,
+                 monthly_salary_repository=None):
                  
         self.user_repository = user_repository
         self.salary_package_repository = salary_package_repository
@@ -121,9 +127,21 @@ class UnifiedTaxationController:
         container = get_dependency_container()
         user_service = container.get_user_service()
         
+        # Get monthly salary repository if not provided
+        if monthly_salary_repository is None:
+            monthly_salary_repository = container.get_monthly_salary_repository()
+        
         self.get_employees_for_selection_use_case = GetEmployeesForSelectionUseCase(
             user_query_service=user_service,  # Pass the service that implements UserQueryService
             salary_package_repository=salary_package_repository
+        )
+        
+        # Initialize monthly salary computation use case
+        self.compute_monthly_salary_use_case = ComputeMonthlySalaryUseCase(
+            salary_package_repository=salary_package_repository,
+            user_repository=user_repository,
+            monthly_salary_repository=monthly_salary_repository,
+            tax_calculation_service=self.tax_calculation_service
         )
     
     # =============================================================================
@@ -2355,6 +2373,49 @@ class UnifiedTaxationController:
             logger.error(f"UnifiedTaxationController.compute_monthly_tax: Unexpected error for employee {employee_id}: {str(e)}", exc_info=True)
             # Wrap other errors
             raise RuntimeError(f"Failed to compute monthly tax for employee {employee_id}: {str(e)}")
+    
+    async def compute_monthly_salary(
+        self, 
+        request: MonthlySalaryComputeRequestDTO,
+        organization_id: str
+    ) -> MonthlySalaryResponseDTO:
+        """
+        Compute monthly salary for an employee.
+        
+        This method:
+        1. Uses the monthly salary computation use case
+        2. Creates a MonthlySalary entity with current month's data
+        3. Computes monthly salary components including deductions
+        4. Calculates tax liability for the month
+        5. Returns the computed monthly salary details
+        
+        Args:
+            request: Monthly salary computation request
+            organization_id: Organization ID for multi-tenancy
+            
+        Returns:
+            MonthlySalaryResponseDTO: Computed monthly salary details
+            
+        Raises:
+            ValueError: If employee or salary package not found
+            RuntimeError: If computation fails
+        """
+        
+        logger.info(f"Computing monthly salary for employee {request.employee_id}")
+        logger.info(f"Month: {request.month}, Year: {request.year}, Tax Year: {request.tax_year}")
+        
+        try:
+            # Use the monthly salary computation use case
+            result = await self.compute_monthly_salary_use_case.execute(
+                request, organization_id
+            )
+            
+            logger.info(f"Successfully computed monthly salary for employee {request.employee_id}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Failed to compute monthly salary for employee {request.employee_id}: {str(e)}")
+            raise
     
     async def export_salary_package_to_excel(
         self, 

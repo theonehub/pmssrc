@@ -58,6 +58,7 @@ class SalaryPackageRecord:
     perquisites: Optional[Perquisites] = None
     retirement_benefits: Optional[RetirementBenefits] = None
     other_income: Optional[OtherIncome] = None
+    arrears: List[Money] = field(default_factory=lambda: [Money.zero() for _ in range(12)])
     is_government_employee: bool = False
     is_senior_citizen: bool = False
     is_super_senior_citizen: bool = False
@@ -1540,6 +1541,164 @@ class SalaryPackageRecord:
             warnings.append(f"Multiple salary revisions detected ({len(self.salary_incomes)} versions)")
         
         return warnings
+    
+    # Arrears management methods
+    def get_arrears_per_month(self, month: int) -> Money:
+        """
+        Get arrears for a specific month (1-12).
+        
+        Args:
+            month: Month number (1-12, where 1=April, 12=March)
+            
+        Returns:
+            Money: Arrears amount for the specified month
+            
+        Raises:
+            ValueError: If month is not between 1 and 12
+        """
+        if not 1 <= month <= 12:
+            raise ValueError("Month must be between 1 and 12")
+        
+        # Ensure arrears list has exactly 12 elements
+        self._ensure_arrears_list_size()
+        
+        return self.arrears[month - 1]  # Convert to 0-based index
+    
+    def set_arrears_for_month(self, month: int, amount: Money) -> None:
+        """
+        Set arrears for a specific month (1-12).
+        
+        Args:
+            month: Month number (1-12, where 1=April, 12=March)
+            amount: Arrears amount for the month
+            
+        Raises:
+            ValueError: If month is not between 1 and 12
+            ValueError: If record is finalized
+        """
+        if self.is_final:
+            raise ValueError("Cannot update finalized salary package record")
+        
+        if not 1 <= month <= 12:
+            raise ValueError("Month must be between 1 and 12")
+        
+        # Ensure arrears list has exactly 12 elements
+        self._ensure_arrears_list_size()
+        
+        old_amount = self.arrears[month - 1]
+        self.arrears[month - 1] = amount  # Convert to 0-based index
+        
+        # Invalidate calculation since arrears affect tax calculation
+        self._invalidate_calculation()
+        
+        # Raise domain event
+        self._add_domain_event({
+            "event_type": "ArrearsUpdated",
+            "employee_id": str(self.employee_id),
+            "tax_year": str(self.tax_year),
+            "month": month,
+            "old_arrears_amount": old_amount.to_float(),
+            "new_arrears_amount": amount.to_float(),
+            "updated_at": self.updated_at.isoformat()
+        })
+    
+    def get_total_arrears(self) -> Money:
+        """
+        Get total arrears for the entire financial year.
+        
+        Returns:
+            Money: Total arrears amount
+        """
+        # Ensure arrears list has exactly 12 elements
+        self._ensure_arrears_list_size()
+        
+        total = Money.zero()
+        for arrears_amount in self.arrears:
+            total = total.add(arrears_amount)
+        
+        return total
+    
+    def get_arrears_breakdown(self) -> Dict[str, Any]:
+        """
+        Get detailed breakdown of arrears by month.
+        
+        Returns:
+            Dict: Arrears breakdown with month-wise details
+        """
+        # Ensure arrears list has exactly 12 elements
+        self._ensure_arrears_list_size()
+        
+        month_names = [
+            "April", "May", "June", "July", "August", "September",
+            "October", "November", "December", "January", "February", "March"
+        ]
+        
+        breakdown = {
+            "total_arrears": self.get_total_arrears().to_float(),
+            "monthly_breakdown": {}
+        }
+        
+        for i, (month_name, arrears_amount) in enumerate(zip(month_names, self.arrears)):
+            breakdown["monthly_breakdown"][month_name] = {
+                "month_number": i + 1,
+                "amount": arrears_amount.to_float(),
+                "has_arrears": not arrears_amount.is_zero()
+            }
+        
+        return breakdown
+    
+    def clear_arrears_for_month(self, month: int) -> None:
+        """
+        Clear arrears for a specific month (set to zero).
+        
+        Args:
+            month: Month number (1-12, where 1=April, 12=March)
+            
+        Raises:
+            ValueError: If month is not between 1 and 12
+        """
+        self.set_arrears_for_month(month, Money.zero())
+    
+    def clear_all_arrears(self) -> None:
+        """
+        Clear all arrears for the financial year (set all to zero).
+        """
+        if self.is_final:
+            raise ValueError("Cannot update finalized salary package record")
+        
+        # Ensure arrears list has exactly 12 elements
+        self._ensure_arrears_list_size()
+        
+        old_total = self.get_total_arrears()
+        
+        # Set all arrears to zero
+        for i in range(12):
+            self.arrears[i] = Money.zero()
+        
+        # Invalidate calculation
+        self._invalidate_calculation()
+        
+        # Raise domain event
+        self._add_domain_event({
+            "event_type": "AllArrearsCleared",
+            "employee_id": str(self.employee_id),
+            "tax_year": str(self.tax_year),
+            "old_total_arrears": old_total.to_float(),
+            "updated_at": self.updated_at.isoformat()
+        })
+    
+    def _ensure_arrears_list_size(self) -> None:
+        """
+        Ensure the arrears list has exactly 12 elements.
+        If the list is smaller, pad with zeros. If larger, truncate.
+        """
+        if len(self.arrears) < 12:
+            # Pad with zeros
+            while len(self.arrears) < 12:
+                self.arrears.append(Money.zero())
+        elif len(self.arrears) > 12:
+            # Truncate to 12 elements
+            self.arrears = self.arrears[:12]
     
     # Backward compatibility properties
     @property

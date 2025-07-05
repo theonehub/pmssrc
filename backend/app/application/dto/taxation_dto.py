@@ -996,4 +996,107 @@ class TaxationRecordStatusResponse(BaseModel):
     components_status: Dict[str, Dict[str, Any]] = Field(..., description="Status of each component")
     overall_status: str = Field(..., description="Overall record status")
     last_updated: datetime = Field(..., description="Last update timestamp")
-    is_final: bool = Field(..., description="Whether record is finalized") 
+    is_final: bool = Field(..., description="Whether record is finalized")
+
+
+# =============================================================================
+# MONTHLY SALARY COMPUTATION DTOs
+# =============================================================================
+
+class MonthlySalaryComputeRequestDTO(BaseModel):
+    """Request DTO for monthly salary computation."""
+    employee_id: str = Field(..., description="Employee ID")
+    month: int = Field(..., ge=1, le=12, description="Month (1-12)")
+    year: int = Field(..., ge=2020, le=2030, description="Year")
+    tax_year: str = Field(..., description="Tax year (e.g., 2024-25)")
+    arrears: Optional[float] = Field(default=None, ge=0, description="Arrears amount if any")
+    use_declared_values: bool = Field(default=True, description="Use declared values or actual proof submission")
+    force_recompute: bool = Field(default=False, description="Force recomputation if already computed")
+    computed_by: Optional[str] = Field(default=None, description="User who initiated computation")
+
+class MonthlySalaryResponseDTO(BaseModel):
+    """Response DTO for monthly salary computation."""
+    employee_id: str = Field(..., description="Employee ID")
+    month: int = Field(..., description="Month")
+    year: int = Field(..., description="Year")
+    tax_year: str = Field(..., description="Tax year")
+    
+    # Employee details
+    employee_name: Optional[str] = Field(default=None, description="Employee name")
+    employee_email: Optional[str] = Field(default=None, description="Employee email")
+    department: Optional[str] = Field(default=None, description="Department")
+    designation: Optional[str] = Field(default=None, description="Designation")
+    
+    # Salary components
+    basic_salary: float = Field(default=0.0, description="Basic salary")
+    da: float = Field(default=0.0, description="Dearness allowance")
+    hra: float = Field(default=0.0, description="HRA")
+    special_allowance: float = Field(default=0.0, description="Special allowance")
+    transport_allowance: float = Field(default=0.0, description="Transport allowance")
+    medical_allowance: float = Field(default=0.0, description="Medical allowance")
+    bonus: float = Field(default=0.0, description="Bonus")
+    commission: float = Field(default=0.0, description="Commission")
+    other_allowances: float = Field(default=0.0, description="Other allowances")
+    arrears: float = Field(default=0.0, description="Arrears")
+    
+    # Deductions
+    epf_employee: float = Field(default=0.0, description="EPF employee contribution")
+    esi_employee: float = Field(default=0.0, description="ESI employee contribution")
+    professional_tax: float = Field(default=0.0, description="Professional tax")
+    tds: float = Field(default=0.0, description="TDS")
+    advance_deduction: float = Field(default=0.0, description="Advance deduction")
+    loan_deduction: float = Field(default=0.0, description="Loan deduction")
+    other_deductions: float = Field(default=0.0, description="Other deductions")
+    
+    # Calculated totals
+    gross_salary: float = Field(default=0.0, description="Gross salary")
+    total_deductions: float = Field(default=0.0, description="Total deductions")
+    net_salary: float = Field(default=0.0, description="Net salary")
+    
+    # Annual projections
+    annual_gross_salary: float = Field(default=0.0, description="Annual gross salary")
+    annual_tax_liability: float = Field(default=0.0, description="Annual tax liability")
+    
+    # Tax details
+    tax_regime: str = Field(default="new", description="Tax regime")
+    tax_exemptions: float = Field(default=0.0, description="Tax exemptions")
+    standard_deduction: float = Field(default=0.0, description="Standard deduction")
+    
+    # Working days
+    total_days_in_month: int = Field(default=30, description="Total days in month")
+    working_days_in_period: int = Field(default=30, description="Working days in period")
+    lwp_days: int = Field(default=0, description="Leave without pay days")
+    effective_working_days: int = Field(default=30, description="Effective working days")
+    
+    # Status and metadata
+    status: str = Field(default="computed", description="Computation status")
+    computation_date: Optional[str] = Field(default=None, description="Computation date")
+    notes: Optional[str] = Field(default=None, description="Notes")
+    remarks: Optional[str] = Field(default=None, description="Remarks")
+    created_at: str = Field(..., description="Created at")
+    updated_at: str = Field(..., description="Updated at")
+    created_by: Optional[str] = Field(default=None, description="Created by")
+    updated_by: Optional[str] = Field(default=None, description="Updated by")
+    
+    # Computation details
+    use_declared_values: bool = Field(default=True, description="Whether declared values were used")
+    computation_mode: str = Field(default="declared", description="Computation mode")
+    computation_summary: Optional[Dict[str, Any]] = Field(default=None, description="Computation summary")
+
+class MonthlySalaryBulkComputeRequestDTO(BaseModel):
+    """Request DTO for bulk monthly salary computation."""
+    month: int = Field(..., ge=1, le=12, description="Month (1-12)")
+    year: int = Field(..., ge=2020, le=2030, description="Year")
+    tax_year: str = Field(..., description="Tax year (e.g., 2024-25)")
+    employee_ids: Optional[List[str]] = Field(default=None, description="List of employee IDs (if None, compute for all)")
+    force_recompute: bool = Field(default=False, description="Force recomputation if already computed")
+    computed_by: Optional[str] = Field(default=None, description="User who initiated computation")
+
+class MonthlySalaryBulkComputeResponseDTO(BaseModel):
+    """Response DTO for bulk monthly salary computation."""
+    total_requested: int = Field(..., description="Total employees requested for computation")
+    successful: int = Field(..., description="Successfully computed count")
+    failed: int = Field(..., description="Failed computation count")
+    skipped: int = Field(..., description="Skipped computation count")
+    errors: List[Dict[str, str]] = Field(default_factory=list, description="List of errors")
+    computation_summary: Optional[Dict[str, Any]] = Field(default=None, description="Computation summary") 

@@ -5,16 +5,7 @@ SOLID-compliant dependency container for managing service dependencies
 
 from typing import Optional
 
-# Repository implementations
-from app.infrastructure.repositories.mongodb_user_repository import MongoDBUserRepository
-from app.infrastructure.repositories.mongodb_organisation_repository import MongoDBOrganisationRepository
-from app.infrastructure.repositories.mongodb_public_holiday_repository import MongoDBPublicHolidayRepository
-from app.infrastructure.repositories.mongodb_company_leave_repository import MongoDBCompanyLeaveRepository
-from app.infrastructure.repositories.mongodb_salary_package_repository import MongoDBSalaryPackageRepository
-from app.infrastructure.repositories.mongodb_reimbursement_repository import MongoDBReimbursementRepository
-from app.infrastructure.repositories.project_attributes_repository_impl import ProjectAttributesRepositoryImpl
-from app.infrastructure.repositories.employee_leave_repository_impl import EmployeeLeaveRepositoryImpl
-from app.infrastructure.repositories.mongodb_reporting_repository import MongoDBReportingRepository
+# Repository implementations - will be imported lazily to avoid circular imports
 
 # Service implementations
 from app.infrastructure.services.user_service_impl import UserServiceImpl
@@ -135,17 +126,27 @@ class DependencyContainer:
     def _setup_repositories(self):
         """Setup repository implementations."""
         try:
+            # Lazy import all repositories to avoid circular imports
+            from app.infrastructure.repositories.mongodb_user_repository import MongoDBUserRepository
+            from app.infrastructure.repositories.mongodb_organisation_repository import MongoDBOrganisationRepository
+            from app.infrastructure.repositories.mongodb_public_holiday_repository import MongoDBPublicHolidayRepository
+            from app.infrastructure.repositories.mongodb_company_leave_repository import MongoDBCompanyLeaveRepository
+            from app.infrastructure.repositories.mongodb_salary_package_repository import MongoDBSalaryPackageRepository
+            from app.infrastructure.repositories.mongodb_attendance_repository import MongoDBAttendanceRepository
+            from app.infrastructure.repositories.mongodb_monthly_salary_repository import MongoDBMonthlySalaryRepository
+            from app.infrastructure.repositories.mongodb_reimbursement_repository import MongoDBReimbursementRepository
+            from app.infrastructure.repositories.project_attributes_repository_impl import ProjectAttributesRepositoryImpl
+            from app.infrastructure.repositories.employee_leave_repository_impl import EmployeeLeaveRepositoryImpl
+            from app.infrastructure.repositories.mongodb_reporting_repository import MongoDBReportingRepository
+            
             # Create all repositories with database connector
             user_repository = MongoDBUserRepository(self._database_connector)
             organisation_repository = MongoDBOrganisationRepository(self._database_connector)
             public_holiday_repository = MongoDBPublicHolidayRepository(self._database_connector)
             company_leave_repository = MongoDBCompanyLeaveRepository(self._database_connector)
             salary_package_repository = MongoDBSalaryPackageRepository(self._database_connector)
-            
-            # Lazy import for attendance repository to avoid circular imports
-            from app.infrastructure.repositories.mongodb_attendance_repository import MongoDBAttendanceRepository
             attendance_repository = MongoDBAttendanceRepository(self._database_connector)
-            
+            monthly_salary_repository = MongoDBMonthlySalaryRepository(self._database_connector)
             reimbursement_repository = MongoDBReimbursementRepository(self._database_connector)
             project_attributes_repository = ProjectAttributesRepositoryImpl(self._database_connector)
             employee_leave_repository = EmployeeLeaveRepositoryImpl(self._database_connector)
@@ -158,6 +159,7 @@ class DependencyContainer:
                 public_holiday_repository,
                 company_leave_repository,
                 salary_package_repository,
+                monthly_salary_repository,
                 attendance_repository,
                 reimbursement_repository,
                 project_attributes_repository,
@@ -178,6 +180,7 @@ class DependencyContainer:
             self._repositories['public_holiday'] = public_holiday_repository
             self._repositories['company_leave'] = company_leave_repository
             self._repositories['salary_package'] = salary_package_repository
+            self._repositories['monthly_salary'] = monthly_salary_repository
             self._repositories['attendance'] = attendance_repository
             self._repositories['reimbursement'] = reimbursement_repository
             self._repositories['project_attributes'] = project_attributes_repository
@@ -338,22 +341,22 @@ class DependencyContainer:
     
     # ==================== REPOSITORY GETTERS ====================
     
-    def get_user_repository(self) -> MongoDBUserRepository:
+    def get_user_repository(self):
         """Get user repository instance."""
         self.initialize()
         return self._repositories['user']
     
-    def get_organisation_repository(self) -> MongoDBOrganisationRepository:
+    def get_organisation_repository(self):
         """Get organisation repository instance."""
         self.initialize()
         return self._repositories['organisation']
     
-    def get_public_holiday_repository(self) -> MongoDBPublicHolidayRepository:
+    def get_public_holiday_repository(self):
         """Get public holiday repository instance."""
         self.initialize()
         return self._repositories['public_holiday']
     
-    def get_company_leave_repository(self) -> MongoDBCompanyLeaveRepository:
+    def get_company_leave_repository(self):
         """Get company leave repository instance."""
         self.initialize()
         return self._repositories['company_leave']
@@ -363,30 +366,35 @@ class DependencyContainer:
         self.initialize()
         return self._repositories['attendance']
     
-    def get_reimbursement_repository(self) -> MongoDBReimbursementRepository:
+    def get_reimbursement_repository(self):
         """Get reimbursement repository instance."""
         self.initialize()
         return self._repositories['reimbursement']
     
-    def get_project_attributes_repository(self) -> ProjectAttributesRepositoryImpl:
+    def get_project_attributes_repository(self):
         """Get project attributes repository instance."""
         self.initialize()
         return self._repositories['project_attributes']
     
-    def get_employee_leave_repository(self) -> EmployeeLeaveRepositoryImpl:
+    def get_employee_leave_repository(self):
         """Get employee leave repository instance."""
         self.initialize()
         return self._repositories['employee_leave']
     
-    def get_reporting_repository(self) -> MongoDBReportingRepository:
+    def get_reporting_repository(self):
         """Get reporting repository instance."""
         self.initialize()
         return self._repositories['reporting']
     
-    def get_salary_package_repository(self) -> MongoDBSalaryPackageRepository:
+    def get_salary_package_repository(self):
         """Get salary package repository instance."""
         self.initialize()
         return self._repositories['salary_package']
+    
+    def get_monthly_salary_repository(self):
+        """Get monthly salary repository instance."""
+        self.initialize()
+        return self._repositories['monthly_salary']
     
     # ==================== SERVICE GETTERS ====================
     
@@ -718,7 +726,8 @@ class DependencyContainer:
         # Create controller with all handlers and services
         self._controllers['taxation'] = UnifiedTaxationController(
             user_repository=self._repositories['user'],
-            salary_package_repository=self._repositories['salary_package']
+            salary_package_repository=self._repositories['salary_package'],
+            monthly_salary_repository=self._repositories['monthly_salary']
         )
         
         return self._controllers['taxation']
@@ -819,7 +828,7 @@ def get_user_service() -> UserServiceImpl:
     return container.get_user_service()
 
 
-def get_user_repository() -> MongoDBUserRepository:
+def get_user_repository():
     """FastAPI dependency for user repository."""
     container = get_dependency_container()
     return container.get_user_repository()
@@ -831,13 +840,13 @@ def get_organisation_controller():
     return container.get_organisation_controller()
 
 
-def get_organisation_service() -> OrganisationServiceImpl:
+def get_organisation_service():
     """FastAPI dependency for organisation service."""
     container = get_dependency_container()
     return container.get_organisation_service()
 
 
-def get_organisation_repository() -> MongoDBOrganisationRepository:
+def get_organisation_repository():
     """FastAPI dependency for organisation repository."""
     container = get_dependency_container()
     return container.get_organisation_repository()
@@ -849,13 +858,13 @@ def get_public_holiday_controller():
     return container.get_public_holiday_controller()
 
 
-def get_public_holiday_service() -> PublicHolidayServiceImpl:
+def get_public_holiday_service():
     """FastAPI dependency for public holiday service."""
     container = get_dependency_container()
     return container.get_public_holiday_service()
 
 
-def get_public_holiday_repository() -> MongoDBPublicHolidayRepository:
+def get_public_holiday_repository():
     """FastAPI dependency for public holiday repository."""
     container = get_dependency_container()
     return container.get_public_holiday_repository()
@@ -867,13 +876,13 @@ def get_company_leave_controller():
     return container.get_company_leave_controller()
 
 
-def get_company_leave_service() -> CompanyLeaveServiceImpl:
+def get_company_leave_service():
     """FastAPI dependency for company leave service."""
     container = get_dependency_container()
     return container.get_company_leave_service()
 
 
-def get_company_leave_repository() -> MongoDBCompanyLeaveRepository:
+def get_company_leave_repository():
     """Get company leave repository instance."""
     container = get_dependency_container()
     return container.get_company_leave_repository()
@@ -898,13 +907,13 @@ def get_reimbursement_controller():
     return container.get_reimbursement_controller()
 
 
-def get_reimbursement_service() -> ReimbursementServiceImpl:
+def get_reimbursement_service():
     """FastAPI dependency for reimbursement service."""
     container = get_dependency_container()
     return container.get_reimbursement_service()
 
 
-def get_reimbursement_repository() -> MongoDBReimbursementRepository:
+def get_reimbursement_repository():
     """FastAPI dependency for reimbursement repository."""
     container = get_dependency_container()
     return container.get_reimbursement_repository()
@@ -916,13 +925,13 @@ def get_project_attributes_controller():
     return container.get_project_attributes_controller()
 
 
-def get_project_attributes_service() -> ProjectAttributesServiceImpl:
+def get_project_attributes_service():
     """FastAPI dependency for project attributes service."""
     container = get_dependency_container()
     return container.get_project_attributes_service()
 
 
-def get_project_attributes_repository() -> ProjectAttributesRepositoryImpl:
+def get_project_attributes_repository():
     """FastAPI dependency for project attributes repository."""
     container = get_dependency_container()
     return container.get_project_attributes_repository()
@@ -934,13 +943,13 @@ def get_employee_leave_controller():
     return container.get_employee_leave_controller()
 
 
-def get_employee_leave_service() -> EmployeeLeaveServiceImpl:
+def get_employee_leave_service():
     """FastAPI dependency for employee leave service."""
     container = get_dependency_container()
     return container.get_employee_leave_service()
 
 
-def get_employee_leave_repository() -> EmployeeLeaveRepositoryImpl:
+def get_employee_leave_repository():
     """FastAPI dependency for employee leave repository."""
     container = get_dependency_container()
     return container.get_employee_leave_repository()
@@ -993,19 +1002,19 @@ def get_reporting_controller():
     return container.get_reporting_controller()
 
 
-def get_reporting_service() -> ReportingServiceImpl:
+def get_reporting_service():
     """FastAPI dependency for reporting service."""
     container = get_dependency_container()
     return container.get_reporting_service()
 
 
-def get_reporting_repository() -> MongoDBReportingRepository:
+def get_reporting_repository():
     """FastAPI dependency for reporting repository."""
     container = get_dependency_container()
     return container.get_reporting_repository()
 
 
-def get_tax_calculation_service() -> TaxCalculationServiceImpl:
+def get_tax_calculation_service():
     """FastAPI dependency for tax calculation service."""
     container = get_dependency_container()
     return container.get_tax_calculation_service()

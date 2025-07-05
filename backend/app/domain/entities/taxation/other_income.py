@@ -148,7 +148,7 @@ class OtherIncome:
         
         # Add other income sources (fully taxable)
         total = total.add(self.dividend_income)
-        logger.info("Dividend income: ", self.dividend_income)
+        logger.info(f"Dividend income: {self.dividend_income}")
         total = total.add(self.calculate_taxable_gifts_received(regime))
         logger.info(f"II: total gifts received: {total}")
         total = total.add(self.other_miscellaneous_income)

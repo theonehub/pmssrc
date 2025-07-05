@@ -26,7 +26,6 @@ import {
   Business as BusinessIcon,
   CurrencyRupee as CurrencyRupeeIcon,
   CalculateOutlined as CalculateIcon,
-  AccountBalance as AccountBalanceIcon,
   Assessment as AssessmentIcon,
   ExpandLess,
   ExpandMore,
@@ -68,7 +67,6 @@ const Sidebar: React.FC = () => {
     home: false,
     organisation: false,
     leaves: false,
-    payouts: false,
     reimbursements: false,
     taxation: false,
     reporting: false,
@@ -161,19 +159,6 @@ const Sidebar: React.FC = () => {
       ],
     },
     {
-      id: 'payouts',
-      title: 'Payouts & Salary',
-      icon: <AccountBalanceIcon />,
-      items: [
-        {
-          title: 'Salary Processing',
-          icon: <AssessmentIcon />,
-          path: '/taxation/salary-processing',
-          roles: ['admin', 'superadmin'],
-        },
-      ],
-    },
-    {
       id: 'taxation',
       title: 'Income Tax',
       icon: <CurrencyRupeeIcon />,
@@ -194,6 +179,12 @@ const Sidebar: React.FC = () => {
           title: 'Component Management',
           icon: <SettingsIcon />,
           path: '/taxation/component-management',
+          roles: ['admin', 'superadmin'],
+        },
+        {
+          title: 'Processed Salaries',
+          icon: <ReceiptIcon />,
+          path: '/taxation/processed-salaries',
           roles: ['admin', 'superadmin'],
         },
       ],

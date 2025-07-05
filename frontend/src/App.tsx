@@ -32,6 +32,7 @@ import TaxDeclaration from './components/taxation/TaxDeclaration';
 import EmployeeTaxDetail from './components/taxation/EmployeeTaxDetail';
 import EmployeeSelection from './components/taxation/EmployeeSelection';
 import IndividualComponentManagement from './components/taxation/IndividualComponentManagement';
+import ProcessedSalaries from './components/taxation/ProcessedSalaries';
 
 // Individual Component Forms
 import SalaryComponentForm from './components/taxation/components/SalaryComponentForm';
@@ -42,9 +43,6 @@ import CapitalGainsComponentForm from './components/taxation/components/CapitalG
 import RetirementBenefitsComponentForm from './components/taxation/components/RetirementBenefitsComponentForm';
 import OtherIncomeComponentForm from './components/taxation/components/OtherIncomeComponentForm';
 import ComponentsOverview from './components/taxation/ComponentsOverview';
-
-// Salary Processing Pages
-import SalaryProcessing from './components/SalaryProcessing/SalaryProcessing';
 
 // Reporting Pages
 import ReportingDashboard from './components/Reporting/ReportingDashboard';
@@ -172,6 +170,10 @@ const AppContent: React.FC = () => {
             element={withLayout(<IndividualComponentManagement />, 'Individual Component Management', ['admin', 'superadmin'])}
           />
           <Route
+            path="/taxation/processed-salaries"
+            element={withLayout(<ProcessedSalaries />, 'Processed Salaries', ['admin', 'superadmin'])}
+          />
+          <Route
             path="/taxation/components-overview/:empId"
             element={withLayout(<ComponentsOverview />, 'Components Overview', ['admin', 'superadmin'])}
           />
@@ -228,10 +230,6 @@ const AppContent: React.FC = () => {
           <Route
             path="/taxation/component/other-income/new/:empId"
             element={withLayout(<OtherIncomeComponentForm />, 'New Other Income Revision', ['admin', 'superadmin'])}
-          />
-          <Route
-            path="/taxation/salary-processing"
-            element={withLayout(<SalaryProcessing />, 'Salary Processing', ['admin', 'superadmin'])}
           />
 
           {/* Reporting Routes */}

@@ -32,7 +32,12 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Grid
+  Grid,
+  Checkbox,
+  FormControlLabel,
+  Divider,
+  List,
+  ListItem
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -51,13 +56,17 @@ import {
   CarRental as CarRentalIcon,
   Business as BusinessIcon,
   Calculate as CalculateIcon,
-  Functions as FunctionsIcon
+  Functions as FunctionsIcon,
+  AttachMoney as AttachMoneyIcon,
+  PlaylistAddCheck as PlaylistAddCheckIcon,
+  Group as GroupIcon
 } from '@mui/icons-material';
 import { getUserRole } from '../../shared/utils/auth';
 import { UserRole } from '../../shared/types';
 import { EmployeeSelectionDTO, EmployeeSelectionQuery, FilingStatus } from '../../shared/types/api';
 import { useEmployeeSelection, useRefreshEmployeeSelection } from '../../shared/hooks/useEmployeeSelection';
 import taxationApi from '../../shared/api/taxationApi';
+import { salaryProcessingApi } from '../../shared/api/salaryProcessingApi';
 
 interface EmployeeRecord extends EmployeeSelectionDTO {
   // Additional fields if needed
@@ -76,6 +85,43 @@ interface ComponentOption {
   icon: React.ReactElement;
   color: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
   path: string;
+}
+
+interface MonthlySalaryComputeDialogProps {
+  open: boolean;
+  onClose: () => void;
+  employee: EmployeeRecord | null;
+  taxYear: string;
+  onCompute: (request: {
+    employee_id: string;
+    month: number;
+    year: number;
+    tax_year: string;
+    arrears?: number | undefined;
+    use_declared_values: boolean;
+  }) => Promise<void>;
+}
+
+interface BulkSalaryProcessingDialogProps {
+  open: boolean;
+  onClose: () => void;
+  employees: EmployeeRecord[];
+  taxYear: string;
+  onBulkCompute: (requests: {
+    employee_id: string;
+    month: number;
+    year: number;
+    tax_year: string;
+    arrears?: number | undefined;
+    use_declared_values: boolean;
+  }[]) => Promise<void>;
+}
+
+interface EmployeeProcessingConfig {
+  employee_id: string;
+  selected: boolean;
+  arrears: number;
+  use_declared_values: boolean;
 }
 
 // Helper function to get current tax year
@@ -192,6 +238,498 @@ const getComponentOptions = (): ComponentOption[] => [
   }
 ];
 
+const MonthlySalaryComputeDialog: React.FC<MonthlySalaryComputeDialogProps> = ({
+  open,
+  onClose,
+  employee,
+  taxYear,
+  onCompute
+}) => {
+  const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
+  const [year, setYear] = useState<number>(new Date().getFullYear());
+  const [arrears, setArrears] = useState<number>(0);
+  const [useDeclaredValues, setUseDeclaredValues] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const months = [
+    { value: 1, label: 'January' },
+    { value: 2, label: 'February' },
+    { value: 3, label: 'March' },
+    { value: 4, label: 'April' },
+    { value: 5, label: 'May' },
+    { value: 6, label: 'June' },
+    { value: 7, label: 'July' },
+    { value: 8, label: 'August' },
+    { value: 9, label: 'September' },
+    { value: 10, label: 'October' },
+    { value: 11, label: 'November' },
+    { value: 12, label: 'December' }
+  ];
+
+  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
+
+  const handleCompute = async () => {
+    if (!employee) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const request: {
+        employee_id: string;
+        month: number;
+        year: number;
+        tax_year: string;
+        arrears?: number | undefined;
+        use_declared_values: boolean;
+      } = {
+        employee_id: employee.employee_id,
+        month,
+        year,
+        tax_year: taxYear,
+        use_declared_values: useDeclaredValues
+      };
+      
+      if (arrears > 0) {
+        request.arrears = arrears;
+      }
+      
+      await onCompute(request);
+
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to compute monthly salary');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (!loading) {
+      onClose();
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+      <DialogTitle>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AttachMoneyIcon color="primary" />
+          <Typography variant="h6">
+            Compute Monthly Salary
+          </Typography>
+        </Box>
+      </DialogTitle>
+      <DialogContent>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Compute monthly salary for {employee?.user_name || employee?.employee_id} for {taxYear}
+        </Typography>
+
+        <Grid container spacing={3}>
+          <Grid item xs={6}>
+            <FormControl fullWidth>
+              <InputLabel>Month</InputLabel>
+              <Select
+                value={month}
+                label="Month"
+                onChange={(e) => setMonth(e.target.value as number)}
+              >
+                {months.map((m) => (
+                  <MenuItem key={m.value} value={m.value}>
+                    {m.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={6}>
+            <FormControl fullWidth>
+              <InputLabel>Year</InputLabel>
+              <Select
+                value={year}
+                label="Year"
+                onChange={(e) => setYear(e.target.value as number)}
+              >
+                {years.map((y) => (
+                  <MenuItem key={y} value={y}>
+                    {y}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Arrears (if any)"
+              type="number"
+              value={arrears}
+              onChange={(e) => setArrears(parseFloat(e.target.value) || 0)}
+              InputProps={{
+                startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+              }}
+              helperText="Enter any arrears amount for this month"
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <FormControl fullWidth>
+              <InputLabel>Computation Mode</InputLabel>
+              <Select
+                value={useDeclaredValues ? 'declared' : 'actual'}
+                label="Computation Mode"
+                onChange={(e) => setUseDeclaredValues(e.target.value === 'declared')}
+              >
+                <MenuItem value="declared">Use Declared Values</MenuItem>
+                <MenuItem value="actual">Use Actual Proof Submission</MenuItem>
+              </Select>
+            </FormControl>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+              {useDeclaredValues 
+                ? 'Compute based on declared salary components and allowances'
+                : 'Compute based on actual proof submissions and verified documents'
+              }
+            </Typography>
+          </Grid>
+        </Grid>
+
+        {error && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose} disabled={loading}>
+          Cancel
+        </Button>
+        <Button 
+          onClick={handleCompute} 
+          variant="contained" 
+          disabled={loading}
+          startIcon={loading ? <CircularProgress size={16} /> : <CalculateIcon />}
+        >
+          {loading ? 'Computing...' : 'Compute Salary'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+const BulkSalaryProcessingDialog: React.FC<BulkSalaryProcessingDialogProps> = ({
+  open,
+  onClose,
+  employees,
+  taxYear,
+  onBulkCompute
+}) => {
+  const [employeeConfigs, setEmployeeConfigs] = useState<Map<string, EmployeeProcessingConfig>>(new Map());
+  const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
+  const [year, setYear] = useState<number>(new Date().getFullYear());
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectAll, setSelectAll] = useState<boolean>(false);
+
+  const months = [
+    { value: 1, label: 'January' },
+    { value: 2, label: 'February' },
+    { value: 3, label: 'March' },
+    { value: 4, label: 'April' },
+    { value: 5, label: 'May' },
+    { value: 6, label: 'June' },
+    { value: 7, label: 'July' },
+    { value: 8, label: 'August' },
+    { value: 9, label: 'September' },
+    { value: 10, label: 'October' },
+    { value: 11, label: 'November' },
+    { value: 12, label: 'December' }
+  ];
+
+  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
+
+  // Initialize employee configurations when dialog opens
+  useEffect(() => {
+    if (open) {
+      const configs = new Map<string, EmployeeProcessingConfig>();
+      employees.forEach(emp => {
+        configs.set(emp.employee_id, {
+          employee_id: emp.employee_id,
+          selected: false,
+          arrears: 0,
+          use_declared_values: true
+        });
+      });
+      setEmployeeConfigs(configs);
+      setSelectAll(false);
+      setError(null);
+    }
+  }, [open, employees]);
+
+  // Handle select all toggle
+  const handleSelectAll = (checked: boolean) => {
+    setSelectAll(checked);
+    const newConfigs = new Map(employeeConfigs);
+    employees.forEach(emp => {
+      const config = newConfigs.get(emp.employee_id);
+      if (config) {
+        config.selected = checked;
+        newConfigs.set(emp.employee_id, config);
+      }
+    });
+    setEmployeeConfigs(newConfigs);
+  };
+
+  // Handle individual employee selection
+  const handleEmployeeSelect = (employeeId: string, checked: boolean) => {
+    const newConfigs = new Map(employeeConfigs);
+    const config = newConfigs.get(employeeId);
+    if (config) {
+      config.selected = checked;
+      newConfigs.set(employeeId, config);
+      setEmployeeConfigs(newConfigs);
+      
+      // Update select all state
+      const selectedCount = Array.from(newConfigs.values()).filter(c => c.selected).length;
+      setSelectAll(selectedCount === employees.length);
+    }
+  };
+
+  // Handle arrears change for specific employee
+  const handleArrearsChange = (employeeId: string, value: number) => {
+    const newConfigs = new Map(employeeConfigs);
+    const config = newConfigs.get(employeeId);
+    if (config) {
+      config.arrears = value;
+      newConfigs.set(employeeId, config);
+      setEmployeeConfigs(newConfigs);
+    }
+  };
+
+  // Handle computation mode change for specific employee
+  const handleComputationModeChange = (employeeId: string, useDeclaredValues: boolean) => {
+    const newConfigs = new Map(employeeConfigs);
+    const config = newConfigs.get(employeeId);
+    if (config) {
+      config.use_declared_values = useDeclaredValues;
+      newConfigs.set(employeeId, config);
+      setEmployeeConfigs(newConfigs);
+    }
+  };
+
+  const handleBulkCompute = async () => {
+    const selectedConfigs = Array.from(employeeConfigs.values()).filter(config => config.selected);
+    
+    if (selectedConfigs.length === 0) {
+      setError('Please select at least one employee');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const requests = selectedConfigs.map(config => ({
+        employee_id: config.employee_id,
+        month,
+        year,
+        tax_year: taxYear,
+        use_declared_values: config.use_declared_values,
+        ...(config.arrears > 0 && { arrears: config.arrears })
+      }));
+
+      await onBulkCompute(requests);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to process bulk salary computation');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (!loading) {
+      onClose();
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+      <DialogTitle>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <GroupIcon color="primary" />
+          <Typography variant="h6">
+            Bulk Salary Processing
+          </Typography>
+        </Box>
+      </DialogTitle>
+      <DialogContent>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Process monthly salary for multiple employees for {taxYear}
+        </Typography>
+
+        {/* Global Settings */}
+        <Card variant="outlined" sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="subtitle1" fontWeight="medium" gutterBottom>
+              Processing Period
+            </Typography>
+            <Grid container spacing={3}>
+              <Grid item xs={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Month</InputLabel>
+                  <Select
+                    value={month}
+                    label="Month"
+                    onChange={(e) => setMonth(e.target.value as number)}
+                  >
+                    {months.map((m) => (
+                      <MenuItem key={m.value} value={m.value}>
+                        {m.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Year</InputLabel>
+                  <Select
+                    value={year}
+                    label="Year"
+                    onChange={(e) => setYear(e.target.value as number)}
+                  >
+                    {years.map((y) => (
+                      <MenuItem key={y} value={y}>
+                        {y}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {/* Employee Selection with Individual Settings */}
+        <Card variant="outlined">
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="subtitle1" fontWeight="medium">
+                Employee Configuration ({Array.from(employeeConfigs.values()).filter(c => c.selected).length} of {employees.length})
+              </Typography>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={selectAll}
+                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    indeterminate={Array.from(employeeConfigs.values()).filter(c => c.selected).length > 0 && Array.from(employeeConfigs.values()).filter(c => c.selected).length < employees.length}
+                  />
+                }
+                label="Select All"
+              />
+            </Box>
+            
+            <Divider sx={{ mb: 2 }} />
+            
+            <List sx={{ maxHeight: 400, overflow: 'auto' }}>
+              {employees.map((employee) => {
+                const config = employeeConfigs.get(employee.employee_id);
+                if (!config) return null;
+                
+                return (
+                  <ListItem key={employee.employee_id} sx={{ flexDirection: 'column', alignItems: 'stretch', py: 2 }}>
+                    {/* Employee Header */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', mb: 2 }}>
+                      <Checkbox
+                        checked={config.selected}
+                        onChange={(e) => handleEmployeeSelect(employee.employee_id, e.target.checked)}
+                      />
+                      <Box sx={{ flexGrow: 1, ml: 1 }}>
+                        <Typography variant="subtitle2" fontWeight="medium">
+                          {employee.user_name || employee.employee_id}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {employee.employee_id} • {employee.department || 'N/A'}
+                        </Typography>
+                      </Box>
+                      <Chip
+                        label={employee.filing_status || 'pending'}
+                        size="small"
+                        color={employee.filing_status === 'filed' ? 'success' : 'default'}
+                        variant="outlined"
+                      />
+                    </Box>
+                    
+                    {/* Employee Configuration */}
+                    {config.selected && (
+                      <Box sx={{ ml: 4, mt: 1 }}>
+                        <Grid container spacing={2}>
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              label="Arrears (₹)"
+                              type="number"
+                              value={config.arrears}
+                              onChange={(e) => handleArrearsChange(employee.employee_id, parseFloat(e.target.value) || 0)}
+                              InputProps={{
+                                startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                              }}
+                              helperText="Enter arrears amount if any"
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <FormControl fullWidth size="small">
+                              <InputLabel>Computation Mode</InputLabel>
+                              <Select
+                                value={config.use_declared_values ? 'declared' : 'actual'}
+                                label="Computation Mode"
+                                onChange={(e) => handleComputationModeChange(employee.employee_id, e.target.value === 'declared')}
+                              >
+                                <MenuItem value="declared">Use Declared Values</MenuItem>
+                                <MenuItem value="actual">Use Actual Proof Submission</MenuItem>
+                              </Select>
+                            </FormControl>
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                              {config.use_declared_values 
+                                ? 'Based on declared components'
+                                : 'Based on actual proof submissions'
+                              }
+                            </Typography>
+                          </Grid>
+                        </Grid>
+                      </Box>
+                    )}
+                  </ListItem>
+                );
+              })}
+            </List>
+          </CardContent>
+        </Card>
+
+        {error && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose} disabled={loading}>
+          Cancel
+        </Button>
+        <Button 
+          onClick={handleBulkCompute} 
+          variant="contained" 
+          disabled={loading || Array.from(employeeConfigs.values()).filter(c => c.selected).length === 0}
+          startIcon={loading ? <CircularProgress size={16} /> : <PlaylistAddCheckIcon />}
+        >
+          {loading ? 'Processing...' : `Process ${Array.from(employeeConfigs.values()).filter(c => c.selected).length} Employee${Array.from(employeeConfigs.values()).filter(c => c.selected).length !== 1 ? 's' : ''}`}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
 /**
  * IndividualComponentManagement Component - Admin interface for managing individual taxation components
  */
@@ -208,6 +746,9 @@ const IndividualComponentManagement: React.FC = () => {
   });
   const [componentDialogOpen, setComponentDialogOpen] = useState<boolean>(false);
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeRecord | null>(null);
+  const [monthlySalaryDialogOpen, setMonthlySalaryDialogOpen] = useState<boolean>(false);
+  const [monthlySalaryEmployee, setMonthlySalaryEmployee] = useState<EmployeeRecord | null>(null);
+  const [bulkProcessingDialogOpen, setBulkProcessingDialogOpen] = useState<boolean>(false);
   
   const navigate = useNavigate();
   const userRole: UserRole | null = getUserRole();
@@ -479,6 +1020,105 @@ const IndividualComponentManagement: React.FC = () => {
     page * rowsPerPage + rowsPerPage
   );
 
+  const handleComputeMonthlySalary = async (request: {
+    employee_id: string;
+    month: number;
+    year: number;
+    tax_year: string;
+    arrears?: number | undefined;
+    use_declared_values: boolean;
+  }): Promise<void> => {
+    try {
+      showToast('Computing monthly salary...', 'info');
+      
+      // Call the monthly salary computation API
+      await salaryProcessingApi.computeMonthlySalary({
+        employee_id: request.employee_id,
+        month: request.month,
+        year: request.year,
+        tax_year: request.tax_year,
+        force_recompute: true,
+        computed_by: 'admin'
+      });
+      
+      showToast(`Monthly salary computed successfully for ${request.employee_id}`, 'success');
+      
+      // Refresh the employee data to show updated values
+      await handleRefresh();
+      
+    } catch (error) {
+      console.error('Error computing monthly salary:', error);
+      showToast(`Failed to compute monthly salary for ${request.employee_id}`, 'error');
+      throw error;
+    }
+  };
+
+  const handleOpenMonthlySalaryDialog = (employee: EmployeeRecord): void => {
+    setMonthlySalaryEmployee(employee);
+    setMonthlySalaryDialogOpen(true);
+  };
+
+  const handleCloseMonthlySalaryDialog = (): void => {
+    setMonthlySalaryDialogOpen(false);
+    setMonthlySalaryEmployee(null);
+  };
+
+  const handleBulkSalaryProcessing = async (requests: {
+    employee_id: string;
+    month: number;
+    year: number;
+    tax_year: string;
+    arrears?: number | undefined;
+    use_declared_values: boolean;
+  }[]): Promise<void> => {
+    try {
+      showToast(`Processing salary for ${requests.length} employees...`, 'info');
+      
+      // Process each employee sequentially to avoid overwhelming the server
+      for (let i = 0; i < requests.length; i++) {
+        const request = requests[i];
+        if (!request) continue; // Skip if request is undefined
+        
+        try {
+          await salaryProcessingApi.computeMonthlySalary({
+            employee_id: request.employee_id,
+            month: request.month,
+            year: request.year,
+            tax_year: request.tax_year,
+            force_recompute: true,
+            computed_by: 'admin'
+          });
+          
+          // Show progress for every 5 employees or at the end
+          if ((i + 1) % 5 === 0 || i === requests.length - 1) {
+            showToast(`Processed ${i + 1} of ${requests.length} employees`, 'info');
+          }
+        } catch (error) {
+          console.error(`Error processing employee ${request.employee_id}:`, error);
+          // Continue with other employees even if one fails
+        }
+      }
+      
+      showToast(`Successfully processed salary for ${requests.length} employees`, 'success');
+      
+      // Refresh the employee data to show updated values
+      await handleRefresh();
+      
+    } catch (error) {
+      console.error('Error in bulk salary processing:', error);
+      showToast(`Failed to process bulk salary for some employees`, 'error');
+      throw error;
+    }
+  };
+
+  const handleOpenBulkProcessingDialog = (): void => {
+    setBulkProcessingDialogOpen(true);
+  };
+
+  const handleCloseBulkProcessingDialog = (): void => {
+    setBulkProcessingDialogOpen(false);
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '70vh' }}>
@@ -534,6 +1174,15 @@ const IndividualComponentManagement: React.FC = () => {
                   <RefreshIcon />
                 </IconButton>
               </Tooltip>
+              <Button 
+                variant="contained" 
+                color="success"
+                startIcon={<PlaylistAddCheckIcon />}
+                onClick={handleOpenBulkProcessingDialog}
+                disabled={loading || employees.length === 0}
+              >
+                BULK PROCESS
+              </Button>
               <Button 
                 variant="outlined" 
                 startIcon={<ArrowBackIcon />}
@@ -674,6 +1323,15 @@ const IndividualComponentManagement: React.FC = () => {
                               <FunctionsIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
+                          <Tooltip title="Compute Monthly Salary">
+                            <IconButton
+                              size="small"
+                              color="info"
+                              onClick={() => handleOpenMonthlySalaryDialog(employee)}
+                            >
+                              <AttachMoneyIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                         </Box>
                       </TableCell>
                     </TableRow>
@@ -757,6 +1415,24 @@ const IndividualComponentManagement: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Monthly Salary Compute Dialog */}
+      <MonthlySalaryComputeDialog
+        open={monthlySalaryDialogOpen}
+        onClose={handleCloseMonthlySalaryDialog}
+        employee={monthlySalaryEmployee}
+        taxYear={selectedTaxYear}
+        onCompute={handleComputeMonthlySalary}
+      />
+
+      {/* Bulk Salary Processing Dialog */}
+      <BulkSalaryProcessingDialog
+        open={bulkProcessingDialogOpen}
+        onClose={handleCloseBulkProcessingDialog}
+        employees={employees}
+        taxYear={selectedTaxYear}
+        onBulkCompute={handleBulkSalaryProcessing}
+      />
 
       {/* Toast Notifications */}
       <Snackbar

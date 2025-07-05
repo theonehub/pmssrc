@@ -203,7 +203,7 @@ const ProjectAttributes: React.FC = () => {
   }
 
   return (
-    <PageLayout title="Project Attributes">
+    <Box>
       <Container maxWidth="lg" sx={{ mt: 4 }}>
         <Box sx={{ 
           display: 'flex', 
@@ -422,7 +422,7 @@ const ProjectAttributes: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </PageLayout>
+    </Box>
   );
 };
 

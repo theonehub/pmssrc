@@ -136,50 +136,62 @@ class GetEmployeesForSelectionUseCase:
                 organization_id
             )
             
-            
             if tax_record:
                 employee_dto.has_tax_record = True
                 employee_dto.tax_year = str(tax_record.tax_year)  # Convert TaxYear value object to string
                 employee_dto.filing_status = getattr(tax_record, 'filing_status', None)
-                employee_dto.regime = str(tax_record.regime) if hasattr(tax_record, 'regime') and tax_record.regime else None  # Convert TaxRegime value object to string
+                
+                # Extract regime from TaxRegime value object
+                if hasattr(tax_record, 'regime') and tax_record.regime:
+                    if hasattr(tax_record.regime, 'regime_type'):
+                        employee_dto.regime = tax_record.regime.regime_type.value
+                    else:
+                        employee_dto.regime = str(tax_record.regime)
+                else:
+                    employee_dto.regime = None
+                
                 employee_dto.last_updated = tax_record.updated_at.isoformat() if hasattr(tax_record, 'updated_at') and tax_record.updated_at else None
                 
                 # Extract total tax liability from calculation result
-                total_tax = None
-                
                 if hasattr(tax_record, 'calculation_result') and tax_record.calculation_result:
                     calc_result = tax_record.calculation_result
                     
-                    # Handle TaxCalculationResult object
-                    if hasattr(calc_result, 'tax_liability'):
-                        if hasattr(calc_result.tax_liability, 'to_float'):
-                            total_tax = calc_result.tax_liability.to_float()
-                        else:
-                            total_tax = float(calc_result.tax_liability)
-                    elif hasattr(calc_result, 'total_tax_liability'):
-                        if hasattr(calc_result.total_tax_liability, 'to_float'):
-                            total_tax = calc_result.total_tax_liability.to_float()
-                        else:
-                            total_tax = float(calc_result.total_tax_liability)
+                    # Debug logging
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.debug(f"Employee {user_summary.employee_id}: Found calculation result")
+                    logger.debug(f"Employee {user_summary.employee_id}: calc_result type: {type(calc_result)}")
+                    logger.debug(f"Employee {user_summary.employee_id}: calc_result attributes: {dir(calc_result)}")
                     
-                    # Fallback: Handle as dictionary (in case deserialization didn't work)
-                    elif isinstance(calc_result, dict):
-                        total_tax = calc_result.get('tax_liability') or calc_result.get('total_tax_liability')
-                        
-                        # Try tax_breakdown if direct fields not available
-                        if not total_tax and 'tax_breakdown' in calc_result:
-                            breakdown = calc_result['tax_breakdown']
-                            if isinstance(breakdown, dict):
-                                if 'tax_calculation' in breakdown:
-                                    total_tax = breakdown['tax_calculation'].get('total_tax_liability')
-                                elif 'total_tax_liability' in breakdown:
-                                    total_tax = breakdown['total_tax_liability']
-                
-                # Set the total tax if found
-                if total_tax is not None:
-                    employee_dto.total_tax = float(total_tax)
+                    # TaxCalculationResult has tax_liability property
+                    if hasattr(calc_result, 'tax_liability') and calc_result.tax_liability:
+                        if hasattr(calc_result.tax_liability, 'to_float'):
+                            employee_dto.total_tax = calc_result.tax_liability.to_float()
+                            logger.debug(f"Employee {user_summary.employee_id}: Set total_tax from tax_liability: {employee_dto.total_tax}")
+                        else:
+                            employee_dto.total_tax = float(calc_result.tax_liability)
+                            logger.debug(f"Employee {user_summary.employee_id}: Set total_tax from tax_liability (float): {employee_dto.total_tax}")
+                    
+                    # Fallback to total_tax_liability property
+                    elif hasattr(calc_result, 'total_tax_liability') and calc_result.total_tax_liability:
+                        if hasattr(calc_result.total_tax_liability, 'to_float'):
+                            employee_dto.total_tax = calc_result.total_tax_liability.to_float()
+                            logger.debug(f"Employee {user_summary.employee_id}: Set total_tax from total_tax_liability: {employee_dto.total_tax}")
+                        else:
+                            employee_dto.total_tax = float(calc_result.total_tax_liability)
+                            logger.debug(f"Employee {user_summary.employee_id}: Set total_tax from total_tax_liability (float): {employee_dto.total_tax}")
+                    else:
+                        logger.debug(f"Employee {user_summary.employee_id}: No tax liability found in calculation result")
+                else:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.debug(f"Employee {user_summary.employee_id}: No calculation result found")
             
-        except Exception:
+        except Exception as e:
+            # Log the error for debugging but don't fail the entire request
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Error enriching tax info for employee {user_summary.employee_id}: {str(e)}")
             # If tax record not found or error occurs, leave defaults
             pass
         

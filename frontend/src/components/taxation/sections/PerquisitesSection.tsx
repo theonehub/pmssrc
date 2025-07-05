@@ -125,6 +125,7 @@ const PerquisitesSection: React.FC<PerquisitesSectionProps> = ({
             handleNestedFocus={handleNestedFocus}
             formData={{
               travel_mode: taxationData.perquisites?.leave_travel_allowance?.travel_mode || 'Air',
+              lta_allocated_yearly: taxationData.perquisites?.leave_travel_allowance?.lta_allocated_yearly || 0,
               lta_amount_claimed: taxationData.perquisites?.leave_travel_allowance?.lta_claimed || 0,
               public_transport_cost: 0, // This field doesn't exist in PerquisitesDTO
               lta_claimed_count: 0

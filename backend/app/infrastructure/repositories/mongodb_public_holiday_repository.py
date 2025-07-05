@@ -249,6 +249,8 @@ class MongoDBPublicHolidayRepository(PublicHolidayRepository):
         except Exception as e:
             logger.error(f"Error finding public holidays by date range in database {hostname}: {e}")
             raise
+
+
     
     async def find_by_date(self, holiday_date: date, hostname: str) -> List[PublicHoliday]:
         """Find public holidays on specific date from organisation-specific database."""

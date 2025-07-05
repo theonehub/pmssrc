@@ -650,12 +650,14 @@ const transformPerquisitesToDTO = (perquisites: any, salaryData?: any) => {
       months_used_other_vehicle: perquisites.months_used_other_vehicle || 0,
       car_cost_to_employer: perquisites.car_cost_to_employer || 0,
       other_vehicle_cost: perquisites.other_vehicle_cost_to_employer || 0,
+      driver_cost: perquisites.driver_cost || 0,
       has_expense_reimbursement: false,
       driver_provided: false
     },
     
     // LTA perquisite
     lta: {
+      lta_allocated_yearly: perquisites.lta_allocated_yearly || 0,
       lta_amount_claimed: perquisites.lta_amount_claimed || 0,
       lta_claimed_count: perquisites.lta_claimed_count || 0,
       public_transport_cost: perquisites.public_transport_cost || 0,

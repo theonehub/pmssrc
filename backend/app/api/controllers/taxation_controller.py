@@ -732,12 +732,14 @@ class UnifiedTaxationController:
             months_used_other_vehicle=perquisites_dto.months_used_other_vehicle,
             car_cost_to_employer=safe_money_from_value(perquisites_dto.car_cost_to_employer),
             other_vehicle_cost=safe_money_from_value(perquisites_dto.other_vehicle_cost),
+            driver_cost=safe_money_from_value(perquisites_dto.driver_cost),
             has_expense_reimbursement=perquisites_dto.has_expense_reimbursement,
             driver_provided=perquisites_dto.driver_provided
         )
         
         # Convert LTA
         lta = LTAPerquisite(
+            lta_allocated_yearly=safe_money_from_value(perquisites_dto.lta_allocated_yearly),
             lta_amount_claimed=safe_money_from_value(perquisites_dto.lta_amount_claimed),
             lta_claimed_count=perquisites_dto.lta_claimed_count,
             public_transport_cost=safe_money_from_value(perquisites_dto.public_transport_cost),
@@ -1817,6 +1819,7 @@ class UnifiedTaxationController:
                 "months_used_other_vehicle": car.months_used_other_vehicle,
                 "car_cost_to_employer": float(car.car_cost_to_employer.amount),
                 "other_vehicle_cost": float(car.other_vehicle_cost.amount),
+                "driver_cost": float(car.driver_cost.amount),
                 "has_expense_reimbursement": car.has_expense_reimbursement,
                 "driver_provided": car.driver_provided
             }
@@ -1825,9 +1828,11 @@ class UnifiedTaxationController:
         if perquisites.lta:
             lta = perquisites.lta
             result["lta"] = {
+                "lta_allocated_yearly": float(lta.lta_allocated_yearly.amount),
                 "lta_amount_claimed": float(lta.lta_amount_claimed.amount),
                 "lta_claimed_count": lta.lta_claimed_count,
-                "public_transport_cost": float(lta.public_transport_cost.amount)
+                "public_transport_cost": float(lta.public_transport_cost.amount),
+                "travel_mode": lta.travel_mode
             }
         
         # Serialize interest free loan
@@ -2404,8 +2409,8 @@ class UnifiedTaxationController:
             RuntimeError: If computation fails
         """
         
-        logger.info(f"Computing monthly salary for employee {request.employee_id}")
-        logger.info(f"Month: {request.month}, Year: {request.year}, Tax Year: {request.tax_year}")
+        logger.debug(f"Computing monthly salary for employee {request.employee_id}")
+        logger.debug(f"Month: {request.month}, Year: {request.year}, Tax Year: {request.tax_year}")
         
         try:
             # Use the monthly salary computation use case

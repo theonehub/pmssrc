@@ -187,6 +187,17 @@ const CarTransportSection: React.FC<CarTransportSectionProps> = ({
           />
         </Tooltip>
         
+        {/* Driver cost */}
+        <TextField
+          fullWidth
+          label="Driver Cost"
+          type="text"
+          value={formatIndianNumber(0)}
+          onChange={(e) => handleTextFieldChange('driver_cost', e)}
+          InputProps={{ startAdornment: '₹' }}
+          onFocus={(e) => handleTextFieldFocus('driver_cost', e)}
+        />
+        
         {/* Month count for other vehicle */}
         <TextField
           fullWidth

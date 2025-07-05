@@ -50,10 +50,12 @@ interface PerquisitesComponentData {
   months_used_other_vehicle: number;
   car_cost_to_employer: number;
   other_vehicle_cost: number;
+  driver_cost: number;
   has_expense_reimbursement: boolean;
   driver_provided: boolean;
 
   // LTA
+  lta_allocated_yearly: number;
   lta_amount_claimed: number;
   lta_claimed_count: number;
   public_transport_cost: number;
@@ -209,11 +211,12 @@ const initialPerquisitesData: PerquisitesComponentData = {
   months_used_other_vehicle: 12,
   car_cost_to_employer: 0,
   other_vehicle_cost: 0,
+  driver_cost: 0,
   has_expense_reimbursement: false,
   driver_provided: false,
 
-
   // LTA
+  lta_allocated_yearly: 0,
   lta_amount_claimed: 0,
   lta_claimed_count: 0,
   public_transport_cost: 0,
@@ -331,6 +334,7 @@ const flattenPerquisitesData = (nestedData: any): PerquisitesComponentData => {
       flattened.months_used_other_vehicle = nestedData.car.months_used_other_vehicle || 12;
       flattened.car_cost_to_employer = nestedData.car.car_cost_to_employer || 0;
       flattened.other_vehicle_cost = nestedData.car.other_vehicle_cost || 0;
+      flattened.driver_cost = nestedData.car.driver_cost || 0;
       flattened.has_expense_reimbursement = nestedData.car.has_expense_reimbursement || false;
       flattened.driver_provided = nestedData.car.driver_provided || false;
     }
@@ -338,6 +342,7 @@ const flattenPerquisitesData = (nestedData: any): PerquisitesComponentData => {
     // LTA
     if (nestedData.lta) {
       console.log('Processing LTA:', nestedData.lta);
+      flattened.lta_allocated_yearly = nestedData.lta.lta_allocated_yearly || 0;
       flattened.lta_amount_claimed = nestedData.lta.lta_amount_claimed || 0;
       flattened.lta_claimed_count = nestedData.lta.lta_claimed_count || 0;
       flattened.public_transport_cost = nestedData.lta.public_transport_cost || 0;
@@ -702,6 +707,7 @@ const PerquisitesComponentForm: React.FC = () => {
         { name: 'months_used_other_vehicle', label: 'Months Used Other Vehicle', type: 'number' } as NumberField,
         { name: 'car_cost_to_employer', label: 'Car Cost to Employer', type: 'number' } as NumberField,
         { name: 'other_vehicle_cost', label: 'Other Vehicle Cost', type: 'number' } as NumberField,
+        { name: 'driver_cost', label: 'Driver Cost', type: 'number' } as NumberField,
         { name: 'has_expense_reimbursement', label: 'Expense Reimbursement', type: 'checkbox' } as CheckboxField,
         { name: 'driver_provided', label: 'Driver Provided', type: 'checkbox' } as CheckboxField
       ]
@@ -715,6 +721,7 @@ const PerquisitesComponentForm: React.FC = () => {
           { value: 'Bus', label: 'Bus' },
           { value: 'Other', label: 'Other' }
         ]} as SelectField,
+        { name: 'lta_allocated_yearly', label: 'LTA Allocated Yearly', type: 'number' } as NumberField,
         { name: 'lta_amount_claimed', label: 'LTA Amount Claimed', type: 'number' } as NumberField,
         { name: 'lta_claimed_count', label: 'LTA Claims Count', type: 'number' } as NumberField,
         { name: 'public_transport_cost', label: 'Public Transport Cost (for same distance)', type: 'number' } as NumberField

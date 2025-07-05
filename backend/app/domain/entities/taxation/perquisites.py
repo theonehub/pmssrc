@@ -5,7 +5,7 @@ Domain entity for handling all perquisite types and their valuations as per Indi
 
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 from datetime import date
 from enum import Enum
 
@@ -146,10 +146,22 @@ class CarPerquisite:
     # For personal use
     car_cost_to_employer: Money = Money.zero()
     other_vehicle_cost: Money = Money.zero()
+    driver_cost: Money = Money.zero()
     
     # For mixed use
     has_expense_reimbursement: bool = False
     driver_provided: bool = False
+
+    def calculate_monthly_payout(self) -> Money:
+        """Calculate monthly payout."""
+        total = Money.zero()
+        if self.car_cost_to_employer.is_greater_than(Money.zero()):
+            total = self.car_cost_to_employer.divide(self.months_used)
+        if self.other_vehicle_cost.is_greater_than(Money.zero()):
+            total = total.add(self.other_vehicle_cost.divide(self.months_used_other_vehicle))
+        if self.driver_cost.is_greater_than(Money.zero()):
+            total = total.add(self.driver_cost.divide(self.months_used))
+        return total
     
     def calculate_taxable_car_value(self) -> Money:
         """Calculate car perquisite value."""
@@ -206,11 +218,16 @@ class CarPerquisite:
 @dataclass
 class LTAPerquisite:
     """Leave Travel Allowance perquisite."""
-    
+
+    lta_allocated_yearly: Money = Money.zero()
     lta_amount_claimed: Money = Money.zero()
     lta_claimed_count: int = 0
     public_transport_cost: Money = Money.zero()
     travel_mode: str = 'Air'  # Railway, Air, Public Transport
+
+    def calculate_monthly_payout(self) -> Money:
+        #TODO check condition if LTA disbursement is done in the month
+        return self.lta_allocated_yearly.divide(12)
     
     def calculate_taxable_lta_value(self) -> Money:
         """Calculate taxable LTA value."""
@@ -220,16 +237,16 @@ class LTAPerquisite:
         # Eligible exemption based on travel mode
         if self.travel_mode == 'Railway':
             # AC First Class fare is the limit for railway
-            eligible_exemption = self.public_transport_cost
+            eligible_exemption = self.public_transport_cost.min(self.lta_amount_claimed)
         elif self.travel_mode == 'Air':
             # Economy class fare is the limit for air travel
-            eligible_exemption = self.public_transport_cost
+            eligible_exemption = self.public_transport_cost.min(self.lta_amount_claimed)
         else:
             # Actual public transport cost for other modes
-            eligible_exemption = self.public_transport_cost
+            eligible_exemption = self.public_transport_cost.min(self.lta_amount_claimed)
             
-        if self.lta_amount_claimed.is_greater_than(eligible_exemption):
-            return self.lta_amount_claimed.subtract(eligible_exemption)
+        if self.lta_allocated_yearly.is_greater_than(eligible_exemption):
+            return self.lta_allocated_yearly.subtract(eligible_exemption)
         else:
             return Money.zero()
 
@@ -538,6 +555,20 @@ class DomesticHelpPerquisite:
                 .subtract(self.domestic_help_paid_by_employee)
                 .max(Money.zero()))
 
+@dataclass
+class MonthlyPerquisitesComponents:
+    """Monthly perquisites entity."""
+    key: str
+    display_name: str
+    value: Money
+
+
+@dataclass
+class MonthlyPerquisitesPayouts:
+    """Monthly perquisites entity."""
+    components: List[MonthlyPerquisitesComponents]
+    total: Money
+
 
 @dataclass
 class Perquisites:
@@ -826,6 +857,16 @@ class Perquisites:
         max_category = max(amounts.keys(), key=lambda k: amounts[k].to_float())
         return max_category if amounts[max_category].is_positive() else "None"
     
+    def get_perquisites_components(self) -> List[MonthlyPerquisitesComponents]:
+        """Get the perquisites components."""
+        components = []
+        if self.car:
+            components.append(MonthlyPerquisitesComponents(key="car", display_name="Car Reimbursement", value=self.car.calculate_monthly_payout()))
+        if self.lta:
+            components.append(MonthlyPerquisitesComponents(key="lta", display_name="LTA", value=self.lta.calculate_monthly_payout()))
+        #TODO add other perquisites components
+        return components
+
     @property
     def car_perquisite(self) -> Money:
         """Backward compatibility: Get car perquisite value."""
@@ -911,3 +952,5 @@ class Perquisites:
             total = total.add(self.movable_asset_transfer.calculate_taxable_value())
         
         return total 
+
+

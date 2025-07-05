@@ -4,7 +4,7 @@ from app.domain.value_objects.tax_year import TaxYear
 from app.domain.value_objects.tax_regime import TaxRegime
 from app.domain.value_objects.employee_id import EmployeeId
 from app.domain.entities.taxation.salary_income import SalaryIncome
-from app.domain.entities.taxation.perquisites import Perquisites
+from app.domain.entities.taxation.perquisites import MonthlyPerquisitesPayouts
 from app.domain.entities.taxation.deductions import TaxDeductions
 from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 from app.domain.entities.taxation.lwp_details import LWPDetails
@@ -15,7 +15,7 @@ class MonthlySalary:
     month: int
     year: int
     salary: SalaryIncome
-    perquisites: Perquisites
+    perquisites_payouts: MonthlyPerquisitesPayouts
     deductions: TaxDeductions
     retirement: RetirementBenefits
     lwp: LWPDetails

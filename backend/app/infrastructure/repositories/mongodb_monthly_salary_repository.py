@@ -24,7 +24,8 @@ from app.domain.entities.taxation.perquisites import (
     InterestFreeConcessionalLoan, ESOPPerquisite, UtilitiesPerquisite,
     FreeEducationPerquisite, LunchRefreshmentPerquisite, DomesticHelpPerquisite,
     MovableAssetUsage, MovableAssetTransfer, GiftVoucherPerquisite,
-    MonetaryBenefitsPerquisite, ClubExpensesPerquisite
+    MonetaryBenefitsPerquisite, ClubExpensesPerquisite, MonthlyPerquisitesPayouts,
+    MonthlyPerquisitesComponents
 )
 from app.domain.entities.taxation.deductions import (
     TaxDeductions, DeductionSection80C, DeductionSection80CCC, DeductionSection80CCD,
@@ -789,8 +790,8 @@ class MongoDBMonthlySalaryRepository(MonthlySalaryRepository):
             # Comprehensive salary components
             "salary": self._serialize_salary_income(monthly_salary.salary) if monthly_salary.salary else None,
             
-            # Comprehensive perquisites
-            "perquisites": self._serialize_perquisites(monthly_salary.perquisites) if monthly_salary.perquisites else None,
+            # Comprehensive perquisites payouts
+            "perquisites_payouts": self._serialize_perquisites_payouts(monthly_salary.perquisites_payouts) if monthly_salary.perquisites_payouts else None,
             
             # Comprehensive deductions
             "deductions": self._serialize_deductions(monthly_salary.deductions) if monthly_salary.deductions else None,
@@ -823,8 +824,8 @@ class MongoDBMonthlySalaryRepository(MonthlySalaryRepository):
         # Reconstruct salary income with all components
         salary_income = self._deserialize_salary_income(document.get("salary", {}))
         
-        # Reconstruct perquisites with all components
-        perquisites = self._deserialize_perquisites(document.get("perquisites", {}))
+        # Reconstruct perquisites payouts with all components
+        perquisites_payouts = self._deserialize_perquisites_payouts(document.get("perquisites_payouts", {}))
         
         # Reconstruct deductions with all components
         deductions = self._deserialize_deductions(document.get("deductions", {}))
@@ -841,7 +842,7 @@ class MongoDBMonthlySalaryRepository(MonthlySalaryRepository):
             month=document["month"],
             year=document["year"],
             salary=salary_income,
-            perquisites=perquisites,
+            perquisites_payouts=perquisites_payouts,
             deductions=deductions,
             retirement=retirement,
             lwp=lwp,
@@ -941,6 +942,22 @@ class MongoDBMonthlySalaryRepository(MonthlySalaryRepository):
             "children_count": specific_allowances.children_count
         }
     
+    def _serialize_perquisites_payouts(self, perquisites_payouts: MonthlyPerquisitesPayouts) -> Dict[str, Any]:
+        """Serialize MonthlyPerquisitesPayouts with all components."""
+        if perquisites_payouts is None:
+            return None
+        return {
+            "components": [
+                {
+                    "key": component.key,
+                    "display_name": component.display_name,
+                    "value": component.value.to_float()
+                }
+                for component in perquisites_payouts.components
+            ],
+            "total": perquisites_payouts.total.to_float()
+        }
+
     def _serialize_perquisites(self, perquisites: Perquisites) -> Dict[str, Any]:
         """Serialize Perquisites with all components."""
         if perquisites is None:
@@ -1659,6 +1676,24 @@ class MongoDBMonthlySalaryRepository(MonthlySalaryRepository):
             monetary_benefits=monetary_benefits,
             club_expenses=club_expenses
         )
+
+    def _deserialize_perquisites_payouts(self, perq_payouts_doc: Dict[str, Any]) -> MonthlyPerquisitesPayouts:
+        """Deserialize MonthlyPerquisitesPayouts from document format."""
+        if not perq_payouts_doc:
+            return MonthlyPerquisitesPayouts(components=[], total=Money.zero())
+        
+        components = []
+        for comp_doc in perq_payouts_doc.get("components", []):
+            component = MonthlyPerquisitesComponents(
+                key=comp_doc.get("key", ""),
+                display_name=comp_doc.get("display_name", ""),
+                value=Money.from_float(comp_doc.get("value", 0.0))
+            )
+            components.append(component)
+        
+        total = Money.from_float(perq_payouts_doc.get("total", 0.0))
+        
+        return MonthlyPerquisitesPayouts(components=components, total=total)
 
     # --- DEDUCTIONS ---
     def _deserialize_deductions(self, ded_doc: Dict[str, Any]) -> TaxDeductions:

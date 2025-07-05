@@ -31,6 +31,7 @@ interface LeaveTravelAllowanceSectionProps {
     lta_amount_claimed?: number;
     public_transport_cost?: number;
     lta_claimed_count?: number;
+    lta_allocated_yearly?: number;
   };
 }
 
@@ -80,6 +81,17 @@ const LeaveTravelAllowanceSection: React.FC<LeaveTravelAllowanceSectionProps> = 
             <MenuItem value="Public Transport">Public Transport</MenuItem>
           </Select>
         </FormControl>
+
+        {/* LTA allocated yearly */}
+        <TextField
+          fullWidth
+          label="LTA Allocated Yearly"
+          type="text"
+          value={formatIndianNumber(formData.lta_allocated_yearly || 0)}
+          onChange={(e) => handleTextFieldChange('lta_allocated_yearly', e)}
+          InputProps={{ startAdornment: '₹' }}
+          onFocus={(e) => handleTextFieldFocus('lta_allocated_yearly', e)}
+        />
 
         {/* LTA amount claimed */}
         <TextField

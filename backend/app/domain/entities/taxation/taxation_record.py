@@ -889,7 +889,10 @@ class SalaryPackageRecord:
         Returns:
             Money: Gross salary of the employee
         """
-        return self.get_annual_salary_income().calculate_gross_salary()
+        total = self.get_annual_salary_income().calculate_gross_salary()
+        for arrear in self.arrears:
+            total = total.add(arrear)
+        return total
     
     def additional_tax_liability(self) -> Money:
         """
@@ -1084,8 +1087,10 @@ class SalaryPackageRecord:
             other_income_slab_amount = self.other_income.calculate_total_other_income_slab_rates(self.regime, self.age)
             logger.info(f"Other income slab amount: {other_income_slab_amount}")
             total_income = total_income.add(other_income_slab_amount)
-
-            adjustments_less = self.other_income.house_property_income.get_house_property_loss(self.regime)
+            adjustments_less = Money.zero()
+            # Fix: Check if house_property_income is not None before calling get_house_property_loss
+            if self.other_income.house_property_income is not None:
+                adjustments_less = self.other_income.house_property_income.get_house_property_loss(self.regime)
             logger.info(f"HPI: Loss from house property: {adjustments_less}")
             total_income = total_income.subtract(adjustments_less)
                     

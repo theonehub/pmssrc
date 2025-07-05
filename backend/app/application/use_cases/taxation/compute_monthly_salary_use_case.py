@@ -12,7 +12,7 @@ from app.domain.value_objects.tax_year import TaxYear
 from app.domain.value_objects.money import Money
 from app.domain.entities.monthly_salary import MonthlySalary
 from app.domain.entities.taxation.salary_income import SalaryIncome
-from app.domain.entities.taxation.perquisites import Perquisites
+from app.domain.entities.taxation.perquisites import MonthlyPerquisitesPayouts
 from app.domain.entities.taxation.deductions import TaxDeductions
 from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 from app.domain.entities.taxation.lwp_details import LWPDetails
@@ -65,8 +65,8 @@ class ComputeMonthlySalaryUseCase:
             ValueError: If employee or salary package not found
             RuntimeError: If computation fails
         """
-        logger.info(f"Starting monthly salary computation for employee {request.employee_id}")
-        logger.info(f"Month: {request.month}, Year: {request.year}, Tax Year: {request.tax_year}")
+        logger.debug(f"Starting monthly salary computation for employee {request.employee_id}")
+        logger.debug(f"Month: {request.month}, Year: {request.year}, Tax Year: {request.tax_year}")
         
         try:
             # 1. Get employee details
@@ -120,7 +120,7 @@ class ComputeMonthlySalaryUseCase:
                 month=request.month,
                 year=request.year,
                 salary=monthly_salary_components['salary'],
-                perquisites=monthly_salary_components['perquisites'],
+                perquisites_payouts=monthly_salary_components['perquisites_payouts'],
                 deductions=monthly_salary_components['deductions'],
                 retirement=monthly_salary_components['retirement'],
                 lwp=monthly_salary_components['lwp'],
@@ -196,7 +196,9 @@ class ComputeMonthlySalaryUseCase:
         )
         
         # Create other components (simplified for monthly)
-        monthly_perquisites = Perquisites()  # Empty for now
+        perq_components = salary_package_record.perquisites.get_perquisites_components()
+        perq_total = sum([c.value for c in perq_components], start=Money.zero())
+        monthly_perquisites_payouts = MonthlyPerquisitesPayouts(components=perq_components, total=perq_total)
         monthly_deductions = TaxDeductions()  # Will be calculated
         monthly_retirement = RetirementBenefits()  # Empty for now
         
@@ -205,7 +207,7 @@ class ComputeMonthlySalaryUseCase:
         
         return {
             'salary': monthly_salary_income,
-            'perquisites': monthly_perquisites,
+            'perquisites_payouts': monthly_perquisites_payouts,
             'deductions': monthly_deductions,
             'retirement': monthly_retirement,
             'lwp': monthly_lwp

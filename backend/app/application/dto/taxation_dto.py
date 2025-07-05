@@ -372,10 +372,12 @@ class PerquisitesDTO(BaseModel):
     months_used_other_vehicle: int = Field(default=12, ge=0, le=12, description="Months used other vehicle")
     car_cost_to_employer: Decimal = Field(default=0, ge=0, description="Car cost to employer")
     other_vehicle_cost: Decimal = Field(default=0, ge=0, description="Other vehicle cost")
+    driver_cost: Decimal = Field(default=0, ge=0, description="Driver cost")
     has_expense_reimbursement: bool = Field(default=False, description="Has expense reimbursement")
     driver_provided: bool = Field(default=False, description="Driver provided")
     
     # LTA fields
+    lta_allocated_yearly: Decimal = Field(default=0, ge=0, description="LTA allocated yearly")
     lta_amount_claimed: Decimal = Field(default=0, ge=0, description="LTA amount claimed")
     lta_claimed_count: int = Field(default=0, ge=0, description="LTA claimed count")
     public_transport_cost: Decimal = Field(default=0, ge=0, description="Public transport cost")
@@ -525,10 +527,12 @@ class PerquisitesDTO(BaseModel):
                 "months_used_other_vehicle": self.months_used_other_vehicle,
                 "car_cost_to_employer": self.car_cost_to_employer,
                 "other_vehicle_cost": self.other_vehicle_cost,
+                "driver_cost": self.driver_cost,
                 "has_expense_reimbursement": self.has_expense_reimbursement,
                 "driver_provided": self.driver_provided
             },
             "lta": {
+                "lta_allocated_yearly": self.lta_allocated_yearly,
                 "lta_amount_claimed": self.lta_amount_claimed,
                 "lta_claimed_count": self.lta_claimed_count,
                 "public_transport_cost": self.public_transport_cost,

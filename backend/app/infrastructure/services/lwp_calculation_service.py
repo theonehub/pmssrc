@@ -239,18 +239,18 @@ class LWPCalculationService(LWPCalculationServiceInterface):
         if date_obj.weekday() >= 5:  # 5 is Saturday, 6 is Sunday
             return True
         
-        # Check if public holiday
-        try:
-            date_str = date_obj.strftime("%Y-%m-%d")
-            holidays = await self._public_holiday_repository.get_by_date_range(
-                start_date=date_obj.date(),
-                end_date=date_obj.date(),
-                organisation_id=organisation_id
-            )
-            return len(holidays) > 0
-        except Exception as e:
-            logger.warning(f"Error checking public holiday for {date_str}: {e}")
-            return False
+                    # Check if public holiday
+            try:
+                date_str = date_obj.strftime("%Y-%m-%d")
+                holidays = await self._public_holiday_repository.find_by_date_range(
+                    start_date=date_obj.date(),
+                    end_date=date_obj.date(),
+                    hostname=organisation_id
+                )
+                return len(holidays) > 0
+            except Exception as e:
+                logger.warning(f"Error checking public holiday for {date_str}: {e}")
+                return False
     
     async def _calculate_working_days_in_month(
         self,

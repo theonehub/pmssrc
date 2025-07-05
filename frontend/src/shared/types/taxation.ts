@@ -261,6 +261,7 @@ export interface PerquisitesDTO {
     car_used_for_business: number;
     car_value: number;
     driver_salary: number;
+    driver_cost: number;
     fuel_provided: boolean;
     fuel_value: number;
   };
@@ -268,6 +269,7 @@ export interface PerquisitesDTO {
     amount: number;
   };
   leave_travel_allowance?: {
+    lta_allocated_yearly: number;
     lta_claimed: number;
     lta_exempt: number;
     travel_mode?: string;

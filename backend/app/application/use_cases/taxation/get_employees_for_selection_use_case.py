@@ -130,7 +130,7 @@ class GetEmployeesForSelectionUseCase:
         # Try to get tax record information
         try:
             # Get the tax record for the specific year
-            tax_record = await self._salary_package_repository.get_salary_package(
+            tax_record = await self._salary_package_repository.get_salary_package_record(
                 user_summary.employee_id, 
                 tax_year, 
                 organization_id
@@ -186,13 +186,32 @@ class GetEmployeesForSelectionUseCase:
                     import logging
                     logger = logging.getLogger(__name__)
                     logger.debug(f"Employee {user_summary.employee_id}: No calculation result found")
+            else:
+                # No tax record exists - create a default one for display purposes
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.info(f"Employee {user_summary.employee_id}: No tax record found for {tax_year}, creating default display data")
+                
+                # Set default values for display
+                employee_dto.has_tax_record = False  # No actual record exists
+                employee_dto.tax_year = tax_year
+                employee_dto.filing_status = 'pending'
+                employee_dto.regime = 'new'  # Default to new regime
+                employee_dto.total_tax = 0.0  # Default to zero tax
+                employee_dto.last_updated = None
             
         except Exception as e:
             # Log the error for debugging but don't fail the entire request
             import logging
             logger = logging.getLogger(__name__)
             logger.warning(f"Error enriching tax info for employee {user_summary.employee_id}: {str(e)}")
-            # If tax record not found or error occurs, leave defaults
-            pass
+            
+            # Set default values in case of error
+            employee_dto.has_tax_record = False
+            employee_dto.tax_year = tax_year
+            employee_dto.filing_status = 'pending'
+            employee_dto.regime = 'new'
+            employee_dto.total_tax = 0.0
+            employee_dto.last_updated = None
         
         return employee_dto 

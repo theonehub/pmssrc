@@ -1120,35 +1120,25 @@ const IndividualComponentManagement: React.FC = () => {
   
   // Transform API response to local format
   const employees: EmployeeRecord[] = useMemo(() => {
-    console.log('Raw employee response:', employeeResponse);
-    
-    const transformedEmployees = employeeResponse?.employees?.map(emp => {
-      console.log('Processing employee:', emp);
+    const transformedEmployees = employeeResponse?.employees?.map(emp => ({
+      ...emp,
+      // Ensure all required fields are present with defaults
+      user_name: emp.user_name || 'Unknown',
+      email: emp.email || '',
+      department: emp.department || 'N/A',
+      role: emp.role || 'N/A',
       
-      const transformed = {
-        ...emp,
-        // Ensure all required fields are present with defaults
-        user_name: emp.user_name || 'Unknown',
-        email: emp.email || '',
-        department: emp.department || 'N/A',
-        role: emp.role || 'N/A',
-        
-        status: emp.status || 'active',
-        joining_date: emp.joining_date || '',
-        current_salary: emp.current_salary || 0,
-        has_tax_record: emp.has_tax_record || false,
-        tax_year: emp.tax_year || selectedTaxYear,
-        filing_status: (emp.filing_status as FilingStatus) || 'pending',
-        total_tax: emp.total_tax || 0,
-        regime: emp.regime || 'new',
-        last_updated: emp.last_updated || ''
-      };
-      
-      console.log('Transformed employee:', transformed);
-      return transformed;
-    }) || [];
+      status: emp.status || 'active',
+      joining_date: emp.joining_date || '',
+      current_salary: emp.current_salary || 0,
+      has_tax_record: emp.has_tax_record || false,
+      tax_year: emp.tax_year || selectedTaxYear,
+      filing_status: (emp.filing_status as FilingStatus) || 'pending',
+      total_tax: emp.total_tax || 0,
+      regime: emp.regime || 'new',
+      last_updated: emp.last_updated || ''
+    })) || [];
     
-    console.log('Final transformed employees:', transformedEmployees);
     return transformedEmployees;
   }, [employeeResponse?.employees, selectedTaxYear]);
   

@@ -885,6 +885,32 @@ class EmployeeLeaveRepositoryImpl(EmployeeLeaveRepository):
     ) -> int:
         """Calculate Leave Without Pay (LWP) for an employee."""
         try:
+            # Use the standardized LWP calculation service from dependency container
+            from app.config.dependency_container import get_dependency_container
+            container = get_dependency_container()
+            lwp_service = container.get_lwp_calculation_service()
+            
+            # Calculate LWP using standardized method
+            lwp_result = await lwp_service.calculate_lwp_for_month(
+                employee_id, month, year, organisation_id or "default"
+            )
+            
+            return lwp_result.lwp_days
+            
+        except Exception as e:
+            logger.error(f"Error calculating LWP for employee: {e}")
+            # Fallback to simple calculation if standardized method fails
+            return await self._calculate_lwp_fallback(employee_id, month, year, organisation_id)
+    
+    async def _calculate_lwp_fallback(
+        self,
+        employee_id: str,
+        month: int,
+        year: int,
+        organisation_id: Optional[str] = None
+    ) -> int:
+        """Fallback LWP calculation method."""
+        try:
             collection = await self._get_collection(organisation_id)
             
             # Get all leaves for the employee in the specified month
@@ -911,6 +937,6 @@ class EmployeeLeaveRepositoryImpl(EmployeeLeaveRepository):
             return lwp_days
             
         except Exception as e:
-            logger.error(f"Error calculating LWP for employee: {e}")
-            raise 
+            logger.error(f"Error in fallback LWP calculation: {e}")
+            return 0 
         

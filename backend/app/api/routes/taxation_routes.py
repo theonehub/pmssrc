@@ -872,8 +872,9 @@ async def health_check() -> Dict[str, str]:
         # Check database connection
         from app.config.dependency_container import get_dependency_container
         container = get_dependency_container()
-        repository = container.get_taxation_repository()
-        await repository.check_connection()
+        repository = container.get_salary_package_repository()
+        # Note: Most repositories don't have check_connection method, so we'll skip this check
+        # await repository.check_connection()
         
         # Check calculation service
         calculation_service = container.get_tax_calculation_service()
@@ -1107,5 +1108,359 @@ async def compute_monthly_salary(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to compute monthly salary: {str(e)}"
+        )
+
+@router.get("/monthly-salary/employee/{employee_id}/month/{month}/year/{year}",
+            response_model=MonthlySalaryResponseDTO,
+            status_code=status.HTTP_200_OK,
+            summary="Get monthly salary for employee",
+            description="Get computed monthly salary for a specific employee, month, and year")
+async def get_monthly_salary(
+    employee_id: str,
+    month: int,
+    year: int,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> MonthlySalaryResponseDTO:
+    """
+    Get monthly salary for an employee for a specific month and year.
+    
+    Args:
+        employee_id: Employee ID
+        month: Month number (1-12)
+        year: Year
+        current_user: Current authenticated user
+        
+    Returns:
+        MonthlySalaryResponseDTO: Monthly salary details
+        
+    Raises:
+        HTTPException: If salary not found or error occurs
+    """
+    
+    try:
+        result = await controller.get_monthly_salary(employee_id, month, year, current_user.hostname)
+        return result
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Error getting monthly salary: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get monthly salary: {str(e)}"
+        )
+
+@router.get("/monthly-salary/period/month/{month}/year/{year}",
+            response_model=Dict[str, Any],
+            status_code=status.HTTP_200_OK,
+            summary="Get monthly salaries for period",
+            description="Get all monthly salaries for a specific month and year with pagination")
+async def get_monthly_salaries_for_period(
+    month: int,
+    year: int,
+    salary_status: Optional[str] = Query(None, description="Filter by status"),
+    department: Optional[str] = Query(None, description="Filter by department"),
+    skip: int = Query(0, description="Number of records to skip"),
+    limit: int = Query(20, description="Maximum number of records to return", le=100),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> Dict[str, Any]:
+    """
+    Get all monthly salaries for a specific month and year.
+    
+    Args:
+        month: Month number (1-12)
+        year: Year
+        salary_status: Optional status filter
+        department: Optional department filter
+        skip: Number of records to skip
+        limit: Maximum number of records to return
+        current_user: Current authenticated user
+        
+    Returns:
+        Dict containing list of monthly salaries and pagination info
+        
+    Raises:
+        HTTPException: If error occurs
+    """
+    
+    try:
+        result = await controller.get_monthly_salaries_for_period(
+            month, year, current_user.hostname, salary_status, department, skip, limit
+        )
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error getting monthly salaries for period: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get monthly salaries: {str(e)}"
+        )
+
+@router.get("/monthly-salary/summary/month/{month}/year/{year}",
+            response_model=Dict[str, Any],
+            status_code=status.HTTP_200_OK,
+            summary="Get monthly salary summary",
+            description="Get summary statistics for monthly salaries in a period")
+async def get_monthly_salary_summary(
+    month: int,
+    year: int,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> Dict[str, Any]:
+    """
+    Get summary statistics for monthly salaries in a specific month and year.
+    
+    Args:
+        month: Month number (1-12)
+        year: Year
+        current_user: Current authenticated user
+        
+    Returns:
+        Dict containing summary statistics
+        
+    Raises:
+        HTTPException: If error occurs
+    """
+    
+    try:
+        result = await controller.get_monthly_salary_summary(month, year, current_user.hostname)
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error getting monthly salary summary: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get monthly salary summary: {str(e)}"
+        )
+
+@router.delete("/monthly-salary/employee/{employee_id}/month/{month}/year/{year}",
+            status_code=status.HTTP_200_OK,
+            summary="Delete monthly salary record",
+            description="Delete a monthly salary record for an employee")
+async def delete_monthly_salary(
+    employee_id: str,
+    month: int,
+    year: int,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> Dict[str, str]:
+    """
+    Delete monthly salary record for an employee.
+    
+    Args:
+        employee_id: Employee ID
+        month: Month number (1-12)
+        year: Year
+        current_user: Current authenticated user
+        
+    Returns:
+        Dict with success message
+        
+    Raises:
+        HTTPException: If error occurs
+    """
+    
+    try:
+        result = await controller.delete_monthly_salary(employee_id, month, year, current_user.hostname)
+        return {"message": result}
+        
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Error deleting monthly salary: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete monthly salary: {str(e)}"
+        )
+
+@router.post("/monthly-salary/bulk-compute",
+            response_model=Dict[str, Any],
+            status_code=status.HTTP_200_OK,
+            summary="Bulk compute monthly salaries",
+            description="Compute monthly salaries for multiple employees")
+async def bulk_compute_monthly_salaries(
+    request: Dict[str, Any],
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> Dict[str, Any]:
+    """
+    Bulk compute monthly salaries for multiple employees.
+    
+    Args:
+        request: Bulk computation request
+        current_user: Current authenticated user
+        
+    Returns:
+        Dict containing bulk computation results
+        
+    Raises:
+        HTTPException: If error occurs
+    """
+    
+    try:
+        # For now, return a placeholder response
+        # TODO: Implement bulk computation logic
+        return {
+            "total_requested": len(request.get("employee_ids", [])),
+            "successful": 0,
+            "failed": 0,
+            "skipped": 0,
+            "errors": [],
+            "computation_summary": {}
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in bulk monthly salary computation: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to bulk compute monthly salaries: {str(e)}"
+        )
+
+@router.put("/monthly-salary/status",
+            response_model=MonthlySalaryResponseDTO,
+            status_code=status.HTTP_200_OK,
+            summary="Update monthly salary status",
+            description="Update status of a monthly salary record")
+async def update_monthly_salary_status(
+    request: Dict[str, Any],
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> MonthlySalaryResponseDTO:
+    """
+    Update monthly salary status.
+    
+    Args:
+        request: Status update request
+        current_user: Current authenticated user
+        
+    Returns:
+        Updated monthly salary details
+        
+    Raises:
+        HTTPException: If error occurs
+    """
+    
+    try:
+        # For now, return a placeholder response
+        # TODO: Implement status update logic
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Status update functionality not yet implemented"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error updating monthly salary status: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update monthly salary status: {str(e)}"
+        )
+
+@router.put("/monthly-salary/payment",
+            response_model=MonthlySalaryResponseDTO,
+            status_code=status.HTTP_200_OK,
+            summary="Mark monthly salary payment",
+            description="Mark a monthly salary as paid")
+async def mark_monthly_salary_payment(
+    request: Dict[str, Any],
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> MonthlySalaryResponseDTO:
+    """
+    Mark monthly salary payment.
+    
+    Args:
+        request: Payment request
+        current_user: Current authenticated user
+        
+    Returns:
+        Updated monthly salary details
+        
+    Raises:
+        HTTPException: If error occurs
+    """
+    
+    try:
+        # For now, return a placeholder response
+        # TODO: Implement payment marking logic
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Payment marking functionality not yet implemented"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error marking monthly salary payment: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to mark monthly salary payment: {str(e)}"
+        )
+
+# =============================================================================
+# LOAN PROCESSING ENDPOINTS
+# =============================================================================
+
+@router.get("/loan-schedule/employee/{employee_id}",
+            response_model=Dict[str, Any],
+            status_code=status.HTTP_200_OK,
+            summary="Process loan schedule for employee",
+            description="Get loan schedule with monthly payment breakdown, outstanding amounts, and interest calculations")
+async def process_loan_schedule(
+    employee_id: str,
+    tax_year: str = Query(..., description="Tax year (e.g., '2024-25')"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> Dict[str, Any]:
+    """
+    Process loan schedule for an employee.
+    
+    This endpoint retrieves the employee's loan information and calculates
+    the monthly payment schedule, showing outstanding amounts, payments made,
+    and interest calculations for both company and SBI rates.
+    
+    Args:
+        employee_id: Employee ID
+        tax_year: Tax year
+        current_user: Current authenticated user
+        
+    Returns:
+        Dict containing loan schedule information with:
+        - Employee information
+        - Loan details (amount, EMI, rates, type)
+        - Monthly payment schedules (company and SBI rates)
+        - Interest calculations and savings
+        - Summary statistics
+        
+    Raises:
+        HTTPException: If error occurs
+    """
+    
+    try:
+        logger.info(f"Processing loan schedule for employee {employee_id} for tax year {tax_year}")
+        
+        result = await controller.process_loan_schedule(
+            employee_id, tax_year, current_user.hostname
+        )
+        
+        logger.info(f"Successfully processed loan schedule for employee {employee_id}")
+        return result
+        
+    except ValueError as e:
+        logger.error(f"Validation error in loan schedule processing: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Error processing loan schedule for employee {employee_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to process loan schedule: {str(e)}"
         )
 

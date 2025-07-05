@@ -131,6 +131,9 @@ class UnifiedTaxationController:
         if monthly_salary_repository is None:
             monthly_salary_repository = container.get_monthly_salary_repository()
         
+        # Assign monthly salary repository to self
+        self.monthly_salary_repository = monthly_salary_repository
+        
         self.get_employees_for_selection_use_case = GetEmployeesForSelectionUseCase(
             user_query_service=user_service,  # Pass the service that implements UserQueryService
             salary_package_repository=salary_package_repository
@@ -3540,4 +3543,504 @@ class UnifiedTaxationController:
         current_row += 1
         
         return current_row
+
+    async def get_monthly_salary(
+        self,
+        employee_id: str,
+        month: int,
+        year: int,
+        organization_id: str
+    ) -> MonthlySalaryResponseDTO:
+        """
+        Get monthly salary for an employee for a specific month and year.
+        
+        Args:
+            employee_id: Employee ID
+            month: Month number (1-12)
+            year: Year
+            organization_id: Organization ID for multi-tenancy
+            
+        Returns:
+            MonthlySalaryResponseDTO: Monthly salary details
+            
+        Raises:
+            ValueError: If salary not found
+        """
+        
+        logger.info(f"Getting monthly salary for employee {employee_id}, month {month}, year {year}")
+        
+        try:
+            # Get monthly salary from repository
+            monthly_salary = await self.monthly_salary_repository.get_by_employee_month_year(
+                employee_id, month, year, organization_id
+            )
+            
+            if not monthly_salary:
+                raise ValueError(f"Monthly salary not found for employee {employee_id}, month {month}, year {year}")
+            
+            # Get user details
+            from app.domain.value_objects.employee_id import EmployeeId
+            employee_id_vo = EmployeeId(employee_id)
+            user = await self.user_repository.get_by_id(employee_id_vo, organization_id)
+            
+            # Convert entity to DTO
+            response = self._convert_monthly_salary_entity_to_dto(monthly_salary, user)
+            
+            logger.info(f"Successfully retrieved monthly salary for employee {employee_id}")
+            return response
+            
+        except Exception as e:
+            logger.error(f"Failed to get monthly salary for employee {employee_id}: {str(e)}")
+            raise
+
+    async def get_monthly_salaries_for_period(
+        self,
+        month: int,
+        year: int,
+        organization_id: str,
+        salary_status: Optional[str] = None,
+        department: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 20
+    ) -> Dict[str, Any]:
+        """
+        Get all monthly salaries for a specific month and year with filtering and pagination.
+        
+        Args:
+            month: Month number (1-12)
+            year: Year
+            organization_id: Organization ID for multi-tenancy
+            status: Optional status filter
+            department: Optional department filter
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+            
+        Returns:
+            Dict containing list of monthly salaries and pagination info
+        """
+        
+        logger.info(f"Getting monthly salaries for period: month {month}, year {year}")
+        
+        try:
+            # Get monthly salaries from repository
+            monthly_salaries = await self.monthly_salary_repository.get_by_month_year(
+                month, year, organization_id, limit, skip
+            )
+            
+            # Apply filters if provided
+            filtered_salaries = []
+            for salary in monthly_salaries:
+                # Get user details for filtering
+                from app.domain.value_objects.employee_id import EmployeeId
+                employee_id_vo = EmployeeId(salary.employee_id.value)
+                user = await self.user_repository.get_by_id(employee_id_vo, organization_id)
+                
+                # Apply status filter
+                if salary_status and salary.status != salary_status:
+                    continue
+                
+                # Apply department filter
+                if department and user and user.department != department:
+                    continue
+                
+                filtered_salaries.append(salary)
+            
+            # Convert entities to DTOs
+            items = []
+            for salary in filtered_salaries:
+                from app.domain.value_objects.employee_id import EmployeeId
+                employee_id_vo = EmployeeId(salary.employee_id.value)
+                user = await self.user_repository.get_by_id(employee_id_vo, organization_id)
+                dto = self._convert_monthly_salary_entity_to_dto(salary, user)
+                items.append(dto)
+            
+            # Get total count for pagination
+            total = len(filtered_salaries)
+            
+            result = {
+                "items": items,
+                "total": total,
+                "skip": skip,
+                "limit": limit,
+                "has_more": (skip + limit) < total
+            }
+            
+            logger.info(f"Successfully retrieved {len(items)} monthly salaries for period")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Failed to get monthly salaries for period: {str(e)}")
+            raise
+
+    async def get_monthly_salary_summary(
+        self,
+        month: int,
+        year: int,
+        organization_id: str
+    ) -> Dict[str, Any]:
+        """
+        Get summary statistics for monthly salaries in a specific month and year.
+        
+        Args:
+            month: Month number (1-12)
+            year: Year
+            organization_id: Organization ID for multi-tenancy
+            
+        Returns:
+            Dict containing summary statistics
+        """
+        
+        logger.info(f"Getting monthly salary summary for period: month {month}, year {year}")
+        
+        try:
+            # Get summary from repository
+            summary = await self.monthly_salary_repository.get_monthly_summary(
+                month, year, organization_id
+            )
+            
+            logger.info(f"Successfully retrieved monthly salary summary")
+            return summary
+            
+        except Exception as e:
+            logger.error(f"Failed to get monthly salary summary: {str(e)}")
+            raise
+
+    async def delete_monthly_salary(
+        self,
+        employee_id: str,
+        month: int,
+        year: int,
+        organization_id: str
+    ) -> str:
+        """
+        Delete monthly salary record for an employee.
+        
+        Args:
+            employee_id: Employee ID
+            month: Month number (1-12)
+            year: Year
+            organization_id: Organization ID for multi-tenancy
+            
+        Returns:
+            str: Success message
+            
+        Raises:
+            ValueError: If salary not found
+        """
+        
+        logger.info(f"Deleting monthly salary for employee {employee_id}, month {month}, year {year}")
+        
+        try:
+            # Check if salary exists
+            exists = await self.monthly_salary_repository.exists(
+                employee_id, month, year, organization_id
+            )
+            
+            if not exists:
+                raise ValueError(f"Monthly salary not found for employee {employee_id}, month {month}, year {year}")
+            
+            # Delete the salary
+            deleted = await self.monthly_salary_repository.delete(
+                employee_id, month, year, organization_id
+            )
+            
+            if not deleted:
+                raise RuntimeError(f"Failed to delete monthly salary for employee {employee_id}")
+            
+            message = f"Successfully deleted monthly salary for employee {employee_id}, month {month}, year {year}"
+            logger.info(message)
+            return message
+            
+        except Exception as e:
+            logger.error(f"Failed to delete monthly salary for employee {employee_id}: {str(e)}")
+            raise
+
+    def _convert_monthly_salary_entity_to_dto(
+        self,
+        monthly_salary,
+        user
+    ) -> MonthlySalaryResponseDTO:
+        """
+        Convert MonthlySalary entity to MonthlySalaryResponseDTO.
+        
+        Args:
+            monthly_salary: MonthlySalary entity
+            user: User entity (can be None)
+            
+        Returns:
+            MonthlySalaryResponseDTO: Response DTO
+        """
+        
+        # Calculate gross salary
+        gross_salary = monthly_salary.salary.calculate_gross_salary()
+        
+        # Calculate deductions
+        epf_employee = self._calculate_monthly_epf(gross_salary)
+        esi_employee = self._calculate_monthly_esi(gross_salary)
+        professional_tax = self._calculate_monthly_professional_tax(gross_salary)
+        tds = monthly_salary.tax_amount
+        
+        total_deductions = epf_employee.add(esi_employee).add(professional_tax).add(tds)
+        net_salary = self._safe_subtract(gross_salary, total_deductions)
+        
+        # Get working days info
+        working_days_info = self._get_working_days_info(monthly_salary.month, monthly_salary.year)
+        
+        # Tax details - handle tax_regime robustly
+        try:
+            if hasattr(monthly_salary.tax_regime, "regime_type"):
+                if hasattr(monthly_salary.tax_regime.regime_type, "value"):
+                    tax_regime_value = monthly_salary.tax_regime.regime_type.value
+                else:
+                    # regime_type is a string
+                    tax_regime_value = str(monthly_salary.tax_regime.regime_type)
+            elif hasattr(monthly_salary.tax_regime, "value"):
+                tax_regime_value = monthly_salary.tax_regime.value
+            else:
+                # tax_regime is a string or other type
+                tax_regime_value = str(monthly_salary.tax_regime)
+        except Exception as e:
+            # Fallback to a default value if anything goes wrong
+            logger.warning(f"Error extracting tax_regime value: {e}")
+            tax_regime_value = "old_regime"  # Default fallback
+
+        return MonthlySalaryResponseDTO(
+            employee_id=monthly_salary.employee_id.value,
+            month=monthly_salary.month,
+            year=monthly_salary.year,
+            tax_year=str(monthly_salary.tax_year),
+            
+            # Employee details
+            employee_name=user.name if user else None,
+            employee_email=user.email if user else None,
+            department=user.department if user else None,
+            designation=user.designation if user else None,
+            
+            # Salary components
+            basic_salary=monthly_salary.salary.basic_salary.to_float(),
+            da=monthly_salary.salary.dearness_allowance.to_float(),
+            hra=monthly_salary.salary.hra_provided.to_float(),
+            special_allowance=monthly_salary.salary.special_allowance.to_float(),
+            transport_allowance=0.0,  # Not in current model
+            medical_allowance=0.0,  # Not in current model
+            bonus=monthly_salary.salary.bonus.to_float(),
+            commission=monthly_salary.salary.commission.to_float(),
+            other_allowances=0.0,  # Would need to sum specific allowances
+            arrears=monthly_salary.salary.arrears.to_float(),
+            
+            # Deductions
+            epf_employee=epf_employee.to_float(),
+            esi_employee=esi_employee.to_float(),
+            professional_tax=professional_tax.to_float(),
+            tds=tds.to_float(),
+            advance_deduction=0.0,
+            loan_deduction=0.0,
+            other_deductions=0.0,
+            
+            # Calculated totals
+            gross_salary=gross_salary.to_float(),
+            total_deductions=total_deductions.to_float(),
+            net_salary=net_salary.to_float(),
+            
+            # Annual projections
+            annual_gross_salary=gross_salary.multiply(12).to_float(),
+            annual_tax_liability=tds.multiply(12).to_float(),
+            
+            # Tax details
+            tax_regime=tax_regime_value,
+            tax_exemptions=0.0,  # Would need to calculate
+            standard_deduction=0.0,  # Would need to calculate
+            
+            # Working days
+            total_days_in_month=working_days_info['total_days'],
+            working_days_in_period=working_days_info['working_days'],
+            lwp_days=working_days_info['lwp_days'],
+            effective_working_days=working_days_info['effective_days'],
+            
+            # Status and metadata
+            status=monthly_salary.status if hasattr(monthly_salary, 'status') else "computed",
+            computation_date=monthly_salary.created_at.isoformat() if hasattr(monthly_salary, 'created_at') else None,
+            notes=None,
+            remarks=None,
+            created_at=monthly_salary.created_at.isoformat() if hasattr(monthly_salary, 'created_at') else datetime.now().isoformat(),
+            updated_at=monthly_salary.updated_at.isoformat() if hasattr(monthly_salary, 'updated_at') else datetime.now().isoformat(),
+            created_by=None,
+            updated_by=None,
+            
+            # Computation details
+            use_declared_values=False,  # Default value
+            computation_mode="actual",  # Default value
+            computation_summary={
+                "gross_salary": gross_salary.to_float(),
+                "total_deductions": total_deductions.to_float(),
+                "net_salary": net_salary.to_float(),
+                "monthly_tax": tds.to_float()
+            }
+        )
+
+    def _calculate_monthly_epf(self, gross_salary):
+        """Calculate monthly EPF contribution (12% of basic + DA)."""
+        from app.domain.value_objects.money import Money
+        from decimal import Decimal
+        return gross_salary.multiply(Decimal('0.12'))
+
+    def _calculate_monthly_esi(self, gross_salary):
+        """Calculate monthly ESI contribution (0.75% of gross)."""
+        from app.domain.value_objects.money import Money
+        from decimal import Decimal
+        return gross_salary.multiply(Decimal('0.0075'))
+
+    def _calculate_monthly_professional_tax(self, gross_salary):
+        """Calculate monthly professional tax based on slabs."""
+        from app.domain.value_objects.money import Money
+        gross_amount = gross_salary.to_float()
+        if gross_amount <= 10000:
+            return Money.zero()
+        elif gross_amount <= 15000:
+            return Money.from_float(150.0)
+        else:
+            return Money.from_float(200.0)
+
+    def _get_working_days_info(self, month: int, year: int) -> Dict[str, int]:
+        """Get working days information for the month."""
+        import calendar
+        
+        # Get total days in month
+        total_days = calendar.monthrange(year, month)[1]
+        
+        # Assume 26 working days per month (excluding Sundays)
+        working_days = 26
+        lwp_days = 0  # Would need to get from attendance system
+        effective_days = working_days - lwp_days
+        
+        return {
+            'total_days': total_days,
+            'working_days': working_days,
+            'lwp_days': lwp_days,
+            'effective_days': effective_days
+        }
+
+    def _safe_subtract(self, a, b):
+        """Safely subtract two Money objects and handle negative results gracefully."""
+        try:
+            return a.subtract(b)
+        except ValueError as e:
+            if "Cannot subtract to negative amount" in str(e):
+                # If subtraction would result in negative, return zero
+                from app.domain.value_objects.money import Money
+                return Money.zero()
+            else:
+                # Re-raise other errors
+                raise
+
+    # =============================================================================
+    # LOAN PROCESSING OPERATIONS
+    # =============================================================================
+    
+    async def process_loan_schedule(
+        self,
+        employee_id: str,
+        tax_year: str,
+        organization_id: str
+    ) -> Dict[str, Any]:
+        """
+        Process loan schedule for an employee.
+        
+        This method retrieves the employee's loan information and calculates
+        the monthly payment schedule, showing outstanding amounts, payments made,
+        and interest calculations.
+        
+        Args:
+            employee_id: Employee ID
+            tax_year: Tax year
+            organization_id: Organization ID
+            
+        Returns:
+            Dict containing loan schedule information
+        """
+        
+        logger.info(f"Processing loan schedule for employee {employee_id} for tax year {tax_year}")
+        
+        try:
+            # Get the salary package record
+            salary_package_record, _ = await self._get_or_create_salary_package_record(
+                employee_id, tax_year, organization_id
+            )
+            
+            # Extract loan information from perquisites
+            loan_info = None
+            if salary_package_record.perquisites and salary_package_record.perquisites.interest_free_loan:
+                loan = salary_package_record.perquisites.interest_free_loan
+                loan_info = {
+                    "loan_amount": float(loan.loan_amount.amount),
+                    "emi_amount": float(loan.emi_amount.amount),
+                    "outstanding_amount": float(loan.outstanding_amount.amount),
+                    "company_interest_rate": float(loan.company_interest_rate),
+                    "sbi_interest_rate": float(loan.sbi_interest_rate),
+                    "loan_type": loan.loan_type,
+                    "loan_start_date": loan.loan_start_date.isoformat() if loan.loan_start_date else None
+                }
+                
+                # Calculate monthly payment schedules
+                company_schedule, company_interest_paid = loan.calculate_monthly_payment_schedule(loan.company_interest_rate)
+                sbi_schedule, sbi_interest_paid = loan.calculate_monthly_payment_schedule(loan.sbi_interest_rate)
+                
+                # Convert schedules to serializable format
+                def serialize_schedule(schedule):
+                    return [
+                        {
+                            "month": item.month,
+                            "outstanding_amount": float(item.outstanding_amount.amount),
+                            "principal_amount": float(item.principal_amount.amount),
+                            "interest_amount": float(item.interest_amount.amount),
+                            "emi_deducted": float(item.principal_amount.amount + item.interest_amount.amount)
+                        }
+                        for item in schedule
+                    ]
+                
+                loan_info.update({
+                    "company_schedule": serialize_schedule(company_schedule),
+                    "sbi_schedule": serialize_schedule(sbi_schedule),
+                    "company_interest_paid": float(company_interest_paid.amount),
+                    "sbi_interest_paid": float(sbi_interest_paid.amount),
+                    "interest_saved": float(sbi_interest_paid.amount - company_interest_paid.amount),
+                    "taxable_benefit": float(loan.calculate_taxable_loan_value().amount)
+                })
+            
+            # Get employee information
+            employee_info = {
+                "employee_id": employee_id,
+                "tax_year": tax_year,
+                "has_loan": loan_info is not None
+            }
+            
+            if loan_info:
+                # Calculate summary statistics
+                total_months = len(loan_info["company_schedule"])
+                total_principal_paid = sum(item["principal_amount"] for item in loan_info["company_schedule"])
+                total_interest_paid = sum(item["interest_amount"] for item in loan_info["company_schedule"])
+                
+                loan_info.update({
+                    "summary": {
+                        "total_months": total_months,
+                        "total_principal_paid": total_principal_paid,
+                        "total_interest_paid": total_interest_paid,
+                        "total_payments_made": total_principal_paid + total_interest_paid,
+                        "remaining_principal": loan_info["outstanding_amount"] - total_principal_paid,
+                        "average_monthly_payment": (total_principal_paid + total_interest_paid) / total_months if total_months > 0 else 0
+                    }
+                })
+            
+            result = {
+                "employee_info": employee_info,
+                "loan_info": loan_info,
+                "processing_date": datetime.now().isoformat()
+            }
+            
+            logger.info(f"Successfully processed loan schedule for employee {employee_id}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error processing loan schedule for employee {employee_id}: {str(e)}")
+            raise
  

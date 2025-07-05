@@ -35,6 +35,15 @@ def get_employee_leave_controller() -> EmployeeLeaveController:
         logger.warning(f"Could not get employee leave controller from container: {e}")
         return EmployeeLeaveController()
 
+def get_lwp_calculation_service():
+    """Get LWP calculation service instance."""
+    try:
+        container = get_dependency_container()
+        return container.get_lwp_calculation_service()
+    except Exception as e:
+        logger.warning(f"Could not get LWP calculation service from container: {e}")
+        return None
+
 def handle_lwp_exceptions(func):
     """Decorator to handle LWP-specific exceptions."""
     async def wrapper(*args, **kwargs):
@@ -76,9 +85,28 @@ async def get_lwp_records(
         
         leaves = await controller.search_leaves(filters, current_user)
         
+        # Get current month and year for LWP calculation
+        current_date = datetime.now()
+        current_month = current_date.month
+        current_year = current_date.year
+        
+        # Get LWP calculation service
+        lwp_service = get_lwp_calculation_service()
+        
         # Transform to frontend format
         lwp_records = []
         for leave in leaves:
+            # Calculate actual LWP days for this leave if service is available
+            calculated_lwp_days = None
+            if lwp_service:
+                try:
+                    lwp_result = await lwp_service.calculate_lwp_for_month(
+                        leave.employee_id, current_month, current_year, current_user.hostname
+                    )
+                    calculated_lwp_days = lwp_result.lwp_days
+                except Exception as e:
+                    logger.warning(f"Could not calculate LWP for {leave.employee_id}: {e}")
+            
             record = {
                 "id": leave.leave_id if hasattr(leave, 'leave_id') else leave.id,
                 "employee_id": leave.employee_id,
@@ -87,7 +115,8 @@ async def get_lwp_records(
                 "end_date": leave.end_date,
                 "days": leave.days_requested if hasattr(leave, 'days_requested') else leave.leave_count,
                 "status": leave.status,
-                "present_days": getattr(leave, 'present_days', None)
+                "present_days": getattr(leave, 'present_days', None),
+                "calculated_lwp_days": calculated_lwp_days
             }
             lwp_records.append(record)
         

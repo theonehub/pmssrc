@@ -18,6 +18,7 @@ export interface MonthlySalaryResponse {
   bonus: number;
   commission: number;
   other_allowances: number;
+  arrears: number;
   epf_employee: number;
   esi_employee: number;
   professional_tax: number;
@@ -45,6 +46,9 @@ export interface MonthlySalaryResponse {
   updated_at: string;
   created_by: string | null;
   updated_by: string | null;
+  use_declared_values?: boolean;
+  computation_mode?: string;
+  computation_summary?: any;
 }
 
 export interface MonthlySalaryListResponse {
@@ -134,7 +138,7 @@ export const salaryProcessingApi = {
     year: number
   ): Promise<MonthlySalaryResponse> {
     const response = await apiClient.get(
-      `/api/v2/monthly-salary/employee/${employeeId}/month/${month}/year/${year}`
+      `/api/v2/taxation/monthly-salary/employee/${employeeId}/month/${month}/year/${year}`
     );
     return response.data;
   },
@@ -159,7 +163,7 @@ export const salaryProcessingApi = {
     if (params?.skip !== undefined) queryParams.append('skip', params.skip.toString());
     if (params?.limit !== undefined) queryParams.append('limit', params.limit.toString());
 
-    const url = `/api/v2/monthly-salary/period/month/${month}/year/${year}`;
+    const url = `/api/v2/taxation/monthly-salary/period/month/${month}/year/${year}`;
     const fullUrl = queryParams.toString() ? `${url}?${queryParams.toString()}` : url;
 
     const response = await apiClient.get(fullUrl);
@@ -182,7 +186,7 @@ export const salaryProcessingApi = {
   async bulkComputeMonthlySalaries(
     request: MonthlySalaryBulkComputeRequest
   ): Promise<MonthlySalaryBulkComputeResponse> {
-    const response = await apiClient.post('/api/v2/monthly-salary/bulk-compute', request);
+    const response = await apiClient.post('/api/v2/taxation/monthly-salary/bulk-compute', request);
     return response.data;
   },
 
@@ -192,7 +196,7 @@ export const salaryProcessingApi = {
   async updateMonthlySalaryStatus(
     request: MonthlySalaryStatusUpdateRequest
   ): Promise<MonthlySalaryResponse> {
-    const response = await apiClient.put('/api/v2/monthly-salary/status', request);
+    const response = await apiClient.put('/api/v2/taxation/monthly-salary/status', request);
     return response.data;
   },
 
@@ -204,7 +208,7 @@ export const salaryProcessingApi = {
     year: number
   ): Promise<MonthlySalarySummaryResponse> {
     const response = await apiClient.get(
-      `/api/v2/monthly-salary/summary/month/${month}/year/${year}`
+      `/api/v2/taxation/monthly-salary/summary/month/${month}/year/${year}`
     );
     return response.data;
   },
@@ -215,7 +219,7 @@ export const salaryProcessingApi = {
   async markSalaryPayment(
     request: MonthlySalaryPaymentRequest
   ): Promise<MonthlySalaryResponse> {
-    const response = await apiClient.put('/api/v2/monthly-salary/payment', request);
+    const response = await apiClient.put('/api/v2/taxation/monthly-salary/payment', request);
     return response.data;
   },
 
@@ -228,7 +232,7 @@ export const salaryProcessingApi = {
     year: number
   ): Promise<{ message: string }> {
     const response = await apiClient.delete(
-      `/api/v2/monthly-salary/employee/${employeeId}/month/${month}/year/${year}`
+      `/api/v2/taxation/monthly-salary/employee/${employeeId}/month/${month}/year/${year}`
     );
     return response.data;
   }

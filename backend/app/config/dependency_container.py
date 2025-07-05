@@ -17,6 +17,7 @@ from app.infrastructure.services.reimbursement_service_impl import Reimbursement
 from app.infrastructure.services.project_attributes_service_impl import ProjectAttributesServiceImpl
 from app.infrastructure.services.employee_leave_service_impl import EmployeeLeaveServiceImpl
 from app.infrastructure.services.reporting_service_impl import ReportingServiceImpl
+from app.infrastructure.services.lwp_calculation_service import LWPCalculationService
 
 # Infrastructure services
 from app.infrastructure.services.password_service import PasswordService
@@ -258,6 +259,13 @@ class DependencyContainer:
                 repository=self._repositories['employee_leave']
             )
             
+            # LWP calculation service
+            self._services['lwp_calculation'] = LWPCalculationService(
+                attendance_service=self._services['attendance'],
+                employee_leave_repository=self._repositories['employee_leave'],
+                public_holiday_repository=self._repositories['public_holiday']
+            )
+            
             # Reporting service
             self._services['reporting'] = ReportingServiceImpl(
                 reporting_repository=self._repositories['reporting'],
@@ -442,6 +450,11 @@ class DependencyContainer:
         """Get reporting service instance."""
         self.initialize()
         return self._services['reporting']
+    
+    def get_lwp_calculation_service(self) -> LWPCalculationService:
+        """Get LWP calculation service instance."""
+        self.initialize()
+        return self._services['lwp_calculation']
     
     def get_tax_calculation_service(self) -> TaxCalculationServiceImpl:
         """Get tax calculation service instance."""

@@ -1666,20 +1666,20 @@ class MongoDBMonthlySalaryRepository(MonthlySalaryRepository):
         from app.domain.entities.taxation.deductions import (
             DeductionSection80C, DeductionSection80CCC, DeductionSection80CCD, DeductionSection80D, DeductionSection80DD, DeductionSection80DDB, DeductionSection80E, DeductionSection80EEB, DeductionSection80G, DeductionSection80GGC, DeductionSection80U, DeductionSection80TTA_TTB, HRAExemption, OtherDeductions
         )
-        section_80c = ded_doc.get("section_80c", {})
-        section_80ccc = ded_doc.get("section_80ccc", {})
-        section_80ccd = ded_doc.get("section_80ccd", {})
-        section_80d = ded_doc.get("section_80d", {})
-        section_80dd = ded_doc.get("section_80dd", {})
-        section_80ddb = ded_doc.get("section_80ddb", {})
-        section_80e = ded_doc.get("section_80e", {})
-        section_80eeb = ded_doc.get("section_80eeb", {})
-        section_80g = ded_doc.get("section_80g", {})
-        section_80ggc = ded_doc.get("section_80ggc", {})
-        section_80u = ded_doc.get("section_80u", {})
-        section_80tta_ttb = ded_doc.get("section_80tta_ttb", {})
-        hra_exemption = ded_doc.get("hra_exemption", {})
-        other_deductions = ded_doc.get("other_deductions", {})
+        section_80c = ded_doc.get("section_80c") or {}
+        section_80ccc = ded_doc.get("section_80ccc") or {}
+        section_80ccd = ded_doc.get("section_80ccd") or {}
+        section_80d = ded_doc.get("section_80d") or {}
+        section_80dd = ded_doc.get("section_80dd") or {}
+        section_80ddb = ded_doc.get("section_80ddb") or {}
+        section_80e = ded_doc.get("section_80e") or {}
+        section_80eeb = ded_doc.get("section_80eeb") or {}
+        section_80g = ded_doc.get("section_80g") or {}
+        section_80ggc = ded_doc.get("section_80ggc") or {}
+        section_80u = ded_doc.get("section_80u") or {}
+        section_80tta_ttb = ded_doc.get("section_80tta_ttb") or {}
+        hra_exemption = ded_doc.get("hra_exemption") or {}
+        other_deductions = ded_doc.get("other_deductions") or {}
         return TaxDeductions(
             section_80c=DeductionSection80C(
                 life_insurance_premium=Money.from_float(section_80c.get("life_insurance_premium", 0.0)),

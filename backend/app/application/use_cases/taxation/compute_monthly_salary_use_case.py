@@ -105,8 +105,8 @@ class ComputeMonthlySalaryUseCase:
                 raise ValueError(f"No salary income found for employee {request.employee_id}")
             
             # 5. Create monthly salary components
-            monthly_salary_components = self._create_monthly_salary_components(
-                current_salary_income, salary_package_record, request
+            monthly_salary_components = await self._create_monthly_salary_components(
+                current_salary_income, salary_package_record, request, organization_id
             )
             
             # 6. Calculate monthly tax
@@ -150,11 +150,12 @@ class ComputeMonthlySalaryUseCase:
             logger.error(f"Failed to compute monthly salary for employee {request.employee_id}: {str(e)}")
             raise
     
-    def _create_monthly_salary_components(
+    async def _create_monthly_salary_components(
         self, 
         salary_income: SalaryIncome, 
         salary_package_record, 
-        request: MonthlySalaryComputeRequestDTO
+        request: MonthlySalaryComputeRequestDTO,
+        organization_id: str
     ) -> Dict[str, Any]:
         """
         Create monthly salary components from annual salary income.
@@ -163,6 +164,7 @@ class ComputeMonthlySalaryUseCase:
             salary_income: Annual salary income
             salary_package_record: Employee's salary package record
             request: Computation request
+            organization_id: Organization ID for multi-tenancy
             
         Returns:
             Dict containing monthly salary components
@@ -179,8 +181,6 @@ class ComputeMonthlySalaryUseCase:
         financial_year_month = self._convert_to_financial_year_month(request.month, request.year, salary_package_record.tax_year)
         monthly_arrears = salary_package_record.get_arrears_per_month(financial_year_month)
         
-        
-
         # Create monthly salary income
         monthly_salary_income = SalaryIncome(
             basic_salary=monthly_basic,
@@ -199,7 +199,9 @@ class ComputeMonthlySalaryUseCase:
         monthly_perquisites = Perquisites()  # Empty for now
         monthly_deductions = TaxDeductions()  # Will be calculated
         monthly_retirement = RetirementBenefits()  # Empty for now
-        monthly_lwp = LWPDetails()  # Will be calculated based on attendance
+        
+        # Calculate LWP details for the month
+        monthly_lwp = await self._calculate_lwp_days(request.employee_id, request.month, request.year, organization_id)
         
         return {
             'salary': monthly_salary_income,
@@ -208,6 +210,68 @@ class ComputeMonthlySalaryUseCase:
             'retirement': monthly_retirement,
             'lwp': monthly_lwp
         }
+    
+    async def _calculate_lwp_days(
+        self,
+        employee_id: str,
+        month: int,
+        year: int,
+        organization_id: str
+    ) -> LWPDetails:
+        """
+        Calculate Leave Without Pay (LWP) days for the specified month.
+        
+        Args:
+            employee_id: Employee identifier
+            month: Month (1-12)
+            year: Year
+            organization_id: Organization identifier
+            
+        Returns:
+            LWPDetails: LWP details for the month
+        """
+        try:
+            logger.info(f"Calculating LWP for employee {employee_id} in {month}/{year}")
+            
+            # Get LWP calculation service from dependency container
+            from app.config.dependency_container import get_dependency_container
+            container = get_dependency_container()
+            lwp_service = container.get_lwp_calculation_service()
+            
+            if not lwp_service:
+                logger.warning("LWP calculation service not available, using default LWP details")
+                return LWPDetails(
+                    lwp_days=0,
+                    total_working_days=26,  # Default working days
+                    month=month,
+                    year=year
+                )
+            
+            # Calculate LWP using standardized service
+            lwp_result = await lwp_service.calculate_lwp_for_month(
+                employee_id, month, year, organization_id
+            )
+            
+            # Create LWPDetails entity
+            lwp_details = LWPDetails(
+                lwp_days=lwp_result.lwp_days,
+                total_working_days=lwp_result.working_days,
+                month=month,
+                year=year
+            )
+            
+            logger.info(f"LWP calculation completed: {lwp_result.lwp_days} LWP days out of {lwp_result.working_days} working days")
+            return lwp_details
+            
+        except Exception as e:
+            logger.error(f"Error calculating LWP for employee {employee_id}: {e}")
+            # Return default LWP details on error
+            return LWPDetails(
+                lwp_days=0,
+                total_working_days=26,  # Default working days
+                month=month,
+                year=year
+            )
     
     async def _calculate_monthly_tax(
         self, 
@@ -274,8 +338,8 @@ class ComputeMonthlySalaryUseCase:
         total_deductions = epf_employee.add(esi_employee).add(professional_tax).add(tds)
         net_salary = self._safe_subtract(gross_salary, total_deductions)
         
-        # Get working days info
-        working_days_info = self._get_working_days_info(request.month, request.year)
+        # Get working days info from LWP details
+        working_days_info = self._get_working_days_info_from_lwp(monthly_salary.lwp)
         
         return MonthlySalaryResponseDTO(
             employee_id=request.employee_id,
@@ -324,7 +388,7 @@ class ComputeMonthlySalaryUseCase:
             tax_exemptions=0.0,  # Would need to calculate
             standard_deduction=0.0,  # Would need to calculate
             
-            # Working days
+            # Working days from LWP details
             total_days_in_month=working_days_info['total_days'],
             working_days_in_period=working_days_info['working_days'],
             lwp_days=working_days_info['lwp_days'],
@@ -347,9 +411,38 @@ class ComputeMonthlySalaryUseCase:
                 "gross_salary": gross_salary.to_float(),
                 "total_deductions": total_deductions.to_float(),
                 "net_salary": net_salary.to_float(),
-                "monthly_tax": tds.to_float()
+                "monthly_tax": tds.to_float(),
+                "lwp_days": working_days_info['lwp_days'],
+                "lwp_factor": monthly_salary.lwp.get_lwp_factor()
             }
         )
+    
+    def _get_working_days_info_from_lwp(self, lwp_details: LWPDetails) -> Dict[str, int]:
+        """
+        Get working days information from LWP details.
+        
+        Args:
+            lwp_details: LWP details entity
+            
+        Returns:
+            Dict containing working days information
+        """
+        import calendar
+        
+        # Get total days in month
+        total_days = calendar.monthrange(lwp_details.year, lwp_details.month)[1]
+        
+        # Use LWP details for working days
+        working_days = lwp_details.total_working_days
+        lwp_days = lwp_details.lwp_days
+        effective_days = lwp_details.get_paid_days()
+        
+        return {
+            'total_days': total_days,
+            'working_days': working_days,
+            'lwp_days': lwp_days,
+            'effective_days': effective_days
+        }
     
     def _calculate_monthly_epf(self, gross_salary: Money) -> Money:
         """Calculate monthly EPF contribution (12% of basic + DA)."""

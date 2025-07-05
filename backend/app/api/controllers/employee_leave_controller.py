@@ -481,19 +481,22 @@ class EmployeeLeaveController:
         try:
             self._logger.info(f"Calculating LWP for {employee_id} ({month}/{year}) in org: {current_user.hostname}")
             
-            if self._query_use_case and hasattr(self._query_use_case, 'calculate_lwp_for_month'):
-                response = await self._query_use_case.calculate_lwp_for_month(
-                    employee_id, month, year
-                )
-            else:
-                # Fallback implementation
-                response = await self._calculate_lwp_fallback(employee_id, month, year, current_user)
+            # Use standardized LWP calculation service from dependency container
+            from app.config.dependency_container import get_dependency_container
+            container = get_dependency_container()
+            lwp_service = container.get_lwp_calculation_service()
+            
+            # Calculate LWP using standardized method
+            response = await lwp_service.calculate_lwp_for_month(
+                employee_id, month, year, current_user.hostname
+            )
             
             return response
             
         except Exception as e:
             self._logger.error(f"Error calculating LWP: {e}")
-            raise Exception(f"Failed to calculate LWP: {str(e)}")
+            # Fallback to existing implementation
+            return await self._calculate_lwp_fallback(employee_id, month, year, current_user)
     
     async def _calculate_lwp_fallback(
         self,

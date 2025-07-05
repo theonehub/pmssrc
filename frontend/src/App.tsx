@@ -33,6 +33,7 @@ import EmployeeTaxDetail from './components/taxation/EmployeeTaxDetail';
 import EmployeeSelection from './components/taxation/EmployeeSelection';
 import IndividualComponentManagement from './components/taxation/IndividualComponentManagement';
 import ProcessedSalaries from './components/taxation/ProcessedSalaries';
+import SalaryProcessing from './components/taxation/SalaryProcessing';
 
 // Individual Component Forms
 import SalaryComponentForm from './components/taxation/components/SalaryComponentForm';
@@ -172,6 +173,10 @@ const AppContent: React.FC = () => {
           <Route
             path="/taxation/processed-salaries"
             element={withLayout(<ProcessedSalaries />, 'Processed Salaries', ['admin', 'superadmin'])}
+          />
+          <Route
+            path="/taxation/salary-processing"
+            element={withLayout(<SalaryProcessing />, 'Salary Processing Management', ['admin', 'superadmin'])}
           />
           <Route
             path="/taxation/components-overview/:empId"

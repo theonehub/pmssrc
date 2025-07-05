@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -13,892 +13,642 @@ import {
   TextField,
   CircularProgress,
   Alert,
-  InputAdornment,
   Card,
   CardContent,
-  Skeleton,
   Tooltip,
   IconButton,
-  Fade,
-  Snackbar,
   Chip,
   TablePagination,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  SelectChangeEvent,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Grid,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails
+  Divider
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import { 
+import { salaryProcessingApi, MonthlySalaryResponse } from '../../shared/api/salaryProcessingApi';
+import {
   Search as SearchIcon,
   Refresh as RefreshIcon,
   Visibility as VisibilityIcon,
-  ArrowBack as ArrowBackIcon,
   AttachMoney as AttachMoneyIcon,
   Receipt as ReceiptIcon,
-  ExpandMore as ExpandMoreIcon,
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Pending as PendingIcon,
-  Download as DownloadIcon,
-  Business as BusinessIcon,
-  Calculate as CalculateIcon
+  Delete as DeleteIcon,
+  TrendingUp as TrendingUpIcon,
+  People as PeopleIcon
 } from '@mui/icons-material';
-import { getUserRole } from '../../shared/utils/auth';
-import { UserRole } from '../../shared/types';
-
-interface ProcessedSalaryRecord {
-  id: string;
-  employee_id: string;
-  employee_name: string;
-  department: string;
-  month: number;
-  year: number;
-  tax_year: string;
-  basic_salary: number;
-  total_earnings: number;
-  total_deductions: number;
-  net_salary: number;
-  arrears: number;
-  computation_mode: 'declared' | 'actual';
-  processing_status: 'completed' | 'failed' | 'pending';
-  processed_at: string;
-  processed_by: string;
-  remarks?: string;
-  lwp_days?: number;
-  lwp_amount?: number;
-  gross_salary?: number;
-  taxable_salary?: number;
-}
-
-interface ToastState {
-  show: boolean;
-  message: string;
-  severity: 'success' | 'error' | 'warning' | 'info';
-}
-
-// Helper function to get current tax year
-const getCurrentTaxYear = (): string => {
-  const currentDate = new Date();
-  const currentYear = currentDate.getFullYear();
-  const currentMonth = currentDate.getMonth() + 1;
-  
-  if (currentMonth >= 4) {
-    return `${currentYear}-${(currentYear + 1).toString().slice(-2)}`;
-  } else {
-    return `${currentYear - 1}-${currentYear.toString().slice(-2)}`;
-  }
-};
-
-// Helper function to generate available tax years
-const getAvailableTaxYears = (): string[] => {
-  const currentTaxYear = getCurrentTaxYear();
-  const yearParts = currentTaxYear.split('-');
-  const currentStartYear = parseInt(yearParts[0] || '2024');
-  const years: string[] = [];
-  
-  for (let i = 0; i <= 5; i++) {
-    const startYear = currentStartYear - i;
-    const endYear = startYear + 1;
-    years.push(`${startYear}-${endYear.toString().slice(-2)}`);
-  }
-  
-  return years;
-};
-
-// Mock data for demonstration - replace with actual API call
-const getMockProcessedSalaries = (): ProcessedSalaryRecord[] => {
-  return Array.from({ length: 25 }, (_, index) => {
-    const month = Math.floor(Math.random() * 12) + 1;
-    const year = 2024;
-    const basicSalary = 50000 + Math.random() * 100000;
-    const totalEarnings = basicSalary * (1 + Math.random() * 0.5);
-    const totalDeductions = totalEarnings * (0.1 + Math.random() * 0.2);
-    const netSalary = totalEarnings - totalDeductions;
-    const arrears = Math.random() > 0.7 ? Math.random() * 20000 : 0;
-    
-    return {
-      id: `salary_${index + 1}`,
-      employee_id: `EMP${String(index + 1).padStart(3, '0')}`,
-      employee_name: `Employee ${index + 1}`,
-      department: ['IT', 'HR', 'Finance', 'Marketing', 'Operations'][Math.floor(Math.random() * 5)] || 'N/A',
-      month,
-      year,
-      tax_year: '2024-25',
-      basic_salary: Math.round(basicSalary),
-      total_earnings: Math.round(totalEarnings),
-      total_deductions: Math.round(totalDeductions),
-      net_salary: Math.round(netSalary),
-      arrears: Math.round(arrears),
-      computation_mode: Math.random() > 0.5 ? 'declared' : 'actual',
-      processing_status: ['completed', 'failed', 'pending'][Math.floor(Math.random() * 3)] as 'completed' | 'failed' | 'pending',
-      processed_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-      processed_by: 'admin',
-      ...(Math.random() > 0.8 && { remarks: 'Some processing remarks' }),
-      ...(Math.random() > 0.7 && { lwp_days: Math.floor(Math.random() * 5) }),
-      ...(Math.random() > 0.7 && { lwp_amount: Math.random() * 5000 }),
-      gross_salary: Math.round(totalEarnings + arrears),
-      taxable_salary: Math.round(totalEarnings - totalDeductions)
-    };
-  });
-};
-
-interface SalaryDetailDialogProps {
-  open: boolean;
-  onClose: () => void;
-  salaryRecord: ProcessedSalaryRecord | null;
-}
-
-const SalaryDetailDialog: React.FC<SalaryDetailDialogProps> = ({
-  open,
-  onClose,
-  salaryRecord
-}) => {
-  if (!salaryRecord) return null;
-
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
-  const formatCurrency = (amount: number | undefined): string => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0
-    }).format(amount || 0);
-  };
-
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleString('en-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'success';
-      case 'failed': return 'error';
-      case 'pending': return 'warning';
-      default: return 'default';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed': return <CheckCircleIcon color="success" />;
-      case 'failed': return <ErrorIcon color="error" />;
-      case 'pending': return <PendingIcon color="warning" />;
-      default: return <PendingIcon />;
-    }
-  };
-
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <ReceiptIcon color="primary" />
-          <Typography variant="h6">
-            Salary Details - {salaryRecord.employee_name}
-          </Typography>
-        </Box>
-      </DialogTitle>
-      <DialogContent>
-        <Grid container spacing={3}>
-          {/* Employee Information */}
-          <Grid item xs={12}>
-            <Card variant="outlined">
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Employee Information
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" color="text.secondary">Employee ID</Typography>
-                    <Typography variant="body1" fontWeight="medium">{salaryRecord.employee_id}</Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" color="text.secondary">Department</Typography>
-                    <Typography variant="body1" fontWeight="medium">{salaryRecord.department}</Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" color="text.secondary">Processing Period</Typography>
-                    <Typography variant="body1" fontWeight="medium">
-                      {months[salaryRecord.month - 1]} {salaryRecord.year}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={6}>
-                    <Typography variant="body2" color="text.secondary">Tax Year</Typography>
-                    <Typography variant="body1" fontWeight="medium">{salaryRecord.tax_year}</Typography>
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Salary Breakdown */}
-          <Grid item xs={12}>
-            <Accordion defaultExpanded>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <AttachMoneyIcon color="primary" />
-                  <Typography variant="h6">Salary Breakdown</Typography>
-                </Box>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Basic Salary</Typography>
-                    <Typography variant="h6" color="primary">{formatCurrency(salaryRecord.basic_salary)}</Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Total Earnings</Typography>
-                    <Typography variant="h6" color="success.main">{formatCurrency(salaryRecord.total_earnings)}</Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Total Deductions</Typography>
-                    <Typography variant="h6" color="error.main">{formatCurrency(salaryRecord.total_deductions)}</Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Net Salary</Typography>
-                    <Typography variant="h6" fontWeight="bold">{formatCurrency(salaryRecord.net_salary)}</Typography>
-                  </Grid>
-                  {salaryRecord.arrears > 0 && (
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle2" color="text.secondary">Arrears</Typography>
-                      <Typography variant="h6" color="warning.main">{formatCurrency(salaryRecord.arrears)}</Typography>
-                    </Grid>
-                  )}
-                  {salaryRecord.lwp_days && salaryRecord.lwp_days > 0 && (
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle2" color="text.secondary">LWP Days</Typography>
-                      <Typography variant="h6" color="error.main">{salaryRecord.lwp_days} days</Typography>
-                    </Grid>
-                  )}
-                  {salaryRecord.lwp_amount && salaryRecord.lwp_amount > 0 && (
-                    <Grid item xs={12} sm={6}>
-                      <Typography variant="subtitle2" color="text.secondary">LWP Amount</Typography>
-                      <Typography variant="h6" color="error.main">{formatCurrency(salaryRecord.lwp_amount)}</Typography>
-                    </Grid>
-                  )}
-                </Grid>
-              </AccordionDetails>
-            </Accordion>
-          </Grid>
-
-          {/* Processing Information */}
-          <Grid item xs={12}>
-            <Accordion>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CalculateIcon color="primary" />
-                  <Typography variant="h6">Processing Information</Typography>
-                </Box>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Computation Mode</Typography>
-                    <Chip 
-                      label={salaryRecord.computation_mode === 'declared' ? 'Declared Values' : 'Actual Proof'} 
-                      color={salaryRecord.computation_mode === 'declared' ? 'primary' : 'secondary'}
-                      size="small"
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Processing Status</Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {getStatusIcon(salaryRecord.processing_status)}
-                      <Chip 
-                        label={salaryRecord.processing_status} 
-                        color={getStatusColor(salaryRecord.processing_status) as any}
-                        size="small"
-                      />
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Processed At</Typography>
-                    <Typography variant="body2">{formatDate(salaryRecord.processed_at)}</Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="subtitle2" color="text.secondary">Processed By</Typography>
-                    <Typography variant="body2">{salaryRecord.processed_by}</Typography>
-                  </Grid>
-                  {salaryRecord.remarks && (
-                    <Grid item xs={12}>
-                      <Typography variant="subtitle2" color="text.secondary">Remarks</Typography>
-                      <Typography variant="body2">{salaryRecord.remarks}</Typography>
-                    </Grid>
-                  )}
-                </Grid>
-              </AccordionDetails>
-            </Accordion>
-          </Grid>
-        </Grid>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Close</Button>
-        <Button 
-          variant="contained" 
-          startIcon={<DownloadIcon />}
-          onClick={() => {
-            // TODO: Implement download functionality
-            console.log('Download salary details');
-          }}
-        >
-          Download
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-};
 
 /**
  * ProcessedSalaries Component - Display all processed salary records
  */
 const ProcessedSalaries: React.FC = () => {
-  const [filteredSalaries, setFilteredSalaries] = useState<ProcessedSalaryRecord[]>([]);
+  const [salaries, setSalaries] = useState<MonthlySalaryResponse[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
+  const [year, setYear] = useState<number>(new Date().getFullYear());
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [departmentFilter, setDepartmentFilter] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [selectedTaxYear, setSelectedTaxYear] = useState<string>(getCurrentTaxYear());
-  const [selectedMonth, setSelectedMonth] = useState<string>('all');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  
   const [page, setPage] = useState<number>(0);
   const [rowsPerPage, setRowsPerPage] = useState<number>(10);
-  const [toast, setToast] = useState<ToastState>({ 
-    show: false, 
-    message: '', 
-    severity: 'success' 
-  });
+  const [totalCount, setTotalCount] = useState<number>(0);
+  
+  const [selectedSalary, setSelectedSalary] = useState<MonthlySalaryResponse | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState<boolean>(false);
-  const [selectedSalaryRecord, setSelectedSalaryRecord] = useState<ProcessedSalaryRecord | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
   
-  const navigate = useNavigate();
-  const userRole: UserRole | null = getUserRole();
-  
-  // Check if selected year is current year
-  const isCurrentYear = selectedTaxYear === getCurrentTaxYear();
-  const availableTaxYears = getAvailableTaxYears();
-  
-  // Mock data - replace with actual API call
-  const [salaryRecords, setSalaryRecords] = useState<ProcessedSalaryRecord[]>([]);
-  
-  // Load salary records
-  useEffect(() => {
-    const loadSalaryRecords = async () => {
+  const [summary, setSummary] = useState<any>(null);
+  const [summaryLoading, setSummaryLoading] = useState<boolean>(true);
+
+  const fetchSalaries = useCallback(async () => {
+    try {
       setLoading(true);
-      try {
-        // TODO: Replace with actual API call
-        // const response = await salaryProcessingApi.getProcessedSalaries({
-        //   tax_year: selectedTaxYear,
-        //   month: selectedMonth !== 'all' ? parseInt(selectedMonth) : undefined
-        // });
-        // setSalaryRecords(response.data);
-        
-        // Mock data for now
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-        const mockData = getMockProcessedSalaries();
-        setSalaryRecords(mockData);
-        showToast(`Loaded ${mockData.length} salary records for ${selectedTaxYear}`, 'success');
-      } catch (error) {
-        console.error('Error loading salary records:', error);
-        showToast('Failed to load salary records', 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadSalaryRecords();
-  }, [selectedTaxYear, selectedMonth]);
-
-  // Helper functions
-  const showToast = (message: string, severity: ToastState['severity'] = 'success'): void => {
-    setToast({ show: true, message, severity });
-  };
-
-  const closeToast = (): void => {
-    setToast(prev => ({ ...prev, show: false }));
-  };
-
-  // Redirect non-admin users
-  useEffect(() => {
-    if (userRole !== 'admin' && userRole !== 'superadmin') {
-      navigate(`/taxation`);
-    }
-  }, [userRole, navigate]);
-
-  // Handle search and filtering
-  useEffect(() => {
-    let filtered = salaryRecords;
-
-    // Filter by search term
-    if (searchTerm.trim() !== '') {
-      const searchTermLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(record => 
-        record.employee_id.toLowerCase().includes(searchTermLower) || 
-        record.employee_name.toLowerCase().includes(searchTermLower) ||
-        record.department.toLowerCase().includes(searchTermLower)
+      setError(null);
+      
+      const params: any = {
+        skip: page * rowsPerPage,
+        limit: rowsPerPage
+      };
+      
+      if (statusFilter) params.status = statusFilter;
+      if (departmentFilter) params.department = departmentFilter;
+      
+      const response = await salaryProcessingApi.getMonthlySalariesForPeriod(
+        month,
+        year,
+        params
       );
+      
+      setSalaries(response.items);
+      setTotalCount(response.total);
+      
+    } catch (err) {
+      console.error('Error fetching salaries:', err);
+      setError('Failed to fetch salary data. Please try again.');
+      setSalaries([]);
+      setTotalCount(0);
+    } finally {
+      setLoading(false);
     }
+  }, [month, year, statusFilter, departmentFilter, page, rowsPerPage]);
 
-    // Filter by status
-    if (selectedStatus !== 'all') {
-      filtered = filtered.filter(record => record.processing_status === selectedStatus);
+  const fetchSummary = useCallback(async () => {
+    try {
+      setSummaryLoading(true);
+      
+      const response = await salaryProcessingApi.getMonthlySalarySummary(month, year);
+      setSummary(response);
+      
+    } catch (err) {
+      console.error('Error fetching summary:', err);
+      setSummary(null);
+    } finally {
+      setSummaryLoading(false);
     }
+  }, [month, year]);
 
-    setFilteredSalaries(filtered);
-    setPage(0); // Reset to first page when filtering
-  }, [searchTerm, selectedStatus, salaryRecords]);
+  useEffect(() => {
+    fetchSalaries();
+    fetchSummary();
+  }, [month, year, statusFilter, departmentFilter, page, rowsPerPage, fetchSalaries, fetchSummary]);
 
-  // Event handlers
-  const handleViewDetails = (record: ProcessedSalaryRecord): void => {
-    setSelectedSalaryRecord(record);
-    setDetailDialogOpen(true);
-  };
-
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
-    setSearchTerm(event.target.value);
-  };
-
-  const handleTaxYearChange = (event: SelectChangeEvent<string>): void => {
-    const newTaxYear = event.target.value;
-    setSelectedTaxYear(newTaxYear);
-    setSearchTerm(''); // Clear search when changing year
-    setPage(0); // Reset pagination
-  };
-
-  const handleMonthChange = (event: SelectChangeEvent<string>): void => {
-    setSelectedMonth(event.target.value);
-    setPage(0);
-  };
-
-  const handleStatusChange = (event: SelectChangeEvent<string>): void => {
-    setSelectedStatus(event.target.value);
-    setPage(0);
-  };
-
-  const handlePageChange = (_event: unknown, newPage: number): void => {
+  const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
   };
 
-  const handleRowsPerPageChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
 
-  const handleRefresh = async (): Promise<void> => {
-    try {
-      setLoading(true);
-      // TODO: Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const mockData = getMockProcessedSalaries();
-      setSalaryRecords(mockData);
-      showToast(`Salary records refreshed for ${selectedTaxYear}`, 'success');
-    } catch (error) {
-      console.error('Error refreshing salary records:', error);
-      showToast('Failed to refresh salary records', 'error');
-    } finally {
-      setLoading(false);
+  const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(event.target.value);
+  };
+
+  const filteredSalaries = salaries.filter(salary =>
+    salary.employee_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    salary.employee_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    salary.employee_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    salary.department?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleViewDetails = (salary: MonthlySalaryResponse) => {
+    setSelectedSalary(salary);
+    setDetailDialogOpen(true);
+  };
+
+  const handleDeleteSalary = async (salary: MonthlySalaryResponse) => {
+    if (window.confirm(`Are you sure you want to delete the salary record for ${salary.employee_name || salary.employee_id}?`)) {
+      try {
+        await salaryProcessingApi.deleteMonthlySalary(
+          salary.employee_id,
+          salary.month,
+          salary.year
+        );
+        
+        fetchSalaries();
+        fetchSummary();
+        
+        alert('Salary record deleted successfully');
+      } catch (err) {
+        console.error('Error deleting salary:', err);
+        alert('Failed to delete salary record');
+      }
     }
   };
 
-  // Format currency
-  const formatCurrency = (amount: number | undefined): string => {
+  const handleRefresh = () => {
+    fetchSalaries();
+    fetchSummary();
+  };
+
+  const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
+      minimumFractionDigits: 0,
       maximumFractionDigits: 0
-    }).format(amount || 0);
+    }).format(amount);
   };
 
-  // Helper function to get status chip
-  const renderStatusChip = (status: string): React.ReactElement => {
-    const getStatusProps = (status: string) => {
-      switch (status) {
-        case 'completed': return { color: 'success' as const, label: 'Completed' };
-        case 'failed': return { color: 'error' as const, label: 'Failed' };
-        case 'pending': return { color: 'warning' as const, label: 'Pending' };
-        default: return { color: 'default' as const, label: 'Unknown' };
-      }
-    };
-
-    const { color, label } = getStatusProps(status);
-    return (
-      <Chip
-        label={label}
-        color={color}
-        size="small"
-        variant="outlined"
-      />
-    );
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'computed':
+        return 'success';
+      case 'pending':
+        return 'warning';
+      case 'approved':
+        return 'info';
+      case 'paid':
+        return 'success';
+      default:
+        return 'default';
+    }
   };
 
-  // Helper function to get computation mode chip
-  const renderComputationModeChip = (mode: string): React.ReactElement => {
-    const isDeclared = mode === 'declared';
-    return (
-      <Chip
-        label={isDeclared ? 'Declared' : 'Actual'}
-        color={isDeclared ? 'primary' : 'secondary'}
-        size="small"
-        variant="outlined"
-      />
-    );
-  };
-
-  // Render table skeleton
-  const renderTableSkeleton = (): React.ReactElement[] => (
-    Array.from({ length: rowsPerPage }).map((_, index) => (
-      <TableRow key={index}>
-        <TableCell><Skeleton /></TableCell>
-        <TableCell><Skeleton /></TableCell>
-        <TableCell><Skeleton /></TableCell>
-        <TableCell><Skeleton /></TableCell>
-        <TableCell><Skeleton /></TableCell>
-        <TableCell><Skeleton /></TableCell>
-        <TableCell><Skeleton /></TableCell>
-        <TableCell><Skeleton width={120} /></TableCell>
-      </TableRow>
-    ))
+  const renderSummaryCards = () => (
+    <Grid container spacing={3} sx={{ mb: 3 }}>
+      <Grid item xs={12} sm={6} md={3}>
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography color="textSecondary" gutterBottom variant="body2">
+                  Total Employees
+                </Typography>
+                <Typography variant="h4">
+                  {summaryLoading ? <CircularProgress size={20} /> : (summary?.total_employees || 0)}
+                </Typography>
+              </Box>
+              <PeopleIcon color="primary" sx={{ fontSize: 40 }} />
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+      
+      <Grid item xs={12} sm={6} md={3}>
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography color="textSecondary" gutterBottom variant="body2">
+                  Total Gross Payroll
+                </Typography>
+                <Typography variant="h4">
+                  {summaryLoading ? <CircularProgress size={20} /> : formatCurrency(summary?.total_gross_payroll || 0)}
+                </Typography>
+              </Box>
+              <AttachMoneyIcon color="primary" sx={{ fontSize: 40 }} />
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+      
+      <Grid item xs={12} sm={6} md={3}>
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography color="textSecondary" gutterBottom variant="body2">
+                  Total Net Payroll
+                </Typography>
+                <Typography variant="h4">
+                  {summaryLoading ? <CircularProgress size={20} /> : formatCurrency(summary?.total_net_payroll || 0)}
+                </Typography>
+              </Box>
+              <ReceiptIcon color="primary" sx={{ fontSize: 40 }} />
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+      
+      <Grid item xs={12} sm={6} md={3}>
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography color="textSecondary" gutterBottom variant="body2">
+                  Total TDS
+                </Typography>
+                <Typography variant="h4">
+                  {summaryLoading ? <CircularProgress size={20} /> : formatCurrency(summary?.total_tds || 0)}
+                </Typography>
+              </Box>
+              <TrendingUpIcon color="primary" sx={{ fontSize: 40 }} />
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+    </Grid>
   );
 
-  // Render empty state
-  const renderEmptyState = (): React.ReactElement => (
-    <TableRow>
-      <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
-        <Box sx={{ textAlign: 'center' }}>
-          <ReceiptIcon 
-            sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} 
+  const renderFilters = () => (
+    <Paper sx={{ p: 2, mb: 3 }}>
+      <Grid container spacing={2} alignItems="center">
+        <Grid item xs={12} sm={6} md={2}>
+          <FormControl fullWidth size="small">
+            <InputLabel>Month</InputLabel>
+            <Select
+              value={month}
+              label="Month"
+              onChange={(e) => setMonth(e.target.value as number)}
+            >
+              {Array.from({ length: 12 }, (_, i) => ({
+                value: i + 1,
+                label: new Date(0, i).toLocaleString('en-US', { month: 'long' })
+              })).map((month) => (
+                <MenuItem key={month.value} value={month.value}>
+                  {month.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={2}>
+          <FormControl fullWidth size="small">
+            <InputLabel>Year</InputLabel>
+            <Select
+              value={year}
+              label="Year"
+              onChange={(e) => setYear(e.target.value as number)}
+            >
+              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((year) => (
+                <MenuItem key={year} value={year}>
+                  {year}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={2}>
+          <FormControl fullWidth size="small">
+            <InputLabel>Status</InputLabel>
+            <Select
+              value={statusFilter}
+              label="Status"
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="computed">Computed</MenuItem>
+              <MenuItem value="pending">Pending</MenuItem>
+              <MenuItem value="approved">Approved</MenuItem>
+              <MenuItem value="paid">Paid</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={2}>
+          <TextField
+            fullWidth
+            size="small"
+            label="Department"
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+            placeholder="Filter by department"
           />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            {searchTerm ? 'No salary records found' : `No salary records for ${selectedTaxYear}`}
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {searchTerm 
-              ? `No salary records match "${searchTerm}" for ${selectedTaxYear}`
-              : `No processed salary records available for ${selectedTaxYear}`
-            }
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={2}>
+          <TextField
+            fullWidth
+            size="small"
+            label="Search"
+            value={searchTerm}
+            onChange={handleSearch}
+            placeholder="Search employees..."
+            InputProps={{
+              startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />
+            }}
+          />
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={2}>
+          <Button
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={handleRefresh}
+            fullWidth
+          >
+            Refresh
+          </Button>
+        </Grid>
+      </Grid>
+    </Paper>
+  );
+
+  const renderSalaryDetailsDialog = () => (
+    <Dialog
+      open={detailDialogOpen}
+      onClose={() => setDetailDialogOpen(false)}
+      maxWidth="md"
+      fullWidth
+    >
+      <DialogTitle>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <ReceiptIcon color="primary" />
+          <Typography variant="h6">
+            Salary Details - {selectedSalary?.employee_name || selectedSalary?.employee_id}
           </Typography>
         </Box>
-      </TableCell>
-    </TableRow>
+      </DialogTitle>
+      <DialogContent>
+        {selectedSalary && (
+          <Grid container spacing={3}>
+            {/* Employee Information */}
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom>
+                Employee Information
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Employee ID</Typography>
+                  <Typography variant="body1">{selectedSalary.employee_id}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Name</Typography>
+                  <Typography variant="body1">{selectedSalary.employee_name || 'N/A'}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Email</Typography>
+                  <Typography variant="body1">{selectedSalary.employee_email || 'N/A'}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Department</Typography>
+                  <Typography variant="body1">{selectedSalary.department || 'N/A'}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Designation</Typography>
+                  <Typography variant="body1">{selectedSalary.designation || 'N/A'}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Tax Regime</Typography>
+                  <Typography variant="body1">{selectedSalary.tax_regime}</Typography>
+                </Grid>
+              </Grid>
+            </Grid>
+
+            {/* Salary Components */}
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom>
+                Salary Components
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Basic Salary</Typography>
+                  <Typography variant="body1">{formatCurrency(selectedSalary.basic_salary)}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Dearness Allowance</Typography>
+                  <Typography variant="body1">{formatCurrency(selectedSalary.da)}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">HRA</Typography>
+                  <Typography variant="body1">{formatCurrency(selectedSalary.hra)}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Special Allowance</Typography>
+                  <Typography variant="body1">{formatCurrency(selectedSalary.special_allowance)}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Bonus</Typography>
+                  <Typography variant="body1">{formatCurrency(selectedSalary.bonus)}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Commission</Typography>
+                  <Typography variant="body1">{formatCurrency(selectedSalary.commission)}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Arrears</Typography>
+                  <Typography variant="body1">{formatCurrency(selectedSalary.arrears || 0)}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Gross Salary</Typography>
+                  <Typography variant="body1" fontWeight="bold">{formatCurrency(selectedSalary.gross_salary)}</Typography>
+                </Grid>
+              </Grid>
+            </Grid>
+
+            {/* Deductions */}
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom>
+                Deductions
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">EPF Employee</Typography>
+                  <Typography variant="body1">{formatCurrency(selectedSalary.epf_employee)}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">ESI Employee</Typography>
+                  <Typography variant="body1">{formatCurrency(selectedSalary.esi_employee)}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Professional Tax</Typography>
+                  <Typography variant="body1">{formatCurrency(selectedSalary.professional_tax)}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">TDS</Typography>
+                  <Typography variant="body1">{formatCurrency(selectedSalary.tds)}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Total Deductions</Typography>
+                  <Typography variant="body1" fontWeight="bold">{formatCurrency(selectedSalary.total_deductions)}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Net Salary</Typography>
+                  <Typography variant="body1" fontWeight="bold" color="primary">
+                    {formatCurrency(selectedSalary.net_salary)}
+                  </Typography>
+                </Grid>
+              </Grid>
+            </Grid>
+
+            {/* Working Days */}
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom>
+                Working Days
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Total Days in Month</Typography>
+                  <Typography variant="body1">{selectedSalary.total_days_in_month}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Working Days</Typography>
+                  <Typography variant="body1">{selectedSalary.working_days_in_period}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">LWP Days</Typography>
+                  <Typography variant="body1">{selectedSalary.lwp_days}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Effective Working Days</Typography>
+                  <Typography variant="body1">{selectedSalary.effective_working_days}</Typography>
+                </Grid>
+              </Grid>
+            </Grid>
+          </Grid>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setDetailDialogOpen(false)}>Close</Button>
+      </DialogActions>
+    </Dialog>
   );
-
-  // Get paginated data
-  const paginatedSalaries = filteredSalaries.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
-  );
-
-  const months = [
-    { value: 'all', label: 'All Months' },
-    { value: '1', label: 'January' },
-    { value: '2', label: 'February' },
-    { value: '3', label: 'March' },
-    { value: '4', label: 'April' },
-    { value: '5', label: 'May' },
-    { value: '6', label: 'June' },
-    { value: '7', label: 'July' },
-    { value: '8', label: 'August' },
-    { value: '9', label: 'September' },
-    { value: '10', label: 'October' },
-    { value: '11', label: 'November' },
-    { value: '12', label: 'December' }
-  ];
-
-  const statusOptions = [
-    { value: 'all', label: 'All Status' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'failed', label: 'Failed' },
-    { value: 'pending', label: 'Pending' }
-  ];
-
-  if (loading && salaryRecords.length === 0) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '70vh' }}>
-        <CircularProgress size={40} />
-      </Box>
-    );
-  }
 
   return (
-    <Box>
-      {/* Header Card */}
-      <Card elevation={1} sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-            <Box>
-              <Typography variant="h5" component="h1" gutterBottom>
-                Processed Salaries
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                View and manage all processed salary records - {selectedTaxYear}
-                {!isCurrentYear && (
-                  <Chip 
-                    label="Previous Year - Read Only" 
-                    color="warning" 
-                    size="small" 
-                    sx={{ ml: 1 }} 
-                  />
-                )}
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              <FormControl size="small" sx={{ minWidth: 140 }}>
-                <InputLabel>Tax Year</InputLabel>
-                <Select
-                  value={selectedTaxYear}
-                  label="Tax Year"
-                  onChange={handleTaxYearChange}
-                >
-                  {availableTaxYears.map((year) => (
-                    <MenuItem key={year} value={year}>
-                      {year}
-                      {year === getCurrentTaxYear() && ' (Current)'}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <Tooltip title="Refresh">
-                <IconButton 
-                  onClick={handleRefresh}
-                  disabled={loading}
-                  color="primary"
-                >
-                  <RefreshIcon />
-                </IconButton>
-              </Tooltip>
-              <Button 
-                variant="outlined" 
-                startIcon={<ArrowBackIcon />}
-                onClick={() => navigate('/taxation')}
-              >
-                BACK TO DASHBOARD
-              </Button>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h4" gutterBottom>
+        Processed Salaries
+      </Typography>
+      <Typography variant="body1" color="textSecondary" sx={{ mb: 3 }}>
+        View and manage all processed monthly salary records
+      </Typography>
 
-      {/* Search and Filters */}
-      <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={4}>
-            <TextField
-              fullWidth
-              label="Search records"
-              variant="outlined"
-              size="small"
-              value={searchTerm}
-              onChange={handleSearchChange}
-              placeholder="Search by Employee ID or Name..."
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} sm={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Month</InputLabel>
-              <Select
-                value={selectedMonth}
-                label="Month"
-                onChange={handleMonthChange}
-              >
-                {months.map((month) => (
-                  <MenuItem key={month.value} value={month.value}>
-                    {month.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={selectedStatus}
-                label="Status"
-                onChange={handleStatusChange}
-              >
-                {statusOptions.map((status) => (
-                  <MenuItem key={status.value} value={status.value}>
-                    {status.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Typography variant="body2" color="text.secondary">
-                {filteredSalaries.length} record{filteredSalaries.length !== 1 ? 's' : ''} for {selectedTaxYear}
-              </Typography>
-              {loading && <CircularProgress size={16} />}
-            </Box>
-          </Grid>
-        </Grid>
-      </Paper>
+      {/* Summary Cards */}
+      {renderSummaryCards()}
 
-      {/* Table */}
-      <Paper elevation={1}>
+      {/* Filters */}
+      {renderFilters()}
+
+      {/* Error Alert */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Salaries Table */}
+      <Paper>
         <TableContainer>
-          <Table stickyHeader>
+          <Table>
             <TableHead>
-              <TableRow sx={{ 
-                '& .MuiTableCell-head': { 
-                  backgroundColor: 'primary.main',
-                  color: 'white',
-                  fontWeight: 'bold',
-                  fontSize: '0.875rem'
-                }
-              }}>
+              <TableRow>
                 <TableCell>Employee</TableCell>
-                <TableCell>Period</TableCell>
+                <TableCell>Department</TableCell>
                 <TableCell>Basic Salary</TableCell>
+                <TableCell>Gross Salary</TableCell>
                 <TableCell>Net Salary</TableCell>
-                <TableCell>Arrears</TableCell>
-                <TableCell>Mode</TableCell>
+                <TableCell>TDS</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell align="center">Actions</TableCell>
+                <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {loading ? (
-                renderTableSkeleton()
-              ) : paginatedSalaries.length > 0 ? (
-                paginatedSalaries.map((record) => (
-                  <Fade in key={record.id} timeout={300}>
-                    <TableRow 
-                      hover
-                      sx={{ 
-                        '&:hover': { 
-                          backgroundColor: 'action.hover' 
-                        }
-                      }}
-                    >
-                      <TableCell>
-                        <Box>
-                          <Typography variant="subtitle2" fontWeight="medium">
-                            {record.employee_name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {record.employee_id} • {record.department}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {new Date(record.year, record.month - 1).toLocaleDateString('en-IN', { 
-                            month: 'short', 
-                            year: 'numeric' 
-                          })}
+                <TableRow>
+                  <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                    <CircularProgress />
+                  </TableCell>
+                </TableRow>
+              ) : filteredSalaries.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                    <Typography variant="body1" color="textSecondary">
+                      {searchTerm ? 'No salaries found matching your search' : 'No salary records found for the selected period'}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredSalaries.map((salary) => (
+                  <TableRow key={`${salary.employee_id}-${salary.month}-${salary.year}`}>
+                    <TableCell>
+                      <Box>
+                        <Typography variant="body1" fontWeight="medium">
+                          {salary.employee_name || salary.employee_id}
                         </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight="medium">
-                          {formatCurrency(record.basic_salary)}
+                        <Typography variant="body2" color="textSecondary">
+                          {salary.employee_email}
                         </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight="medium" color="success.main">
-                          {formatCurrency(record.net_salary)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        {record.arrears > 0 ? (
-                          <Typography variant="body2" color="warning.main" fontWeight="medium">
-                            {formatCurrency(record.arrears)}
-                          </Typography>
-                        ) : (
-                          <Typography variant="body2" color="text.secondary">
-                            -
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {renderComputationModeChip(record.computation_mode)}
-                      </TableCell>
-                      <TableCell>
-                        {renderStatusChip(record.processing_status)}
-                      </TableCell>
-                      <TableCell align="center">
+                      </Box>
+                    </TableCell>
+                    <TableCell>{salary.department || 'N/A'}</TableCell>
+                    <TableCell>{formatCurrency(salary.basic_salary)}</TableCell>
+                    <TableCell>{formatCurrency(salary.gross_salary)}</TableCell>
+                    <TableCell>{formatCurrency(salary.net_salary)}</TableCell>
+                    <TableCell>{formatCurrency(salary.tds)}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={salary.status}
+                        color={getStatusColor(salary.status) as any}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
                         <Tooltip title="View Details">
                           <IconButton
                             size="small"
+                            onClick={() => handleViewDetails(salary)}
                             color="primary"
-                            onClick={() => handleViewDetails(record)}
                           >
-                            <VisibilityIcon fontSize="small" />
+                            <VisibilityIcon />
                           </IconButton>
                         </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  </Fade>
+                        <Tooltip title="Delete">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDeleteSalary(salary)}
+                            color="error"
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
                 ))
-              ) : (
-                renderEmptyState()
               )}
             </TableBody>
           </Table>
         </TableContainer>
-
+        
         {/* Pagination */}
-        {filteredSalaries.length > 0 && (
-          <TablePagination
-            component="div"
-            count={filteredSalaries.length}
-            page={page}
-            onPageChange={handlePageChange}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={handleRowsPerPageChange}
-            rowsPerPageOptions={[5, 10, 25, 50]}
-            showFirstButton
-            showLastButton
-          />
-        )}
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25, 50]}
+          component="div"
+          count={totalCount}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
       </Paper>
 
-      {/* Salary Detail Dialog */}
-      <SalaryDetailDialog
-        open={detailDialogOpen}
-        onClose={() => setDetailDialogOpen(false)}
-        salaryRecord={selectedSalaryRecord}
-      />
-
-      {/* Toast Notifications */}
-      <Snackbar
-        open={toast.show}
-        autoHideDuration={6000}
-        onClose={closeToast}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert 
-          onClose={closeToast} 
-          severity={toast.severity}
-          sx={{ width: '100%' }}
-          variant="filled"
-        >
-          {toast.message}
-        </Alert>
-      </Snackbar>
+      {/* Salary Details Dialog */}
+      {renderSalaryDetailsDialog()}
     </Box>
   );
 };

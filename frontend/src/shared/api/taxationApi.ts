@@ -758,6 +758,26 @@ class TaxationAPI {
       throw error;
     }
   }
+
+  // =============================================================================
+  // LOAN PROCESSING ENDPOINTS
+  // =============================================================================
+
+  /**
+   * Process loan schedule for an employee
+   * Get loan schedule with monthly payment breakdown, outstanding amounts, and interest calculations
+   */
+  async processLoanSchedule(
+    employeeId: string,
+    taxYear: string
+  ): Promise<any> {
+    try {
+      return await this.baseApi.get(`/api/v2/taxation/loan-schedule/employee/${employeeId}?tax_year=${taxYear}`);
+    } catch (error) {
+      console.error('Error processing loan schedule:', error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance

@@ -59,7 +59,8 @@ import {
   Functions as FunctionsIcon,
   AttachMoney as AttachMoneyIcon,
   PlaylistAddCheck as PlaylistAddCheckIcon,
-  Group as GroupIcon
+  Group as GroupIcon,
+  AccountBalanceWallet as AccountBalanceWalletIcon
 } from '@mui/icons-material';
 import { getUserRole } from '../../shared/utils/auth';
 import { UserRole } from '../../shared/types';
@@ -115,6 +116,14 @@ interface BulkSalaryProcessingDialogProps {
     arrears?: number | undefined;
     use_declared_values: boolean;
   }[]) => Promise<void>;
+}
+
+interface LoanProcessingDialogProps {
+  open: boolean;
+  onClose: () => void;
+  employee: EmployeeRecord | null;
+  taxYear: string;
+  onProcessLoan: (employeeId: string, taxYear: string) => Promise<any>;
 }
 
 interface EmployeeProcessingConfig {
@@ -730,6 +739,339 @@ const BulkSalaryProcessingDialog: React.FC<BulkSalaryProcessingDialogProps> = ({
   );
 };
 
+const LoanProcessingDialog: React.FC<LoanProcessingDialogProps> = ({
+  open,
+  onClose,
+  employee,
+  taxYear,
+  onProcessLoan
+}) => {
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loanData, setLoanData] = useState<any>(null);
+
+  const handleProcessLoan = async () => {
+    if (!employee) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      setLoanData(null);
+
+      const result = await onProcessLoan(employee.employee_id, taxYear);
+      setLoanData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to process loan schedule');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (!loading) {
+      onClose();
+      setLoanData(null);
+      setError(null);
+    }
+  };
+
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth="lg" fullWidth>
+      <DialogTitle>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AccountBalanceWalletIcon color="primary" />
+          <Typography variant="h6">
+            Process Loan Schedule
+          </Typography>
+        </Box>
+      </DialogTitle>
+      <DialogContent>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+          Process loan schedule for {employee?.user_name || employee?.employee_id} for {taxYear}
+        </Typography>
+
+        {!loanData && !loading && (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <AccountBalanceWalletIcon sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              Loan Schedule Processing
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Click the button below to process the loan schedule and view detailed breakdown
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={handleProcessLoan}
+              startIcon={<AccountBalanceWalletIcon />}
+              size="large"
+            >
+              Process Loan Schedule
+            </Button>
+          </Box>
+        )}
+
+        {loading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 4 }}>
+            <CircularProgress size={40} />
+            <Typography variant="body1" sx={{ ml: 2 }}>
+              Processing loan schedule...
+            </Typography>
+          </Box>
+        )}
+
+        {error && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        {loanData && (
+          <Box>
+            {/* Employee Information */}
+            <Card variant="outlined" sx={{ mb: 3 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Employee Information
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <Typography variant="body2" color="text.secondary">Employee ID</Typography>
+                    <Typography variant="body1">{loanData.employee_info?.employee_id}</Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="body2" color="text.secondary">Tax Year</Typography>
+                    <Typography variant="body1">{loanData.employee_info?.tax_year}</Typography>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant="body2" color="text.secondary">Loan Status</Typography>
+                    <Chip
+                      label={loanData.employee_info?.has_loan ? 'Has Loan' : 'No Loan'}
+                      color={loanData.employee_info?.has_loan ? 'success' : 'default'}
+                      variant="outlined"
+                    />
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+
+            {loanData.loan_info ? (
+              <>
+                {/* Loan Details */}
+                <Card variant="outlined" sx={{ mb: 3 }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>
+                      Loan Details
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={6} sm={3}>
+                        <Typography variant="body2" color="text.secondary">Loan Amount</Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          {formatCurrency(loanData.loan_info.loan_amount)}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <Typography variant="body2" color="text.secondary">EMI Amount</Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          {formatCurrency(loanData.loan_info.emi_amount)}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <Typography variant="body2" color="text.secondary">Outstanding Amount</Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          {formatCurrency(loanData.loan_info.outstanding_amount)}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <Typography variant="body2" color="text.secondary">Loan Type</Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          {loanData.loan_info.loan_type}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <Typography variant="body2" color="text.secondary">Company Interest Rate</Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          {loanData.loan_info.company_interest_rate}%
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <Typography variant="body2" color="text.secondary">SBI Interest Rate</Typography>
+                        <Typography variant="body1" fontWeight="medium">
+                          {loanData.loan_info.sbi_interest_rate}%
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <Typography variant="body2" color="text.secondary">Interest Saved</Typography>
+                        <Typography variant="body1" fontWeight="medium" color="success.main">
+                          {formatCurrency(loanData.loan_info.interest_saved)}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <Typography variant="body2" color="text.secondary">Taxable Benefit</Typography>
+                        <Typography variant="body1" fontWeight="medium" color="warning.main">
+                          {formatCurrency(loanData.loan_info.taxable_benefit)}
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+
+                {/* Summary Statistics */}
+                {loanData.loan_info.summary && (
+                  <Card variant="outlined" sx={{ mb: 3 }}>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom>
+                        Summary Statistics
+                      </Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={6} sm={3}>
+                          <Typography variant="body2" color="text.secondary">Total Months</Typography>
+                          <Typography variant="body1" fontWeight="medium">
+                            {loanData.loan_info.summary.total_months}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={6} sm={3}>
+                          <Typography variant="body2" color="text.secondary">Total Principal Paid</Typography>
+                          <Typography variant="body1" fontWeight="medium">
+                            {formatCurrency(loanData.loan_info.summary.total_principal_paid)}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={6} sm={3}>
+                          <Typography variant="body2" color="text.secondary">Total Interest Paid</Typography>
+                          <Typography variant="body1" fontWeight="medium">
+                            {formatCurrency(loanData.loan_info.summary.total_interest_paid)}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={6} sm={3}>
+                          <Typography variant="body2" color="text.secondary">Total Payments Made</Typography>
+                          <Typography variant="body1" fontWeight="medium">
+                            {formatCurrency(loanData.loan_info.summary.total_payments_made)}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={6} sm={3}>
+                          <Typography variant="body2" color="text.secondary">Remaining Principal</Typography>
+                          <Typography variant="body1" fontWeight="medium">
+                            {formatCurrency(loanData.loan_info.summary.remaining_principal)}
+                          </Typography>
+                        </Grid>
+                        <Grid item xs={6} sm={3}>
+                          <Typography variant="body2" color="text.secondary">Average Monthly Payment</Typography>
+                          <Typography variant="body1" fontWeight="medium">
+                            {formatCurrency(loanData.loan_info.summary.average_monthly_payment)}
+                          </Typography>
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Monthly Payment Schedules */}
+                <Grid container spacing={3}>
+                  {/* Company Schedule */}
+                  <Grid item xs={12} md={6}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom>
+                          Company Rate Schedule ({loanData.loan_info.company_interest_rate}%)
+                        </Typography>
+                        <TableContainer>
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Month</TableCell>
+                                <TableCell align="right">Outstanding</TableCell>
+                                <TableCell align="right">Principal</TableCell>
+                                <TableCell align="right">Interest</TableCell>
+                                <TableCell align="right">EMI</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {loanData.loan_info.company_schedule?.map((item: any) => (
+                                <TableRow key={item.month}>
+                                  <TableCell>{item.month}</TableCell>
+                                  <TableCell align="right">{formatCurrency(item.outstanding_amount)}</TableCell>
+                                  <TableCell align="right">{formatCurrency(item.principal_amount)}</TableCell>
+                                  <TableCell align="right">{formatCurrency(item.interest_amount)}</TableCell>
+                                  <TableCell align="right">{formatCurrency(item.emi_deducted)}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+
+                  {/* SBI Schedule */}
+                  <Grid item xs={12} md={6}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6" gutterBottom>
+                          SBI Rate Schedule ({loanData.loan_info.sbi_interest_rate}%)
+                        </Typography>
+                        <TableContainer>
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Month</TableCell>
+                                <TableCell align="right">Outstanding</TableCell>
+                                <TableCell align="right">Principal</TableCell>
+                                <TableCell align="right">Interest</TableCell>
+                                <TableCell align="right">EMI</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {loanData.loan_info.sbi_schedule?.map((item: any) => (
+                                <TableRow key={item.month}>
+                                  <TableCell>{item.month}</TableCell>
+                                  <TableCell align="right">{formatCurrency(item.outstanding_amount)}</TableCell>
+                                  <TableCell align="right">{formatCurrency(item.principal_amount)}</TableCell>
+                                  <TableCell align="right">{formatCurrency(item.interest_amount)}</TableCell>
+                                  <TableCell align="right">{formatCurrency(item.emi_deducted)}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+              </>
+            ) : (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                No loan information found for this employee in the selected tax year.
+              </Alert>
+            )}
+          </Box>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose} disabled={loading}>
+          Close
+        </Button>
+        {!loanData && (
+          <Button 
+            onClick={handleProcessLoan} 
+            variant="contained" 
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={16} /> : <AccountBalanceWalletIcon />}
+          >
+            {loading ? 'Processing...' : 'Process Loan Schedule'}
+          </Button>
+        )}
+      </DialogActions>
+    </Dialog>
+  );
+};
+
 /**
  * IndividualComponentManagement Component - Admin interface for managing individual taxation components
  */
@@ -749,6 +1091,8 @@ const IndividualComponentManagement: React.FC = () => {
   const [monthlySalaryDialogOpen, setMonthlySalaryDialogOpen] = useState<boolean>(false);
   const [monthlySalaryEmployee, setMonthlySalaryEmployee] = useState<EmployeeRecord | null>(null);
   const [bulkProcessingDialogOpen, setBulkProcessingDialogOpen] = useState<boolean>(false);
+  const [loanProcessingDialogOpen, setLoanProcessingDialogOpen] = useState<boolean>(false);
+  const [loanProcessingEmployee, setLoanProcessingEmployee] = useState<EmployeeRecord | null>(null);
   
   const navigate = useNavigate();
   const userRole: UserRole | null = getUserRole();
@@ -1119,6 +1463,34 @@ const IndividualComponentManagement: React.FC = () => {
     setBulkProcessingDialogOpen(false);
   };
 
+  const handleProcessLoan = async (employeeId: string, taxYear: string): Promise<any> => {
+    try {
+      showToast('Processing loan schedule...', 'info');
+      
+      // Call the loan processing API
+      const result = await taxationApi.processLoanSchedule(employeeId, taxYear);
+      
+      showToast(`Loan schedule processed successfully for ${employeeId}`, 'success');
+      
+      return result;
+      
+    } catch (error) {
+      console.error('Error processing loan schedule:', error);
+      showToast(`Failed to process loan schedule for ${employeeId}`, 'error');
+      throw error;
+    }
+  };
+
+  const handleOpenLoanProcessingDialog = (employee: EmployeeRecord): void => {
+    setLoanProcessingEmployee(employee);
+    setLoanProcessingDialogOpen(true);
+  };
+
+  const handleCloseLoanProcessingDialog = (): void => {
+    setLoanProcessingDialogOpen(false);
+    setLoanProcessingEmployee(null);
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '70vh' }}>
@@ -1332,6 +1704,15 @@ const IndividualComponentManagement: React.FC = () => {
                               <AttachMoneyIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
+                          <Tooltip title="Process Loan">
+                            <IconButton
+                              size="small"
+                              color="warning"
+                              onClick={() => handleOpenLoanProcessingDialog(employee)}
+                            >
+                              <AccountBalanceWalletIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                         </Box>
                       </TableCell>
                     </TableRow>
@@ -1432,6 +1813,15 @@ const IndividualComponentManagement: React.FC = () => {
         employees={employees}
         taxYear={selectedTaxYear}
         onBulkCompute={handleBulkSalaryProcessing}
+      />
+
+      {/* Loan Processing Dialog */}
+      <LoanProcessingDialog
+        open={loanProcessingDialogOpen}
+        onClose={handleCloseLoanProcessingDialog}
+        employee={loanProcessingEmployee}
+        taxYear={selectedTaxYear}
+        onProcessLoan={handleProcessLoan}
       />
 
       {/* Toast Notifications */}

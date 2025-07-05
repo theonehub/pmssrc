@@ -354,7 +354,8 @@ class GetEmployeeLeavesUseCase:
         self,
         employee_id: str,
         month: int,
-        year: int
+        year: int,
+        organisation_id: str
     ) -> LWPCalculationDTO:
         """
         Calculate Leave Without Pay (LWP) for a specific month.
@@ -363,6 +364,7 @@ class GetEmployeeLeavesUseCase:
             employee_id: Employee identifier
             month: Month (1-12)
             year: Year
+            organisation_id: Organization identifier
             
         Returns:
             LWPCalculationDTO with LWP calculation details
@@ -371,26 +373,51 @@ class GetEmployeeLeavesUseCase:
         try:
             self._logger.info(f"Calculating LWP for employee {employee_id} in {month}/{year}")
             
-            if not self._analytics_repository:
-                raise Exception("Analytics repository not available")
+            # Use standardized LWP calculation service from dependency container
+            from app.config.dependency_container import get_dependency_container
+            container = get_dependency_container()
+            lwp_service = container.get_lwp_calculation_service()
             
-            employee_id = EmployeeId(employee_id)
-            lwp_days = self._analytics_repository.calculate_lwp_for_employee(employee_id, month, year)
+            # Calculate LWP using standardized method
+            response = await lwp_service.calculate_lwp_for_month(
+                employee_id, month, year, organisation_id
+            )
             
+            return response
+            
+        except Exception as e:
+            self._logger.error(f"Failed to calculate LWP: {str(e)}")
+            # Fallback to analytics repository if available
+            if self._analytics_repository:
+                try:
+                    employee_id_obj = EmployeeId(employee_id)
+                    lwp_days = self._analytics_repository.calculate_lwp_for_employee(employee_id_obj, month, year)
+                    
+                    return LWPCalculationDTO(
+                        employee_id=employee_id,
+                        month=month,
+                        year=year,
+                        lwp_days=lwp_days,
+                        calculation_details={
+                            "calculated_at": date.today().isoformat(),
+                            "method": "analytics_repository_fallback"
+                        }
+                    )
+                except Exception as fallback_error:
+                    self._logger.error(f"Fallback LWP calculation also failed: {fallback_error}")
+            
+            # Return zero LWP if all methods fail
             return LWPCalculationDTO(
                 employee_id=employee_id,
                 month=month,
                 year=year,
-                lwp_days=lwp_days,
+                lwp_days=0,
                 calculation_details={
                     "calculated_at": date.today().isoformat(),
-                    "method": "working_days_calculation"
+                    "method": "zero_fallback",
+                    "error": str(e)
                 }
             )
-            
-        except Exception as e:
-            self._logger.error(f"Failed to calculate LWP: {str(e)}")
-            raise Exception(f"Failed to calculate LWP: {str(e)}")
     
     def get_team_leave_summary(
         self,

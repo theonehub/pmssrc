@@ -454,7 +454,7 @@ class ReportingServiceImpl(ReportingService):
                 from app.domain.value_objects.tax_year import TaxYear
                 
                 container = DependencyContainer()
-                taxation_repository = container.get_taxation_repository()
+                taxation_repository = container.get_salary_package_repository()
                 
                 # Get current tax year
                 current_tax_year = str(TaxYear.current())

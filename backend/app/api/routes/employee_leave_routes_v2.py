@@ -452,7 +452,7 @@ async def calculate_employee_lwp(
     if user_role not in ["admin", "superadmin", "manager"]:
         raise HTTPException(status_code=403, detail="Access denied")
     
-    response = await controller.calculate_lwp(employee_id, month, year)
+    response = await controller.calculate_lwp(employee_id, month, year, current_user)
     
     return response
 
@@ -592,7 +592,7 @@ async def get_user_lwp_legacy(
         raise HTTPException(status_code=403, detail="Access denied")
     
     # Use the existing LWP calculation method
-    lwp_response = await controller.calculate_lwp(employee_id, month, year)
+    lwp_response = await controller.calculate_lwp(employee_id, month, year, current_user)
     
     # Transform to match frontend expectation
     return {

@@ -546,4 +546,121 @@ class ExportController:
         
         filename = "_".join(filename_parts)
         
-        return filename, content_type 
+        return filename, content_type
+
+    async def export_pf_report(
+        self,
+        format_type: str,
+        filters: Dict[str, Any],
+        quarter: Optional[int],
+        tax_year: int,
+        organisation_id: str
+    ) -> Tuple[bytes, str, str]:
+        """Export PF report in specified format"""
+        try:
+            logger.info(f"Exporting PF report in {format_type} format for organisation {organisation_id}")
+            
+            # Use taxation controller to get salary data with proper DTOs
+            if self.taxation_controller:
+                response = await self.taxation_controller.get_monthly_salaries_for_period(
+                    month=filters.get('month'),
+                    year=filters.get('year'),
+                    organization_id=organisation_id,
+                    salary_status=filters.get('status'),
+                    department=filters.get('department'),
+                    skip=0,
+                    limit=1000  # Get all records for export
+                )
+                salary_data = response.get('items', [])
+            else:
+                # Fallback to repository if taxation controller not available
+                salary_data = await self.monthly_salary_repository.get_monthly_salaries_for_period(
+                    month=filters.get('month'),
+                    year=filters.get('year'),
+                    organization_id=organisation_id,
+                    status=filters.get('status'),
+                    department=filters.get('department')
+                )
+                # Convert entities to DTOs (simplified)
+                salary_data = []
+                for salary in salary_data:
+                    salary_dict = {
+                        'employee_id': str(salary.employee_id),
+                        'employee_name': None,
+                        'department': None,
+                        'designation': None,
+                        'month': salary.month,
+                        'year': salary.year,
+                        'gross_salary': salary.salary.calculate_gross_salary().to_float(),
+                        'epf_employee': self._calculate_monthly_epf(salary.salary.calculate_gross_salary()),
+                        'status': 'computed'
+                    }
+                    salary_data.append(salary_dict)
+            
+            # Filter for PF data and convert to list of dictionaries
+            pf_list = []
+            for salary in salary_data:
+                if isinstance(salary, dict):
+                    # DTO object
+                    if salary.get('epf_employee', 0) > 0:
+                        pf_list.append(salary)
+                elif hasattr(salary, 'basic_salary'):
+                    # MonthlySalaryResponseDTO object - has flat fields
+                    if salary.epf_employee > 0:
+                        pf_dict = {
+                            'employee_id': salary.employee_id,
+                            'employee_name': salary.employee_name,
+                            'department': salary.department,
+                            'designation': salary.designation,
+                            'month': salary.month,
+                            'year': salary.year,
+                            'gross_salary': salary.gross_salary,
+                            'epf_employee': salary.epf_employee,
+                            'epf_employer': salary.epf_employee,  # Assuming employer PF equals employee PF
+                            'status': salary.status
+                        }
+                        pf_list.append(pf_dict)
+                else:
+                    # Entity object (fallback)
+                    epf_amount = self._calculate_monthly_epf(salary.salary.calculate_gross_salary())
+                    if epf_amount > 0:
+                        pf_dict = {
+                            'employee_id': str(salary.employee_id),
+                            'employee_name': None,
+                            'department': None,
+                            'designation': None,
+                            'month': salary.month,
+                            'year': salary.year,
+                            'gross_salary': salary.salary.calculate_gross_salary().to_float(),
+                            'epf_employee': epf_amount,
+                            'epf_employer': epf_amount,  # Assuming employer PF equals employee PF
+                            'status': 'computed'
+                        }
+                        pf_list.append(pf_dict)
+            
+            # Generate file
+            file_data = await self.file_generation_service.generate_pf_report_export(
+                pf_data=pf_list,
+                organisation_id=organisation_id,
+                format_type=format_type,
+                quarter=quarter,
+                tax_year=tax_year,
+                filters=filters
+            )
+            
+            # Determine filename and content type
+            filename, content_type = self._get_filename_and_content_type(
+                format_type, 'pf_report', filters.get('month'), filters.get('year'), quarter
+            )
+            
+            return file_data, filename, content_type
+            
+        except Exception as e:
+            logger.error(f"Error exporting PF report: {e}")
+            raise
+
+    def _calculate_monthly_epf(self, gross_salary):
+        """Calculate monthly EPF contribution (12% of basic + DA)."""
+        from app.domain.value_objects.money import Money
+        from decimal import Decimal
+        return gross_salary.multiply(Decimal('0.12'))

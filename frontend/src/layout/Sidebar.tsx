@@ -27,6 +27,7 @@ import {
   CurrencyRupee as CurrencyRupeeIcon,
   CalculateOutlined as CalculateIcon,
   Assessment as AssessmentIcon,
+  Savings as SavingsIcon,
   ExpandLess,
   ExpandMore,
 } from '@mui/icons-material';
@@ -191,6 +192,12 @@ const Sidebar: React.FC = () => {
           title: 'TDS Report',
           icon: <AssessmentIcon />,
           path: '/taxation/tds-report',
+          roles: ['admin', 'superadmin'],
+        },
+        {
+          title: 'PF Report',
+          icon: <SavingsIcon />,
+          path: '/taxation/pf-report',
           roles: ['admin', 'superadmin'],
         },
       ],

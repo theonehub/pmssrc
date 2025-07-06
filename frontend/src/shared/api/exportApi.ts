@@ -124,6 +124,38 @@ class ExportAPI {
   }
 
   /**
+   * Export PF report in specified format
+   */
+  async exportPFReport(
+    formatType: 'csv' | 'excel' | 'challan' | 'return',
+    month: number,
+    year: number,
+    quarter?: number,
+    filters?: {
+      status?: string;
+      department?: string;
+    }
+  ): Promise<Blob> {
+    try {
+      const params = new URLSearchParams({
+        month: month.toString(),
+        year: year.toString(),
+        ...(filters?.status && { status: filters.status }),
+        ...(filters?.department && { department: filters.department }),
+        ...(quarter && { quarter: quarter.toString() })
+      });
+
+      const response = await this.baseApi.download(
+        `/api/v2/exports/pf-report/${formatType}?${params.toString()}`
+      );
+      return response;
+    } catch (error: any) {
+      console.error('Error exporting PF report:', error);
+      throw new Error(error.response?.data?.detail || 'Failed to export PF report');
+    }
+  }
+
+  /**
    * Download file with proper filename
    */
   downloadFile(blob: Blob, filename: string): void {

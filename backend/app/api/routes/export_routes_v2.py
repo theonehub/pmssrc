@@ -209,4 +209,69 @@ async def export_form_24q(
         raise
     except Exception as e:
         logger.error(f"Error exporting Form 24Q: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error") 
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@export_v2_router.get("/pf-report/{format_type}")
+async def export_pf_report(
+    format_type: str = Path(..., description="Export format (csv, excel, challan, return)"),
+    month: int = Query(..., description="Month (1-12)"),
+    year: int = Query(..., description="Year"),
+    quarter: Optional[int] = Query(None, description="Quarter (1-4) for challan and return"),
+    status: Optional[str] = Query(None, description="Filter by status"),
+    department: Optional[str] = Query(None, description="Filter by department"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: ExportController = Depends(get_export_controller)
+):
+    """Export PF report in specified format"""
+    try:
+        # Validate format type
+        valid_formats = ['csv', 'excel', 'challan', 'return']
+        if format_type.lower() not in valid_formats:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid format. Must be one of: {', '.join(valid_formats)}"
+            )
+        
+        # Validate quarter for challan and return
+        if format_type.lower() in ['challan', 'return'] and not quarter:
+            raise HTTPException(
+                status_code=400,
+                detail="Quarter is required for challan and return formats"
+            )
+        
+        if quarter and (quarter < 1 or quarter > 4):
+            raise HTTPException(
+                status_code=400,
+                detail="Quarter must be between 1 and 4"
+            )
+        
+        # Prepare filters
+        filters = {
+            'month': month,
+            'year': year,
+            'status': status,
+            'department': department
+        }
+        
+        # Generate file
+        file_data, filename, content_type = await controller.export_pf_report(
+            format_type=format_type,
+            filters=filters,
+            quarter=quarter,
+            tax_year=year,
+            organisation_id=current_user.hostname
+        )
+        
+        # Return file as streaming response
+        return StreamingResponse(
+            BytesIO(file_data),
+            media_type=content_type,
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error exporting PF report: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")

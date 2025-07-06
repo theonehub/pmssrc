@@ -6,11 +6,13 @@ Handles generation of various export file formats
 import csv
 import io
 import logging
+import re
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from decimal import Decimal
 
 import openpyxl
+from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 
@@ -536,4 +538,357 @@ class FileGenerationServiceImpl(FileGenerationService):
                 
         except Exception as e:
             logger.error(f"Error generating TDS report export: {e}")
-            raise 
+            raise
+
+    async def generate_pf_report_export(
+        self,
+        pf_data: List[Dict[str, Any]],
+        organisation_id: str,
+        format_type: str,
+        quarter: Optional[int] = None,
+        tax_year: Optional[int] = None,
+        filters: Optional[Dict[str, Any]] = None
+    ) -> bytes:
+        """Generate PF report export in specified format"""
+        try:
+            if format_type.lower() == 'csv':
+                return await self.generate_pf_csv(pf_data, organisation_id, filters)
+            elif format_type.lower() == 'excel':
+                return await self.generate_pf_excel(pf_data, organisation_id, filters)
+            elif format_type.lower() == 'challan':
+                if not quarter or not tax_year:
+                    raise ValueError("Quarter and tax_year are required for PF Challan")
+                return await self.generate_pf_challan(pf_data, organisation_id, quarter, tax_year)
+            elif format_type.lower() == 'return':
+                if not quarter or not tax_year:
+                    raise ValueError("Quarter and tax_year are required for PF Return")
+                return await self.generate_pf_return(pf_data, organisation_id, quarter, tax_year)
+            else:
+                raise ValueError(f"Unsupported format: {format_type}")
+                
+        except Exception as e:
+            logger.error(f"Error generating PF report export: {e}")
+            raise
+
+    async def generate_pf_csv(
+        self,
+        pf_data: List[Dict[str, Any]],
+        organisation_id: str,
+        filters: Optional[Dict[str, Any]] = None
+    ) -> bytes:
+        """Generate PF report in CSV format"""
+        try:
+            # Get organisation details
+            organisation = await self.organisation_repository.get_by_id(organisation_id)
+            
+            output = io.StringIO()
+            writer = csv.writer(output)
+            
+            # Header
+            writer.writerow(['PROVIDENT FUND (PF) REPORT'])
+            writer.writerow([''])
+            writer.writerow(['Organisation:', organisation.name if organisation else 'MISSING'])
+            writer.writerow(['Generated On:', datetime.now().strftime('%Y-%m-%d %H:%M:%S')])
+            if filters:
+                writer.writerow(['Month:', filters.get('month', 'N/A')])
+                writer.writerow(['Year:', filters.get('year', 'N/A')])
+                if filters.get('department'):
+                    writer.writerow(['Department:', filters.get('department')])
+            writer.writerow([''])
+            
+            # PF data
+            headers = [
+                'Sr No', 'Employee ID', 'Employee Name', 'Department', 'Designation',
+                'Month', 'Year', 'Basic + DA', 'Employee PF (12%)', 'Employer PF (12%)',
+                'Total PF', 'Status'
+            ]
+            writer.writerow(headers)
+            
+            total_employee_pf = 0
+            total_employer_pf = 0
+            total_pf = 0
+            
+            for idx, pf in enumerate(pf_data, 1):
+                employee_pf = pf.get('epf_employee', 0)
+                employer_pf = pf.get('epf_employer', employee_pf)  # Default to employee PF if not specified
+                total_pf_amount = employee_pf + employer_pf
+                
+                row = [
+                    idx,
+                    pf.get('employee_id', 'MISSING'),
+                    pf.get('employee_name', 'MISSING'),
+                    pf.get('department', 'N/A'),
+                    pf.get('designation', 'N/A'),
+                    pf.get('month', ''),
+                    pf.get('year', ''),
+                    pf.get('gross_salary', 0),
+                    employee_pf,
+                    employer_pf,
+                    total_pf_amount,
+                    pf.get('status', 'computed')
+                ]
+                writer.writerow(row)
+                
+                total_employee_pf += employee_pf
+                total_employer_pf += employer_pf
+                total_pf += total_pf_amount
+            
+            # Summary
+            writer.writerow([''])
+            writer.writerow(['SUMMARY'])
+            writer.writerow(['Total Employees with PF:', len(pf_data)])
+            writer.writerow(['Total Employee PF:', total_employee_pf])
+            writer.writerow(['Total Employer PF:', total_employer_pf])
+            writer.writerow(['Total PF Contribution:', total_pf])
+            
+            return output.getvalue().encode('utf-8')
+            
+        except Exception as e:
+            logger.error(f"Error generating PF CSV: {e}")
+            raise
+
+    async def generate_pf_excel(
+        self,
+        pf_data: List[Dict[str, Any]],
+        organisation_id: str,
+        filters: Optional[Dict[str, Any]] = None
+    ) -> bytes:
+        """Generate PF report in Excel format"""
+        try:
+            # Get organisation details
+            organisation = await self.organisation_repository.get_by_id(organisation_id)
+            
+            # Create workbook and worksheet
+            workbook = Workbook()
+            worksheet = workbook.active
+            worksheet.title = "PF Report"
+            
+            # Header
+            worksheet['A1'] = 'PROVIDENT FUND (PF) REPORT'
+            worksheet.merge_cells('A1:L1')
+            worksheet['A1'].font = Font(bold=True, size=14)
+            worksheet['A1'].alignment = Alignment(horizontal='center')
+            
+            worksheet['A3'] = 'Organisation:'
+            worksheet['B3'] = organisation.name if organisation else 'MISSING'
+            worksheet['A4'] = 'Generated On:'
+            worksheet['B4'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            if filters:
+                worksheet['A5'] = 'Month:'
+                worksheet['B5'] = filters.get('month', 'N/A')
+                worksheet['A6'] = 'Year:'
+                worksheet['B6'] = filters.get('year', 'N/A')
+                if filters.get('department'):
+                    worksheet['A7'] = 'Department:'
+                    worksheet['B7'] = filters.get('department')
+            
+            # Headers
+            headers = [
+                'Sr No', 'Employee ID', 'Employee Name', 'Department', 'Designation',
+                'Month', 'Year', 'Basic + DA', 'Employee PF (12%)', 'Employer PF (12%)',
+                'Total PF', 'Status'
+            ]
+            
+            start_row = 10
+            for col, header in enumerate(headers, 1):
+                cell = worksheet.cell(row=start_row, column=col)
+                cell.value = header
+                cell.font = Font(bold=True)
+                cell.alignment = Alignment(horizontal='center')
+            
+            # Data
+            total_employee_pf = 0
+            total_employer_pf = 0
+            total_pf = 0
+            
+            for idx, pf in enumerate(pf_data, 1):
+                row = start_row + idx
+                employee_pf = pf.get('epf_employee', 0)
+                employer_pf = pf.get('epf_employer', employee_pf)
+                total_pf_amount = employee_pf + employer_pf
+                
+                worksheet.cell(row=row, column=1, value=idx)
+                worksheet.cell(row=row, column=2, value=pf.get('employee_id', 'MISSING'))
+                worksheet.cell(row=row, column=3, value=pf.get('employee_name', 'MISSING'))
+                worksheet.cell(row=row, column=4, value=pf.get('department', 'N/A'))
+                worksheet.cell(row=row, column=5, value=pf.get('designation', 'N/A'))
+                worksheet.cell(row=row, column=6, value=pf.get('month', ''))
+                worksheet.cell(row=row, column=7, value=pf.get('year', ''))
+                worksheet.cell(row=row, column=8, value=pf.get('gross_salary', 0))
+                worksheet.cell(row=row, column=9, value=employee_pf)
+                worksheet.cell(row=row, column=10, value=employer_pf)
+                worksheet.cell(row=row, column=11, value=total_pf_amount)
+                worksheet.cell(row=row, column=12, value=pf.get('status', 'computed'))
+                
+                total_employee_pf += employee_pf
+                total_employer_pf += employer_pf
+                total_pf += total_pf_amount
+            
+            # Summary
+            summary_row = start_row + len(pf_data) + 2
+            worksheet.cell(row=summary_row, column=1, value='SUMMARY')
+            worksheet.cell(row=summary_row, column=1).font = Font(bold=True)
+            
+            worksheet.cell(row=summary_row + 1, column=1, value='Total Employees with PF:')
+            worksheet.cell(row=summary_row + 1, column=2, value=len(pf_data))
+            
+            worksheet.cell(row=summary_row + 2, column=1, value='Total Employee PF:')
+            worksheet.cell(row=summary_row + 2, column=2, value=total_employee_pf)
+            
+            worksheet.cell(row=summary_row + 3, column=1, value='Total Employer PF:')
+            worksheet.cell(row=summary_row + 3, column=2, value=total_employer_pf)
+            
+            worksheet.cell(row=summary_row + 4, column=1, value='Total PF Contribution:')
+            worksheet.cell(row=summary_row + 4, column=2, value=total_pf)
+            
+            # Auto-adjust column widths
+            for column in worksheet.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = min(max_length + 2, 50)
+                worksheet.column_dimensions[column_letter].width = adjusted_width
+            
+            # Save to bytes
+            output = io.BytesIO()
+            workbook.save(output)
+            output.seek(0)
+            
+            return output.getvalue()
+            
+        except Exception as e:
+            logger.error(f"Error generating PF Excel: {e}")
+            raise
+
+    async def generate_pf_challan(
+        self,
+        pf_data: List[Dict[str, Any]],
+        organisation_id: str,
+        quarter: int,
+        tax_year: int
+    ) -> bytes:
+        """Generate PF Challan format"""
+        try:
+            # Get organisation details
+            organisation = await self.organisation_repository.get_by_id(organisation_id)
+            
+            output = io.StringIO()
+            writer = csv.writer(output)
+            
+            # PF Challan header
+            writer.writerow(['PROVIDENT FUND CHALLAN'])
+            writer.writerow([''])
+            writer.writerow(['Employer Details:'])
+            writer.writerow(['Name:', organisation.name if organisation else 'MISSING'])
+            writer.writerow(['Establishment Code:', 'MISSING'])
+            writer.writerow(['Quarter:', f'Q{quarter}'])
+            writer.writerow(['Financial Year:', f'{tax_year}-{tax_year+1}'])
+            writer.writerow([''])
+            
+            # Calculate totals
+            total_employee_pf = sum(pf.get('epf_employee', 0) for pf in pf_data)
+            total_employer_pf = sum(pf.get('epf_employer', pf.get('epf_employee', 0)) for pf in pf_data)
+            total_pf = total_employee_pf + total_employer_pf
+            
+            # Challan details
+            writer.writerow(['Challan Details:'])
+            writer.writerow(['Employee PF Contribution:', total_employee_pf])
+            writer.writerow(['Employer PF Contribution:', total_employer_pf])
+            writer.writerow(['Total PF Amount:', total_pf])
+            writer.writerow([''])
+            
+            # Employee details
+            writer.writerow(['Employee Details:'])
+            headers = ['Sr No', 'Employee ID', 'Name', 'Employee PF', 'Employer PF', 'Total PF']
+            writer.writerow(headers)
+            
+            for idx, pf in enumerate(pf_data, 1):
+                employee_pf = pf.get('epf_employee', 0)
+                employer_pf = pf.get('epf_employer', employee_pf)
+                total_pf_amount = employee_pf + employer_pf
+                
+                row = [
+                    idx,
+                    pf.get('employee_id', 'MISSING'),
+                    pf.get('employee_name', 'MISSING'),
+                    employee_pf,
+                    employer_pf,
+                    total_pf_amount
+                ]
+                writer.writerow(row)
+            
+            return output.getvalue().encode('utf-8')
+            
+        except Exception as e:
+            logger.error(f"Error generating PF Challan: {e}")
+            raise
+
+    async def generate_pf_return(
+        self,
+        pf_data: List[Dict[str, Any]],
+        organisation_id: str,
+        quarter: int,
+        tax_year: int
+    ) -> bytes:
+        """Generate PF Return format"""
+        try:
+            # Get organisation details
+            organisation = await self.organisation_repository.get_by_id(organisation_id)
+            
+            output = io.StringIO()
+            writer = csv.writer(output)
+            
+            # PF Return header
+            writer.writerow(['PROVIDENT FUND RETURN'])
+            writer.writerow([''])
+            writer.writerow(['Employer Details:'])
+            writer.writerow(['Name:', organisation.name if organisation else 'MISSING'])
+            writer.writerow(['Establishment Code:', 'MISSING'])
+            writer.writerow(['Quarter:', f'Q{quarter}'])
+            writer.writerow(['Financial Year:', f'{tax_year}-{tax_year+1}'])
+            writer.writerow([''])
+            
+            # Return details
+            writer.writerow(['Return Details:'])
+            headers = ['Sr No', 'Employee ID', 'Name', 'UAN', 'Employee PF', 'Employer PF', 'Total PF', 'Month']
+            writer.writerow(headers)
+            
+            for idx, pf in enumerate(pf_data, 1):
+                employee_pf = pf.get('epf_employee', 0)
+                employer_pf = pf.get('epf_employer', employee_pf)
+                total_pf_amount = employee_pf + employer_pf
+                uan = re.sub(r'\D', '', pf.get('employee_id', '')).zfill(12)  # Generate UAN from employee ID
+                
+                row = [
+                    idx,
+                    pf.get('employee_id', 'MISSING'),
+                    pf.get('employee_name', 'MISSING'),
+                    uan,
+                    employee_pf,
+                    employer_pf,
+                    total_pf_amount,
+                    pf.get('month', '')
+                ]
+                writer.writerow(row)
+            
+            # Summary
+            writer.writerow([''])
+            total_employee_pf = sum(pf.get('epf_employee', 0) for pf in pf_data)
+            total_employer_pf = sum(pf.get('epf_employer', pf.get('epf_employee', 0)) for pf in pf_data)
+            total_pf = total_employee_pf + total_employer_pf
+            
+            writer.writerow(['Total Employee PF:', total_employee_pf])
+            writer.writerow(['Total Employer PF:', total_employer_pf])
+            writer.writerow(['Total PF Contribution:', total_pf])
+            
+            return output.getvalue().encode('utf-8')
+            
+        except Exception as e:
+            logger.error(f"Error generating PF Return: {e}")
+            raise

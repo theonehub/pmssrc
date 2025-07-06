@@ -256,14 +256,19 @@ interface PerquisitesData {
   other_perquisites_amount: number;
   
   // Monetary Benefits
-  monetary_amount_paid_by_employer: number;
-  expenditure_for_official_purpose: number;
-  amount_paid_by_employee: number;
+  monetary_benefit_type: string;
+  monetary_benefit_amount: number;
+  monetary_benefit_employee_payment: number;
   
   // Club Expenses
-  club_expenses_paid_by_employer: number;
-  club_expenses_paid_by_employee: number;
-  club_expenses_for_official_purpose: number;
+  club_expense_type: string;
+  club_expense_amount: number;
+  club_expense_employee_payment: number;
+  
+  // Other Benefits
+  other_benefit_type: string;
+  other_benefit_amount: number;
+  other_benefit_employee_payment: number;
 }
 
 interface PerquisitesDialogProps {
@@ -451,14 +456,19 @@ const initialPerquisitesData: PerquisitesData = {
   other_perquisites_amount: 0,
   
   // Monetary Benefits
-  monetary_amount_paid_by_employer: 0,
-  expenditure_for_official_purpose: 0,
-  amount_paid_by_employee: 0,
+  monetary_benefit_type: '',
+  monetary_benefit_amount: 0,
+  monetary_benefit_employee_payment: 0,
   
   // Club Expenses
-  club_expenses_paid_by_employer: 0,
-  club_expenses_paid_by_employee: 0,
-  club_expenses_for_official_purpose: 0
+  club_expense_type: '',
+  club_expense_amount: 0,
+  club_expense_employee_payment: 0,
+  
+  // Other Benefits
+  other_benefit_type: '',
+  other_benefit_amount: 0,
+  other_benefit_employee_payment: 0
 };
 
 // Deductions Update Dialog Component
@@ -1444,11 +1454,11 @@ const PerquisitesDialog: React.FC<PerquisitesDialogProps> = ({
     total += domesticHelpTotal;
     
     // Calculate monetary benefits total
-    const monetaryBenefitsTotal = Math.max(0, perquisitesData.monetary_amount_paid_by_employer - perquisitesData.expenditure_for_official_purpose - perquisitesData.amount_paid_by_employee);
+    const monetaryBenefitsTotal = Math.max(0, perquisitesData.monetary_benefit_amount - perquisitesData.monetary_benefit_employee_payment);
     total += monetaryBenefitsTotal;
     
     // Calculate club expenses total
-    const clubExpensesTotal = Math.max(0, perquisitesData.club_expenses_paid_by_employer - perquisitesData.club_expenses_paid_by_employee - perquisitesData.club_expenses_for_official_purpose);
+    const clubExpensesTotal = Math.max(0, perquisitesData.club_expense_amount - perquisitesData.club_expense_employee_payment);
     total += clubExpensesTotal;
     
     total += perquisitesData.other_perquisites_amount;
@@ -1456,48 +1466,48 @@ const PerquisitesDialog: React.FC<PerquisitesDialogProps> = ({
   };
 
   const steps = [
-    {
-      label: 'Accommodation',
-      fields: [
-        { name: 'accommodation_type', label: 'Accommodation Type', type: 'select', readonly: true, options: [
-          { value: 'Employer-Owned', label: 'Employer-Owned' },
-          { value: 'Government', label: 'Government' },
-          { value: 'Employer-Leased', label: 'Employer-Leased' },
-          { value: 'Hotel', label: 'Hotel' }
-        ]},
-        { name: 'city_population', label: 'City Population', type: 'select', readonly: true, options: [
-          { value: 'Above 40 lakhs', label: 'Above 40 lakhs' },
-          { value: 'Between 15-40 lakhs', label: 'Between 15-40 lakhs' },
-          { value: 'Below 15 lakhs', label: 'Below 15 lakhs' }
-        ]},
-        { name: 'license_fees', label: 'License Fees (Government)', type: 'number', readonly: true },
-        { name: 'employee_rent_payment', label: 'Employee Rent Payment', type: 'number', readonly: true },
-        { name: 'rent_paid_by_employer', label: 'Rent Paid by Employer', type: 'number', readonly: true },
-        { name: 'hotel_charges', label: 'Hotel Charges', type: 'number', readonly: true },
-        { name: 'stay_days', label: 'Stay Days', type: 'number', readonly: true },
-        { name: 'furniture_cost', label: 'Furniture Cost', type: 'number', readonly: true },
-        { name: 'furniture_employee_payment', label: 'Furniture Employee Payment', type: 'number', readonly: true },
-        { name: 'is_furniture_owned_by_employer', label: 'Furniture Owned by Employer', type: 'checkbox', readonly: true }
-      ]
-    },
-    {
-      label: 'Car & Transport',
-      fields: [
-        { name: 'car_use_type', label: 'Car Usage Type', type: 'select', readonly: true, options: [
-          { value: 'Personal', label: 'Personal Only' },
-          { value: 'Official', label: 'Official Only' },
-          { value: 'Mixed', label: 'Personal & Official' }
-        ]},
-        { name: 'engine_capacity_cc', label: 'Engine Capacity (CC)', type: 'number', readonly: true },
-        { name: 'months_used', label: 'Months Used', type: 'number', readonly: true },
-        { name: 'months_used_other_vehicle', label: 'Months Used Other Vehicle', type: 'number', readonly: true },
-        { name: 'car_cost_to_employer', label: 'Car Cost to Employer', type: 'number', readonly: true },
-        { name: 'other_vehicle_cost', label: 'Other Vehicle Cost', type: 'number', readonly: true },
-        { name: 'driver_cost', label: 'Driver Cost', type: 'number', readonly: true },
-        { name: 'has_expense_reimbursement', label: 'Expense Reimbursement', type: 'checkbox', readonly: true },
-        { name: 'driver_provided', label: 'Driver Provided', type: 'checkbox', readonly: true }
-      ]
-    },
+    // {
+    //   label: 'Accommodation (Admin Only)',
+    //   fields: [
+    //     { name: 'accommodation_type', label: 'Accommodation Type', type: 'select', readonly: true, options: [
+    //       { value: 'Employer-Owned', label: 'Employer-Owned' },
+    //       { value: 'Government', label: 'Government' },
+    //       { value: 'Employer-Leased', label: 'Employer-Leased' },
+    //       { value: 'Hotel', label: 'Hotel' }
+    //     ]},
+    //     { name: 'city_population', label: 'City Population', type: 'select', readonly: true, options: [
+    //       { value: 'Above 40 lakhs', label: 'Above 40 lakhs' },
+    //       { value: 'Between 15-40 lakhs', label: 'Between 15-40 lakhs' },
+    //       { value: 'Below 15 lakhs', label: 'Below 15 lakhs' }
+    //     ]},
+    //     { name: 'license_fees', label: 'License Fees (Government)', type: 'number', readonly: true },
+    //     { name: 'employee_rent_payment', label: 'Employee Rent Payment', type: 'number', readonly: true },
+    //     { name: 'rent_paid_by_employer', label: 'Rent Paid by Employer', type: 'number', readonly: true },
+    //     { name: 'hotel_charges', label: 'Hotel Charges', type: 'number', readonly: true },
+    //     { name: 'stay_days', label: 'Stay Days', type: 'number', readonly: true },
+    //     { name: 'furniture_cost', label: 'Furniture Cost', type: 'number', readonly: true },
+    //     { name: 'furniture_employee_payment', label: 'Furniture Employee Payment', type: 'number', readonly: true },
+    //     { name: 'is_furniture_owned_by_employer', label: 'Furniture Owned by Employer', type: 'checkbox', readonly: true }
+    //   ]
+    // },
+    // {
+    //   label: 'Car & Transport',
+    //   fields: [
+    //     { name: 'car_use_type', label: 'Car Usage Type', type: 'select', readonly: true, options: [
+    //       { value: 'Personal', label: 'Personal Only' },
+    //       { value: 'Official', label: 'Official Only' },
+    //       { value: 'Mixed', label: 'Personal & Official' }
+    //     ]},
+    //     { name: 'engine_capacity_cc', label: 'Engine Capacity (CC)', type: 'number', readonly: true },
+    //     { name: 'months_used', label: 'Months Used', type: 'number', readonly: true },
+    //     { name: 'months_used_other_vehicle', label: 'Months Used Other Vehicle', type: 'number', readonly: true },
+    //     { name: 'car_cost_to_employer', label: 'Car Cost to Employer', type: 'number', readonly: true },
+    //     { name: 'other_vehicle_cost', label: 'Other Vehicle Cost', type: 'number', readonly: true },
+    //     { name: 'driver_cost', label: 'Driver Cost', type: 'number', readonly: true },
+    //     { name: 'has_expense_reimbursement', label: 'Expense Reimbursement', type: 'checkbox', readonly: true },
+    //     { name: 'driver_provided', label: 'Driver Provided', type: 'checkbox', readonly: true }
+    //   ]
+    // },
     {
       label: 'LTA',
       fields: [
@@ -1514,24 +1524,24 @@ const PerquisitesDialog: React.FC<PerquisitesDialogProps> = ({
         { name: 'is_monthly_paid', label: 'LTA Paid Monthly', type: 'checkbox', readonly: true }
       ]
     },
-    {
-      label: 'Interest Free/Concessional Loan',
-      fields: [
-        { name: 'loan_amount', label: 'Interest-free Loan Amount', type: 'number', readonly: true },
-        { name: 'emi_amount', label: 'EMI Amount', type: 'number', readonly: true },
-        { name: 'company_interest_rate', label: 'Interest Rate Charged (%)', type: 'number', readonly: true },
-        { name: 'sbi_interest_rate', label: 'SBI Rate (%)', type: 'number', readonly: true },
-        { name: 'loan_type', label: 'Loan Type', type: 'select', readonly: true, options: [
-          { value: 'Personal', label: 'Personal' },
-          { value: 'Medical', label: 'Medical' },
-          { value: 'Education', label: 'Education' },
-          { value: 'Housing', label: 'Housing' },
-          { value: 'Vehicle', label: 'Vehicle' },
-          { value: 'Other', label: 'Other' }
-        ]},
-        { name: 'loan_start_date', label: 'Loan Start Date', type: 'date', readonly: true }
-      ]
-    },
+    // {
+    //   label: 'Interest Free/Concessional Loan',
+    //   fields: [
+    //     { name: 'loan_amount', label: 'Interest-free Loan Amount', type: 'number', readonly: true },
+    //     { name: 'emi_amount', label: 'EMI Amount', type: 'number', readonly: true },
+    //     { name: 'company_interest_rate', label: 'Interest Rate Charged (%)', type: 'number', readonly: true },
+    //     { name: 'sbi_interest_rate', label: 'SBI Rate (%)', type: 'number', readonly: true },
+    //     { name: 'loan_type', label: 'Loan Type', type: 'select', readonly: true, options: [
+    //       { value: 'Personal', label: 'Personal' },
+    //       { value: 'Medical', label: 'Medical' },
+    //       { value: 'Education', label: 'Education' },
+    //       { value: 'Housing', label: 'Housing' },
+    //       { value: 'Vehicle', label: 'Vehicle' },
+    //       { value: 'Other', label: 'Other' }
+    //     ]},
+    //     { name: 'loan_start_date', label: 'Loan Start Date', type: 'date', readonly: true }
+    //   ]
+    // },
     {
       label: 'Education',
       fields: [
@@ -1543,20 +1553,20 @@ const PerquisitesDialog: React.FC<PerquisitesDialogProps> = ({
         { name: 'employer_maintained_2nd_child', label: 'Institution Maintained by Employer - 2nd Child', type: 'checkbox' }
       ]
     },
-    {
-      label: 'Utilities',
-      fields: [
-        { name: 'gas_paid_by_employer', label: 'Gas Incurred by Employer', type: 'number' },
-        { name: 'electricity_paid_by_employer', label: 'Electricity Incurred by Employer', type: 'number' },
-        { name: 'water_paid_by_employer', label: 'Water Incurred by Employer', type: 'number' },
-        { name: 'gas_paid_by_employee', label: 'Gas Paid by Employee', type: 'number' },
-        { name: 'electricity_paid_by_employee', label: 'Electricity Paid by Employee', type: 'number' },
-        { name: 'water_paid_by_employee', label: 'Water Paid by Employee', type: 'number' },
-        { name: 'is_gas_manufactured_by_employer', label: 'Gas Manufactured by Employer', type: 'checkbox' },
-        { name: 'is_electricity_manufactured_by_employer', label: 'Electricity Manufactured by Employer', type: 'checkbox' },
-        { name: 'is_water_manufactured_by_employer', label: 'Water Manufactured by Employer', type: 'checkbox' }
-      ]
-    },
+    // {
+    //   label: 'Utilities (Admin Only)',
+    //   fields: [
+    //     { name: 'gas_paid_by_employer', label: 'Gas Incurred by Employer', type: 'number', readonly: true },
+    //     { name: 'electricity_paid_by_employer', label: 'Electricity Incurred by Employer', type: 'number', readonly: true },
+    //     { name: 'water_paid_by_employer', label: 'Water Incurred by Employer', type: 'number', readonly: true },
+    //     { name: 'gas_paid_by_employee', label: 'Gas Paid by Employee', type: 'number', readonly: true },
+    //     { name: 'electricity_paid_by_employee', label: 'Electricity Paid by Employee', type: 'number', readonly: true },
+    //     { name: 'water_paid_by_employee', label: 'Water Paid by Employee', type: 'number', readonly: true },
+    //     { name: 'is_gas_manufactured_by_employer', label: 'Gas Manufactured by Employer', type: 'checkbox', readonly: true },
+    //     { name: 'is_electricity_manufactured_by_employer', label: 'Electricity Manufactured by Employer', type: 'checkbox', readonly: true },
+    //     { name: 'is_water_manufactured_by_employer', label: 'Water Manufactured by Employer', type: 'checkbox', readonly: true }
+    //   ]
+    // },
     {
       label: 'ESOP',
       fields: [
@@ -1565,14 +1575,14 @@ const PerquisitesDialog: React.FC<PerquisitesDialogProps> = ({
         { name: 'esop_shares_exercised', label: 'ESOP Shares Exercised', type: 'number' }
       ]
     },
-    {
-      label: 'Meals Provided',
-      fields: [
-        { name: 'lunch_employer_cost', label: 'Cost Paid by Employer', type: 'number' },
-        { name: 'lunch_employee_payment', label: 'Payment by Employee', type: 'number' },
-        { name: 'lunch_meal_days_per_year', label: 'Meal Days per Year', type: 'number' }
-      ]
-    },
+    // {
+    //   label: 'Meals Provided (Admin Only)',
+    //   fields: [
+    //     { name: 'lunch_employer_cost', label: 'Cost Paid by Employer', type: 'number', readonly: true },
+    //     { name: 'lunch_employee_payment', label: 'Payment by Employee', type: 'number', readonly: true },
+    //     { name: 'lunch_meal_days_per_year', label: 'Meal Days per Year', type: 'number', readonly: true }
+    //   ]
+    // },
     {
       label: 'Domestic Help',
       fields: [
@@ -1580,55 +1590,70 @@ const PerquisitesDialog: React.FC<PerquisitesDialogProps> = ({
         { name: 'domestic_help_paid_by_employee', label: 'Payment by Employee', type: 'number' }
       ]
     },
-    {
-      label: 'Movable Asset Usage',
-      fields: [
-        { name: 'movable_asset_type', label: 'Asset Type', type: 'select', options: [
-          { value: 'Electronics', label: 'Electronics' },
-          { value: 'Motor Vehicle', label: 'Motor Vehicle' },
-          { value: 'Others', label: 'Others' }
-        ]},
-        { name: 'movable_asset_usage_value', label: 'Asset Value', type: 'number' },
-        { name: 'movable_asset_hire_cost', label: 'Hire Cost', type: 'number' },
-        { name: 'movable_asset_employee_payment', label: 'Payment by Employee', type: 'number' },
-        { name: 'movable_asset_is_employer_owned', label: 'Asset Owned by Employer', type: 'checkbox' }
-      ]
-    },
-    {
-      label: 'Movable Asset Transfer',
-      fields: [
-        { name: 'movable_asset_transfer_type', label: 'Asset Type', type: 'select', options: [
-          { value: 'Electronics', label: 'Electronics' },
-          { value: 'Motor Vehicle', label: 'Motor Vehicle' },
-          { value: 'Others', label: 'Others' }
-        ]},
-        { name: 'movable_asset_transfer_cost', label: 'Original Asset Cost', type: 'number' },
-        { name: 'movable_asset_years_of_use', label: 'Years of Use', type: 'number' },
-        { name: 'movable_asset_transfer_employee_payment', label: 'Payment by Employee', type: 'number' }
-      ]
-    },
-    {
-      label: 'Monetary Benefits',
-      fields: [
-        { name: 'monetary_amount_paid_by_employer', label: 'Amount Paid by Employer', type: 'number' },
-        { name: 'expenditure_for_official_purpose', label: 'Expenditure for Official Purpose', type: 'number' },
-        { name: 'amount_paid_by_employee', label: 'Amount Paid by Employee', type: 'number' }
-      ]
-    },
-    {
-      label: 'Club Expenses',
-      fields: [
-        { name: 'club_expenses_paid_by_employer', label: 'Club Expenses Paid by Employer', type: 'number' },
-        { name: 'club_expenses_paid_by_employee', label: 'Club Expenses Paid by Employee', type: 'number' },
-        { name: 'club_expenses_for_official_purpose', label: 'Club Expenses for Official Purpose', type: 'number' }
-      ]
-    },
-    {
-      label: 'Other Benefits',
-      fields: [
-        { name: 'other_perquisites_amount', label: 'Other Perquisites Amount', type: 'number' }
-      ]
-    }
+    // {
+    //   label: 'Movable Asset Usage (Admin Only)',
+    //   fields: [
+    //     { name: 'movable_asset_type', label: 'Asset Type', type: 'select', readonly: true, options: [
+    //       { value: 'Electronics', label: 'Electronics' },
+    //       { value: 'Motor Vehicle', label: 'Motor Vehicle' },
+    //       { value: 'Others', label: 'Others' }
+    //     ]},
+    //     { name: 'movable_asset_usage_value', label: 'Asset Value', type: 'number', readonly: true },
+    //     { name: 'movable_asset_hire_cost', label: 'Hire Cost', type: 'number', readonly: true },
+    //     { name: 'movable_asset_employee_payment', label: 'Payment by Employee', type: 'number', readonly: true },
+    //     { name: 'movable_asset_is_employer_owned', label: 'Asset Owned by Employer', type: 'checkbox', readonly: true }
+    //   ]
+    // },
+    // {
+    //   label: 'Movable Asset Transfer (Admin Only)',
+    //   fields: [
+    //     { name: 'movable_asset_transfer_type', label: 'Asset Type', type: 'select', readonly: true, options: [
+    //       { value: 'Electronics', label: 'Electronics' },
+    //       { value: 'Motor Vehicle', label: 'Motor Vehicle' },
+    //       { value: 'Others', label: 'Others' }
+    //     ]},
+    //     { name: 'movable_asset_transfer_cost', label: 'Original Asset Cost', type: 'number', readonly: true },
+    //     { name: 'movable_asset_years_of_use', label: 'Years of Use', type: 'number', readonly: true },
+    //     { name: 'movable_asset_transfer_employee_payment', label: 'Payment by Employee', type: 'number', readonly: true }
+    //   ]
+    // },
+    // {
+    //   label: 'Monetary Benefits (Admin Only)',
+    //   fields: [
+    //     { name: 'monetary_benefit_type', label: 'Benefit Type', type: 'select', readonly: true, options: [
+    //       { value: 'Cash Gift', label: 'Cash Gift' },
+    //       { value: 'Voucher', label: 'Voucher' },
+    //       { value: 'Others', label: 'Others' }
+    //     ]},
+    //     { name: 'monetary_benefit_amount', label: 'Benefit Amount', type: 'number', readonly: true },
+    //     { name: 'monetary_benefit_employee_payment', label: 'Payment by Employee', type: 'number', readonly: true }
+    //   ]
+    // },
+    // {
+    //   label: 'Club Expenses (Admin Only)',
+    //   fields: [
+    //     { name: 'club_expense_type', label: 'Expense Type', type: 'select', readonly: true, options: [
+    //       { value: 'Membership Fee', label: 'Membership Fee' },
+    //       { value: 'Annual Fee', label: 'Annual Fee' },
+    //       { value: 'Others', label: 'Others' }
+    //     ]},
+    //     { name: 'club_expense_amount', label: 'Expense Amount', type: 'number', readonly: true },
+    //     { name: 'club_expense_employee_payment', label: 'Payment by Employee', type: 'number', readonly: true }
+    //   ]
+    // },
+    // {
+    //   label: 'Other Benefits (Admin Only)',
+    //   fields: [
+    //     { name: 'other_benefit_type', label: 'Benefit Type', type: 'select', readonly: true, options: [
+    //       { value: 'Education', label: 'Education' },
+    //       { value: 'Medical', label: 'Medical' },
+    //       { value: 'Transport', label: 'Transport' },
+    //       { value: 'Others', label: 'Others' }
+    //     ]},
+    //     { name: 'other_benefit_amount', label: 'Benefit Amount', type: 'number', readonly: true },
+    //     { name: 'other_benefit_employee_payment', label: 'Payment by Employee', type: 'number', readonly: true }
+    //   ]
+    // }
   ];
 
   return (
@@ -1792,6 +1817,196 @@ const PerquisitesDialog: React.FC<PerquisitesDialogProps> = ({
               </Grid>
             </Grid>
 
+            {/* Utilities Section */}
+            <Typography variant="subtitle1" color="primary" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
+              Utilities (Admin Only)
+            </Typography>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Gas Paid by Employer</Typography>
+                <Typography variant="h6">₹{perquisitesData.gas_paid_by_employer.toLocaleString('en-IN')}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Electricity Paid by Employer</Typography>
+                <Typography variant="h6">₹{perquisitesData.electricity_paid_by_employer.toLocaleString('en-IN')}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Water Paid by Employer</Typography>
+                <Typography variant="h6">₹{perquisitesData.water_paid_by_employer.toLocaleString('en-IN')}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Gas Paid by Employee</Typography>
+                <Typography variant="h6">₹{perquisitesData.gas_paid_by_employee.toLocaleString('en-IN')}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Electricity Paid by Employee</Typography>
+                <Typography variant="h6">₹{perquisitesData.electricity_paid_by_employee.toLocaleString('en-IN')}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Water Paid by Employee</Typography>
+                <Typography variant="h6">₹{perquisitesData.water_paid_by_employee.toLocaleString('en-IN')}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Gas Manufactured by Employer</Typography>
+                <Typography variant="h6">{perquisitesData.is_gas_manufactured_by_employer ? 'Yes' : 'No'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Electricity Manufactured by Employer</Typography>
+                <Typography variant="h6">{perquisitesData.is_electricity_manufactured_by_employer ? 'Yes' : 'No'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Water Manufactured by Employer</Typography>
+                <Typography variant="h6">{perquisitesData.is_water_manufactured_by_employer ? 'Yes' : 'No'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Utilities Total</Typography>
+                <Typography variant="h6" color="primary">₹{((perquisitesData.gas_paid_by_employer + 
+                                 perquisitesData.electricity_paid_by_employer + 
+                                 perquisitesData.water_paid_by_employer) -
+                                (perquisitesData.gas_paid_by_employee + 
+                                 perquisitesData.electricity_paid_by_employee + 
+                                 perquisitesData.water_paid_by_employee)).toLocaleString('en-IN')}</Typography>
+              </Grid>
+            </Grid>
+
+            {/* Meals Provided Section */}
+            <Typography variant="subtitle1" color="primary" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
+              Meals Provided (Admin Only)
+            </Typography>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Cost Paid by Employer</Typography>
+                <Typography variant="h6">₹{perquisitesData.lunch_employer_cost.toLocaleString('en-IN')}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Payment by Employee</Typography>
+                <Typography variant="h6">₹{perquisitesData.lunch_employee_payment.toLocaleString('en-IN')}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Meal Days per Year</Typography>
+                <Typography variant="h6">{perquisitesData.lunch_meal_days_per_year}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Meals Total</Typography>
+                <Typography variant="h6" color="primary">₹{Math.max(0, perquisitesData.lunch_employer_cost - perquisitesData.lunch_employee_payment).toLocaleString('en-IN')}</Typography>
+              </Grid>
+            </Grid>
+
+            {/* Movable Asset Usage Section */}
+            <Typography variant="subtitle1" color="primary" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
+              Movable Asset Usage (Admin Only)
+            </Typography>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Asset Type</Typography>
+                <Typography variant="h6">{perquisitesData.movable_asset_type || 'Not specified'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Asset Value</Typography>
+                <Typography variant="h6">₹{perquisitesData.movable_asset_usage_value.toLocaleString('en-IN')}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Hire Cost</Typography>
+                <Typography variant="h6">₹{perquisitesData.movable_asset_hire_cost.toLocaleString('en-IN')}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Asset Usage Total</Typography>
+                <Typography variant="h6" color="primary">₹{Math.max(0, perquisitesData.movable_asset_hire_cost - perquisitesData.movable_asset_employee_payment).toLocaleString('en-IN')}</Typography>
+              </Grid>
+            </Grid>
+
+            {/* Movable Asset Transfer Section */}
+            <Typography variant="subtitle1" color="primary" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
+              Movable Asset Transfer (Admin Only)
+            </Typography>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Asset Type</Typography>
+                <Typography variant="h6">{perquisitesData.movable_asset_transfer_type || 'Not specified'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Original Cost</Typography>
+                <Typography variant="h6">₹{perquisitesData.movable_asset_transfer_cost.toLocaleString('en-IN')}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Years of Use</Typography>
+                <Typography variant="h6">{perquisitesData.movable_asset_years_of_use}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Asset Transfer Total</Typography>
+                <Typography variant="h6" color="primary">₹{Math.max(0, perquisitesData.movable_asset_transfer_cost - perquisitesData.movable_asset_transfer_employee_payment).toLocaleString('en-IN')}</Typography>
+              </Grid>
+            </Grid>
+
+            {/* Monetary Benefits Section */}
+            <Typography variant="subtitle1" color="primary" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
+              Monetary Benefits (Admin Only)
+            </Typography>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Benefit Type</Typography>
+                <Typography variant="h6">{perquisitesData.monetary_benefit_type || 'Not specified'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Benefit Amount</Typography>
+                <Typography variant="h6">₹{perquisitesData.monetary_benefit_amount.toLocaleString('en-IN')}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Payment by Employee</Typography>
+                <Typography variant="h6">₹{perquisitesData.monetary_benefit_employee_payment.toLocaleString('en-IN')}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Monetary Benefits Total</Typography>
+                <Typography variant="h6" color="primary">₹{Math.max(0, perquisitesData.monetary_benefit_amount - perquisitesData.monetary_benefit_employee_payment).toLocaleString('en-IN')}</Typography>
+              </Grid>
+            </Grid>
+
+            {/* Club Expenses Section */}
+            <Typography variant="subtitle1" color="primary" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
+              Club Expenses (Admin Only)
+            </Typography>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Expense Type</Typography>
+                <Typography variant="h6">{perquisitesData.club_expense_type || 'Not specified'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Expense Amount</Typography>
+                <Typography variant="h6">₹{perquisitesData.club_expense_amount.toLocaleString('en-IN')}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Payment by Employee</Typography>
+                <Typography variant="h6">₹{perquisitesData.club_expense_employee_payment.toLocaleString('en-IN')}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Club Expenses Total</Typography>
+                <Typography variant="h6" color="primary">₹{Math.max(0, perquisitesData.club_expense_amount - perquisitesData.club_expense_employee_payment).toLocaleString('en-IN')}</Typography>
+              </Grid>
+            </Grid>
+
+            {/* Other Benefits Section */}
+            <Typography variant="subtitle1" color="primary" sx={{ mt: 2, mb: 1, fontWeight: 'bold' }}>
+              Other Benefits (Admin Only)
+            </Typography>
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Benefit Type</Typography>
+                <Typography variant="h6">{perquisitesData.other_benefit_type || 'Not specified'}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Benefit Amount</Typography>
+                <Typography variant="h6">₹{perquisitesData.other_benefit_amount.toLocaleString('en-IN')}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Payment by Employee</Typography>
+                <Typography variant="h6">₹{perquisitesData.other_benefit_employee_payment.toLocaleString('en-IN')}</Typography>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Other Benefits Total</Typography>
+                <Typography variant="h6" color="primary">₹{Math.max(0, perquisitesData.other_benefit_amount - perquisitesData.other_benefit_employee_payment).toLocaleString('en-IN')}</Typography>
+              </Grid>
+            </Grid>
+
             {/* Total Perquisites */}
             <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
               <Typography variant="h6" color="primary" sx={{ fontWeight: 'bold' }}>
@@ -1853,6 +2068,24 @@ const PerquisitesDialog: React.FC<PerquisitesDialogProps> = ({
                             handleInputChange(field.name as keyof PerquisitesData, e.target.value);
                           }}
                           InputLabelProps={{ shrink: true }}
+                          size="small"
+                          disabled={Boolean(field.readonly)}
+                        />
+                      ) : isNumberField(field) ? (
+                        <TextField
+                          fullWidth
+                          label={field.label}
+                          type="number"
+                          value={perquisitesData[field.name as keyof PerquisitesData] as number}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value) || 0;
+                            handleInputChange(field.name as keyof PerquisitesData, value);
+                          }}
+                          InputProps={{
+                            startAdornment: field.name.includes('rate') || field.name.includes('percent') 
+                              ? <Typography variant="body2" sx={{ mr: 1 }}>%</Typography>
+                              : <Typography variant="body2" sx={{ mr: 1 }}>₹</Typography>
+                          }}
                           size="small"
                           disabled={Boolean(field.readonly)}
                         />
@@ -2622,14 +2855,19 @@ const MySalaryComponents: React.FC = () => {
         other_perquisites_amount: data.other_perquisites_amount || 0,
         
         // Monetary Benefits
-        monetary_amount_paid_by_employer: data.monetary_benefits?.monetary_amount_paid_by_employer || 0,
-        expenditure_for_official_purpose: data.monetary_benefits?.expenditure_for_official_purpose || 0,
-        amount_paid_by_employee: data.monetary_benefits?.amount_paid_by_employee || 0,
+        monetary_benefit_type: data.monetary_benefits?.monetary_benefit_type || '',
+        monetary_benefit_amount: data.monetary_benefits?.monetary_benefit_amount || 0,
+        monetary_benefit_employee_payment: data.monetary_benefits?.monetary_benefit_employee_payment || 0,
         
         // Club Expenses
-        club_expenses_paid_by_employer: data.club_expenses?.club_expenses_paid_by_employer || 0,
-        club_expenses_paid_by_employee: data.club_expenses?.club_expenses_paid_by_employee || 0,
-        club_expenses_for_official_purpose: data.club_expenses?.club_expenses_for_official_purpose || 0
+        club_expense_type: data.club_expenses?.club_expense_type || '',
+        club_expense_amount: data.club_expenses?.club_expense_amount || 0,
+        club_expense_employee_payment: data.club_expenses?.club_expense_employee_payment || 0,
+        
+        // Other Benefits
+        other_benefit_type: data.other_benefits?.other_benefit_type || '',
+        other_benefit_amount: data.other_benefits?.other_benefit_amount || 0,
+        other_benefit_employee_payment: data.other_benefits?.other_benefit_employee_payment || 0
       };
       
       setPerquisitesData(perquisitesData);

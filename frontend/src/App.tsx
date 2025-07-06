@@ -42,6 +42,7 @@ import CapitalGainsComponentForm from './components/taxation/components/CapitalG
 import RetirementBenefitsComponentForm from './components/taxation/components/RetirementBenefitsComponentForm';
 import OtherIncomeComponentForm from './components/taxation/components/OtherIncomeComponentForm';
 import ComponentsOverview from './components/taxation/ComponentsOverview';
+import MySalaryComponents from './components/taxation/MySalaryComponents';
 
 // Reporting Pages
 import ReportingDashboard from './components/Reporting/ReportingDashboard';
@@ -167,6 +168,10 @@ const AppContent: React.FC = () => {
           <Route
             path="/taxation/components-overview/:empId"
             element={withLayout(<ComponentsOverview />, 'Components Overview', ['admin', 'superadmin'])}
+          />
+          <Route
+            path="/my-salary"
+            element={withLayout(<MySalaryComponents />, 'My Salary Components', ['user', 'manager', 'admin', 'superadmin'])}
           />
           
           {/* Individual Component Routes */}

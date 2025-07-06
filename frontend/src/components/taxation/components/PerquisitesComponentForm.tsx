@@ -623,6 +623,49 @@ const PerquisitesComponentForm: React.FC = () => {
   const calculateTotalPerquisites = (): number => {
     // Calculate total perquisites value based on type
     let total = 0;
+    
+    // Calculate accommodation total
+    let accommodationValue = 0;
+    if (perquisitesData.accommodation_type === 'Government') {
+      accommodationValue = Math.max(0, perquisitesData.employee_rent_payment - perquisitesData.license_fees);
+    } else if (perquisitesData.accommodation_type === 'Employer-Owned') {
+      let rate = 0.05; // 5% for below 15 lakhs
+      if (perquisitesData.city_population === 'Above 40 lakhs') {
+        rate = 0.10; // 10%
+      } else if (perquisitesData.city_population === 'Between 15-40 lakhs') {
+        rate = 0.075; // 7.5%
+      }
+      accommodationValue = perquisitesData.license_fees * rate;
+    } else if (perquisitesData.accommodation_type === 'Employer-Leased') {
+      accommodationValue = Math.max(0, perquisitesData.rent_paid_by_employer - perquisitesData.employee_rent_payment);
+    } else if (perquisitesData.accommodation_type === 'Hotel') {
+      accommodationValue = perquisitesData.hotel_charges * perquisitesData.stay_days;
+    }
+    
+    // Add furniture perquisite if owned by employer
+    if (perquisitesData.is_furniture_owned_by_employer) {
+      accommodationValue += Math.max(0, perquisitesData.furniture_cost - perquisitesData.furniture_employee_payment);
+    }
+    
+    total += accommodationValue;
+    
+    // Calculate car and transport total
+    let carValue = 0;
+    if (perquisitesData.car_use_type === 'Personal') {
+      // Personal use: 10% of car cost + driver cost
+      carValue = (perquisitesData.car_cost_to_employer * 0.10) + perquisitesData.driver_cost;
+    } else if (perquisitesData.car_use_type === 'Official') {
+      // Official use: No perquisite
+      carValue = 0;
+    } else if (perquisitesData.car_use_type === 'Mixed') {
+      // Mixed use: 5% of car cost + driver cost
+      carValue = (perquisitesData.car_cost_to_employer * 0.05) + perquisitesData.driver_cost;
+    }
+    
+    // Add other vehicle cost
+    carValue += perquisitesData.other_vehicle_cost;
+    total += carValue;
+    
     total += perquisitesData.lta_amount_claimed;
     total += perquisitesData.esop_exercise_value;
     

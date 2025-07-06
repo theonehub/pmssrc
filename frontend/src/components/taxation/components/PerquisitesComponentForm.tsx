@@ -60,6 +60,7 @@ interface PerquisitesComponentData {
   lta_claimed_count: number;
   public_transport_cost: number;
   travel_mode: string;
+  is_monthly_paid: boolean;
 
   // ESOP
   esop_exercise_value: number;
@@ -221,6 +222,7 @@ const initialPerquisitesData: PerquisitesComponentData = {
   lta_claimed_count: 0,
   public_transport_cost: 0,
   travel_mode: 'Air',
+  is_monthly_paid: false,
 
   // ESOP
   esop_exercise_value: 0,
@@ -347,6 +349,7 @@ const flattenPerquisitesData = (nestedData: any): PerquisitesComponentData => {
       flattened.lta_claimed_count = nestedData.lta.lta_claimed_count || 0;
       flattened.public_transport_cost = nestedData.lta.public_transport_cost || 0;
       flattened.travel_mode = nestedData.lta.travel_mode || 'Air';
+      flattened.is_monthly_paid = nestedData.lta.is_monthly_paid || false;
     }
     
     // ESOP
@@ -724,7 +727,8 @@ const PerquisitesComponentForm: React.FC = () => {
         { name: 'lta_allocated_yearly', label: 'LTA Allocated Yearly', type: 'number' } as NumberField,
         { name: 'lta_amount_claimed', label: 'LTA Amount Claimed', type: 'number' } as NumberField,
         { name: 'lta_claimed_count', label: 'LTA Claims Count', type: 'number' } as NumberField,
-        { name: 'public_transport_cost', label: 'Public Transport Cost (for same distance)', type: 'number' } as NumberField
+        { name: 'public_transport_cost', label: 'Public Transport Cost (for same distance)', type: 'number' } as NumberField,
+        { name: 'is_monthly_paid', label: 'LTA Paid Monthly', type: 'checkbox' } as CheckboxField
       ]
     },
     {

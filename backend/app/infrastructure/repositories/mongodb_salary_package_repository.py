@@ -787,6 +787,7 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
                 "lta_claimed_count": perquisites.lta.lta_claimed_count if perquisites.lta else 0,
                 "public_transport_cost": perquisites.lta.public_transport_cost.to_float() if perquisites.lta else 0.0,
                 "travel_mode": perquisites.lta.travel_mode if perquisites.lta else "Air",
+                "is_monthly_paid": perquisites.lta.is_monthly_paid if perquisites.lta else False,
             },
             
             # Financial perquisites
@@ -1256,6 +1257,7 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         if perquisites_doc.get("lta", {}).get("has_lta"):
             lta_doc = perquisites_doc["lta"]
             lta = LTAPerquisite(
+                is_monthly_paid=lta_doc.get("is_monthly_paid", False),
                 lta_amount_claimed=Money.from_float(lta_doc.get("lta_amount_claimed", 0.0)),
                 lta_claimed_count=lta_doc.get("lta_claimed_count", 0),
                 public_transport_cost=Money.from_float(lta_doc.get("public_transport_cost", 0.0)),

@@ -218,7 +218,8 @@ class CarPerquisite:
 @dataclass
 class LTAPerquisite:
     """Leave Travel Allowance perquisite."""
-
+    
+    is_monthly_paid: bool = False
     lta_allocated_yearly: Money = Money.zero()
     lta_amount_claimed: Money = Money.zero()
     lta_claimed_count: int = 0

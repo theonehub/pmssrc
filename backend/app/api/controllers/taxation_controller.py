@@ -739,6 +739,7 @@ class UnifiedTaxationController:
         
         # Convert LTA
         lta = LTAPerquisite(
+            is_monthly_paid=perquisites_dto.is_monthly_paid,
             lta_allocated_yearly=safe_money_from_value(perquisites_dto.lta_allocated_yearly),
             lta_amount_claimed=safe_money_from_value(perquisites_dto.lta_amount_claimed),
             lta_claimed_count=perquisites_dto.lta_claimed_count,
@@ -1832,7 +1833,8 @@ class UnifiedTaxationController:
                 "lta_amount_claimed": float(lta.lta_amount_claimed.amount),
                 "lta_claimed_count": lta.lta_claimed_count,
                 "public_transport_cost": float(lta.public_transport_cost.amount),
-                "travel_mode": lta.travel_mode
+                "travel_mode": lta.travel_mode,
+                "is_monthly_paid": lta.is_monthly_paid
             }
         
         # Serialize interest free loan
@@ -2014,10 +2016,10 @@ class UnifiedTaxationController:
             
             # Other deductions
             "other_deductions": {
-                "education_loan_interest": float(deductions.other_deductions.education_loan_interest.amount) if deductions.other_deductions else 0.0,
-                "charitable_donations": float(deductions.other_deductions.charitable_donations.amount) if deductions.other_deductions else 0.0,
-                "savings_interest": float(deductions.other_deductions.savings_interest.amount) if deductions.other_deductions else 0.0,
-                "nps_contribution": float(deductions.other_deductions.nps_contribution.amount) if deductions.other_deductions else 0.0,
+                "education_loan_interest": float(deductions.education_loan_interest.amount) if deductions.education_loan_interest else 0.0,
+                "charitable_donations": float(deductions.donations_80g.amount) if deductions.donations_80g else 0.0,
+                "savings_interest": float(deductions.savings_account_interest.amount) if deductions.savings_account_interest else 0.0,
+                "nps_contribution": float(deductions.section_80ccd.employee_nps_contribution.amount) if deductions.section_80ccd else 0.0,
                 "other_deductions": float(deductions.other_deductions.other_deductions.amount) if deductions.other_deductions else 0.0,
                 "total": float(deductions.other_deductions.calculate_total().amount) if deductions.other_deductions else 0.0
             },

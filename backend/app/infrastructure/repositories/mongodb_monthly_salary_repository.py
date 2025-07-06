@@ -1095,7 +1095,8 @@ class MongoDBMonthlySalaryRepository(MonthlySalaryRepository):
             "lta_amount_claimed": lta.lta_amount_claimed.to_float(),
             "lta_claimed_count": lta.lta_claimed_count,
             "public_transport_cost": lta.public_transport_cost.to_float(),
-            "travel_mode": lta.travel_mode
+            "travel_mode": lta.travel_mode,
+            "is_monthly_paid": lta.is_monthly_paid
         }
     
     def _serialize_interest_free_loan(self, loan: Optional[InterestFreeConcessionalLoan]) -> Dict[str, Any]:
@@ -1614,6 +1615,7 @@ class MongoDBMonthlySalaryRepository(MonthlySalaryRepository):
         lta = None
         if lta_doc.get("has_lta"):
             lta = LTAPerquisite(
+                is_monthly_paid=get_bool(lta_doc, "is_monthly_paid"),
                 lta_amount_claimed=get_money(lta_doc, "lta_amount_claimed"),
                 lta_claimed_count=get_int(lta_doc, "lta_claimed_count"),
                 public_transport_cost=get_money(lta_doc, "public_transport_cost"),

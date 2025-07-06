@@ -382,6 +382,7 @@ class PerquisitesDTO(BaseModel):
     lta_claimed_count: int = Field(default=0, ge=0, description="LTA claimed count")
     public_transport_cost: Decimal = Field(default=0, ge=0, description="Public transport cost")
     travel_mode: str = Field(default="Air", description="Travel mode: Air, Rail, Bus, Public Transport")
+    is_monthly_paid: bool = Field(default=False, description="Whether LTA is paid monthly")
     
     # ESOP fields
     esop_exercise_value: Decimal = Field(default=0, ge=0, description="ESOP exercise value")
@@ -536,7 +537,8 @@ class PerquisitesDTO(BaseModel):
                 "lta_amount_claimed": self.lta_amount_claimed,
                 "lta_claimed_count": self.lta_claimed_count,
                 "public_transport_cost": self.public_transport_cost,
-                "travel_mode": self.travel_mode
+                "travel_mode": self.travel_mode,
+                "is_monthly_paid": self.is_monthly_paid
             },
             "interest_free_loan": {
                 "loan_amount": self.loan_amount,

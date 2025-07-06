@@ -273,6 +273,7 @@ export interface PerquisitesDTO {
     lta_claimed: number;
     lta_exempt: number;
     travel_mode?: string;
+    is_monthly_paid?: boolean;
   };
   free_education?: {
     education_provided: boolean;

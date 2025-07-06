@@ -337,7 +337,17 @@ class ComputeMonthlySalaryUseCase:
         # Use monthly tax from entity
         tds = monthly_salary.tax_amount
         
-        total_deductions = epf_employee.add(esi_employee).add(professional_tax).add(tds)
+        # Get loan EMI amount from perquisites
+        loan_emi_amount = monthly_salary.perquisites_payouts.total if monthly_salary.perquisites_payouts else Money.zero()
+        # Extract loan EMI specifically from components
+        loan_emi = Money.zero()
+        if monthly_salary.perquisites_payouts and monthly_salary.perquisites_payouts.components:
+            for component in monthly_salary.perquisites_payouts.components:
+                if component.key == "loan":
+                    loan_emi = component.value
+                    break
+        
+        total_deductions = epf_employee.add(esi_employee).add(professional_tax).add(tds).add(loan_emi)
         net_salary = self._safe_subtract(gross_salary, total_deductions)
         
         # Get working days info from LWP details
@@ -373,7 +383,7 @@ class ComputeMonthlySalaryUseCase:
             professional_tax=professional_tax.to_float(),
             tds=tds.to_float(),
             advance_deduction=0.0,
-            loan_deduction=0.0,
+            loan_deduction=loan_emi.to_float(),
             other_deductions=0.0,
             
             # Calculated totals

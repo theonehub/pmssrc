@@ -999,12 +999,16 @@ class TaxCalculationService:
         monthly_esi_employer = self._calculate_monthly_esi_employer(monthly_gross)
         monthly_professional_tax = self._calculate_monthly_professional_tax(monthly_gross)
         
+        # Get loan EMI amount from perquisites
+        loan_emi_amount = taxation_record.perquisites.get_loan_emi_amount() if taxation_record.perquisites else Money.zero()
+        
         # Calculate total monthly deductions
         total_monthly_deductions = (
             monthly_epf_employee
             .add(monthly_esi_employee)
             .add(monthly_professional_tax)
             .add(monthly_tds)
+            .add(loan_emi_amount)
         )
         
         # Calculate net monthly salary
@@ -1036,7 +1040,7 @@ class TaxCalculationService:
             professional_tax=monthly_professional_tax.to_float(),
             tds=monthly_tds.to_float(),
             advance_deduction=0.0,
-            loan_deduction=0.0,
+            loan_deduction=loan_emi_amount.to_float(),
             other_deductions=0.0,
             
             # Calculated totals

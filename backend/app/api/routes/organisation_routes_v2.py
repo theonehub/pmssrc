@@ -7,7 +7,7 @@ import logging
 from typing import Optional
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Depends, Query, Path
+from fastapi import APIRouter, HTTPException, Depends, Query, Path, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 
 from app.application.dto.organisation_dto import (
@@ -105,12 +105,61 @@ async def _list_organisations_impl(
 
 @organisation_v2_router.post("/", response_model=OrganisationResponseDTO)
 async def create_organisation(
-    request: CreateOrganisationRequestDTO,
+    organisation_data: str = Form(..., description="JSON string containing organisation data"),
+    logo: Optional[UploadFile] = File(None, description="Organisation logo file (optional)"),
     current_user: CurrentUser = Depends(get_current_user),
     controller: OrganisationController = Depends(get_organisation_controller)
 ):
-    """Create a new organisation (British spelling alias)"""
-    return await _create_organisation_impl(request, current_user, controller)
+    """Create a new organisation (with optional logo upload)"""
+    import json
+    import os
+    from datetime import datetime
+    
+    try:
+        # Parse organisation data from JSON string
+        request = CreateOrganisationRequestDTO(**json.loads(organisation_data))
+        logo_path = None
+        
+        if logo is not None:
+            # Ensure upload directory exists
+            upload_dir = "./uploads/organisation/logos/"
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            # Create unique filename
+            ext = os.path.splitext(logo.filename)[-1]
+            unique_name = f"org_{request.name.replace(' ', '_')}_{int(datetime.now().timestamp())}{ext}"
+            file_path = os.path.join(upload_dir, unique_name)
+            
+            # Save file
+            with open(file_path, "wb") as f:
+                f.write(await logo.read())
+            
+            logo_path = file_path
+            logger.info(f"Logo saved to: {logo_path}")
+        
+        # Pass logo_path to controller
+        response = await controller.create_organisation(
+            request=request,
+            created_by=current_user.employee_id,
+            logo_path=logo_path
+        )
+        return response
+        
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON in organisation data: {e}")
+        raise HTTPException(status_code=400, detail="Invalid JSON format in organisation data")
+    except OrganisationValidationError as e:
+        logger.warning(f"Validation error creating organisation: {e}")
+        raise HTTPException(status_code=400, detail={"error": "validation_error", "message": str(e)})
+    except OrganisationConflictError as e:
+        logger.warning(f"Conflict error creating organisation: {e}")
+        raise HTTPException(status_code=409, detail={"error": "conflict_error", "message": str(e)})
+    except OrganisationBusinessRuleError as e:
+        logger.warning(f"Business rule error creating organisation: {e}")
+        raise HTTPException(status_code=422, detail={"error": "business_rule_error", "message": str(e)})
+    except Exception as e:
+        logger.error(f"Unexpected error creating organisation: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @organisation_v2_router.get("/", response_model=OrganisationListResponseDTO)

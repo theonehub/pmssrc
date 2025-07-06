@@ -90,7 +90,7 @@ class CreateOrganisationUseCase:
         tax_info = self._create_tax_information(request)
         organisation_type = OrganisationType(request.organisation_type)
         
-        # Step 4: Create organisation entity
+        # Step 4: Create organisation entity (add logo_path)
         organisation = Organisation.create_new_organisation(
             name=request.name,
             contact_info=contact_info,
@@ -102,6 +102,8 @@ class CreateOrganisationUseCase:
             description=request.description,
             created_by=request.created_by
         )
+        if hasattr(request, 'logo_path') and request.logo_path:
+            organisation.logo_path = request.logo_path
         
         # Step 5: Validate business rules
         await self._validate_business_rules(organisation)

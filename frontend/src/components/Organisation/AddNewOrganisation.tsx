@@ -13,7 +13,9 @@ import {
   AlertColor,
   MenuItem,
   FormControlLabel,
-  Checkbox
+  Checkbox,
+  Avatar,
+  IconButton,
 } from '@mui/material';
 import {
   Business as BusinessIcon,
@@ -23,14 +25,16 @@ import {
   LocationOn as LocationIcon,
   Description as DescriptionIcon,
   Numbers as NumbersIcon,
-  ArrowBack as ArrowBackIcon
+  ArrowBack as ArrowBackIcon,
+  AddPhotoAlternate as AddPhotoIcon,
+  Delete as DeleteIcon
 } from '@mui/icons-material';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { getToken } from '../../shared/utils/auth';
 import { useOrganisationsQuery } from '../../shared/hooks/useOrganisations';
 
-const API_BASE_URL = 'http://localhost:8000/api/v2';
+const API_BASE_URL = 'http://localhost:8000';
 
 interface ToastState {
   open: boolean;
@@ -69,9 +73,12 @@ const AddNewOrganisation: React.FC = () => {
   const [hostname, setHostname] = useState('');
   const [description, setDescription] = useState('');
   const [organisationType, setOrganisationType] = useState('private_limited');
-  const [status, setStatus] = useState('active');
   const [employeeStrength, setEmployeeStrength] = useState('10');
   const [isActive, setIsActive] = useState(true);
+
+  // Logo upload state
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
   // Contact info
   const [email, setEmail] = useState('');
@@ -113,7 +120,6 @@ const AddNewOrganisation: React.FC = () => {
       setHostname(org.hostname || '');
       setDescription(org.description || '');
       setOrganisationType(org.organisation_type || 'private_limited');
-      setStatus(org.status || 'active');
       setEmployeeStrength(org.employee_strength?.toString() || '10');
       setIsActive(org.is_active !== undefined ? org.is_active : true);
       
@@ -135,6 +141,39 @@ const AddNewOrganisation: React.FC = () => {
       setTanNumber(org.tax_info?.tan_number || org.tan_number || '');
     }
   }, [isEditing, organisationData]);
+
+  // Handle logo file selection
+  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        showToast('Please select a valid image file', 'error');
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('Logo file size must be less than 5MB', 'error');
+        return;
+      }
+      
+      setLogoFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setLogoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Remove logo
+  const handleRemoveLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
+  };
 
   const validateField = (fieldName: string, value: string): string => {
     switch (fieldName) {
@@ -241,7 +280,7 @@ const AddNewOrganisation: React.FC = () => {
         throw new Error('Authentication required. Please login again.');
       }
 
-      // Construct the organisation object in the flattened format expected by backend
+      // Construct the organisation data
       const organisationData = {
         // Basic Information (required)
         name,
@@ -263,7 +302,6 @@ const AddNewOrganisation: React.FC = () => {
         
         // Optional fields
         description: description || '',
-        status: status || 'active',
         employee_strength: parseInt(employeeStrength) || 10,
         hostname: hostname || '',
         website: website || '',
@@ -282,86 +320,75 @@ const AddNewOrganisation: React.FC = () => {
       }
 
       const url = isEditing 
-        ? `${API_BASE_URL}/organisations/${id}/`
-        : `${API_BASE_URL}/organisations/`;
+        ? `${API_BASE_URL}/api/v2/organisations/${id}/`
+        : `${API_BASE_URL}/api/v2/organisations/`;
       const method = isEditing ? 'put' : 'post';
       
       console.log(`Making ${method.toUpperCase()} request to:`, url);
       console.log('Request data:', organisationData);
 
-      const response = await axios[method](url, organisationData, {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-      });
+      let response;
       
-      console.log('Success response:', response.data);
+      if (logoFile) {
+        // Use multipart/form-data for logo upload
+        const formData = new FormData();
+        formData.append('organisation_data', JSON.stringify(organisationData));
+        formData.append('logo', logoFile);
+        
+        response = await axios({
+          method,
+          url,
+          data: formData,
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      } else {
+        // Use regular JSON for no logo
+        response = await axios({
+          method,
+          url,
+          data: organisationData,
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+      }
+
+      console.log('Response:', response.data);
       
-      const successMessage = isEditing 
-        ? 'Organisation updated successfully!'
-        : 'Organisation created successfully!';
+      showToast(
+        isEditing 
+          ? 'Organisation updated successfully!' 
+          : 'Organisation created successfully!',
+        'success'
+      );
       
-      showToast(successMessage, 'success');
-      
+      // Navigate back to organisations list
       setTimeout(() => {
         navigate('/organisations');
       }, 1500);
       
     } catch (error: any) {
-      console.error('Error saving organisation:', error);
-      console.error('Error response:', error.response?.data);
-      console.error('Error status:', error.response?.status);
-      
-      let errorMessage = isEditing ? 'Failed to update organisation' : 'Failed to create organisation';
-      
-      // Handle different error cases
-      if (error.response?.status === 500) {
-        // Backend internal server error - likely the CurrentUser vs dict issue
-        errorMessage = `Backend error detected. There appears to be a type mismatch in the organisation API route. ` +
-          `The route function expects CurrentUser but the implementation expects dict. ` +
-          `This is a backend configuration issue that needs to be fixed by the development team.`;
-      } else if (error.response?.data?.detail) {
-        const detail = error.response.data.detail;
-        if (typeof detail === 'string') {
-          errorMessage = detail;
-        } else if (Array.isArray(detail)) {
-          errorMessage = detail.map((err: any) => err.msg || err.message || 'Validation error').join(', ');
-        } else if (typeof detail === 'object' && detail.message) {
-          errorMessage = detail.message;
-        }
-      } else if (error.response?.status === 422) {
-        errorMessage = 'Validation error: Please check all required fields are filled correctly.';
-      } else if (error.response?.status === 401) {
-        errorMessage = 'Authentication failed. Please login again.';
-      } else if (error.response?.status === 403) {
-        errorMessage = 'Access denied. You may not have permission to create organisations.';
-      }
-      
+      console.error('Error:', error);
+      const errorMessage = error.response?.data?.detail || error.message || 'An error occurred';
       showToast(errorMessage, 'error');
-      
-      // If it's a 500 error, also show a developer-friendly message in console
-      if (error.response?.status === 500) {
-        console.error('='.repeat(80));
-        console.error('BACKEND ISSUE DETECTED:');
-        console.error('File: backend/app/api/routes/organisation_routes_v2.py');
-        console.error('Issue: Type mismatch in _create_organisation_impl function');
-        console.error('Line 44: current_user.employee_id - expects CurrentUser object');
-        console.error('Line 37: current_user: dict - function signature expects dict');
-        console.error('Fix: Change line 37 to: current_user: CurrentUser');
-        console.error('Or change route to pass current_user.__dict__ instead');
-        console.error('='.repeat(80));
-      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const showToast = (message: string, severity: AlertColor = 'success'): void => {
-    setToast({ open: true, message, severity });
+  const showToast = (message: string, severity: AlertColor) => {
+    setToast({
+      open: true,
+      message,
+      severity
+    });
   };
 
-  const handleCloseToast = (): void => {
+  const handleCloseToast = () => {
     setToast(prev => ({ ...prev, open: false }));
   };
 
@@ -441,19 +468,6 @@ const AddNewOrganisation: React.FC = () => {
           </TextField>
 
           <TextField
-            select
-            fullWidth
-            label="Status"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            <MenuItem value="active">Active</MenuItem>
-            <MenuItem value="inactive">Inactive</MenuItem>
-            <MenuItem value="suspended">Suspended</MenuItem>
-            <MenuItem value="deleted">Deleted</MenuItem>
-          </TextField>
-
-          <TextField
             fullWidth
             label="Employee Strength"
             type="number"
@@ -494,6 +508,66 @@ const AddNewOrganisation: React.FC = () => {
               }
               label="Organisation is active"
             />
+          </Box>
+        </FormSection>
+
+        {/* Logo Upload Section */}
+        <FormSection title="Organisation Logo">
+          <Box sx={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 3 }}>
+            {/* Logo Preview */}
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+              <Avatar
+                src={logoPreview || ""}
+                sx={{ 
+                  width: 100, 
+                  height: 100, 
+                  border: "2px dashed #ccc",
+                  backgroundColor: logoPreview ? "transparent" : "#f5f5f5"
+                }}
+              >
+                {!logoPreview && <BusinessIcon sx={{ fontSize: 40, color: "#ccc" }} />}
+              </Avatar>
+              {logoPreview && (
+                <IconButton
+                  size="small"
+                  onClick={handleRemoveLogo}
+                  sx={{ color: 'error.main' }}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              )}
+            </Box>
+
+            {/* Logo Upload */}
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Upload your organisation logo (optional)
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                Supported formats: JPG, PNG, GIF. Max size: 5MB
+              </Typography>
+              
+              <Button
+                variant="outlined"
+                component="label"
+                startIcon={<AddPhotoIcon />}
+                sx={{ mt: 1 }}
+              >
+                {logoFile ? 'Change Logo' : 'Upload Logo'}
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                />
+              </Button>
+              
+              {logoFile && (
+                <Typography variant="caption" color="success.main" display="block" sx={{ mt: 1 }}>
+                  Selected: {logoFile.name}
+                </Typography>
+              )}
+            </Box>
           </Box>
         </FormSection>
 
@@ -665,37 +739,6 @@ const AddNewOrganisation: React.FC = () => {
             }
           </Button>
         </Box>
-
-        {/* Developer Help Section - Only show in development */}
-        {/* {process.env.NODE_ENV === 'development' && (
-          <Paper 
-            elevation={1} 
-            sx={{ 
-              p: 3, 
-              mt: 3, 
-              backgroundColor: '#f8f9fa',
-              border: '1px solid #e9ecef'
-            }}
-          >
-            <Typography variant="h6" color="primary" gutterBottom>
-              🔧 Developer Information
-            </Typography>
-            <Typography variant="body2" color="text.secondary" paragraph>
-              If you encounter a <strong>500 Internal Server Error</strong> when creating organisations, 
-              this is due to a backend type mismatch issue:
-            </Typography>
-            <Box sx={{ backgroundColor: '#f1f3f4', p: 2, borderRadius: 1, fontFamily: 'monospace', fontSize: '0.875rem' }}>
-              <Typography variant="body2" sx={{ fontFamily: 'inherit' }}>
-                <strong>File:</strong> backend/app/api/routes/organisation_routes_v2.py<br/>
-                <strong>Issue:</strong> Line 37 expects <code>current_user.employee_id - expects CurrentUser object</code> but receives <code>CurrentUser</code> object<br/>
-                <strong>Fix:</strong> Change line 37 to <code>current_user: CurrentUser</code>
-              </Typography>
-            </Box>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-              This form is ready and will work once the backend type annotation is corrected.
-            </Typography>
-          </Paper>
-        )} */}
       </Box>
 
       {/* Toast Notifications */}

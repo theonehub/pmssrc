@@ -151,16 +151,13 @@ class MongoDBOrganisationRepository(OrganisationRepository):
     
     def _organisation_to_document(self, organisation: Organisation) -> Dict[str, Any]:
         """Convert domain entity to database document."""
-        
         # Safe value extraction for enums - handle both enum objects and strings
         def safe_enum_value(field_value):
             if hasattr(field_value, 'value'):
                 return field_value.value
             return str(field_value) if field_value is not None else None
-        
         # Safe extraction for complex nested objects
         def safe_get_attr(obj, attr_path, default=None):
-            """Safely get nested attributes like 'contact_info.email'"""
             try:
                 attrs = attr_path.split('.')
                 value = obj
@@ -171,24 +168,19 @@ class MongoDBOrganisationRepository(OrganisationRepository):
                 return value
             except (AttributeError, TypeError):
                 return default
-        
         # Convert date objects to datetime for MongoDB compatibility
         def safe_date_conversion(date_value):
-            """Convert date objects to datetime objects for MongoDB"""
             if date_value is None:
                 return None
             if isinstance(date_value, datetime):
                 return date_value
             elif hasattr(date_value, 'year') and hasattr(date_value, 'month') and hasattr(date_value, 'day'):
-                # It's a date object, convert to datetime
                 from datetime import datetime as dt
                 return dt.combine(date_value, dt.min.time())
             else:
                 return date_value
-        
         # Handle value object conversion to dict
         def value_object_to_dict(value_obj):
-            """Convert value object to dictionary"""
             if value_obj is None:
                 return {}
             if hasattr(value_obj, 'to_dict'):
@@ -198,9 +190,7 @@ class MongoDBOrganisationRepository(OrganisationRepository):
             elif hasattr(value_obj, 'dict'):
                 return value_obj.dict()
             else:
-                # Fallback: convert object attributes to dict
                 return {k: v for k, v in value_obj.__dict__.items() if not k.startswith('_')}
-        
         return {
             "organisation_id": str(organisation.organisation_id),
             "name": getattr(organisation, 'name', ''),
@@ -213,6 +203,7 @@ class MongoDBOrganisationRepository(OrganisationRepository):
             "tax_information": value_object_to_dict(getattr(organisation, 'tax_info', None)),
             "employee_strength": getattr(organisation, 'employee_strength', 0),
             "used_employee_strength": getattr(organisation, 'used_employee_strength', 0),
+            "logo_path": getattr(organisation, 'logo_path', None),
             "is_active": organisation.is_active(),
             "is_deleted": getattr(organisation, 'is_deleted', False),
             "created_at": safe_date_conversion(getattr(organisation, 'created_at', None)),
@@ -366,7 +357,7 @@ class MongoDBOrganisationRepository(OrganisationRepository):
         try:
             collection = await self._get_collection()
             document = await collection.find_one({
-                "organisation_id": str(organisation_id),
+                "hostname": str(organisation_id),
                 "is_deleted": {"$ne": True}
             })
             

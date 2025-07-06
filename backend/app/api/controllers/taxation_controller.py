@@ -117,36 +117,32 @@ class UnifiedTaxationController:
     def __init__(self,
                  user_repository,
                  salary_package_repository,
-                 monthly_salary_repository=None):
-                 
+                 monthly_salary_repository=None,
+                 organisation_repository=None):
         self.user_repository = user_repository
         self.salary_package_repository = salary_package_repository
         self.tax_calculation_service = TaxCalculationService(salary_package_repository)
-        
-        # Get user service from dependency container
         from app.config.dependency_container import get_dependency_container
         container = get_dependency_container()
         user_service = container.get_user_service()
-        
-        # Get monthly salary repository if not provided
         if monthly_salary_repository is None:
             monthly_salary_repository = container.get_monthly_salary_repository()
-        
-        # Assign monthly salary repository to self
         self.monthly_salary_repository = monthly_salary_repository
-        
         self.get_employees_for_selection_use_case = GetEmployeesForSelectionUseCase(
-            user_query_service=user_service,  # Pass the service that implements UserQueryService
+            user_query_service=user_service,
             salary_package_repository=salary_package_repository
         )
-        
-        # Initialize monthly salary computation use case
         self.compute_monthly_salary_use_case = ComputeMonthlySalaryUseCase(
             salary_package_repository=salary_package_repository,
             user_repository=user_repository,
             monthly_salary_repository=monthly_salary_repository,
             tax_calculation_service=self.tax_calculation_service
         )
+        # Add organisation repository
+        if organisation_repository is None:
+            self.organisation_repository = container.get_organisation_repository()
+        else:
+            self.organisation_repository = organisation_repository
     
     # =============================================================================
     # EMPLOYEE SELECTION OPERATIONS
@@ -3788,7 +3784,15 @@ class UnifiedTaxationController:
         professional_tax = self._calculate_monthly_professional_tax(gross_salary)
         tds = monthly_salary.tax_amount
         
-        total_deductions = epf_employee.add(esi_employee).add(professional_tax).add(tds)
+        # Get loan EMI amount from perquisites payouts
+        loan_emi = Money.zero()
+        if monthly_salary.perquisites_payouts and monthly_salary.perquisites_payouts.components:
+            for component in monthly_salary.perquisites_payouts.components:
+                if component.key == "loan":
+                    loan_emi = component.value
+                    break
+        
+        total_deductions = epf_employee.add(esi_employee).add(professional_tax).add(tds).add(loan_emi)
         net_salary = self._safe_subtract(gross_salary, total_deductions)
         
         # Get working days info
@@ -3842,7 +3846,7 @@ class UnifiedTaxationController:
             professional_tax=professional_tax.to_float(),
             tds=tds.to_float(),
             advance_deduction=0.0,
-            loan_deduction=0.0,
+            loan_deduction=loan_emi.to_float(),
             other_deductions=0.0,
             
             # Calculated totals
@@ -4095,13 +4099,7 @@ class UnifiedTaxationController:
     ) -> bytes:
         """
         Download payslip for a specific month.
-        Args:
-            employee_id: Employee ID
-            month: Month (1-12)
-            year: Year
-            organization_id: Organization ID for multi-tenancy
-        Returns:
-            PDF bytes for the payslip
+        ...
         """
         try:
             # Get salary record
@@ -4111,21 +4109,78 @@ class UnifiedTaxationController:
                 year=year,
                 organization_id=organization_id
             )
-            
             if not salary_record:
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"Salary record not found for employee {employee_id} for {month}/{year}"
                 )
+            # Fetch organisation for logo and details
+            from app.domain.value_objects.organisation_id import OrganisationId
+            organisation = await self.organisation_repository.get_by_id(OrganisationId(organization_id))
+            logo_path = None
+            organisation_details = {
+                'name': 'COMPANY NAME',
+                'address': 'Company Address',
+                'contact': 'Phone: +91-XXXXXXXXXX | Email: info@company.com'
+            }
+            
+            if organisation:
+                if getattr(organisation, 'logo_path', None):
+                    logo_path = organisation.logo_path
+                
+                # Extract organisation details
+                organisation_details['name'] = getattr(organisation, 'name', 'COMPANY NAME')
+                
+                if hasattr(organisation, 'address') and organisation.address:
+                    address_parts = []
+                    if getattr(organisation.address, 'street_address', None):
+                        address_parts.append(organisation.address.street_address)
+                    if getattr(organisation.address, 'city', None):
+                        address_parts.append(organisation.address.city)
+                    if getattr(organisation.address, 'state', None):
+                        address_parts.append(organisation.address.state)
+                    if getattr(organisation.address, 'pin_code', None):
+                        address_parts.append(organisation.address.pin_code)
+                    organisation_details['address'] = ", ".join(address_parts) if address_parts else "Company Address"
+                
+                if hasattr(organisation, 'contact_info') and organisation.contact_info:
+                    contact_parts = []
+                    if getattr(organisation.contact_info, 'phone', None):
+                        contact_parts.append(f"Phone: {organisation.contact_info.phone}")
+                    if getattr(organisation.contact_info, 'email', None):
+                        contact_parts.append(f"Email: {organisation.contact_info.email}")
+                    organisation_details['contact'] = " | ".join(contact_parts) if contact_parts else "Phone: +91-XXXXXXXXXX | Email: info@company.com"
+            
+            # Fetch user details for employee information
+            from app.domain.value_objects.employee_id import EmployeeId
+            user = await self.user_repository.get_by_id(EmployeeId(employee_id), organization_id)
+            user_details = {
+                'name': 'N/A',
+                'department': 'N/A',
+                'designation': 'N/A',
+                'bank_name': 'N/A',
+                'account_no': 'N/A',
+                'ifsc_code': 'N/A',
+                'branch': 'N/A'
+            }
+            
+            if user:
+                user_details['name'] = getattr(user, 'name', 'N/A')
+                user_details['department'] = getattr(user, 'department', 'N/A')
+                user_details['designation'] = getattr(user, 'designation', 'N/A')
+                
+                # Extract bank details if available
+                if hasattr(user, 'bank_details') and user.bank_details:
+                    user_details['bank_name'] = getattr(user.bank_details, 'bank_name', 'N/A')
+                    user_details['account_no'] = getattr(user.bank_details, 'account_number', 'N/A')
+                    user_details['ifsc_code'] = getattr(user.bank_details, 'ifsc_code', 'N/A')
+                    user_details['branch'] = getattr(user.bank_details, 'branch', 'N/A')
             
             # Generate payslip content
             payslip_content = self._generate_payslip_text(salary_record)
-            
-            # Convert to PDF bytes (placeholder implementation)
-            pdf_bytes = self._text_to_pdf(payslip_content)
-            
+            # Convert to PDF bytes, pass logo_path, organisation details, and user details
+            pdf_bytes = self._text_to_pdf(payslip_content, logo_path=logo_path, organisation_details=organisation_details, user_details=user_details)
             return pdf_bytes
-            
         except HTTPException:
             raise
         except Exception as e:
@@ -4186,7 +4241,6 @@ class UnifiedTaxationController:
         House Rent Allowance: ₹{s.hra_provided.to_float():,.2f}
         Special Allowance: ₹{s.special_allowance.to_float():,.2f}
         Transport Allowance: ₹{0.0:,.2f}
-        Medical Allowance: ₹{0.0:,.2f}
         Bonus: ₹{s.bonus.to_float():,.2f}
         Commission: ₹{s.commission.to_float():,.2f}
         Other Allowances: ₹{specific_allowances_total:,.2f}
@@ -4211,96 +4265,283 @@ class UnifiedTaxationController:
         Working Days: {working_days_info['effective_days']}/{working_days_info['total_days']}
         LWP Days: {working_days_info['lwp_days']}
 
-        Status: {getattr(salary_record, 'status', 'computed')}
         Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         """
 
         return payslip
 
-    def _text_to_pdf(self, text: str) -> bytes:
-        """Convert text to PDF bytes using ReportLab."""
+    def _text_to_pdf(self, text: str, logo_path: str = None, organisation_details: dict = None, user_details: dict = None) -> bytes:
+        """Convert text to PDF bytes using ReportLab with side-by-side layout and logo."""
         from reportlab.lib.pagesizes import letter, A4
-        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
         from reportlab.lib.units import inch
         from reportlab.lib import colors
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
         from io import BytesIO
+        import os
+        from datetime import datetime
         
-        # Create a buffer to store the PDF
         buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, leftMargin=0.5*inch, rightMargin=0.5*inch)
         
-        # Create the PDF document
-        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        # Register a Unicode-compatible font for better symbol support
+        try:
+            # Try to register a system font that supports Unicode
+            pdfmetrics.registerFont(TTFont('DejaVuSans', '/System/Library/Fonts/Supplemental/Arial Unicode MS.ttf'))
+            default_font = 'DejaVuSans'
+        except:
+            try:
+                # Fallback to another common Unicode font
+                pdfmetrics.registerFont(TTFont('DejaVuSans', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'))
+                default_font = 'DejaVuSans'
+            except:
+                # Use default font if Unicode fonts not available
+                default_font = 'Helvetica'
         
-        # Get styles
         styles = getSampleStyleSheet()
+        
+        # Custom styles with Unicode font
         title_style = ParagraphStyle(
             'CustomTitle',
             parent=styles['Heading1'],
-            fontSize=16,
-            spaceAfter=30,
-            alignment=1  # Center alignment
+            fontSize=18,
+            spaceAfter=20,
+            alignment=TA_CENTER,
+            textColor=colors.darkblue,
+            fontName=default_font
         )
         
-        heading_style = ParagraphStyle(
-            'CustomHeading',
-            parent=styles['Heading2'],
+        header_style = ParagraphStyle(
+            'HeaderStyle',
+            parent=styles['Normal'],
             fontSize=12,
-            spaceAfter=12,
-            spaceBefore=20
+            spaceAfter=6,
+            alignment=TA_LEFT,
+            textColor=colors.darkblue,
+            fontName=default_font
         )
         
-        normal_style = styles['Normal']
+        normal_style = ParagraphStyle(
+            'NormalStyle',
+            parent=styles['Normal'],
+            fontSize=10,
+            spaceAfter=3,
+            fontName=default_font
+        )
         
-        # Build the story (content)
+        amount_style = ParagraphStyle(
+            'AmountStyle',
+            parent=styles['Normal'],
+            fontSize=10,
+            spaceAfter=3,
+            alignment=TA_RIGHT,
+            fontName=default_font
+        )
+        
         story = []
+        
+        # Add logo if available
+        if logo_path and os.path.isfile(logo_path):
+            try:
+                img = Image(logo_path)
+                img.drawHeight = 0.8*inch
+                img.drawWidth = 0.8*inch
+                img.hAlign = 'CENTER'
+                story.append(img)
+                story.append(Spacer(1, 10))
+            except Exception as e:
+                story.append(Paragraph("[Logo could not be loaded]", normal_style))
+        
+        # Company header - use actual organisation details
+        if organisation_details:
+            organisation_name = organisation_details.get('name', 'COMPANY NAME')
+            organisation_address = organisation_details.get('address', 'Company Address')
+            organisation_contact = organisation_details.get('contact', 'Phone: +91-XXXXXXXXXX | Email: info@company.com')
+        else:
+            organisation_name = "COMPANY NAME"
+            organisation_address = "Company Address"
+            organisation_contact = "Phone: +91-XXXXXXXXXX | Email: info@company.com"
+        
+        story.append(Paragraph(organisation_name, title_style))
+        story.append(Paragraph(organisation_address, header_style))
+        story.append(Paragraph(organisation_contact, header_style))
+        story.append(Spacer(1, 20))
         
         # Title
         story.append(Paragraph("PAYSLIP", title_style))
-        story.append(Spacer(1, 20))
+        story.append(Spacer(1, 15))
         
-        # Parse the text and create structured content
+        # Parse the text to extract data and replace ₹ with Rs.
         lines = text.strip().split('\n')
-        current_section = None
+        employee_data = {}
+        earnings_data = []
+        deductions_data = []
         
         for line in lines:
             line = line.strip()
-            if not line:
+            if not line or line.startswith('==='):
                 continue
-                
-            if line.startswith('==='):
-                continue
-            elif line.endswith(':'):
-                # Section header
-                current_section = line[:-1]
-                story.append(Paragraph(current_section, heading_style))
-            elif ':' in line and not line.startswith(' '):
-                # Key-value pair
+            elif ':' in line:
                 parts = line.split(':', 1)
                 if len(parts) == 2:
                     key, value = parts[0].strip(), parts[1].strip()
-                    if value.startswith('₹'):
-                        # Format currency values
-                        story.append(Paragraph(f"<b>{key}:</b> {value}", normal_style))
-                    else:
-                        story.append(Paragraph(f"<b>{key}:</b> {value}", normal_style))
-            elif line.startswith(' ') and ':' in line:
-                # Indented key-value pair
-                parts = line.strip().split(':', 1)
+                    # Replace ₹ with Rs. for better PDF compatibility
+                    value = value.replace('₹', 'Rs.')
+                    
+                    if key == "Employee ID":
+                        employee_data['employee_id'] = value
+                    elif key == "Pay Period":
+                        employee_data['pay_period'] = value
+                    elif key == "Tax Year":
+                        employee_data['tax_year'] = value
+                    elif key == "Working Days":
+                        employee_data['working_days'] = value
+                    elif key == "Status":
+                        employee_data['status'] = value
+                    elif key == "Generated on":
+                        employee_data['generated_on'] = value
+                    elif value.startswith('Rs.') and key not in ["Total Earnings", "Total Deductions", "Net Pay"]:
+                        if "Earnings" in key or any(earning in key for earning in ["Basic Salary", "Dearness Allowance", "HRA", "Special Allowance", "Transport", "Medical", "Bonus", "Commission", "Other Allowances", "Arrears"]):
+                            earnings_data.append((key, value))
+                        elif "Deductions" in key or any(deduction in key for deduction in ["EPF", "ESI", "Professional Tax", "TDS", "Advance", "Loan", "Other Deductions"]):
+                            deductions_data.append((key, value))
+        
+        # Employee and Bank Details Table - use user_details if available
+        if user_details:
+            employee_table_data = [
+                ["Employee Details", "Bank Details"],
+                ["Employee ID: " + employee_data.get('employee_id', 'N/A'), "Bank Name: " + user_details.get('bank_name', 'N/A')],
+                ["Name: " + user_details.get('name', 'N/A'), "Account No: " + user_details.get('account_no', 'N/A')],
+                ["Department: " + user_details.get('department', 'N/A'), "IFSC Code: " + user_details.get('ifsc_code', 'N/A')],
+                ["Designation: " + user_details.get('designation', 'N/A'), "Branch: " + user_details.get('branch', 'N/A')],
+                ["Pay Period: " + employee_data.get('pay_period', 'N/A'), ""],
+                ["Tax Year: " + employee_data.get('tax_year', 'N/A'), ""],
+            ]
+        else:
+            # Fallback to parsing from text
+            employee_table_data = [
+                ["Employee Details", "Bank Details"],
+                ["Employee ID: " + employee_data.get('employee_id', 'N/A'), "Bank Name: " + employee_data.get('bank_name', 'N/A')],
+                ["Name: " + employee_data.get('name', 'N/A'), "Account No: " + employee_data.get('account_no', 'N/A')],
+                ["Department: " + employee_data.get('department', 'N/A'), "IFSC Code: " + employee_data.get('ifsc_code', 'N/A')],
+                ["Designation: " + employee_data.get('designation', 'N/A'), "Branch: " + employee_data.get('branch', 'N/A')],
+                ["Pay Period: " + employee_data.get('pay_period', 'N/A'), ""],
+                ["Tax Year: " + employee_data.get('tax_year', 'N/A'), ""],
+            ]
+        
+        employee_table = Table(employee_table_data, colWidths=[doc.width/2, doc.width/2])
+        employee_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        story.append(employee_table)
+        story.append(Spacer(1, 20))
+        
+        # Summary Grid - extract actual values from parsed data
+        gross_pay = "Rs.0.00"
+        total_deductions = "Rs.0.00"
+        net_pay = "Rs.0.00"
+        
+        # Find totals in the parsed data
+        for line in lines:
+            line = line.strip()
+            if ':' in line:
+                parts = line.split(':', 1)
                 if len(parts) == 2:
                     key, value = parts[0].strip(), parts[1].strip()
-                    if value.startswith('₹'):
-                        # Format currency values
-                        story.append(Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;<b>{key}:</b> {value}", normal_style))
-                    else:
-                        story.append(Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;<b>{key}:</b> {value}", normal_style))
+                    value = value.replace('₹', 'Rs.')  # Replace ₹ with Rs.
+                    if key == "Total Earnings":
+                        gross_pay = value
+                    elif key == "Total Deductions":
+                        total_deductions = value
+                    elif key == "Net Pay":
+                        net_pay = value
         
-        # Build the PDF
+        summary_data = [
+            ["Gross Pay", "Total Deductions", "Net Pay"],
+            [gross_pay, total_deductions, net_pay]
+        ]
+        
+        summary_table = Table(summary_data, colWidths=[doc.width/3, doc.width/3, doc.width/3])
+        summary_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('FONTSIZE', (0, 1), (-1, 1), 14),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ]))
+        story.append(summary_table)
+        story.append(Spacer(1, 20))
+        
+        # Earnings and Deductions side by side
+        # Prepare earnings data
+        earnings_rows = [["Earnings", "Amount"]]
+        for key, value in earnings_data:
+            earnings_rows.append([key, value])
+        
+        # Prepare deductions data
+        deductions_rows = [["Deductions", "Amount"]]
+        for key, value in deductions_data:
+            deductions_rows.append([key, value])
+        
+        # Create side-by-side table
+        combined_data = []
+        max_rows = max(len(earnings_rows), len(deductions_rows))
+        
+        for i in range(max_rows):
+            earnings_row = earnings_rows[i] if i < len(earnings_rows) else ["", ""]
+            deductions_row = deductions_rows[i] if i < len(deductions_rows) else ["", ""]
+            combined_data.append([earnings_row[0], earnings_row[1], "", deductions_row[0], deductions_row[1]])
+        
+        combined_table = Table(combined_data, colWidths=[doc.width*0.35, doc.width*0.15, doc.width*0.1, doc.width*0.35, doc.width*0.15])
+        combined_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),  # Amount columns
+            ('ALIGN', (4, 0), (4, -1), 'RIGHT'),  # Amount columns
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTNAME', (3, 0), (4, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 0), (1, 0), colors.lightblue),
+            ('BACKGROUND', (3, 0), (4, 0), colors.lightcoral),
+            ('GRID', (0, 0), (1, -1), 1, colors.black),
+            ('GRID', (3, 0), (4, -1), 1, colors.black),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('SPAN', (0, 0), (1, 0)),  # Merge earnings header
+            ('SPAN', (3, 0), (4, 0)),  # Merge deductions header
+        ]))
+        story.append(combined_table)
+        story.append(Spacer(1, 20))
+        
+        # Footer
+        footer_data = [
+            ["Working Days: " + employee_data.get('working_days', 'N/A')],
+            ["Generated on: " + employee_data.get('generated_on', datetime.now().strftime('%Y-%m-%d %H:%M:%S')), ""]
+        ]
+        
+        footer_table = Table(footer_data, colWidths=[doc.width/2, doc.width/2])
+        footer_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.grey),
+        ]))
+        story.append(footer_table)
+        
         doc.build(story)
-        
-        # Get the PDF bytes
         pdf_bytes = buffer.getvalue()
         buffer.close()
-        
         return pdf_bytes
  

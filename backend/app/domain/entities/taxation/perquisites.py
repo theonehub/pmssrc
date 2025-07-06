@@ -865,8 +865,16 @@ class Perquisites:
             components.append(MonthlyPerquisitesComponents(key="car", display_name="Car Reimbursement", value=self.car.calculate_monthly_payout()))
         if self.lta:
             components.append(MonthlyPerquisitesComponents(key="lta", display_name="LTA", value=self.lta.calculate_monthly_payout()))
+        if self.interest_free_loan:
+            components.append(MonthlyPerquisitesComponents(key="loan", display_name="Loan EMI", value=self.interest_free_loan.emi_amount))
         #TODO add other perquisites components
         return components
+    
+    def get_loan_emi_amount(self) -> Money:
+        """Get the loan EMI amount from interest-free loan perquisite."""
+        if self.interest_free_loan:
+            return self.interest_free_loan.emi_amount
+        return Money.zero()
 
     @property
     def car_perquisite(self) -> Money:

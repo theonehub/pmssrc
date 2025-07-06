@@ -27,10 +27,6 @@ import PageLayout from './layout/PageLayout';
 import { UserRole } from './shared/types';
 
 // Taxation Pages
-import TaxationDashboard from './components/taxation/TaxationDashboard';
-import TaxDeclaration from './components/taxation/TaxDeclaration';
-import EmployeeTaxDetail from './components/taxation/EmployeeTaxDetail';
-import EmployeeSelection from './components/taxation/EmployeeSelection';
 import IndividualComponentManagement from './components/taxation/IndividualComponentManagement';
 import ProcessedSalaries from './components/taxation/ProcessedSalaries';
 import TDSReport from './components/taxation/TDSReport';
@@ -148,26 +144,6 @@ const AppContent: React.FC = () => {
           />
 
           {/* Taxation Routes */}
-          <Route
-            path="/taxation"
-            element={withLayout(<TaxationDashboard />, 'Taxation Dashboard', ['user', 'manager', 'admin', 'superadmin'])}
-          />
-          <Route
-            path="/taxation/declaration"
-            element={withLayout(<TaxDeclaration />, 'Tax Declaration', ['user', 'manager', 'admin', 'superadmin'])}
-          />
-          <Route
-            path="/taxation/declaration/:empId"
-            element={withLayout(<TaxDeclaration />, 'Tax Declaration', ['admin', 'superadmin'])}
-          />
-          <Route
-            path="/taxation/employee/:empId"
-            element={withLayout(<EmployeeTaxDetail />, 'Employee Tax Detail', ['user', 'manager', 'admin', 'superadmin'])}
-          />
-          <Route
-            path="/taxation/employee-selection"
-            element={withLayout(<EmployeeSelection />, 'Employee Selection', ['admin', 'superadmin'])}
-          />
           <Route
             path="/taxation/component-management"
             element={withLayout(<IndividualComponentManagement />, 'Individual Component Management', ['admin', 'superadmin'])}

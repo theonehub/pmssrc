@@ -255,7 +255,7 @@ const AddNewUser: React.FC = () => {
         }
         return '';
       case 'account_holder_name':
-        if (value && !/^[A-Za-z\s\.\-]+$/.test(value)) {
+        if (value && !/^[A-Za-z\s.-]+$/.test(value)) {
           return 'Account holder name can only contain letters, spaces, dots, and hyphens';
         }
         return '';

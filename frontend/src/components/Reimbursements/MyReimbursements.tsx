@@ -82,8 +82,14 @@ const MyReimbursements: React.FC = () => {
 
   // Use React Query for reimbursements
   const { data: reimbursementsData, isLoading, error: reimbursementsError, refetch } = useReimbursementsQuery();
-  const requests = reimbursementsData?.data?.requests || reimbursementsData?.requests || [];
-  const types = reimbursementsData?.data?.types || reimbursementsData?.types || [];
+  const requests = React.useMemo(() => 
+    reimbursementsData?.data?.requests || reimbursementsData?.requests || [], 
+    [reimbursementsData]
+  );
+  const types = React.useMemo(() => 
+    reimbursementsData?.data?.types || reimbursementsData?.types || [], 
+    [reimbursementsData]
+  );
 
   // Filter requests based on search term and status
   React.useEffect(() => {

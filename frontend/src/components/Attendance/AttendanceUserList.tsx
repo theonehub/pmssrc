@@ -57,8 +57,14 @@ const AttendanceUserList: React.FC = () => {
 
   // Use React Query for users
   const { data: usersData, isLoading, error: usersError } = useUsersQuery({ skip: (currentPage - 1) * pageSize, limit: pageSize });
-  const users = Array.isArray(usersData) ? usersData : (usersData as any)?.users || [];
-  const totalUsers = Array.isArray(usersData) ? usersData.length : (usersData as any)?.total || 0;
+  const users = React.useMemo(() => 
+    Array.isArray(usersData) ? usersData : (usersData as any)?.users || [], 
+    [usersData]
+  );
+  const totalUsers = React.useMemo(() => 
+    Array.isArray(usersData) ? usersData.length : (usersData as any)?.total || 0, 
+    [usersData]
+  );
 
   const fetchLWPData = React.useCallback(async () => {
     try {

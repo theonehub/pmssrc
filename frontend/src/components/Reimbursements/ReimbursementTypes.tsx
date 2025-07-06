@@ -77,7 +77,10 @@ const ReimbursementTypes: React.FC = () => {
 
   // Use React Query for reimbursements
   const { data: reimbursementsData, isLoading, error: reimbursementsError, refetch } = useReimbursementsQuery();
-  const types = reimbursementsData?.data?.types || reimbursementsData?.types || [];
+  const types = React.useMemo(() => 
+    reimbursementsData?.data?.types || reimbursementsData?.types || [], 
+    [reimbursementsData]
+  );
 
   // Filter types based on search term
   React.useEffect(() => {

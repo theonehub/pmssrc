@@ -165,18 +165,6 @@ const Sidebar: React.FC = () => {
       icon: <CurrencyRupeeIcon />,
       items: [
         {
-          title: 'Tax Dashboard',
-          icon: <CurrencyRupeeIcon />,
-          path: '/taxation',
-          roles: ['user', 'manager', 'admin', 'superadmin'],
-        },
-        {
-          title: 'Employee Tax Selection',
-          icon: <PeopleIcon />,
-          path: '/taxation/employee-selection',
-          roles: ['admin', 'superadmin'],
-        },
-        {
           title: 'Component Management',
           icon: <SettingsIcon />,
           path: '/taxation/component-management',

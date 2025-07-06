@@ -39,26 +39,27 @@ import {
   Search as SearchIcon,
   Refresh as RefreshIcon,
   Visibility as VisibilityIcon,
-  AttachMoney as AttachMoneyIcon,
-  Receipt as ReceiptIcon,
-  Delete as DeleteIcon,
   TrendingUp as TrendingUpIcon,
   People as PeopleIcon,
   FileDownload as FileDownloadIcon,
   TableChart as TableChartIcon,
-  GridOn as GridOnIcon
+  GridOn as GridOnIcon,
+  AccountBalance as AccountBalanceIcon,
+  Assessment as AssessmentIcon,
+  Description as DescriptionIcon
 } from '@mui/icons-material';
 
 /**
- * ProcessedSalaries Component - Display all processed salary records
+ * TDS Report Component - Display TDS information for tax reporting
  */
-const ProcessedSalaries: React.FC = () => {
+const TDSReport: React.FC = () => {
   const [salaries, setSalaries] = useState<MonthlySalaryResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   
   const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
   const [year, setYear] = useState<number>(new Date().getFullYear());
+  const [taxYear, setTaxYear] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [departmentFilter, setDepartmentFilter] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -76,6 +77,12 @@ const ProcessedSalaries: React.FC = () => {
   // Export functionality states
   const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(null);
   const [exportLoading, setExportLoading] = useState<boolean>(false);
+
+  // TDS specific states
+  const [tdsSummary, setTdsSummary] = useState<any>(null);
+
+  // 1. Add quarter selector state
+  const [selectedQuarter, setSelectedQuarter] = useState<number>(Math.ceil((month) / 3));
 
   const fetchSalaries = useCallback(async () => {
     try {
@@ -124,10 +131,60 @@ const ProcessedSalaries: React.FC = () => {
     }
   }, [month, year]);
 
+  // Calculate TDS summary
+  const calculateTDSSummary = useCallback(() => {
+    if (!salaries.length) return null;
+
+    const tdsData = salaries.filter(salary => salary.tds > 0);
+    
+    const summary = {
+      totalEmployees: salaries.length,
+      employeesWithTDS: tdsData.length,
+      totalTDS: tdsData.reduce((sum, salary) => sum + salary.tds, 0),
+      averageTDS: tdsData.length > 0 ? tdsData.reduce((sum, salary) => sum + salary.tds, 0) / tdsData.length : 0,
+      totalGrossSalary: salaries.reduce((sum, salary) => sum + salary.gross_salary, 0),
+      totalNetSalary: salaries.reduce((sum, salary) => sum + salary.net_salary, 0),
+      tdsByDepartment: {} as Record<string, number>,
+      tdsByTaxRegime: {} as Record<string, number>,
+      monthlyTDS: {} as Record<string, number>
+    };
+
+    // Calculate TDS by department
+    tdsData.forEach(salary => {
+      const dept = salary.department || 'Unknown';
+      summary.tdsByDepartment[dept] = (summary.tdsByDepartment[dept] || 0) + salary.tds;
+    });
+
+    // Calculate TDS by tax regime
+    tdsData.forEach(salary => {
+      const regime = salary.tax_regime || 'Unknown';
+      summary.tdsByTaxRegime[regime] = (summary.tdsByTaxRegime[regime] || 0) + salary.tds;
+    });
+
+    // Calculate monthly TDS
+    tdsData.forEach(salary => {
+      const monthKey = `${salary.month}/${salary.year}`;
+      summary.monthlyTDS[monthKey] = (summary.monthlyTDS[monthKey] || 0) + salary.tds;
+    });
+
+    return summary;
+  }, [salaries]);
+
   useEffect(() => {
     fetchSalaries();
     fetchSummary();
   }, [month, year, statusFilter, departmentFilter, page, rowsPerPage, fetchSalaries, fetchSummary]);
+
+  // Calculate TDS summary when salaries change
+  useEffect(() => {
+    const summary = calculateTDSSummary();
+    setTdsSummary(summary);
+  }, [salaries, calculateTDSSummary]);
+
+  // Set tax year based on selected year
+  useEffect(() => {
+    setTaxYear(`${year}-${year + 1}`);
+  }, [year]);
 
   const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
@@ -152,26 +209,6 @@ const ProcessedSalaries: React.FC = () => {
   const handleViewDetails = (salary: MonthlySalaryResponse) => {
     setSelectedSalary(salary);
     setDetailDialogOpen(true);
-  };
-
-  const handleDeleteSalary = async (salary: MonthlySalaryResponse) => {
-    if (window.confirm(`Are you sure you want to delete the salary record for ${salary.employee_name || salary.employee_id}?`)) {
-      try {
-        await salaryProcessingApi.deleteMonthlySalary(
-          salary.employee_id,
-          salary.month,
-          salary.year
-        );
-        
-        fetchSalaries();
-        fetchSummary();
-        
-        alert('Salary record deleted successfully');
-      } catch (err) {
-        console.error('Error deleting salary:', err);
-        alert('Failed to delete salary record');
-      }
-    }
   };
 
   const handleRefresh = () => {
@@ -213,7 +250,7 @@ const ProcessedSalaries: React.FC = () => {
   };
 
   // Export functions
-  const exportToCSV = async () => {
+  const exportTDSToCSV = async () => {
     try {
       setExportLoading(true);
       handleExportClose();
@@ -222,19 +259,19 @@ const ProcessedSalaries: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportProcessedSalaries('csv', month, year, filters);
+      const blob = await exportApi.exportTDSReport('csv', month, year, undefined, filters);
       
-      exportApi.downloadFile(blob, `processed_salaries_${month}_${year}.csv`);
+      exportApi.downloadFile(blob, `tds_report_${month}_${year}.csv`);
       
     } catch (err) {
-      console.error('Error exporting to CSV:', err);
-      alert('Failed to export to CSV. Please try again.');
+      console.error('Error exporting TDS to CSV:', err);
+      alert('Failed to export TDS to CSV. Please try again.');
     } finally {
       setExportLoading(false);
     }
   };
 
-  const exportToExcel = async () => {
+  const exportTDSToExcel = async () => {
     try {
       setExportLoading(true);
       handleExportClose();
@@ -243,19 +280,19 @@ const ProcessedSalaries: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportProcessedSalaries('excel', month, year, filters);
+      const blob = await exportApi.exportTDSReport('excel', month, year, undefined, filters);
       
-      exportApi.downloadFile(blob, `processed_salaries_${month}_${year}.xlsx`);
+      exportApi.downloadFile(blob, `tds_report_${month}_${year}.xlsx`);
       
     } catch (err) {
-      console.error('Error exporting to Excel:', err);
-      alert('Failed to export to Excel. Please try again.');
+      console.error('Error exporting TDS to Excel:', err);
+      alert('Failed to export TDS to Excel. Please try again.');
     } finally {
       setExportLoading(false);
     }
   };
 
-  const exportBankTransferFormat = async () => {
+  const exportTDSForm16Format = async () => {
     try {
       setExportLoading(true);
       handleExportClose();
@@ -264,19 +301,53 @@ const ProcessedSalaries: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportProcessedSalaries('bank_transfer', month, year, filters);
+      const blob = await exportApi.exportTDSReport('form_16', month, year, undefined, filters);
       
-      exportApi.downloadFile(blob, `bank_transfer_${month}_${year}.csv`);
+      exportApi.downloadFile(blob, `form_16_${year}.csv`);
       
     } catch (err) {
-      console.error('Error exporting bank transfer format:', err);
-      alert('Failed to export bank transfer data. Please try again.');
+      console.error('Error exporting Form 16:', err);
+      alert('Failed to export Form 16. Please try again.');
     } finally {
       setExportLoading(false);
     }
   };
 
-  const renderSummaryCards = () => (
+  const exportForm24Q = async () => {
+    try {
+      setExportLoading(true);
+      handleExportClose();
+      
+      const blob = await exportApi.exportForm24Q(selectedQuarter, year, 'csv');
+      
+      exportApi.downloadFile(blob, `form_24q_q${selectedQuarter}_${year}.csv`);
+      
+    } catch (err) {
+      console.error('Error exporting Form 24Q:', err);
+      alert('Failed to export Form 24Q. Please try again.');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const exportFVUForm24Q = async () => {
+    try {
+      setExportLoading(true);
+      handleExportClose();
+      
+      const blob = await exportApi.exportForm24Q(selectedQuarter, year, 'fvu');
+      
+      exportApi.downloadFile(blob, `form24q_q${selectedQuarter}_${year}_FVU.txt`);
+      
+    } catch (err) {
+      console.error('Error exporting FVU Form 24Q:', err);
+      alert('Failed to export FVU Form 24Q. Please try again.');
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
+  const renderTDSSummaryCards = () => (
     <Grid container spacing={3} sx={{ mb: 3 }}>
       <Grid item xs={12} sm={6} md={3}>
         <Card>
@@ -302,13 +373,13 @@ const ProcessedSalaries: React.FC = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box>
                 <Typography color="textSecondary" gutterBottom variant="body2">
-                  Total Gross Payroll
+                  Employees with TDS
                 </Typography>
                 <Typography variant="h4">
-                  {summaryLoading ? <CircularProgress size={20} /> : formatCurrency(summary?.total_gross_payroll || 0)}
+                  {tdsSummary ? tdsSummary.employeesWithTDS : 0}
                 </Typography>
               </Box>
-              <AttachMoneyIcon color="primary" sx={{ fontSize: 40 }} />
+              <AccountBalanceIcon color="primary" sx={{ fontSize: 40 }} />
             </Box>
           </CardContent>
         </Card>
@@ -320,32 +391,88 @@ const ProcessedSalaries: React.FC = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box>
                 <Typography color="textSecondary" gutterBottom variant="body2">
-                  Total Net Payroll
+                  Total TDS Amount
                 </Typography>
                 <Typography variant="h4">
-                  {summaryLoading ? <CircularProgress size={20} /> : formatCurrency(summary?.total_net_payroll || 0)}
-                </Typography>
-              </Box>
-              <ReceiptIcon color="primary" sx={{ fontSize: 40 }} />
-            </Box>
-          </CardContent>
-        </Card>
-      </Grid>
-      
-      <Grid item xs={12} sm={6} md={3}>
-        <Card>
-          <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box>
-                <Typography color="textSecondary" gutterBottom variant="body2">
-                  Total TDS
-                </Typography>
-                <Typography variant="h4">
-                  {summaryLoading ? <CircularProgress size={20} /> : formatCurrency(summary?.total_tds || 0)}
+                  {tdsSummary ? formatCurrency(tdsSummary.totalTDS) : formatCurrency(0)}
                 </Typography>
               </Box>
               <TrendingUpIcon color="primary" sx={{ fontSize: 40 }} />
             </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+      
+      <Grid item xs={12} sm={6} md={3}>
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography color="textSecondary" gutterBottom variant="body2">
+                  Average TDS per Employee
+                </Typography>
+                <Typography variant="h4">
+                  {tdsSummary ? formatCurrency(tdsSummary.averageTDS) : formatCurrency(0)}
+                </Typography>
+              </Box>
+              <AssessmentIcon color="primary" sx={{ fontSize: 40 }} />
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+    </Grid>
+  );
+
+  const renderTDSBreakdown = () => (
+    <Grid container spacing={3} sx={{ mb: 3 }}>
+      {/* TDS by Department */}
+      <Grid item xs={12} md={6}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              TDS by Department
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            {tdsSummary && Object.keys(tdsSummary.tdsByDepartment).length > 0 ? (
+              Object.entries(tdsSummary.tdsByDepartment).map(([dept, amount]) => (
+                <Box key={dept} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2">{dept}</Typography>
+                  <Typography variant="body2" fontWeight="bold">
+                    {formatCurrency(amount as number)}
+                  </Typography>
+                </Box>
+              ))
+            ) : (
+              <Typography variant="body2" color="textSecondary">
+                No TDS data available
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* TDS by Tax Regime */}
+      <Grid item xs={12} md={6}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              TDS by Tax Regime
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            {tdsSummary && Object.keys(tdsSummary.tdsByTaxRegime).length > 0 ? (
+              Object.entries(tdsSummary.tdsByTaxRegime).map(([regime, amount]) => (
+                <Box key={regime} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="body2">{regime.toUpperCase()}</Typography>
+                  <Typography variant="body2" fontWeight="bold">
+                    {formatCurrency(amount as number)}
+                  </Typography>
+                </Box>
+              ))
+            ) : (
+              <Typography variant="body2" color="textSecondary">
+                No TDS data available
+              </Typography>
+            )}
           </CardContent>
         </Card>
       </Grid>
@@ -355,6 +482,21 @@ const ProcessedSalaries: React.FC = () => {
   const renderFilters = () => (
     <Paper sx={{ p: 2, mb: 3 }}>
       <Grid container spacing={2} alignItems="center">
+        <Grid item xs={12} sm={6} md={2}>
+          <FormControl fullWidth size="small">
+            <InputLabel>Quarter</InputLabel>
+            <Select
+              value={selectedQuarter}
+              label="Quarter"
+              onChange={(e) => setSelectedQuarter(Number(e.target.value))}
+            >
+              <MenuItem value={1}>Q1 (Apr-Jun)</MenuItem>
+              <MenuItem value={2}>Q2 (Jul-Sep)</MenuItem>
+              <MenuItem value={3}>Q3 (Oct-Dec)</MenuItem>
+              <MenuItem value={4}>Q4 (Jan-Mar)</MenuItem>
+            </Select>
+          </FormControl>
+        </Grid>
         <Grid item xs={12} sm={6} md={2}>
           <FormControl fullWidth size="small">
             <InputLabel>Month</InputLabel>
@@ -450,7 +592,7 @@ const ProcessedSalaries: React.FC = () => {
     </Paper>
   );
 
-  const renderSalaryDetailsDialog = () => (
+  const renderTDSDetailsDialog = () => (
     <Dialog
       open={detailDialogOpen}
       onClose={() => setDetailDialogOpen(false)}
@@ -459,9 +601,9 @@ const ProcessedSalaries: React.FC = () => {
     >
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <ReceiptIcon color="primary" />
+          <AssessmentIcon color="primary" />
           <Typography variant="h6">
-            Salary Details - {selectedSalary?.employee_name || selectedSalary?.employee_id}
+            TDS Details - {selectedSalary?.employee_name || selectedSalary?.employee_id}
           </Typography>
         </Box>
       </DialogTitle>
@@ -492,20 +634,60 @@ const ProcessedSalaries: React.FC = () => {
                   <Typography variant="body1">{selectedSalary.department || 'N/A'}</Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">Designation</Typography>
-                  <Typography variant="body1">{selectedSalary.designation || 'N/A'}</Typography>
-                </Grid>
-                <Grid item xs={6}>
                   <Typography variant="body2" color="textSecondary">Tax Regime</Typography>
                   <Typography variant="body1">{selectedSalary.tax_regime}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Tax Year</Typography>
+                  <Typography variant="body1">{selectedSalary.tax_year}</Typography>
                 </Grid>
               </Grid>
             </Grid>
 
-            {/* Salary Components */}
+            {/* TDS Information */}
             <Grid item xs={12}>
               <Typography variant="h6" gutterBottom>
-                Salary Components
+                TDS Information
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Monthly TDS</Typography>
+                  <Typography variant="body1" color="error" fontWeight="bold">
+                    {formatCurrency(selectedSalary.tds)}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Annual Tax Liability</Typography>
+                  <Typography variant="body1" fontWeight="bold">
+                    {formatCurrency(selectedSalary.annual_tax_liability)}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Gross Salary</Typography>
+                  <Typography variant="body1">{formatCurrency(selectedSalary.gross_salary)}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Net Salary</Typography>
+                  <Typography variant="body1">{formatCurrency(selectedSalary.net_salary)}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">Annual Gross Salary</Typography>
+                  <Typography variant="body1">{formatCurrency(selectedSalary.annual_gross_salary)}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="body2" color="textSecondary">TDS Payment Reference</Typography>
+                  <Typography variant="body1" fontFamily="monospace">
+                    TDS_{selectedSalary.employee_id}_{selectedSalary.month}_{selectedSalary.year}
+                  </Typography>
+                </Grid>
+              </Grid>
+            </Grid>
+
+            {/* Salary Breakdown */}
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom>
+                Salary Breakdown
               </Typography>
               <Divider sx={{ mb: 2 }} />
               <Grid container spacing={2}>
@@ -533,76 +715,6 @@ const ProcessedSalaries: React.FC = () => {
                   <Typography variant="body2" color="textSecondary">Commission</Typography>
                   <Typography variant="body1">{formatCurrency(selectedSalary.commission)}</Typography>
                 </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">Arrears</Typography>
-                  <Typography variant="body1">{formatCurrency(selectedSalary.arrears || 0)}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">Gross Salary</Typography>
-                  <Typography variant="body1" fontWeight="bold">{formatCurrency(selectedSalary.gross_salary)}</Typography>
-                </Grid>
-              </Grid>
-            </Grid>
-
-            {/* Deductions */}
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>
-                Deductions
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">EPF Employee</Typography>
-                  <Typography variant="body1">{formatCurrency(selectedSalary.epf_employee)}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">ESI Employee</Typography>
-                  <Typography variant="body1">{formatCurrency(selectedSalary.esi_employee)}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">Professional Tax</Typography>
-                  <Typography variant="body1">{formatCurrency(selectedSalary.professional_tax)}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">TDS</Typography>
-                  <Typography variant="body1">{formatCurrency(selectedSalary.tds)}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">Total Deductions</Typography>
-                  <Typography variant="body1" fontWeight="bold">{formatCurrency(selectedSalary.total_deductions)}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">Net Salary</Typography>
-                  <Typography variant="body1" fontWeight="bold" color="primary">
-                    {formatCurrency(selectedSalary.net_salary)}
-                  </Typography>
-                </Grid>
-              </Grid>
-            </Grid>
-
-            {/* Working Days */}
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>
-                Working Days
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">Total Days in Month</Typography>
-                  <Typography variant="body1">{selectedSalary.total_days_in_month}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">Working Days</Typography>
-                  <Typography variant="body1">{selectedSalary.working_days_in_period}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">LWP Days</Typography>
-                  <Typography variant="body1">{selectedSalary.lwp_days}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">Effective Working Days</Typography>
-                  <Typography variant="body1">{selectedSalary.effective_working_days}</Typography>
-                </Grid>
               </Grid>
             </Grid>
           </Grid>
@@ -618,7 +730,7 @@ const ProcessedSalaries: React.FC = () => {
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h4" gutterBottom>
-          Processed Salaries
+          TDS Report
         </Typography>
         <Button
           variant="outlined"
@@ -630,11 +742,14 @@ const ProcessedSalaries: React.FC = () => {
         </Button>
       </Box>
       <Typography variant="body1" color="textSecondary" sx={{ mb: 3 }}>
-        View and manage all processed monthly salary records
+        Tax Deducted at Source (TDS) reporting and analysis for {taxYear}
       </Typography>
 
-      {/* Summary Cards */}
-      {renderSummaryCards()}
+      {/* TDS Summary Cards */}
+      {renderTDSSummaryCards()}
+
+      {/* TDS Breakdown */}
+      {renderTDSBreakdown()}
 
       {/* Filters */}
       {renderFilters()}
@@ -653,23 +768,35 @@ const ProcessedSalaries: React.FC = () => {
           horizontal: 'right',
         }}
       >
-        <MenuItem onClick={exportToCSV} disabled={exportLoading}>
+        <MenuItem onClick={exportTDSToCSV} disabled={exportLoading}>
           <ListItemIcon>
             <TableChartIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Export to CSV (Complete Data)</ListItemText>
+          <ListItemText>Export TDS to CSV</ListItemText>
         </MenuItem>
-        <MenuItem onClick={exportToExcel} disabled={exportLoading}>
+        <MenuItem onClick={exportTDSToExcel} disabled={exportLoading}>
           <ListItemIcon>
             <GridOnIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Export to Excel (Complete Data)</ListItemText>
+          <ListItemText>Export TDS to Excel</ListItemText>
         </MenuItem>
-        <MenuItem onClick={exportBankTransferFormat} disabled={exportLoading}>
+        <MenuItem onClick={exportTDSForm16Format} disabled={exportLoading}>
           <ListItemIcon>
-            <AttachMoneyIcon fontSize="small" />
+            <DescriptionIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Export Bank Transfer Format</ListItemText>
+          <ListItemText>Export Form 16 Format</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={exportForm24Q} disabled={exportLoading}>
+          <ListItemIcon>
+            <DescriptionIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Export Form 24Q</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={exportFVUForm24Q} disabled={exportLoading}>
+          <ListItemIcon>
+            <DescriptionIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>Export FVU (Form 24Q)</ListItemText>
         </MenuItem>
       </Menu>
 
@@ -680,7 +807,7 @@ const ProcessedSalaries: React.FC = () => {
         </Alert>
       )}
 
-      {/* Salaries Table */}
+      {/* TDS Table */}
       <Paper>
         <TableContainer>
           <Table>
@@ -688,10 +815,11 @@ const ProcessedSalaries: React.FC = () => {
               <TableRow>
                 <TableCell>Employee</TableCell>
                 <TableCell>Department</TableCell>
-                <TableCell>Basic Salary</TableCell>
+                <TableCell>Tax Regime</TableCell>
                 <TableCell>Gross Salary</TableCell>
                 <TableCell>Net Salary</TableCell>
-                <TableCell>TDS</TableCell>
+                <TableCell>TDS Amount</TableCell>
+                <TableCell>Annual Tax Liability</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
@@ -699,46 +827,58 @@ const ProcessedSalaries: React.FC = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
               ) : filteredSalaries.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
                     <Typography variant="body1" color="textSecondary">
-                      {searchTerm ? 'No salaries found matching your search' : 'No salary records found for the selected period'}
+                      {searchTerm ? 'No TDS records found matching your search' : 'No TDS records found for the selected period'}
                     </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredSalaries.map((salary) => (
-                  <TableRow key={`${salary.employee_id}-${salary.month}-${salary.year}`}>
-                    <TableCell>
-                      <Box>
-                        <Typography variant="body1" fontWeight="medium">
-                          {salary.employee_name || salary.employee_id}
+                filteredSalaries
+                  .filter(salary => salary.tds > 0) // Only show employees with TDS
+                  .map((salary) => (
+                    <TableRow key={`${salary.employee_id}-${salary.month}-${salary.year}`}>
+                      <TableCell>
+                        <Box>
+                          <Typography variant="body1" fontWeight="medium">
+                            {salary.employee_name || salary.employee_id}
+                          </Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            {salary.employee_email}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>{salary.department || 'N/A'}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={salary.tax_regime.toUpperCase()}
+                          color="primary"
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>{formatCurrency(salary.gross_salary)}</TableCell>
+                      <TableCell>{formatCurrency(salary.net_salary)}</TableCell>
+                      <TableCell>
+                        <Typography variant="body1" color="error" fontWeight="bold">
+                          {formatCurrency(salary.tds)}
                         </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          {salary.employee_email}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>{salary.department || 'N/A'}</TableCell>
-                    <TableCell>{formatCurrency(salary.basic_salary)}</TableCell>
-                    <TableCell>{formatCurrency(salary.gross_salary)}</TableCell>
-                    <TableCell>{formatCurrency(salary.net_salary)}</TableCell>
-                    <TableCell>{formatCurrency(salary.tds)}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={salary.status}
-                        color={getStatusColor(salary.status) as any}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Tooltip title="View Details">
+                      </TableCell>
+                      <TableCell>{formatCurrency(salary.annual_tax_liability)}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={salary.status}
+                          color={getStatusColor(salary.status) as any}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Tooltip title="View TDS Details">
                           <IconButton
                             size="small"
                             onClick={() => handleViewDetails(salary)}
@@ -747,19 +887,9 @@ const ProcessedSalaries: React.FC = () => {
                             <VisibilityIcon />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Delete">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDeleteSalary(salary)}
-                            color="error"
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ))
+                      </TableCell>
+                    </TableRow>
+                  ))
               )}
             </TableBody>
           </Table>
@@ -777,10 +907,10 @@ const ProcessedSalaries: React.FC = () => {
         />
       </Paper>
 
-      {/* Salary Details Dialog */}
-      {renderSalaryDetailsDialog()}
+      {/* TDS Details Dialog */}
+      {renderTDSDetailsDialog()}
     </Box>
   );
 };
 
-export default ProcessedSalaries; 
+export default TDSReport; 

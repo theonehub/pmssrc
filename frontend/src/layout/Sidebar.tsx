@@ -187,6 +187,12 @@ const Sidebar: React.FC = () => {
           path: '/taxation/processed-salaries',
           roles: ['admin', 'superadmin'],
         },
+        {
+          title: 'TDS Report',
+          icon: <AssessmentIcon />,
+          path: '/taxation/tds-report',
+          roles: ['admin', 'superadmin'],
+        },
       ],
     },
     {

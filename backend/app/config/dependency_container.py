@@ -18,6 +18,7 @@ from app.infrastructure.services.project_attributes_service_impl import ProjectA
 from app.infrastructure.services.employee_leave_service_impl import EmployeeLeaveServiceImpl
 from app.infrastructure.services.reporting_service_impl import ReportingServiceImpl
 from app.infrastructure.services.lwp_calculation_service import LWPCalculationService
+from app.infrastructure.services.file_generation_service_impl import FileGenerationServiceImpl
 
 # Infrastructure services
 from app.infrastructure.services.password_service import PasswordService
@@ -187,6 +188,12 @@ class DependencyContainer:
             self._repositories['project_attributes'] = project_attributes_repository
             self._repositories['employee_leave'] = employee_leave_repository
             self._repositories['reporting'] = reporting_repository
+            
+            # File generation service
+            self._file_generation_service = FileGenerationServiceImpl(
+                organisation_repository=organisation_repository,
+                user_repository=user_repository
+            )
             
             logger.info("Repositories initialized with centralized MongoDB configuration")
             
@@ -460,6 +467,11 @@ class DependencyContainer:
         """Get tax calculation service instance."""
         self.initialize()
         return self._services['tax_calculation']
+    
+    def get_file_generation_service(self) -> FileGenerationServiceImpl:
+        """Get file generation service instance."""
+        self.initialize()
+        return self._file_generation_service
     
     
     # ==================== INFRASTRUCTURE SERVICE GETTERS ====================
@@ -744,6 +756,22 @@ class DependencyContainer:
         )
         
         return self._controllers['taxation']
+    
+    def get_export_controller(self):
+        """Get export controller instance."""
+        self.initialize()
+        
+        # Import here to avoid circular imports
+        from app.api.controllers.export_controller import ExportController
+        
+        if 'export' not in self._controllers:
+            self._controllers['export'] = ExportController(
+                file_generation_service=self._file_generation_service,
+                monthly_salary_repository=self._repositories['monthly_salary'],
+                taxation_controller=self.get_taxation_controller()
+            )
+        
+        return self._controllers['export']
     
 
     # ==================== UTILITY METHODS ====================
@@ -1036,3 +1064,9 @@ def get_taxation_controller():
     """FastAPI dependency for taxation controller."""
     container = get_dependency_container()
     return container.get_taxation_controller()
+
+
+def get_export_controller():
+    """FastAPI dependency for export controller."""
+    container = get_dependency_container()
+    return container.get_export_controller()

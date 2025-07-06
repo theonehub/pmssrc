@@ -219,6 +219,36 @@ class MonthlySalaryQueryRepository(ABC):
         pass
     
     @abstractmethod
+    async def get_monthly_salaries_for_period(
+        self,
+        month: int,
+        year: int,
+        organization_id: str,
+        status: Optional[str] = None,
+        department: Optional[str] = None,
+        employee_id: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0
+    ) -> List[MonthlySalary]:
+        """
+        Get monthly salaries for a period with optional filters.
+        
+        Args:
+            month: Month number
+            year: Year
+            organization_id: Organization ID for database selection
+            status: Optional status filter
+            department: Optional department filter
+            employee_id: Optional employee ID filter
+            limit: Maximum number of records to return
+            offset: Number of records to skip
+            
+        Returns:
+            List of monthly salary entities
+        """
+        pass
+    
+    @abstractmethod
     async def exists(
         self, 
         employee_id: str, 

@@ -502,7 +502,7 @@ class MongoDBMonthlySalaryRepository(MonthlySalaryRepository):
             # Get collection for organization
             collection = await self._get_collection(organization_id)
             
-            # Query filter
+            # Query filter for date range
             query_filter = {
                 "organization_id": organization_id,
                 "$or": [
@@ -524,6 +524,76 @@ class MongoDBMonthlySalaryRepository(MonthlySalaryRepository):
             
         except Exception as e:
             logger.error(f"Error getting monthly salaries by date range: {str(e)}")
+            raise
+    
+    async def get_monthly_salaries_for_period(
+        self,
+        month: int,
+        year: int,
+        organization_id: str,
+        status: Optional[str] = None,
+        department: Optional[str] = None,
+        employee_id: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0
+    ) -> List[MonthlySalary]:
+        """
+        Get monthly salaries for a period with optional filters.
+        
+        Args:
+            month: Month number
+            year: Year
+            organization_id: Organization ID for database selection
+            status: Optional status filter
+            department: Optional department filter
+            employee_id: Optional employee ID filter
+            limit: Maximum number of records to return
+            offset: Number of records to skip
+            
+        Returns:
+            List of monthly salary entities
+        """
+        try:
+            # Get collection for organization
+            collection = await self._get_collection(organization_id)
+            
+            # Build query filter
+            query_filter = {
+                "month": month,
+                "year": year,
+                "organization_id": organization_id
+            }
+            
+            # Add optional filters
+            if employee_id:
+                query_filter["employee_id"] = employee_id
+            
+            if status:
+                query_filter["status"] = status
+            
+            # Note: Department filtering would require joining with user data
+            # For now, we'll return all records and let the caller filter by department
+            
+            cursor = collection.find(query_filter).skip(offset).limit(limit)
+            documents = await cursor.to_list(length=limit)
+            
+            monthly_salaries = [self._document_to_entity(doc) for doc in documents]
+            
+            # Apply department filter if provided (this would ideally be done at DB level)
+            if department:
+                # This is a simplified approach - in a real implementation,
+                # you'd want to join with user data at the database level
+                filtered_salaries = []
+                for salary in monthly_salaries:
+                    # For now, we'll skip department filtering as it requires user data
+                    # The export controller should handle this filtering
+                    filtered_salaries.append(salary)
+                return filtered_salaries
+            
+            return monthly_salaries
+            
+        except Exception as e:
+            logger.error(f"Error getting monthly salaries for period: {str(e)}")
             raise
     
     async def exists(

@@ -244,60 +244,7 @@ class OrganisationServiceImpl(OrganisationService):
             self.logger.error(f"Error deleting organisation {organisation_id}: {e}")
             raise
     
-    async def increment_employee_usage(self, organisation_id: str) -> OrganisationResponseDTO:
-        """Increment employee usage count"""
-        try:
-            # Get existing organisation
-            org_id = OrganisationId.from_string(organisation_id)
-            organisation = await self.repository.get_by_id(org_id)
-            
-            if not organisation:
-                raise OrganisationNotFoundError(f"Organisation {organisation_id} not found")
-            
-            # Increment usage
-            organisation.increment_used_employee_strength()
-            
-            # Save updated organisation
-            updated_organisation = await self.repository.update(organisation)
-            
-            # Publish domain events
-            for event in updated_organisation.get_domain_events():
-                self.event_publisher.publish(event)
-            
-            # Check capacity alerts
-            await self._check_capacity_alerts(updated_organisation)
-            
-            return self._organisation_to_response_dto(updated_organisation)
-            
-        except Exception as e:
-            self.logger.error(f"Error incrementing employee usage for organisation {organisation_id}: {e}")
-            raise
-    
-    async def decrement_employee_usage(self, organisation_id: str) -> OrganisationResponseDTO:
-        """Decrement employee usage count"""
-        try:
-            # Get existing organisation
-            org_id = OrganisationId.from_string(organisation_id)
-            organisation = await self.repository.get_by_id(org_id)
-            
-            if not organisation:
-                raise OrganisationNotFoundError(f"Organisation {organisation_id} not found")
-            
-            # Decrement usage
-            organisation.decrement_used_employee_strength()
-            
-            # Save updated organisation
-            updated_organisation = await self.repository.update(organisation)
-            
-            # Publish domain events
-            for event in updated_organisation.get_domain_events():
-                self.event_publisher.publish(event)
-            
-            return self._organisation_to_response_dto(updated_organisation)
-            
-        except Exception as e:
-            self.logger.error(f"Error decrementing employee usage for organisation {organisation_id}: {e}")
-            raise
+
     
     # ==================== QUERY OPERATIONS ====================
     
@@ -315,44 +262,7 @@ class OrganisationServiceImpl(OrganisationService):
             self.logger.error(f"Error getting organisation by ID {organisation_id}: {e}")
             raise
     
-    async def get_organisation_by_name(self, name: str) -> Optional[OrganisationResponseDTO]:
-        """Get organisation by name"""
-        try:
-            organisation = await self.repository.get_by_name(name)
-            
-            if organisation:
-                return self._organisation_to_response_dto(organisation)
-            return None
-            
-        except Exception as e:
-            self.logger.error(f"Error getting organisation by name {name}: {e}")
-            raise
-    
-    async def get_organisation_by_hostname(self, hostname: str) -> Optional[OrganisationResponseDTO]:
-        """Get organisation by hostname"""
-        try:
-            organisation = await self.repository.get_by_hostname(hostname)
-            
-            if organisation:
-                return self._organisation_to_response_dto(organisation)
-            return None
-            
-        except Exception as e:
-            self.logger.error(f"Error getting organisation by hostname {hostname}: {e}")
-            raise
-    
-    async def get_organisation_by_pan_number(self, pan_number: str) -> Optional[OrganisationResponseDTO]:
-        """Get organisation by PAN number"""
-        try:
-            organisation = await self.repository.get_by_pan_number(pan_number)
-            
-            if organisation:
-                return self._organisation_to_response_dto(organisation)
-            return None
-            
-        except Exception as e:
-            self.logger.error(f"Error getting organisation by PAN {pan_number}: {e}")
-            raise
+
     
     async def search_organisations(self, filters: OrganisationSearchFiltersDTO) -> OrganisationListResponseDTO:
         """Search organisations with filters"""

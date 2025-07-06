@@ -73,20 +73,7 @@ class OrganisationController:
         logger.info(f"Getting organisation: {organisation_id}")
         return await self.get_use_case.execute_by_id(organisation_id)
 
-    async def get_organisation_by_name(self, name: str) -> Optional[OrganisationResponseDTO]:
-        """Get organisation by name"""
-        logger.info(f"Getting organisation by name: {name}")
-        return await self.get_use_case.execute_by_name(name)
 
-    async def get_organisation_by_hostname(self, hostname: str) -> Optional[OrganisationResponseDTO]:
-        """Get organisation by hostname"""
-        logger.info(f"Getting organisation by hostname: {hostname}")
-        return await self.get_use_case.execute_by_hostname(hostname)
-
-    async def get_organisation_by_pan_number(self, pan_number: str) -> Optional[OrganisationResponseDTO]:
-        """Get organisation by PAN number"""
-        logger.info(f"Getting organisation by PAN: {pan_number}")
-        return await self.get_use_case.execute_by_pan_number(pan_number)
 
     async def update_organisation(
         self, 
@@ -116,29 +103,7 @@ class OrganisationController:
             deleted_by=deleted_by
         )
 
-    async def increment_employee_usage(
-        self, 
-        organisation_id: str, 
-        updated_by: str
-    ) -> OrganisationResponseDTO:
-        """Increment employee usage count"""
-        logger.info(f"Incrementing employee usage for organisation: {organisation_id}")
-        return await self.update_use_case.execute_increment_employee_usage(
-            organisation_id=organisation_id,
-            updated_by=updated_by
-        )
 
-    async def decrement_employee_usage(
-        self, 
-        organisation_id: str, 
-        updated_by: str
-    ) -> OrganisationResponseDTO:
-        """Decrement employee usage count"""
-        logger.info(f"Decrementing employee usage for organisation: {organisation_id}")
-        return await self.update_use_case.execute_decrement_employee_usage(
-            organisation_id=organisation_id,
-            updated_by=updated_by
-        )
 
     async def get_organisation_statistics(
         self, 
@@ -152,17 +117,4 @@ class OrganisationController:
             end_date=end_date
         )
 
-    async def check_name_exists(self, name: str) -> bool:
-        """Check if organisation name exists"""
-        logger.info(f"Checking name availability: {name}")
-        return await self.get_use_case.execute_exists_by_name(name)
-
-    async def check_hostname_exists(self, hostname: str) -> bool:
-        """Check if hostname exists"""
-        logger.info(f"Checking hostname availability: {hostname}")
-        return await self.get_use_case.execute_exists_by_hostname(hostname)
-
-    async def check_pan_exists(self, pan_number: str) -> bool:
-        """Check if PAN number exists"""
-        logger.info(f"Checking PAN availability: {pan_number}")
-        return await self.get_use_case.execute_exists_by_pan_number(pan_number) 
+ 

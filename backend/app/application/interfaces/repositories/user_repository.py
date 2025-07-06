@@ -371,6 +371,19 @@ class UserQueryRepository(ABC):
         """
         pass
 
+    @abstractmethod
+    async def count(self, hostname: str) -> int:
+        """
+        Count total users in organisation.
+        
+        Args:
+            hostname: Organisation hostname for database selection
+            
+        Returns:
+            Total number of users in the organisation
+        """
+        pass
+
 
 class UserAnalyticsRepository(ABC):
     """

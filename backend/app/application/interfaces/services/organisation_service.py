@@ -71,39 +71,7 @@ class OrganisationCommandService(ABC):
         """
         pass
     
-    @abstractmethod
-    async def increment_employee_usage(self, organisation_id: str) -> OrganisationResponseDTO:
-        """
-        Increment employee usage for an organisation.
-        
-        Args:
-            organisation_id: ID of organisation
-            
-        Returns:
-            Updated organisation response DTO
-            
-        Raises:
-            OrganisationNotFoundError: If organisation not found
-            OrganisationBusinessRuleError: If capacity limit reached
-        """
-        pass
-    
-    @abstractmethod
-    async def decrement_employee_usage(self, organisation_id: str) -> OrganisationResponseDTO:
-        """
-        Decrement employee usage for an organisation.
-        
-        Args:
-            organisation_id: ID of organisation
-            
-        Returns:
-            Updated organisation response DTO
-            
-        Raises:
-            OrganisationNotFoundError: If organisation not found
-            OrganisationBusinessRuleError: If usage cannot be decremented
-        """
-        pass
+
 
 
 class OrganisationQueryService(ABC):
@@ -131,44 +99,7 @@ class OrganisationQueryService(ABC):
         """
         pass
     
-    @abstractmethod
-    async def get_organisation_by_name(self, name: str) -> Optional[OrganisationResponseDTO]:
-        """
-        Get organisation by name.
-        
-        Args:
-            name: Organisation name to search for
-            
-        Returns:
-            Organisation response DTO if found, None otherwise
-        """
-        pass
-    
-    @abstractmethod
-    async def get_organisation_by_hostname(self, hostname: str) -> Optional[OrganisationResponseDTO]:
-        """
-        Get organisation by hostname.
-        
-        Args:
-            hostname: Hostname to search for
-            
-        Returns:
-            Organisation response DTO if found, None otherwise
-        """
-        pass
-    
-    @abstractmethod
-    async def get_organisation_by_pan(self, pan_number: str) -> Optional[OrganisationResponseDTO]:
-        """
-        Get organisation by PAN number.
-        
-        Args:
-            pan_number: PAN number to search for
-            
-        Returns:
-            Organisation response DTO if found, None otherwise
-        """
-        pass
+
     
     @abstractmethod
     async def get_all_organisations(

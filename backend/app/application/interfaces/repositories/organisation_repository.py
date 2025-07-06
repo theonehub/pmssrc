@@ -103,44 +103,7 @@ class OrganisationQueryRepository(ABC):
         """
         pass
     
-    @abstractmethod
-    async def get_by_name(self, name: str) -> Optional[Organisation]:
-        """
-        Get organisation by name.
-        
-        Args:
-            name: Organisation name to search for
-            
-        Returns:
-            Organisation entity if found, None otherwise
-        """
-        pass
-    
-    @abstractmethod
-    async def get_by_hostname(self, hostname: str) -> Optional[Organisation]:
-        """
-        Get organisation by hostname.
-        
-        Args:
-            hostname: Hostname to search for
-            
-        Returns:
-            Organisation entity if found, None otherwise
-        """
-        pass
-    
-    @abstractmethod
-    async def get_by_pan_number(self, pan_number: str) -> Optional[Organisation]:
-        """
-        Get organisation by PAN number.
-        
-        Args:
-            pan_number: PAN number to search for
-            
-        Returns:
-            Organisation entity if found, None otherwise
-        """
-        pass
+
     
     @abstractmethod
     async def get_all(

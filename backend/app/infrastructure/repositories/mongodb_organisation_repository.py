@@ -379,59 +379,7 @@ class MongoDBOrganisationRepository(OrganisationRepository):
             logger.error(f"Error getting organisation by ID {organisation_id}: {e}")
             raise
     
-    async def get_by_name(self, name: str) -> Optional[Organisation]:
-        """Get organisation by name."""
-        try:
-            collection = await self._get_collection()
-            document = await collection.find_one({
-                "name": name,
-                "is_deleted": {"$ne": True}
-            })
-            
-            if document:
-                return self._document_to_organisation(document)
-            
-            return None
-            
-        except Exception as e:
-            logger.error(f"Error getting organisation by name {name}: {e}")
-            raise
-    
-    async def get_by_hostname(self, hostname: str) -> Optional[Organisation]:
-        """Get organisation by hostname."""
-        try:
-            collection = await self._get_collection()
-            document = await collection.find_one({
-                "hostname": hostname,
-                "is_deleted": {"$ne": True}
-            })
-            
-            if document:
-                return self._document_to_organisation(document)
-            
-            return None
-            
-        except Exception as e:
-            logger.error(f"Error getting organisation by hostname {hostname}: {e}")
-            raise
-    
-    async def get_by_pan_number(self, pan_number: str) -> Optional[Organisation]:
-        """Get organisation by PAN number."""
-        try:
-            collection = await self._get_collection()
-            document = await collection.find_one({
-                "tax_information.pan_number": pan_number,
-                "is_deleted": {"$ne": True}
-            })
-            
-            if document:
-                return self._document_to_organisation(document)
-            
-            return None
-            
-        except Exception as e:
-            logger.error(f"Error getting organisation by PAN {pan_number}: {e}")
-            raise
+
     
     async def search(self, filters: OrganisationSearchFiltersDTO) -> List[Organisation]:
         """Search organisations with filters."""
@@ -1486,17 +1434,22 @@ class MongoDBOrganisationRepository(OrganisationRepository):
     async def get_organisation_by_hostname_legacy(self, hostname: str) -> Optional[Dict[str, Any]]:
         """Legacy compatibility for get_organisation_by_hostname() function."""
         try:
-            organisation = await self.get_by_hostname(hostname)
+            # Use direct MongoDB query since get_by_hostname method was removed
+            collection = await self._get_collection()
+            document = await collection.find_one({
+                "hostname": hostname,
+                "is_deleted": {"$ne": True}
+            })
             
-            if organisation:
+            if document:
                 # Convert to legacy document format
                 legacy_data = {
-                    "organisation_id": str(getattr(organisation, 'organisation_id', '')),
-                    "name": getattr(organisation, 'name', ''),
-                    "hostname": getattr(organisation, 'hostname', ''),
-                    "is_active": organisation.is_active() if hasattr(organisation, 'is_active') else True,
-                    "created_at": getattr(organisation, 'created_at', None),
-                    "updated_at": getattr(organisation, 'updated_at', None)
+                    "organisation_id": str(document.get('organisation_id', '')),
+                    "name": document.get('name', ''),
+                    "hostname": document.get('hostname', ''),
+                    "is_active": document.get('status', 'active') == 'active',
+                    "created_at": document.get('created_at'),
+                    "updated_at": document.get('updated_at')
                 }
                 return legacy_data
             

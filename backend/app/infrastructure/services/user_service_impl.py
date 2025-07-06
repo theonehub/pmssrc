@@ -1453,11 +1453,213 @@ class UserServiceImpl(UserService):
     async def validate_password_strength(self, password: str) -> Dict[str, Any]:
         """Validate password strength."""
         try:
-            return self.password_service.validate_password_strength(password)
+            result = self.password_service.validate_password_strength(password)
+            return {
+                "is_strong": result["is_strong"],
+                "score": result["score"],
+                "feedback": result["feedback"],
+                "suggestions": result["suggestions"]
+            }
         except Exception as e:
             logger.error(f"Error validating password strength: {e}")
             return {
                 "is_strong": False,
                 "score": 0,
-                "issues": [f"Validation error: {str(e)}"]
-            } 
+                "feedback": ["Error validating password"],
+                "suggestions": ["Please try again"]
+            }
+
+    # New methods for the missing API endpoints
+    async def health_check(self, current_user: "CurrentUser") -> Dict[str, str]:
+        """Health check for user service with organisation context."""
+        try:
+            # Check if we can access the repository
+            user_count = await self.user_repository.count(current_user.hostname)
+            
+            return {
+                "service": "user_service",
+                "status": "healthy",
+                "organisation": current_user.hostname,
+                "user_count": user_count,
+                "timestamp": datetime.now().isoformat(),
+                "version": "2.0.0"
+            }
+        except Exception as e:
+            logger.error(f"Health check failed for organisation {current_user.hostname}: {e}")
+            return {
+                "service": "user_service",
+                "status": "unhealthy",
+                "organisation": current_user.hostname,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+
+    async def import_users(
+        self, 
+        file_content: bytes, 
+        filename: str, 
+        current_user: "CurrentUser"
+    ) -> Dict[str, Any]:
+        """Import users from file with organisation context."""
+        try:
+            logger.info(f"Importing users from {filename} for organisation {current_user.hostname}")
+            
+            # Determine file format
+            if filename.lower().endswith('.csv'):
+                format_type = "csv"
+            elif filename.lower().endswith(('.xlsx', '.xls')):
+                format_type = "excel"
+            else:
+                raise ValueError("Unsupported file format. Use CSV or Excel files.")
+            
+            # Use the existing bulk import method
+            result = await self.bulk_import_users(
+                data=file_content,
+                format=format_type,
+                created_by=current_user.employee_id,
+                validate_only=False
+            )
+            
+            return {
+                "imported_count": result.get("imported_count", 0),
+                "errors": result.get("errors", []),
+                "total_processed": result.get("total_processed", 0),
+                "organisation": current_user.hostname,
+                "imported_by": current_user.employee_id
+            }
+            
+        except Exception as e:
+            logger.error(f"Error importing users in organisation {current_user.hostname}: {e}")
+            raise
+
+    async def export_users(
+        self, 
+        users: List[UserResponseDTO], 
+        format: str, 
+        current_user: "CurrentUser"
+    ) -> tuple[bytes, str]:
+        """Export users to file with organisation context."""
+        try:
+            logger.info(f"Exporting {len(users)} users in {format} format for organisation {current_user.hostname}")
+            
+            # Convert UserResponseDTO to dictionary format for export
+            user_data = []
+            for user in users:
+                user_dict = {
+                    "employee_id": user.employee_id,
+                    "name": user.name,
+                    "email": user.email,
+                    "mobile": user.personal_details.mobile if user.personal_details else "",
+                    "gender": user.personal_details.gender if user.personal_details else "",
+                    "date_of_birth": user.personal_details.date_of_birth if user.personal_details else "",
+                    "date_of_joining": user.personal_details.date_of_joining if user.personal_details else "",
+                    "role": user.permissions.role if user.permissions else "",
+                    "department": user.department or "",
+                    "designation": user.designation or "",
+                    "location": user.location or "",
+                    "manager_id": user.manager_id or "",
+                    "status": user.status,
+                    "is_active": user.is_active,
+                    "created_at": user.created_at,
+                    "last_login_at": user.last_login_at
+                }
+                user_data.append(user_dict)
+            
+            # Generate filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"users_export_{current_user.hostname}_{timestamp}.{format}"
+            
+            # Use the existing bulk export method
+            file_content = await self.bulk_export_users(
+                employee_ids=[user.employee_id for user in users],
+                format=format,
+                include_sensitive=False
+            )
+            
+            return file_content, filename
+            
+        except Exception as e:
+            logger.error(f"Error exporting users in organisation {current_user.hostname}: {e}")
+            raise
+
+    async def get_departments(self, current_user: "CurrentUser") -> List[str]:
+        """Get list of departments in organisation."""
+        try:
+            logger.info(f"Getting departments for organisation {current_user.hostname}")
+            
+            # Get all users in the organisation
+            users = await self.user_repository.get_all(
+                skip=0,
+                limit=10000,  # Large limit to get all users
+                hostname=current_user.hostname
+            )
+            
+            # Extract unique departments
+            departments = set()
+            for user in users:
+                if user.department:
+                    departments.add(user.department)
+            
+            # Return sorted list
+            return sorted(list(departments))
+            
+        except Exception as e:
+            logger.error(f"Error getting departments in organisation {current_user.hostname}: {e}")
+            raise
+
+    async def get_designations(self, current_user: "CurrentUser") -> List[str]:
+        """Get list of designations in organisation."""
+        try:
+            logger.info(f"Getting designations for organisation {current_user.hostname}")
+            
+            # Get all users in the organisation
+            users = await self.user_repository.get_all(
+                skip=0,
+                limit=10000,  # Large limit to get all users
+                hostname=current_user.hostname
+            )
+            
+            # Extract unique designations
+            designations = set()
+            for user in users:
+                if user.designation:
+                    designations.add(user.designation)
+            
+            # Return sorted list
+            return sorted(list(designations))
+            
+        except Exception as e:
+            logger.error(f"Error getting designations in organisation {current_user.hostname}: {e}")
+            raise
+
+    async def update_user_documents(
+        self, 
+        user_id: str, 
+        documents: Dict[str, str], 
+        current_user: "CurrentUser"
+    ) -> None:
+        """Update user documents."""
+        try:
+            logger.info(f"Updating documents for user {user_id} in organisation {current_user.hostname}")
+            
+            # Get existing user
+            user = await self.user_repository.get_by_id(EmployeeId(user_id), current_user.hostname)
+            if not user:
+                raise ValueError(f"User not found: {user_id}")
+            
+            # Update document paths
+            if "photo_path" in documents:
+                user.update_photo_path(documents["photo_path"])
+            if "pan_document_path" in documents:
+                user.update_pan_document_path(documents["pan_document_path"])
+            if "aadhar_document_path" in documents:
+                user.update_aadhar_document_path(documents["aadhar_document_path"])
+            
+            # Save updated user
+            await self.user_repository.save(user, current_user.hostname)
+            
+            logger.info(f"Successfully updated documents for user {user_id}")
+            
+        except Exception as e:
+            logger.error(f"Error updating documents for user {user_id} in organisation {current_user.hostname}: {e}")
+            raise 

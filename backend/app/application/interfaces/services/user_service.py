@@ -362,15 +362,19 @@ class UserQueryService(ABC):
         pass
     
     @abstractmethod
-    async def get_users_by_manager(self, manager_id: str) -> List[UserSummaryDTO]:
+    async def get_users_by_manager(self, manager_id: str, current_user: "CurrentUser") -> List[UserResponseDTO]:
         """
-        Get users by manager.
+        Get users by manager with organisation context.
         
         Args:
-            manager_id: Manager ID to filter by
+            manager_id: ID of the manager
+            current_user: Current authenticated user with organisation context
             
         Returns:
-            List of users under specified manager
+            List of users managed by the specified manager
+            
+        Raises:
+            UserNotFoundError: If manager not found
         """
         pass
     
@@ -1235,4 +1239,110 @@ class UserService(
     Aggregates all user service interfaces for convenience
     when a single implementation handles all operations.
     """
-    pass 
+    pass
+
+    @abstractmethod
+    async def health_check(self, current_user: "CurrentUser") -> Dict[str, str]:
+        """
+        Health check for user service with organisation context.
+        
+        Args:
+            current_user: Current authenticated user with organisation context
+            
+        Returns:
+            Health check status
+        """
+        pass
+
+    @abstractmethod
+    async def import_users(
+        self, 
+        file_content: bytes, 
+        filename: str, 
+        current_user: "CurrentUser"
+    ) -> Dict[str, Any]:
+        """
+        Import users from file with organisation context.
+        
+        Args:
+            file_content: File content as bytes
+            filename: Name of the uploaded file
+            current_user: Current authenticated user with organisation context
+            
+        Returns:
+            Import result with count and errors
+            
+        Raises:
+            UserValidationError: If file format is invalid
+            UserBusinessRuleError: If import violates business rules
+        """
+        pass
+
+    @abstractmethod
+    async def export_users(
+        self, 
+        users: List[UserResponseDTO], 
+        format: str, 
+        current_user: "CurrentUser"
+    ) -> tuple[bytes, str]:
+        """
+        Export users to file with organisation context.
+        
+        Args:
+            users: List of users to export
+            format: Export format (csv, xlsx)
+            current_user: Current authenticated user with organisation context
+            
+        Returns:
+            Tuple of (file_content, filename)
+            
+        Raises:
+            UserBusinessRuleError: If export fails
+        """
+        pass
+
+    @abstractmethod
+    async def get_departments(self, current_user: "CurrentUser") -> List[str]:
+        """
+        Get list of departments in organisation.
+        
+        Args:
+            current_user: Current authenticated user with organisation context
+            
+        Returns:
+            List of department names
+        """
+        pass
+
+    @abstractmethod
+    async def get_designations(self, current_user: "CurrentUser") -> List[str]:
+        """
+        Get list of designations in organisation.
+        
+        Args:
+            current_user: Current authenticated user with organisation context
+            
+        Returns:
+            List of designation names
+        """
+        pass
+
+    @abstractmethod
+    async def update_user_documents(
+        self, 
+        user_id: str, 
+        documents: Dict[str, str], 
+        current_user: "CurrentUser"
+    ) -> None:
+        """
+        Update user documents.
+        
+        Args:
+            user_id: ID of the user
+            documents: Dictionary of document paths
+            current_user: Current authenticated user with organisation context
+            
+        Raises:
+            UserNotFoundError: If user not found
+        """
+        pass 

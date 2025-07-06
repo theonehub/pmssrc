@@ -800,6 +800,18 @@ class MongoDBUserRepository(UserRepository):
         except Exception as e:
             logger.error(f"Error counting users by role {role}: {e}")
             raise
+
+    async def count(self, hostname: str) -> int:
+        """Count total users in organisation."""
+        try:
+            collection = await self._get_collection(hostname)
+            return await collection.count_documents({
+                "is_deleted": {"$ne": True}
+            })
+            
+        except Exception as e:
+            logger.error(f"Error counting users for organisation {hostname}: {e}")
+            raise
     
     # Existence checks
     async def exists_by_email(self, email: str, exclude_id: Optional[EmployeeId] = None, organisation_id: Optional[str] = None) -> bool:

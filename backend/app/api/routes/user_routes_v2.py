@@ -514,6 +514,332 @@ async def check_user_exists(
         current_user=current_user
     )
 
+# Import/Export endpoints
+@router.post("/import")
+async def import_users(
+    file: UploadFile = File(..., description="CSV/Excel file containing user data"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+) -> Dict[str, Any]:
+    """Import users from CSV/Excel file."""
+    try:
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No file provided")
+        
+        # Validate file type
+        allowed_extensions = ['.csv', '.xlsx', '.xls']
+        file_extension = file.filename.lower().split('.')[-1]
+        if f'.{file_extension}' not in allowed_extensions:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid file type. Allowed: {', '.join(allowed_extensions)}"
+            )
+        
+        # Read file content
+        file_content = await file.read()
+        
+        # Import users using controller
+        result = await controller.import_users(file_content, file.filename, current_user)
+        
+        return {
+            "success": True,
+            "message": "Users imported successfully",
+            "imported_count": result.imported_count,
+            "errors": result.errors if hasattr(result, 'errors') else [],
+            "organisation": current_user.hostname,
+            "imported_at": datetime.now().isoformat(),
+            "imported_by": current_user.employee_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error importing users for organisation {current_user.hostname}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to import users: {str(e)}")
+
+@router.get("/export")
+async def export_users(
+    format: str = Query("csv", description="Export format (csv, xlsx)"),
+    include_inactive: bool = Query(False, description="Include inactive users"),
+    include_deleted: bool = Query(False, description="Include deleted users"),
+    department: Optional[str] = Query(None, description="Filter by department"),
+    role: Optional[str] = Query(None, description="Filter by role"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+):
+    """Export users to CSV/Excel file."""
+    try:
+        # Validate format
+        if format not in ['csv', 'xlsx']:
+            raise HTTPException(status_code=400, detail="Invalid format. Use 'csv' or 'xlsx'")
+        
+        # Get users for export
+        result = await controller.get_all_users(
+            skip=0,
+            limit=10000,  # Large limit for export
+            include_inactive=include_inactive,
+            include_deleted=include_deleted,
+            current_user=current_user
+        )
+        
+        # Apply additional filters
+        users = result.users
+        if department:
+            users = [u for u in users if u.department == department]
+        if role:
+            users = [u for u in users if u.role == role]
+        
+        # Export using controller
+        file_content, filename = await controller.export_users(users, format, current_user)
+        
+        # Return file response
+        from fastapi.responses import Response
+        media_type = "text/csv" if format == "csv" else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        
+        return Response(
+            content=file_content,
+            media_type=media_type,
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error exporting users for organisation {current_user.hostname}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to export users: {str(e)}")
+
+# Department and Designation endpoints
+@router.get("/departments")
+async def get_departments(
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+) -> Dict[str, List[str]]:
+    """Get list of all departments in the organisation."""
+    try:
+        departments = await controller.get_departments(current_user)
+        return {
+            "departments": departments,
+            "organisation": current_user.hostname,
+            "count": len(departments)
+        }
+    except Exception as e:
+        logger.error(f"Error getting departments for organisation {current_user.hostname}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/designations")
+async def get_designations(
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+) -> Dict[str, List[str]]:
+    """Get list of all designations in the organisation."""
+    try:
+        designations = await controller.get_designations(current_user)
+        return {
+            "designations": designations,
+            "organisation": current_user.hostname,
+            "count": len(designations)
+        }
+    except Exception as e:
+        logger.error(f"Error getting designations for organisation {current_user.hostname}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# User attendance and leaves summary endpoints
+@router.get("/{employee_id}/attendance/summary")
+async def get_user_attendance_summary(
+    employee_id: str,
+    month: int = Query(..., ge=1, le=12, description="Month (1-12)"),
+    year: int = Query(..., ge=2020, description="Year"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+) -> Dict[str, Any]:
+    """Get user attendance summary for a specific month."""
+    try:
+        # Import attendance controller for this functionality
+        from app.api.controllers.attendance_controller import AttendanceController
+        from app.config.dependency_container import get_attendance_controller
+        
+        attendance_controller = get_attendance_controller()
+        summary = await attendance_controller.get_user_attendance_summary(
+            employee_id, month, year, current_user
+        )
+        
+        return {
+            "employee_id": employee_id,
+            "month": month,
+            "year": year,
+            "total_working_days": summary.total_working_days,
+            "present_days": summary.present_days,
+            "absent_days": summary.absent_days,
+            "half_days": summary.half_days,
+            "late_arrivals": summary.late_arrivals,
+            "early_departures": summary.early_departures,
+            "overtime_hours": summary.overtime_hours,
+            "attendance_percentage": summary.attendance_percentage,
+            "organisation": current_user.hostname
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting attendance summary for user {employee_id} in organisation {current_user.hostname}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{employee_id}/leaves/summary")
+async def get_user_leaves_summary(
+    employee_id: str,
+    year: int = Query(..., ge=2020, description="Year"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+) -> Dict[str, Any]:
+    """Get user leaves summary for a specific year."""
+    try:
+        # Import employee leave controller for this functionality
+        from app.api.controllers.employee_leave_controller import EmployeeLeaveController
+        from app.config.dependency_container import get_employee_leave_controller
+        
+        leave_controller = get_employee_leave_controller()
+        summary = await leave_controller.get_user_leave_summary(
+            employee_id, year, current_user
+        )
+        
+        return {
+            "employee_id": employee_id,
+            "year": year,
+            "total_casual_leaves": summary.total_casual_leaves,
+            "used_casual_leaves": summary.used_casual_leaves,
+            "remaining_casual_leaves": summary.total_casual_leaves - summary.used_casual_leaves,
+            "total_sick_leaves": summary.total_sick_leaves,
+            "used_sick_leaves": summary.used_sick_leaves,
+            "remaining_sick_leaves": summary.total_sick_leaves - summary.used_sick_leaves,
+            "total_earned_leaves": summary.total_earned_leaves,
+            "used_earned_leaves": summary.used_earned_leaves,
+            "remaining_earned_leaves": summary.total_earned_leaves - summary.used_earned_leaves,
+            "pending_leave_requests": summary.pending_leave_requests,
+            "organisation": current_user.hostname
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting leaves summary for user {employee_id} in organisation {current_user.hostname}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Profile picture and documents endpoints
+@router.get("/{user_id}/profile-picture")
+async def get_user_profile_picture(
+    user_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+):
+    """Get user profile picture."""
+    try:
+        user = await controller.get_user_by_id(user_id, current_user)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get profile picture path
+        photo_path = None
+        if hasattr(user, 'documents') and user.documents:
+            photo_path = user.documents.photo_path
+        elif hasattr(user, 'photo_path'):
+            photo_path = user.photo_path
+        
+        if not photo_path:
+            raise HTTPException(status_code=404, detail="Profile picture not found")
+        
+        # Return file response
+        from fastapi.responses import FileResponse
+        import os
+        
+        file_path = os.path.join("uploads", photo_path)
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="Profile picture file not found")
+        
+        return FileResponse(file_path, media_type="image/*")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting profile picture for user {user_id} in organisation {current_user.hostname}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{user_id}/documents")
+async def upload_user_documents(
+    user_id: str,
+    pan_file: Optional[UploadFile] = File(None, description="PAN document file"),
+    aadhar_file: Optional[UploadFile] = File(None, description="Aadhar document file"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+) -> Dict[str, Any]:
+    """Upload user documents (PAN, Aadhar)."""
+    try:
+        # Validate user exists
+        user = await controller.get_user_by_id(user_id, current_user)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Upload documents using controller
+        result = await controller.upload_user_documents(
+            user_id=user_id,
+            pan_file=pan_file,
+            aadhar_file=aadhar_file,
+            current_user=current_user
+        )
+        
+        return {
+            "success": True,
+            "message": "Documents uploaded successfully",
+            "pan_document_path": result.pan_document_path,
+            "aadhar_document_path": result.aadhar_document_path,
+            "user_id": user_id,
+            "organisation": current_user.hostname,
+            "uploaded_at": datetime.now().isoformat(),
+            "uploaded_by": current_user.employee_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading documents for user {user_id} in organisation {current_user.hostname}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload documents: {str(e)}")
+
+@router.post("/{user_id}/profile-picture")
+async def upload_user_profile_picture(
+    user_id: str,
+    photo: UploadFile = File(..., description="User profile picture"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+) -> Dict[str, Any]:
+    """Upload user profile picture."""
+    try:
+        # Validate user exists
+        user = await controller.get_user_by_id(user_id, current_user)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Validate file type
+        if not photo.content_type or not photo.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="File must be an image")
+        
+        # Upload profile picture using controller
+        result = await controller.upload_user_profile_picture(
+            user_id=user_id,
+            photo=photo,
+            current_user=current_user
+        )
+        
+        return {
+            "success": True,
+            "message": "Profile picture uploaded successfully",
+            "profile_picture_url": result.profile_picture_url,
+            "user_id": user_id,
+            "organisation": current_user.hostname,
+            "uploaded_at": datetime.now().isoformat(),
+            "uploaded_by": current_user.employee_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading profile picture for user {user_id} in organisation {current_user.hostname}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to upload profile picture: {str(e)}")
+
 @router.get("/analytics/statistics", response_model=UserStatisticsDTO)
 async def get_user_statistics(
     current_user: CurrentUser = Depends(get_current_user),

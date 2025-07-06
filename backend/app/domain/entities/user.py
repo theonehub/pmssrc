@@ -549,6 +549,38 @@ class User:
         self.updated_at = datetime.utcnow()
         self.updated_by = updated_by
     
+    # ==================== DOCUMENT UPDATE METHODS ====================
+    
+    def update_photo_path(self, photo_path: Optional[str]) -> None:
+        """Update user photo path"""
+        if photo_path != self.documents.photo_path:
+            self.documents = UserDocuments(
+                photo_path=photo_path,
+                pan_document_path=self.documents.pan_document_path,
+                aadhar_document_path=self.documents.aadhar_document_path
+            )
+            self.updated_at = datetime.utcnow()
+    
+    def update_pan_document_path(self, pan_document_path: Optional[str]) -> None:
+        """Update user PAN document path"""
+        if pan_document_path != self.documents.pan_document_path:
+            self.documents = UserDocuments(
+                photo_path=self.documents.photo_path,
+                pan_document_path=pan_document_path,
+                aadhar_document_path=self.documents.aadhar_document_path
+            )
+            self.updated_at = datetime.utcnow()
+    
+    def update_aadhar_document_path(self, aadhar_document_path: Optional[str]) -> None:
+        """Update user Aadhar document path"""
+        if aadhar_document_path != self.documents.aadhar_document_path:
+            self.documents = UserDocuments(
+                photo_path=self.documents.photo_path,
+                pan_document_path=self.documents.pan_document_path,
+                aadhar_document_path=aadhar_document_path
+            )
+            self.updated_at = datetime.utcnow()
+    
     # ==================== DELETION ====================
     
     def delete(self, reason: str, deleted_by: str, soft_delete: bool = True) -> None:

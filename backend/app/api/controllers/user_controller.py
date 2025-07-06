@@ -248,7 +248,7 @@ class UserController:
         exclude_id: Optional[str] = None,
         current_user: CurrentUser = None
     ) -> Dict[str, bool]:
-        """Check if user exists with organisation context."""
+        """Check if user exists with given criteria and organisation context."""
         try:
             return await self.user_service.check_user_exists(
                 email=email,
@@ -258,14 +258,126 @@ class UserController:
                 current_user=current_user
             )
         except Exception as e:
-            logger.error(f"Error checking user existence in organisation {current_user.hostname if current_user else 'unknown'}: {e}")
+            logger.error(f"Error checking user exists in organisation {current_user.hostname if current_user else 'unknown'}: {e}")
             raise HTTPException(status_code=500, detail="Internal server error")
 
-    async def health_check(self) -> Dict[str, str]:
-        """Health check endpoint (no organisation context needed)."""
-        return {
-            "service": "user_controller",
-            "status": "healthy",
-            "timestamp": "2024-01-01T00:00:00Z",
-            "version": "2.0.0-organisation-segregated"
-        }
+    async def health_check(self, current_user: CurrentUser) -> Dict[str, str]:
+        """Health check for user service with organisation context."""
+        try:
+            return await self.user_service.health_check(current_user)
+        except Exception as e:
+            logger.error(f"Health check error in organisation {current_user.hostname}: {e}")
+            return {
+                "service": "user_service",
+                "status": "unhealthy",
+                "error": str(e),
+                "organisation": current_user.hostname
+            }
+
+    async def get_users_by_manager(
+        self,
+        manager_id: str,
+        current_user: CurrentUser
+    ) -> List[UserResponseDTO]:
+        """Get users by manager with organisation context."""
+        try:
+            return await self.user_service.get_users_by_manager(manager_id, current_user)
+        except Exception as e:
+            logger.error(f"Error getting users by manager {manager_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+
+    async def import_users(
+        self,
+        file_content: bytes,
+        filename: str,
+        current_user: CurrentUser
+    ) -> Dict[str, Any]:
+        """Import users from file with organisation context."""
+        try:
+            return await self.user_service.import_users(file_content, filename, current_user)
+        except Exception as e:
+            logger.error(f"Error importing users in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to import users: {str(e)}")
+
+    async def export_users(
+        self,
+        users: List[UserResponseDTO],
+        format: str,
+        current_user: CurrentUser
+    ) -> tuple[bytes, str]:
+        """Export users to file with organisation context."""
+        try:
+            return await self.user_service.export_users(users, format, current_user)
+        except Exception as e:
+            logger.error(f"Error exporting users in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to export users: {str(e)}")
+
+    async def get_departments(self, current_user: CurrentUser) -> List[str]:
+        """Get list of departments in organisation."""
+        try:
+            return await self.user_service.get_departments(current_user)
+        except Exception as e:
+            logger.error(f"Error getting departments in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+
+    async def get_designations(self, current_user: CurrentUser) -> List[str]:
+        """Get list of designations in organisation."""
+        try:
+            return await self.user_service.get_designations(current_user)
+        except Exception as e:
+            logger.error(f"Error getting designations in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail="Internal server error")
+
+    async def upload_user_documents(
+        self,
+        user_id: str,
+        pan_file: Optional[UploadFile],
+        aadhar_file: Optional[UploadFile],
+        current_user: CurrentUser
+    ) -> Dict[str, str]:
+        """Upload user documents with organisation context."""
+        try:
+            result = {}
+            
+            if pan_file:
+                pan_path = await self.file_upload_service.upload_document(
+                    pan_file, DocumentType.PAN, current_user.hostname
+                )
+                result["pan_document_path"] = pan_path
+            
+            if aadhar_file:
+                aadhar_path = await self.file_upload_service.upload_document(
+                    aadhar_file, DocumentType.AADHAR, current_user.hostname
+                )
+                result["aadhar_document_path"] = aadhar_path
+            
+            # Update user with document paths
+            if result:
+                await self.user_service.update_user_documents(user_id, result, current_user)
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error uploading documents for user {user_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to upload documents: {str(e)}")
+
+    async def upload_user_profile_picture(
+        self,
+        user_id: str,
+        photo: UploadFile,
+        current_user: CurrentUser
+    ) -> Dict[str, str]:
+        """Upload user profile picture with organisation context."""
+        try:
+            photo_path = await self.file_upload_service.upload_document(
+                photo, DocumentType.PHOTO, current_user.hostname
+            )
+            
+            # Update user with photo path
+            await self.user_service.update_user_documents(user_id, {"photo_path": photo_path}, current_user)
+            
+            return {"profile_picture_url": photo_path}
+            
+        except Exception as e:
+            logger.error(f"Error uploading profile picture for user {user_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to upload profile picture: {str(e)}")

@@ -183,4 +183,72 @@ class AttendanceController:
             
         except Exception as e:
             logger.error(f"Error getting attendance statistics: {e}")
-            raise AttendanceBusinessRuleError(f"Failed to get statistics: {str(e)}") 
+            raise AttendanceBusinessRuleError(f"Failed to get statistics: {str(e)}")
+
+    async def get_user_attendance_summary(
+        self,
+        employee_id: str,
+        month: int,
+        year: int,
+        current_user: "CurrentUser"
+    ) -> dict:
+        """Get user attendance summary for a specific month"""
+        try:
+            logger.info(f"Getting attendance summary for employee {employee_id} for {month}/{year} in organisation: {current_user.hostname}")
+            
+            # Create filters for the month
+            from app.application.dto.attendance_dto import AttendanceSearchFiltersDTO
+            filters = AttendanceSearchFiltersDTO(
+                employee_id=employee_id,
+                month=month,
+                year=year
+            )
+            
+            # Get attendance records for the month
+            attendance_records = await self.attendance_service.get_employee_attendance_by_month(filters, current_user)
+            
+            # Calculate summary statistics
+            total_working_days = 0
+            present_days = 0
+            absent_days = 0
+            half_days = 0
+            late_arrivals = 0
+            early_departures = 0
+            overtime_hours = 0
+            
+            for record in attendance_records:
+                if record.status == "present":
+                    present_days += 1
+                elif record.status == "absent":
+                    absent_days += 1
+                elif record.status == "half_day":
+                    half_days += 1
+                
+                if record.is_late:
+                    late_arrivals += 1
+                if record.is_early_departure:
+                    early_departures += 1
+                
+                if record.overtime_hours:
+                    overtime_hours += record.overtime_hours
+            
+            # Calculate total working days (assuming 22 working days per month)
+            total_working_days = 22
+            
+            # Calculate attendance percentage
+            attendance_percentage = (present_days / total_working_days * 100) if total_working_days > 0 else 0
+            
+            return {
+                "total_working_days": total_working_days,
+                "present_days": present_days,
+                "absent_days": absent_days,
+                "half_days": half_days,
+                "late_arrivals": late_arrivals,
+                "early_departures": early_departures,
+                "overtime_hours": overtime_hours,
+                "attendance_percentage": round(attendance_percentage, 2)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting attendance summary for employee {employee_id}: {e}")
+            raise AttendanceBusinessRuleError(f"Failed to get attendance summary: {str(e)}") 

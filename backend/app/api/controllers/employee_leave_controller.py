@@ -647,11 +647,11 @@ class EmployeeLeaveController:
         current_user: CurrentUser
     ) -> EmployeeLeaveResponseDTO:
         """
-        Update leave application.
+        Update employee leave.
         
         Args:
             leave_id: Leave application identifier
-            request: Update request data
+            request: Update request
             current_user: Current user context
             
         Returns:
@@ -659,12 +659,61 @@ class EmployeeLeaveController:
         """
         
         try:
-            self._logger.info(f"Updating leave: {leave_id} in org: {current_user.hostname}")
+            self._logger.info(f"Updating leave: {leave_id} by {current_user.employee_id} in org: {current_user.hostname}")
             
-            # This would typically use an update use case
-            # For now, we'll raise not implemented
-            raise NotImplementedError("Update leave functionality not yet implemented")
+            # This would typically call an update use case
+            # For now, return a placeholder response
+            raise NotImplementedError("Leave update functionality not yet implemented")
             
         except Exception as e:
             self._logger.error(f"Error updating leave {leave_id}: {e}")
-            raise Exception(f"Failed to update leave: {str(e)}") 
+            raise Exception(f"Failed to update leave: {str(e)}")
+
+    async def get_user_leave_summary(
+        self,
+        employee_id: str,
+        year: int,
+        current_user: CurrentUser
+    ) -> dict:
+        """Get user leave summary for a specific year"""
+        try:
+            self._logger.info(f"Getting leave summary for employee {employee_id} for year {year} in organisation: {current_user.hostname}")
+            
+            # Get leave balance
+            leave_balance = await self.get_leave_balance(employee_id, current_user)
+            
+            # Get all leaves for the year
+            from app.application.dto.employee_leave_dto import EmployeeLeaveSearchFiltersDTO
+            filters = EmployeeLeaveSearchFiltersDTO(
+                employee_id=employee_id,
+                year=year
+            )
+            
+            leaves = await self.search_leaves(filters, current_user)
+            
+            # Calculate summary statistics
+            total_casual_leaves = leave_balance.casual_leaves.total if leave_balance.casual_leaves else 0
+            used_casual_leaves = leave_balance.casual_leaves.used if leave_balance.casual_leaves else 0
+            
+            total_sick_leaves = leave_balance.sick_leaves.total if leave_balance.sick_leaves else 0
+            used_sick_leaves = leave_balance.sick_leaves.used if leave_balance.sick_leaves else 0
+            
+            total_earned_leaves = leave_balance.earned_leaves.total if leave_balance.earned_leaves else 0
+            used_earned_leaves = leave_balance.earned_leaves.used if leave_balance.earned_leaves else 0
+            
+            # Count pending leave requests
+            pending_leave_requests = len([leave for leave in leaves if leave.status == "PENDING"])
+            
+            return {
+                "total_casual_leaves": total_casual_leaves,
+                "used_casual_leaves": used_casual_leaves,
+                "total_sick_leaves": total_sick_leaves,
+                "used_sick_leaves": used_sick_leaves,
+                "total_earned_leaves": total_earned_leaves,
+                "used_earned_leaves": used_earned_leaves,
+                "pending_leave_requests": pending_leave_requests
+            }
+            
+        except Exception as e:
+            self._logger.error(f"Error getting leave summary for employee {employee_id}: {e}")
+            raise Exception(f"Failed to get leave summary: {str(e)}") 

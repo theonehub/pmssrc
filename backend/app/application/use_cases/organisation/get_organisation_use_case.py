@@ -63,71 +63,7 @@ class GetOrganisationUseCase:
         logger.info(f"Organisation retrieved successfully: {organisation_id}")
         return response
     
-    async def execute_by_name(self, name: str) -> Optional[OrganisationResponseDTO]:
-        """
-        Execute the get organisation by name use case.
-        
-        Args:
-            name: Name of organisation to retrieve
-            
-        Returns:
-            Organisation response DTO if found, None otherwise
-        """
-        logger.info(f"Getting organisation by name: {name}")
-        
-        organisation = await self.query_repository.get_by_name(name)
-        
-        if not organisation:
-            logger.info(f"Organisation not found by name: {name}")
-            return None
-        
-        response = self._convert_to_response_dto(organisation)
-        logger.info(f"Organisation retrieved successfully by name: {name}")
-        return response
-    
-    async def execute_by_hostname(self, hostname: str) -> Optional[OrganisationResponseDTO]:
-        """
-        Execute the get organisation by hostname use case.
-        
-        Args:
-            hostname: Hostname of organisation to retrieve
-            
-        Returns:
-            Organisation response DTO if found, None otherwise
-        """
-        logger.info(f"Getting organisation by hostname: {hostname}")
-        
-        organisation = await self.query_repository.get_by_hostname(hostname)
-        
-        if not organisation:
-            logger.info(f"Organisation not found by hostname: {hostname}")
-            return None
-        
-        response = self._convert_to_response_dto(organisation)
-        logger.info(f"Organisation retrieved successfully by hostname: {hostname}")
-        return response
-    
-    async def execute_by_pan_number(self, pan_number: str) -> Optional[OrganisationResponseDTO]:
-        """
-        Execute the get organisation by PAN number use case.
-        
-        Args:
-            pan_number: PAN number of organisation to retrieve
-            
-        Returns:
-            Organisation response DTO if found, None otherwise
-        """
-        logger.info(f"Getting organisation by PAN number: {pan_number}")
-        
-        organisation = await self.query_repository.get_by_pan_number(pan_number)
-        
-        if not organisation:
-            logger.info(f"Organisation not found by PAN number: {pan_number}")
-            return None
-        
-        response = self._convert_to_response_dto(organisation)
-        logger.info(f"Organisation retrieved successfully by PAN number: {pan_number}")
-        return response
+
     
     def _convert_to_response_dto(self, organisation: Organisation) -> OrganisationResponseDTO:
         """Convert organisation entity to response DTO"""

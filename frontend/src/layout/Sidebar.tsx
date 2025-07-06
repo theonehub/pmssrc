@@ -171,6 +171,12 @@ const Sidebar: React.FC = () => {
           roles: ['user', 'manager', 'admin', 'superadmin'],
         },
         {
+          title: 'My Salary History',
+          icon: <ReceiptIcon />,
+          path: '/my-salary-history',
+          roles: ['user', 'manager', 'admin', 'superadmin'],
+        },
+        {
           title: 'Component Management',
           icon: <SettingsIcon />,
           path: '/taxation/component-management',

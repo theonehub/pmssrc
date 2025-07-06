@@ -235,5 +235,36 @@ export const salaryProcessingApi = {
       `/api/v2/taxation/monthly-salary/employee/${employeeId}/month/${month}/year/${year}`
     );
     return response.data;
+  },
+
+  /**
+   * Get salary history for a specific employee
+   */
+  async getEmployeeSalaryHistory(
+    employeeId: string,
+    limit: number = 100,
+    offset: number = 0
+  ): Promise<MonthlySalaryResponse[]> {
+    const params = new URLSearchParams();
+    if (limit) params.append('limit', limit.toString());
+    if (offset) params.append('offset', offset.toString());
+    const url = `/api/v2/taxation/monthly-salary/employee/${employeeId}/history?${params.toString()}`;
+    const response = await apiClient.get(url);
+    return response.data;
+  },
+
+  /**
+   * Download payslip for a specific month
+   */
+  async downloadPayslip(
+    employeeId: string,
+    month: number,
+    year: number
+  ): Promise<Blob> {
+    const url = `/api/v2/taxation/monthly-salary/employee/${employeeId}/month/${month}/year/${year}/payslip`;
+    const response = await apiClient.get(url, {
+      responseType: 'blob'
+    });
+    return response.data;
   }
 }; 

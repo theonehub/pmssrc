@@ -6,6 +6,7 @@ Handles all taxation-related operations and calculations for both comprehensive 
 from typing import List, Dict, Any, Optional, Union, Tuple
 from datetime import datetime, date
 from decimal import Decimal
+from fastapi import HTTPException, status
 
 # Import centralized logger
 from app.utils.logger import get_logger
@@ -4050,4 +4051,256 @@ class UnifiedTaxationController:
         except Exception as e:
             logger.error(f"Error processing loan schedule for employee {employee_id}: {str(e)}")
             raise
+
+    async def get_employee_salary_history(
+        self,
+        employee_id: str,
+        organization_id: str,
+        limit: int = 100,
+        offset: int = 0
+    ) -> List[MonthlySalaryResponseDTO]:
+        """
+        Get all monthly salary records for an employee.
+        Args:
+            employee_id: Employee ID
+            organization_id: Organization ID for multi-tenancy
+            limit: Maximum number of records to return
+            offset: Number of records to skip
+        Returns:
+            List of MonthlySalaryResponseDTO
+        """
+        try:
+            salary_entities = await self.monthly_salary_repository.get_by_employee(
+                employee_id, organization_id, limit=limit, offset=offset
+            )
+            # Optionally enrich with user info
+            from app.domain.value_objects.employee_id import EmployeeId
+            items = []
+            for salary in salary_entities:
+                employee_id_vo = EmployeeId(salary.employee_id.value)
+                user = await self.user_repository.get_by_id(employee_id_vo, organization_id)
+                dto = self._convert_monthly_salary_entity_to_dto(salary, user)
+                items.append(dto)
+            return items
+        except Exception as e:
+            logger.error(f"Failed to get salary history for employee {employee_id}: {str(e)}")
+            raise
+
+    async def download_payslip(
+        self,
+        employee_id: str,
+        month: int,
+        year: int,
+        organization_id: str
+    ) -> bytes:
+        """
+        Download payslip for a specific month.
+        Args:
+            employee_id: Employee ID
+            month: Month (1-12)
+            year: Year
+            organization_id: Organization ID for multi-tenancy
+        Returns:
+            PDF bytes for the payslip
+        """
+        try:
+            # Get salary record
+            salary_record = await self.monthly_salary_repository.get_by_employee_month_year(
+                employee_id=employee_id,
+                month=month,
+                year=year,
+                organization_id=organization_id
+            )
+            
+            if not salary_record:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Salary record not found for employee {employee_id} for {month}/{year}"
+                )
+            
+            # Generate payslip content
+            payslip_content = self._generate_payslip_text(salary_record)
+            
+            # Convert to PDF bytes (placeholder implementation)
+            pdf_bytes = self._text_to_pdf(payslip_content)
+            
+            return pdf_bytes
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error downloading payslip: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to download payslip: {str(e)}"
+            )
+
+    def _generate_payslip_text(self, salary_record) -> str:
+        """Generate payslip text content."""
+        month_names = [
+            'January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ]
+
+        # Access salary components via salary_record.salary
+        s = salary_record.salary
+
+        # Calculate gross salary
+        gross_salary = s.calculate_gross_salary()
+
+        # Calculate deductions using the same logic as DTO conversion
+        epf_employee = self._calculate_monthly_epf(gross_salary)
+        esi_employee = self._calculate_monthly_esi(gross_salary)
+        professional_tax = self._calculate_monthly_professional_tax(gross_salary)
+        tds = salary_record.tax_amount
+
+        total_deductions = epf_employee.add(esi_employee).add(professional_tax).add(tds)
+        net_salary = self._safe_subtract(gross_salary, total_deductions)
+
+        # Get working days info
+        working_days_info = self._get_working_days_info(salary_record.month, salary_record.year)
+
+        # Calculate specific allowances total
+        specific_allowances_total = 0.0
+        if s.specific_allowances:
+            specific_allowances_total = s.specific_allowances.calculate_total_specific_allowances().to_float()
+
+        payslip = f"""
+        COMPANY PAYSLIP
+        ===============
+
+        Employee Details:
+        ----------------
+        Employee ID: {salary_record.employee_id.value}
+        Name: {getattr(salary_record, 'employee_name', 'N/A')}
+        Department: {getattr(salary_record, 'department', 'N/A')}
+        Designation: {getattr(salary_record, 'designation', 'N/A')}
+
+        Pay Period: {month_names[salary_record.month - 1]} {salary_record.year}
+        Tax Year: {str(salary_record.tax_year)}
+
+        Earnings:
+        ---------
+        Basic Salary: ₹{s.basic_salary.to_float():,.2f}
+        Dearness Allowance: ₹{s.dearness_allowance.to_float():,.2f}
+        House Rent Allowance: ₹{s.hra_provided.to_float():,.2f}
+        Special Allowance: ₹{s.special_allowance.to_float():,.2f}
+        Transport Allowance: ₹{0.0:,.2f}
+        Medical Allowance: ₹{0.0:,.2f}
+        Bonus: ₹{s.bonus.to_float():,.2f}
+        Commission: ₹{s.commission.to_float():,.2f}
+        Other Allowances: ₹{specific_allowances_total:,.2f}
+        Arrears: ₹{s.arrears.to_float():,.2f}
+
+        Total Earnings: ₹{gross_salary.to_float():,.2f}
+
+        Deductions:
+        -----------
+        EPF Employee: ₹{epf_employee.to_float():,.2f}
+        ESI Employee: ₹{esi_employee.to_float():,.2f}
+        Professional Tax: ₹{professional_tax.to_float():,.2f}
+        TDS: ₹{tds.to_float():,.2f}
+        Advance Deduction: ₹{0.0:,.2f}
+        Loan Deduction: ₹{0.0:,.2f}
+        Other Deductions: ₹{0.0:,.2f}
+
+        Total Deductions: ₹{total_deductions.to_float():,.2f}
+
+        Net Pay: ₹{net_salary.to_float():,.2f}
+
+        Working Days: {working_days_info['effective_days']}/{working_days_info['total_days']}
+        LWP Days: {working_days_info['lwp_days']}
+
+        Status: {getattr(salary_record, 'status', 'computed')}
+        Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+        """
+
+        return payslip
+
+    def _text_to_pdf(self, text: str) -> bytes:
+        """Convert text to PDF bytes using ReportLab."""
+        from reportlab.lib.pagesizes import letter, A4
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        from reportlab.lib import colors
+        from io import BytesIO
+        
+        # Create a buffer to store the PDF
+        buffer = BytesIO()
+        
+        # Create the PDF document
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        
+        # Get styles
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=16,
+            spaceAfter=30,
+            alignment=1  # Center alignment
+        )
+        
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading2'],
+            fontSize=12,
+            spaceAfter=12,
+            spaceBefore=20
+        )
+        
+        normal_style = styles['Normal']
+        
+        # Build the story (content)
+        story = []
+        
+        # Title
+        story.append(Paragraph("PAYSLIP", title_style))
+        story.append(Spacer(1, 20))
+        
+        # Parse the text and create structured content
+        lines = text.strip().split('\n')
+        current_section = None
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+                
+            if line.startswith('==='):
+                continue
+            elif line.endswith(':'):
+                # Section header
+                current_section = line[:-1]
+                story.append(Paragraph(current_section, heading_style))
+            elif ':' in line and not line.startswith(' '):
+                # Key-value pair
+                parts = line.split(':', 1)
+                if len(parts) == 2:
+                    key, value = parts[0].strip(), parts[1].strip()
+                    if value.startswith('₹'):
+                        # Format currency values
+                        story.append(Paragraph(f"<b>{key}:</b> {value}", normal_style))
+                    else:
+                        story.append(Paragraph(f"<b>{key}:</b> {value}", normal_style))
+            elif line.startswith(' ') and ':' in line:
+                # Indented key-value pair
+                parts = line.strip().split(':', 1)
+                if len(parts) == 2:
+                    key, value = parts[0].strip(), parts[1].strip()
+                    if value.startswith('₹'):
+                        # Format currency values
+                        story.append(Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;<b>{key}:</b> {value}", normal_style))
+                    else:
+                        story.append(Paragraph(f"&nbsp;&nbsp;&nbsp;&nbsp;<b>{key}:</b> {value}", normal_style))
+        
+        # Build the PDF
+        doc.build(story)
+        
+        # Get the PDF bytes
+        pdf_bytes = buffer.getvalue()
+        buffer.close()
+        
+        return pdf_bytes
  

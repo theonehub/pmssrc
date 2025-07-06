@@ -4,7 +4,8 @@ Production-ready REST API endpoints for all taxation operations and income types
 """
 
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import Response
 from datetime import datetime
 
 # Import centralized logger
@@ -1152,6 +1153,69 @@ async def get_monthly_salary(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get monthly salary: {str(e)}"
+        )
+
+@router.get("/monthly-salary/employee/{employee_id}/history",
+            response_model=List[MonthlySalaryResponseDTO],
+            status_code=status.HTTP_200_OK,
+            summary="Get salary history for employee",
+            description="Get all processed monthly salaries for an employee")
+async def get_employee_salary_history(
+    employee_id: str,
+    limit: int = Query(100, description="Maximum number of records to return", le=200),
+    offset: int = Query(0, description="Number of records to skip"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> List[MonthlySalaryResponseDTO]:
+    """
+    Get all processed monthly salaries for an employee.
+    """
+    try:
+        return await controller.get_employee_salary_history(
+            employee_id, current_user.hostname, limit=limit, offset=offset
+        )
+    except Exception as e:
+        logger.error(f"Error getting salary history for employee {employee_id}: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get salary history: {str(e)}"
+        )
+
+@router.get("/monthly-salary/employee/{employee_id}/month/{month}/year/{year}/payslip",
+            status_code=status.HTTP_200_OK,
+            summary="Download payslip for employee",
+            description="Download payslip PDF for a specific month")
+async def download_payslip(
+    employee_id: str,
+    month: int,
+    year: int,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+):
+    """Download payslip for an employee for a specific month."""
+    try:
+        pdf_bytes = await controller.download_payslip(
+            employee_id=employee_id,
+            month=month,
+            year=year,
+            organization_id=current_user.hostname
+        )
+        
+        # Return PDF as response
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=payslip_{employee_id}_{month}_{year}.pdf"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error downloading payslip: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to download payslip: {str(e)}"
         )
 
 @router.get("/monthly-salary/period/month/{month}/year/{year}",

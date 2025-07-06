@@ -248,14 +248,126 @@ const ComponentsOverview: React.FC = () => {
       const response = await taxationApi.getComponent(empId!, taxYear, 'perquisites');
       const data = response?.component_data || response;
       
-      // Calculate total perquisites value from various perquisite types
-      const totalPerquisites = (data.accommodation_value || 0) + 
-                              (data.car_value || 0) + 
-                              (data.medical_reimbursement_value || 0) + 
-                              (data.lta_value || 0) + 
-                              (data.loan_value || 0) + 
-                              (data.esop_value || 0) + 
-                              (data.other_perquisites_value || 0);
+      // Calculate accommodation perquisite
+      let accommodationValue = 0;
+      if (data.accommodation) {
+        const acc = data.accommodation;
+        if (acc.accommodation_type === 'Government') {
+          accommodationValue = Math.max(0, (acc.employee_rent_payment || 0) - (acc.license_fees || 0));
+        } else if (acc.accommodation_type === 'Employer-Owned') {
+          let rate = 0.05; // 5% for below 15 lakhs
+          if (acc.city_population === 'Above 40 lakhs') {
+            rate = 0.10; // 10%
+          } else if (acc.city_population === 'Between 15-40 lakhs') {
+            rate = 0.075; // 7.5%
+          }
+          accommodationValue = (acc.license_fees || 0) * rate;
+        } else if (acc.accommodation_type === 'Employer-Leased') {
+          accommodationValue = Math.max(0, (acc.rent_paid_by_employer || 0) - (acc.employee_rent_payment || 0));
+        } else if (acc.accommodation_type === 'Hotel') {
+          accommodationValue = (acc.hotel_charges || 0) * (acc.stay_days || 0);
+        }
+        
+        // Add furniture perquisite if owned by employer
+        if (acc.is_furniture_owned_by_employer) {
+          accommodationValue += Math.max(0, (acc.furniture_cost || 0) - (acc.furniture_employee_payment || 0));
+        }
+      }
+      
+      // Calculate car perquisite
+      let carValue = 0;
+      if (data.car) {
+        const car = data.car;
+        if (car.car_use_type === 'Personal') {
+          // Personal use: 10% of car cost + driver cost
+          carValue = ((car.car_cost_to_employer || 0) * 0.10) + (car.driver_cost || 0);
+        } else if (car.car_use_type === 'Official') {
+          // Official use: No perquisite
+          carValue = 0;
+        } else if (car.car_use_type === 'Mixed') {
+          // Mixed use: 5% of car cost + driver cost
+          carValue = ((car.car_cost_to_employer || 0) * 0.05) + (car.driver_cost || 0);
+        }
+        
+        // Add other vehicle cost
+        carValue += (car.other_vehicle_cost || 0);
+      }
+      
+      // Calculate LTA perquisite
+      const ltaValue = data.lta?.lta_amount_claimed || 0;
+      
+      // Calculate interest-free loan perquisite
+      let loanValue = 0;
+      if (data.interest_free_loan) {
+        const loan = data.interest_free_loan;
+        const outstandingAmount = loan.outstanding_amount || loan.loan_amount || 0;
+        const sbiRate = loan.sbi_interest_rate || 6.5;
+        const companyRate = loan.company_interest_rate || 0;
+        loanValue = Math.max(0, (outstandingAmount * (sbiRate - companyRate) / 100));
+      }
+      
+      // Calculate ESOP perquisite
+      let esopValue = 0;
+      if (data.esop) {
+        const esop = data.esop;
+        const sharesExercised = esop.shares_exercised || 0;
+        const exercisePrice = esop.exercise_price || 0;
+        const allotmentPrice = esop.allotment_price || 0;
+        esopValue = sharesExercised * Math.max(0, allotmentPrice - exercisePrice);
+      }
+      
+      // Calculate free education perquisite
+      let educationValue = 0;
+      if (data.free_education) {
+        const edu = data.free_education;
+        if (edu.employer_maintained_1st_child) {
+          educationValue += (edu.monthly_expenses_child1 || 0) * (edu.months_child1 || 12);
+        }
+        if (edu.employer_maintained_2nd_child) {
+          educationValue += (edu.monthly_expenses_child2 || 0) * (edu.months_child2 || 12);
+        }
+      }
+      
+      // Calculate utilities perquisite
+      let utilitiesValue = 0;
+      if (data.utilities) {
+        const util = data.utilities;
+        utilitiesValue = Math.max(0, 
+          ((util.gas_paid_by_employer || 0) + (util.electricity_paid_by_employer || 0) + (util.water_paid_by_employer || 0)) -
+          ((util.gas_paid_by_employee || 0) + (util.electricity_paid_by_employee || 0) + (util.water_paid_by_employee || 0))
+        );
+      }
+      
+      // Calculate lunch refreshment perquisite
+      let lunchValue = 0;
+      if (data.lunch_refreshment) {
+        const lunch = data.lunch_refreshment;
+        lunchValue = Math.max(0, (lunch.employer_cost || 0) - (lunch.employee_payment || 0));
+      }
+      
+      // Calculate domestic help perquisite
+      let domesticHelpValue = 0;
+      if (data.domestic_help) {
+        const domestic = data.domestic_help;
+        domesticHelpValue = Math.max(0, (domestic.domestic_help_paid_by_employer || 0) - (domestic.domestic_help_paid_by_employee || 0));
+      }
+      
+      const totalPerquisites = accommodationValue + carValue + ltaValue + loanValue + esopValue + 
+                               educationValue + utilitiesValue + lunchValue + domesticHelpValue;
+      
+      // Debug logging
+      console.log('ComponentsOverview - Perquisites calculation:', {
+        accommodationValue,
+        carValue,
+        ltaValue,
+        loanValue,
+        esopValue,
+        educationValue,
+        utilitiesValue,
+        lunchValue,
+        domesticHelpValue,
+        totalPerquisites
+      });
       
       return {
         id: 'perquisites',

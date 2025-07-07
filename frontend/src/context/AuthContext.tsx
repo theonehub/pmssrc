@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import authService from '../shared/api/authService';
+import { User } from '../shared/types';
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  user: any | null;
-  login: (userData: any) => void;
+  user: User | null;
+  login: (credentials: any) => Promise<void>;
   logout: () => void;
 }
 
@@ -15,31 +17,53 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
-    // Check if user is authenticated (e.g., from localStorage or sessionStorage)
-    const token = localStorage.getItem('authToken');
-    const userData = localStorage.getItem('userData');
+    // Check if user is authenticated using authService
+    const token = authService.isAuthenticated();
+    const userData = authService.getCurrentUser();
     
     if (token && userData) {
       setIsAuthenticated(true);
-      setUser(JSON.parse(userData));
+      setUser(userData);
     }
   }, []);
 
-  const login = (userData: any) => {
-    setIsAuthenticated(true);
-    setUser(userData);
-    localStorage.setItem('authToken', userData.token || 'dummy-token');
-    localStorage.setItem('userData', JSON.stringify(userData));
+  const login = async (credentials: any) => {
+    try {
+      // Call authService.login which handles the login API call
+      await authService.login(credentials);
+      
+      // After successful login, refresh user data to get complete profile
+      const userData = await authService.refreshUserData();
+      
+      if (userData) {
+        setIsAuthenticated(true);
+        setUser(userData);
+      } else {
+        // Fallback to stored user data if refresh fails
+        const storedUser = authService.getCurrentUser();
+        if (storedUser) {
+          setIsAuthenticated(true);
+          setUser(storedUser);
+        }
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
   };
 
-  const logout = () => {
-    setIsAuthenticated(false);
-    setUser(null);
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userData');
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setIsAuthenticated(false);
+      setUser(null);
+    }
   };
 
   const value: AuthContextType = {

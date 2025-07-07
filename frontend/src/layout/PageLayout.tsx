@@ -10,6 +10,9 @@ import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
+import ChangePasswordDialog from '../components/Common/ChangePasswordDialog';
+import { useAuth } from '../context/AuthContext';
+import { organizationApi, Organization } from '../shared/api/organizationApi';
 
 interface PageLayoutProps {
   title: string;
@@ -19,11 +22,14 @@ interface PageLayoutProps {
 const PageLayout: React.FC<PageLayoutProps> = ({ title, children }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { user } = useAuth();
   const [sidebarWidth, setSidebarWidth] = useState<number>(280); // Default width
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] =
     useState<boolean>(false);
   const [isResizing, setIsResizing] = useState<boolean>(false);
+  const [organization, setOrganization] = useState<Organization | null>(null);
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState<boolean>(false);
 
   // Store sidebar width in localStorage to persist between sessions
   useEffect(() => {
@@ -39,6 +45,23 @@ const PageLayout: React.FC<PageLayoutProps> = ({ title, children }) => {
     }
   }, []);
 
+  // Fetch current organization data
+  useEffect(() => {
+    const fetchOrganization = async () => {
+      if (!user) return;
+      
+      try {
+        const orgData = await organizationApi.getCurrentOrganization();
+        setOrganization(orgData);
+      } catch (error) {
+        console.error('Failed to fetch organization data:', error);
+        // Don't show error to user, just continue without org data
+      }
+    };
+
+    fetchOrganization();
+  }, [user]);
+
   // Handle sidebar toggle for desktop
   const toggleSidebar = (): void => {
     const newState = !isSidebarOpen;
@@ -49,6 +72,15 @@ const PageLayout: React.FC<PageLayoutProps> = ({ title, children }) => {
   // Handle mobile drawer toggle
   const toggleMobileDrawer = (): void => {
     setIsMobileSidebarOpen(!isMobileSidebarOpen);
+  };
+
+  // Handle password change dialog
+  const handlePasswordChange = () => {
+    setIsPasswordDialogOpen(true);
+  };
+
+  const handlePasswordDialogClose = () => {
+    setIsPasswordDialogOpen(false);
   };
 
   // Handle resizing sidebar
@@ -97,6 +129,15 @@ const PageLayout: React.FC<PageLayoutProps> = ({ title, children }) => {
       <Topbar
         title={title}
         onMenuClick={isMobile ? toggleMobileDrawer : toggleSidebar}
+        organizationLogo={organization?.logo_url}
+        organizationName={organization?.company_name}
+        onPasswordChange={handlePasswordChange}
+      />
+
+      {/* Password Change Dialog */}
+      <ChangePasswordDialog
+        open={isPasswordDialogOpen}
+        onClose={handlePasswordDialogClose}
       />
 
       <Box

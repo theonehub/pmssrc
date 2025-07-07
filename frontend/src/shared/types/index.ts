@@ -51,6 +51,7 @@ export interface User {
   created_at?: string;
   updated_at?: string;
   position?: string;
+  profile_picture?: string; // Profile picture URL/path
 }
 
 export type UserRole = 'admin' | 'hr' | 'employee' | 'manager' | 'superadmin' | 'user';

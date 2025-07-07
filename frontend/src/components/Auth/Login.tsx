@@ -16,7 +16,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { Visibility, VisibilityOff, LockOutlined } from '@mui/icons-material';
-import authService from '../../shared/api/authService';
+import { useAuth } from '../../context/AuthContext';
 import { LoginCredentials } from '../../shared/types';
 import { validateRequired, validatePassword } from '../../shared/utils/validation';
 
@@ -42,6 +42,7 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const validateForm = (): boolean => {
     const errors: FormErrors = {};
@@ -100,7 +101,7 @@ const Login: React.FC = () => {
         hostname
       };
 
-      await authService.login(credentials);
+      await login(credentials);
       navigate('/home');
     } catch (err) {
       if (err instanceof Error) {

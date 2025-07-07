@@ -147,12 +147,34 @@ class AuthService {
    */
   async refreshUserData(): Promise<User | null> {
     try {
-      // Updated to use v2 API endpoint
-      const response = await get<User>('/api/v2/auth/me');
+      // Get user data from user endpoint which includes profile picture
+      const response = await get<any>('/api/v2/users/me');
 
       if (response) {
-        localStorage.setItem('user_info', JSON.stringify(response));
-        return response;
+        // Map the response to include profile_picture field
+        const userData: User = {
+          id: response.employee_id || '',
+          email: response.email || '',
+          name: response.name || '',
+          role: response.role || 'user',
+          employee_id: response.employee_id || '',
+          department: response.department || '',
+          designation: response.designation || '',
+          mobile: response.mobile || '',
+          gender: response.gender || '',
+          date_of_joining: response.date_of_joining || '',
+          date_of_birth: response.date_of_birth || '',
+          address: response.address || '',
+          phone: response.phone || '',
+          status: response.status || '',
+          created_at: response.created_at || '',
+          updated_at: response.updated_at || '',
+          position: response.position || '',
+          profile_picture: response.photo_path || '', // Map photo_path to profile_picture
+        };
+        
+        localStorage.setItem('user_info', JSON.stringify(userData));
+        return userData;
       }
 
       return null;
@@ -182,6 +204,7 @@ class AuthService {
         {
           current_password: currentPassword,
           new_password: newPassword,
+          confirm_password: newPassword,
         }
       );
 

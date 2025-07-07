@@ -403,6 +403,21 @@ export class UserAPI {
   }
 
   /**
+   * Download user import template
+   */
+  async downloadUserTemplate(format: string = 'csv'): Promise<Blob> {
+    try {
+      const response = await this.baseApi.download('/api/v2/users/template', {
+        params: { format }
+      });
+      return response;
+    } catch (error: any) {
+      console.error('Error downloading user template:', error);
+      throw new Error(error.response?.data?.detail || 'Failed to download template');
+    }
+  }
+
+  /**
    * Get user departments
    */
   async getUserDepartments(): Promise<{ departments: string[] }> {

@@ -224,6 +224,37 @@ async def get_user_stats(
         logger.error(f"Error getting user stats for organisation {current_user.hostname}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/template")
+async def download_user_template(
+    format: str = Query("csv", description="Template format (csv, xlsx)"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+):
+    """Download user import template with headers."""
+    try:
+        # Validate format
+        if format not in ['csv', 'xlsx']:
+            raise HTTPException(status_code=400, detail="Invalid format. Use 'csv' or 'xlsx'")
+        
+        # Get template using controller
+        file_content, filename = await controller.get_user_template(format, current_user)
+        
+        # Return file response
+        from fastapi.responses import Response
+        media_type = "text/csv" if format == "csv" else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        
+        return Response(
+            content=file_content,
+            media_type=media_type,
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating user template for organisation {current_user.hostname}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate template: {str(e)}")
+
 @router.get("/{employee_id}")
 async def get_user_by_id(
     employee_id: str,

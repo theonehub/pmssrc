@@ -18,7 +18,6 @@ import {
 } from '@mui/material';
 import axios, { AxiosResponse } from 'axios';
 import { getToken } from '../../../shared/utils/auth';
-import PageLayout from '../../../layout/PageLayout';
 
 // Define interfaces
 interface LWPRecord {
@@ -252,7 +251,7 @@ const LWPManagement: React.FC = () => {
   };
 
   return (
-    <PageLayout title="LWP Management">
+    <Box>
       <Container>
         <Typography variant="h4" sx={{ mt: 4, mb: 4 }}>
           LWP Management
@@ -452,7 +451,7 @@ const LWPManagement: React.FC = () => {
           </Alert>
         )}
       </Container>
-    </PageLayout>
+    </Box>
   );
 };
 

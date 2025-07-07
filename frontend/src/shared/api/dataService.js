@@ -239,7 +239,7 @@ const dataService = {
   },
 
   async downloadUserTemplate() {
-    const response = await apiClient.get('/api/v2/users/export', {
+    const response = await apiClient.get('/api/v2/users/template', {
       params: { format: 'csv' },
       responseType: 'blob'
     });

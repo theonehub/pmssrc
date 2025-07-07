@@ -1302,6 +1302,27 @@ class UserService(
         pass
 
     @abstractmethod
+    async def get_user_template(
+        self, 
+        format: str, 
+        current_user: "CurrentUser"
+    ) -> tuple[bytes, str]:
+        """
+        Get user import template with headers.
+        
+        Args:
+            format: Template format (csv, xlsx)
+            current_user: Current authenticated user with organisation context
+            
+        Returns:
+            Tuple of (file_content, filename)
+            
+        Raises:
+            UserBusinessRuleError: If template generation fails
+        """
+        pass
+
+    @abstractmethod
     async def get_departments(self, current_user: "CurrentUser") -> List[str]:
         """
         Get list of departments in organisation.

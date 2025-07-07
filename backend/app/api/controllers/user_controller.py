@@ -312,6 +312,18 @@ class UserController:
             logger.error(f"Error exporting users in organisation {current_user.hostname}: {e}")
             raise HTTPException(status_code=500, detail=f"Failed to export users: {str(e)}")
 
+    async def get_user_template(
+        self,
+        format: str,
+        current_user: CurrentUser
+    ) -> tuple[bytes, str]:
+        """Get user import template with headers."""
+        try:
+            return await self.user_service.get_user_template(format, current_user)
+        except Exception as e:
+            logger.error(f"Error generating user template in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=500, detail=f"Failed to generate template: {str(e)}")
+
     async def get_departments(self, current_user: CurrentUser) -> List[str]:
         """Get list of departments in organisation."""
         try:

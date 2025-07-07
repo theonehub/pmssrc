@@ -1582,6 +1582,77 @@ class UserServiceImpl(UserService):
             logger.error(f"Error exporting users in organisation {current_user.hostname}: {e}")
             raise
 
+    async def get_user_template(
+        self, 
+        format: str, 
+        current_user: "CurrentUser"
+    ) -> tuple[bytes, str]:
+        """Get user import template with headers."""
+        try:
+            logger.info(f"Generating user template in {format} format for organisation {current_user.hostname}")
+            
+            # Define template headers based on the import format expected by bulk_import
+            template_headers = [
+                "employee_id",
+                "name", 
+                "email",
+                "mobile",
+                "gender",
+                "date_of_birth",
+                "date_of_joining",
+                "role",
+                "department",
+                "designation",
+                "location",
+                "manager_id",
+                "status",
+                "pan_number",
+                "aadhar_number"
+            ]
+            
+            if format.lower() == "csv":
+                import csv
+                import io
+                
+                # Create CSV content with headers only
+                output = io.StringIO()
+                writer = csv.writer(output)
+                writer.writerow(template_headers)
+                
+                # Add a sample row with empty values
+                sample_row = [""] * len(template_headers)
+                writer.writerow(sample_row)
+                
+                file_content = output.getvalue().encode('utf-8')
+                filename = f"user_import_template_{current_user.hostname}.csv"
+                
+            elif format.lower() == "xlsx":
+                # For Excel format, we'll create a simple CSV for now
+                # TODO: Implement proper Excel generation with openpyxl
+                import csv
+                import io
+                
+                output = io.StringIO()
+                writer = csv.writer(output)
+                writer.writerow(template_headers)
+                
+                # Add a sample row with empty values
+                sample_row = [""] * len(template_headers)
+                writer.writerow(sample_row)
+                
+                file_content = output.getvalue().encode('utf-8')
+                filename = f"user_import_template_{current_user.hostname}.csv"  # Still CSV for now
+                
+            else:
+                raise ValueError(f"Unsupported format: {format}")
+            
+            logger.info(f"Successfully generated user template: {filename}")
+            return file_content, filename
+            
+        except Exception as e:
+            logger.error(f"Error generating user template in organisation {current_user.hostname}: {e}")
+            raise
+
     async def get_departments(self, current_user: "CurrentUser") -> List[str]:
         """Get list of departments in organisation."""
         try:

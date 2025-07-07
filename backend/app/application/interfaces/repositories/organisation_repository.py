@@ -61,6 +61,38 @@ class OrganisationCommandRepository(ABC):
         """
         pass
     
+    @abstractmethod
+    async def increment_used_employee_strength(self, organisation_id: OrganisationId) -> bool:
+        """
+        Increment the used employee strength for an organisation.
+        
+        Args:
+            organisation_id: Organisation ID to update
+            
+        Returns:
+            True if incremented successfully, False if organisation not found or at capacity
+            
+        Raises:
+            OrganisationBusinessRuleError: If increment would exceed employee strength limit
+        """
+        pass
+    
+    @abstractmethod
+    async def decrement_used_employee_strength(self, organisation_id: OrganisationId) -> bool:
+        """
+        Decrement the used employee strength for an organisation.
+        
+        Args:
+            organisation_id: Organisation ID to update
+            
+        Returns:
+            True if decremented successfully, False if organisation not found or already at zero
+            
+        Raises:
+            OrganisationBusinessRuleError: If decrement would go below zero
+        """
+        pass
+    
     # @abstractmethod
     # async def delete(self, organisation_id: OrganisationId) -> bool:
     #     """
@@ -103,7 +135,18 @@ class OrganisationQueryRepository(ABC):
         """
         pass
     
-
+    @abstractmethod
+    async def get_by_hostname(self, hostname: str) -> Optional[Organisation]:
+        """
+        Get organisation by hostname.
+        
+        Args:
+            hostname: Organisation hostname to search for
+            
+        Returns:
+            Organisation entity if found, None otherwise
+        """
+        pass
     
     @abstractmethod
     async def get_all(

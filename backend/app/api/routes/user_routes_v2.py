@@ -313,7 +313,14 @@ async def get_user_by_id(
             "created_at": format_date(safe_get(user, 'created_at')),
             "updated_at": format_date(safe_get(user, 'updated_at')),
             "is_active": safe_get(user, 'is_active', True),
-            "last_login_at": format_date(safe_get(user, 'last_login_at'))
+            "last_login_at": format_date(safe_get(user, 'last_login_at')),
+            # Banking details
+            "bank_account_number": safe_get(user.bank_details, 'account_number') if hasattr(user, 'bank_details') and user.bank_details else '',
+            "bank_name": safe_get(user.bank_details, 'bank_name') if hasattr(user, 'bank_details') and user.bank_details else '',
+            "ifsc_code": safe_get(user.bank_details, 'ifsc_code') if hasattr(user, 'bank_details') and user.bank_details else '',
+            "account_holder_name": safe_get(user.bank_details, 'account_holder_name') if hasattr(user, 'bank_details') and user.bank_details else '',
+            "branch_name": safe_get(user.bank_details, 'branch_name') if hasattr(user, 'bank_details') and user.bank_details else '',
+            "account_type": safe_get(user.bank_details, 'account_type') if hasattr(user, 'bank_details') and user.bank_details else ''
         }
         
         logger.info(f"Returning user data with fields: {list(user_data.keys())}")
@@ -454,7 +461,14 @@ async def update_user(
             "created_at": format_date(safe_get(result, 'created_at')),
             "updated_at": format_date(safe_get(result, 'updated_at')),
             "is_active": safe_get(result, 'is_active', True),
-            "last_login_at": format_date(safe_get(result, 'last_login_at'))
+            "last_login_at": format_date(safe_get(result, 'last_login_at')),
+            # Banking details
+            "bank_account_number": safe_get(result.bank_details, 'account_number') if hasattr(result, 'bank_details') and result.bank_details else '',
+            "bank_name": safe_get(result.bank_details, 'bank_name') if hasattr(result, 'bank_details') and result.bank_details else '',
+            "ifsc_code": safe_get(result.bank_details, 'ifsc_code') if hasattr(result, 'bank_details') and result.bank_details else '',
+            "account_holder_name": safe_get(result.bank_details, 'account_holder_name') if hasattr(result, 'bank_details') and result.bank_details else '',
+            "branch_name": safe_get(result.bank_details, 'branch_name') if hasattr(result, 'bank_details') and result.bank_details else '',
+            "account_type": safe_get(result.bank_details, 'account_type') if hasattr(result, 'bank_details') and result.bank_details else ''
         }
         
         return user_data

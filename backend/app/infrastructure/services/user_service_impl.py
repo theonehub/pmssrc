@@ -15,9 +15,13 @@ from app.application.interfaces.services.user_service import (
 )
 from app.application.interfaces.repositories.user_repository import UserRepository
 from app.application.interfaces.repositories.company_leave_repository import CompanyLeaveQueryRepository
+from app.application.interfaces.repositories.organisation_repository import (
+    OrganisationQueryRepository, OrganisationCommandRepository
+)
 from app.application.use_cases.user.create_user_use_case import CreateUserUseCase
 from app.application.use_cases.user.authenticate_user_use_case import AuthenticateUserUseCase
 from app.application.use_cases.user.get_user_use_case import GetUserUseCase
+from app.application.use_cases.user.delete_user_use_case import DeleteUserUseCase
 from app.application.dto.user_dto import (
     CreateUserRequestDTO, UpdateUserRequestDTO, UpdateUserDocumentsRequestDTO,
     ChangeUserPasswordRequestDTO, ChangeUserRoleRequestDTO, UserStatusUpdateRequestDTO,
@@ -54,7 +58,9 @@ class UserServiceImpl(UserService):
     def __init__(
         self,
         user_repository: UserRepository,
-        company_leave_repository: CompanyLeaveQueryRepository,
+        company_leave_query_repository: CompanyLeaveQueryRepository,
+        organisation_query_repository: OrganisationQueryRepository,
+        organisation_command_repository: OrganisationCommandRepository,
         password_service: PasswordService,
         notification_service: NotificationService,
         file_upload_service: FileUploadService
@@ -64,13 +70,17 @@ class UserServiceImpl(UserService):
         
         Args:
             user_repository: User repository for data access
-            company_leave_repository: Company leave repository for data access
+            company_leave_query_repository: Company leave repository for data access
+            organisation_query_repository: Organisation repository for data access
+            organisation_command_repository: Organisation command repository for data access
             password_service: Service for password operations
             notification_service: Service for sending notifications
             file_upload_service: Service for file operations
         """
         self.user_repository = user_repository
-        self.company_leave_repository = company_leave_repository
+        self.company_leave_query_repository = company_leave_query_repository
+        self.organisation_query_repository = organisation_query_repository
+        self.organisation_command_repository = organisation_command_repository
         self.password_service = password_service
         self.notification_service = notification_service
         self.file_upload_service = file_upload_service
@@ -81,13 +91,25 @@ class UserServiceImpl(UserService):
             query_repository=user_repository,
             validation_service=self,
             notification_service=self,
-            company_leave_query_repository=self.company_leave_repository
+            company_leave_query_repository=company_leave_query_repository,
+            organisation_query_repository=organisation_query_repository,
+            organisation_command_repository=organisation_command_repository
         )
         self._authenticate_user_use_case = AuthenticateUserUseCase(
-            user_repository, user_repository, self
+            command_repository=user_repository,
+            query_repository=user_repository,
+            notification_service=self
         )
         self._get_user_use_case = GetUserUseCase(
-            user_repository, self
+            query_repository=user_repository,
+            authorization_service=self
+        )
+        self._delete_user_use_case = DeleteUserUseCase(
+            command_repository=user_repository,
+            query_repository=user_repository,
+            organisation_query_repository=organisation_query_repository,
+            organisation_command_repository=organisation_command_repository,
+            notification_service=self
         )
     
     # Command Service Implementation
@@ -166,6 +188,25 @@ class UserServiceImpl(UserService):
                 # Also update the direct date_of_joining field on the User entity for consistency
                 if request.date_of_joining:
                     user.date_of_joining = request.date_of_joining
+            
+            # Update banking details if any banking fields are provided
+            if any([request.bank_account_number, request.bank_name, request.ifsc_code, 
+                   request.account_holder_name, request.branch_name, request.account_type]):
+                
+                from app.domain.value_objects.bank_details import BankDetails
+                
+                # Create updated bank details
+                updated_bank_details = BankDetails(
+                    account_number=request.bank_account_number or '',
+                    bank_name=request.bank_name or '',
+                    ifsc_code=request.ifsc_code or '',
+                    account_holder_name=request.account_holder_name or '',
+                    branch_name=request.branch_name or '',
+                    account_type=request.account_type or 'savings'
+                )
+                
+                # Update the user's bank details
+                user.update_bank_details(updated_bank_details, request.updated_by)
             
             # Save updated user
             updated_user = await self.user_repository.save(user, current_user.hostname)
@@ -365,8 +406,14 @@ class UserServiceImpl(UserService):
         try:
             logger.info(f"Deleting user: {employee_id} (soft: {soft_delete})")
             
-            # Perform deletion
-            result = await self.user_repository.delete(EmployeeId(employee_id), soft_delete, current_user.hostname)
+            # Use the delete user use case
+            result = await self._delete_user_use_case.execute(
+                employee_id=employee_id,
+                deletion_reason=deletion_reason,
+                current_user=current_user,
+                deleted_by=deleted_by or current_user.employee_id,
+                soft_delete=soft_delete
+            )
             
             if result:
                 logger.info(f"User deleted successfully: {employee_id}")
@@ -508,11 +555,74 @@ class UserServiceImpl(UserService):
             logger.error(f"Error getting users by department {department}: {e}")
             raise
     
-    async def get_users_by_manager(self, manager_id: str, current_user: "CurrentUser") -> List[UserSummaryDTO]:
-        """Get users by manager."""
+    async def get_users_by_manager(
+        self, 
+        manager_id: str, 
+        current_user: "CurrentUser",
+        skip: int = 0,
+        limit: int = 20,
+        include_inactive: bool = False,
+        include_deleted: bool = False
+    ) -> UserListResponseDTO:
+        """Get users by manager with pagination."""
         try:
+            logger.info(f"Getting users by manager {manager_id} in organisation {current_user.hostname}")
+            
+            # Get users by manager
             users = await self.user_repository.get_by_manager(EmployeeId(manager_id), current_user.hostname)
-            return [UserSummaryDTO.from_entity(user) for user in users]
+            
+            # Apply filters
+            filtered_users = []
+            for user in users:
+                # Apply status filters
+                if not include_inactive and user.status != UserStatus.ACTIVE:
+                    continue
+                if not include_deleted and getattr(user, 'is_deleted', False):
+                    continue
+                filtered_users.append(user)
+            
+            # Apply pagination
+            total_count = len(filtered_users)
+            paginated_users = filtered_users[skip:skip + limit]
+            
+            # Convert to DTOs
+            user_summaries = [UserSummaryDTO.from_entity(user) for user in paginated_users]
+            
+            # Calculate pagination info
+            page = (skip // limit) + 1 if limit > 0 else 1
+            total_pages = (total_count + limit - 1) // limit if limit > 0 else 1
+            has_next = skip + limit < total_count
+            has_previous = skip > 0
+            
+            return UserListResponseDTO(
+                users=user_summaries,
+                total_count=total_count,
+                page=page,
+                page_size=limit,
+                total_pages=total_pages,
+                has_next=has_next,
+                has_previous=has_previous
+            )
+            
+        except Exception as e:
+            logger.error(f"Error getting users by manager {manager_id}: {e}")
+            raise
+    
+    async def get_users_by_manager_simple(
+        self, 
+        manager_id: str, 
+        current_user: "CurrentUser"
+    ) -> List[UserResponseDTO]:
+        """Get users by manager (simple version matching interface)."""
+        try:
+            logger.info(f"Getting users by manager {manager_id} in organisation {current_user.hostname}")
+            
+            # Get users by manager
+            users = await self.user_repository.get_by_manager(EmployeeId(manager_id), current_user.hostname)
+            
+            # Convert to response DTOs
+            return [UserResponseDTO.from_entity(user) for user in users]
+            
         except Exception as e:
             logger.error(f"Error getting users by manager {manager_id}: {e}")
             raise

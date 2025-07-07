@@ -140,13 +140,23 @@ class UserController:
     ) -> UserListResponseDTO:
         """Get all users with pagination and organisation context."""
         try:
-            return await self.user_service.get_all_users(
-                skip=skip,
-                limit=limit,
-                include_inactive=include_inactive,
-                include_deleted=include_deleted,
-                current_user=current_user
-            )
+            if current_user.role == 'superadmin' or current_user.role == 'admin':
+                return await self.user_service.get_all_users(
+                    skip=skip,
+                    limit=limit,
+                    include_inactive=include_inactive,
+                    include_deleted=include_deleted,
+                    current_user=current_user
+                )
+            else:
+                return await self.user_service.get_users_by_manager(
+                    manager_id=current_user.employee_id,
+                    current_user=current_user,
+                    skip=skip,
+                    limit=limit,
+                    include_inactive=include_inactive,
+                    include_deleted=include_deleted
+                )
         except Exception as e:
             logger.error(f"Error getting all users in organisation {current_user.hostname if current_user else 'unknown'}: {e}")
             raise HTTPException(status_code=500, detail="Internal server error")
@@ -281,7 +291,7 @@ class UserController:
     ) -> List[UserResponseDTO]:
         """Get users by manager with organisation context."""
         try:
-            return await self.user_service.get_users_by_manager(manager_id, current_user)
+            return await self.user_service.get_users_by_manager_simple(manager_id, current_user)
         except Exception as e:
             logger.error(f"Error getting users by manager {manager_id} in organisation {current_user.hostname}: {e}")
             raise HTTPException(status_code=500, detail="Internal server error")

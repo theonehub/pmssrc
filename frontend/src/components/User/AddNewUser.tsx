@@ -380,6 +380,27 @@ const AddNewUser: React.FC = () => {
         } else {
           errorMessage = 'Validation failed';
         }
+      } else if (error.response?.data?.message) {
+        // Handle specific error messages
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 422) {
+        // Handle 422 validation errors
+        if (error.response.data?.detail?.includes('employee strength') || 
+            error.response.data?.detail?.includes('capacity') ||
+            error.response.data?.detail?.includes('employee limit')) {
+          errorMessage = 'Cannot create user: Organisation has reached its employee capacity limit. Please contact your administrator.';
+        } else {
+          errorMessage = 'Validation failed. Please check your input and try again.';
+        }
+      } else if (error.response?.status === 400) {
+        // Handle 400 bad request errors
+        if (error.response.data?.detail?.includes('employee strength') || 
+            error.response.data?.detail?.includes('capacity') ||
+            error.response.data?.detail?.includes('employee limit')) {
+          errorMessage = 'Cannot create user: Organisation has reached its employee capacity limit. Please contact your administrator.';
+        } else {
+          errorMessage = 'Invalid request. Please check your input and try again.';
+        }
       }
       
       showToast(errorMessage, 'error');

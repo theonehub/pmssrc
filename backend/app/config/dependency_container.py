@@ -207,7 +207,9 @@ class DependencyContainer:
             # User service
             self._services['user'] = UserServiceImpl(
                 user_repository=self._repositories['user'],
-                company_leave_repository=self._repositories['company_leave'],
+                company_leave_query_repository=self._repositories['company_leave'],
+                organisation_query_repository=self._repositories['organisation'],
+                organisation_command_repository=self._repositories['organisation'],
                 password_service=self._password_service,
                 notification_service=self._notification_service,
                 file_upload_service=self._file_upload_service

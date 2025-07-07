@@ -76,7 +76,10 @@ class OrganisationController:
         logger.info(f"Getting organisation: {organisation_id}")
         return await self.get_use_case.execute_by_id(organisation_id)
 
-
+    async def get_organisation_by_hostname(self, hostname: str) -> Optional[OrganisationResponseDTO]:
+        """Get organisation by hostname"""
+        logger.info(f"Getting organisation by hostname: {hostname}")
+        return await self.get_use_case.execute_by_hostname(hostname)
 
     async def update_organisation(
         self, 
@@ -106,8 +109,6 @@ class OrganisationController:
             deleted_by=deleted_by
         )
 
-
-
     async def get_organisation_statistics(
         self, 
         start_date=None, 
@@ -119,5 +120,26 @@ class OrganisationController:
             start_date=start_date,
             end_date=end_date
         )
+
+    async def check_name_exists(self, name: str) -> bool:
+        """Check if organisation name exists"""
+        logger.info(f"Checking if organisation name exists: {name}")
+        # This would need to be implemented in the use case
+        # For now, return False as a placeholder
+        return False
+
+    async def check_hostname_exists(self, hostname: str) -> bool:
+        """Check if organisation hostname exists"""
+        logger.info(f"Checking if organisation hostname exists: {hostname}")
+        # This would need to be implemented in the use case
+        # For now, return False as a placeholder
+        return False
+
+    async def check_pan_exists(self, pan_number: str) -> bool:
+        """Check if organisation PAN number exists"""
+        logger.info(f"Checking if organisation PAN number exists: {pan_number}")
+        # This would need to be implemented in the use case
+        # For now, return False as a placeholder
+        return False
 
  

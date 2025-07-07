@@ -289,40 +289,37 @@ class MongoDBOrganisationRepository(OrganisationRepository):
     async def save_batch(self, organisations: List[Organisation]) -> List[Organisation]:
         """Save multiple organisations in a batch operation."""
         try:
-            await self._ensure_indexes()
             collection = await self._get_collection()
+            saved_organisations = []
             
-            # Prepare bulk operations
-            operations = []
             for organisation in organisations:
                 document = self._organisation_to_document(organisation)
-                if not document.get('created_at'):
-                    document['created_at'] = datetime.utcnow()
-                document['updated_at'] = datetime.utcnow()
                 
-                operations.append({
-                    "replaceOne": {
-                        "filter": {"organisation_id": str(organisation.organisation_id)},
-                        "replacement": document,
-                        "upsert": True
-                    }
-                })
-            
-            # Execute bulk write
-            if operations:
-                await collection.bulk_write(operations)
+                if organisation.is_new():
+                    # Insert new organisation
+                    result = await collection.insert_one(document)
+                    document["_id"] = result.inserted_id
+                    logger.info(f"Saved new organisation: {organisation.organisation_id}")
+                else:
+                    # Update existing organisation
+                    result = await collection.replace_one(
+                        {"organisation_id": str(organisation.organisation_id)},
+                        document
+                    )
+                    if result.modified_count > 0 or result.matched_count > 0:
+                        logger.info(f"Updated organisation: {organisation.organisation_id}")
                 
-                # Publish events for all organisations
-                for organisation in organisations:
-                    if hasattr(organisation, 'get_domain_events'):
-                        await self._publish_events(organisation.get_domain_events())
-                        organisation.clear_domain_events()
+                # Publish domain events
+                if hasattr(organisation, 'get_domain_events'):
+                    await self._publish_events(organisation.get_domain_events())
+                    organisation.clear_domain_events()
+                
+                saved_organisations.append(organisation)
             
-            logger.info(f"Batch saved {len(organisations)} organisations")
-            return organisations
+            return saved_organisations
             
         except Exception as e:
-            logger.error(f"Error in batch save: {e}")
+            logger.error(f"Error saving organisations batch: {e}")
             raise
     
     async def update(self, organisation: Organisation) -> Organisation:
@@ -359,7 +356,7 @@ class MongoDBOrganisationRepository(OrganisationRepository):
         try:
             collection = await self._get_collection()
             document = await collection.find_one({
-                "hostname": str(organisation_id),
+                "organisation_id": str(organisation_id),
                 "is_deleted": {"$ne": True}
             })
             
@@ -372,7 +369,23 @@ class MongoDBOrganisationRepository(OrganisationRepository):
             logger.error(f"Error getting organisation by ID {organisation_id}: {e}")
             raise
     
-
+    async def get_by_hostname(self, hostname: str) -> Optional[Organisation]:
+        """Get organisation by hostname."""
+        try:
+            collection = await self._get_collection()
+            document = await collection.find_one({
+                "hostname": hostname,
+                "is_deleted": {"$ne": True}
+            })
+            
+            if document:
+                return self._document_to_organisation(document)
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting organisation by hostname {hostname}: {e}")
+            raise
     
     async def search(self, filters: OrganisationSearchFiltersDTO) -> List[Organisation]:
         """Search organisations with filters."""
@@ -1475,4 +1488,66 @@ class MongoDBOrganisationRepository(OrganisationRepository):
     
     def create_bulk_operations_repository(self) -> OrganisationBulkOperationsRepository:
         """Create bulk operations repository instance."""
-        return self 
+        return self
+    
+    async def increment_used_employee_strength(self, organisation_id: OrganisationId) -> bool:
+        """Increment the used employee strength for an organisation."""
+        try:
+            collection = await self._get_collection()
+            
+            # Use findOneAndUpdate to atomically check and increment
+            result = await collection.find_one_and_update(
+                {
+                    "organisation_id": str(organisation_id),
+                    "is_deleted": {"$ne": True},
+                    "$expr": {
+                        "$lt": ["$used_employee_strength", "$employee_strength"]
+                    }
+                },
+                {
+                    "$inc": {"used_employee_strength": 1}
+                },
+                return_document=True
+            )
+            
+            if result:
+                logger.info(f"Incremented used_employee_strength for organisation {organisation_id}")
+                return True
+            else:
+                logger.warning(f"Could not increment used_employee_strength for organisation {organisation_id} - may be at capacity or not found")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error incrementing used_employee_strength for organisation {organisation_id}: {e}")
+            raise
+    
+    async def decrement_used_employee_strength(self, organisation_id: OrganisationId) -> bool:
+        """Decrement the used employee strength for an organisation."""
+        try:
+            collection = await self._get_collection()
+            
+            # Use findOneAndUpdate to atomically check and decrement
+            result = await collection.find_one_and_update(
+                {
+                    "organisation_id": str(organisation_id),
+                    "is_deleted": {"$ne": True},
+                    "$expr": {
+                        "$gt": ["$used_employee_strength", 0]
+                    }
+                },
+                {
+                    "$inc": {"used_employee_strength": -1}
+                },
+                return_document=True
+            )
+            
+            if result:
+                logger.info(f"Decremented used_employee_strength for organisation {organisation_id}")
+                return True
+            else:
+                logger.warning(f"Could not decrement used_employee_strength for organisation {organisation_id} - may be at zero or not found")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error decrementing used_employee_strength for organisation {organisation_id}: {e}")
+            raise 

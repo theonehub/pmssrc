@@ -446,6 +446,30 @@ async def check_pan_availability(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+@organisation_v2_router.get("/current/organisation", response_model=OrganisationResponseDTO)
+async def get_current_organisation(
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: OrganisationController = Depends(get_organisation_controller)
+):
+    """Get current user's organisation based on hostname"""
+    try:
+        logger.info(f"Getting current organisation for user: {current_user.employee_id} with hostname: {current_user.hostname}")
+        
+        # Get organisation by hostname
+        response = await controller.get_organisation_by_hostname(current_user.hostname)
+        
+        if not response:
+            raise HTTPException(status_code=404, detail="Organisation not found for current user")
+        
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting current organisation for user {current_user.employee_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 # ==================== HEALTH CHECK ENDPOINT ====================
 
 @organisation_v2_router.get("/health")

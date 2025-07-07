@@ -69,6 +69,8 @@ app.mount("/files", StaticFiles(directory=UPLOAD_DIR), name="files")
 app.include_router(auth_routes_v2_router, tags=["🔐 Authentication V2 (SOLID)"])
 app.include_router(user_routes_v2_router, tags=["👥 Users V2 (SOLID)"])
 app.include_router(organisation_v2_router, tags=["🏛️ Organisation V2 (SOLID)"])
+# Add alias for American spelling "organizations"
+app.include_router(organisation_v2_router, prefix="/api/v2/organizations", tags=["🏛️ Organizations V2 (SOLID)"])
 app.include_router(company_leave_routes_v2_router, tags=["🏢 Company Leaves V2 (SOLID)"])
 app.include_router(employee_leave_routes_v2_router, tags=["🏖️ Employee Leaves V2 (SOLID)"])
 app.include_router(leaves_routes_v2_router, tags=["🏖️ Leaves V2 (Frontend Compatible)"])

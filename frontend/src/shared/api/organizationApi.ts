@@ -208,7 +208,7 @@ class OrganizationAPI {
    */
   async getCurrentOrganization(): Promise<Organization> {
     try {
-      const response = await this.baseApi.get<Organization>('/api/v2/organizations/current');
+      const response = await this.baseApi.get<Organization>('/api/v2/organisations/current/organisation');
       return response;
     } catch (error: any) {
       console.error('Error fetching current organization:', error);

@@ -30,6 +30,12 @@ from app.application.interfaces.repositories.user_repository import (
 from app.application.interfaces.repositories.company_leave_repository import (
     CompanyLeaveQueryRepository
 )
+from app.application.interfaces.repositories.organisation_repository import (
+    OrganisationQueryRepository
+)
+from app.application.interfaces.repositories.organisation_repository import (
+    OrganisationCommandRepository
+)
 from app.application.interfaces.services.user_service import (
     UserValidationService, UserNotificationService
 )
@@ -60,6 +66,7 @@ class CreateUserUseCase:
     7. Personal details must be valid
     8. User role must be valid
     9. Manager must exist (if assigned)
+    10. Organisation must have available employee capacity
     """
     
     def __init__(
@@ -68,13 +75,17 @@ class CreateUserUseCase:
         query_repository: UserQueryRepository,
         validation_service: UserValidationService,
         notification_service: UserNotificationService,
-        company_leave_query_repository: CompanyLeaveQueryRepository
+        company_leave_query_repository: CompanyLeaveQueryRepository,
+        organisation_query_repository: OrganisationQueryRepository,
+        organisation_command_repository: OrganisationCommandRepository
     ):
         self.command_repository = command_repository
         self.query_repository = query_repository
         self.validation_service = validation_service
         self.notification_service = notification_service
         self.company_leave_query_repository = company_leave_query_repository
+        self.organisation_query_repository = organisation_query_repository
+        self.organisation_command_repository = organisation_command_repository
     
     async def execute(self, request: CreateUserRequestDTO, current_user: CurrentUser) -> UserResponseDTO:
         """
@@ -99,18 +110,21 @@ class CreateUserUseCase:
         # Step 2: Check uniqueness constraints
         await self._check_uniqueness_constraints(request, current_user)
         
-        # Step 3: Create value objects
+        # Step 3: Check organisation employee capacity
+        await self._check_organisation_capacity(current_user)
+        
+        # Step 4: Create value objects
         employee_id = EmployeeId(request.employee_id)
         personal_details = self._create_personal_details(request)
         documents = self._create_user_documents(request)
         bank_details = self._create_bank_details(request)
         
-        # Step 3.5: Calculate initial leave balance based on company policies
+        # Step 4.5: Calculate initial leave balance based on company policies
         initial_leave_balances = await self._calculate_initial_leave_balance(
             UserRole(request.role.lower()), current_user
         )
         
-        # Step 4: Create user entity
+        # Step 5: Create user entity
         user = User.create_new_user(
             employee_id=employee_id,
             name=request.name,
@@ -127,25 +141,28 @@ class CreateUserUseCase:
             created_by=request.created_by
         )
         
-        # Step 4.5: Set documents and leave balances after user creation
+        # Step 5.5: Set documents and leave balances after user creation
         user.update_documents(documents, user.created_by or "system")
         # Set initial leave balances for each leave type
         for leave_name, balance in initial_leave_balances.items():
             user.update_leave_balance(leave_name, float(balance))
         
-        # Step 5: Validate business rules
+        # Step 6: Validate business rules
         await self._validate_business_rules(user)
         
-        # Step 6: Save user
+        # Step 7: Save user
         saved_user = await self.command_repository.save(user, current_user.hostname)
         
-        # Step 7: Send notifications (non-blocking)
+        # Step 8: Increment organisation used employee strength
+        await self._increment_organisation_employee_strength(current_user)
+        
+        # Step 9: Send notifications (non-blocking)
         try:
             await self.notification_service.send_user_created_notification(saved_user)
         except Exception as e:
             logger.warning(f"Failed to send user created notification: {e}")
         
-        # Step 8: Convert to response DTO
+        # Step 10: Convert to response DTO
         response = self._convert_to_response_dto(saved_user)
         
         logger.info(f"User created successfully: {saved_user.employee_id}")
@@ -288,7 +305,77 @@ class CreateUserUseCase:
                 "Sick Leave": 0
             }
     
-
+    async def _check_organisation_capacity(self, current_user: CurrentUser) -> None:
+        """
+        Check if organisation has available employee capacity.
+        
+        Args:
+            current_user: Current authenticated user with organisation context
+            
+        Raises:
+            UserBusinessRuleError: If organisation is at capacity
+        """
+        try:
+            # Get organisation by hostname
+            organisation = await self.organisation_query_repository.get_by_hostname(current_user.hostname)
+            
+            if not organisation:
+                raise UserBusinessRuleError(
+                    "Organisation not found",
+                    "organisation_not_found"
+                )
+            
+            # Check if organisation has available capacity
+            if not organisation.has_available_employee_capacity():
+                available_capacity = organisation.get_available_employee_capacity()
+                total_capacity = organisation.employee_strength
+                used_capacity = organisation.used_employee_strength
+                
+                raise UserBusinessRuleError(
+                    f"Organisation employee capacity limit reached. "
+                    f"Total capacity: {total_capacity}, Used: {used_capacity}, Available: {available_capacity}. "
+                    f"Please increase employee strength limit or remove inactive users.",
+                    "organisation_capacity_limit_reached"
+                )
+            
+            logger.info(f"Organisation capacity check passed. Available: {organisation.get_available_employee_capacity()}")
+            
+        except UserBusinessRuleError:
+            raise
+        except Exception as e:
+            logger.error(f"Error checking organisation capacity: {e}")
+            raise UserBusinessRuleError(
+                "Failed to check organisation capacity",
+                "capacity_check_failed"
+            )
+    
+    async def _increment_organisation_employee_strength(self, current_user: CurrentUser) -> None:
+        """
+        Increment organisation used employee strength.
+        
+        Args:
+            current_user: Current authenticated user with organisation context
+        """
+        try:
+            # Get organisation by hostname
+            organisation = await self.organisation_query_repository.get_by_hostname(current_user.hostname)
+            
+            if organisation:
+                # Use the dedicated increment method from command repository
+                success = await self.organisation_command_repository.increment_used_employee_strength(organisation.organisation_id)
+                
+                if success:
+                    logger.info(f"Incremented organisation employee strength for organisation: {organisation.organisation_id}")
+                else:
+                    logger.warning(f"Could not increment organisation employee strength for organisation: {organisation.organisation_id} - may be at capacity")
+            else:
+                logger.warning(f"Organisation not found for hostname: {current_user.hostname}")
+                
+        except Exception as e:
+            logger.error(f"Error incrementing organisation employee strength: {e}")
+            # Don't fail user creation if this fails, but log the error
+            # This is a non-critical operation
+    
     def _convert_to_response_dto(self, user: User) -> UserResponseDTO:
         """Convert user entity to response DTO"""
         return UserResponseDTO(

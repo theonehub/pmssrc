@@ -62,6 +62,12 @@ interface User {
   updated_at?: string;
   is_active?: boolean;
   status?: string;
+  bank_account_number?: string;
+  bank_name?: string;
+  ifsc_code?: string;
+  account_holder_name?: string;
+  branch_name?: string;
+  account_type?: string;
 }
 
 interface UserFormData {
@@ -82,6 +88,13 @@ interface UserFormData {
   location: string;
   esi_number: string;
   password: string;
+  // Banking details
+  bank_account_number: string;
+  bank_name: string;
+  ifsc_code: string;
+  account_holder_name: string;
+  branch_name: string;
+  account_type: string;
 }
 
 interface FileState {
@@ -122,7 +135,14 @@ const UserEdit: React.FC = () => {
     designation: '',
     location: '',
     esi_number: '',
-    password: ''
+    password: '',
+    // Banking details
+    bank_account_number: '',
+    bank_name: '',
+    ifsc_code: '',
+    account_holder_name: '',
+    branch_name: '',
+    account_type: ''
   });
   const [files, setFiles] = useState<FileState>({
     panFile: null,
@@ -220,7 +240,14 @@ const UserEdit: React.FC = () => {
           designation: userData.designation || '',
           location: userData.location || '',
           esi_number: userData.esi_number || '',
-          password: ''  // Empty password for updates
+          password: '',  // Empty password for updates
+          // Banking details
+          bank_account_number: userData.bank_account_number || '',
+          bank_name: userData.bank_name || '',
+          ifsc_code: userData.ifsc_code || '',
+          account_holder_name: userData.account_holder_name || '',
+          branch_name: userData.branch_name || '',
+          account_type: userData.account_type || ''
         };
         
         setFormData(newFormData);
@@ -773,6 +800,113 @@ const UserEdit: React.FC = () => {
                     ),
                   }}
                 />
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* Banking Details */}
+          <Card elevation={1}>
+            <CardContent>
+              <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <BusinessIcon />
+                Banking Details
+              </Typography>
+              <Divider sx={{ mb: 3 }} />
+              
+              <Box sx={{ 
+                display: 'grid', 
+                gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
+                gap: 3 
+              }}>
+                <TextField
+                  fullWidth
+                  label="Bank Name"
+                  value={formData.bank_name}
+                  onChange={(e) => handleChange('bank_name', e.target.value)}
+                  placeholder="e.g., State Bank of India"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <BusinessIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Account Holder Name"
+                  value={formData.account_holder_name}
+                  onChange={(e) => handleChange('account_holder_name', e.target.value)}
+                  placeholder="Account holder's full name"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <PersonIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Account Number"
+                  value={formData.bank_account_number}
+                  onChange={(e) => handleChange('bank_account_number', e.target.value)}
+                  placeholder="1234567890"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <NumbersIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="IFSC Code"
+                  value={formData.ifsc_code}
+                  onChange={(e) => handleChange('ifsc_code', e.target.value)}
+                  placeholder="SBIN0001234"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <NumbersIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                
+                <TextField
+                  fullWidth
+                  label="Branch Name"
+                  value={formData.branch_name}
+                  onChange={(e) => handleChange('branch_name', e.target.value)}
+                  placeholder="e.g., Main Branch"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LocationIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+                
+                <FormControl fullWidth>
+                  <InputLabel>Account Type</InputLabel>
+                  <Select
+                    value={formData.account_type}
+                    label="Account Type"
+                    onChange={(e) => handleSelectChange(e, 'account_type')}
+                  >
+                    <MenuItem value="savings">Savings Account</MenuItem>
+                    <MenuItem value="current">Current Account</MenuItem>
+                    <MenuItem value="salary">Salary Account</MenuItem>
+                    <MenuItem value="fixed_deposit">Fixed Deposit</MenuItem>
+                    <MenuItem value="recurring_deposit">Recurring Deposit</MenuItem>
+                  </Select>
+                </FormControl>
               </Box>
             </CardContent>
           </Card>

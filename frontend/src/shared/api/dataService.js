@@ -39,12 +39,12 @@ const transformBackendToFrontend = (backendUser) => {
     aadhar_document_path: backendUser.documents?.aadhar_document_path || backendUser.aadhar_document_path || '',
     photo_path: backendUser.documents?.photo_path || backendUser.photo_path || '',
     // Bank Details
-    bank_account_number: backendUser.bank_details?.account_number || '',
-    bank_name: backendUser.bank_details?.bank_name || '',
-    ifsc_code: backendUser.bank_details?.ifsc_code || '',
-    account_holder_name: backendUser.bank_details?.account_holder_name || '',
-    branch_name: backendUser.bank_details?.branch_name || '',
-    account_type: backendUser.bank_details?.account_type || ''
+    bank_account_number: backendUser.bank_details?.account_number || backendUser.bank_account_number || '',
+    bank_name: backendUser.bank_details?.bank_name || backendUser.bank_name || '',
+    ifsc_code: backendUser.bank_details?.ifsc_code || backendUser.ifsc_code || '',
+    account_holder_name: backendUser.bank_details?.account_holder_name || backendUser.account_holder_name || '',
+    branch_name: backendUser.bank_details?.branch_name || backendUser.branch_name || '',
+    account_type: backendUser.bank_details?.account_type || backendUser.account_type || ''
   };
   
   return transformed;

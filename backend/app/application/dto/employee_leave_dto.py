@@ -174,8 +174,8 @@ class EmployeeLeaveResponseDTO(BaseModel):
     approved_by: Optional[str] = None
     approved_date: Optional[str] = None
     reason: Optional[str] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
     
     @classmethod
     def from_entity(cls, entity: EmployeeLeave) -> 'EmployeeLeaveResponseDTO':
@@ -183,7 +183,9 @@ class EmployeeLeaveResponseDTO(BaseModel):
         return cls(
             leave_id=entity.leave_id,
             employee_id=entity.employee_id,
-            leave_type=entity.leave_name,
+            employee_name=getattr(entity, 'employee_name', ''),
+            employee_email=getattr(entity, 'employee_email', ''),
+            leave_type=entity.leave_name,  # Use leave_name for leave type
             start_date=entity.start_date.strftime("%Y-%m-%d"),
             end_date=entity.end_date.strftime("%Y-%m-%d"),
             leave_count=entity.applied_days,
@@ -192,8 +194,8 @@ class EmployeeLeaveResponseDTO(BaseModel):
             approved_by=entity.approved_by,
             approved_date=entity.approved_at.strftime("%Y-%m-%d") if entity.approved_at else None,
             reason=entity.reason,
-            created_at=entity.created_at,
-            updated_at=entity.updated_at
+            created_at=entity.created_at.strftime("%Y-%m-%d %H:%M:%S") if entity.created_at else None,
+            updated_at=entity.updated_at.strftime("%Y-%m-%d %H:%M:%S") if entity.updated_at else None
         )
     
     def to_dict(self) -> Dict[str, Any]:

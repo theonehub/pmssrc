@@ -36,6 +36,7 @@ interface Leave {
   employee_name: string;
   employee_email: string;
   leave_name: string;
+  leave_type: string;
   start_date: string;
   end_date: string;
   leave_count: number;
@@ -114,7 +115,7 @@ const AllLeaves: React.FC = () => {
     const matchesSearch = searchTerm === '' || 
       (leave.employee_name || leave.emp_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (leave.employee_email || leave.emp_email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      leave.leave_name.toLowerCase().includes(searchTerm.toLowerCase());
+      (leave.leave_name || leave.leave_type || '').toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesSearch;
   }) : [];
 
@@ -240,7 +241,7 @@ const AllLeaves: React.FC = () => {
                     <TableCell>{leave.employee_id}</TableCell>
                     <TableCell>{leave.employee_name || leave.emp_name}</TableCell>
                     <TableCell>{leave.employee_email || leave.emp_email}</TableCell>
-                    <TableCell>{leave.leave_name}</TableCell>
+                    <TableCell>{leave.leave_name || leave.leave_type}</TableCell>
                     <TableCell>{formatDate(leave.start_date)}</TableCell>
                     <TableCell>{formatDate(leave.end_date)}</TableCell>
                     <TableCell>{leave.leave_count}</TableCell>
@@ -313,7 +314,7 @@ const AllLeaves: React.FC = () => {
                 <strong>Employee:</strong> {selectedLeave.employee_name || selectedLeave.emp_name}
               </Typography>
               <Typography variant="body2" gutterBottom>
-                <strong>Leave Type:</strong> {selectedLeave.leave_name}
+                <strong>Leave Type:</strong> {selectedLeave.leave_name || selectedLeave.leave_type}
               </Typography>
               <Typography variant="body2" gutterBottom>
                 <strong>Duration:</strong> {formatDate(selectedLeave.start_date)} to {formatDate(selectedLeave.end_date)}

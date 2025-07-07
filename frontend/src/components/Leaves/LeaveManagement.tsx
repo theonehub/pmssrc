@@ -31,14 +31,13 @@ import {
   // Divider
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
-import { useLeavesQuery } from '../../shared/hooks/useLeaves';
-import { LeaveRequest, LeaveBalanceData, AlertState } from '../../shared/types';
+import { useLeavesQuery, useLeaveBalanceQuery } from '../../shared/hooks/useLeaves';
+import { LeaveRequest, AlertState } from '../../shared/types';
 import { apiClient } from '../../shared/api';
 
 // Add custom styled components for consistent styling
 
 const LeaveManagement: React.FC = () => {
-  const [leaveBalance, setLeaveBalance] = useState<LeaveBalanceData>({});
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [leaveType, setLeaveType] = useState<string>('');
@@ -53,8 +52,9 @@ const LeaveManagement: React.FC = () => {
     severity: 'success' 
   });
 
-  // Use React Query for leaves
+  // Use React Query for leaves and leave balance
   const { data: leavesData, isLoading: isLeavesLoading, error: leavesError, refetch } = useLeavesQuery();
+  const { data: leaveBalance, isLoading: isBalanceLoading, error: balanceError, refetch: refetchBalance } = useLeaveBalanceQuery();
   const leaves = Array.isArray(leavesData) ? leavesData : (leavesData?.data || []);
 
   React.useEffect(() => {
@@ -68,18 +68,18 @@ const LeaveManagement: React.FC = () => {
     // eslint-disable-next-line
   }, [leavesError]);
 
-  const fetchLeaveBalance = async (): Promise<void> => {
-    try {
-      const response = await apiClient.get('/api/v2/leaves/leave-balance');
-      setLeaveBalance(response.data);
-    } catch (error: any) {
+  React.useEffect(() => {
+    if (balanceError) {
       setAlert({
         open: true,
-        message: 'Failed to fetch leave balance',
-        severity: 'error'
+        message: balanceError.message || 'Failed to fetch leave balance',
+        severity: 'error',
       });
     }
-  };  
+    // eslint-disable-next-line
+  }, [balanceError]);
+
+  
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -117,7 +117,7 @@ const LeaveManagement: React.FC = () => {
         });
       }
       
-      fetchLeaveBalance();
+      refetchBalance();
       refetch();
       setShowModal(false);
       resetForm();
@@ -166,6 +166,12 @@ const LeaveManagement: React.FC = () => {
 
   const getLeaveTypeColor = (type: string): string => {
     const colors: Record<string, string> = {
+      'Casual Leave': 'primary.main',
+      'Sick Leave': 'warning.main',
+      'Earned Leave': 'success.main',
+      'Maternity Leave': 'info.main',
+      'Paternity Leave': 'secondary.main',
+      // Fallback for old format
       'casual_leave': 'primary.main',
       'sick_leave': 'warning.main',
       'earned_leave': 'success.main',
@@ -215,32 +221,44 @@ const LeaveManagement: React.FC = () => {
       {/* Leave Balance Cards */}
       <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>Leave Balance</Typography>
-        <Box sx={{ 
-          display: 'grid', 
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, 
-          gap: 2
-        }}>
-          {Object.entries(leaveBalance).map(([type, balance]) => (
-            <Card 
-              key={type}
-              sx={{ 
-                bgcolor: getLeaveTypeColor(type),
-                color: 'white',
-                height: '100%'
-              }}
-            >
-              <CardContent sx={{ textAlign: 'center' }}>
-                <Typography variant="h6" sx={{ mb: 1, textTransform: 'capitalize' }}>
-                  {type.replace('_', ' ')}
-                </Typography>
-                <Typography variant="h3" sx={{ mb: 1 }}>
-                  {String(balance)}
-                </Typography>
-                <Typography variant="body2">days remaining</Typography>
-              </CardContent>
-            </Card>
-          ))}
-        </Box>
+        {isBalanceLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+            <CircularProgress color="primary" />
+          </Box>
+        ) : leaveBalance && Object.keys(leaveBalance).length > 0 ? (
+          <Box sx={{ 
+            display: 'grid', 
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, 
+            gap: 2
+          }}>
+            {Object.entries(leaveBalance).map(([type, balance]) => (
+              <Card 
+                key={type}
+                sx={{ 
+                  bgcolor: getLeaveTypeColor(type),
+                  color: 'white',
+                  height: '100%'
+                }}
+              >
+                <CardContent sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6" sx={{ mb: 1, textTransform: 'capitalize' }}>
+                    {type}
+                  </Typography>
+                  <Typography variant="h3" sx={{ mb: 1 }}>
+                    {String(balance)}
+                  </Typography>
+                  <Typography variant="body2">days remaining</Typography>
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        ) : (
+          <Box sx={{ textAlign: 'center', py: 3 }}>
+            <Typography variant="body1" color="text.secondary">
+              No leave balance data available
+            </Typography>
+          </Box>
+        )}
       </Paper>
 
       {/* Leave History Table */}
@@ -283,7 +301,7 @@ const LeaveManagement: React.FC = () => {
                 ) : leaves.length > 0 ? (
                   leaves.map((leave: LeaveRequest) => (
                     <TableRow 
-                      key={leave.id}
+                      key={leave.leave_id || leave.id}
                       sx={{ 
                         '&:hover': { 
                           backgroundColor: 'action.hover',
@@ -291,7 +309,7 @@ const LeaveManagement: React.FC = () => {
                         }
                       }}
                     >
-                      <TableCell>{leave.leave_name}</TableCell>
+                      <TableCell>{leave.leave_type}</TableCell>
                       <TableCell>{leave.start_date}</TableCell>
                       <TableCell>{leave.end_date}</TableCell>
                       <TableCell>{leave.leave_count}</TableCell>
@@ -385,9 +403,9 @@ const LeaveManagement: React.FC = () => {
                 required
               >
                 <MenuItem value="">Select Leave Type</MenuItem>
-                {Object.keys(leaveBalance).map((type) => (
+                {leaveBalance && Object.keys(leaveBalance).map((type) => (
                   <MenuItem key={type} value={type}>
-                    {type.replace('_', ' ')}
+                    {type}
                   </MenuItem>
                 ))}
               </Select>

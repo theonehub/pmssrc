@@ -22,6 +22,10 @@ class EmployeeLeaveCreatedEvent(DomainEvent):
     applied_days: int
     created_by: str
     
+    def __post_init__(self):
+        """Initialize the base class after dataclass initialization"""
+        super().__init__(aggregate_id=self.employee_id)
+    
     def get_event_type(self) -> str:
         """Get the event type identifier"""
         return "EmployeeLeaveCreated"
@@ -45,8 +49,6 @@ class EmployeeLeaveCreatedEvent(DomainEvent):
     def from_dict(cls, data: Dict[str, Any]) -> 'EmployeeLeaveCreatedEvent':
         """Create event from dictionary representation"""
         event = cls(
-            aggregate_id=data["employee_id"],
-            occurred_at=datetime.fromisoformat(data["occurred_at"]),
             employee_id=data["employee_id"],
             leave_id=data["leave_id"],
             leave_name=data["leave_name"],
@@ -56,6 +58,7 @@ class EmployeeLeaveCreatedEvent(DomainEvent):
             created_by=data["created_by"]
         )
         event.event_id = data["event_id"]
+        event.occurred_at = datetime.fromisoformat(data["occurred_at"])
         return event
 
 
@@ -67,6 +70,10 @@ class EmployeeLeaveUpdatedEvent(DomainEvent):
     leave_id: str
     leave_name: str
     updated_by: str
+    
+    def __post_init__(self):
+        """Initialize the base class after dataclass initialization"""
+        super().__init__(aggregate_id=self.employee_id)
     
     def get_event_type(self) -> str:
         """Get the event type identifier"""
@@ -88,14 +95,13 @@ class EmployeeLeaveUpdatedEvent(DomainEvent):
     def from_dict(cls, data: Dict[str, Any]) -> 'EmployeeLeaveUpdatedEvent':
         """Create event from dictionary representation"""
         event = cls(
-            aggregate_id=data["employee_id"],
-            occurred_at=datetime.fromisoformat(data["occurred_at"]),
             employee_id=data["employee_id"],
             leave_id=data["leave_id"],
             leave_name=data["leave_name"],
             updated_by=data["updated_by"]
         )
         event.event_id = data["event_id"]
+        event.occurred_at = datetime.fromisoformat(data["occurred_at"])
         return event
 
 
@@ -108,6 +114,10 @@ class EmployeeLeaveDeletedEvent(DomainEvent):
     leave_name: str
     deleted_by: str
     deletion_reason: Optional[str] = None
+    
+    def __post_init__(self):
+        """Initialize the base class after dataclass initialization"""
+        super().__init__(aggregate_id=self.employee_id)
     
     def get_event_type(self) -> str:
         """Get the event type identifier"""
@@ -130,8 +140,6 @@ class EmployeeLeaveDeletedEvent(DomainEvent):
     def from_dict(cls, data: Dict[str, Any]) -> 'EmployeeLeaveDeletedEvent':
         """Create event from dictionary representation"""
         event = cls(
-            aggregate_id=data["employee_id"],
-            occurred_at=datetime.fromisoformat(data["occurred_at"]),
             employee_id=data["employee_id"],
             leave_id=data["leave_id"],
             leave_name=data["leave_name"],
@@ -139,6 +147,7 @@ class EmployeeLeaveDeletedEvent(DomainEvent):
             deletion_reason=data.get("deletion_reason")
         )
         event.event_id = data["event_id"]
+        event.occurred_at = datetime.fromisoformat(data["occurred_at"])
         return event
 
 

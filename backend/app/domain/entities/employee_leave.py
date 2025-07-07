@@ -22,6 +22,8 @@ class EmployeeLeave(BaseEntity):
     # Identity
     leave_id: str
     employee_id: str
+    employee_name: str
+    employee_email: str
     organisation_id: str
     
     # Leave details using leave_name instead of LeaveType
@@ -67,6 +69,8 @@ class EmployeeLeave(BaseEntity):
     def create(
         cls,
         employee_id: str,
+        employee_name: str,
+        employee_email: str,
         organisation_id: str,
         leave_name: str,
         start_date: date,
@@ -82,6 +86,8 @@ class EmployeeLeave(BaseEntity):
         
         Args:
             employee_id: ID of the employee
+            employee_name: Name of the employee
+            employee_email: Email of the employee
             organisation_id: ID of the organisation
             leave_name: Name of the leave type
             start_date: Leave start date
@@ -98,6 +104,8 @@ class EmployeeLeave(BaseEntity):
         return cls(
             leave_id=str(uuid.uuid4()),
             employee_id=employee_id,
+            employee_name=employee_name,
+            employee_email=employee_email,
             organisation_id=organisation_id,
             leave_name=leave_name,
             start_date=start_date,
@@ -114,6 +122,8 @@ class EmployeeLeave(BaseEntity):
         cls,
         legacy_leave_name: str,
         employee_id: str,
+        employee_name: str,
+        employee_email: str,
         organisation_id: str,
         start_date: date,
         end_date: date,
@@ -130,6 +140,8 @@ class EmployeeLeave(BaseEntity):
         return cls(
             leave_id=str(uuid.uuid4()),
             employee_id=employee_id,
+            employee_name=employee_name,
+            employee_email=employee_email,
             organisation_id=organisation_id,
             leave_name=legacy_leave_name,
             start_date=start_date,
@@ -301,6 +313,8 @@ class EmployeeLeave(BaseEntity):
         return {
             "leave_id": self.leave_id,
             "employee_id": self.employee_id,
+            "employee_name": self.employee_name,
+            "employee_email": self.employee_email,
             "organisation_id": self.organisation_id,
             "leave_name": self.leave_name,
             "start_date": self.start_date.isoformat(),

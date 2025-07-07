@@ -138,6 +138,7 @@ export interface CompanyLeave {
 export interface LeaveRequest {
   id?: string;
   _id?: string;
+  leave_id?: string;
   employee_id: string;
   leave_type: string;
   leave_name?: string;

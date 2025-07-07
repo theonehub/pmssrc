@@ -172,20 +172,37 @@ async def get_leave_balance(
     """Get leave balance for current user - Frontend compatible endpoint."""
     logger.info(f"Retrieving leave balance for: {current_user.employee_id}")
     
-    response = await controller.get_leave_balance(current_user.employee_id, current_user)
-    
-    # Transform to frontend format (key-value pairs of leave type and balance)
-    if hasattr(response, 'balances') and response.balances:
-        return response.balances
-    else:
-        # Default leave types if no balance data
-        return {
+    try:
+        response = await controller.get_leave_balance(current_user.employee_id, current_user)
+        logger.info(f"Controller response: {response}")
+        
+        # Transform to frontend format (key-value pairs of leave type and balance)
+        if hasattr(response, 'balances') and response.balances:
+            logger.info(f"Returning balances from response: {response.balances}")
+            return response.balances
+        else:
+            # Default leave types if no balance data
+            default_balances = {
+                "casual_leave": 12,
+                "sick_leave": 12,
+                "earned_leave": 21,
+                "maternity_leave": 180,
+                "paternity_leave": 15
+            }
+            logger.info(f"Returning default balances: {default_balances}")
+            return default_balances
+    except Exception as e:
+        logger.error(f"Error getting leave balance: {e}")
+        # Return default balances on error
+        default_balances = {
             "casual_leave": 12,
             "sick_leave": 12,
             "earned_leave": 21,
             "maternity_leave": 180,
             "paternity_leave": 15
         }
+        logger.info(f"Returning default balances due to error: {default_balances}")
+        return default_balances
 
 @router.get("/all", response_model=List[Dict[str, Any]])
 @handle_leave_exceptions

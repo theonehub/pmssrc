@@ -91,6 +91,8 @@ class ApplyEmployeeLeaveUseCase:
             # Create employee leave entity
             employee_leave = EmployeeLeave.create(
                 employee_id=current_user.employee_id,
+                employee_name=user_entity.name,
+                employee_email=user_entity.email,
                 organisation_id=organisation_id or current_user.hostname,
                 leave_name=request.get_leave_type(),
                 start_date=start_date,
@@ -112,8 +114,8 @@ class ApplyEmployeeLeaveUseCase:
             response = EmployeeLeaveResponseDTO(
                 leave_id=saved_leave.leave_id,
                 employee_id=saved_leave.employee_id,
-                employee_name=getattr(user_entity, 'name', None),
-                employee_email=getattr(user_entity, 'email', None),
+                employee_name=saved_leave.employee_name,
+                employee_email=saved_leave.employee_email,
                 leave_type=saved_leave.leave_name,
                 start_date=saved_leave.start_date.strftime("%Y-%m-%d"),
                 end_date=saved_leave.end_date.strftime("%Y-%m-%d"),
@@ -123,8 +125,8 @@ class ApplyEmployeeLeaveUseCase:
                 approved_by=saved_leave.approved_by,
                 approved_date=saved_leave.approved_at.strftime("%Y-%m-%d") if saved_leave.approved_at else None,
                 reason=saved_leave.reason,
-                created_at=saved_leave.created_at,
-                updated_at=saved_leave.updated_at
+                created_at=saved_leave.created_at.strftime("%Y-%m-%d %H:%M:%S") if saved_leave.created_at else None,
+                updated_at=saved_leave.updated_at.strftime("%Y-%m-%d %H:%M:%S") if saved_leave.updated_at else None
             )
             
             self._logger.info(f"Leave application submitted successfully: {saved_leave.leave_id}")

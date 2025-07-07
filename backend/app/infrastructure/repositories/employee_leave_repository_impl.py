@@ -139,6 +139,8 @@ class EmployeeLeaveRepositoryImpl(EmployeeLeaveRepository):
         return {
             "leave_id": employee_leave.leave_id,
             "employee_id": employee_leave.employee_id,
+            "employee_name": employee_leave.employee_name,
+            "employee_email": employee_leave.employee_email,
             "organisation_id": employee_leave.organisation_id,
             "leave_name": employee_leave.leave_name,
             "start_date": safe_date_conversion(employee_leave.start_date),
@@ -206,6 +208,8 @@ class EmployeeLeaveRepositoryImpl(EmployeeLeaveRepository):
         return EmployeeLeave(
             leave_id=document.get("leave_id"),
             employee_id=document.get("employee_id"),
+            employee_name=document.get("employee_name", ""),
+            employee_email=document.get("employee_email", ""),
             organisation_id=document.get("organisation_id"),
             leave_name=document.get("leave_name"),
             start_date=start_date,
@@ -255,8 +259,6 @@ class EmployeeLeaveRepositoryImpl(EmployeeLeaveRepository):
             events = []
             if result.upserted_id:
                 event = EmployeeLeaveCreatedEvent(
-                    aggregate_id=employee_leave.employee_id,
-                    occurred_at=datetime.utcnow(),
                     employee_id=employee_leave.employee_id,
                     leave_id=employee_leave.leave_id,
                     leave_name=employee_leave.leave_name,
@@ -269,8 +271,6 @@ class EmployeeLeaveRepositoryImpl(EmployeeLeaveRepository):
                 logger.info(f"Created employee leave: {employee_leave.leave_id}")
             else:
                 event = EmployeeLeaveUpdatedEvent(
-                    aggregate_id=employee_leave.employee_id,
-                    occurred_at=datetime.utcnow(),
                     employee_id=employee_leave.employee_id,
                     leave_id=employee_leave.leave_id,
                     leave_name=employee_leave.leave_name,
@@ -348,8 +348,6 @@ class EmployeeLeaveRepositoryImpl(EmployeeLeaveRepository):
             if result.modified_count > 0 or result.deleted_count > 0:
                 # Publish delete event
                 delete_event = EmployeeLeaveDeletedEvent(
-                    aggregate_id=employee_leave.employee_id,
-                    occurred_at=datetime.utcnow(),
                     employee_id=employee_leave.employee_id,
                     leave_id=leave_id,
                     leave_name=employee_leave.leave_name,
@@ -392,10 +390,10 @@ class EmployeeLeaveRepositoryImpl(EmployeeLeaveRepository):
             collection = await self._get_collection(organisation_id)
             
             # Convert EmployeeId to string if needed
-            #employee_id_str = employee_id.value if hasattr(employee_id, 'value') else str(employee_id)
+            employee_id_str = str(employee_id) if hasattr(employee_id, 'value') else str(employee_id)
             
             cursor = collection.find({
-                "employee_id": employee_id,
+                "employee_id": employee_id_str,
                 "is_deleted": {"$ne": True}
             }).sort("created_at", DESCENDING)
             

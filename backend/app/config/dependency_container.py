@@ -717,6 +717,8 @@ class DependencyContainer:
             approve_use_case = ApproveEmployeeLeaveUseCase(
                 command_repository=self._repositories['employee_leave'],
                 query_repository=self._repositories['employee_leave'],
+                user_query_repository=self._repositories['user'],
+                user_command_repository=self._repositories['user'],
                 event_publisher=self._get_event_publisher(),
                 email_service=None  # Email service not implemented yet
             )

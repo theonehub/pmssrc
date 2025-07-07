@@ -3,7 +3,7 @@ Leave Domain Events
 Events related to employee leave operations
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, date
 from typing import Optional, Dict, Any
 
@@ -160,12 +160,20 @@ class EmployeeLeaveApprovedEvent(DomainEvent):
     leave_name: str
     approved_by: str
     approved_days: int
-    
+    event_id: str = field(init=False, default=None)
+    aggregate_id: str = field(init=False, default=None)
+    occurred_at: datetime = field(init=False, default=None)
+
+    def __post_init__(self):
+        super().__init__(aggregate_id=self.employee_id)
+
+    def get_event_type(self) -> str:
+        return "EmployeeLeaveApproved"
+
     def to_dict(self) -> Dict[str, Any]:
-        """Convert event to dictionary"""
         return {
             "event_id": self.event_id,
-            "event_type": "EmployeeLeaveApproved",
+            "event_type": self.get_event_type(),
             "occurred_at": self.occurred_at.isoformat(),
             "employee_id": self.employee_id,
             "leave_id": self.leave_id,
@@ -173,6 +181,19 @@ class EmployeeLeaveApprovedEvent(DomainEvent):
             "approved_by": self.approved_by,
             "approved_days": self.approved_days
         }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'EmployeeLeaveApprovedEvent':
+        event = cls(
+            employee_id=data["employee_id"],
+            leave_id=data["leave_id"],
+            leave_name=data["leave_name"],
+            approved_by=data["approved_by"],
+            approved_days=data["approved_days"]
+        )
+        event.event_id = data["event_id"]
+        event.occurred_at = datetime.fromisoformat(data["occurred_at"])
+        return event
 
 
 @dataclass

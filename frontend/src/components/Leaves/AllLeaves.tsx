@@ -21,7 +21,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { toast } from 'react-toastify';
-import { useLeavesQuery } from '../../shared/hooks/useLeaves';
+import { useLeavesQuery, useApproveLeaveMutation } from '../../shared/hooks/useLeaves';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import Tooltip from '@mui/material/Tooltip';
@@ -58,8 +58,11 @@ const AllLeaves: React.FC = () => {
   // const [leaveStats, setLeaveStats] = useState<LeaveStats>({ total: 0, pending: 0 });
 
   // Use React Query for leaves
-  const { data: leavesData, isLoading, error: leavesError, refetch } = useLeavesQuery();
+  const { data: leavesData, isLoading, error: leavesError } = useLeavesQuery();
   const leaves: Leave[] = Array.isArray(leavesData) ? leavesData : (leavesData?.data || []);
+  
+  // Use mutation for leave approval/rejection
+  const approveLeaveMutation = useApproveLeaveMutation();
 
   React.useEffect(() => {
     if (leavesError) {
@@ -77,9 +80,17 @@ const AllLeaves: React.FC = () => {
     if (!selectedLeave) return;
 
     try {
-      await refetch();
+      await approveLeaveMutation.mutateAsync({
+        leaveId: selectedLeave.leave_id || selectedLeave.id,
+        approvalData: {
+          status: selectedLeave.action,
+          comments: selectedLeave.action === 'rejected' ? 'Leave rejected by manager' : 'Leave approved by manager'
+        }
+      });
+      
       toast.success(`Leave ${selectedLeave.action} successfully`);
       setOpenDialog(false);
+      setSelectedLeave(null);
     } catch (error: any) {
       if (process.env.NODE_ENV === 'development') {
         // eslint-disable-next-line no-console
@@ -269,6 +280,7 @@ const AllLeaves: React.FC = () => {
                               color="success"
                               onClick={() => handleApproveReject(leave, 'approved')}
                               size="small"
+                              disabled={approveLeaveMutation.isPending}
                             >
                               <CheckCircleIcon />
                             </IconButton>
@@ -278,6 +290,7 @@ const AllLeaves: React.FC = () => {
                               color="error"
                               onClick={() => handleApproveReject(leave, 'rejected')}
                               size="small"
+                              disabled={approveLeaveMutation.isPending}
                             >
                               <CancelIcon />
                             </IconButton>
@@ -326,13 +339,23 @@ const AllLeaves: React.FC = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
+          <Button 
+            onClick={handleCloseDialog}
+            disabled={approveLeaveMutation.isPending}
+          >
+            Cancel
+          </Button>
           <Button 
             onClick={handleConfirm} 
             color={selectedLeave?.action === 'approved' ? 'success' : 'error'}
             variant="contained"
+            disabled={approveLeaveMutation.isPending}
+            startIcon={approveLeaveMutation.isPending ? <CircularProgress size={16} /> : undefined}
           >
-            {selectedLeave?.action === 'approved' ? 'Approve' : 'Reject'}
+            {approveLeaveMutation.isPending 
+              ? (selectedLeave?.action === 'approved' ? 'Approving...' : 'Rejecting...')
+              : (selectedLeave?.action === 'approved' ? 'Approve' : 'Reject')
+            }
           </Button>
         </DialogActions>
       </Dialog>

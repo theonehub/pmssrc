@@ -67,6 +67,20 @@ class EmployeeLeaveCommandRepository(ABC):
         """
         pass
 
+    @abstractmethod
+    async def update(self, employee_leave: EmployeeLeave, organisation_id: Optional[str] = None) -> EmployeeLeave:
+        """
+        Update an existing employee leave application.
+        
+        Args:
+            employee_leave: Employee leave entity with updated fields
+            organisation_id: Organisation identifier
+            
+        Returns:
+            Updated EmployeeLeave entity
+        """
+        pass
+
 
 class EmployeeLeaveQueryRepository(ABC):
     """

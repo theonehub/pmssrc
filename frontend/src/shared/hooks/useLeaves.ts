@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../api';
 import { LeaveBalanceData } from '../types';
+import { leavesApi, LeaveApprovalRequest } from '../api/leavesApi';
 
 export const useLeavesQuery = (filters = {}) => {
   return useQuery({
@@ -18,6 +19,20 @@ export const useLeaveBalanceQuery = () => {
     queryFn: async (): Promise<LeaveBalanceData> => {
       const response = await apiClient.get('/api/v2/leaves/leave-balance');
       return response.data;
+    },
+  });
+};
+
+export const useApproveLeaveMutation = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ leaveId, approvalData }: { leaveId: string; approvalData: LeaveApprovalRequest }) => {
+      return await leavesApi.processLeaveRequest(leaveId, approvalData);
+    },
+    onSuccess: () => {
+      // Invalidate and refetch leaves data
+      queryClient.invalidateQueries({ queryKey: ['leaves'] });
     },
   });
 }; 

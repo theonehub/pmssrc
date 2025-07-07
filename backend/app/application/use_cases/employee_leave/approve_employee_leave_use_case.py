@@ -21,7 +21,9 @@ from app.application.interfaces.services.event_publisher import EventPublisher
 from app.application.interfaces.services.email_service import EmailService
 from app.domain.entities.employee_leave import EmployeeLeave
 from app.application.dto.employee_leave_dto import LeaveStatus
-from app.auth.auth import get_user_by_employee_id
+from app.auth.auth_dependencies import CurrentUser
+from app.application.interfaces.repositories.user_repository import UserQueryRepository, UserCommandRepository
+from app.domain.value_objects.employee_id import EmployeeId
 
 
 class ApproveEmployeeLeaveUseCase:
@@ -40,11 +42,15 @@ class ApproveEmployeeLeaveUseCase:
         self,
         command_repository: EmployeeLeaveCommandRepository,
         query_repository: EmployeeLeaveQueryRepository,
+        user_query_repository: UserQueryRepository,
+        user_command_repository: UserCommandRepository,
         event_publisher: Optional[EventPublisher] = None,
         email_service: Optional[EmailService] = None
     ):
         self._command_repository = command_repository
         self._query_repository = query_repository
+        self._user_query_repository = user_query_repository
+        self._user_command_repository = user_command_repository
         self._event_publisher = event_publisher
         self._email_service = email_service
         self._logger = logging.getLogger(__name__)
@@ -53,8 +59,7 @@ class ApproveEmployeeLeaveUseCase:
         self, 
         leave_id: str,
         request: EmployeeLeaveApprovalRequestDTO, 
-        approver_id: str,
-        hostname: str
+        current_user: CurrentUser
     ) -> EmployeeLeaveResponseDTO:
         """
         Execute employee leave approval/rejection workflow.
@@ -84,36 +89,37 @@ class ApproveEmployeeLeaveUseCase:
         
         try:
             # Step 1: Validate request data
-            self._logger.info(f"Processing leave approval: {leave_id} by {approver_id}")
-            validation_errors = self._validate_request(request)
+            self._logger.info(f"Processing leave approval: {leave_id} by {current_user.employee_id}")
+            validation_errors = self._validate_request(request, current_user)
             if validation_errors:
                 raise EmployeeLeaveValidationError(validation_errors)
             
             # Step 2: Get leave application
-            employee_leave = self._query_repository.get_by_id(leave_id)
+            employee_leave = await self._query_repository.get_by_id(leave_id, current_user.hostname)
             if not employee_leave:
                 raise EmployeeLeaveNotFoundError(leave_id)
             
             # Step 3: Validate business rules
-            await self._validate_business_rules(employee_leave, approver_id, hostname)
+            await self._validate_business_rules(employee_leave, current_user)
             
             # Step 4: Process approval or rejection
             if request.status == LeaveStatus.APPROVED:
-                await self._approve_leave(employee_leave, approver_id, request.comments, hostname)
+                await self._approve_leave(employee_leave, current_user.employee_id, request.comments, current_user.hostname)
             elif request.status == LeaveStatus.REJECTED:
-                await self._reject_leave(employee_leave, approver_id, request.comments or "No reason provided")
+                await self._reject_leave(employee_leave, current_user.employee_id, request.comments or "No reason provided", current_user.hostname)
             
             # Step 5: Update in database
-            success = self._command_repository.update(employee_leave)
-            if not success:
+            updated_leave = await self._command_repository.update(employee_leave, current_user.hostname)
+            if not updated_leave:
                 raise Exception("Failed to update employee leave application")
+            employee_leave = updated_leave
             
             # Step 6: Publish domain events
             await self._publish_domain_events(employee_leave)
             
             # Step 7: Send notifications (if email service available)
             if self._email_service:
-                await self._send_approval_notifications(employee_leave, hostname)
+                await self._send_approval_notifications(employee_leave, current_user.hostname)
             
             # Step 8: Return response
             response = EmployeeLeaveResponseDTO.from_entity(employee_leave)
@@ -134,7 +140,7 @@ class ApproveEmployeeLeaveUseCase:
             self._logger.error(f"Failed to process leave approval {leave_id}: {str(e)}")
             raise Exception(f"Leave approval failed: {str(e)}")
     
-    def _validate_request(self, request: EmployeeLeaveApprovalRequestDTO) -> list:
+    def _validate_request(self, request: EmployeeLeaveApprovalRequestDTO, current_user: CurrentUser) -> list:
         """Validate approval request"""
         errors = []
         
@@ -144,13 +150,15 @@ class ApproveEmployeeLeaveUseCase:
         if request.status == LeaveStatus.REJECTED and not request.comments:
             errors.append("Comments are required for rejection")
         
+        if request.status == LeaveStatus.APPROVED and not current_user.role in ["manager", "admin", "superadmin"]:
+            errors.append("Only managers can approve leaves")
+        
         return errors
     
     async def _validate_business_rules(
         self, 
         employee_leave: EmployeeLeave, 
-        approver_id: str, 
-        hostname: str
+        current_user: CurrentUser
     ):
         """Validate business rules for leave approval"""
         
@@ -160,30 +168,13 @@ class ApproveEmployeeLeaveUseCase:
                 f"Cannot approve/reject leave in {employee_leave.status} status"
             )
         
-        # Check if approver has permission (basic check - can be enhanced)
-        approver = await get_user_by_employee_id(approver_id, hostname)
-        if not approver:
-            raise EmployeeLeaveBusinessRuleError(f"Approver not found: {approver_id}")
-        
         # Check if approver has appropriate role
-        approver_role = approver.get("role", "").lower()
-        if approver_role not in ["manager", "admin", "superadmin"]:
+        if current_user.role not in ["manager", "admin", "superadmin"]:
             raise EmployeeLeaveBusinessRuleError(
-                f"User does not have permission to approve leaves: {approver_id}"
+                f"User does not have permission to approve leaves: {current_user.employee_id} {current_user.role}"
             )
         
-        # For managers, check if they manage the employee (simplified check)
-        if approver_role == "manager":
-            employee = await get_user_by_employee_id(str(employee_leave.employee_id), hostname)
-            if employee and employee.get("manager_id") != approver_id:
-                raise EmployeeLeaveBusinessRuleError(
-                    f"Manager can only approve leaves for their team members"
-                )
         
-        # Check if leave has already started (optional business rule)
-        # if employee_leave.date_range.start_date <= date.today():
-        #     raise EmployeeLeaveBusinessRuleError("Cannot approve/reject leave that has already started")
-    
     async def _approve_leave(
         self, 
         employee_leave: EmployeeLeave, 
@@ -191,42 +182,81 @@ class ApproveEmployeeLeaveUseCase:
         comments: Optional[str],
         hostname: str
     ):
-        """Approve the leave application"""
-        
+        """Approve the leave application and deduct leave balance"""
         # Approve the leave (this will update status and raise domain events)
-        employee_leave.approve(approver_id, comments)
-        
-        # Deduct leave balance from employee
-        await self._deduct_leave_balance(employee_leave, hostname)
-        
+        employee_leave.approve(approver_id)
+        # Deduct leave balance from user
+        try:
+            employee_id_obj = EmployeeId(employee_leave.employee_id)
+            user = await self._user_query_repository.get_by_id(employee_id_obj, hostname)
+            if user:
+                leave_type = employee_leave.leave_name
+                current_balance = user.leave_balance.get(leave_type, 0)
+                days_to_deduct = employee_leave.approved_days or employee_leave.applied_days or 0
+                # Ensure both are floats
+                try:
+                    current_balance_f = float(current_balance)
+                except Exception:
+                    self._logger.error(f"Could not convert current_balance '{current_balance}' to float for user {employee_leave.employee_id}, leave_type {leave_type}")
+                    current_balance_f = 0.0
+                try:
+                    days_to_deduct_f = float(days_to_deduct)
+                except Exception:
+                    self._logger.error(f"Could not convert days_to_deduct '{days_to_deduct}' to float for user {employee_leave.employee_id}, leave_type {leave_type}")
+                    days_to_deduct_f = 0.0
+                self._logger.info(f"Deducting leave: current_balance={current_balance_f} (type {type(current_balance_f)}), days_to_deduct={days_to_deduct_f} (type {type(days_to_deduct_f)})")
+                new_balance = current_balance_f - days_to_deduct_f
+                if new_balance < 0:
+                    new_balance = 0.0
+                user.update_leave_balance(leave_type, new_balance)
+                await self._user_command_repository.save(user, hostname)
+                self._logger.info(f"Deducted {days_to_deduct_f} days from {leave_type} for user {employee_leave.employee_id}. New balance: {new_balance}")
+            else:
+                self._logger.warning(f"User not found for leave balance deduction: {employee_leave.employee_id}")
+        except Exception as e:
+            self._logger.error(f"Error deducting leave balance: {e}")
         self._logger.info(f"Approved leave: {employee_leave.leave_id}")
     
     async def _reject_leave(
         self, 
         employee_leave: EmployeeLeave, 
         approver_id: str, 
-        reason: str
+        reason: str,
+        hostname: str
     ):
-        """Reject the leave application"""
-        
+        """Reject the leave application and restore leave balance if previously approved"""
+        # If the leave was previously approved, restore the balance
+        try:
+            if employee_leave.status == LeaveStatus.APPROVED:
+                employee_id_obj = EmployeeId(employee_leave.employee_id)
+                user = await self._user_query_repository.get_by_id(employee_id_obj, hostname)
+                if user:
+                    leave_type = employee_leave.leave_name
+                    current_balance = user.leave_balance.get(leave_type, 0)
+                    days_to_restore = employee_leave.approved_days or employee_leave.applied_days or 0
+                    # Ensure both are floats
+                    try:
+                        current_balance_f = float(current_balance)
+                    except Exception:
+                        self._logger.error(f"Could not convert current_balance '{current_balance}' to float for user {employee_leave.employee_id}, leave_type {leave_type}")
+                        current_balance_f = 0.0
+                    try:
+                        days_to_restore_f = float(days_to_restore)
+                    except Exception:
+                        self._logger.error(f"Could not convert days_to_restore '{days_to_restore}' to float for user {employee_leave.employee_id}, leave_type {leave_type}")
+                        days_to_restore_f = 0.0
+                    self._logger.info(f"Restoring leave: current_balance={current_balance_f} (type {type(current_balance_f)}), days_to_restore={days_to_restore_f} (type {type(days_to_restore_f)})")
+                    new_balance = current_balance_f + days_to_restore_f
+                    user.update_leave_balance(leave_type, new_balance)
+                    await self._user_command_repository.save(user, hostname)
+                    self._logger.info(f"Restored {days_to_restore_f} days to {leave_type} for user {employee_leave.employee_id}. New balance: {new_balance}")
+                else:
+                    self._logger.warning(f"User not found for leave balance restoration: {employee_leave.employee_id}")
+        except Exception as e:
+            self._logger.error(f"Error restoring leave balance: {e}")
         # Reject the leave (this will update status and raise domain events)
         employee_leave.reject(approver_id, reason)
-        
         self._logger.info(f"Rejected leave: {employee_leave.leave_id}")
-    
-    async def _deduct_leave_balance(self, employee_leave: EmployeeLeave, hostname: str):
-        """Deduct leave balance from employee"""
-        
-        try:
-            # TODO: Implement leave balance deduction
-            # For now, just log that the leave was approved
-            self._logger.info(
-                f"Leave approved - balance deduction not implemented for employee: {employee_leave.employee_id}"
-            )
-                
-        except Exception as e:
-            self._logger.error(f"Error updating leave balance: {str(e)}")
-            # Don't fail the approval for balance update failures
     
     async def _publish_domain_events(self, employee_leave: EmployeeLeave):
         """Publish domain events for the leave approval/rejection"""

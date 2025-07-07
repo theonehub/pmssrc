@@ -307,7 +307,11 @@ class LeavesAPI {
    */
   async processLeaveRequest(leaveId: string, approvalData: LeaveApprovalRequest): Promise<LeaveRequest> {
     try {
-      const response = await this.baseApi.patch<LeaveRequest>(`/api/v2/leaves/${leaveId}/process`, approvalData);
+      const params = {
+        status: approvalData.status,
+        comments: approvalData.comments || approvalData.rejection_reason
+      };
+      const response = await this.baseApi.put<LeaveRequest>(`/api/v2/leaves/${leaveId}/status`, {}, { params });
       return response;
     } catch (error: any) {
       console.error('Error processing leave request:', error);

@@ -4,6 +4,8 @@ from jose import JWTError, jwt
 from app.config.settings import SECRET_KEY as JWT_SECRET_KEY, ALGORITHM as JWT_ALGORITHM
 from typing import List
 from app.utils.logger import get_logger
+from app.config.dependency_container import get_dependency_container
+from app.auth.auth_dependencies import CurrentUser
 
 # Set up a logger for this module.
 logger = get_logger(__name__)
@@ -85,18 +87,3 @@ def role_checker(roles: List[str]):
             raise credentials_exception
         return role
     return checker
-
-# Simple User class for authentication
-class User:
-    def __init__(self, employee_id: str, role: str):
-        self.employee_id = employee_id
-        self.role = role
-
-# Simple stub for user lookup
-async def get_user_by_employee_id(employee_id: str, hostname: str = None):
-    """Simple stub for user lookup - replace with actual implementation"""
-    # For now, return a mock user for testing
-    return {
-        "employee_id": employee_id,
-        "role": "user"  # Default role
-    }

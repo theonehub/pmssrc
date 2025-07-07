@@ -936,5 +936,26 @@ class EmployeeLeaveRepositoryImpl(EmployeeLeaveRepository):
             
         except Exception as e:
             logger.error(f"Error in fallback LWP calculation: {e}")
-            return 0 
+            return 0
+    
+    async def update(self, employee_leave: EmployeeLeave, organisation_id: Optional[str] = None) -> EmployeeLeave:
+        """
+        Update an existing employee leave record in the database.
+        Args:
+            employee_leave: EmployeeLeave entity with updated fields
+            organisation_id: Organisation identifier
+        Returns:
+            Updated EmployeeLeave entity
+        """
+        collection = await self._get_collection(organisation_id)
+        document = self._leave_to_document(employee_leave)
+        leave_id = employee_leave.leave_id
+        if not leave_id:
+            raise ValueError("leave_id is required for update")
+        result = await collection.update_one({"leave_id": leave_id}, {"$set": document})
+        if result.matched_count == 0:
+            raise RuntimeError(f"No leave found with leave_id: {leave_id}")
+        # Fetch the updated document
+        updated_doc = await collection.find_one({"leave_id": leave_id})
+        return self._document_to_leave(updated_doc) 
         

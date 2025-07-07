@@ -115,8 +115,7 @@ class EmployeeLeaveController:
             self._logger.info(f"Processing leave approval: {leave_id} by {current_user.employee_id} in org: {current_user.hostname}")
             
             response = await self._approve_use_case.execute(
-                leave_id, request, current_user.employee_id, current_user.hostname
-            )
+                leave_id, request, current_user)
             
             self._logger.info(f"Successfully processed leave approval: {leave_id}")
             return response

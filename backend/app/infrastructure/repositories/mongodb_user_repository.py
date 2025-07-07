@@ -5,7 +5,7 @@ Following SOLID principles and DDD patterns for user data access
 
 import logging
 from typing import List, Optional, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from bson import ObjectId
 from pymongo import ASCENDING, DESCENDING
 from pymongo.errors import DuplicateKeyError
@@ -13,7 +13,11 @@ from pymongo.collection import Collection
 
 from app.domain.entities.user import User
 from app.domain.value_objects.employee_id import EmployeeId
-from app.domain.value_objects.user_credentials import UserRole, UserStatus, Gender
+from app.domain.value_objects.user_credentials import UserRole, UserStatus, Gender, Password
+from app.domain.value_objects.user_permissions import UserPermissions
+from app.domain.value_objects.personal_details import PersonalDetails
+from app.domain.value_objects.user_documents import UserDocuments
+from app.domain.value_objects.bank_details import BankDetails
 from app.application.interfaces.repositories.user_repository import (
     UserCommandRepository, UserQueryRepository, UserAnalyticsRepository,
     UserProfileRepository, UserBulkOperationsRepository, UserRepository
@@ -209,141 +213,88 @@ class MongoDBUserRepository(UserRepository):
         """Convert database document to domain entity."""
         
         try:
-            # For now, create a simple User object that can work with the existing system
-            # This is a temporary solution until we properly understand the User entity structure
-            
-            # Create a minimal User-like object
-            class SimpleUser:
-                def __init__(self, **kwargs):
-                    # Core identity
-                    self.employee_id = EmployeeId(kwargs.get("employee_id"))
-                    self.username = kwargs.get("username", str(self.employee_id))
-                    self.email = kwargs.get("email", "")
-                    self.name = kwargs.get("name", "")
-                    
-                    # Status and credentials
-                    self.gender = Gender(kwargs.get("gender", "male")) if kwargs.get("gender") else Gender.MALE
-                    self.role = UserRole(kwargs.get("role", "user"))
-                    self.status = UserStatus(kwargs.get("status", "active"))
-                    
-                    # Personal info
-                    self.date_of_birth = kwargs.get("date_of_birth")
-                    self.date_of_joining = kwargs.get("date_of_joining")
-                    self.date_of_leaving = kwargs.get("date_of_leaving")
-                    self.mobile = kwargs.get("mobile")
-                    self.department = kwargs.get("department")
-                    self.designation = kwargs.get("designation")
-                    self.location = kwargs.get("location")
-                    self.manager_id = EmployeeId(kwargs.get("manager_id")) if kwargs.get("manager_id") else None
-                    
-                    # Financial info
-                    self.pan_number = kwargs.get("pan_number")
-                    self.aadhar_number = kwargs.get("aadhar_number")
-                    
-                    # Bank details (new structure)
-                    bank_details_data = kwargs.get("bank_details")
-                    if bank_details_data:
-                        from app.domain.value_objects.bank_details import BankDetails
-                        try:
-                            self.bank_details = BankDetails.from_dict(bank_details_data)
-                        except Exception:
-                            self.bank_details = None
-                    else:
-                        self.bank_details = None
-                    
-                    # Documents
-                    self.photo_path = kwargs.get("photo_path")
-                    self.pan_document_path = kwargs.get("pan_document_path")
-                    self.aadhar_document_path = kwargs.get("aadhar_document_path")
-                    
-                    # System fields
-                    self.leave_balance = kwargs.get("leave_balance", {})
-                    self.is_active = kwargs.get("is_active", True)
-                    self.created_at = kwargs.get("created_at")
-                    self.updated_at = kwargs.get("updated_at")
-                    self.created_by = kwargs.get("created_by")
-                    self.updated_by = kwargs.get("updated_by")
-                    self.last_login = kwargs.get("last_login")
-                    self.login_count = kwargs.get("login_count", 0)
-                    self.failed_login_attempts = kwargs.get("failed_login_attempts", 0)
-                    self.locked_until = kwargs.get("locked_until")
-                    self.password_changed_at = kwargs.get("password_changed_at")
-                    self.custom_permissions = kwargs.get("custom_permissions", [])
-                    self.profile_completion_percentage = kwargs.get("profile_completion_percentage", 0.0)
-                    self.version = kwargs.get("version", 1)
-                    
-                    # Store is_active flag internally to avoid conflict with method
-                    self._is_active = kwargs.get("is_active", True)
-                    
-                    # Password hash for authentication
-                    self.password_hash = kwargs.get("password_hash", "")
-                    
-                    # Make this work with the User interface
-                    self.credentials = type('obj', (object,), {
-                        'password_hash': self.password_hash,
-                        'role': self.role,
-                        'status': self.status
-                    })()
-                    
-                def get_domain_events(self):
-                    return []
-                    
-                def clear_domain_events(self):
-                    pass
-                
-                def is_active(self) -> bool:
-                    """Check if user is active - method to match Employee entity interface"""
-                    # Check both the is_active flag and status
-                    active_flag = getattr(self, '_is_active', True)  # Use internal property
-                    status_active = True
-                    if hasattr(self, 'status') and hasattr(self.status, 'value'):
-                        status_active = self.status.value == "active"
-                    elif hasattr(self, 'status') and isinstance(self.status, str):
-                        status_active = self.status == "active"
-                    return active_flag and status_active
-            
-            # Create the simple user object
-            user = SimpleUser(
-                employee_id=document["employee_id"],
-                username=document.get("username", document.get("employee_id")),
-                email=document.get("email", ""),
-                name=document.get("name", ""),
-                gender=document.get("gender"),
-                role=document.get("role", "user"),
-                status=document.get("status", "active"),
-                date_of_birth=document.get("date_of_birth"),
-                date_of_joining=document.get("date_of_joining"),
-                date_of_leaving=document.get("date_of_leaving"),
-                mobile=document.get("mobile"),
-                department=document.get("department"),
-                designation=document.get("designation"),
-                location=document.get("location"),
-                manager_id=document.get("manager_id"),
-                pan_number=document.get("pan_number"),
-                aadhar_number=document.get("aadhar_number"),
-                bank_details=document.get("bank_details"),
-                photo_path=document.get("photo_path"),
-                pan_document_path=document.get("pan_document_path"),
-                aadhar_document_path=document.get("aadhar_document_path"),
-                leave_balance=document.get("leave_balance", {}),
-                is_active=document.get("is_active", True),
-                created_at=document.get("created_at"),
-                updated_at=document.get("updated_at"),
-                created_by=document.get("created_by"),
-                updated_by=document.get("updated_by"),
-                last_login=document.get("last_login"),
-                login_count=document.get("login_count", 0),
-                failed_login_attempts=document.get("failed_login_attempts", 0),
-                locked_until=document.get("locked_until"),
-                password_changed_at=document.get("password_changed_at"),
-                custom_permissions=document.get("custom_permissions", []),
-                profile_completion_percentage=document.get("profile_completion_percentage", 0.0),
-                version=document.get("version", 1),
-                password_hash=document.get("password_hash", "")
+            from app.domain.entities.user import User
+            from app.domain.value_objects.employee_id import EmployeeId
+            from app.domain.value_objects.user_credentials import Password, UserRole, UserStatus, Gender
+            from app.domain.value_objects.user_permissions import UserPermissions
+            from app.domain.value_objects.personal_details import PersonalDetails
+            from app.domain.value_objects.user_documents import UserDocuments
+            from app.domain.value_objects.bank_details import BankDetails
+
+            # Parse value objects and handle missing fields
+            employee_id = EmployeeId(document["employee_id"])
+            name = document.get("name", "")
+            email = document.get("email", "")
+            username = document.get("username", str(employee_id))
+            password_hash = document.get("password_hash", "")
+            password = Password.from_hash(password_hash)
+            role = UserRole(document.get("role", "user"))
+            status = UserStatus(document.get("status", "active"))
+            gender = Gender(document.get("gender", "male")) if document.get("gender") else Gender.MALE
+            permissions = UserPermissions(role=role)
+            if document.get("personal_details"):
+                personal_details = PersonalDetails.from_dict(document["personal_details"])
+            else:
+                personal_details = PersonalDetails(
+                    gender=Gender.MALE,
+                    date_of_birth=date(1970, 1, 1),
+                    date_of_joining=date(1970, 1, 1),
+                    mobile="9999999999"
+                )
+            documents = UserDocuments.from_dict(document.get("documents", {})) if document.get("documents") else UserDocuments()
+            bank_details = BankDetails.from_dict(document.get("bank_details", {})) if document.get("bank_details") else None
+
+            # Optional fields
+            department = document.get("department")
+            designation = document.get("designation")
+            location = document.get("location")
+            manager_id = EmployeeId(document.get("manager_id")) if document.get("manager_id") else None
+            date_of_joining = document.get("date_of_joining")
+            date_of_leaving = document.get("date_of_leaving")
+
+            leave_balance = document.get("leave_balance", {})
+            created_at = document.get("created_at")
+            updated_at = document.get("updated_at")
+            created_by = document.get("created_by")
+            updated_by = document.get("updated_by")
+            last_login_at = document.get("last_login_at")
+            login_attempts = document.get("login_attempts", 0)
+            locked_until = document.get("locked_until")
+            is_deleted = document.get("is_deleted", False)
+            deleted_at = document.get("deleted_at")
+            deleted_by = document.get("deleted_by")
+
+            # Construct the User entity
+            user = User(
+                employee_id=employee_id,
+                name=name,
+                email=email,
+                username=username,
+                password=password,
+                permissions=permissions,
+                personal_details=personal_details,
+                status=status,
+                department=department,
+                designation=designation,
+                location=location,
+                manager_id=manager_id,
+                date_of_joining=date_of_joining,
+                date_of_leaving=date_of_leaving,
+                documents=documents,
+                bank_details=bank_details,
+                leave_balance=leave_balance,
+                created_at=created_at,
+                updated_at=updated_at,
+                created_by=created_by,
+                updated_by=updated_by,
+                last_login_at=last_login_at,
+                login_attempts=login_attempts,
+                locked_until=locked_until,
+                is_deleted=is_deleted,
+                deleted_at=deleted_at,
+                deleted_by=deleted_by
             )
-            
             return user
-            
         except Exception as e:
             logger.error(f"Error creating User entity from document: {e}")
             raise ValueError(f"Failed to reconstruct User entity: {e}")

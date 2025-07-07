@@ -182,8 +182,6 @@ class EmployeeLeave(BaseEntity):
         # Publish domain event
         from app.domain.events.leave_events import EmployeeLeaveApprovedEvent
         self.add_domain_event(EmployeeLeaveApprovedEvent(
-            event_id=f"leave_approved_{self.leave_id}_{datetime.utcnow().isoformat()}",
-            occurred_at=datetime.utcnow(),
             employee_id=self.employee_id,
             leave_id=self.leave_id,
             leave_name=self.leave_name,
@@ -212,8 +210,6 @@ class EmployeeLeave(BaseEntity):
         # Publish domain event
         from app.domain.events.leave_events import EmployeeLeaveRejectedEvent
         self.add_domain_event(EmployeeLeaveRejectedEvent(
-            event_id=f"leave_rejected_{self.leave_id}_{datetime.utcnow().isoformat()}",
-            occurred_at=datetime.utcnow(),
             employee_id=self.employee_id,
             leave_id=self.leave_id,
             leave_name=self.leave_name,
@@ -246,8 +242,6 @@ class EmployeeLeave(BaseEntity):
         # Publish domain event
         from app.domain.events.leave_events import EmployeeLeaveCancelledEvent
         self.add_domain_event(EmployeeLeaveCancelledEvent(
-            event_id=f"leave_cancelled_{self.leave_id}_{datetime.utcnow().isoformat()}",
-            occurred_at=datetime.utcnow(),
             employee_id=self.employee_id,
             leave_id=self.leave_id,
             leave_name=self.leave_name,

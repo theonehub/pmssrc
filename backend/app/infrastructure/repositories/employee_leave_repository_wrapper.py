@@ -312,7 +312,7 @@ class EmployeeLeaveBalanceRepositoryWrapper(EmployeeLeaveBalanceRepository):
         self._hostname = hostname
         self._logger = logging.getLogger(__name__)
     
-    def get_leave_balance(self, employee_id: EmployeeId) -> Dict[str, int]:
+    def get_leave_balance(self, employee_id: EmployeeId) -> Dict[str, float]:
         """Get leave balance for an employee"""
         original_get_user_collection = self._impl._get_user_collection
         self._impl._get_user_collection = lambda h: original_get_user_collection(self._hostname)
@@ -338,7 +338,7 @@ class EmployeeLeaveBalanceRepositoryWrapper(EmployeeLeaveBalanceRepository):
     def set_leave_balance(
         self, 
         employee_id: EmployeeId, 
-        leave_balances: Dict[str, int]
+        leave_balances: Dict[str, float]
     ) -> bool:
         """Set leave balances for an employee"""
         original_get_user_collection = self._impl._get_user_collection

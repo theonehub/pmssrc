@@ -279,17 +279,33 @@ class GetEmployeeLeavesUseCase:
             # Extract leave balance from user entity
             leave_balances = getattr(user, 'leave_balance', {})
             
-            # Convert float values to int for consistency with DTO
-            int_balances = {}
+            # Convert values to float with proper handling to avoid Pydantic warnings
+            float_balances = {}
             for leave_type, balance in leave_balances.items():
                 try:
-                    int_balances[leave_type] = int(float(balance))
-                except (ValueError, TypeError):
-                    int_balances[leave_type] = 0
+                    # Handle different input types
+                    if balance is None:
+                        float_balances[leave_type] = 0.0
+                    elif isinstance(balance, (int, float)):
+                        # Keep as float
+                        float_balances[leave_type] = float(balance)
+                    elif isinstance(balance, str):
+                        # For string values, try to convert to float
+                        float_balances[leave_type] = float(balance)
+                    else:
+                        # For any other type, default to 0.0
+                        float_balances[leave_type] = 0.0
+                        
+                    # Ensure the value is non-negative
+                    float_balances[leave_type] = max(0.0, float_balances[leave_type])
+                    
+                except (ValueError, TypeError, AttributeError) as e:
+                    self._logger.warning(f"Could not convert leave balance for {leave_type}: {balance} (error: {e})")
+                    float_balances[leave_type] = 0.0
             
             return EmployeeLeaveBalanceDTO(
                 employee_id=employee_id,
-                balances=int_balances
+                balances=float_balances
             )
             
         except Exception as e:

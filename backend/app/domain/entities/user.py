@@ -73,7 +73,7 @@ class User:
     bank_details: Optional[BankDetails] = None
     
     # Leave Balance (integration with leave system)
-    leave_balance: Dict[str, int] = field(default_factory=dict)
+    leave_balance: Dict[str, float] = field(default_factory=dict)
     
     # System Fields
     created_at: datetime = field(default_factory=datetime.utcnow)
@@ -710,6 +710,35 @@ class User:
         
         if not isinstance(self.documents, UserDocuments):
             raise ValueError("Invalid documents object")
+        
+        # Validate and normalize leave balance values
+        self._normalize_leave_balance()
+    
+    def _normalize_leave_balance(self) -> None:
+        """Normalize leave balance values to ensure they are floats"""
+        if not self.leave_balance:
+            return
+        
+        normalized_balances = {}
+        for leave_type, balance in self.leave_balance.items():
+            try:
+                if balance is None:
+                    normalized_balances[leave_type] = 0.0
+                elif isinstance(balance, (int, float)):
+                    # Keep as float
+                    normalized_balances[leave_type] = max(0.0, float(balance))
+                elif isinstance(balance, str):
+                    # Convert string to float
+                    float_val = float(balance)
+                    normalized_balances[leave_type] = max(0.0, float_val)
+                else:
+                    normalized_balances[leave_type] = 0.0
+            except (ValueError, TypeError):
+                normalized_balances[leave_type] = 0.0
+        
+        # Update the leave_balance with normalized values
+        self.leave_balance.clear()
+        self.leave_balance.update(normalized_balances)
     
     def _increment_login_attempts(self) -> None:
         """Increment failed login attempts"""

@@ -1332,33 +1332,111 @@ class MongoDBUserRepository(UserRepository):
             if employee_ids:
                 query["employee_id"] = {"$in": [str(uid) for uid in employee_ids]}
             
-            # Select fields based on sensitivity
+            # Select fields based on sensitivity - include all fields for comprehensive export
             projection = {
-                "employee_id": 1, "name": 1, "email": 1, "department": 1, 
-                "designation": 1, "role": 1, "status": 1, "date_of_joining": 1
+                "employee_id": 1, 
+                "name": 1, 
+                "email": 1, 
+                "department": 1, 
+                "designation": 1, 
+                "role": 1, 
+                "status": 1, 
+                "date_of_joining": 1,
+                "date_of_birth": 1,
+                "gender": 1,
+                "location": 1,
+                "manager_id": 1,
+                "personal_details": 1,
+                "bank_details": 1,
+                "is_active": 1,
+                "created_at": 1,
+                "last_login_at": 1
             }
-            
-            if include_sensitive:
-                projection.update({
-                    "mobile": 1, "salary": 1, "pan_number": 1, "aadhar_number": 1
-                })
             
             cursor = collection.find(query, projection)
             documents = await cursor.to_list(length=None)
             
-            # Convert to CSV
+            # Convert to CSV with proper field mapping
             output = io.StringIO()
             if documents:
-                fieldnames = list(documents[0].keys())
-                if '_id' in fieldnames:
-                    fieldnames.remove('_id')
+                # Define the field order for CSV export
+                fieldnames = [
+                    # Basic Information
+                    "employee_id",
+                    "name", 
+                    "email",
+                    "mobile",
+                    "gender",
+                    "date_of_birth",
+                    "date_of_joining",
+                    "role",
+                    "department",
+                    "designation",
+                    "location",
+                    "manager_id",
+                    "status",
+                    
+                    # Personal Details
+                    "pan_number",
+                    "aadhar_number",
+                    "uan_number",
+                    "esi_number",
+                    
+                    # Bank Details
+                    "bank_account_number",
+                    "bank_name",
+                    "ifsc_code",
+                    "account_holder_name",
+                    "branch_name",
+                    "account_type",
+                    
+                    # System Fields
+                    "is_active",
+                    "created_at",
+                    "last_login_at"
+                ]
                 
                 writer = csv.DictWriter(output, fieldnames=fieldnames)
                 writer.writeheader()
                 
                 for doc in documents:
-                    doc.pop('_id', None)  # Remove MongoDB _id
-                    writer.writerow(doc)
+                    # Map document fields to CSV fields
+                    csv_row = {
+                        # Basic Information
+                        "employee_id": doc.get("employee_id", ""),
+                        "name": doc.get("name", ""),
+                        "email": doc.get("email", ""),
+                        "mobile": doc.get("personal_details", {}).get("mobile", "") if doc.get("personal_details") else "",
+                        "gender": doc.get("gender", ""),
+                        "date_of_birth": doc.get("date_of_birth", ""),
+                        "date_of_joining": doc.get("date_of_joining", ""),
+                        "role": doc.get("role", ""),
+                        "department": doc.get("department", ""),
+                        "designation": doc.get("designation", ""),
+                        "location": doc.get("location", ""),
+                        "manager_id": doc.get("manager_id", ""),
+                        "status": doc.get("status", ""),
+                        
+                        # Personal Details
+                        "pan_number": doc.get("personal_details", {}).get("pan_number", "") if doc.get("personal_details") else "",
+                        "aadhar_number": doc.get("personal_details", {}).get("aadhar_number", "") if doc.get("personal_details") else "",
+                        "uan_number": doc.get("personal_details", {}).get("uan_number", "") if doc.get("personal_details") else "",
+                        "esi_number": doc.get("personal_details", {}).get("esi_number", "") if doc.get("personal_details") else "",
+                        
+                        # Bank Details
+                        "bank_account_number": doc.get("bank_details", {}).get("account_number", "") if doc.get("bank_details") else "",
+                        "bank_name": doc.get("bank_details", {}).get("bank_name", "") if doc.get("bank_details") else "",
+                        "ifsc_code": doc.get("bank_details", {}).get("ifsc_code", "") if doc.get("bank_details") else "",
+                        "account_holder_name": doc.get("bank_details", {}).get("account_holder_name", "") if doc.get("bank_details") else "",
+                        "branch_name": doc.get("bank_details", {}).get("branch_name", "") if doc.get("bank_details") else "",
+                        "account_type": doc.get("bank_details", {}).get("account_type", "") if doc.get("bank_details") else "",
+                        
+                        # System Fields
+                        "is_active": doc.get("is_active", ""),
+                        "created_at": doc.get("created_at", ""),
+                        "last_login_at": doc.get("last_login_at", "")
+                    }
+                    writer.writerow(csv_row)
             
             return output.getvalue().encode('utf-8')
             
@@ -1378,6 +1456,12 @@ class MongoDBUserRepository(UserRepository):
         try:
             import csv
             import io
+            from datetime import datetime
+            from app.domain.value_objects.employee_id import EmployeeId
+            from app.domain.value_objects.bank_details import BankDetails
+            from app.domain.value_objects.personal_details import PersonalDetails
+            from app.domain.entities.user import User
+            from app.domain.value_objects.user_credentials import UserRole, UserStatus
             
             # Parse CSV data
             content = data.decode('utf-8')
@@ -1398,6 +1482,21 @@ class MongoDBUserRepository(UserRepository):
                         errors.append(f"Row {i+1}: Missing email")
                         continue
                     
+                    # Validate email format
+                    if '@' not in user_data.get('email', ''):
+                        errors.append(f"Row {i+1}: Invalid email format")
+                        continue
+                    
+                    # Validate date formats if provided
+                    try:
+                        if user_data.get('date_of_birth'):
+                            datetime.strptime(user_data['date_of_birth'], '%Y-%m-%d')
+                        if user_data.get('date_of_joining'):
+                            datetime.strptime(user_data['date_of_joining'], '%Y-%m-%d')
+                    except ValueError as e:
+                        errors.append(f"Row {i+1}: Invalid date format - {str(e)}")
+                        continue
+                    
                     valid_users.append(user_data)
                     
                 except Exception as e:
@@ -1416,25 +1515,80 @@ class MongoDBUserRepository(UserRepository):
                 operations = []
                 
                 for user_data in valid_users:
-                    # Set defaults
-                    user_data['created_by'] = created_by
-                    user_data['created_at'] = datetime.now()
-                    user_data['is_active'] = True
-                    user_data['role'] = user_data.get('role', 'user')
-                    user_data['status'] = user_data.get('status', 'active')
-                    
-                    operations.append({
-                        "replaceOne": {
-                            "filter": {"employee_id": user_data['employee_id']},
-                            "replacement": user_data,
-                            "upsert": True
-                        }
-                    })
+                    try:
+                        # Create bank details if provided
+                        bank_details = None
+                        if user_data.get('bank_account_number') and user_data.get('bank_name'):
+                            bank_details = BankDetails(
+                                account_number=user_data.get('bank_account_number', ''),
+                                bank_name=user_data.get('bank_name', ''),
+                                ifsc_code=user_data.get('ifsc_code', ''),
+                                account_holder_name=user_data.get('account_holder_name', ''),
+                                branch_name=user_data.get('branch_name', ''),
+                                account_type=user_data.get('account_type', 'savings')
+                            )
+                        
+                        # Create personal details if provided
+                        personal_details = None
+                        if any([
+                            user_data.get('mobile'),
+                            user_data.get('pan_number'),
+                            user_data.get('aadhar_number'),
+                            user_data.get('uan_number'),
+                            user_data.get('esi_number')
+                        ]):
+                            personal_details = PersonalDetails(
+                                mobile=user_data.get('mobile', ''),
+                                pan_number=user_data.get('pan_number', ''),
+                                aadhar_number=user_data.get('aadhar_number', ''),
+                                uan_number=user_data.get('uan_number', ''),
+                                esi_number=user_data.get('esi_number', '')
+                            )
+                        
+                        # Create user entity
+                        user = User(
+                            employee_id=EmployeeId(user_data['employee_id']),
+                            name=user_data.get('name', ''),
+                            email=user_data['email'],
+                            role=UserRole(user_data.get('role', 'user')),
+                            status=UserStatus(user_data.get('status', 'active')),
+                            department=user_data.get('department', ''),
+                            designation=user_data.get('designation', ''),
+                            location=user_data.get('location', ''),
+                            manager_id=EmployeeId(user_data['manager_id']) if user_data.get('manager_id') else None,
+                            personal_details=personal_details,
+                            bank_details=bank_details,
+                            date_of_birth=datetime.strptime(user_data['date_of_birth'], '%Y-%m-%d') if user_data.get('date_of_birth') else None,
+                            date_of_joining=datetime.strptime(user_data['date_of_joining'], '%Y-%m-%d') if user_data.get('date_of_joining') else None,
+                            gender=user_data.get('gender', ''),
+                            created_by=created_by
+                        )
+                        
+                        # Convert to document
+                        user_document = self._user_to_document(user)
+                        user_document['created_at'] = datetime.now()
+                        user_document['is_active'] = True
+                        
+                        operations.append({
+                            "replaceOne": {
+                                "filter": {"employee_id": user_data['employee_id']},
+                                "replacement": user_document,
+                                "upsert": True
+                            }
+                        })
+                        
+                    except Exception as e:
+                        errors.append(f"Row {i+1}: Error creating user - {str(e)}")
+                        continue
                 
                 if operations:
-                    bulk_result = await collection.bulk_write(operations)
-                    result["inserted_count"] = bulk_result.upserted_count
-                    result["modified_count"] = bulk_result.modified_count
+                    try:
+                        bulk_result = await collection.bulk_write(operations)
+                        result["inserted_count"] = bulk_result.upserted_count
+                        result["modified_count"] = bulk_result.modified_count
+                    except Exception as e:
+                        result["error"] = f"Bulk write failed: {str(e)}"
+                        result["status"] = "failed"
             
             return result
             

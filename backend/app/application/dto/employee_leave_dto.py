@@ -205,8 +205,30 @@ class EmployeeLeaveBalanceDTO(BaseModel):
     """DTO for employee leave balance"""
     
     employee_id: str
-    balances: Dict[str, int] = Field(default_factory=dict, description="Leave type to balance mapping")
-    leave_balances: Dict[str, int] = Field(default_factory=dict, description="Backward compatibility field")
+    balances: Dict[str, float] = Field(default_factory=dict, description="Leave type to balance mapping")
+    leave_balances: Dict[str, float] = Field(default_factory=dict, description="Backward compatibility field")
+    
+    @validator('balances', 'leave_balances', pre=True)
+    def validate_balance_values(cls, v):
+        """Validate and convert balance values to ensure they are floats"""
+        if not isinstance(v, dict):
+            return {}
+        
+        validated_dict = {}
+        for leave_type, balance in v.items():
+            try:
+                if balance is None:
+                    validated_dict[leave_type] = 0.0
+                elif isinstance(balance, (int, float)):
+                    validated_dict[leave_type] = max(0.0, float(balance))
+                elif isinstance(balance, str):
+                    validated_dict[leave_type] = max(0.0, float(balance))
+                else:
+                    validated_dict[leave_type] = 0.0
+            except (ValueError, TypeError):
+                validated_dict[leave_type] = 0.0
+        
+        return validated_dict
     
     def __init__(self, **data):
         super().__init__(**data)

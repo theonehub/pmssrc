@@ -470,7 +470,7 @@ class UserResponseDTO:
     bank_details: Optional[BankDetailsResponseDTO] = None
     
     # Leave Balance
-    leave_balance: Optional[Dict[str, int]] = None
+    leave_balance: Optional[Dict[str, float]] = None
     
     # System Fields
     created_at: str = None

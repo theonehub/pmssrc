@@ -1546,6 +1546,7 @@ class UserServiceImpl(UserService):
             user_data = []
             for user in users:
                 user_dict = {
+                    # Basic Information
                     "employee_id": user.employee_id,
                     "name": user.name,
                     "email": user.email,
@@ -1559,6 +1560,22 @@ class UserServiceImpl(UserService):
                     "location": user.location or "",
                     "manager_id": user.manager_id or "",
                     "status": user.status,
+                    
+                    # Personal Details
+                    "pan_number": user.personal_details.pan_number if user.personal_details else "",
+                    "aadhar_number": user.personal_details.aadhar_number if user.personal_details else "",
+                    "uan_number": user.personal_details.uan_number if user.personal_details else "",
+                    "esi_number": user.personal_details.esi_number if user.personal_details else "",
+                    
+                    # Bank Details
+                    "bank_account_number": user.bank_details.account_number if user.bank_details else "",
+                    "bank_name": user.bank_details.bank_name if user.bank_details else "",
+                    "ifsc_code": user.bank_details.ifsc_code if user.bank_details else "",
+                    "account_holder_name": user.bank_details.account_holder_name if user.bank_details else "",
+                    "branch_name": user.bank_details.branch_name if user.bank_details else "",
+                    "account_type": user.bank_details.account_type if user.bank_details else "",
+                    
+                    # System Fields
                     "is_active": user.is_active,
                     "created_at": user.created_at,
                     "last_login_at": user.last_login_at
@@ -1592,7 +1609,9 @@ class UserServiceImpl(UserService):
             logger.info(f"Generating user template in {format} format for organisation {current_user.hostname}")
             
             # Define template headers based on the import format expected by bulk_import
+            # Include all user fields and bank details
             template_headers = [
+                # Basic Information
                 "employee_id",
                 "name", 
                 "email",
@@ -1606,8 +1625,20 @@ class UserServiceImpl(UserService):
                 "location",
                 "manager_id",
                 "status",
+                
+                # Personal Details
                 "pan_number",
-                "aadhar_number"
+                "aadhar_number",
+                "uan_number",
+                "esi_number",
+                
+                # Bank Details
+                "bank_account_number",
+                "bank_name",
+                "ifsc_code",
+                "account_holder_name",
+                "branch_name",
+                "account_type"
             ]
             
             if format.lower() == "csv":

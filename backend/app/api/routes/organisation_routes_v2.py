@@ -21,7 +21,8 @@ from app.application.dto.organisation_dto import (
     OrganisationValidationError,
     OrganisationBusinessRuleError,
     OrganisationNotFoundError,
-    OrganisationConflictError
+    OrganisationConflictError,
+    BankDetailsRequestDTO
 )
 from app.auth.auth_dependencies import CurrentUser, get_current_user
 from app.config.dependency_container import get_organisation_controller
@@ -117,7 +118,26 @@ async def create_organisation(
     
     try:
         # Parse organisation data from JSON string
-        request = CreateOrganisationRequestDTO(**json.loads(organisation_data))
+        data = json.loads(organisation_data)
+        
+        # Handle flat bank fields from frontend
+        bank_details = None
+        if any(key in data for key in ['bank_name', 'account_number', 'ifsc_code', 'branch_name', 'branch_address', 'account_type', 'account_holder_name']):
+            bank_details = BankDetailsRequestDTO(
+                bank_name=data.get('bank_name', ''),
+                account_number=data.get('account_number', ''),
+                ifsc_code=data.get('ifsc_code', ''),
+                branch_name=data.get('branch_name', ''),
+                branch_address=data.get('branch_address', ''),
+                account_type=data.get('account_type', ''),
+                account_holder_name=data.get('account_holder_name', '')
+            )
+            # Remove flat bank fields from data to avoid conflicts
+            for key in ['bank_name', 'account_number', 'ifsc_code', 'branch_name', 'branch_address', 'account_type', 'account_holder_name']:
+                data.pop(key, None)
+        
+        # Create the DTO with nested bank_details
+        request = CreateOrganisationRequestDTO(**data, bank_details=bank_details)
         logo_path = None
         
         if logo is not None:
@@ -213,12 +233,31 @@ async def get_organisation(
 @organisation_v2_router.put("/{organisation_id}", response_model=OrganisationResponseDTO)
 async def update_organisation(
     organisation_id: str = Path(..., description="Organisation ID"),
-    request: UpdateOrganisationRequestDTO = None,
+    request_data: dict = None,
     current_user: CurrentUser = Depends(get_current_user),
     controller: OrganisationController = Depends(get_organisation_controller)
 ):
     """Update an existing organisation"""
     try:
+        # Handle flat bank fields from frontend
+        bank_details = None
+        if request_data and any(key in request_data for key in ['bank_name', 'account_number', 'ifsc_code', 'branch_name', 'branch_address', 'account_type', 'account_holder_name']):
+            bank_details = BankDetailsRequestDTO(
+                bank_name=request_data.get('bank_name', ''),
+                account_number=request_data.get('account_number', ''),
+                ifsc_code=request_data.get('ifsc_code', ''),
+                branch_name=request_data.get('branch_name', ''),
+                branch_address=request_data.get('branch_address', ''),
+                account_type=request_data.get('account_type', ''),
+                account_holder_name=request_data.get('account_holder_name', '')
+            )
+            # Remove flat bank fields from data to avoid conflicts
+            for key in ['bank_name', 'account_number', 'ifsc_code', 'branch_name', 'branch_address', 'account_type', 'account_holder_name']:
+                request_data.pop(key, None)
+        
+        # Create the DTO with nested bank_details
+        request = UpdateOrganisationRequestDTO(**request_data, bank_details=bank_details) if request_data else None
+        
         response = await controller.update_organisation(
             organisation_id=organisation_id,
             request=request,

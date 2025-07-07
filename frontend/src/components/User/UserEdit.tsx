@@ -571,9 +571,10 @@ const UserEdit: React.FC = () => {
                     label="Gender"
                     onChange={(e) => handleSelectChange(e, 'gender')}
                   >
-                    <MenuItem value="Male">Male</MenuItem>
-                    <MenuItem value="Female">Female</MenuItem>
-                    <MenuItem value="Other">Other</MenuItem>
+                    <MenuItem value="male">Male</MenuItem>
+                    <MenuItem value="female">Female</MenuItem>
+                    <MenuItem value="other">Other</MenuItem>
+                    <MenuItem value="prefer_not_to_say">Prefer not to say</MenuItem>
                   </Select>
                 </FormControl>
                 

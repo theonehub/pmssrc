@@ -49,6 +49,15 @@ const OrganisationForm: React.FC<OrganisationFormProps> = ({
   const [gstNumber, setGstNumber] = useState(organisation.tax_info?.gst_number || '');
   const [tanNumber, setTanNumber] = useState(organisation.tax_info?.tan_number || '');
   
+  // Bank details
+  const [bankName, setBankName] = useState(organisation.bank_details?.bank_name || '');
+  const [accountNumber, setAccountNumber] = useState(organisation.bank_details?.account_number || '');
+  const [ifscCode, setIfscCode] = useState(organisation.bank_details?.ifsc_code || '');
+  const [branchName, setBranchName] = useState(organisation.bank_details?.branch_name || '');
+  const [branchAddress, setBranchAddress] = useState(organisation.bank_details?.branch_address || '');
+  const [accountType, setAccountType] = useState(organisation.bank_details?.account_type || '');
+  const [accountHolderName, setAccountHolderName] = useState(organisation.bank_details?.account_holder_name || '');
+  
   // Error states - individual for each field
   const [nameError, setNameError] = useState('');
   const [hostnameError, setHostnameError] = useState('');
@@ -63,6 +72,12 @@ const OrganisationForm: React.FC<OrganisationFormProps> = ({
   const [panNumberError, setPanNumberError] = useState('');
   const [gstNumberError, setGstNumberError] = useState('');
   const [tanNumberError, setTanNumberError] = useState('');
+  const [bankNameError, setBankNameError] = useState('');
+  const [accountNumberError, setAccountNumberError] = useState('');
+  const [ifscCodeError, setIfscCodeError] = useState('');
+  const [branchNameError, setBranchNameError] = useState('');
+  const [branchAddressError, setBranchAddressError] = useState('');
+  const [accountHolderNameError, setAccountHolderNameError] = useState('');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -112,6 +127,34 @@ const OrganisationForm: React.FC<OrganisationFormProps> = ({
     if (!tan.trim()) return '';
     const tanRegex = /^[A-Z]{4}[0-9]{5}[A-Z]{1}$/;
     return !tanRegex.test(tan) ? 'Invalid TAN format (e.g., ABCD12345E)' : '';
+  };
+
+  const validateIFSC = (ifsc: string): string => {
+    if (!ifsc.trim()) return 'IFSC code is required';
+    const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+    return !ifscRegex.test(ifsc.toUpperCase()) ? 'Invalid IFSC format (e.g., SBIN0001234)' : '';
+  };
+
+  const validateAccountNumber = (accountNumber: string): string => {
+    if (!accountNumber.trim()) return 'Account number is required';
+    const accountRegex = /^\d{9,18}$/;
+    return !accountRegex.test(accountNumber) ? 'Account number must be 9-18 digits' : '';
+  };
+
+  const validateBankName = (bankName: string): string => {
+    return !bankName.trim() ? 'Bank name is required' : '';
+  };
+
+  const validateBranchName = (branchName: string): string => {
+    return !branchName.trim() ? 'Branch name is required' : '';
+  };
+
+  const validateBranchAddress = (branchAddress: string): string => {
+    return !branchAddress.trim() ? 'Branch address is required' : '';
+  };
+
+  const validateAccountHolderName = (accountHolderName: string): string => {
+    return !accountHolderName.trim() ? 'Account holder name is required' : '';
   };
 
   const validateEmployeeStrength = (value: string): string => {
@@ -190,6 +233,37 @@ const OrganisationForm: React.FC<OrganisationFormProps> = ({
     setTanNumberError(validateTAN(upperValue));
   };
 
+  const handleIfscCodeChange = (value: string) => {
+    const upperValue = value.toUpperCase();
+    setIfscCode(upperValue);
+    setIfscCodeError(validateIFSC(upperValue));
+  };
+
+  const handleAccountNumberChange = (value: string) => {
+    setAccountNumber(value);
+    setAccountNumberError(validateAccountNumber(value));
+  };
+
+  const handleBankNameChange = (value: string) => {
+    setBankName(value);
+    setBankNameError(validateBankName(value));
+  };
+
+  const handleBranchNameChange = (value: string) => {
+    setBranchName(value);
+    setBranchNameError(validateBranchName(value));
+  };
+
+  const handleBranchAddressChange = (value: string) => {
+    setBranchAddress(value);
+    setBranchAddressError(validateBranchAddress(value));
+  };
+
+  const handleAccountHolderNameChange = (value: string) => {
+    setAccountHolderName(value);
+    setAccountHolderNameError(validateAccountHolderName(value));
+  };
+
   // Form validation
   const validateForm = (): boolean => {
     let isValid = true;
@@ -202,6 +276,14 @@ const OrganisationForm: React.FC<OrganisationFormProps> = ({
     const countryErr = validateRequired(country, 'Country');
     const employeeStrengthErr = validateEmployeeStrength(employeeStrength);
     const panErr = validatePAN(panNumber);
+    
+    // Validate bank details
+    const bankNameErr = validateBankName(bankName);
+    const accountNumberErr = validateAccountNumber(accountNumber);
+    const ifscErr = validateIFSC(ifscCode);
+    const branchNameErr = validateBranchName(branchName);
+    const branchAddressErr = validateBranchAddress(branchAddress);
+    const accountHolderNameErr = validateAccountHolderName(accountHolderName);
     
     // Validate optional but formatted fields
     const emailErr = validateEmail(email);
@@ -225,11 +307,18 @@ const OrganisationForm: React.FC<OrganisationFormProps> = ({
     setPinCodeError(pinCodeErr);
     setGstNumberError(gstErr);
     setTanNumberError(tanErr);
+    setBankNameError(bankNameErr);
+    setAccountNumberError(accountNumberErr);
+    setIfscCodeError(ifscErr);
+    setBranchNameError(branchNameErr);
+    setBranchAddressError(branchAddressErr);
+    setAccountHolderNameError(accountHolderNameErr);
 
     // Check if any errors exist
     if (nameErr || hostnameErr || addressErr || cityErr || countryErr || 
         employeeStrengthErr || panErr || emailErr || phoneErr || websiteErr || 
-        pinCodeErr || gstErr || tanErr) {
+        pinCodeErr || gstErr || tanErr || bankNameErr || accountNumberErr || 
+        ifscErr || branchNameErr || branchAddressErr || accountHolderNameErr) {
       isValid = false;
     }
 
@@ -279,6 +368,16 @@ const OrganisationForm: React.FC<OrganisationFormProps> = ({
           gst_number: gstNumber,
           tan_number: tanNumber,
           cin_number: organisation.tax_info?.cin_number || '',
+        },
+        bank_details: {
+          ...organisation.bank_details,
+          bank_name: bankName,
+          account_number: accountNumber,
+          ifsc_code: ifscCode,
+          branch_name: branchName,
+          branch_address: branchAddress,
+          account_type: accountType,
+          account_holder_name: accountHolderName,
         }
       };
       
@@ -520,6 +619,93 @@ const OrganisationForm: React.FC<OrganisationFormProps> = ({
               error={!!tanNumberError}
               helperText={tanNumberError}
               placeholder="ABCD12345E"
+            />
+          </Box>
+        </Box>
+
+        {/* Bank Details */}
+        <Box>
+          <Typography variant="h6" color="primary" gutterBottom>
+            Bank Details
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+            <TextField
+              fullWidth
+              label="Bank Name"
+              value={bankName}
+              onChange={(e) => handleBankNameChange(e.target.value)}
+              error={!!bankNameError}
+              helperText={bankNameError}
+              required
+            />
+            
+            <TextField
+              fullWidth
+              label="Account Number"
+              value={accountNumber}
+              onChange={(e) => handleAccountNumberChange(e.target.value)}
+              error={!!accountNumberError}
+              helperText={accountNumberError}
+              required
+            />
+          </Box>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+            <TextField
+              fullWidth
+              label="IFSC Code"
+              value={ifscCode}
+              onChange={(e) => handleIfscCodeChange(e.target.value)}
+              error={!!ifscCodeError}
+              helperText={ifscCodeError}
+              required
+            />
+            
+            <TextField
+              fullWidth
+              label="Branch Name"
+              value={branchName}
+              onChange={(e) => handleBranchNameChange(e.target.value)}
+              error={!!branchNameError}
+              helperText={branchNameError}
+              required
+            />
+          </Box>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+            <TextField
+              fullWidth
+              label="Branch Address"
+              value={branchAddress}
+              onChange={(e) => handleBranchAddressChange(e.target.value)}
+              error={!!branchAddressError}
+              helperText={branchAddressError}
+              multiline
+              rows={2}
+              required
+            />
+            
+            <TextField
+              select
+              fullWidth
+              label="Account Type"
+              value={accountType}
+              onChange={(e) => setAccountType(e.target.value)}
+            >
+              <MenuItem value="savings">Savings</MenuItem>
+              <MenuItem value="current">Current</MenuItem>
+              <MenuItem value="fixed_deposit">Fixed Deposit</MenuItem>
+              <MenuItem value="recurring_deposit">Recurring Deposit</MenuItem>
+            </TextField>
+          </Box>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+            <TextField
+              fullWidth
+              label="Account Holder Name"
+              value={accountHolderName}
+              onChange={(e) => handleAccountHolderNameChange(e.target.value)}
+              error={!!accountHolderNameError}
+              helperText={accountHolderNameError}
+              required
             />
           </Box>
         </Box>

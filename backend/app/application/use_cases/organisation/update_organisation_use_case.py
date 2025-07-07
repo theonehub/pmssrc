@@ -9,7 +9,7 @@ from typing import List, Optional
 from app.domain.entities.organisation import Organisation
 from app.domain.value_objects.organisation_id import OrganisationId
 from app.domain.value_objects.organisation_details import (
-    ContactInformation, Address, TaxInformation, OrganisationType
+    ContactInformation, Address, TaxInformation, OrganisationType, BankDetails
 )
 from app.application.dto.organisation_dto import (
     UpdateOrganisationRequestDTO, OrganisationResponseDTO,
@@ -119,6 +119,12 @@ class UpdateOrganisationUseCase:
         # Step 10: Update system configuration
         if self._should_update_system_config(request):
             self._update_system_config(organisation, request, updated_fields)
+        
+        # Step 10.5: Update bank details if provided
+        if hasattr(request, 'bank_details') and request.bank_details:
+            bank_details = self._create_bank_details(request)
+            organisation.update_bank_details(bank_details, request.updated_by)
+            updated_fields.append("bank_details")
         
         # Step 11: Validate business rules
         await self._validate_business_rules(organisation)
@@ -364,6 +370,24 @@ class UpdateOrganisationUseCase:
         if updated_fields:
             organisation.updated_by = request.updated_by
     
+    def _create_bank_details(self, request: UpdateOrganisationRequestDTO) -> BankDetails:
+        """Create bank details value object if provided"""
+        if not hasattr(request, 'bank_details') or not request.bank_details:
+            return None
+        bd = request.bank_details
+        try:
+            return BankDetails(
+                bank_name=bd.bank_name,
+                account_number=bd.account_number,
+                ifsc_code=bd.ifsc_code,
+                branch_name=bd.branch_name,
+                branch_address=bd.branch_address,
+                account_type=bd.account_type,
+                account_holder_name=bd.account_holder_name
+            )
+        except Exception as e:
+            raise OrganisationValidationError(f"Invalid bank details: {e}")
+    
     async def _validate_business_rules(self, organisation: Organisation) -> None:
         """Validate business rules"""
         business_rule_errors = await self.validation_service.validate_business_rules(organisation)
@@ -376,6 +400,7 @@ class UpdateOrganisationUseCase:
     
     def _convert_to_response_dto(self, organisation: Organisation) -> OrganisationResponseDTO:
         """Convert organisation entity to response DTO"""
+        from app.application.dto.organisation_dto import BankDetailsResponseDTO
         return OrganisationResponseDTO(
             organisation_id=str(organisation.organisation_id),
             name=organisation.name,
@@ -398,7 +423,8 @@ class UpdateOrganisationUseCase:
             is_active=organisation.is_active(),
             is_government=organisation.is_government_organisation(),
             has_available_capacity=organisation.has_available_employee_capacity(),
-            display_name=organisation.get_display_name()
+            display_name=organisation.get_display_name(),
+            bank_details=BankDetailsResponseDTO(**organisation.bank_details.__dict__) if organisation.bank_details else None
         )
     
     def _convert_contact_info_to_dto(self, contact_info: ContactInformation):

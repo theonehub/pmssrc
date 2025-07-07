@@ -9,7 +9,7 @@ from typing import List
 from app.domain.entities.organisation import Organisation
 from app.domain.value_objects.organisation_id import OrganisationId
 from app.domain.value_objects.organisation_details import (
-    ContactInformation, Address, TaxInformation, OrganisationType
+    ContactInformation, Address, TaxInformation, OrganisationType, BankDetails
 )
 from app.application.dto.organisation_dto import (
     CreateOrganisationRequestDTO, OrganisationResponseDTO,
@@ -89,6 +89,7 @@ class CreateOrganisationUseCase:
         address = self._create_address(request)
         tax_info = self._create_tax_information(request)
         organisation_type = OrganisationType(request.organisation_type)
+        bank_details = self._create_bank_details(request)
         
         # Step 4: Create organisation entity (add logo_path)
         organisation = Organisation.create_new_organisation(
@@ -100,7 +101,8 @@ class CreateOrganisationUseCase:
             employee_strength=request.employee_strength,
             hostname=request.hostname,
             description=request.description,
-            created_by=request.created_by
+            created_by=request.created_by,
+            bank_details=bank_details
         )
         if hasattr(request, 'logo_path') and request.logo_path:
             organisation.logo_path = request.logo_path
@@ -185,6 +187,24 @@ class CreateOrganisationUseCase:
         except ValueError as e:
             raise OrganisationValidationError(f"Invalid tax information: {e}")
     
+    def _create_bank_details(self, request: CreateOrganisationRequestDTO) -> BankDetails:
+        """Create bank details value object if provided"""
+        if not hasattr(request, 'bank_details') or not request.bank_details:
+            return None
+        bd = request.bank_details
+        try:
+            return BankDetails(
+                bank_name=bd.bank_name,
+                account_number=bd.account_number,
+                ifsc_code=bd.ifsc_code,
+                branch_name=bd.branch_name,
+                branch_address=bd.branch_address,
+                account_type=bd.account_type,
+                account_holder_name=bd.account_holder_name
+            )
+        except Exception as e:
+            raise OrganisationValidationError(f"Invalid bank details: {e}")
+    
     async def _validate_business_rules(self, organisation: Organisation) -> None:
         """Validate business rules"""
         business_rule_errors = await self.validation_service.validate_business_rules(organisation)
@@ -197,6 +217,7 @@ class CreateOrganisationUseCase:
     
     def _convert_to_response_dto(self, organisation: Organisation) -> OrganisationResponseDTO:
         """Convert organisation entity to response DTO"""
+        from app.application.dto.organisation_dto import BankDetailsResponseDTO
         return OrganisationResponseDTO(
             organisation_id=str(organisation.organisation_id),
             name=organisation.name,
@@ -219,7 +240,8 @@ class CreateOrganisationUseCase:
             is_active=organisation.is_active(),
             is_government=organisation.is_government_organisation(),
             has_available_capacity=organisation.has_available_employee_capacity(),
-            display_name=organisation.get_display_name()
+            display_name=organisation.get_display_name(),
+            bank_details=BankDetailsResponseDTO(**organisation.bank_details.__dict__) if organisation.bank_details else None
         )
     
     def _convert_contact_info_to_dto(self, contact_info: ContactInformation):

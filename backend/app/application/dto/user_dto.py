@@ -612,6 +612,7 @@ class UserSummaryDTO:
     
     # Optional fields (with defaults)
     mobile: Optional[str] = None
+    gender: Optional[str] = None
     department: Optional[str] = None
     designation: Optional[str] = None
     date_of_joining: Optional[str] = None
@@ -663,6 +664,7 @@ class UserSummaryDTO:
             role=safe_enum_value(safe_get_attr(user, 'role')) or 'user',
             status=safe_enum_value(safe_get_attr(user, 'status')) or 'active',
             mobile=safe_get_attr(user, 'mobile', ''),
+            gender=safe_enum_value(safe_get_attr(user, 'gender')),
             department=safe_get_attr(user, 'department'),
             designation=safe_get_attr(user, 'designation'),
             date_of_joining=format_datetime(safe_get_attr(user, 'date_of_joining')),

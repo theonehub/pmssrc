@@ -192,23 +192,49 @@ class PublicHolidayServiceImpl(PublicHolidayService):
         try:
             logger.info(f"Importing public holidays in organisation: {current_user.hostname}")
             
-            imported_holidays = []
-            for holiday_data in request.holidays:
-                try:
-                    create_request = CreatePublicHolidayRequestDTO(
-                        name=holiday_data.get('name'),
-                        holiday_date=holiday_data.get('holiday_date'),
-                        description=holiday_data.get('description', ''),
-                        is_active=holiday_data.get('is_active', True)
-                    )
-                    
-                    holiday = await self.create_public_holiday(create_request, current_user)
-                    imported_holidays.append(holiday)
-                    
-                except Exception as e:
-                    logger.warning(f"Failed to import holiday {holiday_data.get('name')}: {e}")
-                    continue
+            # Create import use case
+            from app.application.use_cases.public_holiday.import_public_holidays_use_case import ImportPublicHolidaysUseCase
             
+            # Create a simple event publisher
+            class SimpleEventPublisher:
+                async def publish_event(self, event_type: str, data: dict):
+                    logger.info(f"Event published: {event_type} - {data}")
+            
+            event_publisher = SimpleEventPublisher()
+            
+            import_use_case = ImportPublicHolidaysUseCase(
+                command_repository=self.public_holiday_repository,
+                query_repository=self.public_holiday_repository,
+                event_publisher=event_publisher,
+                notification_service=self.notification_service
+            )
+            
+            # Execute import
+            result = await import_use_case.execute(
+                file_data=request.file_content,
+                filename=request.file_name,
+                imported_by=current_user.employee_id,
+                hostname=current_user.hostname
+            )
+            
+            # If there are validation errors, raise them
+            if result.errors:
+                error_messages = "\n".join(result.errors)
+                raise PublicHolidayValidationError(f"Import validation failed:\n{error_messages}")
+            
+            # Return successfully imported holidays
+            imported_holidays = []
+            for holiday_data in result.successful_imports:
+                # Get the saved holiday from repository
+                holidays = await self.public_holiday_repository.find_by_name_and_date(
+                    holiday_data['name'], 
+                    holiday_data['date'], 
+                    current_user.hostname
+                )
+                if holidays:
+                    imported_holidays.append(PublicHolidayResponseDTO.from_entity(holidays[0]))
+            
+            logger.info(f"Successfully imported {len(imported_holidays)} holidays")
             return imported_holidays
             
         except Exception as e:

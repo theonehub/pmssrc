@@ -169,7 +169,7 @@ class PublicHolidaySearchFiltersDTO(BaseModel):
 class PublicHolidayImportResultDTO(BaseModel):
     """DTO for public holiday import results"""
     total_processed: int = Field(..., description="Total holidays processed")
-    successful_imports: int = Field(..., description="Number of successful imports")
+    successful_imports: List[Dict[str, Any]] = Field(default_factory=list, description="Successfully imported holiday data")
     failed_imports: int = Field(..., description="Number of failed imports")
     errors: List[str] = Field(default_factory=list, description="Import errors")
     warnings: List[str] = Field(default_factory=list, description="Import warnings")

@@ -260,6 +260,7 @@ class MonthlyPaymentSchedule:
     principal_amount: Money
     interest_amount: Money
 
+
 @dataclass
 class InterestFreeConcessionalLoan:
     """Interest-free/concessional loan perquisite."""
@@ -271,7 +272,8 @@ class InterestFreeConcessionalLoan:
     sbi_interest_rate: Decimal = Decimal('8.5')
     loan_start_date: date = date.today()
     loan_type: str = 'Personal'  # Personal, Medical, etc.
-    #monthly_payment_schedule: list[MonthlyPaymentSchedule] = []
+    # monthly_payment_schedule: list[MonthlyPaymentSchedule] = None
+    # current_month: int = 1  # Track current month for payment processing
 
     def calculate_monthly_payment_schedule(self, interest_rate: Decimal) -> tuple[list[MonthlyPaymentSchedule], Money]:
         """Calculate monthly payment schedule for a loan."""

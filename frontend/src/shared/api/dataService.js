@@ -227,7 +227,22 @@ const dataService = {
   },
 
   async importUsers(file) {
-    const response = await apiClient.post('/api/v2/users/import');
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await apiClient.post('/api/v2/users/import', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  async downloadUserTemplate() {
+    const response = await apiClient.get('/api/v2/users/export', {
+      params: { format: 'csv' },
+      responseType: 'blob'
+    });
     return response.data;
   },
 

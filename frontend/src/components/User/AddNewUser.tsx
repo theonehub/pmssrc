@@ -485,9 +485,10 @@ const AddNewUser: React.FC = () => {
               value={formData.gender}
               onChange={handleSelectChange}
             >
-              <MenuItem value="Male">Male</MenuItem>
-              <MenuItem value="Female">Female</MenuItem>
-              <MenuItem value="Other">Other</MenuItem>
+              <MenuItem value="male">Male</MenuItem>
+              <MenuItem value="female">Female</MenuItem>
+              <MenuItem value="other">Other</MenuItem>
+              <MenuItem value="prefer_not_to_say">Prefer not to say</MenuItem>
             </Select>
             {errors.gender && (
               <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 2 }}>

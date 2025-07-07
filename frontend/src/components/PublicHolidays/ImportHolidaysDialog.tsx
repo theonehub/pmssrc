@@ -136,7 +136,7 @@ const ImportHolidaysDialog: React.FC<ImportHolidaysDialogProps> = ({
           Import Public Holidays
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Upload an Excel file to import multiple holidays at once
+          Upload an Excel file to import multiple holidays at once. Dates should be in DD-MM-YYYY format. Historical holidays with past dates are allowed.
         </Typography>
       </DialogTitle>
       
@@ -248,7 +248,7 @@ const ImportHolidaysDialog: React.FC<ImportHolidaysDialogProps> = ({
                   </ListItemIcon>
                   <ListItemText 
                     primary="date" 
-                    secondary="Date in YYYY-MM-DD format"
+                    secondary="Date in DD-MM-YYYY format (e.g., 15-08-2024). Past dates allowed for historical holidays."
                   />
                 </ListItem>
                 <ListItem>

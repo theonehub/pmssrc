@@ -360,6 +360,11 @@ class PublicHolidayRepository(ABC):
         pass
     
     @abstractmethod
+    async def find_by_name_and_date(self, name: str, holiday_date: date, hostname: str) -> List[PublicHoliday]:
+        """Find public holidays by name and date from organisation-specific database."""
+        pass
+    
+    @abstractmethod
     async def delete(self, holiday_id: 'PublicHolidayId', hostname: str) -> bool:
         """Delete public holiday from organisation-specific database."""
         pass

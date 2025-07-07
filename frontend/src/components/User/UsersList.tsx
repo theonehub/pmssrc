@@ -171,9 +171,19 @@ const UsersList: React.FC = () => {
 
   const handleDownloadTemplate = async (): Promise<void> => {
     try {
-      // Note: This endpoint might need to be implemented in the backend
-      // For now, just show a message - template download can be implemented later
-      showAlert('Template download feature will be implemented soon', 'info');
+      const blob = await dataService.downloadUserTemplate();
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'users_template.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      showAlert('Template downloaded successfully', 'success');
     } catch (error: any) {
       const errorMessage = error.response?.data?.detail || 'Failed to download template';
       showAlert(errorMessage, 'error');
@@ -256,6 +266,17 @@ const UsersList: React.FC = () => {
       case 'hr': return 'info';
       case 'user': return 'success';
       default: return 'default';
+    }
+  };
+
+  const formatGender = (gender: string | undefined): string => {
+    if (!gender) return 'N/A';
+    switch (gender.toLowerCase()) {
+      case 'male': return 'Male';
+      case 'female': return 'Female';
+      case 'other': return 'Other';
+      case 'prefer_not_to_say': return 'Prefer not to say';
+      default: return gender;
     }
   };
 
@@ -455,7 +476,7 @@ const UsersList: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">
-                          {user.gender}
+                          {formatGender(user.gender)}
                         </Typography>
                       </TableCell>
                       <TableCell>

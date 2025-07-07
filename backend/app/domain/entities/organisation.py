@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 
 from app.domain.value_objects.organisation_id import OrganisationId
 from app.domain.value_objects.organisation_details import (
-    ContactInformation, Address, TaxInformation, OrganisationType, OrganisationStatus
+    ContactInformation, Address, TaxInformation, OrganisationType, OrganisationStatus, BankDetails
 )
 from app.domain.events.organisation_events import (
     OrganisationCreated, OrganisationUpdated, OrganisationContactUpdated,
@@ -62,6 +62,9 @@ class Organisation:
     
     # Tax Information
     tax_info: TaxInformation = None
+
+    # Bank Details
+    bank_details: BankDetails = None
     
     # Employee Management
     employee_strength: int = 0
@@ -111,7 +114,8 @@ class Organisation:
         employee_strength: int = 10,
         hostname: Optional[str] = None,
         description: Optional[str] = None,
-        created_by: Optional[str] = None
+        created_by: Optional[str] = None,
+        bank_details: Optional[BankDetails] = None
     ) -> 'Organisation':
         """Factory method to create a new organisation"""
         
@@ -127,7 +131,8 @@ class Organisation:
             tax_info=tax_info,
             employee_strength=employee_strength,
             hostname=hostname,
-            created_by=created_by
+            created_by=created_by,
+            bank_details=bank_details
         )
         
         return organisation
@@ -550,6 +555,7 @@ class Organisation:
             "contact_info": self.contact_info.to_dict() if self.contact_info else None,
             "address": self.address.to_dict() if self.address else None,
             "tax_info": self.tax_info.to_dict() if self.tax_info else None,
+            "bank_details": self.bank_details.__dict__ if self.bank_details else None,
             "employee_strength": self.employee_strength,
             "used_employee_strength": self.used_employee_strength,
             "hostname": self.hostname,
@@ -567,4 +573,19 @@ class Organisation:
     
     def __repr__(self) -> str:
         """Developer representation"""
-        return f"Organisation(id={self.organisation_id}, name='{self.name}', status={self.status.value})" 
+        return f"Organisation(id={self.organisation_id}, name='{self.name}', status={self.status.value})"
+    
+    def update_bank_details(
+        self,
+        new_bank_details: BankDetails,
+        updated_by: Optional[str] = None
+    ) -> None:
+        """
+        Update organisation bank details.
+        """
+        if new_bank_details == self.bank_details:
+            return  # No changes
+        self.bank_details = new_bank_details
+        self.updated_at = datetime.utcnow()
+        self.updated_by = updated_by
+        # Optionally, add a domain event here if needed 

@@ -132,11 +132,18 @@ class DataService {
 
   async importUsers(file: File) {
     try {
-      // This would need to be implemented with actual import API
-      console.log('Importing users from file:', file.name);
-      return { success: true, imported: 0 };
+      return await userApi.importUsers(file);
     } catch (error) {
       console.error('Error importing users:', error);
+      throw error;
+    }
+  }
+
+  async downloadUserTemplate(): Promise<Blob> {
+    try {
+      return await userApi.exportUsers({}, 'csv');
+    } catch (error) {
+      console.error('Error downloading user template:', error);
       throw error;
     }
   }

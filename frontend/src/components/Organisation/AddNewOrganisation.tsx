@@ -97,6 +97,15 @@ const AddNewOrganisation: React.FC = () => {
   const [gstNumber, setGstNumber] = useState('');
   const [tanNumber, setTanNumber] = useState('');
 
+  // Bank details
+  const [bankName, setBankName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [ifscCode, setIfscCode] = useState('');
+  const [branchName, setBranchName] = useState('');
+  const [branchAddress, setBranchAddress] = useState('');
+  const [accountType, setAccountType] = useState('');
+  const [accountHolderName, setAccountHolderName] = useState('');
+
   // Error states
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -139,6 +148,15 @@ const AddNewOrganisation: React.FC = () => {
       setPanNumber(org.tax_info?.pan_number || org.pan_number || '');
       setGstNumber(org.tax_info?.gst_number || org.gst_number || '');
       setTanNumber(org.tax_info?.tan_number || org.tan_number || '');
+      
+      // Bank details - check both nested and flat structure
+      setBankName(org.bank_details?.bank_name || org.bank_name || '');
+      setAccountNumber(org.bank_details?.account_number || org.account_number || '');
+      setIfscCode(org.bank_details?.ifsc_code || org.ifsc_code || '');
+      setBranchName(org.bank_details?.branch_name || org.branch_name || '');
+      setBranchAddress(org.bank_details?.branch_address || org.branch_address || '');
+      setAccountType(org.bank_details?.account_type || org.account_type || '');
+      setAccountHolderName(org.bank_details?.account_holder_name || org.account_holder_name || '');
     }
   }, [isEditing, organisationData]);
 
@@ -213,14 +231,30 @@ const AddNewOrganisation: React.FC = () => {
       case 'tanNumber':
         if (!value.trim()) return '';
         return !/^[A-Z]{4}[0-9]{5}[A-Z]{1}$/.test(value) ? 'Invalid TAN format (e.g., ABCD12345E)' : '';
+      case 'bankName':
+        return !value.trim() ? 'Bank name is required' : '';
+      case 'accountNumber':
+        if (!value.trim()) return 'Account number is required';
+        return !/^\d{9,18}$/.test(value) ? 'Account number must be 9-18 digits' : '';
+      case 'ifscCode':
+        if (!value.trim()) return 'IFSC code is required';
+        return !/^[A-Z]{4}0[A-Z0-9]{6}$/.test(value.toUpperCase()) ? 'Invalid IFSC format (e.g., SBIN0001234)' : '';
+      case 'branchName':
+        return !value.trim() ? 'Branch name is required' : '';
+      case 'branchAddress':
+        return !value.trim() ? 'Branch address is required' : '';
+      case 'accountType':
+        return !value.trim() ? 'Account type is required' : '';
+      case 'accountHolderName':
+        return !value.trim() ? 'Account holder name is required' : '';
       default:
         return '';
     }
   };
 
   const handleFieldChange = (fieldName: string, value: string, setField: (value: string) => void) => {
-    // Convert to uppercase for tax numbers
-    if (['panNumber', 'gstNumber', 'tanNumber'].includes(fieldName)) {
+    // Convert to uppercase for tax numbers and IFSC code
+    if (['panNumber', 'gstNumber', 'tanNumber', 'ifscCode'].includes(fieldName)) {
       value = value.toUpperCase();
     }
     
@@ -251,7 +285,14 @@ const AddNewOrganisation: React.FC = () => {
       { name: 'pinCode', value: pinCode },
       { name: 'panNumber', value: panNumber },
       { name: 'gstNumber', value: gstNumber },
-      { name: 'tanNumber', value: tanNumber }
+      { name: 'tanNumber', value: tanNumber },
+      { name: 'bankName', value: bankName },
+      { name: 'accountNumber', value: accountNumber },
+      { name: 'ifscCode', value: ifscCode },
+      { name: 'branchName', value: branchName },
+      { name: 'branchAddress', value: branchAddress },
+      { name: 'accountType', value: accountType },
+      { name: 'accountHolderName', value: accountHolderName }
     ];
 
     fieldsToValidate.forEach(field => {
@@ -311,7 +352,16 @@ const AddNewOrganisation: React.FC = () => {
         // Additional optional fields that backend might expect
         fax: '',
         landmark: '',
-        cin_number: ''
+        cin_number: '',
+        
+        // Bank Details (flattened - required)
+        bank_name: bankName,
+        account_number: accountNumber,
+        ifsc_code: ifscCode,
+        branch_name: branchName,
+        branch_address: branchAddress,
+        account_type: accountType,
+        account_holder_name: accountHolderName
       };
 
       // Only include organisation_id for updates
@@ -714,6 +764,81 @@ const AddNewOrganisation: React.FC = () => {
             InputProps={{
               startAdornment: <NumbersIcon color="action" sx={{ mr: 1 }} />,
             }}
+          />
+        </FormSection>
+
+        {/* Bank Details Section */}
+        <FormSection title="Bank Details">
+          <TextField
+            fullWidth
+            label="Bank Name"
+            value={bankName}
+            onChange={(e) => handleFieldChange('bankName', e.target.value, setBankName)}
+            error={!!errors.bankName}
+            helperText={errors.bankName}
+            required
+          />
+
+          <TextField
+            fullWidth
+            label="Account Number"
+            value={accountNumber}
+            onChange={(e) => handleFieldChange('accountNumber', e.target.value, setAccountNumber)}
+            error={!!errors.accountNumber}
+            helperText={errors.accountNumber}
+            required
+          />
+
+          <TextField
+            fullWidth
+            label="IFSC Code"
+            value={ifscCode}
+            onChange={(e) => handleFieldChange('ifscCode', e.target.value, setIfscCode)}
+            error={!!errors.ifscCode}
+            helperText={errors.ifscCode}
+            required
+          />
+
+          <TextField
+            fullWidth
+            label="Branch Name"
+            value={branchName}
+            onChange={(e) => handleFieldChange('branchName', e.target.value, setBranchName)}
+            error={!!errors.branchName}
+            helperText={errors.branchName}
+            required
+          />
+
+          <TextField
+            fullWidth
+            label="Branch Address"
+            value={branchAddress}
+            onChange={(e) => handleFieldChange('branchAddress', e.target.value, setBranchAddress)}
+            error={!!errors.branchAddress}
+            helperText={errors.branchAddress}
+            multiline
+            rows={2}
+            required
+          />
+
+          <TextField
+            fullWidth
+            label="Account Type"
+            value={accountType}
+            onChange={(e) => handleFieldChange('accountType', e.target.value, setAccountType)}
+            error={!!errors.accountType}
+            helperText={errors.accountType}
+            required
+          />
+
+          <TextField
+            fullWidth
+            label="Account Holder Name"
+            value={accountHolderName}
+            onChange={(e) => handleFieldChange('accountHolderName', e.target.value, setAccountHolderName)}
+            error={!!errors.accountHolderName}
+            helperText={errors.accountHolderName}
+            required
           />
         </FormSection>
 

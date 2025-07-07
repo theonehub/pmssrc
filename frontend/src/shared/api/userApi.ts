@@ -389,10 +389,11 @@ export class UserAPI {
   /**
    * Export users to file
    */
-  async exportUsers(filters: UserFilters = {}): Promise<Blob> {
+  async exportUsers(filters: UserFilters = {}, format: string = 'csv'): Promise<Blob> {
     try {
+      const params = { ...filters, format };
       const response = await this.baseApi.download('/api/v2/users/export', {
-        params: filters
+        params
       });
       return response;
     } catch (error: any) {

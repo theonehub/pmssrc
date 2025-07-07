@@ -302,3 +302,14 @@ class TaxInformation:
             tan_number=data.get("tan_number"),
             cin_number=data.get("cin_number")
         ) 
+    
+@dataclass(frozen=True)
+class BankDetails:
+    """Value object for organisation bank details."""
+    bank_name: str
+    account_number: str
+    ifsc_code: str
+    branch_name: str
+    branch_address: str
+    account_type: str
+    account_holder_name: str

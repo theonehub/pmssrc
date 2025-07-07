@@ -276,6 +276,31 @@ class MongoDBPublicHolidayRepository(PublicHolidayRepository):
             logger.error(f"Error finding public holidays by date in database {hostname}: {e}")
             raise
     
+    async def find_by_name_and_date(self, name: str, holiday_date: date, hostname: str) -> List[PublicHoliday]:
+        """Find public holidays by name and date from organisation-specific database."""
+        try:
+            collection = await self._get_collection(hostname)
+            
+            # Convert date to datetime for MongoDB query
+            start_datetime = datetime.combine(holiday_date, datetime.min.time())
+            end_datetime = datetime.combine(holiday_date, datetime.max.time())
+            
+            query = {
+                "name": name,
+                "date": {"$gte": start_datetime, "$lte": end_datetime}
+            }
+            
+            cursor = collection.find(query)
+            holiday_dicts = await cursor.to_list(length=None)
+            
+            holidays = [self._dict_to_entity(holiday_dict) for holiday_dict in holiday_dicts]
+            
+            return holidays
+            
+        except Exception as e:
+            logger.error(f"Error finding public holidays by name and date in database {hostname}: {e}")
+            raise
+    
     async def delete(self, holiday_id: PublicHolidayId, hostname: str) -> bool:
         """Delete public holiday from organisation-specific database (soft delete)."""
         try:

@@ -55,6 +55,9 @@ class CreateOrganisationRequestDTO:
     # Optional Audit
     created_by: Optional[str] = None
     
+    # Optional Bank Details
+    bank_details: Optional['BankDetailsRequestDTO'] = None
+    
     def validate(self) -> List[str]:
         """Validate the request data"""
         errors = []
@@ -96,6 +99,9 @@ class CreateOrganisationRequestDTO:
         except ValueError:
             errors.append("Invalid organisation type")
         
+        if self.bank_details:
+            errors.extend(self.bank_details.validate())
+        
         return errors
 
 
@@ -136,6 +142,9 @@ class UpdateOrganisationRequestDTO:
     # Audit
     updated_by: Optional[str] = None
     
+    # Optional Bank Details
+    bank_details: Optional['BankDetailsRequestDTO'] = None
+    
     def validate(self) -> List[str]:
         """Validate the update request data"""
         errors = []
@@ -159,6 +168,9 @@ class UpdateOrganisationRequestDTO:
                 OrganisationType(self.organisation_type)
             except ValueError:
                 errors.append("Invalid organisation type")
+        
+        if self.bank_details:
+            errors.extend(self.bank_details.validate())
         
         return errors
 
@@ -301,6 +313,9 @@ class OrganisationResponseDTO:
     is_government: bool = False
     has_available_capacity: bool = False
     display_name: str = None
+
+    # Optional Bank Details
+    bank_details: Optional['BankDetailsResponseDTO'] = None
 
 
 @dataclass
@@ -467,3 +482,44 @@ class OrganisationConflictError(Exception):
     def __init__(self, message: str, conflict_field: str = None):
         super().__init__(message)
         self.conflict_field = conflict_field 
+
+
+# ==================== BANK DETAILS DTOs ====================
+
+@dataclass
+class BankDetailsRequestDTO:
+    bank_name: str
+    account_number: str
+    ifsc_code: str
+    branch_name: str
+    branch_address: str
+    account_type: str
+    account_holder_name: str
+
+    def validate(self) -> list:
+        errors = []
+        if not self.bank_name or not self.bank_name.strip():
+            errors.append("Bank name is required")
+        if not self.account_number or not self.account_number.strip():
+            errors.append("Account number is required")
+        if not self.ifsc_code or not self.ifsc_code.strip():
+            errors.append("IFSC code is required")
+        if not self.branch_name or not self.branch_name.strip():
+            errors.append("Branch name is required")
+        if not self.branch_address or not self.branch_address.strip():
+            errors.append("Branch address is required")
+        if not self.account_type or not self.account_type.strip():
+            errors.append("Account type is required")
+        if not self.account_holder_name or not self.account_holder_name.strip():
+            errors.append("Account holder name is required")
+        return errors
+
+@dataclass
+class BankDetailsResponseDTO:
+    bank_name: str
+    account_number: str
+    ifsc_code: str
+    branch_name: str
+    branch_address: str
+    account_type: str
+    account_holder_name: str 

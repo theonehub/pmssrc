@@ -21,6 +21,16 @@ export interface TaxInfo {
   cin_number?: string;
 }
 
+export interface BankDetails {
+  bank_name: string;
+  account_number: string;
+  ifsc_code: string;
+  branch_name: string;
+  branch_address: string;
+  account_type: string;
+  account_holder_name: string;
+}
+
 export interface Organisation {
   organisation_id?: string;
   name: string;
@@ -37,6 +47,7 @@ export interface Organisation {
   contact_info?: ContactInfo | null;
   address?: Address | null;
   tax_info?: TaxInfo | null;
+  bank_details?: BankDetails | null;
   
   employee_strength: number;
   used_employee_strength?: number;
@@ -74,6 +85,15 @@ export const EmptyOrganisation: Organisation = {
     gst_number: '',
     tan_number: '',
     cin_number: '',
+  },
+  bank_details: {
+    bank_name: '',
+    account_number: '',
+    ifsc_code: '',
+    branch_name: '',
+    branch_address: '',
+    account_type: '',
+    account_holder_name: '',
   },
   employee_strength: 10,
   used_employee_strength: 0,

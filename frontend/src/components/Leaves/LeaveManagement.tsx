@@ -122,9 +122,22 @@ const LeaveManagement: React.FC = () => {
       setShowModal(false);
       resetForm();
     } catch (error: any) {
+      // Defensive: Try to extract the most meaningful error message
+      let errorMsg = 'Failed to submit leave application';
+      if (error.response?.data?.detail) {
+        if (Array.isArray(error.response.data.detail)) {
+          errorMsg = error.response.data.detail.join(', ');
+        } else {
+          errorMsg = error.response.data.detail;
+        }
+      } else if (error.message) {
+        errorMsg = error.message;
+      }
+      setShowModal(false); // Always close the dialog on error
+      resetForm();         // Reset the form fields
       setAlert({
         open: true,
-        message: error.response?.data?.detail || 'Failed to submit leave application',
+        message: errorMsg,
         severity: 'error'
       });
     }

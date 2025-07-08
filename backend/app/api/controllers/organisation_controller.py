@@ -84,15 +84,13 @@ class OrganisationController:
     async def update_organisation(
         self, 
         organisation_id: str, 
-        request: UpdateOrganisationRequestDTO, 
-        updated_by: str
+        request: UpdateOrganisationRequestDTO
     ) -> OrganisationResponseDTO:
         """Update an existing organisation"""
-        logger.info(f"Updating organisation: {organisation_id} by {updated_by}")
+        logger.info(f"Updating organisation: {organisation_id}")
         return await self.update_use_case.execute(
             organisation_id=organisation_id,
-            request=request,
-            updated_by=updated_by
+            request=request
         )
 
     async def delete_organisation(

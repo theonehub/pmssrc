@@ -14,6 +14,7 @@ from app.domain.entities.employee_leave import EmployeeLeave
 class LeaveStatus(str, Enum):
     PENDING = "pending"
     APPROVED = "approved" 
+    LOW_BALANCE = 'Low balance'
     REJECTED = "rejected"
     CANCELLED = "cancelled"
 

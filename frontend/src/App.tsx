@@ -21,6 +21,7 @@ import AllLeaves from './components/Leaves/AllLeaves';
 import CompanyLeaves from './components/CompanyLeaves/CompanyLeaves';
 import OrganisationsList from './components/Organisation/OrganisationsList';
 import AddNewOrganisation from './components/Organisation/AddNewOrganisation';
+import OrganisationDetails from './components/Organisation/OrganisationDetails';
 import { useCalculatorStore } from './shared/stores/calculatorStore';
 import Calculator from './components/Common/Calculator';
 import PageLayout from './layout/PageLayout';
@@ -143,6 +144,11 @@ const AppContent: React.FC = () => {
           <Route
             path="/organisations/edit/:id"
             element={withLayout(<AddNewOrganisation />, 'Edit Organisation', ['superadmin'])}
+          />
+
+          <Route
+            path="/organisations/:id"
+            element={withLayout(<OrganisationDetails />, 'Organisation Details', ['superadmin'])}
           />
 
           {/* Taxation Routes */}

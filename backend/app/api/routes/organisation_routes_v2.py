@@ -27,6 +27,7 @@ from app.application.dto.organisation_dto import (
 from app.auth.auth_dependencies import CurrentUser, get_current_user
 from app.config.dependency_container import get_organisation_controller
 from app.api.controllers.organisation_controller import OrganisationController
+from app.domain.value_objects.bank_details import BankDetails
 
 
 logger = logging.getLogger(__name__)
@@ -120,66 +121,60 @@ async def create_organisation(
         # Parse organisation data from JSON string
         data = json.loads(organisation_data)
         
-        # Handle flat bank fields from frontend
+        # Handle bank details
         bank_details = None
-        if any(key in data for key in ['bank_name', 'account_number', 'ifsc_code', 'branch_name', 'branch_address', 'account_type', 'account_holder_name']):
+        if "bank_details" in data:
             bank_details = BankDetailsRequestDTO(
-                bank_name=data.get('bank_name', ''),
-                account_number=data.get('account_number', ''),
-                ifsc_code=data.get('ifsc_code', ''),
-                branch_name=data.get('branch_name', ''),
-                branch_address=data.get('branch_address', ''),
-                account_type=data.get('account_type', ''),
-                account_holder_name=data.get('account_holder_name', '')
+                bank_name=data["bank_details"].get("bank_name", ""),
+                account_number=data["bank_details"].get("account_number", ""),
+                ifsc_code=data["bank_details"].get("ifsc_code", ""),
+                account_holder_name=data["bank_details"].get("account_holder_name", ""),
+                branch_name=data["bank_details"].get("branch_name"),
+                account_type=data["bank_details"].get("account_type")
             )
-            # Remove flat bank fields from data to avoid conflicts
-            for key in ['bank_name', 'account_number', 'ifsc_code', 'branch_name', 'branch_address', 'account_type', 'account_holder_name']:
-                data.pop(key, None)
-        
-        # Create the DTO with nested bank_details
-        request = CreateOrganisationRequestDTO(**data, bank_details=bank_details)
+            # Validate bank details
+            errors = bank_details.validate()
+            if errors:
+                raise HTTPException(status_code=400, detail={"bank_details": errors})
+
+        # Create organisation request DTO
+        request = CreateOrganisationRequestDTO(
+            name=data.get("name", ""),
+            description=data.get("description", ""),
+            hostname=data.get("hostname", ""),
+            organisation_type=data.get("organisation_type", "private_limited"),
+            contact_information=data.get("contact_information", {}),
+            address=data.get("address", {}),
+            tax_information=data.get("tax_information", {}),
+            bank_details=bank_details,
+            employee_strength=data.get("employee_strength", 0)
+        )
+
+        # Handle logo upload if provided
         logo_path = None
-        
-        if logo is not None:
-            # Ensure upload directory exists
-            upload_dir = "./uploads/organisation/logos/"
-            os.makedirs(upload_dir, exist_ok=True)
+        if logo:
+            # Generate unique filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"{timestamp}_{logo.filename}"
             
-            # Create unique filename
-            ext = os.path.splitext(logo.filename)[-1]
-            unique_name = f"org_{request.name.replace(' ', '_')}_{int(datetime.now().timestamp())}{ext}"
-            file_path = os.path.join(upload_dir, unique_name)
+            # Ensure uploads directory exists
+            os.makedirs("uploads/logos", exist_ok=True)
             
             # Save file
-            with open(file_path, "wb") as f:
+            logo_path = f"uploads/logos/{filename}"
+            with open(logo_path, "wb") as f:
                 f.write(await logo.read())
-            
-            logo_path = file_path
-            logger.info(f"Logo saved to: {logo_path}")
-        
-        # Pass logo_path to controller
-        response = await controller.create_organisation(
-            request=request,
-            created_by=current_user.employee_id,
-            logo_path=logo_path
-        )
-        return response
-        
-    except json.JSONDecodeError as e:
-        logger.error(f"Invalid JSON in organisation data: {e}")
-        raise HTTPException(status_code=400, detail="Invalid JSON format in organisation data")
-    except OrganisationValidationError as e:
-        logger.warning(f"Validation error creating organisation: {e}")
-        raise HTTPException(status_code=400, detail={"error": "validation_error", "message": str(e)})
-    except OrganisationConflictError as e:
-        logger.warning(f"Conflict error creating organisation: {e}")
-        raise HTTPException(status_code=409, detail={"error": "conflict_error", "message": str(e)})
-    except OrganisationBusinessRuleError as e:
-        logger.warning(f"Business rule error creating organisation: {e}")
-        raise HTTPException(status_code=422, detail={"error": "business_rule_error", "message": str(e)})
+
+        # Create organisation
+        result = await controller.create_organisation(request, logo_path, current_user)
+        return result
+
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON data")
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Unexpected error creating organisation: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @organisation_v2_router.get("/", response_model=OrganisationListResponseDTO)
@@ -232,59 +227,45 @@ async def get_organisation(
 
 @organisation_v2_router.put("/{organisation_id}", response_model=OrganisationResponseDTO)
 async def update_organisation(
-    organisation_id: str = Path(..., description="Organisation ID"),
-    request_data: dict = None,
+    organisation_id: str,
+    request: UpdateOrganisationRequestDTO,
     current_user: CurrentUser = Depends(get_current_user),
     controller: OrganisationController = Depends(get_organisation_controller)
 ):
     """Update an existing organisation"""
     try:
-        # Handle flat bank fields from frontend
-        bank_details = None
-        if request_data and any(key in request_data for key in ['bank_name', 'account_number', 'ifsc_code', 'branch_name', 'branch_address', 'account_type', 'account_holder_name']):
-            bank_details = BankDetailsRequestDTO(
-                bank_name=request_data.get('bank_name', ''),
-                account_number=request_data.get('account_number', ''),
-                ifsc_code=request_data.get('ifsc_code', ''),
-                branch_name=request_data.get('branch_name', ''),
-                branch_address=request_data.get('branch_address', ''),
-                account_type=request_data.get('account_type', ''),
-                account_holder_name=request_data.get('account_holder_name', '')
+        # Set updated_by
+        request.updated_by = current_user.employee_id
+        
+        # Create bank details value object if bank details fields are provided
+        if request.bank_name or request.account_number or request.ifsc_code or request.account_holder_name:
+            request.bank_details = BankDetails(
+                bank_name=request.bank_name or "",
+                account_number=request.account_number or "",
+                ifsc_code=request.ifsc_code or "",
+                account_holder_name=request.account_holder_name or "",
+                branch_name=request.branch_name,
+                branch_address=request.branch_address,
+                account_type=request.account_type
             )
-            # Remove flat bank fields from data to avoid conflicts
-            for key in ['bank_name', 'account_number', 'ifsc_code', 'branch_name', 'branch_address', 'account_type', 'account_holder_name']:
-                request_data.pop(key, None)
         
-        # Create the DTO with nested bank_details
-        request = UpdateOrganisationRequestDTO(**request_data, bank_details=bank_details) if request_data else None
-        
-        response = await controller.update_organisation(
+        # Call controller
+        return await controller.update_organisation(
             organisation_id=organisation_id,
-            request=request,
-            updated_by=current_user.employee_id
+            request=request
         )
-        
-        return response
-        
-    except OrganisationNotFoundError as e:
-        logger.warning(f"Organisation not found for update: {e}")
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": str(e)})
-    
-    except OrganisationValidationError as e:
-        logger.warning(f"Validation error updating organisation: {e}")
-        raise HTTPException(status_code=400, detail={"error": "validation_error", "message": str(e)})
-    
-    except OrganisationConflictError as e:
-        logger.warning(f"Conflict error updating organisation: {e}")
-        raise HTTPException(status_code=409, detail={"error": "conflict_error", "message": str(e)})
-    
-    except OrganisationBusinessRuleError as e:
-        logger.warning(f"Business rule error updating organisation: {e}")
-        raise HTTPException(status_code=422, detail={"error": "business_rule_error", "message": str(e)})
-    
+    except ValueError as e:
+        logger.error(f"Error validating organisation update: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
     except Exception as e:
-        logger.error(f"Unexpected error updating organisation {organisation_id}: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
+        logger.error(f"Error updating organisation: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 
 @organisation_v2_router.delete("/{organisation_id}")

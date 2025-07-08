@@ -104,16 +104,15 @@ class ApproveEmployeeLeaveUseCase:
             
             # Step 4: Process approval or rejection
             if request.status == LeaveStatus.APPROVED:
-                await self._approve_leave(employee_leave, current_user.employee_id, request.comments, current_user.hostname)
+                status = await self._approve_leave(employee_leave, current_user.employee_id, request.comments, current_user.hostname)
             elif request.status == LeaveStatus.REJECTED:
-                await self._reject_leave(employee_leave, current_user.employee_id, request.comments or "No reason provided", current_user.hostname)
+                status = await self._reject_leave(employee_leave, current_user.employee_id, request.comments or "No reason provided", current_user.hostname)
             
             # Step 5: Update in database
             updated_leave = await self._command_repository.update(employee_leave, current_user.hostname)
             if not updated_leave:
                 raise Exception("Failed to update employee leave application")
             employee_leave = updated_leave
-            
             # Step 6: Publish domain events
             await self._publish_domain_events(employee_leave)
             
@@ -123,7 +122,7 @@ class ApproveEmployeeLeaveUseCase:
             
             # Step 8: Return response
             response = EmployeeLeaveResponseDTO.from_entity(employee_leave)
-            self._logger.info(f"Successfully processed leave approval: {leave_id}")
+            self._logger.info(f"Leave approval: {status} for {leave_id}")
             
             return response
             
@@ -193,6 +192,9 @@ class ApproveEmployeeLeaveUseCase:
                 leave_type = employee_leave.leave_name
                 current_balance = user.leave_balance.get(leave_type, 0)
                 days_to_deduct = employee_leave.approved_days or employee_leave.applied_days or 0
+                if days_to_deduct > current_balance:
+                    employee_leave.status = LeaveStatus.LOW_BALANCE
+                    self._logger.info(f"Days to deduct {days_to_deduct} is greater than current balance {current_balance} for user {employee_leave.employee_id}, leave_type {leave_type}")
                 # Ensure both are floats
                 try:
                     current_balance_f = float(current_balance)
@@ -216,6 +218,7 @@ class ApproveEmployeeLeaveUseCase:
         except Exception as e:
             self._logger.error(f"Error deducting leave balance: {e}")
         self._logger.info(f"Approved leave: {employee_leave.leave_id}")
+    
     
     async def _reject_leave(
         self, 
@@ -257,7 +260,7 @@ class ApproveEmployeeLeaveUseCase:
         # Reject the leave (this will update status and raise domain events)
         employee_leave.reject(approver_id, reason)
         self._logger.info(f"Rejected leave: {employee_leave.leave_id}")
-    
+
     async def _publish_domain_events(self, employee_leave: EmployeeLeave):
         """Publish domain events for the leave approval/rejection"""
         

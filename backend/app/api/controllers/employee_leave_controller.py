@@ -117,7 +117,7 @@ class EmployeeLeaveController:
             response = await self._approve_use_case.execute(
                 leave_id, request, current_user)
             
-            self._logger.info(f"Successfully processed leave approval: {leave_id}")
+            self._logger.info(f"Leave approval Processed: {response}")
             return response
             
         except (EmployeeLeaveNotFoundError, EmployeeLeaveValidationError, 

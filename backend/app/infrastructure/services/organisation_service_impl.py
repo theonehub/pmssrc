@@ -184,15 +184,18 @@ class OrganisationServiceImpl(OrganisationService):
             
             if any([request.pan_number, request.gst_number, request.tan_number, request.cin_number]):
                 tax_info = TaxInformation(
-                    pan_number=request.pan_number or organisation.tax_information.pan_number,
-                    gst_number=request.gst_number or organisation.tax_information.gst_number,
-                    tan_number=request.tan_number or organisation.tax_information.tan_number,
-                    cin_number=request.cin_number or organisation.tax_information.cin_number
+                    pan_number=request.pan_number or organisation.tax_info.pan_number,
+                    gst_number=request.gst_number or organisation.tax_info.gst_number,
+                    tan_number=request.tan_number or organisation.tax_info.tan_number,
+                    cin_number=request.cin_number or organisation.tax_info.cin_number
                 )
                 organisation.update_tax_info(tax_info)
             
             if request.employee_strength is not None:
                 organisation.update_employee_strength(request.employee_strength)
+            
+            if request.logo_path is not None:
+                organisation.update_logo_path(request.logo_path)
             
             # Save updated organisation
             updated_organisation = await self.repository.update(organisation)
@@ -463,10 +466,10 @@ class OrganisationServiceImpl(OrganisationService):
             address_country=organisation.address.country,
             address_pin_code=organisation.address.pin_code,
             address_landmark=organisation.address.landmark,
-            pan_number=organisation.tax_information.pan_number,
-            gst_number=organisation.tax_information.gst_number,
-            tan_number=organisation.tax_information.tan_number,
-            cin_number=organisation.tax_information.cin_number,
+            pan_number=organisation.tax_info.pan_number,
+            gst_number=organisation.tax_info.gst_number,
+            tan_number=organisation.tax_info.tan_number,
+            cin_number=organisation.tax_info.cin_number,
             employee_strength=organisation.employee_strength,
             used_employee_strength=organisation.used_employee_strength,
             capacity_utilization_percentage=organisation.get_capacity_utilization_percentage(),
@@ -585,31 +588,13 @@ class OrganisationServiceImpl(OrganisationService):
             result = {}
             
             if name:
-                exists = await self.organisation_exists_by_name(name)
-                if exclude_id and exists:
-                    # Check if it's the same organisation being excluded
-                    org = await self.repository.get_by_name(name)
-                    if org and str(org.organisation_id) == exclude_id:
-                        exists = False
-                result["name"] = exists
+                result["name"] = await self.repository.exists_by_name(name, exclude_id)
             
             if hostname:
-                exists = await self.organisation_exists_by_hostname(hostname)
-                if exclude_id and exists:
-                    # Check if it's the same organisation being excluded
-                    org = await self.repository.get_by_hostname(hostname)
-                    if org and str(org.organisation_id) == exclude_id:
-                        exists = False
-                result["hostname"] = exists
+                result["hostname"] = await self.repository.exists_by_hostname(hostname, exclude_id)
             
             if pan_number:
-                exists = await self.organisation_exists_by_pan_number(pan_number)
-                if exclude_id and exists:
-                    # Check if it's the same organisation being excluded
-                    org = await self.repository.get_by_pan_number(pan_number)
-                    if org and str(org.organisation_id) == exclude_id:
-                        exists = False
-                result["pan_number"] = exists
+                result["pan_number"] = await self.repository.exists_by_pan_number(pan_number, exclude_id)
             
             return result
         except Exception as e:
@@ -825,7 +810,7 @@ class OrganisationServiceImpl(OrganisationService):
                 if await self.organisation_exists_by_hostname(request.hostname):
                     errors.append(f"Organisation with hostname '{request.hostname}' already exists")
             
-            if request.pan_number and request.pan_number != organisation.tax_information.pan_number:
+            if request.pan_number and request.pan_number != organisation.tax_info.pan_number:
                 if await self.organisation_exists_by_pan_number(request.pan_number):
                     errors.append(f"Organisation with PAN '{request.pan_number}' already exists")
             

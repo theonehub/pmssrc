@@ -87,6 +87,19 @@ class GetOrganisationUseCase:
     
     def _convert_to_response_dto(self, organisation: Organisation) -> OrganisationResponseDTO:
         """Convert organisation entity to response DTO"""
+        from app.application.dto.organisation_dto import BankDetailsResponseDTO
+        bank_details_dto = None
+        if organisation.bank_details:
+            bank_details = organisation.bank_details
+            bank_details_dto = BankDetailsResponseDTO(
+                bank_name=bank_details.bank_name,
+                account_number=bank_details.account_number,
+                ifsc_code=bank_details.ifsc_code,
+                branch_name=bank_details.branch_name,
+                branch_address=bank_details.branch_address,
+                account_type=bank_details.account_type,
+                account_holder_name=bank_details.account_holder_name
+            )
         return OrganisationResponseDTO(
             organisation_id=str(organisation.organisation_id),
             name=organisation.name,
@@ -109,7 +122,8 @@ class GetOrganisationUseCase:
             is_active=organisation.is_active(),
             is_government=organisation.is_government_organisation(),
             has_available_capacity=organisation.has_available_employee_capacity(),
-            display_name=organisation.get_display_name()
+            display_name=organisation.get_display_name(),
+            bank_details=bank_details_dto
         )
     
     def _convert_contact_info_to_dto(self, contact_info: ContactInformation):

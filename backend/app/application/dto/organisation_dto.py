@@ -7,8 +7,10 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
 from enum import Enum
+from pydantic import BaseModel, Field, validator
 
 from app.domain.value_objects.organisation_details import OrganisationType
+from app.domain.value_objects.bank_details import BankDetails
 
 
 # ==================== REQUEST DTOs ====================
@@ -105,14 +107,37 @@ class CreateOrganisationRequestDTO:
         return errors
 
 
-@dataclass
-class UpdateOrganisationRequestDTO:
-    """DTO for updating organisation information"""
-    
-    # Basic Information
-    name: Optional[str] = None
+class BankDetailsRequestDTO(BaseModel):
+    bank_name: str
+    account_number: str
+    ifsc_code: str
+    account_holder_name: str
+    branch_name: Optional[str] = None
+    branch_address: Optional[str] = None
+    account_type: Optional[str] = None
+
+    def validate(self) -> list:
+        errors = []
+        if not self.bank_name:
+            errors.append("Bank name is required")
+        if not self.account_number:
+            errors.append("Account number is required")
+        if not self.ifsc_code:
+            errors.append("IFSC code is required")
+        if not self.account_holder_name:
+            errors.append("Account holder name is required")
+        return errors
+
+
+class UpdateOrganisationRequestDTO(BaseModel):
+    organisation_id: str
+    name: str
+    organisation_type: str
     description: Optional[str] = None
-    organisation_type: Optional[str] = None
+    employee_strength: Optional[int] = 0
+    hostname: str
+    updated_by: Optional[str] = None
+    logo_path: Optional[str] = None
     
     # Contact Information
     email: Optional[str] = None
@@ -120,7 +145,7 @@ class UpdateOrganisationRequestDTO:
     website: Optional[str] = None
     fax: Optional[str] = None
     
-    # Address Information
+    # Address
     street_address: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
@@ -130,49 +155,24 @@ class UpdateOrganisationRequestDTO:
     
     # Tax Information
     pan_number: Optional[str] = None
-    gst_number: Optional[str] = None
     tan_number: Optional[str] = None
+    gst_number: Optional[str] = None
     cin_number: Optional[str] = None
     
-    # Configuration
-    employee_strength: Optional[int] = None
-    hostname: Optional[str] = None
-    logo_path: Optional[str] = None
-    
-    # Audit
-    updated_by: Optional[str] = None
-    
-    # Optional Bank Details
-    bank_details: Optional['BankDetailsRequestDTO'] = None
-    
-    def validate(self) -> List[str]:
-        """Validate the update request data"""
-        errors = []
-        
-        # Validate non-empty strings if provided
-        if self.name is not None and not self.name.strip():
-            errors.append("Organisation name cannot be empty")
-        
-        if self.email is not None and not self.email.strip():
-            errors.append("Email cannot be empty")
-        
-        if self.phone is not None and not self.phone.strip():
-            errors.append("Phone cannot be empty")
-        
-        if self.employee_strength is not None and self.employee_strength <= 0:
-            errors.append("Employee strength must be positive")
-        
-        # Validate organisation type if provided
-        if self.organisation_type is not None:
-            try:
-                OrganisationType(self.organisation_type)
-            except ValueError:
-                errors.append("Invalid organisation type")
-        
-        if self.bank_details:
-            errors.extend(self.bank_details.validate())
-        
-        return errors
+    # Bank Details
+    bank_name: Optional[str] = None
+    account_number: Optional[str] = None
+    ifsc_code: Optional[str] = None
+    branch_name: Optional[str] = None
+    branch_address: Optional[str] = None
+    account_type: Optional[str] = None
+    account_holder_name: Optional[str] = None
+    bank_details: Optional[BankDetails] = None
+
+    class Config:
+        allow_population_by_field_name = True
+        arbitrary_types_allowed = True
+
 
 @dataclass
 class OrganisationSearchFiltersDTO:
@@ -487,39 +487,17 @@ class OrganisationConflictError(Exception):
 # ==================== BANK DETAILS DTOs ====================
 
 @dataclass
-class BankDetailsRequestDTO:
-    bank_name: str
-    account_number: str
-    ifsc_code: str
-    branch_name: str
-    branch_address: str
-    account_type: str
-    account_holder_name: str
-
-    def validate(self) -> list:
-        errors = []
-        if not self.bank_name or not self.bank_name.strip():
-            errors.append("Bank name is required")
-        if not self.account_number or not self.account_number.strip():
-            errors.append("Account number is required")
-        if not self.ifsc_code or not self.ifsc_code.strip():
-            errors.append("IFSC code is required")
-        if not self.branch_name or not self.branch_name.strip():
-            errors.append("Branch name is required")
-        if not self.branch_address or not self.branch_address.strip():
-            errors.append("Branch address is required")
-        if not self.account_type or not self.account_type.strip():
-            errors.append("Account type is required")
-        if not self.account_holder_name or not self.account_holder_name.strip():
-            errors.append("Account holder name is required")
-        return errors
-
-@dataclass
 class BankDetailsResponseDTO:
     bank_name: str
     account_number: str
     ifsc_code: str
-    branch_name: str
-    branch_address: str
-    account_type: str
-    account_holder_name: str 
+    account_holder_name: str
+    branch_name: Optional[str] = None
+    branch_address: Optional[str] = None
+    account_type: Optional[str] = None
+    # Additional computed fields
+    formatted_account_number: Optional[str] = None
+    masked_account_number: Optional[str] = None
+    bank_code: Optional[str] = None
+    branch_code: Optional[str] = None
+    is_valid_for_payment: bool = False 

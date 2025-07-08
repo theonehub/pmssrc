@@ -32,7 +32,6 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { getToken } from '../../shared/utils/auth';
-import { useOrganisationsQuery } from '../../shared/hooks/useOrganisations';
 
 const API_BASE_URL = 'http://localhost:8000';
 
@@ -62,6 +61,15 @@ const FormSection: React.FC<FormSectionProps> = ({ title, children }) => (
     </Box>
   </Paper>
 );
+
+// Add account type options constant
+const ACCOUNT_TYPES = [
+  { value: 'savings', label: 'Savings Account' },
+  { value: 'current', label: 'Current Account' },
+  { value: 'salary', label: 'Salary Account' },
+  { value: 'fixed_deposit', label: 'Fixed Deposit Account' },
+  { value: 'recurring_deposit', label: 'Recurring Deposit Account' }
+];
 
 const AddNewOrganisation: React.FC = () => {
   const navigate = useNavigate();
@@ -115,50 +123,81 @@ const AddNewOrganisation: React.FC = () => {
     severity: 'success'
   });
 
-  const { data: organisationData } = useOrganisationsQuery(
-    isEditing ? { id } : undefined
-  );
-
   // Load organisation data for editing
   useEffect(() => {
-    if (isEditing && organisationData?.data?.organisations?.[0]) {
-      const org = organisationData.data.organisations[0];
-      
-      // Populate form fields - handle both nested and flat structures
-      setName(org.name || '');
-      setHostname(org.hostname || '');
-      setDescription(org.description || '');
-      setOrganisationType(org.organisation_type || 'private_limited');
-      setEmployeeStrength(org.employee_strength?.toString() || '10');
-      setIsActive(org.is_active !== undefined ? org.is_active : true);
-      
-      // Contact info - check both nested and flat structure
-      setEmail(org.contact_info?.email || org.email || '');
-      setPhone(org.contact_info?.phone || org.phone || '');
-      setWebsite(org.contact_info?.website || org.website || '');
-      
-      // Address info - check both nested and flat structure
-      setAddress(org.address?.street_address || org.street_address || '');
-      setCity(org.address?.city || org.city || '');
-      setState(org.address?.state || org.state || '');
-      setCountry(org.address?.country || org.country || '');
-      setPinCode(org.address?.pin_code || org.pin_code || '');
-      
-      // Tax info - check both nested and flat structure
-      setPanNumber(org.tax_info?.pan_number || org.pan_number || '');
-      setGstNumber(org.tax_info?.gst_number || org.gst_number || '');
-      setTanNumber(org.tax_info?.tan_number || org.tan_number || '');
-      
-      // Bank details - check both nested and flat structure
-      setBankName(org.bank_details?.bank_name || org.bank_name || '');
-      setAccountNumber(org.bank_details?.account_number || org.account_number || '');
-      setIfscCode(org.bank_details?.ifsc_code || org.ifsc_code || '');
-      setBranchName(org.bank_details?.branch_name || org.branch_name || '');
-      setBranchAddress(org.bank_details?.branch_address || org.branch_address || '');
-      setAccountType(org.bank_details?.account_type || org.account_type || '');
-      setAccountHolderName(org.bank_details?.account_holder_name || org.account_holder_name || '');
-    }
-  }, [isEditing, organisationData]);
+    const fetchOrganisation = async () => {
+      if (!isEditing) return;
+
+      try {
+        const token = getToken();
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+
+        const response = await axios.get(
+          `${API_BASE_URL}/api/v2/organisations/${id}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        const org = response.data;
+        
+        // Populate form fields
+        setName(org.name || '');
+        setHostname(org.hostname || '');
+        setDescription(org.description || '');
+        setOrganisationType(org.organisation_type || 'private_limited');
+        setEmployeeStrength(org.employee_strength?.toString() || '10');
+        setIsActive(org.is_active !== undefined ? org.is_active : true);
+        
+        // Contact info
+        if (org.contact_info) {
+          setEmail(org.contact_info.email || '');
+          setPhone(org.contact_info.phone || '');
+          setWebsite(org.contact_info.website || '');
+        }
+        
+        // Address info
+        if (org.address) {
+          setAddress(org.address.street_address || '');
+          setCity(org.address.city || '');
+          setState(org.address.state || '');
+          setCountry(org.address.country || '');
+          setPinCode(org.address.pin_code || '');
+        }
+        
+        // Tax info
+        if (org.tax_info) {
+          setPanNumber(org.tax_info.pan_number || '');
+          setGstNumber(org.tax_info.gst_number || '');
+          setTanNumber(org.tax_info.tan_number || '');
+        }
+        
+        // Bank details
+        if (org.bank_details) {
+          setBankName(org.bank_details.bank_name || '');
+          setAccountNumber(org.bank_details.account_number || '');
+          setIfscCode(org.bank_details.ifsc_code || '');
+          setBranchName(org.bank_details.branch_name || '');
+          setBranchAddress(org.bank_details.branch_address || '');
+          setAccountType(org.bank_details.account_type || '');
+          setAccountHolderName(org.bank_details.account_holder_name || '');
+        }
+
+        // Set logo preview if exists
+        if (org.logo_path) {
+          setLogoPreview(`${API_BASE_URL}/${org.logo_path}`);
+        }
+
+      } catch (error: any) {
+        const errorMessage = error.response?.data?.detail || error.message || 'Failed to fetch organisation details';
+        showToast(errorMessage, 'error');
+      }
+    };
+
+    fetchOrganisation();
+  }, [id, isEditing]);
 
   // Handle logo file selection
   const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -197,6 +236,8 @@ const AddNewOrganisation: React.FC = () => {
     switch (fieldName) {
       case 'name':
         return !value.trim() ? 'Organisation name is required' : '';
+      case 'accountType':
+        return value && !ACCOUNT_TYPES.map(t => t.value).includes(value) ? 'Please select a valid account type' : '';
       case 'hostname':
         return !value.trim() ? 'Hostname is required' : '';
       case 'employeeStrength':
@@ -770,75 +811,66 @@ const AddNewOrganisation: React.FC = () => {
         {/* Bank Details Section */}
         <FormSection title="Bank Details">
           <TextField
-            fullWidth
             label="Bank Name"
             value={bankName}
             onChange={(e) => handleFieldChange('bankName', e.target.value, setBankName)}
             error={!!errors.bankName}
             helperText={errors.bankName}
-            required
-          />
-
-          <TextField
             fullWidth
+          />
+          <TextField
             label="Account Number"
             value={accountNumber}
             onChange={(e) => handleFieldChange('accountNumber', e.target.value, setAccountNumber)}
             error={!!errors.accountNumber}
             helperText={errors.accountNumber}
-            required
-          />
-
-          <TextField
             fullWidth
+          />
+          <TextField
             label="IFSC Code"
             value={ifscCode}
             onChange={(e) => handleFieldChange('ifscCode', e.target.value, setIfscCode)}
             error={!!errors.ifscCode}
             helperText={errors.ifscCode}
-            required
-          />
-
-          <TextField
             fullWidth
-            label="Branch Name"
-            value={branchName}
-            onChange={(e) => handleFieldChange('branchName', e.target.value, setBranchName)}
-            error={!!errors.branchName}
-            helperText={errors.branchName}
-            required
           />
-
           <TextField
-            fullWidth
-            label="Branch Address"
-            value={branchAddress}
-            onChange={(e) => handleFieldChange('branchAddress', e.target.value, setBranchAddress)}
-            error={!!errors.branchAddress}
-            helperText={errors.branchAddress}
-            multiline
-            rows={2}
-            required
-          />
-
-          <TextField
-            fullWidth
-            label="Account Type"
-            value={accountType}
-            onChange={(e) => handleFieldChange('accountType', e.target.value, setAccountType)}
-            error={!!errors.accountType}
-            helperText={errors.accountType}
-            required
-          />
-
-          <TextField
-            fullWidth
             label="Account Holder Name"
             value={accountHolderName}
             onChange={(e) => handleFieldChange('accountHolderName', e.target.value, setAccountHolderName)}
             error={!!errors.accountHolderName}
             helperText={errors.accountHolderName}
-            required
+            fullWidth
+          />
+          <TextField
+            select
+            label="Account Type"
+            value={accountType}
+            onChange={(e) => handleFieldChange('accountType', e.target.value, setAccountType)}
+            error={!!errors.accountType}
+            helperText={errors.accountType}
+            fullWidth
+          >
+            <MenuItem value="">Select Account Type</MenuItem>
+            {ACCOUNT_TYPES.map((type) => (
+              <MenuItem key={type.value} value={type.value}>
+                {type.label}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            label="Branch Name"
+            value={branchName}
+            onChange={(e) => handleFieldChange('branchName', e.target.value, setBranchName)}
+            fullWidth
+          />
+          <TextField
+            label="Branch Address"
+            value={branchAddress}
+            onChange={(e) => handleFieldChange('branchAddress', e.target.value, setBranchAddress)}
+            fullWidth
+            multiline
+            rows={2}
           />
         </FormSection>
 

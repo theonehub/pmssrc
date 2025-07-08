@@ -26,6 +26,7 @@ class BankDetails:
     ifsc_code: str
     account_holder_name: str
     branch_name: Optional[str] = None
+    branch_address: Optional[str] = None
     account_type: Optional[str] = None  # Savings, Current, etc.
     
     def __post_init__(self):
@@ -128,6 +129,7 @@ class BankDetails:
             "ifsc_code": self.ifsc_code,
             "account_holder_name": self.account_holder_name,
             "branch_name": self.branch_name,
+            "branch_address": self.branch_address,
             "account_type": self.account_type,
             "formatted_account_number": self.get_formatted_account_number(),
             "masked_account_number": self.get_masked_account_number(),
@@ -145,6 +147,7 @@ class BankDetails:
             ifsc_code=data["ifsc_code"],
             account_holder_name=data["account_holder_name"],
             branch_name=data.get("branch_name"),
+            branch_address=data.get("branch_address"),
             account_type=data.get("account_type")
         )
     

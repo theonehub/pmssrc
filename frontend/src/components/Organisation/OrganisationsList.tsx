@@ -14,41 +14,22 @@ import {
   TableHead,
   TableRow,
   TextField,
-  CircularProgress,
   Snackbar,
   Alert,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Chip,
   TablePagination,
   InputAdornment,
-  Card,
-  CardContent,
-  Skeleton,
-  Tooltip,
-  IconButton,
-  Fade
 } from '@mui/material';
 import {
   Add as AddIcon,
-  Edit as EditIcon,
-  Delete as DeleteIcon,
   Search as SearchIcon,
   Refresh as RefreshIcon,
-  Business as BusinessIcon
 } from '@mui/icons-material';
 import type { Organisation } from '../../models/organisation';
 import { useOrganisationsQuery } from '../../shared/hooks/useOrganisations';
+import FormDialog from '../Common/UIComponents/FormDialog';
 
 const API_BASE_URL = 'http://localhost:8000/api/v2';
-
-// Define interfaces
-// interface OrganisationsResponse {
-//   organisations: Organisation[];
-//   total: number;
-// }
 
 interface ToastState {
   show: boolean;
@@ -95,11 +76,21 @@ const OrganisationsList: React.FC = () => {
   };
 
   const handleEdit = (organisation: Organisation): void => {
-    navigate(`/organisations/edit/${organisation.organisation_id}`);
+    if (organisation.organisation_id) {
+      navigate(`/organisations/edit/${organisation.organisation_id}`);
+    }
   };
 
-  const handleDeleteClick = (id: string): void => {
-    setDeleteConfirmId(id);
+  const handleView = (organisation: Organisation): void => {
+    if (organisation.organisation_id) {
+      navigate(`/organisations/${organisation.organisation_id}`);
+    }
+  };
+
+  const handleDeleteClick = (id: string | undefined): void => {
+    if (id) {
+      setDeleteConfirmId(id);
+    }
   };
 
   const handleDeleteConfirm = async (): Promise<void> => {
@@ -121,10 +112,6 @@ const OrganisationsList: React.FC = () => {
       showToast('Organisation deleted successfully', 'success');
       refetch();
     } catch (error: any) {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.error('Error deleting organisation:', error);
-      }
       const errorMessage = error.response?.data?.detail || 
                           error.message || 
                           'Failed to delete organisation';
@@ -159,15 +146,13 @@ const OrganisationsList: React.FC = () => {
 
   // Render helpers
   const renderTableSkeleton = (): React.ReactElement[] => (
-    Array.from({ length: rowsPerPage }).map((_, index) => (
+    Array(rowsPerPage).fill(null).map((_, index) => (
       <TableRow key={index}>
-        <TableCell><Skeleton /></TableCell>
-        <TableCell><Skeleton /></TableCell>
-        <TableCell><Skeleton /></TableCell>
-        <TableCell><Skeleton /></TableCell>
-        <TableCell><Skeleton /></TableCell>
-        <TableCell><Skeleton /></TableCell>
-        <TableCell><Skeleton width={120} /></TableCell>
+        <TableCell colSpan={6}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Chip label="Loading..." />
+          </Box>
+        </TableCell>
       </TableRow>
     ))
   );
@@ -177,272 +162,163 @@ const OrganisationsList: React.FC = () => {
       label={isActive ? 'Active' : 'Inactive'}
       color={isActive ? 'success' : 'default'}
       size="small"
-      variant="outlined"
     />
   );
 
   const renderEmptyState = (): React.ReactElement => (
     <TableRow>
-      <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
-        <Box sx={{ textAlign: 'center' }}>
-          <BusinessIcon 
-            sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} 
-          />
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            {searchTerm ? 'No organisations found' : 'No organisations yet'}
+      <TableCell colSpan={6}>
+        <Box sx={{ py: 3, textAlign: 'center' }}>
+          <Typography variant="body1" color="textSecondary">
+            No organisations found
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {searchTerm 
-              ? `No organisations match "${searchTerm}"`
-              : 'Get started by adding your first organisation'
-            }
-          </Typography>
-          {!searchTerm && (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleAdd}
-            >
-              Add Organisation
-            </Button>
-          )}
         </Box>
       </TableCell>
     </TableRow>
   );
 
-  return (
-    <Box>
-      {/* Header */}
-      <Card elevation={1} sx={{ mb: 3 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-            <Box>
-              <Typography variant="body2" color="text.secondary">
-                Manage your organisations and their details
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-              <Tooltip title="Refresh">
-                <IconButton 
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  color="primary"
-                >
-                  <RefreshIcon />
-                </IconButton>
-              </Tooltip>
-              <Button 
-                variant="contained" 
-                startIcon={<AddIcon />} 
-                onClick={handleAdd}
-              >
-                ADD ORGANISATION
-              </Button>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
+  const formatDate = (dateString: string | undefined): string => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString();
+  };
 
-      {/* Search and Filters */}
-      <Paper elevation={1} sx={{ p: 2, mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-          <TextField
-            sx={{ minWidth: 300, flexGrow: 1, maxWidth: 500 }}
-            label="Search organisations"
-            variant="outlined"
-            size="small"
-            value={searchTerm}
-            onChange={handleSearchChange}
-            placeholder="Search by name, city, or country..."
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon color="action" />
-                </InputAdornment>
-              ),
-            }}
-          />
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              {isLoading ? 'Loading...' : `${total} organisation${total !== 1 ? 's' : ''}`}
-            </Typography>
-            {refreshing && <CircularProgress size={16} />}
-          </Box>
-        </Box>
-      </Paper>
+  return (
+    <Box p={3}>
+      {/* Header */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Typography variant="h5">Organisations</Typography>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleAdd}
+        >
+          Add Organisation
+        </Button>
+      </Box>
+
+      {/* Search and Filter */}
+      <Box mb={3} display="flex" gap={2}>
+        <TextField
+          placeholder="Search organisations..."
+          value={searchTerm}
+          onChange={handleSearchChange}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
+          sx={{ width: 300 }}
+        />
+        <Button
+          startIcon={<RefreshIcon />}
+          onClick={handleRefresh}
+          disabled={refreshing}
+        >
+          Refresh
+        </Button>
+      </Box>
 
       {/* Table */}
-      <Paper elevation={1}>
-        <TableContainer>
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow sx={{ 
-                '& .MuiTableCell-head': { 
-                  backgroundColor: 'primary.main',
-                  color: 'white',
-                  fontWeight: 'bold',
-                  fontSize: '0.875rem'
-                }
-              }}>
-                <TableCell>Organisation Name</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Phone</TableCell>
-                <TableCell>City</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="center">Employee Strength</TableCell>
-                <TableCell align="center">Used Strength</TableCell>
-                <TableCell align="center">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {isLoading ? (
-                renderTableSkeleton()
-              ) : organisations.length > 0 ? (
-                organisations.map((org: Organisation) => (
-                  <Fade in key={org.organisation_id} timeout={300}>
-                    <TableRow 
-                      hover
-                      sx={{ 
-                        '&:hover': { 
-                          backgroundColor: 'action.hover' 
-                        }
-                      }}
-                    >
-                      <TableCell>
-                        <Box>
-                          <Typography variant="subtitle2" fontWeight="medium">
-                            {org.name}
-                          </Typography>
-                          {org.city && (
-                            <Typography variant="caption" color="text.secondary">
-                              {org.city}
-                            </Typography>
-                          )}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {org.email || 'N/A'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {org.phone || 'N/A'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {org.city || 'N/A'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>{renderStatusChip(org.is_active)}</TableCell>
-                      <TableCell align="center">
-                        <Typography variant="body2" fontWeight="medium">
-                          {org.employee_strength || 'N/A'}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Typography variant="body2">
-                          {org.used_employee_strength || 0}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-                          <Tooltip title="Edit">
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleEdit(org)}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Delete">
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleDeleteClick(org.organisation_id!)}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  </Fade>
-                ))
-              ) : (
-                renderEmptyState()
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Name</TableCell>
+              <TableCell>Type</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Employee Strength</TableCell>
+              <TableCell>Created At</TableCell>
+              <TableCell align="right">Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {isLoading ? (
+              renderTableSkeleton()
+            ) : organisations.length === 0 ? (
+              renderEmptyState()
+            ) : (
+              organisations.map((org: Organisation) => (
+                <TableRow key={org.organisation_id || 'temp-key'}>
+                  <TableCell>{org.name}</TableCell>
+                  <TableCell>{org.organisation_type}</TableCell>
+                  <TableCell>{renderStatusChip(!!org.is_active)}</TableCell>
+                  <TableCell>{org.employee_strength || 0}</TableCell>
+                  <TableCell>
+                    {formatDate(org.created_at)}
+                  </TableCell>
+                  <TableCell align="right">
+                    <Box display="flex" justifyContent="flex-end" gap={1}>
+                      <Button
+                        size="small"
+                        onClick={() => handleView(org)}
+                        disabled={!org.organisation_id}
+                      >
+                        View
+                      </Button>
+                      <Button
+                        size="small"
+                        onClick={() => handleEdit(org)}
+                        disabled={!org.organisation_id}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="small"
+                        color="error"
+                        onClick={() => handleDeleteClick(org.organisation_id)}
+                        disabled={!org.organisation_id}
+                      >
+                        Delete
+                      </Button>
+                    </Box>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-        {/* Pagination */}
-        {total > 0 && (
-          <TablePagination
-            component="div"
-            count={total}
-            page={page}
-            onPageChange={handlePageChange}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={handleRowsPerPageChange}
-            rowsPerPageOptions={[5, 10, 25, 50]}
-            showFirstButton
-            showLastButton
-          />
-        )}
-      </Paper>
+      {/* Pagination */}
+      <TablePagination
+        component="div"
+        count={total}
+        page={page}
+        onPageChange={handlePageChange}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={handleRowsPerPageChange}
+        rowsPerPageOptions={[5, 10, 25, 50]}
+      />
 
-      {/* Toast Notifications */}
+      {/* Delete Confirmation Dialog */}
+      <FormDialog
+        open={!!deleteConfirmId}
+        onClose={handleDeleteCancel}
+        title="Confirm Delete"
+        submitLabel="Delete"
+        cancelLabel="Cancel"
+        onSubmit={handleDeleteConfirm}
+      >
+        <Typography>
+          Are you sure you want to delete this organisation? This action cannot be undone.
+        </Typography>
+      </FormDialog>
+
+      {/* Toast */}
       <Snackbar
         open={toast.show}
         autoHideDuration={6000}
         onClose={closeToast}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert 
-          onClose={closeToast} 
-          severity={toast.severity}
-          sx={{ width: '100%' }}
-          variant="filled"
-        >
+        <Alert onClose={closeToast} severity={toast.severity}>
           {toast.message}
         </Alert>
       </Snackbar>
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={!!deleteConfirmId}
-        onClose={handleDeleteCancel}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle color="error.main">
-          Confirm Deletion
-        </DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete this organisation? This action cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDeleteCancel}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleDeleteConfirm} 
-            color="error" 
-            variant="contained"
-            autoFocus
-          >
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 };
 
-export default OrganisationsList; 
+export default OrganisationsList;

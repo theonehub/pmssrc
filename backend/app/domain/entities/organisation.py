@@ -588,4 +588,19 @@ class Organisation:
         self.bank_details = new_bank_details
         self.updated_at = datetime.utcnow()
         self.updated_by = updated_by
+        # Optionally, add a domain event here if needed
+
+    def update_logo_path(
+        self,
+        new_logo_path: Optional[str],
+        updated_by: Optional[str] = None
+    ) -> None:
+        """
+        Update organisation logo path.
+        """
+        if new_logo_path == self.logo_path:
+            return  # No changes
+        self.logo_path = new_logo_path
+        self.updated_at = datetime.utcnow()
+        self.updated_by = updated_by
         # Optionally, add a domain event here if needed 

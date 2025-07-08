@@ -219,6 +219,28 @@ class MongoDBOrganisationRepository(OrganisationRepository):
         """Convert database document to domain entity."""
         
         try:
+            # Convert bank details to proper structure if it exists
+            bank_details = None
+            if document.get("bank_details"):
+                from app.domain.value_objects.bank_details import BankDetails
+                
+                # Normalize account type to match valid values
+                account_type = document["bank_details"].get("account_type", "").lower()
+                valid_account_types = {'savings', 'current', 'salary', 'fixed_deposit', 'recurring_deposit'}
+                
+                # Only set account_type if it's valid, otherwise leave it as None
+                normalized_account_type = account_type if account_type in valid_account_types else None
+                
+                bank_details = BankDetails(
+                    account_number=document["bank_details"].get("account_number", ""),
+                    bank_name=document["bank_details"].get("bank_name", ""),
+                    ifsc_code=document["bank_details"].get("ifsc_code", ""),
+                    account_holder_name=document["bank_details"].get("account_holder_name", ""),
+                    branch_name=document["bank_details"].get("branch_name"),
+                    branch_address=document["bank_details"].get("branch_address"),
+                    account_type=normalized_account_type
+                )
+
             # Use the actual Organisation entity instead of SimpleOrganisation
             return Organisation.from_existing_data(
                 organisation_id=document["organisation_id"],
@@ -230,7 +252,7 @@ class MongoDBOrganisationRepository(OrganisationRepository):
                 contact_info=document.get("contact_information", {}),
                 address=document.get("address", {}),
                 tax_info=document.get("tax_information", {}),
-                bank_details=document.get("bank_details", {}),
+                bank_details=bank_details,
                 employee_strength=document.get("employee_strength", 0),
                 used_employee_strength=document.get("used_employee_strength", 0),
                 logo_path=document.get("logo_path"),
@@ -239,10 +261,8 @@ class MongoDBOrganisationRepository(OrganisationRepository):
                 created_by=document.get("created_by"),
                 updated_by=document.get("updated_by")
             )
-            
         except Exception as e:
-            logger.error(f"Error creating Organisation entity from document: {e}")
-            raise ValueError(f"Failed to reconstruct Organisation entity: {e}")
+            raise RepositoryError(f"Error converting document to organisation: {str(e)}")
     
     async def _publish_events(self, events: List[Any]) -> None:
         """Publish domain events."""

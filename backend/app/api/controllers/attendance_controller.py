@@ -89,6 +89,26 @@ class AttendanceController:
         except Exception as e:
             logger.error(f"Unexpected error during check-out: {e}")
             raise AttendanceBusinessRuleError(f"Check-out failed: {str(e)}")
+
+    async def punch(
+        self,
+        employee_id: str,
+        current_user: "CurrentUser"
+    ) -> AttendanceResponseDTO:
+        """Handle employee punch (check-in or check-out)"""
+        try:
+            logger.info(f"Punch request for employee: {employee_id} in organisation: {current_user.hostname}")
+            return await self.attendance_service.record_punch(employee_id, current_user)
+            
+        except AttendanceValidationError as e:
+            logger.warning(f"Validation error during punch: {e}")
+            raise
+        except AttendanceBusinessRuleError as e:
+            logger.warning(f"Business rule error during punch: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error during punch: {e}")
+            raise AttendanceBusinessRuleError(f"Punch failed: {str(e)}")
     
     async def get_employee_attendance_by_month(
         self, 

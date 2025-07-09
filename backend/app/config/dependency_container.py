@@ -248,7 +248,8 @@ class DependencyContainer:
                 checkin_use_case=attendance_use_cases['checkin'],
                 checkout_use_case=attendance_use_cases['checkout'],
                 query_use_case=attendance_use_cases['query'],
-                analytics_use_case=attendance_use_cases['analytics']
+                analytics_use_case=attendance_use_cases['analytics'],
+                punch_use_case=attendance_use_cases['punch']
             )
             
             # Reimbursement service  
@@ -297,6 +298,7 @@ class DependencyContainer:
             from app.application.use_cases.attendance.check_out_use_case import CheckOutUseCase
             from app.application.use_cases.attendance.attendance_query_use_case import AttendanceQueryUseCase
             from app.application.use_cases.attendance.attendance_analytics_use_case import AttendanceAnalyticsUseCase
+            from app.application.use_cases.attendance.punch_use_case import PunchUseCase
             
             # Get required dependencies
             attendance_repository = self._repositories['attendance']
@@ -332,13 +334,22 @@ class DependencyContainer:
                 employee_repository=employee_repository
             )
             
+            punch_use_case = PunchUseCase(
+                attendance_command_repository=attendance_repository,
+                attendance_query_repository=attendance_repository,
+                employee_repository=employee_repository,
+                check_in_use_case=checkin_use_case,
+                check_out_use_case=checkout_use_case
+            )
+            
             logger.info("Attendance use cases created successfully")
             
             return {
                 'checkin': checkin_use_case,
                 'checkout': checkout_use_case,
                 'query': query_use_case,
-                'analytics': analytics_use_case
+                'analytics': analytics_use_case,
+                'punch': punch_use_case
             }
             
         except Exception as e:
@@ -348,7 +359,8 @@ class DependencyContainer:
                 'checkin': None,
                 'checkout': None,
                 'query': None,
-                'analytics': None
+                'analytics': None,
+                'punch': None
             }
     
     def _setup_controllers(self):

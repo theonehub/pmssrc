@@ -45,7 +45,8 @@ class AttendanceServiceImpl(AttendanceService):
         checkin_use_case=None,
         checkout_use_case=None,
         query_use_case=None,
-        analytics_use_case=None
+        analytics_use_case=None,
+        punch_use_case=None
     ):
         self.repository = repository
         self.notification_service = notification_service
@@ -53,6 +54,7 @@ class AttendanceServiceImpl(AttendanceService):
         self.checkout_use_case = checkout_use_case
         self.query_use_case = query_use_case
         self.analytics_use_case = analytics_use_case
+        self.punch_use_case = punch_use_case
         self.logger = get_logger(__name__)
     
     # ==================== COMMAND OPERATIONS ====================
@@ -87,6 +89,22 @@ class AttendanceServiceImpl(AttendanceService):
                 
         except Exception as e:
             self.logger.error(f"Error processing check-out for employee {request.employee_id} in organisation {current_user.hostname}: {e}")
+            raise
+
+    async def record_punch(self, employee_id: str, current_user: "CurrentUser") -> AttendanceResponseDTO:
+        """Process employee punch (check-in or check-out)"""
+        try:
+            self.logger.info(f"Processing punch for employee {employee_id} in organisation {current_user.hostname}")
+            
+            if self.punch_use_case:
+                return await self.punch_use_case.execute(employee_id, current_user)
+            else:
+                self.logger.warning("Punch use case not available, using fallback implementation")
+                # Fallback logic or raise error
+                raise NotImplementedError("Punch functionality not fully implemented")
+                
+        except Exception as e:
+            self.logger.error(f"Error processing punch for employee {employee_id} in organisation {current_user.hostname}: {e}")
             raise
     
     # ==================== QUERY OPERATIONS ====================

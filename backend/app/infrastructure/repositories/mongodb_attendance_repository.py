@@ -317,7 +317,13 @@ class MongoDBAttendanceRepository(AttendanceRepository):
             document = self._attendance_to_document(attendance)
             
             # Use upsert based on employee_id for simplicity
-            filter_query = {"employee_id": str(attendance.employee_id)}
+            from datetime import datetime as dt
+            attendance_date = attendance.attendance_date
+            if isinstance(attendance_date, dt):
+                attendance_date_dt = attendance_date
+            else:
+                attendance_date_dt = dt.combine(attendance_date, dt.min.time())
+            filter_query = {"employee_id": str(attendance.employee_id), "attendance_date": attendance_date_dt}
             
             result = await collection.replace_one(
                 filter_query,

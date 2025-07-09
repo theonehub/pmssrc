@@ -88,6 +88,23 @@ const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ employee_id, sh
     year: currentDate.getFullYear() 
   });
 
+  // --- Public Holidays State and Fetch ---
+  const [publicHolidays, setPublicHolidays] = useState<{ date: string, name: string }[]>([]);
+  React.useEffect(() => {
+    const fetchHolidays = async () => {
+      try {
+        const month = currentDate.getMonth() + 1;
+        const year = currentDate.getFullYear();
+        const res = await fetch(`/api/v2/public-holidays/month/${month}/${year}`);
+        const data = await res.json();
+        setPublicHolidays(data || []);
+      } catch (e) {
+        setPublicHolidays([]);
+      }
+    };
+    fetchHolidays();
+  }, [currentDate]);
+
   // Debug logging
   React.useEffect(() => {
     if (attendanceData) {
@@ -145,18 +162,6 @@ const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ employee_id, sh
     }) || null;
   };
 
-  const isPublicHoliday = (date: Date | null): boolean => {
-    if (!date) return false;
-    
-    const records = Array.isArray(attendanceData) ? attendanceData : (attendanceData?.data || []);
-    return records.some((holiday: any) => {
-      const holidayDate = new Date(holiday.attendance_date);
-      return holidayDate.getDate() === date.getDate() &&
-             holidayDate.getMonth() === date.getMonth() &&
-             holidayDate.getFullYear() === date.getFullYear();
-    }) || false;
-  };
-
   const formatTime = (dateString?: string): string => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -204,7 +209,15 @@ const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ employee_id, sh
     let status: AttendanceStatus = 'empty';
     const attendance = getAttendanceStatus(date);
     const leave = getLeaveStatus(date);
-    const isHoliday = isPublicHoliday(date);
+    const holiday = publicHolidays.find((h) => {
+      const holidayDate = new Date(h.date);
+      return (
+        holidayDate.getDate() === date.getDate() &&
+        holidayDate.getMonth() === date.getMonth() &&
+        holidayDate.getFullYear() === date.getFullYear()
+      );
+    });
+    const isHoliday = !!holiday;
 
     if (isHoliday) {
       status = 'public_holiday';
@@ -227,7 +240,7 @@ const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ employee_id, sh
           <Box sx={{ p: 1 }}>
             {isHoliday && (
               <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                🎉 Public Holiday
+                🎉 Public Holiday{holiday?.name ? `: ${holiday.name}` : ''}
               </Typography>
             )}
             {leave && (

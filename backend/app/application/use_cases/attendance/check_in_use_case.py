@@ -3,7 +3,7 @@ Check-In Use Case
 Handles employee check-in operations with business rules and validation
 """
 
-from datetime import datetime, date
+from datetime import datetime, date, time
 from typing import Optional, TYPE_CHECKING
 
 from app.domain.entities.attendance import Attendance
@@ -101,13 +101,14 @@ class CheckInUseCase:
             # Step 3: Check business rules
             check_in_time = request.check_in_time or datetime.now()
             attendance_date = check_in_time.date()
-            
-            await self._validate_business_rules(request.employee_id, attendance_date, check_in_time, current_user)
+            # Convert attendance_date to datetime for repository
+            attendance_date_dt = self._date_to_datetime_midnight(attendance_date)
+            await self._validate_business_rules(request.employee_id, attendance_date_dt, check_in_time, current_user)
             
             # Step 4: Get or create attendance record
             attendance = await self._get_or_create_attendance(
                 request.employee_id,
-                attendance_date,
+                attendance_date_dt,
                 current_user.employee_id,
                 current_user
             )
@@ -189,7 +190,7 @@ class CheckInUseCase:
     async def _validate_business_rules(
         self,
         employee_id: str,
-        attendance_date: date,
+        attendance_date: datetime,  # now datetime
         check_in_time: datetime,
         current_user: "CurrentUser"
     ) -> None:
@@ -202,22 +203,22 @@ class CheckInUseCase:
         
         if existing_attendance and existing_attendance.working_hours.is_checked_in():
             raise AttendanceBusinessRuleError(
-                f"Employee {employee_id} is already checked in for {attendance_date}",
+                f"Employee {employee_id} is already checked in for {attendance_date.date()}",
                 "ALREADY_CHECKED_IN"
             )
         
-        # Check if check-in time is reasonable (not too far in the past)
-        time_diff = datetime.utcnow() - check_in_time
-        if time_diff.total_seconds() > 24 * 60 * 60:  # More than 24 hours ago
-            raise AttendanceBusinessRuleError(
-                "Check-in time cannot be more than 24 hours in the past",
-                "CHECK_IN_TIME_TOO_OLD"
-            )
+        # # Check if check-in time is reasonable (not too far in the past)
+        # time_diff = datetime.utcnow() - check_in_time
+        # if time_diff.total_seconds() > 24 * 60 * 60:  # More than 24 hours ago
+        #     raise AttendanceBusinessRuleError(
+        #         "Check-in time cannot be more than 24 hours in the past",
+        #         "CHECK_IN_TIME_TOO_OLD"
+        #     )
     
     async def _get_or_create_attendance(
         self,
         employee_id: str,
-        attendance_date: date,
+        attendance_date: datetime,  # now datetime
         created_by: str,
         current_user: "CurrentUser"
     ) -> Attendance:
@@ -234,7 +235,7 @@ class CheckInUseCase:
         # Create new attendance record
         attendance = Attendance.create_new(
             employee_id=EmployeeId(employee_id),
-            attendance_date=attendance_date,
+            attendance_date=attendance_date.date() if isinstance(attendance_date, datetime) else attendance_date,
             created_by=created_by
         )
         
@@ -343,3 +344,8 @@ class CheckInUseCase:
             updated_at=attendance.updated_at,
             updated_by=attendance.updated_by
         ) 
+
+    # Utility function to convert date to datetime at midnight
+    @staticmethod
+    def _date_to_datetime_midnight(d: date) -> datetime:
+        return datetime.combine(d, time.min) 

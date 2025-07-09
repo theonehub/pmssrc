@@ -47,6 +47,90 @@ def get_attendance_controller() -> AttendanceController:
 
 # ==================== ATTENDANCE ENDPOINTS ====================
 
+def convert_date_format(date_str):
+    """Convert DD-MM-YYYY to YYYY-MM-DD"""
+    return datetime.strptime(date_str, "%d-%m-%Y").strftime("%Y-%m-%d")
+
+
+@router.post("/bulk/checkin/checkout/{employee_id}/start/{start_date}/{start_time}/end/{end_date}/{end_time}",
+             response_model=List[AttendanceResponseDTO])
+async def checkin_bulk(
+    employee_id: str = Path(..., description="Employee ID"),
+    start_date: str = Path(..., description="Start date"),
+    end_date: str = Path(..., description="End date"),
+    start_time: str = Path(..., description="Start time"),
+    end_time: str = Path(..., description="End time"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: AttendanceController = Depends(get_attendance_controller)
+):
+    """Record employee check-in"""
+    from datetime import datetime, timedelta
+    try:
+        logger.info(f"Check-in request for employee: {current_user.employee_id}")
+        # Convert to YYYY-MM-DD string, then to datetime object
+        start_date_str = convert_date_format(start_date)  # 'YYYY-MM-DD'
+        end_date_str = convert_date_format(end_date)
+        start_date_dt = datetime.strptime(start_date_str, "%Y-%m-%d")
+        end_date_dt = datetime.strptime(end_date_str, "%Y-%m-%d")
+
+        # Accept both HH:MM and HH:MM:SS
+        def parse_time(t):
+            try:
+                return datetime.strptime(t, "%H:%M:%S").strftime("%H:%M:%S")
+            except ValueError:
+                return datetime.strptime(t, "%H:%M").strftime("%H:%M:%S")
+
+        start_time_fmt = parse_time(start_time)
+        end_time_fmt = parse_time(end_time)
+
+        responses = []
+        current_date = start_date_dt
+        while current_date <= end_date_dt:
+            date_str = current_date.strftime("%Y-%m-%d")
+            check_in_dt = f"{date_str}T{start_time_fmt}"
+            check_out_dt = f"{date_str}T{end_time_fmt}"
+
+            request_in = AttendanceCheckInRequestDTO(
+                employee_id=employee_id,
+                timestamp=date_str,
+                check_in_time=check_in_dt
+            )
+            print(request_in)
+            await controller.checkin(request_in, current_user)
+
+            request_out = AttendanceCheckOutRequestDTO(
+                employee_id=employee_id,
+                timestamp=date_str,
+                check_out_time=check_out_dt
+            )
+            response_out = await controller.checkout(request_out, current_user)
+            responses.append(response_out)
+
+            current_date += timedelta(days=1)
+    except Exception as e:
+        logger.error(f"Unexpected error during check-in: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.post("/punch/{employee_id}", response_model=AttendanceResponseDTO)
+async def punch(
+    employee_id: str = Path(..., description="Employee ID"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: AttendanceController = Depends(get_attendance_controller)
+):
+    """Record employee punch (check-in or check-out)"""
+    try:
+        logger.info(f"Punch request for employee: {employee_id}")
+        response = await controller.punch(employee_id, current_user)
+        return response
+    except (AttendanceValidationError, AttendanceBusinessRuleError, AttendanceNotFoundError) as e:
+        logger.warning(f"Error during punch: {e}")
+        raise HTTPException(status_code=422, detail={"error": "punch_error", "message": str(e)})
+    except Exception as e:
+        logger.error(f"Unexpected error during punch: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 @router.post("/checkin", response_model=AttendanceResponseDTO)
 async def checkin(
     current_user: CurrentUser = Depends(get_current_user),

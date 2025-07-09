@@ -44,7 +44,7 @@ class EventStore:
     async def _get_collection(self) -> Collection:
         """Get MongoDB collection for events"""
         if self._collection is None:
-            db = await self.db_connector.get_database("pms_global_database")
+            db = self.db_connector.get_database()
             self._collection = db["domain_events"]
             
             if not self._ensure_indexes_created:

@@ -245,6 +245,7 @@ class CheckOutUseCase:
         try:
             if self.event_publisher:
                 # Publish check-out event
+                # Create an event object or update publisher to accept dicts
                 await self.event_publisher.publish({
                     "event_type": "attendance.checked_out",
                     "employee_id": attendance.employee_id.value,
@@ -261,14 +262,14 @@ class CheckOutUseCase:
         try:
             if self.notification_service:
                 # Send notification for overtime if applicable
-                if attendance.working_hours.overtime_hours > 0:
+                if attendance.working_hours.overtime_hours() > 0:
                     employee_name = getattr(employee, 'name', None) or (employee.get("name", "Unknown") if isinstance(employee, dict) else "Unknown")
                     manager_id = getattr(employee, 'manager_id', None) or (employee.get("manager_id") if isinstance(employee, dict) else None)
                     
                     await self.notification_service.send_overtime_notification(
                         employee_id=attendance.employee_id.value,
                         employee_name=employee_name,
-                        overtime_hours=attendance.working_hours.overtime_hours,
+                        overtime_hours=attendance.working_hours.overtime_hours(),
                         manager_id=manager_id
                     )
         except Exception as e:
@@ -323,7 +324,7 @@ class CheckOutUseCase:
         )
         
         return AttendanceResponseDTO(
-            attendance_id=attendance.attendance_id.value,
+            attendance_id=attendance.attendance_id,
             employee_id=attendance.employee_id.value,
             attendance_date=attendance.attendance_date,
             status=status,

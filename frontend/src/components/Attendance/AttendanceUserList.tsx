@@ -21,7 +21,11 @@ import {
   MenuItem,
   Pagination as MuiPagination,
   Tooltip,
-  SelectChangeEvent
+  SelectChangeEvent,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   ArrowUpward as ArrowUpwardIcon,
@@ -38,6 +42,21 @@ import {
 } from '../../shared/types';
 import './AttendanceCalendar.css';
 import { Card, CardContent } from '@mui/material';
+import apiClient from '../../shared/utils/apiClient';
+
+interface BulkForm {
+  startDate: string;
+  startTime: string;
+  endDate: string;
+  endTime: string;
+}
+
+// Utility to convert YYYY-MM-DD to DD-MM-YYYY
+function toDDMMYYYY(dateStr: string): string {
+  if (!dateStr) return '';
+  const [yyyy, mm, dd] = dateStr.split('-');
+  return `${dd}-${mm}-${yyyy}`;
+}
 
 const AttendanceUserList: React.FC = () => {
   
@@ -50,6 +69,16 @@ const AttendanceUserList: React.FC = () => {
   const [selectedEmpId, setSelectedEmpId] = useState<string | null>(null);
   const [showCalendar, setShowCalendar] = useState<boolean>(false);
   const [lwpData, setLwpData] = useState<LWPData>({});
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkDialogEmployeeId, setBulkDialogEmployeeId] = useState<string | null>(null);
+  const [bulkForm, setBulkForm] = useState<BulkForm>({
+    startDate: '',
+    startTime: '',
+    endDate: '',
+    endTime: '',
+  });
+  const [bulkFormErrors, setBulkFormErrors] = useState<Record<string, string>>({});
+  const [bulkDialogLoading, setBulkDialogLoading] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -72,6 +101,7 @@ const AttendanceUserList: React.FC = () => {
       const month = currentDate.getMonth() + 1;
       const year = currentDate.getFullYear();
 
+      // Use relative path to ensure correct backend port is used
       const lwpPromises = users.map((user: User) =>
         fetch(`/api/v2/employee-leave/lwp/${user.employee_id}/${month}/${year}`)
           .then(res => res.json())
@@ -170,6 +200,59 @@ const AttendanceUserList: React.FC = () => {
   const handleViewAttendance = (empId: string): void => {
     setSelectedEmpId(empId);
     setShowCalendar(true);
+  };
+
+  const handleBulkAttendance = (employeeId: string) => {
+    setBulkDialogEmployeeId(employeeId);
+    setBulkDialogOpen(true);
+    setBulkForm({ startDate: '', startTime: '', endDate: '', endTime: '' });
+    setBulkFormErrors({});
+  };
+
+  const handleBulkDialogClose = () => {
+    setBulkDialogOpen(false);
+    setBulkDialogEmployeeId(null);
+    setBulkForm({ startDate: '', startTime: '', endDate: '', endTime: '' });
+    setBulkFormErrors({});
+  };
+
+  const handleBulkFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setBulkForm((prev) => ({ ...prev, [name]: value }));
+    setBulkFormErrors((prev) => ({ ...prev, [name]: '' }));
+  };
+
+  const validateBulkForm = () => {
+    const errors: Record<string, string> = {};
+    if (!bulkForm.startDate) errors.startDate = 'Start date required';
+    if (!bulkForm.startTime) errors.startTime = 'Start time required';
+    if (!bulkForm.endDate) errors.endDate = 'End date required';
+    if (!bulkForm.endTime) errors.endTime = 'End time required';
+    setBulkFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleBulkDialogSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateBulkForm()) return;
+    if (!bulkDialogEmployeeId) return;
+    setBulkDialogLoading(true);
+    try {
+      const startDateFormatted = toDDMMYYYY(bulkForm.startDate);
+      const endDateFormatted = toDDMMYYYY(bulkForm.endDate);
+      const url = `/api/v2/attendance/bulk/checkin/checkout/${bulkDialogEmployeeId}/start/${startDateFormatted}/${bulkForm.startTime}/end/${endDateFormatted}/${bulkForm.endTime}`;
+      await apiClient.post(url);
+      toast.success('Bulk attendance entry successful');
+      setBulkDialogOpen(false);
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.detail ||
+        error?.message ||
+        'Bulk attendance entry failed'
+      );
+    } finally {
+      setBulkDialogLoading(false);
+    }
   };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>): void => {
@@ -401,6 +484,15 @@ const AttendanceUserList: React.FC = () => {
                         View Attendance
                       </Button>
                     </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => handleBulkAttendance(user.employee_id || '')}
+                      >
+                        Bulk Attendance
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -429,6 +521,64 @@ const AttendanceUserList: React.FC = () => {
           onHide={handleCloseCalendar}
         />
       )}
+
+      <Dialog open={bulkDialogOpen} onClose={handleBulkDialogClose} maxWidth="xs" fullWidth>
+        <DialogTitle>Bulk Attendance Entry</DialogTitle>
+        <DialogContent>
+          <Box component="form" sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
+            <TextField
+              label="Start Date"
+              name="startDate"
+              type="date"
+              value={bulkForm.startDate}
+              onChange={handleBulkFormChange}
+              InputLabelProps={{ shrink: true }}
+              error={!!bulkFormErrors.startDate}
+              helperText={bulkFormErrors.startDate}
+              required
+            />
+            <TextField
+              label="Start Time"
+              name="startTime"
+              type="time"
+              value={bulkForm.startTime}
+              onChange={handleBulkFormChange}
+              InputLabelProps={{ shrink: true }}
+              error={!!bulkFormErrors.startTime}
+              helperText={bulkFormErrors.startTime}
+              required
+            />
+            <TextField
+              label="End Date"
+              name="endDate"
+              type="date"
+              value={bulkForm.endDate}
+              onChange={handleBulkFormChange}
+              InputLabelProps={{ shrink: true }}
+              error={!!bulkFormErrors.endDate}
+              helperText={bulkFormErrors.endDate}
+              required
+            />
+            <TextField
+              label="End Time"
+              name="endTime"
+              type="time"
+              value={bulkForm.endTime}
+              onChange={handleBulkFormChange}
+              InputLabelProps={{ shrink: true }}
+              error={!!bulkFormErrors.endTime}
+              helperText={bulkFormErrors.endTime}
+              required
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleBulkDialogClose}>Cancel</Button>
+          <Button onClick={handleBulkDialogSubmit} variant="contained" disabled={bulkDialogLoading}>
+            {bulkDialogLoading ? <CircularProgress size={22} /> : 'Submit'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

@@ -231,7 +231,7 @@ async def get_public_holidays_by_date_range(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/month/{month}/{year}", response_model=List[Dict[str, Any]])
-async def get_public_holidays_by_month_legacy(
+async def get_public_holidays_by_month(
     month: int = Path(..., ge=1, le=12, description="Month (1-12)"),
     year: int = Path(..., ge=2000, le=3000, description="Year"),
     current_user: CurrentUser = Depends(get_current_user),

@@ -608,8 +608,6 @@ const AddNewUser: React.FC = () => {
             >
               <MenuItem value="user">User</MenuItem>
               <MenuItem value="manager">Manager</MenuItem>
-              <MenuItem value="hr">HR</MenuItem>
-              <MenuItem value="admin">Admin</MenuItem>
             </Select>
             {errors.role && (
               <Typography variant="caption" color="error" sx={{ mt: 0.5, ml: 2 }}>

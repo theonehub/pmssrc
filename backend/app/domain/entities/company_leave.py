@@ -27,7 +27,6 @@ class CompanyLeave:
     accrual_type: str
     annual_allocation: int
     encashable: bool = False
-    is_allowed_on_probation: bool = False
     computed_monthly_allocation: int = 0
     is_active: bool = True
     description: Optional[str] = None
@@ -52,8 +51,7 @@ class CompanyLeave:
         created_by: str,
         is_active: bool = True,
         description: Optional[str] = None,
-        encashable: bool = False,
-        is_allowed_on_probation: bool = False
+        encashable: bool = False
     ) -> 'CompanyLeave':
         """Factory method to create new company leave"""
         
@@ -68,8 +66,7 @@ class CompanyLeave:
             created_by=created_by,
             is_active=is_active,
             description=description,
-            encashable=encashable,
-            is_allowed_on_probation=is_allowed_on_probation
+            encashable=encashable
         )
         
         return company_leave
@@ -82,8 +79,7 @@ class CompanyLeave:
         updated_by: str,
         is_active: bool = True,
         description: Optional[str] = None,
-        encashable: Optional[bool] = None,
-        is_allowed_on_probation: Optional[bool] = None
+        encashable: Optional[bool] = None
     ) -> 'CompanyLeave':
         """Update company leave"""
         
@@ -96,8 +92,6 @@ class CompanyLeave:
         
         if encashable is not None:
             self.encashable = encashable
-        if is_allowed_on_probation is not None:
-            self.is_allowed_on_probation = is_allowed_on_probation
             
         self.updated_at = datetime.now()
         self.updated_by = updated_by
@@ -139,7 +133,6 @@ class CompanyLeave:
             "is_active": self.is_active,
             "description": self.description,
             "encashable": self.encashable,
-            "is_allowed_on_probation": self.is_allowed_on_probation,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
             "created_by": self.created_by,

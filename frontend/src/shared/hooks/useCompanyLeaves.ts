@@ -12,7 +12,6 @@ export interface CompanyLeave {
   is_active: boolean;
   description: string | null;
   encashable: boolean;
-  is_allowed_on_probation: boolean;
   created_at: string;
   updated_at: string;
   created_by: string | null;
@@ -40,7 +39,6 @@ export interface CompanyLeaveFormData {
   computed_monthly_allocation?: number;
   description?: string | null;
   encashable: boolean;
-  is_allowed_on_probation: boolean;
   is_active: boolean;
 }
 

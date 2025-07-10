@@ -60,6 +60,9 @@ class CreateOrganisationRequestDTO:
     # Optional Bank Details
     bank_details: Optional['BankDetailsRequestDTO'] = None
     
+    esi_establishment_id: Optional[str] = None
+    pf_establishment_id: Optional[str] = None
+    
     def validate(self) -> List[str]:
         """Validate the request data"""
         errors = []
@@ -169,6 +172,9 @@ class UpdateOrganisationRequestDTO(BaseModel):
     account_holder_name: Optional[str] = None
     bank_details: Optional[BankDetails] = None
 
+    esi_establishment_id: Optional[str] = None
+    pf_establishment_id: Optional[str] = None
+
     class Config:
         validate_by_name = True
         arbitrary_types_allowed = True
@@ -270,6 +276,9 @@ class TaxInformationResponseDTO:
     cin_number: Optional[str] = None
     is_gst_registered: Optional[bool] = None
     gst_state_code: Optional[str] = None
+
+    esi_establishment_id: Optional[str] = None
+    pf_establishment_id: Optional[str] = None
 
 
 @dataclass

@@ -107,9 +107,6 @@ class UpdateCompanyLeaveUseCase:
             if request.encashable is not None:
                 company_leave.encashable = request.encashable
                 
-            if request.is_allowed_on_probation is not None:
-                company_leave.is_allowed_on_probation = request.is_allowed_on_probation
-            
             company_leave.updated_at = datetime.now()
             company_leave.updated_by = updated_by
             

@@ -30,7 +30,7 @@ import {
 } from '@mui/material';
 import {
   Add as AddIcon,
-  UploadFile as UploadFileIcon,
+  // UploadFile as UploadFileIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Search as SearchIcon,
@@ -277,14 +277,14 @@ const PublicHolidays: React.FC = () => {
                   <RefreshIcon />
                 </IconButton>
               </Tooltip>
-              <Button
+              {/* <Button
                 variant="outlined"
                 startIcon={<UploadFileIcon />}
                 onClick={() => setOpenImportDialog(true)}
                 size="large"
               >
                 IMPORT
-              </Button>
+              </Button> */}
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}

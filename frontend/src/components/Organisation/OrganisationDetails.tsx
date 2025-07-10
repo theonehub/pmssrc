@@ -59,6 +59,8 @@ interface TaxInformation {
   gst_number?: string;
   tan_number?: string;
   cin_number?: string;
+  esi_establishment_id?: string;
+  pf_establishment_id?: string;
   is_gst_registered?: boolean;
 }
 
@@ -305,6 +307,18 @@ const OrganisationDetails: React.FC = () => {
                   <Grid item xs={6}>
                     <Typography variant="body2" color="textSecondary">CIN Number</Typography>
                     <Typography>{organisation.tax_info.cin_number}</Typography>
+                  </Grid>
+                )}
+                {organisation.tax_info.esi_establishment_id && (
+                  <Grid item xs={6}>
+                    <Typography variant="body2" color="textSecondary">ESI Establishment ID</Typography>
+                    <Typography>{organisation.tax_info.esi_establishment_id}</Typography>
+                  </Grid>
+                )}
+                {organisation.tax_info.pf_establishment_id && (
+                  <Grid item xs={6}>
+                    <Typography variant="body2" color="textSecondary">PF Establishment ID</Typography>
+                    <Typography>{organisation.tax_info.pf_establishment_id}</Typography>
                   </Grid>
                 )}
               </Grid>

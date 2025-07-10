@@ -129,8 +129,7 @@ class CompanyLeaveServiceImpl(CompanyLeaveService):
                 annual_allocation=request.annual_allocation,
                 created_by=request.created_by,
                 description=request.description,
-                encashable=request.encashable,
-                is_allowed_on_probation=request.is_allowed_on_probation
+                encashable=request.encashable
             )
             
             # Save to database

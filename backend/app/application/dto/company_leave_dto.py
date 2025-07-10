@@ -25,7 +25,6 @@ class CreateCompanyLeaveRequestDTO:
     annual_allocation: int
     description: Optional[str] = None
     encashable: bool = False
-    is_allowed_on_probation: bool = False
     created_by: Optional[str] = None  # Auto-populated from authenticated user
     
     @classmethod
@@ -37,7 +36,6 @@ class CreateCompanyLeaveRequestDTO:
             annual_allocation=int(data['annual_allocation']),
             description=data.get('description'),
             encashable=data.get('encashable', False),
-            is_allowed_on_probation=data.get('is_allowed_on_probation', False),
             created_by=data.get('created_by')  # Optional, will be populated by service
         )
     
@@ -49,8 +47,7 @@ class CreateCompanyLeaveRequestDTO:
             'annual_allocation': self.annual_allocation,
             'description': self.description,
             'created_by': self.created_by,
-            'encashable': self.encashable,
-            'is_allowed_on_probation': self.is_allowed_on_probation
+            'encashable': self.encashable
         }
     
     def validate(self) -> List[str]:
@@ -84,7 +81,6 @@ class UpdateCompanyLeaveRequestDTO:
     description: Optional[str] = None
     is_active: Optional[bool] = None
     encashable: Optional[bool] = None
-    is_allowed_on_probation: Optional[bool] = None
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'UpdateCompanyLeaveRequestDTO':
@@ -96,8 +92,7 @@ class UpdateCompanyLeaveRequestDTO:
             description=data.get('description'),
             is_active=data.get('is_active'),
             updated_by=data['updated_by'],
-            encashable=data.get('encashable'),
-            is_allowed_on_probation=data.get('is_allowed_on_probation')
+            encashable=data.get('encashable')
         )
     
     def validate(self) -> List[str]:
@@ -152,7 +147,6 @@ class CompanyLeaveResponseDTO:
     is_active: bool
     description: Optional[str]
     encashable: bool
-    is_allowed_on_probation: bool
     created_at: str
     updated_at: str
     created_by: Optional[str]
@@ -170,7 +164,6 @@ class CompanyLeaveResponseDTO:
             is_active=company_leave.is_active,
             description=company_leave.description,
             encashable=company_leave.encashable,
-            is_allowed_on_probation=company_leave.is_allowed_on_probation,
             created_at=company_leave.created_at.isoformat(),
             updated_at=company_leave.updated_at.isoformat(),
             created_by=company_leave.created_by,
@@ -178,7 +171,7 @@ class CompanyLeaveResponseDTO:
         )
     
     def to_dict(self) -> Dict[str, Any]:
-        """Convert DTO to dictionary for API response"""
+        """Convert DTO to dictionary for API response"""    
         return {
             'company_leave_id': self.company_leave_id,
             'leave_name': self.leave_name,
@@ -188,7 +181,6 @@ class CompanyLeaveResponseDTO:
             'is_active': self.is_active,
             'description': self.description,
             'encashable': self.encashable,
-            'is_allowed_on_probation': self.is_allowed_on_probation,
             'created_at': self.created_at,
             'updated_at': self.updated_at,
             'created_by': self.created_by,

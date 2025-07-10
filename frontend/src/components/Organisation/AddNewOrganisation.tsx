@@ -104,6 +104,8 @@ const AddNewOrganisation: React.FC = () => {
   const [panNumber, setPanNumber] = useState('');
   const [gstNumber, setGstNumber] = useState('');
   const [tanNumber, setTanNumber] = useState('');
+  const [esiEstablishmentId, setEsiEstablishmentId] = useState('');
+  const [pfEstablishmentId, setPfEstablishmentId] = useState('');
 
   // Bank details
   const [bankName, setBankName] = useState('');
@@ -172,6 +174,8 @@ const AddNewOrganisation: React.FC = () => {
           setPanNumber(org.tax_info.pan_number || '');
           setGstNumber(org.tax_info.gst_number || '');
           setTanNumber(org.tax_info.tan_number || '');
+          setEsiEstablishmentId(org.tax_info.esi_establishment_id || '');
+          setPfEstablishmentId(org.tax_info.pf_establishment_id || '');
         }
         
         // Bank details
@@ -272,6 +276,12 @@ const AddNewOrganisation: React.FC = () => {
       case 'tanNumber':
         if (!value.trim()) return '';
         return !/^[A-Z]{4}[0-9]{5}[A-Z]{1}$/.test(value) ? 'Invalid TAN format (e.g., ABCD12345E)' : '';
+      case 'esiEstablishmentId':
+        if (!value.trim()) return '';
+        return !/^\d{7}$/.test(value) ? 'ESI Establishment ID must be 7 digits' : '';
+      case 'pfEstablishmentId':
+        if (!value.trim()) return '';
+        return !/^\d{7}$/.test(value) ? 'PF Establishment ID must be 7 digits' : '';
       case 'bankName':
         return !value.trim() ? 'Bank name is required' : '';
       case 'accountNumber':
@@ -284,8 +294,8 @@ const AddNewOrganisation: React.FC = () => {
         return !value.trim() ? 'Branch name is required' : '';
       case 'branchAddress':
         return !value.trim() ? 'Branch address is required' : '';
-      case 'accountType':
-        return !value.trim() ? 'Account type is required' : '';
+      // case 'accountType':
+      //   return !value.trim() ? 'Account type is required' : '';
       case 'accountHolderName':
         return !value.trim() ? 'Account holder name is required' : '';
       default:
@@ -295,7 +305,7 @@ const AddNewOrganisation: React.FC = () => {
 
   const handleFieldChange = (fieldName: string, value: string, setField: (value: string) => void) => {
     // Convert to uppercase for tax numbers and IFSC code
-    if (['panNumber', 'gstNumber', 'tanNumber', 'ifscCode'].includes(fieldName)) {
+    if (['panNumber', 'gstNumber', 'tanNumber', 'ifscCode', 'esiEstablishmentId', 'pfEstablishmentId'].includes(fieldName)) {
       value = value.toUpperCase();
     }
     
@@ -327,6 +337,8 @@ const AddNewOrganisation: React.FC = () => {
       { name: 'panNumber', value: panNumber },
       { name: 'gstNumber', value: gstNumber },
       { name: 'tanNumber', value: tanNumber },
+      { name: 'esiEstablishmentId', value: esiEstablishmentId },
+      { name: 'pfEstablishmentId', value: pfEstablishmentId },
       { name: 'bankName', value: bankName },
       { name: 'accountNumber', value: accountNumber },
       { name: 'ifscCode', value: ifscCode },
@@ -389,6 +401,8 @@ const AddNewOrganisation: React.FC = () => {
         website: website || '',
         gst_number: gstNumber || '',
         tan_number: tanNumber || '',
+        esi_establishment_id: esiEstablishmentId || '',
+        pf_establishment_id: pfEstablishmentId || '',
         
         // Additional optional fields that backend might expect
         fax: '',
@@ -775,10 +789,9 @@ const AddNewOrganisation: React.FC = () => {
             required
             inputProps={{ style: { textTransform: 'uppercase' } }}
             InputProps={{
-              startAdornment: <NumbersIcon color="action" sx={{ mr: 1 }} />,
+              startAdornment: <NumbersIcon color="action" sx={{ mr: 1 }} />, 
             }}
           />
-
           <TextField
             fullWidth
             label="GST Number"
@@ -789,10 +802,9 @@ const AddNewOrganisation: React.FC = () => {
             placeholder="22AAAAA0000A1Z5"
             inputProps={{ style: { textTransform: 'uppercase' } }}
             InputProps={{
-              startAdornment: <NumbersIcon color="action" sx={{ mr: 1 }} />,
+              startAdornment: <NumbersIcon color="action" sx={{ mr: 1 }} />, 
             }}
           />
-
           <TextField
             fullWidth
             label="TAN Number"
@@ -803,7 +815,27 @@ const AddNewOrganisation: React.FC = () => {
             placeholder="ABCD12345E"
             inputProps={{ style: { textTransform: 'uppercase' } }}
             InputProps={{
-              startAdornment: <NumbersIcon color="action" sx={{ mr: 1 }} />,
+              startAdornment: <NumbersIcon color="action" sx={{ mr: 1 }} />, 
+            }}
+          />
+          <TextField
+            fullWidth
+            label="ESI Establishment ID"
+            value={esiEstablishmentId}
+            onChange={(e) => handleFieldChange('esiEstablishmentId', e.target.value, setEsiEstablishmentId)}
+            placeholder="ESI1234567"
+            InputProps={{
+              startAdornment: <NumbersIcon color="action" sx={{ mr: 1 }} />, 
+            }}
+          />
+          <TextField
+            fullWidth
+            label="PF Establishment ID"
+            value={pfEstablishmentId}
+            onChange={(e) => handleFieldChange('pfEstablishmentId', e.target.value, setPfEstablishmentId)}
+            placeholder="PF1234567"
+            InputProps={{
+              startAdornment: <NumbersIcon color="action" sx={{ mr: 1 }} />, 
             }}
           />
         </FormSection>

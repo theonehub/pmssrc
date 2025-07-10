@@ -170,6 +170,8 @@ class GetOrganisationUseCase:
             gst_number=tax_info.gst_number,
             tan_number=tax_info.tan_number,
             cin_number=tax_info.cin_number,
+            esi_establishment_id=tax_info.esi_establishment_id,
+            pf_establishment_id=tax_info.pf_establishment_id,
             is_gst_registered=tax_info.is_gst_registered(),
             gst_state_code=tax_info.get_state_code_from_gst()
         ) 

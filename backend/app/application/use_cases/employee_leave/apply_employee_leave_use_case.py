@@ -320,11 +320,6 @@ class ApplyEmployeeLeaveUseCase:
             ValueError: If business rules violated
         """
         
-        # Check probation restrictions
-        if hasattr(company_leave, 'policy') and hasattr(company_leave.policy, 'available_during_probation'):
-            if not company_leave.policy.available_during_probation and current_user.is_on_probation():
-                raise ValueError(f"{leave_type} is not allowed during probation period")
-        
         # Convert string dates to date objects for validation
         start_date = date.fromisoformat(request.start_date)
         end_date = date.fromisoformat(request.end_date)

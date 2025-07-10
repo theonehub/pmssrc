@@ -96,7 +96,6 @@ const CompanyLeaves: React.FC = () => {
         computed_monthly_allocation: data.computed_monthly_allocation || 0,
         description: data.description || null,
         encashable: data.encashable || false,
-        is_allowed_on_probation: data.is_allowed_on_probation || false,
         is_active: data.is_active !== undefined ? data.is_active : true,
       };
 
@@ -201,7 +200,6 @@ const CompanyLeaves: React.FC = () => {
                   <TableCell>Accrual Type</TableCell>
                   <TableCell>Annual Allocation</TableCell>
                   <TableCell>Encashable</TableCell>
-                  <TableCell>During Probation</TableCell>
                   <TableCell>Active</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
@@ -246,7 +244,6 @@ const CompanyLeaves: React.FC = () => {
                       </TableCell>
                       <TableCell>{leave.annual_allocation} days</TableCell>
                       <TableCell>{leave.encashable ? 'Yes' : 'No'}</TableCell>
-                      <TableCell>{leave.is_allowed_on_probation ? 'Yes' : 'No'}</TableCell>
                       <TableCell>{leave.is_active ? 'Yes' : 'No'}</TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', gap: 0.5 }}>

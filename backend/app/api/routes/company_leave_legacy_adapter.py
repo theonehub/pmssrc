@@ -71,7 +71,6 @@ async def create_company_leave_legacy(
             accrual_type='annually',
             requires_approval=request_data.get('requires_approval', True),
             is_encashable=request_data.get('is_encashable', False),
-            available_during_probation=request_data.get('available_during_probation', True),
             min_advance_notice_days=1,
         )
         

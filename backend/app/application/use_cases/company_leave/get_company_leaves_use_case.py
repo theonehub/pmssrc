@@ -186,7 +186,6 @@ class GetCompanyLeaveUseCase:
         self,
         employee_gender: Optional[str] = None,
         employee_category: Optional[str] = None,
-        is_on_probation: bool = False,
         summary_only: bool = False
     ) -> List[Dict[str, Any]]:
         """
@@ -195,7 +194,6 @@ class GetCompanyLeaveUseCase:
         Args:
             employee_gender: Employee gender
             employee_category: Employee category
-            is_on_probation: Whether employee is on probation
             summary_only: Whether to return summary data only
             
         Returns:
@@ -205,13 +203,12 @@ class GetCompanyLeaveUseCase:
         try:
             self._logger.info(
                 f"Retrieving applicable leaves for employee "
-                f"(gender={employee_gender}, category={employee_category}, probation={is_on_probation})"
+                f"(gender={employee_gender}, category={employee_category})"
             )
             
             company_leaves = await self._query_repository.get_applicable_for_employee(
                 employee_gender=employee_gender,
-                employee_category=employee_category,
-                is_on_probation=is_on_probation
+                employee_category=employee_category
             )
             
             if summary_only:
@@ -310,8 +307,7 @@ class GetCompanyLeaveUseCase:
                 'policy_features': {
                     'encashable_leaves': len([l for l in active_leaves_list if hasattr(l, 'policy') and l.policy.is_encashable]),
                     'auto_approval_leaves': len([l for l in active_leaves_list if hasattr(l, 'policy') and l.policy.auto_approve_threshold]),
-                    'medical_cert_required': len([l for l in active_leaves_list if hasattr(l, 'policy') and l.policy.requires_medical_certificate]),
-                    'probation_restricted': len([l for l in active_leaves_list if hasattr(l, 'policy') and not l.policy.available_during_probation])
+                    'medical_cert_required': len([l for l in active_leaves_list if hasattr(l, 'policy') and l.policy.requires_medical_certificate])
                 }
             }
             

@@ -223,6 +223,8 @@ class TaxInformation:
     gst_number: Optional[str] = None
     tan_number: Optional[str] = None
     cin_number: Optional[str] = None  # Corporate Identification Number
+    esi_establishment_id: Optional[str] = None  # ESI Establishment ID
+    pf_establishment_id: Optional[str] = None  # PF Establishment ID
     
     def __post_init__(self):
         """Validate tax information"""
@@ -290,7 +292,9 @@ class TaxInformation:
             "pan_number": self.pan_number,
             "gst_number": self.gst_number,
             "tan_number": self.tan_number,
-            "cin_number": self.cin_number
+            "cin_number": self.cin_number,
+            "esi_establishment_id": self.esi_establishment_id,
+            "pf_establishment_id": self.pf_establishment_id
         }
     
     @classmethod
@@ -300,7 +304,9 @@ class TaxInformation:
             pan_number=data["pan_number"],
             gst_number=data.get("gst_number"),
             tan_number=data.get("tan_number"),
-            cin_number=data.get("cin_number")
+            cin_number=data.get("cin_number"),
+            esi_establishment_id=data.get("esi_establishment_id"),
+            pf_establishment_id=data.get("pf_establishment_id")
         ) 
     
 @dataclass(frozen=True)

@@ -48,6 +48,8 @@ const OrganisationForm: React.FC<OrganisationFormProps> = ({
   const [panNumber, setPanNumber] = useState(organisation.tax_info?.pan_number || '');
   const [gstNumber, setGstNumber] = useState(organisation.tax_info?.gst_number || '');
   const [tanNumber, setTanNumber] = useState(organisation.tax_info?.tan_number || '');
+  const [esiEstablishmentId, setEsiEstablishmentId] = useState(organisation.tax_info?.esi_establishment_id || '');
+  const [pfEstablishmentId, setPfEstablishmentId] = useState(organisation.tax_info?.pf_establishment_id || '');
   
   // Bank details
   const [bankName, setBankName] = useState(organisation.bank_details?.bank_name || '');
@@ -264,6 +266,13 @@ const OrganisationForm: React.FC<OrganisationFormProps> = ({
     setAccountHolderNameError(validateAccountHolderName(value));
   };
 
+  const handleEsiEstablishmentIdChange = (value: string) => {
+    setEsiEstablishmentId(value);
+  };
+  const handlePfEstablishmentIdChange = (value: string) => {
+    setPfEstablishmentId(value);
+  };
+
   // Form validation
   const validateForm = (): boolean => {
     let isValid = true;
@@ -368,6 +377,8 @@ const OrganisationForm: React.FC<OrganisationFormProps> = ({
           gst_number: gstNumber,
           tan_number: tanNumber,
           cin_number: organisation.tax_info?.cin_number || '',
+          esi_establishment_id: esiEstablishmentId,
+          pf_establishment_id: pfEstablishmentId,
         },
         bank_details: {
           ...organisation.bank_details,
@@ -619,6 +630,20 @@ const OrganisationForm: React.FC<OrganisationFormProps> = ({
               error={!!tanNumberError}
               helperText={tanNumberError}
               placeholder="ABCD12345E"
+            />
+            <TextField
+              fullWidth
+              label="ESI Establishment ID"
+              value={esiEstablishmentId}
+              onChange={(e) => handleEsiEstablishmentIdChange(e.target.value)}
+              placeholder="ESI1234567"
+            />
+            <TextField
+              fullWidth
+              label="PF Establishment ID"
+              value={pfEstablishmentId}
+              onChange={(e) => handlePfEstablishmentIdChange(e.target.value)}
+              placeholder="PF1234567"
             />
           </Box>
         </Box>

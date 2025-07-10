@@ -129,7 +129,6 @@ export interface CompanyLeave {
   accrual_type: string;
   annual_allocation: number;
   encashable: boolean;
-  is_allowed_on_probation: boolean;
   is_active: boolean;
   created_at?: string;
   updated_at?: string;

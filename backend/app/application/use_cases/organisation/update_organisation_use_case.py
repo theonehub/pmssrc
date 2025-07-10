@@ -301,7 +301,9 @@ class UpdateOrganisationUseCase:
             request.pan_number is not None,
             request.gst_number is not None,
             request.tan_number is not None,
-            request.cin_number is not None
+            request.cin_number is not None,
+            request.esi_establishment_id is not None,
+            request.pf_establishment_id is not None
         ])
     
     async def _update_tax_info(
@@ -319,7 +321,9 @@ class UpdateOrganisationUseCase:
                 pan_number=request.pan_number if request.pan_number is not None else current_tax.pan_number,
                 gst_number=request.gst_number if request.gst_number is not None else current_tax.gst_number,
                 tan_number=request.tan_number if request.tan_number is not None else current_tax.tan_number,
-                cin_number=request.cin_number if request.cin_number is not None else current_tax.cin_number
+                cin_number=request.cin_number if request.cin_number is not None else current_tax.cin_number,
+                esi_establishment_id=request.esi_establishment_id if request.esi_establishment_id is not None else current_tax.esi_establishment_id,
+                pf_establishment_id=request.pf_establishment_id if request.pf_establishment_id is not None else current_tax.pf_establishment_id
             )
             
             organisation.update_tax_info(new_tax_info, request.updated_by)
@@ -471,6 +475,8 @@ class UpdateOrganisationUseCase:
             gst_number=tax_info.gst_number,
             tan_number=tax_info.tan_number,
             cin_number=tax_info.cin_number,
+            esi_establishment_id=tax_info.esi_establishment_id,
+            pf_establishment_id=tax_info.pf_establishment_id,
             is_gst_registered=tax_info.is_gst_registered(),
             gst_state_code=tax_info.get_state_code_from_gst()
         ) 

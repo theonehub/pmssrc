@@ -113,6 +113,9 @@ class CreateOrganisationUseCase:
         # Step 6: Save organisation
         saved_organisation = await self.command_repository.save(organisation)
         
+        # Step 6: Create default user with admin role
+        # await self._create_default_admin_user()
+
         # Step 7: Send notifications (non-blocking)
         try:
             await self.notification_service.send_organisation_created_notification(saved_organisation)
@@ -182,7 +185,9 @@ class CreateOrganisationUseCase:
                 pan_number=request.pan_number,
                 gst_number=request.gst_number,
                 tan_number=request.tan_number,
-                cin_number=request.cin_number
+                cin_number=request.cin_number,
+                esi_establishment_id=request.esi_establishment_id,
+                pf_establishment_id=request.pf_establishment_id
             )
         except ValueError as e:
             raise OrganisationValidationError(f"Invalid tax information: {e}")
@@ -281,13 +286,14 @@ class CreateOrganisationUseCase:
         """Convert tax information to DTO"""
         if not tax_info:
             return None
-        
         from app.application.dto.organisation_dto import TaxInformationResponseDTO
         return TaxInformationResponseDTO(
             pan_number=tax_info.pan_number,
             gst_number=tax_info.gst_number,
             tan_number=tax_info.tan_number,
             cin_number=tax_info.cin_number,
+            esi_establishment_id=tax_info.esi_establishment_id,
+            pf_establishment_id=tax_info.pf_establishment_id,
             is_gst_registered=tax_info.is_gst_registered(),
             gst_state_code=tax_info.get_state_code_from_gst()
         ) 

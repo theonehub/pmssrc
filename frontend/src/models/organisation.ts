@@ -19,6 +19,8 @@ export interface TaxInfo {
   gst_number?: string;
   tan_number?: string;
   cin_number?: string;
+  esi_establishment_id?: string;
+  pf_establishment_id?: string;
 }
 
 export interface BankDetails {
@@ -85,6 +87,8 @@ export const EmptyOrganisation: Organisation = {
     gst_number: '',
     tan_number: '',
     cin_number: '',
+    esi_establishment_id: '',
+    pf_establishment_id: '',
   },
   bank_details: {
     bank_name: '',

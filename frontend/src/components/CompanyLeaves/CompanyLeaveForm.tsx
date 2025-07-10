@@ -30,7 +30,6 @@ const CompanyLeaveForm: React.FC<CompanyLeaveFormProps> = ({
   const [annualAllocation, setAnnualAllocation] = useState(companyLeave?.annual_allocation?.toString() || '0');
   const [description, setDescription] = useState(companyLeave?.description || '');
   const [encashable, setEncashable] = useState(companyLeave?.encashable || false);
-  const [isAllowedOnProbation, setIsAllowedOnProbation] = useState(companyLeave?.is_allowed_on_probation || false);
   const [isActive, setIsActive] = useState(companyLeave?.is_active !== undefined ? companyLeave.is_active : true);
   
   // Error states
@@ -109,7 +108,6 @@ const CompanyLeaveForm: React.FC<CompanyLeaveFormProps> = ({
         annual_allocation: parseInt(annualAllocation),
         description: description || null,
         encashable,
-        is_allowed_on_probation: isAllowedOnProbation,
         is_active: isActive
       };
       
@@ -222,16 +220,6 @@ const CompanyLeaveForm: React.FC<CompanyLeaveFormProps> = ({
                 />
               }
               label="Leave can be encashed"
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={isAllowedOnProbation}
-                  onChange={(e) => setIsAllowedOnProbation(e.target.checked)}
-                  color="primary"
-                />
-              }
-              label="Available during probation period"
             />
             {companyLeave?.company_leave_id && (
               <FormControlLabel

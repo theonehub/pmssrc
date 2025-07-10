@@ -200,7 +200,7 @@ class MongoDBOrganisationRepository(OrganisationRepository):
             "hostname": getattr(organisation, 'hostname', ''),
             "contact_information": value_object_to_dict(getattr(organisation, 'contact_info', None)),
             "address": value_object_to_dict(getattr(organisation, 'address', None)),
-            "tax_information": value_object_to_dict(getattr(organisation, 'tax_info', None)),
+            "tax_information": value_object_to_dict(getattr(organisation, 'tax_info', None)),  # Handles esi_establishment_id and pf_establishment_id
             "bank_details": value_object_to_dict(getattr(organisation, 'bank_details', None)),
             "employee_strength": getattr(organisation, 'employee_strength', 0),
             "used_employee_strength": getattr(organisation, 'used_employee_strength', 0),
@@ -251,7 +251,7 @@ class MongoDBOrganisationRepository(OrganisationRepository):
                 status=document.get("status", "active"),
                 contact_info=document.get("contact_information", {}),
                 address=document.get("address", {}),
-                tax_info=document.get("tax_information", {}),
+                tax_info=document.get("tax_information", {}),  # from_dict handles esi_establishment_id and pf_establishment_id
                 bank_details=bank_details,
                 employee_strength=document.get("employee_strength", 0),
                 used_employee_strength=document.get("used_employee_strength", 0),

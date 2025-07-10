@@ -663,8 +663,6 @@ const UserEdit: React.FC = () => {
                   >
                     <MenuItem value="employee">Employee</MenuItem>
                     <MenuItem value="manager">Manager</MenuItem>
-                    <MenuItem value="hr">HR</MenuItem>
-                    <MenuItem value="admin">Admin</MenuItem>
                   </Select>
                 </FormControl>
                 

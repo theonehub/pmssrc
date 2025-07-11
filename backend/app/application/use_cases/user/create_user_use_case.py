@@ -6,6 +6,7 @@ Handles the business logic for creating a new user
 import logging
 from typing import List, Dict, Optional
 from datetime import datetime
+from xml.dom.minidom import Document
 
 from app.domain.entities.user import User
 from app.domain.value_objects.employee_id import EmployeeId
@@ -223,7 +224,7 @@ class CreateUserUseCase:
         """Create bank details value object if provided"""
         # Check if any bank details are provided
         if not any([
-            request.bank_account_number,
+            request.account_number,
             request.bank_name,
             request.ifsc_code,
             request.account_holder_name
@@ -232,7 +233,7 @@ class CreateUserUseCase:
         
         # If some bank details are provided, validate that required fields are present
         if not all([
-            request.bank_account_number,
+            request.account_number,
             request.bank_name,
             request.ifsc_code,
             request.account_holder_name
@@ -243,7 +244,7 @@ class CreateUserUseCase:
         
         try:
             return BankDetails(
-                account_number=request.bank_account_number,
+                account_number=request.account_number,
                 bank_name=request.bank_name,
                 ifsc_code=request.ifsc_code,
                 account_holder_name=request.account_holder_name,
@@ -377,6 +378,16 @@ class CreateUserUseCase:
     
     def _convert_to_response_dto(self, user: User) -> UserResponseDTO:
         """Convert user entity to response DTO"""
+
+        photo_path=None,
+        pan_document_path=None,
+        aadhar_document_path=None,
+        if user.documents:
+            photo_path=user.documents.photo_path
+            pan_document_path=user.documents.pan_document_path
+            aadhar_document_path=user.documents.aadhar_document_path
+               
+        
         return UserResponseDTO(
             employee_id=str(user.employee_id),
             name=user.name,
@@ -414,8 +425,9 @@ class CreateUserUseCase:
                 is_superadmin=user.permissions.is_superadmin(),
             ),
             
-            # Documents
-            documents=self._convert_documents_to_dto(user.documents),
+            photo_path=photo_path,
+            pan_document_path=pan_document_path,
+            aadhar_document_path=aadhar_document_path,
             
             # Leave Balance
             leave_balance=user.leave_balance,

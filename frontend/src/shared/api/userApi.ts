@@ -35,14 +35,16 @@ export interface User {
   photo_path?: string;
   // Bank Details
   bank_details?: {
-    bank_account_number: string;
+    account_number: string;
     bank_name: string;
     ifsc_code: string;
     account_holder_name: string;
     branch_name?: string;
     account_type?: string;
   };
-  permissions?: string[];
+  permissions?: {
+    role?: string;
+  };
 }
 
 export interface UserFilters {

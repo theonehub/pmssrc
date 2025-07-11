@@ -60,13 +60,32 @@ interface User {
   role?: string;
   manager_id?: string;
   location?: string;
-  pan_document_path?: string;
-  aadhar_document_path?: string;
-  photo_path?: string;
+  documents?: {
+    pan_document_path?: string;
+    aadhar_document_path?: string;
+    photo_path?: string;
+  };
   created_at?: string;
   updated_at?: string;
   is_active?: boolean;
   status?: string;
+  pan_document_path?: string;
+  aadhar_document_path?: string;
+  photo_path?: string;
+  bank_details?: {
+    account_number?: string;
+    bank_name?: string;
+    ifsc_code?: string;
+    account_holder_name?: string;
+    branch_name?: string;
+    account_type?: string;
+    masked_account_number?: string;
+    formatted_account_number?: string;
+    is_valid_for_payment?: boolean;
+  };
+  leave_balance?: {
+    [key: string]: number;
+  };
 }
 
 interface ToastState {
@@ -507,131 +526,70 @@ const UserDetail: React.FC = () => {
         </Box>
       )}
 
-      {/* Uploaded Documents */}
-      {(user.pan_document_path || user.aadhar_document_path || user.photo_path) && (
+      {/* Bank Details */}
+      {user.bank_details && (
         <Box sx={{ mt: 3 }}>
           <Card elevation={1}>
             <CardContent>
               <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <DescriptionIcon />
-                Uploaded Documents
+                <BusinessIcon />
+                Bank Details
               </Typography>
               <Divider sx={{ mb: 2 }} />
-              
-              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 3 }}>
-                {user.pan_document_path && (
-                  <Box sx={{ flex: 1 }}>
-                    <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
-                      <Box sx={{ textAlign: 'center' }}>
-                        <DescriptionIcon 
-                          sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} 
-                        />
-                        <Typography variant="subtitle2" gutterBottom>
-                          PAN Card Document
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-                          {user.pan_document_path.split('/').pop()}
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                          <Tooltip title="View Document">
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleViewFile(user.pan_document_path, 'PAN Card')}
-                            >
-                              <VisibilityIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Download Document">
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleDownloadFile(user.pan_document_path)}
-                            >
-                              <DownloadIcon />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      </Box>
-                    </Card>
-                  </Box>
-                )}
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="textSecondary">Account Holder Name</Typography>
+                  <Typography>{user.bank_details.account_holder_name || 'N/A'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="textSecondary">Account Number</Typography>
+                  <Typography>{user.bank_details.formatted_account_number || user.bank_details.masked_account_number || user.bank_details.account_number || 'N/A'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="textSecondary">Bank Name</Typography>
+                  <Typography>{user.bank_details.bank_name || 'N/A'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="textSecondary">IFSC Code</Typography>
+                  <Typography>{user.bank_details.ifsc_code || 'N/A'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="textSecondary">Branch Name</Typography>
+                  <Typography>{user.bank_details.branch_name || 'N/A'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="textSecondary">Account Type</Typography>
+                  <Typography>{user.bank_details.account_type || 'N/A'}</Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <Typography variant="subtitle2" color="textSecondary">Is Valid For Payment</Typography>
+                  <Typography>{user.bank_details.is_valid_for_payment ? 'Yes' : 'No'}</Typography>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
+        </Box>
+      )}
 
-                {user.aadhar_document_path && (
-                  <Box sx={{ flex: 1 }}>
-                    <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
-                      <Box sx={{ textAlign: 'center' }}>
-                        <DescriptionIcon 
-                          sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} 
-                        />
-                        <Typography variant="subtitle2" gutterBottom>
-                          Aadhar Card Document
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-                          {user.aadhar_document_path.split('/').pop()}
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                          <Tooltip title="View Document">
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleViewFile(user.aadhar_document_path, 'Aadhar Card')}
-                            >
-                              <VisibilityIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Download Document">
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleDownloadFile(user.aadhar_document_path)}
-                            >
-                              <DownloadIcon />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      </Box>
-                    </Card>
-                  </Box>
-                )}
-
-                {user.photo_path && (
-                  <Box sx={{ flex: 1 }}>
-                    <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
-                      <Box sx={{ textAlign: 'center' }}>
-                        <PhotoCameraIcon 
-                          sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} 
-                        />
-                        <Typography variant="subtitle2" gutterBottom>
-                          Profile Photo
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-                          {user.photo_path.split('/').pop()}
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                          <Tooltip title="View Photo">
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleViewFile(user.photo_path, 'Profile Photo')}
-                            >
-                              <VisibilityIcon />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Download Photo">
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleDownloadFile(user.photo_path)}
-                            >
-                              <DownloadIcon />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      </Box>
-                    </Card>
-                  </Box>
-                )}
+      {/* Leave Balance */}
+      {user.leave_balance && (
+        <Box sx={{ mt: 3 }}>
+          <Card elevation={1}>
+            <CardContent>
+              <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <BadgeIcon />
+                Leave Balance
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              <Box>
+                <Grid container spacing={2}>
+                  {Object.entries(user.leave_balance).map(([leaveType, balance]) => (
+                    <Grid item xs={12} sm={6} md={4} key={leaveType}>
+                      <Typography variant="subtitle2" color="textSecondary">{leaveType}</Typography>
+                      <Typography>{balance}</Typography>
+                    </Grid>
+                  ))}
+                </Grid>
               </Box>
             </CardContent>
           </Card>
@@ -704,6 +662,135 @@ const UserDetail: React.FC = () => {
           </Grid>
         </CardContent>
       </Card>
+
+      {/* Uploaded Documents */}
+      {(user.pan_document_path || user.aadhar_document_path || user.photo_path) && (
+        <Box sx={{ mt: 3 }}>
+          <Card elevation={1}>
+            <CardContent>
+              <Typography variant="h6" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <DescriptionIcon />
+                Uploaded Documents
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              
+              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 3 }}>
+                {user.pan_document_path && (
+                  <Box sx={{ flex: 1 }}>
+                    <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <DescriptionIcon 
+                          sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} 
+                        />
+                        <Typography variant="subtitle2" gutterBottom>
+                          PAN Card Document
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+                          {user.pan_document_path.split('/').pop()}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                          <Tooltip title="View Document">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleViewFile(user.pan_document_path, 'PAN Card')}
+                            >
+                              <VisibilityIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Download Document">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleDownloadFile(user.pan_document_path)}
+                            >
+                              <DownloadIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </Box>
+                    </Card>
+                  </Box>
+                )}
+                {user.aadhar_document_path && (
+                  <Box sx={{ flex: 1 }}>
+                    <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <DescriptionIcon 
+                          sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} 
+                        />
+                        <Typography variant="subtitle2" gutterBottom>
+                          Aadhar Card Document
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+                          {user.aadhar_document_path.split('/').pop()}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                          <Tooltip title="View Document">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleViewFile(user.aadhar_document_path, 'Aadhar Card')}
+                            >
+                              <VisibilityIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Download Document">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleDownloadFile(user.aadhar_document_path)}
+                            >
+                              <DownloadIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </Box>
+                    </Card>
+                  </Box>
+                )}
+                {user.photo_path && (
+                  <Box sx={{ flex: 1 }}>
+                    <Card variant="outlined" sx={{ p: 2, height: '100%' }}>
+                      <Box sx={{ textAlign: 'center' }}>
+                        <PhotoCameraIcon 
+                          sx={{ fontSize: 48, color: 'primary.main', mb: 1 }} 
+                        />
+                        <Typography variant="subtitle2" gutterBottom>
+                          Profile Photo
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
+                          {user.photo_path.split('/').pop()}
+                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                          <Tooltip title="View Photo">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleViewFile(user.photo_path, 'Profile Photo')}
+                            >
+                              <VisibilityIcon />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Download Photo">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleDownloadFile(user.photo_path)}
+                            >
+                              <DownloadIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </Box>
+                    </Card>
+                  </Box>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        </Box>
+      )}
 
       {/* Toast Notifications */}
       <Snackbar 

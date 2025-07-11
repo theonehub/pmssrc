@@ -140,21 +140,19 @@ class UserServiceImpl(UserService):
             
             # Update user fields
             if request.name is not None:
-                user.update_name(request.name)
+                user.name = request.name
             if request.email is not None:
-                user.update_email(request.email)
+                user.email = request.email
             if request.mobile is not None:
-                user.update_mobile(request.mobile)
+                user.mobile = request.mobile
             if request.department is not None:
-                user.update_department(request.department)
+                user.department = request.department
             if request.designation is not None:
-                user.update_designation(request.designation)
+                user.designation = request.designation
             if request.location is not None:
-                user.update_location(request.location)
-            if request.salary is not None:
-                user.update_salary(request.salary)
+                user.location = request.location
             if request.manager_id is not None:
-                user.assign_manager(EmployeeId(request.manager_id))
+                user.manager_id = EmployeeId(request.manager_id)
             
             # Update personal details if any personal fields are provided
             if any([request.gender, request.date_of_birth, request.date_of_joining, 
@@ -186,14 +184,14 @@ class UserServiceImpl(UserService):
                 )
             
             # Update banking details if any banking fields are provided
-            if any([request.bank_account_number, request.bank_name, request.ifsc_code, 
+            if any([request.account_number, request.bank_name, request.ifsc_code, 
                    request.account_holder_name, request.branch_name, request.account_type]):
                 
                 from app.domain.value_objects.bank_details import BankDetails
                 
                 # Create updated bank details
                 updated_bank_details = BankDetails(
-                    account_number=request.bank_account_number or '',
+                    account_number=request.account_number or '',
                     bank_name=request.bank_name or '',
                     ifsc_code=request.ifsc_code or '',
                     account_holder_name=request.account_holder_name or '',
@@ -1213,7 +1211,7 @@ class UserServiceImpl(UserService):
                     recommendations.append("Add your PAN number for tax calculations")
                 elif field == "aadhar_number":
                     recommendations.append("Add your Aadhar number for identity verification")
-                elif field == "bank_account_number":
+                elif field == "account_number":
                     recommendations.append("Add bank account details for salary processing")
             
             # Add general recommendations
@@ -1250,7 +1248,6 @@ class UserServiceImpl(UserService):
                         department=update.department,
                         designation=update.designation,
                         location=update.location,
-                        salary=update.salary,
                         manager_id=update.manager_id,
                         updated_by=updated_by
                     )
@@ -1670,7 +1667,7 @@ class UserServiceImpl(UserService):
                     "esi_number": user.personal_details.esi_number if user.personal_details else "",
                     
                     # Bank Details
-                    "bank_account_number": user.bank_details.account_number if user.bank_details else "",
+                    "account_number": user.bank_details.account_number if user.bank_details else "",
                     "bank_name": user.bank_details.bank_name if user.bank_details else "",
                     "ifsc_code": user.bank_details.ifsc_code if user.bank_details else "",
                     "account_holder_name": user.bank_details.account_holder_name if user.bank_details else "",
@@ -1735,7 +1732,7 @@ class UserServiceImpl(UserService):
                 "esi_number",
                 
                 # Bank Details
-                "bank_account_number",
+                "account_number",
                 "bank_name",
                 "ifsc_code",
                 "account_holder_name",

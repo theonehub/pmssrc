@@ -39,7 +39,7 @@ const transformBackendToFrontend = (backendUser) => {
     aadhar_document_path: backendUser.documents?.aadhar_document_path || backendUser.aadhar_document_path || '',
     photo_path: backendUser.documents?.photo_path || backendUser.photo_path || '',
     // Bank Details
-    bank_account_number: backendUser.bank_details?.account_number || backendUser.bank_account_number || '',
+    account_number: backendUser.bank_details?.account_number || backendUser.account_number || '',
     bank_name: backendUser.bank_details?.bank_name || backendUser.bank_name || '',
     ifsc_code: backendUser.bank_details?.ifsc_code || backendUser.ifsc_code || '',
     account_holder_name: backendUser.bank_details?.account_holder_name || backendUser.account_holder_name || '',
@@ -72,7 +72,7 @@ const transformFrontendToBackend = (frontendUser) => {
     uan_number: frontendUser.uan_number,
     esi_number: frontendUser.esi_number,
     // Bank Details
-    bank_account_number: frontendUser.bank_account_number,
+    account_number: frontendUser.account_number,
     bank_name: frontendUser.bank_name,
     ifsc_code: frontendUser.ifsc_code,
     account_holder_name: frontendUser.account_holder_name,

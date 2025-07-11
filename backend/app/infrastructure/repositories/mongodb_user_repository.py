@@ -237,8 +237,15 @@ class MongoDBUserRepository(UserRepository):
                     mobile="9999999999"
                 )
             
-            # Create documents
-            documents = UserDocuments.from_dict(document.get("documents", {})) if document.get("documents") else UserDocuments()
+            # Create documents (support both nested and top-level fields)
+            if document.get("documents"):
+                documents = UserDocuments.from_dict(document["documents"])
+            else:
+                documents = UserDocuments(
+                    photo_path=document.get("photo_path"),
+                    pan_document_path=document.get("pan_document_path"),
+                    aadhar_document_path=document.get("aadhar_document_path")
+                )
             
             # Create bank details if available
             bank_details = BankDetails.from_dict(document["bank_details"]) if document.get("bank_details") else None
@@ -1328,7 +1335,7 @@ class MongoDBUserRepository(UserRepository):
                     "esi_number",
                     
                     # Bank Details
-                    "bank_account_number",
+                    "account_number",
                     "bank_name",
                     "ifsc_code",
                     "account_holder_name",
@@ -1369,7 +1376,7 @@ class MongoDBUserRepository(UserRepository):
                         "esi_number": doc.get("personal_details", {}).get("esi_number", "") if doc.get("personal_details") else "",
                         
                         # Bank Details
-                        "bank_account_number": doc.get("bank_details", {}).get("account_number", "") if doc.get("bank_details") else "",
+                        "account_number": doc.get("bank_details", {}).get("account_number", "") if doc.get("bank_details") else "",
                         "bank_name": doc.get("bank_details", {}).get("bank_name", "") if doc.get("bank_details") else "",
                         "ifsc_code": doc.get("bank_details", {}).get("ifsc_code", "") if doc.get("bank_details") else "",
                         "account_holder_name": doc.get("bank_details", {}).get("account_holder_name", "") if doc.get("bank_details") else "",
@@ -1463,9 +1470,9 @@ class MongoDBUserRepository(UserRepository):
                     try:
                         # Create bank details if provided
                         bank_details = None
-                        if user_data.get('bank_account_number') and user_data.get('bank_name'):
+                        if user_data.get('account_number') and user_data.get('bank_name'):
                             bank_details = BankDetails(
-                                account_number=user_data.get('bank_account_number', ''),
+                                account_number=user_data.get('account_number', ''),
                                 bank_name=user_data.get('bank_name', ''),
                                 ifsc_code=user_data.get('ifsc_code', ''),
                                 account_holder_name=user_data.get('account_holder_name', ''),

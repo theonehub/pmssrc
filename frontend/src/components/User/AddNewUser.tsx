@@ -55,7 +55,7 @@ interface UserFormData {
   esi_number: string;
   
   // Bank Details
-  bank_account_number: string;
+  account_number: string;
   bank_name: string;
   ifsc_code: string;
   account_holder_name: string;
@@ -104,7 +104,7 @@ const EmptyUser: UserFormData = {
   esi_number: '',
   
   // Bank Details
-  bank_account_number: '',
+  account_number: '',
   bank_name: '',
   ifsc_code: '',
   account_holder_name: '',
@@ -244,7 +244,7 @@ const AddNewUser: React.FC = () => {
           return 'ESI number must be 10 digits';
         }
         return '';
-      case 'bank_account_number':
+      case 'account_number':
         if (value && (value.length < 9 || value.length > 18)) {
           return 'Account number must be between 9 and 18 characters';
         }
@@ -748,11 +748,11 @@ const AddNewUser: React.FC = () => {
           <TextField
             fullWidth
             label="Bank Account Number"
-            name="bank_account_number"
-            value={formData.bank_account_number}
+            name="account_number"
+            value={formData.account_number}
             onChange={handleChange}
-            error={!!errors.bank_account_number}
-            helperText={errors.bank_account_number}
+            error={!!errors.account_number}
+            helperText={errors.account_number}
             placeholder="Enter account number"
             InputProps={{
               startAdornment: (

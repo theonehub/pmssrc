@@ -51,7 +51,7 @@ class CreateUserRequestDTO:
     aadhar_document_path: Optional[str] = None
     
     # Bank Details (optional)
-    bank_account_number: Optional[str] = None
+    account_number: Optional[str] = None
     bank_name: Optional[str] = None
     ifsc_code: Optional[str] = None
     account_holder_name: Optional[str] = None
@@ -130,7 +130,7 @@ class UpdateUserRequestDTO:
     date_of_leaving: Optional[str] = None
     
     # Bank Details (optional)
-    bank_account_number: Optional[str] = None
+    account_number: Optional[str] = None
     bank_name: Optional[str] = None
     ifsc_code: Optional[str] = None
     account_holder_name: Optional[str] = None
@@ -535,8 +535,10 @@ class UserResponseDTO:
     # Authorization
     permissions: Optional[UserPermissionsResponseDTO] = None
     
-    # Documents
-    documents: Optional[UserDocumentsResponseDTO] = None
+    # Document fields at parent level
+    photo_path: Optional[str] = None
+    pan_document_path: Optional[str] = None
+    aadhar_document_path: Optional[str] = None
     
     # Bank Details
     bank_details: Optional[BankDetailsResponseDTO] = None
@@ -559,7 +561,7 @@ class UserResponseDTO:
     display_name: str = None
     role_display: str = None
     status_display: str = None
-    
+
     @classmethod
     def from_entity(cls, user) -> 'UserResponseDTO':
         """Create UserResponseDTO from User entity"""
@@ -601,15 +603,14 @@ class UserResponseDTO:
         if user.permissions:
             permissions = UserPermissionsResponseDTO.from_value_object(user.permissions)
         
-        # Create documents response DTO if available
-        documents = None
-        if user.documents:
-            documents = UserDocumentsResponseDTO.from_value_object(user.documents)
-        
         # Create bank details response DTO if available
         bank_details = None
         if user.bank_details:
             bank_details = BankDetailsResponseDTO.from_value_object(user.bank_details)
+
+        documents = None
+        if user.documents:
+            documents = UserDocumentsResponseDTO.from_value_object(user.documents)
         
         return cls(
             employee_id=str(user.employee_id),
@@ -622,7 +623,9 @@ class UserResponseDTO:
             location=user.location,
             manager_id=str(user.manager_id) if user.manager_id else None,
             permissions=permissions,
-            documents=documents,
+            photo_path=documents.photo_path if documents else None,
+            pan_document_path=documents.pan_document_path if documents else None,
+            aadhar_document_path=documents.aadhar_document_path if documents else None,
             bank_details=bank_details,
             leave_balance=user.leave_balance,
             created_at=format_datetime(user.created_at),

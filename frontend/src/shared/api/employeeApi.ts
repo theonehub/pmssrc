@@ -30,7 +30,7 @@ export interface Employee {
   aadhar_document_path?: string;
   photo_path?: string;
   // Bank Details
-  bank_account_number?: string;
+  account_number?: string;
   bank_name?: string;
   ifsc_code?: string;
   account_holder_name?: string;

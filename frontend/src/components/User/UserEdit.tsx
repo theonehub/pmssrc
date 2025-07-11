@@ -36,40 +36,9 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import dataService from '../../shared/services/dataService';
+import type { User } from '../../shared/api/userApi';
 
 // Define interfaces
-interface User {
-  employee_id: string;
-  name: string;
-  email: string;
-  date_of_birth?: string;
-  date_of_joining?: string;
-  gender?: string;
-  mobile?: string;
-  department?: string;
-  designation?: string;
-  role?: string;
-  manager_id?: string;
-  location?: string;
-  address?: string;
-  emergency_contact?: string;
-  blood_group?: string;
-  pan_number?: string;
-  aadhar_number?: string;
-  uan_number?: string;
-  esi_number?: string;
-  created_at?: string;
-  updated_at?: string;
-  is_active?: boolean;
-  status?: string;
-  bank_account_number?: string;
-  bank_name?: string;
-  ifsc_code?: string;
-  account_holder_name?: string;
-  branch_name?: string;
-  account_type?: string;
-}
-
 interface UserFormData {
   employee_id: string;
   name: string;
@@ -89,7 +58,7 @@ interface UserFormData {
   esi_number: string;
   password: string;
   // Banking details
-  bank_account_number: string;
+  account_number: string;
   bank_name: string;
   ifsc_code: string;
   account_holder_name: string;
@@ -137,7 +106,7 @@ const UserEdit: React.FC = () => {
     esi_number: '',
     password: '',
     // Banking details
-    bank_account_number: '',
+    account_number: '',
     bank_name: '',
     ifsc_code: '',
     account_holder_name: '',
@@ -149,6 +118,7 @@ const UserEdit: React.FC = () => {
     aadharFile: null,
     photo: null
   });
+  const [existingDocs, setExistingDocs] = useState<{ pan: string; aadhar: string; photo: string }>({ pan: '', aadhar: '', photo: '' });
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -180,38 +150,27 @@ const UserEdit: React.FC = () => {
       
       if (userData) {
         setUser(userData);
-        
         // Helper function to format dates for input[type="date"]
         const formatDateForInput = (dateString?: string): string => {
           if (!dateString) return '';
-          
           try {
-            // Handle different date formats
             let date: Date;
-            
             if (dateString.includes('T')) {
-              // ISO format with time: "2023-12-25T00:00:00Z"
               date = new Date(dateString);
             } else if (dateString.includes('-')) {
-              // Already in YYYY-MM-DD format: "2023-12-25"
               if (dateString.length === 10) {
                 return dateString;
               }
               date = new Date(dateString);
             } else {
-              // Other formats, let Date constructor handle it
               date = new Date(dateString);
             }
-            
-            // Check if date is valid
             if (isNaN(date.getTime())) {
               if (process.env.NODE_ENV === 'development') {
                 console.warn('Invalid date:', dateString);
               }
               return '';
             }
-            
-            // Format to YYYY-MM-DD for input[type="date"]
             const isoString = date.toISOString();
             const parts = isoString.split('T');
             return parts.length > 0 && parts[0] ? parts[0] : '';
@@ -222,35 +181,45 @@ const UserEdit: React.FC = () => {
             return '';
           }
         };
-        
+        // Map nested and document fields
         const newFormData = {
           employee_id: userData.employee_id || '',
           name: userData.name || '',
           email: userData.email || '',
-          gender: userData.gender || '',
-          date_of_birth: formatDateForInput(userData.date_of_birth),
-          date_of_joining: formatDateForInput(userData.date_of_joining),
-          mobile: userData.mobile || '',
+          gender: userData.personal_details?.gender || '',
+          date_of_birth: formatDateForInput(userData.personal_details?.date_of_birth),
+          date_of_joining: formatDateForInput(userData.personal_details?.date_of_joining),
+          mobile: userData.personal_details?.formatted_mobile || userData.personal_details?.mobile || '',
           manager_id: userData.manager_id || '',
-          role: userData.role || '',
-          pan_number: userData.pan_number || '',
-          uan_number: userData.uan_number || '',
-          aadhar_number: userData.aadhar_number || '',
+          role: userData.permissions?.role || userData.role || '',
+          pan_number: userData.personal_details?.pan_number || '',
+          uan_number: userData.personal_details?.uan_number || '',
+          aadhar_number: userData.personal_details?.aadhar_number || '',
           department: userData.department || '',
           designation: userData.designation || '',
           location: userData.location || '',
-          esi_number: userData.esi_number || '',
-          password: '',  // Empty password for updates
+          esi_number: userData.personal_details?.esi_number || '',
+          password: '',
           // Banking details
-          bank_account_number: userData.bank_account_number || '',
-          bank_name: userData.bank_name || '',
-          ifsc_code: userData.ifsc_code || '',
-          account_holder_name: userData.account_holder_name || '',
-          branch_name: userData.branch_name || '',
-          account_type: userData.account_type || ''
+          account_number: userData.bank_details?.account_number || '',
+          bank_name: userData.bank_details?.bank_name || '',
+          ifsc_code: userData.bank_details?.ifsc_code || '',
+          account_holder_name: userData.bank_details?.account_holder_name || '',
+          branch_name: userData.bank_details?.branch_name || '',
+          account_type: userData.bank_details?.account_type || ''
         };
-        
         setFormData(newFormData);
+        // Set files state to null (cannot pre-populate file input), but store existing document paths for UI
+        setFiles({
+          panFile: null,
+          aadharFile: null,
+          photo: null
+        });
+        setExistingDocs({
+          pan: userData.pan_document_path || '',
+          aadhar: userData.aadhar_document_path || '',
+          photo: userData.photo_path || ''
+        });
       } else {
         throw new Error('User not found');
       }
@@ -849,8 +818,8 @@ const UserEdit: React.FC = () => {
                 <TextField
                   fullWidth
                   label="Account Number"
-                  value={formData.bank_account_number}
-                  onChange={(e) => handleChange('bank_account_number', e.target.value)}
+                  value={formData.account_number}
+                  onChange={(e) => handleChange('account_number', e.target.value)}
                   placeholder="1234567890"
                   InputProps={{
                     startAdornment: (
@@ -948,6 +917,40 @@ const UserEdit: React.FC = () => {
                         Remove
                       </Button>
                     </Box>
+                  ) : existingDocs.pan ? (
+                    <Box>
+                      <Typography variant="body2" color="primary.main">
+                        {existingDocs.pan.split('/').pop()}
+                      </Typography>
+                      <Button
+                        size="small"
+                        color="primary"
+                        sx={{ mt: 1, mr: 1 }}
+                        onClick={() => window.open(`${process.env.REACT_APP_API_BASE_URL || ''}/files/${existingDocs.pan}`, '_blank')}
+                      >
+                        View
+                      </Button>
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            handleFileSelect('panFile', e.target.files[0]);
+                            setExistingDocs(prev => ({ ...prev, pan: '' }));
+                          }
+                        }}
+                        style={{ display: 'none' }}
+                        id="pan-file-input-edit"
+                      />
+                      <label htmlFor="pan-file-input-edit">
+                        <Button variant="outlined" component="span" size="small">
+                          Replace File
+                        </Button>
+                      </label>
+                      <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 1 }}>
+                        PNG, JPG, PDF up to 5MB
+                      </Typography>
+                    </Box>
                   ) : (
                     <Box>
                       <input
@@ -996,6 +999,40 @@ const UserEdit: React.FC = () => {
                         Remove
                       </Button>
                     </Box>
+                  ) : existingDocs.aadhar ? (
+                    <Box>
+                      <Typography variant="body2" color="primary.main">
+                        {existingDocs.aadhar.split('/').pop()}
+                      </Typography>
+                      <Button
+                        size="small"
+                        color="primary"
+                        sx={{ mt: 1, mr: 1 }}
+                        onClick={() => window.open(`${process.env.REACT_APP_API_BASE_URL || ''}/files/${existingDocs.aadhar}`, '_blank')}
+                      >
+                        View
+                      </Button>
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            handleFileSelect('aadharFile', e.target.files[0]);
+                            setExistingDocs(prev => ({ ...prev, aadhar: '' }));
+                          }
+                        }}
+                        style={{ display: 'none' }}
+                        id="aadhar-file-input-edit"
+                      />
+                      <label htmlFor="aadhar-file-input-edit">
+                        <Button variant="outlined" component="span" size="small">
+                          Replace File
+                        </Button>
+                      </label>
+                      <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 1 }}>
+                        PNG, JPG, PDF up to 5MB
+                      </Typography>
+                    </Box>
                   ) : (
                     <Box>
                       <input
@@ -1043,6 +1080,40 @@ const UserEdit: React.FC = () => {
                       >
                         Remove
                       </Button>
+                    </Box>
+                  ) : existingDocs.photo ? (
+                    <Box>
+                      <Typography variant="body2" color="primary.main">
+                        {existingDocs.photo.split('/').pop()}
+                      </Typography>
+                      <Button
+                        size="small"
+                        color="primary"
+                        sx={{ mt: 1, mr: 1 }}
+                        onClick={() => window.open(`${process.env.REACT_APP_API_BASE_URL || ''}/files/${existingDocs.photo}`, '_blank')}
+                      >
+                        View
+                      </Button>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            handleFileSelect('photo', e.target.files[0]);
+                            setExistingDocs(prev => ({ ...prev, photo: '' }));
+                          }
+                        }}
+                        style={{ display: 'none' }}
+                        id="photo-file-input-edit"
+                      />
+                      <label htmlFor="photo-file-input-edit">
+                        <Button variant="outlined" component="span" size="small">
+                          Replace File
+                        </Button>
+                      </label>
+                      <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 1 }}>
+                        PNG, JPG up to 2MB
+                      </Typography>
                     </Box>
                   ) : (
                     <Box>

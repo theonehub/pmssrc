@@ -3,7 +3,7 @@ User Domain Events
 Events that represent important business occurrences in the user domain
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, Dict, Any
 
@@ -30,6 +30,12 @@ class UserCreated(DomainEvent):
     email: str
     role: UserRole
     created_by: str
+    occurred_at: datetime = field(default_factory=lambda: datetime.utcnow())
+    event_id: str = field(default_factory=lambda: str(__import__('uuid').uuid4()))
+    
+    def __post_init__(self):
+        """Initialize parent class"""
+        super().__init__(self.get_aggregate_id(), self.occurred_at)
     
     def get_event_type(self) -> str:
         return "user.created"
@@ -53,13 +59,13 @@ class UserCreated(DomainEvent):
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'UserCreated':
         return cls(
-            aggregate_id=data["aggregate_id"],
-            occurred_at=datetime.fromisoformat(data["occurred_at"]),
             employee_id=EmployeeId.from_string(data["employee_id"]),
             name=data["name"],
             email=data["email"],
             role=UserRole(data["role"]),
-            created_by=data["created_by"]
+            created_by=data["created_by"],
+            occurred_at=datetime.fromisoformat(data["occurred_at"]),
+            event_id=data["event_id"]
         )
 
 
@@ -79,6 +85,12 @@ class UserUpdated(DomainEvent):
     updated_fields: Dict[str, Any]
     previous_values: Dict[str, Any]
     updated_by: str
+    occurred_at: datetime = field(default_factory=lambda: datetime.utcnow())
+    event_id: str = field(default_factory=lambda: str(__import__('uuid').uuid4()))
+    
+    def __post_init__(self):
+        """Initialize parent class"""
+        super().__init__(self.get_aggregate_id(), self.occurred_at)
     
     def get_event_type(self) -> str:
         return "user.updated"
@@ -110,12 +122,12 @@ class UserUpdated(DomainEvent):
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'UserUpdated':
         return cls(
-            aggregate_id=data["aggregate_id"],
-            occurred_at=datetime.fromisoformat(data["occurred_at"]),
             employee_id=EmployeeId.from_string(data["employee_id"]),
             updated_fields=data["updated_fields"],
             previous_values=data["previous_values"],
-            updated_by=data["updated_by"]
+            updated_by=data["updated_by"],
+            occurred_at=datetime.fromisoformat(data["occurred_at"]),
+            event_id=data["event_id"]
         )
 
 
@@ -136,6 +148,12 @@ class UserStatusChanged(DomainEvent):
     new_status: UserStatus
     reason: str
     changed_by: str
+    occurred_at: datetime = field(default_factory=lambda: datetime.utcnow())
+    event_id: str = field(default_factory=lambda: str(__import__('uuid').uuid4()))
+    
+    def __post_init__(self):
+        """Initialize parent class"""
+        super().__init__(self.get_aggregate_id(), self.occurred_at)
     
     def get_event_type(self) -> str:
         return "user.status_changed"
@@ -173,13 +191,13 @@ class UserStatusChanged(DomainEvent):
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'UserStatusChanged':
         return cls(
-            aggregate_id=data["aggregate_id"],
-            occurred_at=datetime.fromisoformat(data["occurred_at"]),
             employee_id=EmployeeId.from_string(data["employee_id"]),
             old_status=UserStatus(data["old_status"]),
             new_status=UserStatus(data["new_status"]),
             reason=data["reason"],
-            changed_by=data["changed_by"]
+            changed_by=data["changed_by"],
+            occurred_at=datetime.fromisoformat(data["occurred_at"]),
+            event_id=data["event_id"]
         )
 
 
@@ -200,6 +218,12 @@ class UserRoleChanged(DomainEvent):
     new_role: UserRole
     reason: str
     changed_by: str
+    occurred_at: datetime = field(default_factory=lambda: datetime.utcnow())
+    event_id: str = field(default_factory=lambda: str(__import__('uuid').uuid4()))
+    
+    def __post_init__(self):
+        """Initialize parent class"""
+        super().__init__(self.get_aggregate_id(), self.occurred_at)
     
     def get_event_type(self) -> str:
         return "user.role_changed"
@@ -251,13 +275,13 @@ class UserRoleChanged(DomainEvent):
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'UserRoleChanged':
         return cls(
-            aggregate_id=data["aggregate_id"],
-            occurred_at=datetime.fromisoformat(data["occurred_at"]),
             employee_id=EmployeeId.from_string(data["employee_id"]),
             old_role=UserRole(data["old_role"]),
             new_role=UserRole(data["new_role"]),
             reason=data["reason"],
-            changed_by=data["changed_by"]
+            changed_by=data["changed_by"],
+            occurred_at=datetime.fromisoformat(data["occurred_at"]),
+            event_id=data["event_id"]
         )
 
 
@@ -277,6 +301,12 @@ class UserPasswordChanged(DomainEvent):
     changed_by: str
     is_self_change: bool
     password_strength_score: int
+    occurred_at: datetime = field(default_factory=lambda: datetime.utcnow())
+    event_id: str = field(default_factory=lambda: str(__import__('uuid').uuid4()))
+    
+    def __post_init__(self):
+        """Initialize parent class"""
+        super().__init__(self.get_aggregate_id(), self.occurred_at)
     
     def get_event_type(self) -> str:
         return "user.password_changed"
@@ -307,12 +337,12 @@ class UserPasswordChanged(DomainEvent):
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'UserPasswordChanged':
         return cls(
-            aggregate_id=data["aggregate_id"],
-            occurred_at=datetime.fromisoformat(data["occurred_at"]),
             employee_id=EmployeeId.from_string(data["employee_id"]),
             changed_by=data["changed_by"],
             is_self_change=data["is_self_change"],
-            password_strength_score=data["password_strength_score"]
+            password_strength_score=data["password_strength_score"],
+            occurred_at=datetime.fromisoformat(data["occurred_at"]),
+            event_id=data["event_id"]
         )
 
 
@@ -332,6 +362,12 @@ class UserLoggedIn(DomainEvent):
     ip_address: Optional[str]
     user_agent: Optional[str]
     login_method: str  # "password", "sso", "token", etc.
+    occurred_at: datetime = field(default_factory=lambda: datetime.utcnow())
+    event_id: str = field(default_factory=lambda: str(__import__('uuid').uuid4()))
+    
+    def __post_init__(self):
+        """Initialize parent class"""
+        super().__init__(self.get_aggregate_id(), self.occurred_at)
     
     def get_event_type(self) -> str:
         return "user.logged_in"
@@ -354,12 +390,12 @@ class UserLoggedIn(DomainEvent):
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'UserLoggedIn':
         return cls(
-            aggregate_id=data["aggregate_id"],
-            occurred_at=datetime.fromisoformat(data["occurred_at"]),
             employee_id=EmployeeId.from_string(data["employee_id"]),
             ip_address=data.get("ip_address"),
             user_agent=data.get("user_agent"),
-            login_method=data["login_method"]
+            login_method=data["login_method"],
+            occurred_at=datetime.fromisoformat(data["occurred_at"]),
+            event_id=data["event_id"]
         )
 
 
@@ -377,6 +413,12 @@ class UserLoggedOut(DomainEvent):
     employee_id: EmployeeId
     session_duration_minutes: Optional[int]
     logout_method: str  # "manual", "timeout", "forced", etc.
+    occurred_at: datetime = field(default_factory=lambda: datetime.utcnow())
+    event_id: str = field(default_factory=lambda: str(__import__('uuid').uuid4()))
+    
+    def __post_init__(self):
+        """Initialize parent class"""
+        super().__init__(self.get_aggregate_id(), self.occurred_at)
     
     def get_event_type(self) -> str:
         return "user.logged_out"
@@ -398,11 +440,11 @@ class UserLoggedOut(DomainEvent):
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'UserLoggedOut':
         return cls(
-            aggregate_id=data["aggregate_id"],
-            occurred_at=datetime.fromisoformat(data["occurred_at"]),
             employee_id=EmployeeId.from_string(data["employee_id"]),
             session_duration_minutes=data.get("session_duration_minutes"),
-            logout_method=data["logout_method"]
+            logout_method=data["logout_method"],
+            occurred_at=datetime.fromisoformat(data["occurred_at"]),
+            event_id=data["event_id"]
         )
 
 
@@ -422,6 +464,12 @@ class UserDocumentsUpdated(DomainEvent):
     updated_documents: list  # List of document types updated
     completion_percentage: float
     updated_by: str
+    occurred_at: datetime = field(default_factory=lambda: datetime.utcnow())
+    event_id: str = field(default_factory=lambda: str(__import__('uuid').uuid4()))
+    
+    def __post_init__(self):
+        """Initialize parent class"""
+        super().__init__(self.get_aggregate_id(), self.occurred_at)
     
     def get_event_type(self) -> str:
         return "user.documents_updated"
@@ -448,12 +496,12 @@ class UserDocumentsUpdated(DomainEvent):
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'UserDocumentsUpdated':
         return cls(
-            aggregate_id=data["aggregate_id"],
-            occurred_at=datetime.fromisoformat(data["occurred_at"]),
             employee_id=EmployeeId.from_string(data["employee_id"]),
             updated_documents=data["updated_documents"],
             completion_percentage=data["completion_percentage"],
-            updated_by=data["updated_by"]
+            updated_by=data["updated_by"],
+            occurred_at=datetime.fromisoformat(data["occurred_at"]),
+            event_id=data["event_id"]
         )
 
 
@@ -475,6 +523,12 @@ class UserDeleted(DomainEvent):
     deletion_reason: str
     deleted_by: str
     is_soft_delete: bool
+    occurred_at: datetime = field(default_factory=lambda: datetime.utcnow())
+    event_id: str = field(default_factory=lambda: str(__import__('uuid').uuid4()))
+    
+    def __post_init__(self):
+        """Initialize parent class"""
+        super().__init__(self.get_aggregate_id(), self.occurred_at)
     
     def get_event_type(self) -> str:
         return "user.deleted"
@@ -499,12 +553,12 @@ class UserDeleted(DomainEvent):
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'UserDeleted':
         return cls(
-            aggregate_id=data["aggregate_id"],
-            occurred_at=datetime.fromisoformat(data["occurred_at"]),
             employee_id=EmployeeId.from_string(data["employee_id"]),
             user_name=data["user_name"],
             user_email=data["user_email"],
             deletion_reason=data["deletion_reason"],
             deleted_by=data["deleted_by"],
-            is_soft_delete=data["is_soft_delete"]
+            is_soft_delete=data["is_soft_delete"],
+            occurred_at=datetime.fromisoformat(data["occurred_at"]),
+            event_id=data["event_id"]
         ) 

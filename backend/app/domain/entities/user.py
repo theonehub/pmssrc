@@ -220,7 +220,6 @@ class User:
         
         # Publish domain event
         self._add_domain_event(UserPasswordChanged(
-            aggregate_id=str(self.employee_id),
             employee_id=self.employee_id,
             changed_by=changed_by,
             is_self_change=is_self_change,
@@ -238,7 +237,6 @@ class User:
         self.updated_by = locked_by
         
         self._add_domain_event(UserStatusChanged(
-            aggregate_id=str(self.employee_id),
             employee_id=self.employee_id,
             old_status=UserStatus.ACTIVE,  # Assuming was active
             new_status=UserStatus.LOCKED,
@@ -260,7 +258,6 @@ class User:
         self.updated_by = unlocked_by
         
         self._add_domain_event(UserStatusChanged(
-            aggregate_id=str(self.employee_id),
             employee_id=self.employee_id,
             old_status=old_status,
             new_status=UserStatus.ACTIVE,
@@ -301,7 +298,6 @@ class User:
         
         # Publish domain event
         self._add_domain_event(UserRoleChanged(
-            aggregate_id=str(self.employee_id),
             employee_id=self.employee_id,
             old_role=old_role,
             new_role=new_role,
@@ -361,7 +357,6 @@ class User:
         self.updated_by = activated_by
         
         self._add_domain_event(UserStatusChanged(
-            aggregate_id=str(self.employee_id),
             employee_id=self.employee_id,
             old_status=old_status,
             new_status=UserStatus.ACTIVE,
@@ -391,7 +386,6 @@ class User:
         self.updated_by = deactivated_by
         
         self._add_domain_event(UserStatusChanged(
-            aggregate_id=str(self.employee_id),
             employee_id=self.employee_id,
             old_status=old_status,
             new_status=UserStatus.INACTIVE,
@@ -411,7 +405,6 @@ class User:
         self.updated_by = suspended_by
         
         self._add_domain_event(UserStatusChanged(
-            aggregate_id=str(self.employee_id),
             employee_id=self.employee_id,
             old_status=old_status,
             new_status=UserStatus.SUSPENDED,
@@ -472,7 +465,6 @@ class User:
             self.updated_by = updated_by
             
             self._add_domain_event(UserUpdated(
-                aggregate_id=str(self.employee_id),
                 employee_id=self.employee_id,
                 updated_fields=updated_fields,
                 previous_values=previous_values,
@@ -603,7 +595,6 @@ class User:
         self.updated_by = deleted_by
         
         self._add_domain_event(UserDeleted(
-            aggregate_id=str(self.employee_id),
             employee_id=self.employee_id,
             user_name=self.name,
             user_email=self.email,
@@ -757,7 +748,6 @@ class User:
         
         # Publish login event
         self._add_domain_event(UserLoggedIn(
-            aggregate_id=str(self.employee_id),
             employee_id=self.employee_id,
             ip_address=None,  # Will be set by application layer
             user_agent=None,  # Will be set by application layer

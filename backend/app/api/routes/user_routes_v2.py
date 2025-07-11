@@ -260,73 +260,14 @@ async def get_user_by_id(
     employee_id: str,
     current_user: CurrentUser = Depends(get_current_user),
     controller: UserController = Depends(get_user_controller)
-) -> Dict[str, Any]:
+) -> UserResponseDTO:
     """Get user by ID with complete details."""
     try:
         user = await controller.get_user_by_id(employee_id, current_user)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
         logger.info(f"Retrieved user {employee_id} for organisation {current_user.hostname}")
-        
-        # Safe attribute access with proper defaults
-        def safe_get(obj, attr, default=None):
-            try:
-                value = getattr(obj, attr, default)
-                return value if value is not None else default
-            except (AttributeError, TypeError):
-                return default
-        
-        def format_date(date_value):
-            if date_value is None:
-                return None
-            if hasattr(date_value, 'isoformat'):
-                return date_value.isoformat()
-            return str(date_value)
-        
-        # Return flattened structure for better frontend compatibility
-        user_data = {
-            "employee_id": str(safe_get(user, 'employee_id', '')),
-            "name": safe_get(user, 'name', ''),
-            "email": safe_get(user, 'email', ''),
-            "department": safe_get(user, 'department', ''),
-            "designation": safe_get(user, 'designation', ''),
-            "role": safe_get(user.permissions, 'role', 'user') if hasattr(user, 'permissions') and user.permissions else safe_get(user, 'role', 'user'),
-            "date_of_joining": format_date(safe_get(user.personal_details, 'date_of_joining') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'date_of_joining')),
-            "date_of_birth": format_date(safe_get(user.personal_details, 'date_of_birth') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'date_of_birth')),
-            "date_of_leaving": format_date(safe_get(user.personal_details, 'date_of_leaving') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'date_of_leaving')),
-            "gender": safe_get(user.personal_details, 'gender') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'gender'),
-            "mobile": safe_get(user.personal_details, 'mobile') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'mobile'),
-            "status": safe_get(user, 'status', 'active'),
-            "manager_id": str(safe_get(user, 'manager_id', '')) if safe_get(user, 'manager_id') else '',
-            "address": safe_get(user.personal_details, 'address') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'address'),
-            "emergency_contact": safe_get(user, 'emergency_contact', ''),
-            "blood_group": safe_get(user, 'blood_group', ''),
-            "location": safe_get(user, 'location', ''),
-            "pan_number": safe_get(user.personal_details, 'pan_number') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'pan_number'),
-            "aadhar_number": safe_get(user.personal_details, 'aadhar_number') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'aadhar_number'),
-            "uan_number": safe_get(user.personal_details, 'uan_number') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'uan_number'),
-            "esi_number": safe_get(user.personal_details, 'esi_number') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'esi_number'),
-            "pan_document_path": safe_get(user.documents, 'pan_document_path') if hasattr(user, 'documents') and user.documents else safe_get(user, 'pan_document_path'),
-            "aadhar_document_path": safe_get(user.documents, 'aadhar_document_path') if hasattr(user, 'documents') and user.documents else safe_get(user, 'aadhar_document_path'),
-            "photo_path": safe_get(user.documents, 'photo_path') if hasattr(user, 'documents') and user.documents else safe_get(user, 'photo_path'),
-            "organisation": current_user.hostname,
-            "created_at": format_date(safe_get(user, 'created_at')),
-            "updated_at": format_date(safe_get(user, 'updated_at')),
-            "is_active": safe_get(user, 'is_active', True),
-            "last_login_at": format_date(safe_get(user, 'last_login_at')),
-            # Banking details
-            "bank_account_number": safe_get(user.bank_details, 'account_number') if hasattr(user, 'bank_details') and user.bank_details else '',
-            "bank_name": safe_get(user.bank_details, 'bank_name') if hasattr(user, 'bank_details') and user.bank_details else '',
-            "ifsc_code": safe_get(user.bank_details, 'ifsc_code') if hasattr(user, 'bank_details') and user.bank_details else '',
-            "account_holder_name": safe_get(user.bank_details, 'account_holder_name') if hasattr(user, 'bank_details') and user.bank_details else '',
-            "branch_name": safe_get(user.bank_details, 'branch_name') if hasattr(user, 'bank_details') and user.bank_details else '',
-            "account_type": safe_get(user.bank_details, 'account_type') if hasattr(user, 'bank_details') and user.bank_details else ''
-        }
-        
-        logger.info(f"Returning user data with fields: {list(user_data.keys())}")
-        return user_data
-        
+        return user  # Return the DTO as-is (nested structure)
     except HTTPException:
         raise
     except Exception as e:
@@ -413,7 +354,7 @@ async def update_user(
             "is_active": safe_get(result, 'is_active', True),
             "last_login_at": format_date(safe_get(result, 'last_login_at')),
             # Banking details
-            "bank_account_number": safe_get(result.bank_details, 'account_number') if hasattr(result, 'bank_details') and result.bank_details else '',
+            "account_number": safe_get(result.bank_details, 'account_number') if hasattr(result, 'bank_details') and result.bank_details else '',
             "bank_name": safe_get(result.bank_details, 'bank_name') if hasattr(result, 'bank_details') and result.bank_details else '',
             "ifsc_code": safe_get(result.bank_details, 'ifsc_code') if hasattr(result, 'bank_details') and result.bank_details else '',
             "account_holder_name": safe_get(result.bank_details, 'account_holder_name') if hasattr(result, 'bank_details') and result.bank_details else '',

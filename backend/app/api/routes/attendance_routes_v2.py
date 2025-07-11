@@ -27,7 +27,7 @@ from app.auth.auth import role_checker
 from app.auth.auth_dependencies import CurrentUser, get_current_user
 
 # Create router
-router = APIRouter(prefix="/api/v2/attendance", tags=["Attendance V2 (SOLID)"])
+router = APIRouter(prefix="/v2/attendance", tags=["Attendance V2 (SOLID)"])
 
 
 def get_attendance_controller() -> AttendanceController:

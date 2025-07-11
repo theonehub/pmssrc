@@ -27,7 +27,7 @@ from app.config.dependency_container import get_dependency_container
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(prefix="/api/v2/public-holidays", tags=["public-holidays-v2"])
+router = APIRouter(prefix="/v2/public-holidays", tags=["public-holidays-v2"])
 
 def get_public_holiday_controller() -> PublicHolidayController:
     """Get public holiday controller instance."""

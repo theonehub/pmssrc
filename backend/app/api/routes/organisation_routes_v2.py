@@ -32,8 +32,9 @@ from app.domain.value_objects.bank_details import BankDetails
 
 logger = logging.getLogger(__name__)
 
-# Create routers - American spelling (primary) and British spelling (alias)
-organisation_v2_router = APIRouter(prefix="/api/v2/organisations", tags=["organisations"])  # British spelling alias
+# Create routers - British spelling (primary) and American spelling (alias)
+organisation_v2_router = APIRouter(prefix="/v2/organisations", tags=["organisations"])
+organization_v2_router = APIRouter(prefix="/v2/organizations", tags=["organizations"])
 
 
 # ==================== SHARED ROUTE FUNCTIONS ====================
@@ -459,7 +460,148 @@ async def health_check():
     return {"status": "healthy", "system": "organisation", "spelling": "American"}
 
 
-@organisation_v2_router.get("/health")
-async def health_check_british():
-    """Health check for organisation system (British spelling)"""
-    return {"status": "healthy", "system": "organisation", "spelling": "British"} 
+# ==================== AMERICAN SPELLING ROUTES ====================
+
+@organization_v2_router.post("/", response_model=OrganisationResponseDTO)
+async def create_organization(
+    organisation_data: str = Form(..., description="JSON string containing organisation data"),
+    logo: Optional[UploadFile] = File(None, description="Organisation logo file (optional)"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: OrganisationController = Depends(get_organisation_controller)
+):
+    """Create a new organization (with optional logo upload) - American spelling"""
+    return await create_organisation(organisation_data, logo, current_user, controller)
+
+
+@organization_v2_router.get("/", response_model=OrganisationListResponseDTO)
+async def list_organizations(
+    skip: int = Query(0, ge=0, description="Number of records to skip"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum number of records to return"),
+    name: Optional[str] = Query(None, description="Filter by organisation name"),
+    organisation_type: Optional[str] = Query(None, description="Filter by organisation type"),
+    status: Optional[str] = Query(None, description="Filter by status"),
+    city: Optional[str] = Query(None, description="Filter by city"),
+    state: Optional[str] = Query(None, description="Filter by state"),
+    country: Optional[str] = Query(None, description="Filter by country"),
+    created_after: Optional[datetime] = Query(None, description="Filter by creation date (after)"),
+    created_before: Optional[datetime] = Query(None, description="Filter by creation date (before)"),
+    sort_by: Optional[str] = Query("created_at", description="Sort field"),
+    sort_order: Optional[str] = Query("desc", description="Sort order (asc/desc)"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: OrganisationController = Depends(get_organisation_controller)
+):
+    """List organizations with optional filters and pagination - American spelling"""
+    return await _list_organisations_impl(
+        skip, limit, name, organisation_type, status, city, state, country,
+        created_after, created_before, sort_by, sort_order, current_user, controller
+    )
+
+
+@organization_v2_router.get("/{organisation_id}", response_model=OrganisationResponseDTO)
+async def get_organization(
+    organisation_id: str = Path(..., description="Organisation ID"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: OrganisationController = Depends(get_organisation_controller)
+):
+    """Get organization by ID - American spelling"""
+    return await get_organisation(organisation_id, current_user, controller)
+
+
+@organization_v2_router.put("/{organisation_id}", response_model=OrganisationResponseDTO)
+async def update_organization(
+    organisation_id: str,
+    request: UpdateOrganisationRequestDTO,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: OrganisationController = Depends(get_organisation_controller)
+):
+    """Update an existing organization - American spelling"""
+    return await update_organisation(organisation_id, request, current_user, controller)
+
+
+@organization_v2_router.delete("/{organisation_id}")
+async def delete_organization(
+    organisation_id: str = Path(..., description="Organisation ID"),
+    force: bool = Query(False, description="Force deletion even if business rules prevent it"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: OrganisationController = Depends(get_organisation_controller)
+):
+    """Delete an organization - American spelling"""
+    return await delete_organisation(organisation_id, force, current_user, controller)
+
+
+@organization_v2_router.get("/analytics/statistics", response_model=OrganisationStatisticsDTO)
+async def get_organization_statistics(
+    start_date: Optional[datetime] = Query(None, description="Start date for statistics"),
+    end_date: Optional[datetime] = Query(None, description="End date for statistics"),
+    current_user: dict = Depends(get_current_user),
+    controller: OrganisationController = Depends(get_organisation_controller)
+):
+    """Get organization statistics - American spelling"""
+    return await get_organisation_statistics(start_date, end_date, current_user, controller)
+
+
+@organization_v2_router.get("/analytics/health", response_model=OrganisationHealthCheckDTO)
+async def get_organization_health(
+    current_user: dict = Depends(get_current_user),
+    controller: OrganisationController = Depends(get_organisation_controller)
+):
+    """Get organization health check - American spelling"""
+    return await get_organisation_health(current_user, controller)
+
+
+@organization_v2_router.post("/validate", response_model=dict)
+async def validate_organization_data(
+    request: CreateOrganisationRequestDTO,
+    current_user: dict = Depends(get_current_user),
+    controller: OrganisationController = Depends(get_organisation_controller)
+):
+    """Validate organization data before creation - American spelling"""
+    return await validate_organisation_data(request, current_user, controller)
+
+
+@organization_v2_router.get("/check-availability/name/{name}")
+async def check_organization_name_availability(
+    name: str = Path(..., description="Organisation name to check"),
+    current_user: dict = Depends(get_current_user),
+    controller: OrganisationController = Depends(get_organisation_controller)
+):
+    """Check if organization name is available - American spelling"""
+    return await check_name_availability(name, current_user, controller)
+
+
+@organization_v2_router.get("/check-availability/hostname/{hostname}")
+async def check_organization_hostname_availability(
+    hostname: str = Path(..., description="Hostname to check"),
+    current_user: dict = Depends(get_current_user),
+    controller: OrganisationController = Depends(get_organisation_controller)
+):
+    """Check if hostname is available - American spelling"""
+    return await check_hostname_availability(hostname, current_user, controller)
+
+
+@organization_v2_router.get("/check-availability/pan/{pan_number}")
+async def check_organization_pan_availability(
+    pan_number: str = Path(..., description="PAN number to check"),
+    current_user: dict = Depends(get_current_user),
+    controller: OrganisationController = Depends(get_organisation_controller)
+):
+    """Check if PAN number is available - American spelling"""
+    return await check_pan_availability(pan_number, current_user, controller)
+
+
+@organization_v2_router.get("/current/organization", response_model=OrganisationResponseDTO)
+async def get_current_organization(
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: OrganisationController = Depends(get_organisation_controller)
+):
+    """Get current user's organization - American spelling"""
+    return await get_current_organisation(current_user, controller)
+
+
+@organization_v2_router.get("/health")
+async def organization_health_check():
+    """Health check for organization service - American spelling"""
+    return await health_check()
+
+
+# ==================== BRITISH SPELLING ROUTES ==================== 

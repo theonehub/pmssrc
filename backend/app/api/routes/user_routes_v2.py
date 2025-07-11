@@ -23,7 +23,7 @@ from app.auth.auth_dependencies import CurrentUser, get_current_user
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(prefix="/api/v2/users", tags=["Users V2"])
+router = APIRouter(prefix="/v2/users", tags=["Users V2"])
 
 # Health check endpoint
 @router.get("/health")

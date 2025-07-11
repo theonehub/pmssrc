@@ -29,7 +29,7 @@ from app.api.controllers.company_leave_controller import CompanyLeaveController
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(prefix="/api/v2/company-leaves", tags=["company-leaves"])
+router = APIRouter(prefix="/v2/company-leaves", tags=["company-leaves"])
 
 
 @router.post("/", response_model=CompanyLeaveResponseDTO)

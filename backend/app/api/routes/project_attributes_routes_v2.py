@@ -28,7 +28,7 @@ from app.auth.auth_dependencies import CurrentUser, get_current_user, require_ro
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(prefix="/api/v2/project-attributes", tags=["project-attributes-v2"])
+router = APIRouter(prefix="/v2/project-attributes", tags=["project-attributes-v2"])
 
 def get_project_attributes_controller() -> ProjectAttributesController:
     """Get project attributes controller instance."""

@@ -22,7 +22,7 @@ from app.config.dependency_container import get_reporting_controller
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(prefix="/api/v2/reporting", tags=["📊 Reporting V2 (SOLID)"])
+router = APIRouter(prefix="/v2/reporting", tags=["📊 Reporting V2 (SOLID)"])
 
 
 # Analytics Endpoints (Main Dashboard Endpoint)

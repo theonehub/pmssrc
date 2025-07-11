@@ -58,7 +58,7 @@ from app.domain.services.taxation.tax_calculation_service import TaxCalculationR
 # Configure logger
 logger = get_logger(__name__)
 
-router = APIRouter(prefix="/api/v2/taxation", tags=["taxation"])
+router = APIRouter(prefix="/v2/taxation", tags=["taxation"])
 
 # =============================================================================
 # INDIVIDUAL INCOME COMPONENT CALCULATIONS

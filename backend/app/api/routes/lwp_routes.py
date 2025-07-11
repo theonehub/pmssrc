@@ -24,7 +24,7 @@ from app.config.dependency_container import get_dependency_container
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(prefix="/lwp", tags=["LWP Management"])
+router = APIRouter(prefix="/v2/lwp", tags=["LWP Management"])
 
 def get_employee_leave_controller() -> EmployeeLeaveController:
     """Get employee leave controller instance."""

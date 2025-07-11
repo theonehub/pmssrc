@@ -29,7 +29,7 @@ from app.config.dependency_container import get_dependency_container
 logger = logging.getLogger(__name__)
 
 # Create router following architecture guide
-router = APIRouter(prefix="/api/v2/leaves", tags=["leaves-v2"])
+router = APIRouter(prefix="/v2/leaves", tags=["leaves-v2"])
 
 def get_employee_leave_controller() -> EmployeeLeaveController:
     """Get employee leave controller instance following DI pattern."""

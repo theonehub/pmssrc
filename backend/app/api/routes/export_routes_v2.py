@@ -19,7 +19,7 @@ from app.api.controllers.export_controller import ExportController
 logger = logging.getLogger(__name__)
 
 # Create router
-export_v2_router = APIRouter(prefix="/api/v2/exports", tags=["exports"])
+export_v2_router = APIRouter(prefix="/v2/exports", tags=["exports"])
 
 
 @export_v2_router.get("/processed-salaries/{format_type}")

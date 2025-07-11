@@ -38,7 +38,7 @@ from app.auth.auth import extract_employee_id, extract_hostname, role_checker
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(prefix="/api/v2/reimbursements", tags=["reimbursements-v2"])
+router = APIRouter(prefix="/v2/reimbursements", tags=["reimbursements-v2"])
 
 def get_reimbursement_controller() -> ReimbursementController:
     """Get reimbursement controller instance."""

@@ -35,10 +35,10 @@ class OAuth2PasswordRequestFormWithHost:
 logger = logging.getLogger(__name__)
 
 # Create router
-router = APIRouter(prefix="/api/v2/auth", tags=["auth-v2"])
+router = APIRouter(prefix="/v2/auth", tags=["auth-v2"])
 
 # OAuth2 scheme for token extraction
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v2/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/v2/auth/login")
 
 # Dependency for auth controller
 async def get_auth_controller() -> AuthController:

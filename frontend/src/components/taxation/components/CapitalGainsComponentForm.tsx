@@ -85,7 +85,7 @@ const steps = [
     label: 'Short Term Capital Gains',
     description: 'Gains from assets held for less than 12 months',
     fields: [
-      { name: 'stcg_111a_equity_stt', label: 'STCG 111A (Equity with STT)', type: 'number', helperText: 'Taxed at 15%' } as NumberField,
+      { name: 'stcg_111a_equity_stt', label: 'STCG 111A (Equity with STT)', type: 'number', helperText: 'Taxed at 20%' } as NumberField,
       { name: 'stcg_other_assets', label: 'STCG Other Assets', type: 'number', helperText: 'Taxed at slab rates' } as NumberField,
       { name: 'stcg_debt_mf', label: 'STCG Debt Mutual Funds', type: 'number', helperText: 'Taxed at slab rates' } as NumberField
     ]
@@ -94,9 +94,9 @@ const steps = [
     label: 'Long Term Capital Gains',
     description: 'Gains from assets held for more than 12 months',
     fields: [
-      { name: 'ltcg_112a_equity_stt', label: 'LTCG 112A (Equity with STT)', type: 'number', helperText: '10% tax with ₹1.25L exemption' } as NumberField,
-      { name: 'ltcg_other_assets', label: 'LTCG Other Assets', type: 'number', helperText: 'Taxed at 20% with indexation' } as NumberField,
-      { name: 'ltcg_debt_mf', label: 'LTCG Debt Mutual Funds', type: 'number', helperText: 'Taxed at 20% with indexation' } as NumberField
+      { name: 'ltcg_112a_equity_stt', label: 'LTCG 112A (Equity with STT)', type: 'number', helperText: '12.5% tax with ₹1.25L exemption' } as NumberField,
+      { name: 'ltcg_other_assets', label: 'LTCG Other Assets', type: 'number', helperText: 'Taxed at 12.5% with indexation' } as NumberField,
+      { name: 'ltcg_debt_mf', label: 'LTCG Debt Mutual Funds', type: 'number', helperText: 'Taxed at 12.5% with indexation' } as NumberField
     ]
   }
 ];

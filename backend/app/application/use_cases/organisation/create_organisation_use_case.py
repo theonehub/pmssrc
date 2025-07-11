@@ -113,7 +113,7 @@ class CreateOrganisationUseCase:
         # Step 6: Save organisation
         saved_organisation = await self.command_repository.save(organisation)
         
-        # Step 6: Create default user with admin role
+        # TODO:Step 6: Create default user with admin role
         # await self._create_default_admin_user()
 
         # Step 7: Send notifications (non-blocking)

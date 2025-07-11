@@ -184,10 +184,6 @@ class UserServiceImpl(UserService):
                     personal_details=updated_personal_details,
                     updated_by=request.updated_by
                 )
-                
-                # Also update the direct date_of_joining field on the User entity for consistency
-                if request.date_of_joining:
-                    user.date_of_joining = request.date_of_joining
             
             # Update banking details if any banking fields are provided
             if any([request.bank_account_number, request.bank_name, request.ifsc_code, 

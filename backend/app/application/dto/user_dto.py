@@ -384,6 +384,26 @@ class PersonalDetailsResponseDTO:
     formatted_mobile: Optional[str] = None
     masked_pan: Optional[str] = None
     masked_aadhar: Optional[str] = None
+    
+    @classmethod
+    def from_value_object(cls, personal_details) -> 'PersonalDetailsResponseDTO':
+        """Create from PersonalDetails value object"""
+        if not personal_details:
+            return None
+            
+        return cls(
+            gender=personal_details.gender.value,
+            date_of_birth=personal_details.date_of_birth.isoformat(),
+            date_of_joining=personal_details.date_of_joining.isoformat(),
+            mobile=personal_details.mobile,
+            pan_number=personal_details.pan_number,
+            aadhar_number=personal_details.aadhar_number,
+            uan_number=personal_details.uan_number,
+            esi_number=personal_details.esi_number,
+            formatted_mobile=personal_details.get_formatted_mobile(),
+            masked_pan=personal_details.get_masked_pan(),
+            masked_aadhar=personal_details.get_masked_aadhar()
+        )
 
 
 @dataclass
@@ -457,8 +477,6 @@ class UserResponseDTO:
     designation: Optional[str] = None
     location: Optional[str] = None
     manager_id: Optional[str] = None
-    date_of_joining: Optional[str] = None
-    date_of_leaving: Optional[str] = None
     
     # Authorization
     permissions: Optional[UserPermissionsResponseDTO] = None
@@ -487,115 +505,84 @@ class UserResponseDTO:
     display_name: str = None
     role_display: str = None
     status_display: str = None
-
+    
     @classmethod
     def from_entity(cls, user) -> 'UserResponseDTO':
         """Create UserResponseDTO from User entity"""
         
-        # Safe attribute extraction
-        def safe_get_attr(obj, attr, default=None):
+        def safe_get_attr(obj, attr_path, default=None):
+            """Safely get nested attributes"""
             try:
-                return getattr(obj, attr, default)
+                attrs = attr_path.split('.')
+                value = obj
+                for attr in attrs:
+                    value = getattr(value, attr, None)
+                    if value is None:
+                        return default
+                return value
             except (AttributeError, TypeError):
                 return default
         
-        # Safe enum value extraction
-        def safe_enum_value(enum_obj):
-            if hasattr(enum_obj, 'value'):
-                return enum_obj.value
-            return str(enum_obj) if enum_obj is not None else None
+        def safe_enum_value(field_value):
+            """Safely get enum value"""
+            if hasattr(field_value, 'value'):
+                return field_value.value
+            return str(field_value) if field_value is not None else None
         
-        # Safe date formatting
-        def format_datetime(dt):
-            if dt is None:
+        def format_datetime(dt_value):
+            """Format datetime to string"""
+            if not dt_value:
                 return None
-            if hasattr(dt, 'isoformat'):
-                return dt.isoformat()
-            return str(dt)
+            if isinstance(dt_value, str):
+                return dt_value
+            return dt_value.isoformat() if hasattr(dt_value, 'isoformat') else str(dt_value)
         
-        # Safe boolean evaluation (handle methods)
-        def safe_bool_value(obj, attr, default=False):
-            try:
-                value = getattr(obj, attr, default)
-                if callable(value):
-                    return value()
-                return bool(value) if value is not None else default
-            except (AttributeError, TypeError):
-                return default
-        
-        # Create personal details if available
+        # Create personal details response DTO if available
         personal_details = None
-        if hasattr(user, 'gender') or hasattr(user, 'date_of_birth') or hasattr(user, 'mobile'):
-            personal_details = PersonalDetailsResponseDTO(
-                gender=safe_enum_value(safe_get_attr(user, 'gender')) or 'male',
-                date_of_birth=format_datetime(safe_get_attr(user, 'date_of_birth')),
-                date_of_joining=format_datetime(safe_get_attr(user, 'date_of_joining')),
-                mobile=safe_get_attr(user, 'mobile', ''),
-                pan_number=safe_get_attr(user, 'pan_number'),
-                aadhar_number=safe_get_attr(user, 'aadhar_number'),
-                uan_number=safe_get_attr(user, 'uan_number'),
-                esi_number=safe_get_attr(user, 'esi_number')
-            )
+        if user.personal_details:
+            personal_details = PersonalDetailsResponseDTO.from_value_object(user.personal_details)
         
-        # Create permissions
-        permissions = UserPermissionsResponseDTO(
-            role=safe_enum_value(safe_get_attr(user, 'role')) or 'user',
-            custom_permissions=safe_get_attr(user, 'custom_permissions', [])
-        )
+        # Create permissions response DTO if available
+        permissions = None
+        if user.permissions:
+            permissions = UserPermissionsResponseDTO.from_value_object(user.permissions)
         
-        # Create documents
-        documents = UserDocumentsResponseDTO(
-            photo_path=safe_get_attr(user, 'photo_path'),
-            pan_document_path=safe_get_attr(user, 'pan_document_path'),
-            aadhar_document_path=safe_get_attr(user, 'aadhar_document_path')
-        )
+        # Create documents response DTO if available
+        documents = None
+        if user.documents:
+            documents = UserDocumentsResponseDTO.from_value_object(user.documents)
         
-        # Create bank details if available
+        # Create bank details response DTO if available
         bank_details = None
-        user_bank_details = safe_get_attr(user, 'bank_details')
-        if user_bank_details:
-            bank_details = BankDetailsResponseDTO(
-                account_number=safe_get_attr(user_bank_details, 'account_number'),
-                bank_name=safe_get_attr(user_bank_details, 'bank_name'),
-                ifsc_code=safe_get_attr(user_bank_details, 'ifsc_code'),
-                account_holder_name=safe_get_attr(user_bank_details, 'account_holder_name'),
-                branch_name=safe_get_attr(user_bank_details, 'branch_name'),
-                account_type=safe_get_attr(user_bank_details, 'account_type'),
-                masked_account_number=safe_get_attr(user_bank_details, 'get_masked_account_number') if callable(safe_get_attr(user_bank_details, 'get_masked_account_number')) else None,
-                formatted_account_number=safe_get_attr(user_bank_details, 'get_formatted_account_number') if callable(safe_get_attr(user_bank_details, 'get_formatted_account_number')) else None,
-                bank_code=safe_get_attr(user_bank_details, 'get_bank_code') if callable(safe_get_attr(user_bank_details, 'get_bank_code')) else None,
-                branch_code=safe_get_attr(user_bank_details, 'get_branch_code') if callable(safe_get_attr(user_bank_details, 'get_branch_code')) else None,
-                is_valid_for_payment=safe_get_attr(user_bank_details, 'is_valid_for_payment') if callable(safe_get_attr(user_bank_details, 'is_valid_for_payment')) else False
-            )
+        if user.bank_details:
+            bank_details = BankDetailsResponseDTO.from_value_object(user.bank_details)
         
         return cls(
-            employee_id=str(safe_get_attr(user, 'employee_id', '')),
-            name=safe_get_attr(user, 'name', ''),
-            email=safe_get_attr(user, 'email', ''),
-            status=safe_enum_value(safe_get_attr(user, 'status')) or 'active',
+            employee_id=str(user.employee_id),
+            name=user.name,
+            email=user.email,
+            status=safe_enum_value(user.status),
             personal_details=personal_details,
-            department=safe_get_attr(user, 'department'),
-            designation=safe_get_attr(user, 'designation'),
-            location=safe_get_attr(user, 'location'),
-            manager_id=str(safe_get_attr(user, 'manager_id')) if safe_get_attr(user, 'manager_id') else None,
-            date_of_joining=format_datetime(safe_get_attr(user, 'date_of_joining')),
-            date_of_leaving=format_datetime(safe_get_attr(user, 'date_of_leaving')),
+            department=user.department,
+            designation=user.designation,
+            location=user.location,
+            manager_id=str(user.manager_id) if user.manager_id else None,
             permissions=permissions,
             documents=documents,
             bank_details=bank_details,
-            leave_balance=safe_get_attr(user, 'leave_balance', {}),
-            created_at=format_datetime(safe_get_attr(user, 'created_at')),
-            updated_at=format_datetime(safe_get_attr(user, 'updated_at')),
-            created_by=safe_get_attr(user, 'created_by'),
-            updated_by=safe_get_attr(user, 'updated_by'),
-            last_login_at=format_datetime(safe_get_attr(user, 'last_login')),
-            is_active=safe_bool_value(user, 'is_active', True),
-            is_locked=safe_bool_value(user, 'is_locked', False),
-            can_login=safe_bool_value(user, 'is_active', True) and not safe_bool_value(user, 'is_locked', False),
-            profile_completion_percentage=safe_get_attr(user, 'profile_completion_percentage', 0.0),
-            display_name=safe_get_attr(user, 'name', ''),
-            role_display=safe_enum_value(safe_get_attr(user, 'role')) or 'User',
-            status_display=safe_enum_value(safe_get_attr(user, 'status')) or 'Active'
+            leave_balance=user.leave_balance,
+            created_at=format_datetime(user.created_at),
+            updated_at=format_datetime(user.updated_at),
+            created_by=user.created_by,
+            updated_by=user.updated_by,
+            last_login_at=format_datetime(user.last_login_at),
+            is_active=user.is_active() if hasattr(user, 'is_active') else True,
+            is_locked=user.is_locked() if hasattr(user, 'is_locked') else False,
+            can_login=user.can_login() if hasattr(user, 'can_login') else True,
+            profile_completion_percentage=user.get_profile_completion_percentage() if hasattr(user, 'get_profile_completion_percentage') else 0.0,
+            display_name=user.get_display_name() if hasattr(user, 'get_display_name') else user.name,
+            role_display=user.get_role_display() if hasattr(user, 'get_role_display') else None,
+            status_display=user.get_status_display() if hasattr(user, 'get_status_display') else None
         )
 
 

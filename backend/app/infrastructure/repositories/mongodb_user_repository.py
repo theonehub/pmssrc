@@ -173,11 +173,7 @@ class MongoDBUserRepository(UserRepository):
             "username": getattr(user, 'username', str(user.employee_id)),
             "email": safe_get_attr(user, 'email', ''),
             "name": getattr(user, 'name', ''),
-            "gender": safe_enum_value(safe_get_attr(user, 'personal_details.gender')),
-            "date_of_birth": safe_date_conversion(safe_get_attr(user, 'personal_details.date_of_birth')),
-            "date_of_joining": safe_date_conversion(safe_get_attr(user, 'personal_details.date_of_joining') or getattr(user, 'date_of_joining', None)),
-            "date_of_leaving": safe_date_conversion(getattr(user, 'date_of_leaving', None)),
-            "mobile": safe_get_attr(user, 'personal_details.mobile'),
+            "personal_details": user.personal_details.to_dict() if user.personal_details else None,
             "password_hash": safe_get_attr(user, 'password.hashed_value', ''),
             "role": safe_enum_value(safe_get_attr(user, 'permissions.role')),
             "status": safe_enum_value(getattr(user, 'status', None)),
@@ -185,8 +181,6 @@ class MongoDBUserRepository(UserRepository):
             "designation": getattr(user, 'designation', None),
             "location": getattr(user, 'location', None),
             "manager_id": str(user.manager_id) if user.manager_id else None,
-            "pan_number": safe_get_attr(user, 'personal_details.pan_number'),
-            "aadhar_number": safe_get_attr(user, 'personal_details.aadhar_number'),
             
             # Bank details (new structure)
             "bank_details": safe_get_attr(user, 'bank_details').to_dict() if safe_get_attr(user, 'bank_details') else None,
@@ -230,8 +224,9 @@ class MongoDBUserRepository(UserRepository):
             password = Password.from_hash(password_hash)
             role = UserRole(document.get("role", "user"))
             status = UserStatus(document.get("status", "active"))
-            gender = Gender(document.get("gender", "male")) if document.get("gender") else Gender.MALE
             permissions = UserPermissions(role=role)
+            
+            # Create personal details from stored object
             if document.get("personal_details"):
                 personal_details = PersonalDetails.from_dict(document["personal_details"])
             else:
@@ -241,17 +236,18 @@ class MongoDBUserRepository(UserRepository):
                     date_of_joining=date(1970, 1, 1),
                     mobile="9999999999"
                 )
+            
+            # Create documents
             documents = UserDocuments.from_dict(document.get("documents", {})) if document.get("documents") else UserDocuments()
-            bank_details = BankDetails.from_dict(document.get("bank_details", {})) if document.get("bank_details") else None
+            
+            # Create bank details if available
+            bank_details = BankDetails.from_dict(document["bank_details"]) if document.get("bank_details") else None
 
             # Optional fields
             department = document.get("department")
             designation = document.get("designation")
             location = document.get("location")
             manager_id = EmployeeId(document.get("manager_id")) if document.get("manager_id") else None
-            date_of_joining = document.get("date_of_joining")
-            date_of_leaving = document.get("date_of_leaving")
-
             leave_balance = document.get("leave_balance", {})
             created_at = document.get("created_at")
             updated_at = document.get("updated_at")
@@ -278,8 +274,6 @@ class MongoDBUserRepository(UserRepository):
                 designation=designation,
                 location=location,
                 manager_id=manager_id,
-                date_of_joining=date_of_joining,
-                date_of_leaving=date_of_leaving,
                 documents=documents,
                 bank_details=bank_details,
                 leave_balance=leave_balance,

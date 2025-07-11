@@ -63,8 +63,6 @@ class User:
     designation: Optional[str] = None
     location: Optional[str] = None
     manager_id: Optional[EmployeeId] = None
-    date_of_joining: Optional[str] = None  # ISO format date string
-    date_of_leaving: Optional[str] = None  # ISO format date string
     
     # Documents
     documents: UserDocuments = field(default_factory=lambda: UserDocuments())
@@ -122,7 +120,6 @@ class User:
         designation: Optional[str] = None,
         location: Optional[str] = None,
         manager_id: Optional[EmployeeId] = None,
-        date_of_joining: Optional[str] = None,
         bank_details: Optional[BankDetails] = None,
         created_by: Optional[str] = None
     ) -> 'User':
@@ -146,7 +143,6 @@ class User:
             designation=designation,
             location=location,
             manager_id=manager_id,
-            date_of_joining=date_of_joining,
             bank_details=bank_details,
             created_by=created_by
         )
@@ -664,7 +660,6 @@ class User:
         if self.department: completed_fields += 1
         if self.designation: completed_fields += 1
         if self.location: completed_fields += 1
-        if self.date_of_joining: completed_fields += 1
         if self.bank_details: completed_fields += 1
         
         # Document fields

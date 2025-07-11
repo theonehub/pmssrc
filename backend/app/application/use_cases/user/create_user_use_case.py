@@ -136,7 +136,6 @@ class CreateUserUseCase:
             designation=request.designation,
             location=request.location,
             manager_id=EmployeeId(request.manager_id) if request.manager_id else None,
-            date_of_joining=request.date_of_joining,
             bank_details=bank_details,
             created_by=request.created_by
         )

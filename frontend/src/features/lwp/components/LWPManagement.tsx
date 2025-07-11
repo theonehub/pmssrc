@@ -18,6 +18,7 @@ import {
 } from '@mui/material';
 import axios, { AxiosResponse } from 'axios';
 import { getToken } from '../../../shared/utils/auth';
+import { API_CONFIG } from '../../../shared/utils/constants';
 
 // Define interfaces
 interface LWPRecord {
@@ -38,8 +39,6 @@ interface StatusMessage {
 interface ImportResponse {
   msg?: string;
 }
-
-const API_BASE_URL = 'http://localhost:8000';
 
 const LWPManagement: React.FC = () => {
   // State management with proper typing
@@ -66,7 +65,7 @@ const LWPManagement: React.FC = () => {
       }
 
       const response: AxiosResponse<LWPRecord[]> = await axios.get(
-        `${API_BASE_URL}/lwp`,
+        `${API_CONFIG.BASE_URL}/lwp`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -92,7 +91,7 @@ const LWPManagement: React.FC = () => {
       }
 
       await axios.put(
-        `${API_BASE_URL}/lwp/${id}`,
+        `${API_CONFIG.BASE_URL}/lwp/${id}`,
         { present_days: presentDays },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -119,7 +118,7 @@ const LWPManagement: React.FC = () => {
       }
 
       await axios.post(
-        `${API_BASE_URL}/lwp/update-bulk`,
+        `${API_CONFIG.BASE_URL}/lwp/update-bulk`,
         lwpRecords,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -154,7 +153,7 @@ const LWPManagement: React.FC = () => {
       }
 
       const response: AxiosResponse<ImportResponse> = await axios.post(
-        `${API_BASE_URL}/lwp/import`,
+        `${API_CONFIG.BASE_URL}/lwp/import`,
         formData,
         {
           headers: { 
@@ -186,7 +185,7 @@ const LWPManagement: React.FC = () => {
       }
 
       const response: AxiosResponse<Blob> = await axios.get(
-        `${API_BASE_URL}/lwp/export`,
+        `${API_CONFIG.BASE_URL}/lwp/export`,
         {
           headers: { Authorization: `Bearer ${token}` },
           responseType: 'blob',

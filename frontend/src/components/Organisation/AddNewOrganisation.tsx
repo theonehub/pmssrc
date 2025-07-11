@@ -32,8 +32,7 @@ import {
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { getToken } from '../../shared/utils/auth';
-
-const API_BASE_URL = 'http://localhost:8000';
+import { API_CONFIG } from '../../shared/utils/constants';
 
 interface ToastState {
   open: boolean;
@@ -137,7 +136,7 @@ const AddNewOrganisation: React.FC = () => {
         }
 
         const response = await axios.get(
-          `${API_BASE_URL}/api/v2/organisations/${id}`,
+          `${API_CONFIG.BASE_URL}/api/v2/organisations/${id}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -191,7 +190,7 @@ const AddNewOrganisation: React.FC = () => {
 
         // Set logo preview if exists
         if (org.logo_path) {
-          setLogoPreview(`${API_BASE_URL}/${org.logo_path}`);
+          setLogoPreview(`${API_CONFIG.BASE_URL}/${org.logo_path}`);
         }
 
       } catch (error: any) {
@@ -425,8 +424,8 @@ const AddNewOrganisation: React.FC = () => {
       }
 
       const url = isEditing 
-        ? `${API_BASE_URL}/api/v2/organisations/${id}/`
-        : `${API_BASE_URL}/api/v2/organisations/`;
+        ? `${API_CONFIG.BASE_URL}/api/v2/organisations/${id}/`
+        : `${API_CONFIG.BASE_URL}/api/v2/organisations/`;
       const method = isEditing ? 'put' : 'post';
       
       console.log(`Making ${method.toUpperCase()} request to:`, url);

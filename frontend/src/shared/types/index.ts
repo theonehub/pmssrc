@@ -169,8 +169,10 @@ export interface FileUploadOptions {
   multiple: boolean;
 }
 
+export type SortKey = keyof User | 'lwp' | 'personal_details.mobile';
+
 export interface AttendanceUserListSortConfig {
-  key: string | 'lwp';
+  key: SortKey;
   direction: 'asc' | 'desc';
 }
 

@@ -12,7 +12,8 @@ import {
   Tooltip,
   Alert,
   Skeleton,
-  Snackbar
+  Snackbar,
+  Grid
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
@@ -31,28 +32,33 @@ import {
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import dataService from '../../shared/services/dataService';
+import { API_CONFIG } from '../../shared/utils/constants';
 
 // Define interfaces
+interface PersonalDetails {
+  gender: string;
+  date_of_birth: string;
+  date_of_joining: string;
+  mobile: string;
+  pan_number?: string;
+  aadhar_number?: string;
+  uan_number?: string;
+  esi_number?: string;
+  formatted_mobile?: string;
+  masked_pan?: string;
+  masked_aadhar?: string;
+}
+
 interface User {
   employee_id: string;
   name: string;
   email: string;
-  date_of_birth?: string;
-  date_of_joining?: string;
-  gender?: string;
-  mobile?: string;
+  personal_details?: PersonalDetails;
   department?: string;
   designation?: string;
   role?: string;
   manager_id?: string;
   location?: string;
-  address?: string;
-  emergency_contact?: string;
-  blood_group?: string;
-  pan_number?: string;
-  aadhar_number?: string;
-  uan_number?: string;
-  esi_number?: string;
   pan_document_path?: string;
   aadhar_document_path?: string;
   photo_path?: string;
@@ -154,7 +160,7 @@ const UserDetail: React.FC = () => {
     
     try {
       // Create a full URL for the file
-      const fileUrl = `http://localhost:8000/files/${filePath}`;
+      const fileUrl = `${API_CONFIG.BASE_URL}/files/${filePath}`;
       
       // Open file in a new tab
       window.open(fileUrl, '_blank', 'noopener,noreferrer');
@@ -343,7 +349,7 @@ const UserDetail: React.FC = () => {
                     </Typography>
                   </Box>
                   <Typography variant="body1" fontWeight="medium">
-                    {user.mobile || 'N/A'}
+                    {user.personal_details?.formatted_mobile || user.personal_details?.mobile || 'N/A'}
                   </Typography>
                 </Box>
                 
@@ -355,7 +361,7 @@ const UserDetail: React.FC = () => {
                     </Typography>
                   </Box>
                   <Typography variant="body1" fontWeight="medium">
-                    {user.gender || 'N/A'}
+                    {user.personal_details?.gender || 'N/A'}
                   </Typography>
                 </Box>
                 
@@ -367,7 +373,7 @@ const UserDetail: React.FC = () => {
                     </Typography>
                   </Box>
                   <Typography variant="body1" fontWeight="medium">
-                    {formatDate(user.date_of_birth)}
+                    {user.personal_details?.date_of_birth || 'N/A'}
                   </Typography>
                 </Box>
               </Box>
@@ -394,7 +400,7 @@ const UserDetail: React.FC = () => {
                     </Typography>
                   </Box>
                   <Typography variant="body1" fontWeight="medium">
-                    {formatDate(user.date_of_joining)}
+                    {formatDate(user.personal_details?.date_of_joining)}
                   </Typography>
                 </Box>
                 
@@ -440,7 +446,7 @@ const UserDetail: React.FC = () => {
       </Box>
 
       {/* Additional Information */}
-      {(user.pan_number || user.aadhar_number || user.uan_number || user.esi_number) && (
+      {(user.personal_details?.pan_number || user.personal_details?.aadhar_number || user.personal_details?.uan_number || user.personal_details?.esi_number) && (
         <Box sx={{ mt: 3 }}>
           <Card elevation={1}>
             <CardContent>
@@ -451,46 +457,46 @@ const UserDetail: React.FC = () => {
               <Divider sx={{ mb: 2 }} />
               
               <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
-                {user.pan_number && (
+                {user.personal_details?.pan_number && (
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       PAN Number
                     </Typography>
                     <Typography variant="body1" fontWeight="medium">
-                      {user.pan_number}
+                      {user.personal_details.masked_pan || user.personal_details.pan_number}
                     </Typography>
                   </Box>
                 )}
                 
-                {user.aadhar_number && (
+                {user.personal_details?.aadhar_number && (
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       Aadhar Number
                     </Typography>
                     <Typography variant="body1" fontWeight="medium">
-                      {user.aadhar_number}
+                      {user.personal_details.masked_aadhar || user.personal_details.aadhar_number}
                     </Typography>
                   </Box>
                 )}
                 
-                {user.uan_number && (
+                {user.personal_details?.uan_number && (
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       UAN Number
                     </Typography>
                     <Typography variant="body1" fontWeight="medium">
-                      {user.uan_number}
+                      {user.personal_details.uan_number}
                     </Typography>
                   </Box>
                 )}
                 
-                {user.esi_number && (
+                {user.personal_details?.esi_number && (
                   <Box sx={{ flex: 1 }}>
                     <Typography variant="body2" color="text.secondary" gutterBottom>
                       ESI Number
                     </Typography>
                     <Typography variant="body1" fontWeight="medium">
-                      {user.esi_number}
+                      {user.personal_details.esi_number}
                     </Typography>
                   </Box>
                 )}
@@ -630,6 +636,73 @@ const UserDetail: React.FC = () => {
           </Card>
         </Box>
       )}
+
+      {/* Personal Information Section */}
+      <Card sx={{ mt: 2 }}>
+        <CardContent>
+          <Typography variant="h6" gutterBottom>
+            Personal Information
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle2" color="textSecondary">
+                Gender
+              </Typography>
+              <Typography>
+                {user?.personal_details?.gender || 'Not specified'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle2" color="textSecondary">
+                Date of Birth
+              </Typography>
+              <Typography>
+                {user?.personal_details?.date_of_birth || 'Not specified'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle2" color="textSecondary">
+                Mobile
+              </Typography>
+              <Typography>
+                {user?.personal_details?.formatted_mobile || user?.personal_details?.mobile || 'Not specified'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle2" color="textSecondary">
+                PAN Number
+              </Typography>
+              <Typography>
+                {user?.personal_details?.masked_pan || user?.personal_details?.pan_number || 'Not specified'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle2" color="textSecondary">
+                Aadhar Number
+              </Typography>
+              <Typography>
+                {user?.personal_details?.masked_aadhar || user?.personal_details?.aadhar_number || 'Not specified'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle2" color="textSecondary">
+                UAN Number
+              </Typography>
+              <Typography>
+                {user?.personal_details?.uan_number || 'Not specified'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography variant="subtitle2" color="textSecondary">
+                ESI Number
+              </Typography>
+              <Typography>
+                {user?.personal_details?.esi_number || 'Not specified'}
+              </Typography>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
 
       {/* Toast Notifications */}
       <Snackbar 

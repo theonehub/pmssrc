@@ -28,8 +28,7 @@ import {
 import type { Organisation } from '../../models/organisation';
 import { useOrganisationsQuery } from '../../shared/hooks/useOrganisations';
 import FormDialog from '../Common/UIComponents/FormDialog';
-
-const API_BASE_URL = 'http://localhost:8000/api/v2';
+import { API_CONFIG } from '../../shared/utils/constants';
 
 interface ToastState {
   show: boolean;
@@ -103,7 +102,7 @@ const OrganisationsList: React.FC = () => {
       }
 
       await axios.delete(
-        `${API_BASE_URL}/organisations/${deleteConfirmId}/`,
+        `${API_CONFIG.BASE_URL}/organisations/${deleteConfirmId}/`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

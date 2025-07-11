@@ -1,26 +1,30 @@
 import { BaseAPI } from './baseApi';
 
 // Type definitions for User Management
-export interface User {
-  employee_id: string;
-  name: string;
-  email: string;
-  mobile?: string;
-  gender?: string;
-  date_of_birth?: string;
-  date_of_joining?: string;
-  role: string;
-  department?: string;
-  designation?: string;
-  manager_id?: string;
-  address?: string;
-  emergency_contact?: string;
-  blood_group?: string;
-  location?: string;
+export interface PersonalDetails {
+  gender: string;
+  date_of_birth: string;
+  date_of_joining: string;
+  mobile: string;
   pan_number?: string;
   aadhar_number?: string;
   uan_number?: string;
   esi_number?: string;
+  formatted_mobile?: string;
+  masked_pan?: string;
+  masked_aadhar?: string;
+}
+
+export interface User {
+  employee_id: string;
+  name: string;
+  email: string;
+  role: string;
+  personal_details?: PersonalDetails;
+  department?: string;
+  designation?: string;
+  manager_id?: string;
+  location?: string;
   created_at?: string;
   updated_at?: string;
   is_active: boolean;
@@ -30,12 +34,14 @@ export interface User {
   aadhar_document_path?: string;
   photo_path?: string;
   // Bank Details
-  bank_account_number?: string;
-  bank_name?: string;
-  ifsc_code?: string;
-  account_holder_name?: string;
-  branch_name?: string;
-  account_type?: string;
+  bank_details?: {
+    bank_account_number: string;
+    bank_name: string;
+    ifsc_code: string;
+    account_holder_name: string;
+    branch_name?: string;
+    account_type?: string;
+  };
   permissions?: string[];
 }
 

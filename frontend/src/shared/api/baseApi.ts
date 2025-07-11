@@ -5,6 +5,7 @@ import axios, {
   AxiosError,
   InternalAxiosRequestConfig,
 } from 'axios';
+import { API_CONFIG } from '../utils/constants';
 
 // Platform detection for mobile compatibility
 const isWeb = typeof window !== 'undefined';
@@ -56,14 +57,6 @@ class StorageManager {
     // AsyncStorage.clear();
   }
 }
-
-// API Configuration
-const API_CONFIG = {
-  BASE_URL: process.env.REACT_APP_API_URL || 'http://localhost:8000',
-  TIMEOUT: 30000,
-  RETRY_ATTEMPTS: 3,
-  RETRY_DELAY: 1000,
-} as const;
 
 // Storage Keys
 const STORAGE_KEYS = {

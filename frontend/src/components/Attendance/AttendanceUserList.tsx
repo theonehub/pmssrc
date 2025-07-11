@@ -38,7 +38,8 @@ import { useUsersQuery } from '../../shared/hooks/useUsers';
 import { User } from '../../shared/api/userApi';
 import { 
   AttendanceUserListSortConfig,
-  LWPData
+  LWPData,
+  SortKey
 } from '../../shared/types';
 import './AttendanceCalendar.css';
 import { Card, CardContent } from '@mui/material';
@@ -130,13 +131,23 @@ const AttendanceUserList: React.FC = () => {
     }
   }, [fetchLWPData, users]);
 
-  // Sort function
-  const requestSort = (key: keyof User | 'lwp'): void => {
+  // Sort functionality
+  const requestSort = (key: SortKey): void => {
     let direction: 'asc' | 'desc' = 'asc';
     if (sortConfig.key === key && sortConfig.direction === 'asc') {
       direction = 'desc';
     }
     setSortConfig({ key, direction });
+  };
+
+  // Get sort icon
+  const getSortIcon = (columnKey: SortKey): React.ReactElement | null => {
+    if (sortConfig.key !== columnKey) {
+      return null;
+    }
+    return sortConfig.direction === 'asc' ? 
+      <ArrowUpwardIcon fontSize="small" /> : 
+      <ArrowDownwardIcon fontSize="small" />;
   };
 
   // Sort and filter users
@@ -150,7 +161,7 @@ const AttendanceUserList: React.FC = () => {
         user.employee_id?.toLowerCase().includes(searchLower) ||
         user.name.toLowerCase().includes(searchLower) ||
         user.email.toLowerCase().includes(searchLower) ||
-        user.mobile?.includes(searchTerm)
+        user.personal_details?.mobile?.includes(searchTerm)
       );
     }
 
@@ -163,9 +174,12 @@ const AttendanceUserList: React.FC = () => {
         if (sortConfig.key === 'lwp') {
           aValue = lwpData[a.employee_id || ''] || 0;
           bValue = lwpData[b.employee_id || ''] || 0;
+        } else if (sortConfig.key === 'personal_details.mobile') {
+          aValue = a.personal_details?.mobile || '';
+          bValue = b.personal_details?.mobile || '';
         } else {
-          aValue = a[sortConfig.key!];
-          bValue = b[sortConfig.key!];
+          aValue = a[sortConfig.key];
+          bValue = b[sortConfig.key];
         }
 
         // Special handling for dates
@@ -185,16 +199,6 @@ const AttendanceUserList: React.FC = () => {
     }
 
     return filteredUsers;
-  };
-
-  // Get sort icon
-  const getSortIcon = (columnKey: keyof User | 'lwp'): React.ReactElement | null => {
-    if (sortConfig.key !== columnKey) {
-      return null;
-    }
-    return sortConfig.direction === 'asc' ? 
-      <ArrowUpwardIcon fontSize="small" /> : 
-      <ArrowDownwardIcon fontSize="small" />;
   };
 
   const handleViewAttendance = (empId: string): void => {
@@ -396,8 +400,8 @@ const AttendanceUserList: React.FC = () => {
                 <TableCell>
                   <Button
                     color="inherit"
-                    onClick={() => requestSort('mobile')}
-                    endIcon={getSortIcon('mobile')}
+                    onClick={() => requestSort('personal_details.mobile')}
+                    endIcon={getSortIcon('personal_details.mobile')}
                     sx={{ color: 'white', textTransform: 'none' }}
                   >
                     Mobile
@@ -464,7 +468,7 @@ const AttendanceUserList: React.FC = () => {
                     <TableCell>{user.employee_id}</TableCell>
                     <TableCell>{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.mobile}</TableCell>
+                    <TableCell>{user.personal_details?.mobile || 'N/A'}</TableCell>
                     <TableCell>{user.department || 'N/A'}</TableCell>
                     <TableCell>
                       <Typography 

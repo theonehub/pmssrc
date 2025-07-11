@@ -22,6 +22,7 @@ import {
 import PageLayout from "../../../layout/PageLayout";
 import { useAuth } from "../../../shared/hooks/useAuth";
 import axios, { AxiosResponse } from "axios";
+import { API_CONFIG } from '../../../shared/utils/constants';
 
 // Define interfaces
 interface ProjectAttribute {
@@ -40,8 +41,6 @@ interface AttributeForm {
   default_value: string;
   description: string;
 }
-
-const API_BASE_URL = 'http://localhost:8000';
 
 const ProjectAttributes: React.FC = () => {
   const { token, user } = useAuth();
@@ -68,7 +67,7 @@ const ProjectAttributes: React.FC = () => {
       }
 
       const response: AxiosResponse<ProjectAttribute[]> = await axios.get(
-        `${API_BASE_URL}/attributes`,
+        `${API_CONFIG.BASE_URL}/attributes`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -106,7 +105,7 @@ const ProjectAttributes: React.FC = () => {
 
       if (editKey) {
         await axios.put(
-          `${API_BASE_URL}/attributes/${editKey}`,
+          `${API_CONFIG.BASE_URL}/attributes/${editKey}`,
           form,
           {
             headers: { Authorization: `Bearer ${token}` },
@@ -114,7 +113,7 @@ const ProjectAttributes: React.FC = () => {
         );
       } else {
         await axios.post(
-          `${API_BASE_URL}/attributes`,
+          `${API_CONFIG.BASE_URL}/attributes`,
           form,
           {
             headers: { Authorization: `Bearer ${token}` },
@@ -159,7 +158,7 @@ const ProjectAttributes: React.FC = () => {
       }
 
       await axios.delete(
-        `${API_BASE_URL}/attributes/${attribute.key}`,
+        `${API_CONFIG.BASE_URL}/attributes/${attribute.key}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

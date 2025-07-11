@@ -3,6 +3,7 @@
 
 import axios from 'axios';
 import { BaseAPI } from './baseApi';
+import { API_CONFIG } from '../utils/constants';
 
 export interface ApiResponse<T = any> {
   data: T;
@@ -17,7 +18,7 @@ export interface ApiError {
 }
 
 export const apiClient = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000',
+  baseURL: API_CONFIG.BASE_URL,
   headers: {
     'Content-Type': 'application/json'
   }

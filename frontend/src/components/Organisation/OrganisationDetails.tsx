@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getToken } from '../../shared/utils/auth';
+import { API_CONFIG } from '../../shared/utils/constants';
 import {
   Box,
   Card,
@@ -24,8 +25,6 @@ import {
   Language as WebsiteIcon,
   Fax as FaxIcon,
 } from '@mui/icons-material';
-
-const API_BASE_URL = 'http://localhost:8000/api/v2';
 
 interface BankDetails {
   bank_name: string;
@@ -102,7 +101,7 @@ const OrganisationDetails: React.FC = () => {
           throw new Error('No authentication token found');
         }
 
-        const response = await axios.get(`${API_BASE_URL}/organisations/${id}`, {
+        const response = await axios.get(`${API_CONFIG.BASE_URL}/api/v2/organisations/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setOrganisation(response.data);
@@ -153,7 +152,7 @@ const OrganisationDetails: React.FC = () => {
         <Box display="flex" alignItems="center">
           {organisation.logo_path ? (
             <Avatar
-              src={`${API_BASE_URL}/${organisation.logo_path}`}
+              src={`${API_CONFIG.BASE_URL}/${organisation.logo_path}`}
               alt={organisation.name}
               sx={{ 
                 width: 80, 

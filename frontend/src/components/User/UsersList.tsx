@@ -114,9 +114,9 @@ const UsersList: React.FC = () => {
         user.employee_id?.toLowerCase().includes(searchLower) ||
         user.name?.toLowerCase().includes(searchLower) ||
         user.email?.toLowerCase().includes(searchLower) ||
-        user.gender?.toLowerCase().includes(searchLower) ||
+        user.personal_details?.gender?.toLowerCase().includes(searchLower) ||
         user.role?.toLowerCase().includes(searchLower) ||
-        user.mobile?.includes(searchTerm)
+        user.personal_details?.mobile?.includes(searchTerm)
       );
     }
 

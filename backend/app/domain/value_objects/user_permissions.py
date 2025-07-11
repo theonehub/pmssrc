@@ -119,7 +119,6 @@ class UserPermissions:
         """Check if user can access payroll information"""
         return (
             self.is_admin() or
-            self.role == UserRole.HR or
             self.has_permission("access_payroll") or
             self.has_resource_permission("payroll", "read")
         )
@@ -154,13 +153,7 @@ class UserPermissions:
                 "view_team_reports",
                 "approve_team_reimbursements"
             ],
-            UserRole.HR: [
-                "view_own_profile",
-                "update_own_profile",
-                "view_own_payslip",
-                "apply_leave",
-                "view_own_attendance",
-                "submit_reimbursement",
+            UserRole.ADMIN: [
                 "manage_users",
                 "view_all_attendance",
                 "manage_leaves",
@@ -168,13 +161,7 @@ class UserPermissions:
                 "manage_payroll",
                 "manage_company_policies"
             ],
-            UserRole.ADMIN: [
-                "view_own_profile",
-                "update_own_profile",
-                "view_own_payslip",
-                "apply_leave",
-                "view_own_attendance",
-                "submit_reimbursement",
+            UserRole.SUPERADMIN: [
                 "manage_users",
                 "view_all_attendance",
                 "manage_leaves",
@@ -184,9 +171,6 @@ class UserPermissions:
                 "manage_system_settings",
                 "view_audit_logs"
             ],
-            UserRole.SUPERADMIN: [
-                "*"  # All permissions
-            ]
         }
         
         return role_permissions.get(self.role, [])
@@ -210,17 +194,6 @@ class UserPermissions:
                 "team": ["read"],
                 "reports": ["read"]
             },
-            UserRole.HR: {
-                "profile": ["read", "update"],
-                "payslip": ["read"],
-                "attendance": ["read", "create", "update"],
-                "leaves": ["read", "create", "update", "approve"],
-                "reimbursements": ["read", "create", "update", "approve"],
-                "users": ["read", "create", "update"],
-                "reports": ["read"],
-                "payroll": ["read", "create", "update"],
-                "policies": ["read", "create", "update"]
-            },
             UserRole.ADMIN: {
                 "profile": ["read", "update"],
                 "payslip": ["read"],
@@ -233,9 +206,6 @@ class UserPermissions:
                 "policies": ["read", "create", "update", "delete"],
                 "system": ["read", "update"],
                 "audit": ["read"]
-            },
-            UserRole.SUPERADMIN: {
-                "*": ["*"]  # All resources, all actions
             }
         }
         

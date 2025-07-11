@@ -822,10 +822,6 @@ class UserServiceImpl(UserService):
                 "user:create", "user:read", "user:update",
                 "organisation:read", "organisation:update"
             ],
-            UserRole.HR: [
-                "user:create", "user:read", "user:update",
-                "employee:read", "employee:update"
-            ],
             UserRole.MANAGER: [
                 "user:read", "employee:read", "team:manage"
             ],

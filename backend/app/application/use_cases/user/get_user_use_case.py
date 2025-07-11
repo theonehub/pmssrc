@@ -154,6 +154,7 @@ class GetUserUseCase:
             response.gender = user.personal_details.gender.value
             response.date_of_birth = user.personal_details.date_of_birth.isoformat()
             response.date_of_joining = user.personal_details.date_of_joining.isoformat()
+            response.date_of_leaving = user.personal_details.date_of_leaving.isoformat() if user.personal_details.date_of_leaving else None
             response.mobile = user.personal_details.mobile
             response.uan_number = user.personal_details.uan_number
             response.esi_number = user.personal_details.esi_number

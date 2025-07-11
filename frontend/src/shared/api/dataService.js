@@ -8,17 +8,17 @@ const transformBackendToFrontend = (backendUser) => {
     }
     return null;
   }
-  
+  // Support both UserResponseDTO (detailed) and UserSummaryDTO (list view)
+  const isSummary = !backendUser.personal_details && !backendUser.documents && !backendUser.bank_details;
   const transformed = {
     employee_id: backendUser.employee_id || backendUser.emp_id || '',
     name: backendUser.name || '',
     email: backendUser.email || '',
-    // Handle both nested (UserResponseDTO) and flat (legacy) structures
-    mobile: backendUser.personal_details?.mobile || backendUser.mobile || '',
-    gender: backendUser.personal_details?.gender || backendUser.gender || '',
-    date_of_birth: backendUser.personal_details?.date_of_birth || backendUser.date_of_birth || backendUser.dob || '',
+    mobile: isSummary ? backendUser.mobile || '' : backendUser.personal_details?.mobile || backendUser.mobile || '',
+    gender: isSummary ? backendUser.gender || '' : backendUser.personal_details?.gender || backendUser.gender || '',
+    date_of_birth: isSummary ? backendUser.date_of_birth || '' : backendUser.personal_details?.date_of_birth || backendUser.date_of_birth || backendUser.dob || '',
     date_of_joining: backendUser.date_of_joining || backendUser.doj || '',
-    role: backendUser.permissions?.role || backendUser.role || '',
+    role: backendUser.role || backendUser.permissions?.role || '',
     department: backendUser.department || '',
     designation: backendUser.designation || '',
     manager_id: backendUser.manager_id || '',
@@ -26,10 +26,10 @@ const transformBackendToFrontend = (backendUser) => {
     emergency_contact: backendUser.emergency_contact || '',
     blood_group: backendUser.blood_group || '',
     location: backendUser.location || '',
-    pan_number: backendUser.personal_details?.pan_number || backendUser.pan_number || '',
-    aadhar_number: backendUser.personal_details?.aadhar_number || backendUser.aadhar_number || '',
-    uan_number: backendUser.personal_details?.uan_number || backendUser.uan_number || '',
-    esi_number: backendUser.personal_details?.esi_number || backendUser.esi_number || '',
+    pan_number: isSummary ? backendUser.pan_number || '' : backendUser.personal_details?.pan_number || backendUser.pan_number || '',
+    aadhar_number: isSummary ? backendUser.aadhar_number || '' : backendUser.personal_details?.aadhar_number || backendUser.aadhar_number || '',
+    uan_number: isSummary ? backendUser.uan_number || '' : backendUser.personal_details?.uan_number || backendUser.uan_number || '',
+    esi_number: isSummary ? backendUser.esi_number || '' : backendUser.personal_details?.esi_number || backendUser.esi_number || '',
     created_at: backendUser.created_at || '',
     updated_at: backendUser.updated_at || '',
     is_active: backendUser.is_active !== undefined ? backendUser.is_active : true,
@@ -46,7 +46,6 @@ const transformBackendToFrontend = (backendUser) => {
     branch_name: backendUser.bank_details?.branch_name || backendUser.branch_name || '',
     account_type: backendUser.bank_details?.account_type || backendUser.account_type || ''
   };
-  
   return transformed;
 };
 

@@ -400,8 +400,7 @@ class CreateUserUseCase:
             designation=user.designation,
             location=user.location,
             manager_id=str(user.manager_id) if user.manager_id else None,
-            date_of_joining=user.personal_details.date_of_joining.isoformat() if user.personal_details.date_of_joining else user.date_of_joining,
-            date_of_leaving=user.date_of_leaving,
+            # date_of_joining and date_of_leaving removed, as they are not fields of UserResponseDTO
             
             # Authorization
             permissions=UserPermissionsResponseDTO(

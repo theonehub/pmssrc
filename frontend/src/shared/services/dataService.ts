@@ -49,17 +49,14 @@ class DataService {
     }
   }
 
-  async createUserWithFiles(userData: any, files?: FileList) {
+  async createUserWithFiles(userData: any, files?: { panFile?: File; aadharFile?: File; photo?: File }) {
     try {
-      // Convert FileList to UserFiles format if provided
-      if (files) {
-        const userFiles = {
-          documents: files
-        };
-        return await userApi.createUserWithFiles(userData, userFiles as any);
-      } else {
-        return await userApi.createUser(userData);
-      }
+      // Build UserFiles object with correct field names for backend
+      const userFiles: any = {};
+      if (files?.panFile) userFiles.pan_file = files.panFile;
+      if (files?.aadharFile) userFiles.aadhar_file = files.aadharFile;
+      if (files?.photo) userFiles.photo = files.photo;
+      return await userApi.createUserWithFiles(userData, userFiles);
     } catch (error) {
       console.error('Error creating user with files:', error);
       throw error;

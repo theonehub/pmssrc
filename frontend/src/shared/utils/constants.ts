@@ -11,7 +11,6 @@ export const USER_ROLES = {
   SUPERADMIN: 'superadmin',
   ADMIN: 'admin',
   MANAGER: 'manager',
-  HR: 'hr',
   USER: 'user',
 } as const;
 

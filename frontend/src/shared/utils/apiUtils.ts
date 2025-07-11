@@ -197,6 +197,14 @@ export const apiUploadMultiple = (
   });
 };
 
+/**
+ * Normalize a backend file path by removing any leading './uploads/' or 'uploads/'
+ * so it can be safely appended to the /files/ static mount.
+ */
+export function normalizeFilePath(path: string): string {
+  return path.replace(/^(\.\/)?uploads[\\/]+/, '');
+}
+
 // Default export for backward compatibility
 const api = {
   request: apiRequest,

@@ -210,13 +210,10 @@ class UserRoleChanged(DomainEvent):
     def is_privilege_escalation(self) -> bool:
         """Check if this is a privilege escalation"""
         role_hierarchy = {
-            UserRole.READONLY: 0,
-            UserRole.USER: 1,
-            UserRole.MANAGER: 2,
-            UserRole.HR: 3,
-            UserRole.FINANCE: 3,
-            UserRole.ADMIN: 4,
-            UserRole.SUPERADMIN: 5
+            UserRole.USER: 0,
+            UserRole.MANAGER: 1,
+            UserRole.ADMIN: 2,
+            UserRole.SUPERADMIN: 3
         }
         
         old_level = role_hierarchy.get(self.old_role, 0)
@@ -227,13 +224,10 @@ class UserRoleChanged(DomainEvent):
     def is_privilege_reduction(self) -> bool:
         """Check if this is a privilege reduction"""
         role_hierarchy = {
-            UserRole.READONLY: 0,
-            UserRole.USER: 1,
-            UserRole.MANAGER: 2,
-            UserRole.HR: 3,
-            UserRole.FINANCE: 3,
-            UserRole.ADMIN: 4,
-            UserRole.SUPERADMIN: 5
+            UserRole.USER: 0,
+            UserRole.MANAGER: 1,
+            UserRole.ADMIN: 2,
+            UserRole.SUPERADMIN: 3
         }
         
         old_level = role_hierarchy.get(self.old_role, 0)

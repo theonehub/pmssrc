@@ -151,16 +151,22 @@ const OrganisationDetails: React.FC = () => {
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Box display="flex" alignItems="center">
           {organisation.logo_path ? (
-            <Avatar
-              src={`${API_CONFIG.BASE_URL}/${organisation.logo_path}`}
-              alt={organisation.name}
-              sx={{ 
-                width: 80, 
-                height: 80, 
-                mr: 2,
-                border: '1px solid #e0e0e0'
-              }}
-            />
+            (() => {
+              console.log('Logo path:', organisation.logo_path);
+              const cleanLogoPath = organisation.logo_path.replace(/^(\.\/)?uploads[\\/]+/, '');
+              return (
+                <Avatar
+                  src={`${API_CONFIG.BASE_URL}/files/${cleanLogoPath}`}
+                  alt={organisation.name}
+                  sx={{ 
+                    width: 80, 
+                    height: 80, 
+                    mr: 2,
+                    border: '1px solid #e0e0e0'
+                  }}
+                />
+              );
+            })()
           ) : (
             <BusinessIcon sx={{ fontSize: 80, mr: 2 }} />
           )}

@@ -21,6 +21,8 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import BusinessIcon from '@mui/icons-material/Business';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { normalizeFilePath } from '../shared/utils/apiUtils';
+import { API_CONFIG } from '../shared/utils/constants';
 
 // Define the props interface
 interface TopbarProps {
@@ -109,7 +111,7 @@ const Topbar: React.FC<TopbarProps> = ({
           {/* Organization Logo */}
           {organizationLogo ? (
             <Avatar
-              src={organizationLogo}
+              src={organizationLogo.startsWith('http') ? organizationLogo : `${API_CONFIG.BASE_URL}/files/${normalizeFilePath(organizationLogo)}`}
               sx={{ 
                 width: 40, 
                 height: 40,

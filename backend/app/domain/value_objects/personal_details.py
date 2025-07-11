@@ -28,6 +28,7 @@ class PersonalDetails:
     date_of_birth: date
     date_of_joining: date
     mobile: str
+    date_of_leaving: Optional[date] = None
     pan_number: Optional[str] = None
     aadhar_number: Optional[str] = None
     uan_number: Optional[str] = None

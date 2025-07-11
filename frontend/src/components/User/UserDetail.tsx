@@ -33,6 +33,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import dataService from '../../shared/services/dataService';
 import { API_CONFIG } from '../../shared/utils/constants';
+import { normalizeFilePath } from '../../shared/utils/apiUtils';
 
 // Define interfaces
 interface PersonalDetails {
@@ -160,7 +161,7 @@ const UserDetail: React.FC = () => {
     
     try {
       // Create a full URL for the file
-      const fileUrl = `${API_CONFIG.BASE_URL}/files/${filePath}`;
+      const fileUrl = `${API_CONFIG.BASE_URL}/files/${normalizeFilePath(filePath)}`;
       
       // Open file in a new tab
       window.open(fileUrl, '_blank', 'noopener,noreferrer');

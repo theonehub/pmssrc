@@ -292,13 +292,14 @@ async def get_user_by_id(
             "department": safe_get(user, 'department', ''),
             "designation": safe_get(user, 'designation', ''),
             "role": safe_get(user.permissions, 'role', 'user') if hasattr(user, 'permissions') and user.permissions else safe_get(user, 'role', 'user'),
-            "date_of_joining": format_date(safe_get(user, 'date_of_joining')),
+            "date_of_joining": format_date(safe_get(user.personal_details, 'date_of_joining') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'date_of_joining')),
             "date_of_birth": format_date(safe_get(user.personal_details, 'date_of_birth') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'date_of_birth')),
+            "date_of_leaving": format_date(safe_get(user.personal_details, 'date_of_leaving') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'date_of_leaving')),
             "gender": safe_get(user.personal_details, 'gender') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'gender'),
             "mobile": safe_get(user.personal_details, 'mobile') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'mobile'),
             "status": safe_get(user, 'status', 'active'),
             "manager_id": str(safe_get(user, 'manager_id', '')) if safe_get(user, 'manager_id') else '',
-            "address": safe_get(user, 'address', ''),
+            "address": safe_get(user.personal_details, 'address') if hasattr(user, 'personal_details') and user.personal_details else safe_get(user, 'address'),
             "emergency_contact": safe_get(user, 'emergency_contact', ''),
             "blood_group": safe_get(user, 'blood_group', ''),
             "location": safe_get(user, 'location', ''),
@@ -343,57 +344,6 @@ async def get_user_by_email(
 ) -> UserResponseDTO:
     """Get user by email address."""
     return await controller.get_user_by_email(email, current_user)
-
-@router.get("")
-async def get_users(
-    skip: int = Query(0, ge=0, description="Number of records to skip"),
-    limit: int = Query(20, ge=1, le=100, description="Maximum number of records to return"),
-    include_inactive: bool = Query(False, description="Include inactive users"),
-    include_deleted: bool = Query(False, description="Include deleted users"),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller)
-) -> Dict[str, Any]:
-    """Get all users with pagination and filters."""
-    try:
-        result = await controller.get_all_users(
-            skip=skip,
-            limit=limit,
-            include_inactive=include_inactive,
-            include_deleted=include_deleted,
-            current_user=current_user
-        )
-        
-        return {
-            "users": [
-                {
-                    "employee_id": user.employee_id,
-                    "name": user.name,
-                    "email": user.email,
-                    "mobile": user.mobile,
-                    "role": user.role,
-                    "status": user.status,
-                    "department": user.department,
-                    "designation": user.designation,
-                    "date_of_joining": user.date_of_joining,
-                    "manager_id": getattr(user, 'manager_id', None),
-                    "location": getattr(user, 'location', None),
-                    "gender": getattr(user, 'gender', None),
-                    "is_active": user.is_active,
-                    "is_locked": user.is_locked,
-                    "profile_completion_percentage": user.profile_completion_percentage,
-                    "last_login_at": user.last_login_at,
-                    "created_at": user.created_at
-                }
-                for user in result.users
-            ],
-            "total": result.total_count,
-            "skip": skip,
-            "limit": limit,
-            "organisation": current_user.hostname
-        }
-    except Exception as e:
-        logger.error(f"Error getting users for organisation {current_user.hostname}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/search", response_model=UserListResponseDTO)
 async def search_users(
@@ -892,3 +842,50 @@ async def get_user_statistics(
 ) -> UserStatisticsDTO:
     """Get comprehensive user analytics and statistics."""
     return await controller.get_user_statistics(current_user)
+
+@router.get("")
+async def get_users(
+    skip: int = Query(0, ge=0, description="Number of records to skip for pagination"),
+    limit: int = Query(10, ge=1, le=1000, description="Number of records to return for pagination"),
+    include_inactive: bool = Query(False, description="Include inactive users"),
+    include_deleted: bool = Query(False, description="Include deleted users"),
+    organisation_id: Optional[str] = Query(None, description="Organisation ID to filter users"),
+    search: Optional[str] = Query(None, description="Search query for users"),
+    department: Optional[str] = Query(None, description="Filter by department"),
+    role: Optional[str] = Query(None, description="Filter by role"),
+    manager_id: Optional[str] = Query(None, description="Filter by manager ID"),
+    designation: Optional[str] = Query(None, description="Filter by designation"),
+    location: Optional[str] = Query(None, description="Filter by location"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+) -> Dict[str, Any]:
+    """Get a paginated list of users with optional filters."""
+    try:
+        filters = {
+            "skip": skip,
+            "limit": limit,
+            "include_inactive": include_inactive,
+            "include_deleted": include_deleted,
+            "organisation_id": organisation_id,
+            "search": search,
+            "department": department,
+            "role": role,
+            "manager_id": manager_id,
+            "designation": designation,
+            "location": location
+        }
+        # Remove None values
+        filters = {k: v for k, v in filters.items() if v is not None}
+        result = await controller.get_all_users(**filters, current_user=current_user)
+        return {
+            "total": result.total_count,
+            "users": result.users,
+            "page": result.page,
+            "page_size": result.page_size,
+            "total_pages": result.total_pages,
+            "has_next": result.has_next,
+            "has_previous": result.has_previous
+        }
+    except Exception as e:
+        logger.error(f"Error fetching users for organisation {current_user.hostname}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch users: {str(e)}")

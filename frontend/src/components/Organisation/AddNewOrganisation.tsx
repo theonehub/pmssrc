@@ -33,6 +33,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { getToken } from '../../shared/utils/auth';
 import { API_CONFIG } from '../../shared/utils/constants';
+import { normalizeFilePath } from '../../shared/utils/apiUtils';
 
 interface ToastState {
   open: boolean;
@@ -190,7 +191,7 @@ const AddNewOrganisation: React.FC = () => {
 
         // Set logo preview if exists
         if (org.logo_path) {
-          setLogoPreview(`${API_CONFIG.BASE_URL}/${org.logo_path}`);
+          setLogoPreview(`${API_CONFIG.BASE_URL}/files/${normalizeFilePath(org.logo_path)}`);
         }
 
       } catch (error: any) {

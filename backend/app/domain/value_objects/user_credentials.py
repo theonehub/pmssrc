@@ -162,11 +162,11 @@ class UserPermissions:
     
     def can_manage_users(self) -> bool:
         """Check if user can manage other users"""
-        return self.role in [UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.HR]
+        return self.role in [UserRole.SUPERADMIN, UserRole.ADMIN]
     
     def can_view_reports(self) -> bool:
         """Check if user can view reports"""
-        return self.role in [UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.HR, UserRole.FINANCE]
+        return self.role in [UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.MANAGER]
     
     def can_approve_requests(self) -> bool:
         """Check if user can approve requests"""
@@ -198,20 +198,9 @@ class UserPermissions:
                 "user.read", "team.manage", "attendance.approve",
                 "leave.approve", "reports.team"
             ],
-            UserRole.HR: [
-                "user.create", "user.read", "user.update",
-                "employee.manage", "leave.manage", "reports.hr"
-            ],
-            UserRole.FINANCE: [
-                "user.read", "payroll.manage", "reimbursement.approve",
-                "reports.finance", "taxation.manage"
-            ],
             UserRole.USER: [
                 "profile.read", "profile.update", "attendance.mark",
                 "leave.apply", "reimbursement.apply"
-            ],
-            UserRole.READONLY: [
-                "profile.read", "reports.view"
             ]
         }
         
@@ -227,7 +216,6 @@ class UserPermissions:
         resource_rules = {
             "users": {
                 UserRole.ADMIN: ["read", "create", "update"],
-                UserRole.HR: ["read", "create", "update"],
                 UserRole.MANAGER: ["read"]
             },
             "attendance": {
@@ -237,7 +225,6 @@ class UserPermissions:
             },
             "leaves": {
                 UserRole.ADMIN: ["read", "create", "update", "delete"],
-                UserRole.HR: ["read", "create", "update", "approve"],
                 UserRole.MANAGER: ["read", "approve"],
                 UserRole.USER: ["read", "create"]
             }

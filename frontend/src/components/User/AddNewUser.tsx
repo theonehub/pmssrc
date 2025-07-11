@@ -337,21 +337,13 @@ const AddNewUser: React.FC = () => {
       const hasFiles = files.panFile || files.aadharFile || files.photo;
       
       if (hasFiles) {
-        // Create a FileList-like object for the dataService
-        const fileList = Object.values(files).filter(Boolean) as File[];
-        const fileListObj = {
-          length: fileList.length,
-          item: (index: number) => fileList[index] || null,
-          [Symbol.iterator]: function* () {
-            for (let i = 0; i < this.length; i++) {
-              yield this.item(i);
-            }
-          }
-        } as FileList;
-        
-        await dataService.createUserWithFiles(formData, fileListObj);
+        // Only include non-null files in the payload
+        const filePayload: { panFile?: File; aadharFile?: File; photo?: File } = {};
+        if (files.panFile) filePayload.panFile = files.panFile;
+        if (files.aadharFile) filePayload.aadharFile = files.aadharFile;
+        if (files.photo) filePayload.photo = files.photo;
+        await dataService.createUserWithFiles(formData, filePayload);
       } else {
-        // Use the regular endpoint
         await dataService.createUser(formData);
       }
       

@@ -158,10 +158,10 @@ async def create_organisation(
             filename = f"{timestamp}_{logo.filename}"
             
             # Ensure uploads directory exists
-            os.makedirs("uploads/logos", exist_ok=True)
+            os.makedirs("uploads/organisation/logos", exist_ok=True)
             
             # Save file
-            logo_path = f"uploads/logos/{filename}"
+            logo_path = f"uploads/organisation/logos/{filename}"
             with open(logo_path, "wb") as f:
                 f.write(await logo.read())
 

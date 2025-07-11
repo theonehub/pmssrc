@@ -29,6 +29,7 @@ class CreateEmployeeRequest:
     email: str
     date_of_joining: date
     date_of_birth: date
+    date_of_leaving: Optional[date] = None
     
     # Optional fields
     phone: Optional[str] = None
@@ -85,6 +86,7 @@ class CreateEmployeeResponse:
     department: Optional[str]
     designation: Optional[str]
     date_of_joining: date
+    date_of_leaving: Optional[date] = None
     employee_type: str
     status: str
     current_salary: float
@@ -199,7 +201,7 @@ class EmployeeResponse:
     phone: Optional[str]
     date_of_joining: date
     date_of_birth: date
-    date_of_joining: date
+    date_of_leaving: Optional[date] = None
     age: int
     years_of_service: int
     employee_type: str

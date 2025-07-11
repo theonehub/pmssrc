@@ -22,7 +22,7 @@ from app.application.interfaces.repositories.reimbursement_repository import (
     ReimbursementQueryRepository,
     ReimbursementTypeQueryRepository
 )
-from app.application.interfaces.repositories.employee_repository import EmployeeQueryRepository
+from app.application.interfaces.repositories.user_repository import UserQueryRepository
 from app.application.interfaces.services.event_publisher import EventPublisher
 from app.application.interfaces.services.notification_service import NotificationService
 
@@ -47,7 +47,7 @@ class ApproveReimbursementRequestUseCase:
         command_repository: ReimbursementCommandRepository,
         query_repository: ReimbursementQueryRepository,
         reimbursement_type_repository: ReimbursementTypeQueryRepository,
-        employee_repository: EmployeeQueryRepository,
+        employee_repository: UserQueryRepository,
         event_publisher: EventPublisher,
         notification_service: Optional[NotificationService] = None
     ):

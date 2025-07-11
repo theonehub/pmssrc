@@ -32,6 +32,7 @@ class CreateUserRequestDTO:
     mobile: str
     
     # Optional fields with defaults
+    date_of_leaving: Optional[str] = None
     role: str = UserRole.USER.value
     pan_number: Optional[str] = None
     aadhar_number: Optional[str] = None
@@ -114,6 +115,7 @@ class UpdateUserRequestDTO:
     gender: Optional[str] = None
     date_of_birth: Optional[str] = None
     date_of_joining: Optional[str] = None
+    date_of_leaving: Optional[str] = None
     mobile: Optional[str] = None
     pan_number: Optional[str] = None
     aadhar_number: Optional[str] = None
@@ -316,7 +318,8 @@ class UserSearchFiltersDTO:
         
         valid_sort_fields = [
             "name", "email", "role", "status", "department", "designation",
-            "created_at", "updated_at", "last_login_at", "date_of_joining"
+            "created_at", "updated_at", "last_login_at", "date_of_joining", 
+            "date_of_leaving"
         ]
         if self.sort_by not in valid_sort_fields:
             errors.append(f"Invalid sort field. Must be one of: {', '.join(valid_sort_fields)}")
@@ -375,6 +378,7 @@ class PersonalDetailsResponseDTO:
     date_of_birth: str
     date_of_joining: str
     mobile: str
+    date_of_leaving: Optional[str] = None
     pan_number: Optional[str] = None
     aadhar_number: Optional[str] = None
     uan_number: Optional[str] = None
@@ -395,6 +399,7 @@ class PersonalDetailsResponseDTO:
             gender=personal_details.gender.value,
             date_of_birth=personal_details.date_of_birth.isoformat(),
             date_of_joining=personal_details.date_of_joining.isoformat(),
+            date_of_leaving=personal_details.date_of_leaving.isoformat() if personal_details.date_of_leaving else None,
             mobile=personal_details.mobile,
             pan_number=personal_details.pan_number,
             aadhar_number=personal_details.aadhar_number,
@@ -421,6 +426,22 @@ class UserDocumentsResponseDTO:
     completion_percentage: float = 0.0
     missing_documents: List[str] = None
 
+    @classmethod
+    def from_value_object(cls, documents_vo):
+        """Create UserDocumentsResponseDTO from UserDocuments value object"""
+        if not documents_vo:
+            return None
+        return cls(
+            photo_path=documents_vo.photo_path,
+            pan_document_path=documents_vo.pan_document_path,
+            aadhar_document_path=documents_vo.aadhar_document_path,
+            has_photo=documents_vo.has_photo() if hasattr(documents_vo, 'has_photo') else False,
+            has_pan_document=documents_vo.has_pan_document() if hasattr(documents_vo, 'has_pan_document') else False,
+            has_aadhar_document=documents_vo.has_aadhar_document() if hasattr(documents_vo, 'has_aadhar_document') else False,
+            completion_percentage=documents_vo.get_document_completion_percentage() if hasattr(documents_vo, 'get_document_completion_percentage') else 0.0,
+            missing_documents=documents_vo.get_missing_documents() if hasattr(documents_vo, 'get_missing_documents') else []
+        )
+
 
 @dataclass
 class BankDetailsResponseDTO:
@@ -440,6 +461,23 @@ class BankDetailsResponseDTO:
     branch_code: Optional[str] = None
     is_valid_for_payment: bool = False
 
+    @classmethod
+    def from_value_object(cls, bank_details_vo):
+        """Create BankDetailsResponseDTO from BankDetails value object"""
+        if not bank_details_vo:
+            return None
+        return cls(
+            account_number=bank_details_vo.account_number,
+            bank_name=bank_details_vo.bank_name,
+            ifsc_code=bank_details_vo.ifsc_code,
+            account_holder_name=bank_details_vo.account_holder_name,
+            branch_name=bank_details_vo.branch_name,
+            account_type=bank_details_vo.account_type,  
+            masked_account_number=bank_details_vo.get_masked_account_number(),
+            formatted_account_number=bank_details_vo.get_formatted_account_number(),
+            is_valid_for_payment=bank_details_vo.is_valid_for_payment() if hasattr(bank_details_vo, 'is_valid_for_payment') else False
+        )
+
 
 @dataclass
 class UserPermissionsResponseDTO:
@@ -455,6 +493,22 @@ class UserPermissionsResponseDTO:
     can_approve_requests: bool = False
     is_admin: bool = False
     is_superadmin: bool = False
+
+    @classmethod
+    def from_value_object(cls, permissions_vo):
+        """Create UserPermissionsResponseDTO from UserPermissions value object"""
+        if not permissions_vo:
+            return None
+        return cls(
+            role=permissions_vo.role.value if hasattr(permissions_vo.role, 'value') else str(permissions_vo.role),
+            custom_permissions=list(permissions_vo.custom_permissions) if permissions_vo.custom_permissions else [],
+            resource_permissions=dict(permissions_vo.resource_permissions) if permissions_vo.resource_permissions else {},
+            can_manage_users=permissions_vo.can_manage_users() if hasattr(permissions_vo, 'can_manage_users') else False,
+            can_view_reports=permissions_vo.can_view_reports() if hasattr(permissions_vo, 'can_view_reports') else False,
+            can_approve_requests=permissions_vo.can_approve_requests() if hasattr(permissions_vo, 'can_approve_requests') else False,
+            is_admin=permissions_vo.is_admin() if hasattr(permissions_vo, 'is_admin') else False,
+            is_superadmin=permissions_vo.is_superadmin() if hasattr(permissions_vo, 'is_superadmin') else False
+        )
 
 
 @dataclass
@@ -603,6 +657,7 @@ class UserSummaryDTO:
     department: Optional[str] = None
     designation: Optional[str] = None
     date_of_joining: Optional[str] = None
+    date_of_leaving: Optional[str] = None
     last_login_at: Optional[str] = None
     created_at: str = None
     is_active: bool = False
@@ -644,17 +699,24 @@ class UserSummaryDTO:
             except (AttributeError, TypeError):
                 return default
         
+        # Prefer personal_details for mobile, gender, date_of_joining if present
+        personal_details = safe_get_attr(user, 'personal_details')
+        mobile = safe_get_attr(personal_details, 'mobile') if personal_details else safe_get_attr(user, 'mobile', '')
+        gender = safe_enum_value(safe_get_attr(personal_details, 'gender')) if personal_details else safe_enum_value(safe_get_attr(user, 'gender'))
+        date_of_joining = format_datetime(safe_get_attr(personal_details, 'date_of_joining')) if personal_details else format_datetime(safe_get_attr(user, 'date_of_joining'))
+        
         return cls(
             employee_id=str(safe_get_attr(user, 'employee_id', '')),
             name=safe_get_attr(user, 'name', ''),
             email=safe_get_attr(user, 'email', ''),
             role=safe_enum_value(safe_get_attr(user, 'role')) or 'user',
             status=safe_enum_value(safe_get_attr(user, 'status')) or 'active',
-            mobile=safe_get_attr(user, 'mobile', ''),
-            gender=safe_enum_value(safe_get_attr(user, 'gender')),
+            mobile=mobile or '',
+            gender=gender,
             department=safe_get_attr(user, 'department'),
             designation=safe_get_attr(user, 'designation'),
-            date_of_joining=format_datetime(safe_get_attr(user, 'date_of_joining')),
+            date_of_joining=date_of_joining,
+            date_of_leaving=format_datetime(safe_get_attr(user, 'date_of_leaving')),
             last_login_at=format_datetime(safe_get_attr(user, 'last_login')),
             created_at=format_datetime(safe_get_attr(user, 'created_at')),
             is_active=safe_bool_value(user, 'is_active', True),

@@ -107,6 +107,8 @@ async def checkin_bulk(
             responses.append(response_out)
 
             current_date += timedelta(days=1)
+        
+        return responses
     except Exception as e:
         logger.error(f"Unexpected error during check-in: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")

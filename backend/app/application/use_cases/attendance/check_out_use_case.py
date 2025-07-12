@@ -23,7 +23,7 @@ from app.application.interfaces.repositories.attendance_repository import (
     AttendanceCommandRepository,
     AttendanceQueryRepository
 )
-from app.application.interfaces.repositories.employee_repository import EmployeeQueryRepository
+from app.application.interfaces.repositories.user_repository import UserQueryRepository
 from app.application.interfaces.services.event_publisher import EventPublisher
 from app.application.interfaces.services.notification_service import NotificationService
 from app.utils.logger import get_logger
@@ -60,7 +60,7 @@ class CheckOutUseCase:
         self,
         attendance_command_repository: AttendanceCommandRepository,
         attendance_query_repository: AttendanceQueryRepository,
-        employee_repository: EmployeeQueryRepository,
+        employee_repository: UserQueryRepository,
         event_publisher: EventPublisher,
         notification_service: Optional[NotificationService] = None
     ):

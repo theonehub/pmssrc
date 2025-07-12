@@ -17,7 +17,7 @@ from app.application.interfaces.repositories.attendance_repository import (
     AttendanceCommandRepository,
     AttendanceQueryRepository
 )
-from app.application.interfaces.repositories.employee_repository import EmployeeQueryRepository
+from app.application.interfaces.repositories.user_repository import UserQueryRepository
 from app.application.use_cases.attendance.check_in_use_case import CheckInUseCase
 from app.application.use_cases.attendance.check_out_use_case import CheckOutUseCase
 from app.utils.logger import get_logger
@@ -37,7 +37,7 @@ class PunchUseCase:
         self,
         attendance_command_repository: AttendanceCommandRepository,
         attendance_query_repository: AttendanceQueryRepository,
-        employee_repository: EmployeeQueryRepository,
+        employee_repository: UserQueryRepository,
         check_in_use_case: CheckInUseCase,
         check_out_use_case: CheckOutUseCase
     ):

@@ -49,7 +49,6 @@ class SalaryPackageRecord:
     tax_year: TaxYear
     age: int
     regime: TaxRegime
-    
     deductions: TaxDeductions
     
     # Optional components
@@ -58,6 +57,7 @@ class SalaryPackageRecord:
     perquisites: Optional[Perquisites] = None
     retirement_benefits: Optional[RetirementBenefits] = None
     other_income: Optional[OtherIncome] = None
+    is_regime_update_allowed: Optional[bool] = True
     arrears: List[Money] = field(default_factory=lambda: [Money.zero() for _ in range(12)])
     is_government_employee: bool = False
     is_senior_citizen: bool = False

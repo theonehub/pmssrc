@@ -961,6 +961,16 @@ class UpdateRegimeComponentRequest(BaseModel):
             raise ValueError("Regime must be 'old' or 'new'")
         return v
 
+class IsRegimeUpdateAllowedRequest(BaseModel):
+    """Request to check if regime update is allowed."""
+    employee_id: str = Field(..., description="Employee ID")
+    tax_year: str = Field(..., description="Tax year (e.g., '2024-25')")
+
+class IsRegimeUpdateAllowedResponse(BaseModel):
+    """Response to check if regime update is allowed."""
+    is_allowed: bool = Field(..., description="Whether regime update is allowed")
+    regime_type: str = Field(..., description="Regime type")
+    message: str = Field(..., description="Message")
 
 class ComponentUpdateResponse(BaseModel):
     """Response for individual component updates."""

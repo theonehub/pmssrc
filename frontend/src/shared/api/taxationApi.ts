@@ -616,6 +616,7 @@ class TaxationAPI {
     try {
       const url = `/api/v2/taxation/records/employee/${request.employee_id}/component/monthly_payroll`;
       return await this.baseApi.patch(url, {
+        employee_id: request.employee_id,
         tax_year: request.tax_year,
         monthly_payroll: request.monthly_payroll,
         notes: request.notes
@@ -639,8 +640,9 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      const url = `/api/v2/taxation/records/employee/${request.employee_id}/component/regime`;
-      return await this.baseApi.patch(url, {
+      const url = `/api/v2/taxation/records/employee/${request.employee_id}/regime`;
+      return await this.baseApi.put(url, {    
+        employee_id: request.employee_id,
         tax_year: request.tax_year,
         regime_type: request.regime_type,
         age: request.age,
@@ -664,6 +666,20 @@ class TaxationAPI {
       return await this.baseApi.get(url);
     } catch (error) {
       console.error('Error fetching taxation record status:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if regime update is allowed for an employee and tax year
+   */
+  async isRegimeUpdateAllowed(employee_id: string, tax_year: string): Promise<{ is_allowed: boolean; regime_type: 'old' | 'new'; message?: string }> {
+    try {
+      const url = `/api/v2/taxation/records/employee/${employee_id}/regime/allowed`;
+      // Backend expects query parameters for GET request
+      return await this.baseApi.get(url, { params: { tax_year } });
+    } catch (error) {
+      console.error('Error checking if regime update is allowed:', error);
       throw error;
     }
   }

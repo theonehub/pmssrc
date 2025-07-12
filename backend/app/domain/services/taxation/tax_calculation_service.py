@@ -538,43 +538,50 @@ class TaxCalculationService:
                                is_super_senior_citizen: bool) -> Money:
         """Calculate tax liability based on tax slabs."""
         # Get tax slabs
-        if regime.regime_type == TaxRegimeType.OLD:
-            slabs = self._get_old_regime_slabs(age, is_senior_citizen, is_super_senior_citizen)
-        else:
-            slabs = self._get_new_regime_slabs()
+        slabs = regime.get_tax_slabs(age)
+        print(f"TheOne: Slabs: {slabs}")
+        rebate_limit = regime.get_rebate_87a_limit()
+        print(f"TheOne: Rebate limit: {rebate_limit}")
+        max_rebate = regime.get_max_rebate_87a()
+        print(f"TheOne: Max rebate: {max_rebate}")
+
+        # if regime.regime_type == TaxRegimeType.OLD:
+        #     slabs = self._get_old_regime_slabs(age, is_senior_citizen, is_super_senior_citizen)
+        # else:
+        #     slabs = self._get_new_regime_slabs()
 
         print(f"TheOne: Slabs: {slabs}")
         
         # Calculate tax for each slab using progressive taxation
         tax_amount = Money(Decimal('0'))
-        
-        for slab in slabs:
-            slab_min = Money(slab["min"])
-            slab_max = Money(slab["max"]) if slab["max"] is not None else taxable_income
-            slab_rate = Decimal(str(slab["rate"])) / Decimal('100')
-            
-            # Calculate taxable amount in this slab
-            if taxable_income > slab_min:
-                # Amount of income that falls in this slab
-                if slab["max"] is not None:
-                    # For slabs with upper limit: min(taxable_income, slab_max) - slab_min
-                    income_in_slab = taxable_income.min(slab_max).subtract(slab_min)
-                else:
-                    # For highest slab (no upper limit): taxable_income - slab_min
-                    income_in_slab = taxable_income.subtract(slab_min)
+        if taxable_income.is_greater_than(rebate_limit):
+            for slab in slabs:
+                slab_min = Money(slab["min"])
+                slab_max = Money(slab["max"]) if slab["max"] is not None else taxable_income
+                slab_rate = Decimal(str(slab["rate"])) / Decimal('100')
                 
-                # Ensure we don't have negative income in slab
-                if income_in_slab.is_greater_than(Money.zero()):
-                    tax_for_slab = income_in_slab.multiply(slab_rate)
-                    tax_amount = tax_amount.add(tax_for_slab)
+                # Calculate taxable amount in this slab
+                if taxable_income > slab_min:
+                    # Amount of income that falls in this slab
+                    if slab["max"] is not None:
+                        # For slabs with upper limit: min(taxable_income, slab_max) - slab_min
+                        income_in_slab = taxable_income.min(slab_max).subtract(slab_min)
+                    else:
+                        # For highest slab (no upper limit): taxable_income - slab_min
+                        income_in_slab = taxable_income.subtract(slab_min)
                     
-                    logger.info(f"TheOne: Slab ({slab_min.to_float()}-{slab_max.to_float() if slab['max'] else 'unlimited'}): "
-                               f"income_in_slab={income_in_slab.to_float()}, rate={slab_rate}, "
-                               f"tax_for_slab={tax_for_slab.to_float()}, total_tax={tax_amount.to_float()}")
-            else:
-                logger.info(f"TheOne: Skipping slab ({slab_min.to_float()}-{slab_max.to_float() if slab['max'] else 'unlimited'}): "
-                           f"taxable_income {taxable_income.to_float()} <= slab_min {slab_min.to_float()}")
-        
+                    # Ensure we don't have negative income in slab
+                    if income_in_slab.is_greater_than(Money.zero()):
+                        tax_for_slab = income_in_slab.multiply(slab_rate)
+                        tax_amount = tax_amount.add(tax_for_slab)
+                        
+                        logger.info(f"TheOne: Slab ({slab_min.to_float()}-{slab_max.to_float() if slab['max'] else 'unlimited'}): "
+                                f"income_in_slab={income_in_slab.to_float()}, rate={slab_rate}, "
+                                f"tax_for_slab={tax_for_slab.to_float()}, total_tax={tax_amount.to_float()}")
+                else:
+                    logger.info(f"TheOne: Skipping slab ({slab_min.to_float()}-{slab_max.to_float() if slab['max'] else 'unlimited'}): "
+                            f"taxable_income {taxable_income.to_float()} <= slab_min {slab_min.to_float()}")
+            
         # Add STCG tax
         tax_amount = tax_amount.add(additional_tax_liability)
         

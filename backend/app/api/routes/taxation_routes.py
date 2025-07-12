@@ -33,6 +33,8 @@ from app.application.dto.taxation_dto import (
     UpdateOtherIncomeComponentRequest,
     UpdateMonthlyPayrollComponentRequest,
     UpdateRegimeComponentRequest,
+    IsRegimeUpdateAllowedRequest,
+    IsRegimeUpdateAllowedResponse,
     
     # Component Retrieval DTOs
     ComponentResponse,
@@ -517,6 +519,36 @@ async def update_monthly_payroll_component(
             detail=f"Failed to update monthly payroll component: {str(e)}"
         )
 
+
+@router.get("/records/employee/{employee_id}/regime/allowed",
+            response_model=IsRegimeUpdateAllowedResponse,
+            status_code=status.HTTP_200_OK,
+            summary="Check if regime update is allowed",
+            description="Check if regime update is allowed for a specific employee and tax year")
+async def is_regime_update_allowed(
+    employee_id: str,
+    tax_year: str = Query(..., description="Tax year (e.g., '2024-25')"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UnifiedTaxationController = Depends(get_taxation_controller)
+) -> IsRegimeUpdateAllowedResponse:
+    """Check if regime update is allowed."""
+    logger.info(f"Checking if regime update is allowed for employee {employee_id} and tax year {tax_year}")
+    try:
+        # Create request object for controller
+        request = IsRegimeUpdateAllowedRequest(
+            employee_id=employee_id,
+            tax_year=tax_year
+        )
+        response = await controller.is_regime_update_allowed(
+            request, current_user.hostname
+        )
+        logger.info(f"Regime update is allowed: {response.is_allowed}")
+        return response 
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to check if regime update is allowed: {str(e)}"
+        )
 
 @router.put("/records/employee/{employee_id}/regime",
             response_model=ComponentUpdateResponse,

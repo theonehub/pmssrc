@@ -476,6 +476,7 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             "tax_year": str(record.tax_year),
             "age": record.age,
             "is_government_employee": record.is_government_employee,
+            "is_regime_update_allowed": record.is_regime_update_allowed,  # <--- Add this line
             
             # Core data - Salary incomes (list)
             "salary_incomes": [self._serialize_salary_income(salary) for salary in record.salary_incomes],
@@ -532,6 +533,7 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             tax_year=TaxYear.from_string(document["tax_year"]),
             age=document["age"],
             is_government_employee=document.get("is_government_employee", False),
+            is_regime_update_allowed=document.get("is_regime_update_allowed", True),  # <--- Add this line
             regime=regime,
             salary_incomes=salary_incomes,
             deductions=deductions,

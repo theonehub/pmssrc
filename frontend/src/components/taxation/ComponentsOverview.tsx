@@ -125,8 +125,29 @@ const ComponentsOverview: React.FC = () => {
       const section80c = data.section_80c || {};
       const section80d = data.section_80d || {};
       
-      const totalDeductions = Object.values(section80c).reduce((sum: number, val: any) => sum + (Number(val) || 0), 0) +
-                             Object.values(section80d).reduce((sum: number, val: any) => sum + (Number(val) || 0), 0);
+      // Fields to ignore when calculating total deductions
+      const ignoredFields = [
+        'limit',
+        'remaining_limit',
+        'limit_80ccd_1b',
+        'parent_age',
+        'self_family_limit',
+        'parent_limit',
+        'preventive_limit',
+        'exemption_limit'
+      ];
+      
+      // Filter out ignored fields and calculate total for section 80C
+      const section80cTotal = Object.entries(section80c)
+        .filter(([key]) => !ignoredFields.includes(key))
+        .reduce((sum: number, [, val]) => sum + (Number(val) || 0), 0);
+      
+      // Filter out ignored fields and calculate total for section 80D
+      const section80dTotal = Object.entries(section80d)
+        .filter(([key]) => !ignoredFields.includes(key))
+        .reduce((sum: number, [, val]) => sum + (Number(val) || 0), 0);
+      
+      const totalDeductions = section80cTotal + section80dTotal;
       
       return {
         id: 'deductions',

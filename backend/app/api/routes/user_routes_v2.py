@@ -129,7 +129,7 @@ async def get_current_user_profile(
             "email": user.email,
             "department": user.department,
             "designation": user.designation,
-            "role": user.role,
+            "role": user.permissions.role.value,
             "organisation": current_user.hostname,
             "last_login": user.last_login_at,
             "permissions": current_user.permissions

@@ -369,6 +369,11 @@ class ComputeMonthlySalaryUseCase:
             basic_salary=monthly_salary.salary.basic_salary.to_float(),
             da=monthly_salary.salary.dearness_allowance.to_float(),
             hra=monthly_salary.salary.hra_provided.to_float(),
+            pf_employee_contribution=monthly_salary.salary.pf_employee_contribution.to_float(),
+            pf_employer_contribution=monthly_salary.salary.pf_employer_contribution.to_float(),
+            esi_contribution=monthly_salary.salary.esi_contribution.to_float(),
+            pf_voluntary_contribution=monthly_salary.salary.pf_voluntary_contribution.to_float(),
+            pf_total_contribution=monthly_salary.salary.pf_total_contribution.to_float(),
             special_allowance=monthly_salary.salary.special_allowance.to_float(),
             transport_allowance=0.0,  # Not in current model
             medical_allowance=0.0,  # Not in current model

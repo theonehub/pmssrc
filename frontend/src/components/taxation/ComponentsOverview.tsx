@@ -139,6 +139,7 @@ const ComponentsOverview: React.FC = () => {
       const ignoredFields = [
         'limit',
         'remaining_limit',
+        'total_invested',
         'limit_80ccd_1b',
         'parent_age',
         'self_family_limit',

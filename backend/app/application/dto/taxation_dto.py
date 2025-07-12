@@ -22,6 +22,10 @@ class SalaryIncomeDTO(BaseModel):
     bonus: Decimal = Field(default=0, ge=0)
     commission: Decimal = Field(default=0, ge=0)
     special_allowance: Decimal = Field(default=0, ge=0)
+    pf_employee_contribution: Decimal = Field(default=0, ge=0)
+    pf_employer_contribution: Decimal = Field(default=0, ge=0)
+    pf_voluntary_contribution: Decimal = Field(default=0, ge=0)
+    esi_contribution: Decimal = Field(default=0, ge=0)
 
     # Effective date fields for salary revisions
     effective_from: Optional[date] = Field(None, description="Effective from date for salary revision")
@@ -278,6 +282,145 @@ class TaxDeductionsDTO(BaseModel):
                 "hra_city_type": self.hra_city_type,
             },
         }
+
+
+# Nested section DTOs for flexible deductions handling
+class Section80CDTO(BaseModel):
+    """Section 80C deductions DTO."""
+    life_insurance_premium: Decimal = Field(default=0, ge=0)
+    epf_contribution: Decimal = Field(default=0, ge=0)
+    ppf_contribution: Decimal = Field(default=0, ge=0)
+    nsc_investment: Decimal = Field(default=0, ge=0)
+    tax_saving_fd: Decimal = Field(default=0, ge=0)
+    elss_investment: Decimal = Field(default=0, ge=0)
+    home_loan_principal: Decimal = Field(default=0, ge=0)
+    tuition_fees: Decimal = Field(default=0, ge=0)
+    ulip_premium: Decimal = Field(default=0, ge=0)
+    sukanya_samriddhi: Decimal = Field(default=0, ge=0)
+    stamp_duty_property: Decimal = Field(default=0, ge=0)
+    senior_citizen_savings: Decimal = Field(default=0, ge=0)
+    other_80c_investments: Decimal = Field(default=0, ge=0)
+
+
+class Section80DDTO(BaseModel):
+    """Section 80D deductions DTO."""
+    self_family_premium: Decimal = Field(default=0, ge=0)
+    parent_premium: Decimal = Field(default=0, ge=0)
+    preventive_health_checkup: Decimal = Field(default=0, ge=0)
+    employee_age: int = Field(default=25, ge=18, le=100)
+    parent_age: int = Field(default=55, ge=18, le=120)
+
+
+class FlexibleDeductionsDTO(BaseModel):
+    """Flexible deductions DTO that can handle both flat and nested structures."""
+    
+    # Accept nested structure (what frontend sends)
+    section_80c: Optional[Section80CDTO] = None
+    section_80d: Optional[Section80DDTO] = None
+    education_loan_interest: Decimal = Field(default=0, ge=0)
+    savings_account_interest: Decimal = Field(default=0, ge=0)
+    
+    # Also accept flat structure fields for backward compatibility
+    life_insurance_premium: Optional[Decimal] = None
+    epf_contribution: Optional[Decimal] = None
+    ppf_contribution: Optional[Decimal] = None
+    nsc_investment: Optional[Decimal] = None
+    tax_saving_fd: Optional[Decimal] = None
+    elss_investment: Optional[Decimal] = None
+    home_loan_principal: Optional[Decimal] = None
+    tuition_fees: Optional[Decimal] = None
+    ulip_premium: Optional[Decimal] = None
+    sukanya_samriddhi: Optional[Decimal] = None
+    stamp_duty_property: Optional[Decimal] = None
+    senior_citizen_savings: Optional[Decimal] = None
+    other_80c_investments: Optional[Decimal] = None
+    
+    # Section 80D flat fields
+    self_family_premium: Optional[Decimal] = None
+    parent_premium: Optional[Decimal] = None
+    preventive_health_checkup: Optional[Decimal] = None
+    
+    # HRA fields
+    actual_rent_paid: Decimal = Field(default=0, ge=0)
+    hra_city_type: str = Field(default="non_metro")
+    
+    # Other deduction fields
+    ev_loan_interest: Decimal = Field(default=0, ge=0)
+    political_party_contribution: Decimal = Field(default=0, ge=0)
+    
+    def to_flat_structure(self) -> TaxDeductionsDTO:
+        """Convert to flat structure for backward compatibility."""
+        flat_dto = TaxDeductionsDTO()
+        
+        # Handle nested section_80c
+        if self.section_80c:
+            flat_dto.life_insurance_premium = self.section_80c.life_insurance_premium
+            flat_dto.epf_contribution = self.section_80c.epf_contribution
+            flat_dto.ppf_contribution = self.section_80c.ppf_contribution
+            flat_dto.nsc_investment = self.section_80c.nsc_investment
+            flat_dto.tax_saving_fd = self.section_80c.tax_saving_fd
+            flat_dto.elss_investment = self.section_80c.elss_investment
+            flat_dto.home_loan_principal = self.section_80c.home_loan_principal
+            flat_dto.tuition_fees = self.section_80c.tuition_fees
+            flat_dto.ulip_premium = self.section_80c.ulip_premium
+            flat_dto.sukanya_samriddhi = self.section_80c.sukanya_samriddhi
+            flat_dto.stamp_duty_property = self.section_80c.stamp_duty_property
+            flat_dto.senior_citizen_savings = self.section_80c.senior_citizen_savings
+            flat_dto.other_80c_investments = self.section_80c.other_80c_investments
+        else:
+            # Use flat fields if available
+            if self.life_insurance_premium is not None:
+                flat_dto.life_insurance_premium = self.life_insurance_premium
+            if self.epf_contribution is not None:
+                flat_dto.epf_contribution = self.epf_contribution
+            if self.ppf_contribution is not None:
+                flat_dto.ppf_contribution = self.ppf_contribution
+            if self.nsc_investment is not None:
+                flat_dto.nsc_investment = self.nsc_investment
+            if self.tax_saving_fd is not None:
+                flat_dto.tax_saving_fd = self.tax_saving_fd
+            if self.elss_investment is not None:
+                flat_dto.elss_investment = self.elss_investment
+            if self.home_loan_principal is not None:
+                flat_dto.home_loan_principal = self.home_loan_principal
+            if self.tuition_fees is not None:
+                flat_dto.tuition_fees = self.tuition_fees
+            if self.ulip_premium is not None:
+                flat_dto.ulip_premium = self.ulip_premium
+            if self.sukanya_samriddhi is not None:
+                flat_dto.sukanya_samriddhi = self.sukanya_samriddhi
+            if self.stamp_duty_property is not None:
+                flat_dto.stamp_duty_property = self.stamp_duty_property
+            if self.senior_citizen_savings is not None:
+                flat_dto.senior_citizen_savings = self.senior_citizen_savings
+            if self.other_80c_investments is not None:
+                flat_dto.other_80c_investments = self.other_80c_investments
+        
+        # Handle nested section_80d
+        if self.section_80d:
+            flat_dto.self_family_premium = self.section_80d.self_family_premium
+            flat_dto.parent_premium = self.section_80d.parent_premium
+            flat_dto.preventive_health_checkup = self.section_80d.preventive_health_checkup
+            flat_dto.employee_age = self.section_80d.employee_age
+            flat_dto.parent_age = self.section_80d.parent_age
+        else:
+            # Use flat fields if available
+            if self.self_family_premium is not None:
+                flat_dto.self_family_premium = self.self_family_premium
+            if self.parent_premium is not None:
+                flat_dto.parent_premium = self.parent_premium
+            if self.preventive_health_checkup is not None:
+                flat_dto.preventive_health_checkup = self.preventive_health_checkup
+        
+        # Copy other fields
+        flat_dto.education_loan_interest = self.education_loan_interest
+        flat_dto.savings_account_interest = self.savings_account_interest
+        flat_dto.actual_rent_paid = self.actual_rent_paid
+        flat_dto.hra_city_type = self.hra_city_type
+        flat_dto.ev_loan_interest = self.ev_loan_interest
+        flat_dto.political_party_contribution = self.political_party_contribution
+        
+        return flat_dto
 
 # =============================================================================
 # ENHANCED CALCULATION REQUEST DTOs
@@ -903,7 +1046,7 @@ class UpdateDeductionsComponentRequest(BaseModel):
     """Request to update deductions component individually."""
     employee_id: str = Field(..., description="Employee ID")
     tax_year: str = Field(..., description="Tax year (e.g., '2024-25')")
-    deductions: TaxDeductionsDTO = Field(..., description="Deductions data")
+    deductions: FlexibleDeductionsDTO = Field(..., description="Deductions data")
     notes: Optional[str] = Field(None, description="Optional notes for the update")
 
 
@@ -1054,6 +1197,10 @@ class MonthlySalaryResponseDTO(BaseModel):
     commission: float = Field(default=0.0, description="Commission")
     other_allowances: float = Field(default=0.0, description="Other allowances")
     arrears: float = Field(default=0.0, description="Arrears")
+    pf_employee_contribution: float = Field(default=0.0, description="PF employee contribution")
+    pf_employer_contribution: float = Field(default=0.0, description="PF employer contribution")
+    esi_contribution: float = Field(default=0.0, description="ESI contribution")
+    pf_voluntary_contribution: float = Field(default=0.0, description="PF voluntary contribution")
     
     # Deductions
     epf_employee: float = Field(default=0.0, description="EPF employee contribution")

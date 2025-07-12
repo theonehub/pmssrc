@@ -5,6 +5,10 @@ export interface SalaryIncomeDTO {
   basic_salary: number;
   dearness_allowance: number;
   hra_provided: number;
+  pf_employee_contribution: number;
+  pf_employer_contribution: number;
+  esi_contribution: number;
+  pf_voluntary_contribution: number;
   special_allowance: number;
   bonus: number;
   commission: number;

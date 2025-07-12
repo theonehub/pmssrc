@@ -11,6 +11,9 @@ from typing import Dict, Any
 from app.domain.value_objects.money import Money
 from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
 
+from app.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 @dataclass
 class SpecificAllowances:
@@ -292,7 +295,12 @@ class SalaryIncome:
     dearness_allowance: Money
     hra_provided: Money
     special_allowance: Money
-    
+    pf_employee_contribution: Money = Money.zero()
+    pf_employer_contribution: Money = Money.zero()
+    esi_contribution: Money = Money.zero()
+    pf_voluntary_contribution: Money = Money.zero()
+    pf_total_contribution: Money = Money.zero()
+
     # Optional components with defaults
     bonus: Money = Money.zero()
     commission: Money = Money.zero()
@@ -305,6 +313,10 @@ class SalaryIncome:
         """Initialize defaults."""
         if self.specific_allowances is None:
             self.specific_allowances = SpecificAllowances()
+
+        if self.pf_total_contribution is None:
+            self.pf_total_contribution = self.pf_employee_contribution.add(self.pf_employer_contribution).add(self.pf_voluntary_contribution).add(self.esi_contribution)
+
         # Remove automatic setting of effective_from - it must be provided by user
         # if self.effective_from is None:
         #     self.effective_from = datetime.now()

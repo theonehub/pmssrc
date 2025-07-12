@@ -66,6 +66,65 @@ class ExportController:
                 # Convert entities to DTOs (simplified)
                 salary_data = []
                 for salary in salary_data:
+                    # Calculate total provident fund if available
+                    pf_total = 0.0
+                    pf_fields = {
+                        'pf_employee_contribution': 0.0,
+                        'pf_employer_contribution': 0.0,
+                        'esi_contribution': 0.0,
+                        'pf_voluntary_contribution': 0.0,
+                        'pf_total_contribution': 0.0
+                    }
+                    
+                    # Expand all specific allowances
+                    allowances = {}
+                    if hasattr(salary.salary, 'specific_allowances') and salary.salary.specific_allowances:
+                        sa = salary.salary.specific_allowances
+                        allowances = {
+                            'monthly_hills_allowance': sa.monthly_hills_allowance.to_float(),
+                            'monthly_hills_exemption_limit': sa.monthly_hills_exemption_limit.to_float(),
+                            'monthly_border_allowance': sa.monthly_border_allowance.to_float(),
+                            'monthly_border_exemption_limit': sa.monthly_border_exemption_limit.to_float(),
+                            'transport_employee_allowance': sa.transport_employee_allowance.to_float(),
+                            'children_education_allowance': sa.children_education_allowance.to_float(),
+                            'children_education_count': sa.children_education_count,
+                            'hostel_allowance': sa.hostel_allowance.to_float(),
+                            'children_hostel_count': sa.children_hostel_count,
+                            'disabled_transport_allowance': sa.disabled_transport_allowance.to_float(),
+                            'is_disabled': sa.is_disabled,
+                            'underground_mines_allowance': sa.underground_mines_allowance.to_float(),
+                            'mine_work_months': sa.mine_work_months,
+                            'government_entertainment_allowance': sa.government_entertainment_allowance.to_float(),
+                            'city_compensatory_allowance': sa.city_compensatory_allowance.to_float(),
+                            'rural_allowance': sa.rural_allowance.to_float(),
+                            'proctorship_allowance': sa.proctorship_allowance.to_float(),
+                            'wardenship_allowance': sa.wardenship_allowance.to_float(),
+                            'project_allowance': sa.project_allowance.to_float(),
+                            'deputation_allowance': sa.deputation_allowance.to_float(),
+                            'overtime_allowance': sa.overtime_allowance.to_float(),
+                            'interim_relief': sa.interim_relief.to_float(),
+                            'tiffin_allowance': sa.tiffin_allowance.to_float(),
+                            'fixed_medical_allowance': sa.fixed_medical_allowance.to_float(),
+                            'servant_allowance': sa.servant_allowance.to_float(),
+                            'any_other_allowance': sa.any_other_allowance.to_float(),
+                            'any_other_allowance_exemption': sa.any_other_allowance_exemption.to_float(),
+                            'govt_employees_outside_india_allowance': sa.govt_employees_outside_india_allowance.to_float(),
+                            'supreme_high_court_judges_allowance': sa.supreme_high_court_judges_allowance.to_float(),
+                            'judge_compensatory_allowance': sa.judge_compensatory_allowance.to_float(),
+                            'section_10_14_special_allowances': sa.section_10_14_special_allowances.to_float(),
+                            'travel_on_tour_allowance': sa.travel_on_tour_allowance.to_float(),
+                            'tour_daily_charge_allowance': sa.tour_daily_charge_allowance.to_float(),
+                            'conveyance_in_performace_of_duties': sa.conveyance_in_performace_of_duties.to_float(),
+                            'helper_in_performace_of_duties': sa.helper_in_performace_of_duties.to_float(),
+                            'academic_research': sa.academic_research.to_float(),
+                            'uniform_allowance': sa.uniform_allowance.to_float(),
+                            'hills_allowance': sa.hills_allowance.to_float(),
+                            'border_allowance': sa.border_allowance.to_float(),
+                            'hills_exemption_limit': sa.hills_exemption_limit.to_float(),
+                            'border_exemption_limit': sa.border_exemption_limit.to_float(),
+                            'children_count': sa.children_count
+                        }
+
                     salary_dict = {
                         'employee_id': str(salary.employee_id),
                         'employee_name': None,  # Would need user data
@@ -76,13 +135,18 @@ class ExportController:
                         'basic_salary': salary.salary.basic_salary.to_float(),
                         'hra': salary.salary.hra_provided.to_float(),
                         'da': salary.salary.dearness_allowance.to_float(),
-                        'other_allowances': 0.0,
                         'gross_salary': salary.salary.calculate_gross_salary().to_float(),
-                        'pf': 0.0,  # Would need calculation
+                        'pf': pf_total,  # Updated with calculated PF
                         'pt': 0.0,  # Would need calculation
                         'tds': salary.tax_amount.to_float(),
                         'net_salary': salary.net_salary.to_float(),
-                        'status': 'computed'
+                        'status': 'computed',
+                        'pf_employee_contribution': salary.salary.pf_employee_contribution.to_float(),
+                        'pf_employer_contribution': salary.salary.pf_employer_contribution.to_float(),
+                        'esi_contribution': salary.salary.esi_contribution.to_float(),
+                        'pf_voluntary_contribution': salary.salary.pf_voluntary_contribution.to_float(),
+                        'pf_total_contribution': salary.salary.pf_total_contribution.to_float(),
+                        **allowances
                     }
                     salary_data.append(salary_dict)
             

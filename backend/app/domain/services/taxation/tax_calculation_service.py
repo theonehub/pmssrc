@@ -241,7 +241,13 @@ class TaxCalculationService:
                 latest_salary = salary_package_record.get_latest_salary_income()
                 response["latest_salary_info"] = {
                     "basic_salary": latest_salary.basic_salary.to_float(),
+                    "dearness_allowance": latest_salary.dearness_allowance.to_float(),
                     "hra_provided": latest_salary.hra_provided.to_float(),
+                    "pf_employee_contribution": latest_salary.pf_employee_contribution.to_float(),
+                    "pf_employer_contribution": latest_salary.pf_employer_contribution.to_float(),
+                    "esi_contribution": latest_salary.esi_contribution.to_float(),
+                    "pf_voluntary_contribution": latest_salary.pf_voluntary_contribution.to_float(),
+                    "pf_total_contribution": latest_salary.pf_total_contribution.to_float(),
                     "special_allowance": latest_salary.special_allowance.to_float(),
                     "bonus": latest_salary.bonus.to_float(),
                     "commission": latest_salary.commission.to_float(),

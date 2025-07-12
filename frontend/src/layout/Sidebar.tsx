@@ -168,13 +168,13 @@ const Sidebar: React.FC = () => {
           title: 'My Salary Components',
           icon: <CurrencyRupeeIcon />,
           path: '/my-salary',
-          roles: ['user', 'manager', 'admin', 'superadmin'],
+          roles: ['user', 'manager'],
         },
         {
           title: 'My Salary History',
           icon: <ReceiptIcon />,
           path: '/my-salary-history',
-          roles: ['user', 'manager', 'admin', 'superadmin'],
+          roles: ['user', 'manager'],
         },
         {
           title: 'Component Management',

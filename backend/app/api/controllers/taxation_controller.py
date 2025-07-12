@@ -54,6 +54,7 @@ from app.application.dto.taxation_dto import (
     ComponentResponse,
     TaxationRecordStatusResponse,
     FlatRetirementBenefitsDTO,
+    FlexibleDeductionsDTO,
     
     # Monthly Salary DTOs
     MonthlySalaryComputeRequestDTO,
@@ -306,6 +307,11 @@ class UnifiedTaxationController:
             basic_salary=Money.zero(),
             dearness_allowance=Money.zero(),
             hra_provided=Money.zero(),
+            pf_employee_contribution=Money.zero(),
+            pf_employer_contribution=Money.zero(),
+            pf_voluntary_contribution=Money.zero(),
+            pf_total_contribution=Money.zero(),
+            esi_contribution=Money.zero(),
             special_allowance=Money.zero(),
             bonus=Money.zero(),
             commission=Money.zero(),
@@ -454,7 +460,7 @@ class UnifiedTaxationController:
             academic_research=Money.from_decimal(getattr(salary_dto, 'academic_research', 0)),
             uniform_allowance=Money.from_decimal(getattr(salary_dto, 'uniform_allowance', 0))
         )
-        
+
         return SalaryIncome(
             effective_from=effective_from,
             effective_till=effective_till,
@@ -462,6 +468,11 @@ class UnifiedTaxationController:
             dearness_allowance=Money.from_decimal(salary_dto.dearness_allowance),
             hra_provided=Money.from_decimal(salary_dto.hra_provided),
             special_allowance=Money.from_decimal(salary_dto.special_allowance),
+            pf_employee_contribution=Money.from_decimal(getattr(salary_dto, 'pf_employee_contribution', 0)),
+            pf_employer_contribution=Money.from_decimal(getattr(salary_dto, 'pf_employer_contribution', 0)),
+            esi_contribution=Money.from_decimal(getattr(salary_dto, 'esi_contribution', 0)),
+            pf_voluntary_contribution=Money.from_decimal(getattr(salary_dto, 'pf_voluntary_contribution', 0)),
+            pf_total_contribution=Money.from_decimal(getattr(salary_dto, 'pf_total_contribution', 0)),
             # Optional components with defaults
             bonus=Money.from_decimal(getattr(salary_dto, 'bonus', 0)),
             commission=Money.from_decimal(getattr(salary_dto, 'commission', 0)),
@@ -507,30 +518,31 @@ class UnifiedTaxationController:
         def safe_money_from_value(value, default=0):
             """Safely convert a value to Money, handling various edge cases."""
             import decimal
+            from app.domain.value_objects.money import Money as MoneyClass
             try:
                 # Handle None or empty values
                 if value is None or value == "":
-                    return Money.from_decimal(default)
+                    return MoneyClass.from_decimal(default)
                 
                 # Handle string values that might be invalid
                 if isinstance(value, str):
                     # Strip whitespace and handle common invalid values
                     value = value.strip()
                     if value.lower() in ['null', 'undefined', 'nan', 'none', '']:
-                        return Money.from_decimal(default)
+                        return MoneyClass.from_decimal(default)
                 
                 # Try to convert to float first, then to decimal
                 if isinstance(value, (int, float)):
-                    return Money.from_decimal(float(value))
+                    return MoneyClass.from_decimal(float(value))
                 elif isinstance(value, str):
-                    return Money.from_decimal(float(value))
+                    return MoneyClass.from_decimal(float(value))
                 else:
                     # For any other type, try direct conversion
-                    return Money.from_decimal(value)
+                    return MoneyClass.from_decimal(value)
                     
             except (ValueError, TypeError, decimal.InvalidOperation, decimal.ConversionSyntax) as e:
                 logger.warning(f"Failed to convert value '{value}' to Money, using default {default}: {str(e)}")
-                return Money.from_decimal(default)
+                return MoneyClass.from_decimal(default)
 
         # Map Section 80C fields - handle both nested and flat structures
         try:
@@ -659,10 +671,10 @@ class UnifiedTaxationController:
         # Log final deductions total
         try:
             from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
-            from app.domain.value_objects.money import Money
+            from app.domain.value_objects.money import Money as MoneyClass
             regime = TaxRegime(TaxRegimeType.NEW)  # Default to new regime for calculation
             # Use default values for age and gross_income since we don't have them in this context
-            total_deductions = deductions.calculate_total_deductions(regime, 30, Money.zero())
+            total_deductions = deductions.calculate_total_deductions(regime, 30, MoneyClass.zero())
             logger.info(f"Final deductions total after conversion: {total_deductions}")
         except Exception as e:
             logger.error(f"Error calculating total deductions: {str(e)}")
@@ -676,8 +688,18 @@ class UnifiedTaxationController:
             logger.warning("Received None for comprehensive deductions DTO, creating default deductions")
             return self._create_default_deductions()
         
-        # This method would handle the comprehensive deductions conversion
-        # For now, we'll use the existing deductions conversion logic
+        # Handle FlexibleDeductionsDTO (new DTO that can handle nested structure)
+        if hasattr(comp_deductions_dto, 'to_flat_structure'):
+            logger.info("Converting FlexibleDeductionsDTO to flat structure")
+            try:
+                flat_dto = comp_deductions_dto.to_flat_structure()
+                logger.debug(f"Converted to flat DTO - life_insurance_premium: {flat_dto.life_insurance_premium}")
+                return self._convert_deductions_dto_to_entity(flat_dto)
+            except Exception as e:
+                logger.error(f"Error converting FlexibleDeductionsDTO to flat structure: {str(e)}")
+                return self._create_default_deductions()
+        
+        # Fallback to existing conversion logic for backward compatibility
         return self._convert_deductions_dto_to_entity(comp_deductions_dto)
     
     def _convert_perquisites_dto_to_entity(self, perquisites_dto) -> Perquisites:
@@ -693,9 +715,10 @@ class UnifiedTaxationController:
         
         # Helper function to safely convert to Money
         def safe_money_from_value(value, default=0):
+            from app.domain.value_objects.money import Money as MoneyClass
             if value is None:
-                return Money.from_decimal(Decimal(str(default)))
-            return Money.from_decimal(Decimal(str(value)))
+                return MoneyClass.from_decimal(Decimal(str(default)))
+            return MoneyClass.from_decimal(Decimal(str(value)))
         
         # Helper function to safely convert enum values
         def safe_enum_from_value(enum_class, value, default_value):
@@ -818,8 +841,9 @@ class UnifiedTaxationController:
         )
         
         # Convert gift voucher
+        from app.domain.value_objects.money import Money as MoneyClass
         gift_voucher = GiftVoucherPerquisite(
-            gift_voucher_amount=Money.zero()
+            gift_voucher_amount=MoneyClass.zero()
         )
         
         # Convert monetary benefits
@@ -1051,7 +1075,12 @@ class UnifiedTaxationController:
                 hra_provided=Money.zero(),
                 special_allowance=Money.zero(),
                 bonus=Money.zero(),
-                commission=Money.zero()
+                commission=Money.zero(),
+                pf_employee_contribution=Money.zero(),
+                pf_employer_contribution=Money.zero(),
+                esi_contribution=Money.zero(),
+                pf_voluntary_contribution=Money.zero(),
+                pf_total_contribution=Money.zero(),
             )
         
         # Create default deductions
@@ -1675,7 +1704,12 @@ class UnifiedTaxationController:
                 "special_allowance": salary.special_allowance.to_float(),
                 "hra_provided": salary.hra_provided.to_float(),
                 "bonus": salary.bonus.to_float(),
-                "commission": salary.commission.to_float()
+                "commission": salary.commission.to_float(),
+                "pf_employee_contribution": salary.pf_employee_contribution.to_float(),
+                "pf_employer_contribution": salary.pf_employer_contribution.to_float(),
+                "esi_contribution": salary.esi_contribution.to_float(),
+                "pf_voluntary_contribution": salary.pf_voluntary_contribution.to_float(),
+                "pf_total_contribution": salary.pf_total_contribution.to_float()
             }
             for i, salary in enumerate(salary_package_record.salary_incomes)
         ]
@@ -1724,11 +1758,18 @@ class UnifiedTaxationController:
             "special_allowance": float(salary_income.special_allowance.amount),
             "bonus": float(salary_income.bonus.amount),
             "commission": float(salary_income.commission.amount),
+            # Add effective dates for frontend to pre-populate
+            "effective_from": salary_income.effective_from.isoformat() if salary_income.effective_from else None,
+            "effective_till": salary_income.effective_till.isoformat() if salary_income.effective_till else None,
             # HRA details are now in deductions module, not salary
             "hra_city_type": "metro",  # Default value for frontend compatibility
             "actual_rent_paid": 0.0,   # Default value for frontend compatibility
+            "pf_employee_contribution": float(salary_income.pf_employee_contribution.amount),
+            "pf_employer_contribution": float(salary_income.pf_employer_contribution.amount),
+            "esi_contribution": float(salary_income.esi_contribution.amount),
+            "pf_voluntary_contribution": float(salary_income.pf_voluntary_contribution.amount)
         }
-        
+
         # Add specific allowances if available
         if salary_income.specific_allowances:
             specific_allowances_data = {
@@ -2648,6 +2689,10 @@ class UnifiedTaxationController:
                 components.get("special_allowance", 0),
                 components.get("bonus", 0),
                 components.get("commission", 0),
+                components.get("pf_employee_contribution", 0),
+                components.get("pf_employer_contribution", 0),
+                components.get("esi_contribution", 0),
+                components.get("pf_voluntary_contribution", 0),
                 total_specific,
                 period.get("monthly_gross_salary", 0),
                 period.get("total_for_period", 0)
@@ -2725,6 +2770,10 @@ class UnifiedTaxationController:
             ("Special Allowance", annual_salary.special_allowance.to_float()),
             ("Bonus", annual_salary.bonus.to_float()),
             ("Commission", annual_salary.commission.to_float()),
+            ("PF Employee Contribution", annual_salary.pf_employee_contribution.to_float()),
+            ("PF Employer Contribution", annual_salary.pf_employer_contribution.to_float()),
+            ("ESI Contribution", annual_salary.esi_contribution.to_float()),
+            ("PF Voluntary Contribution", annual_salary.pf_voluntary_contribution.to_float()),
         ]
         
         row = 2
@@ -3326,6 +3375,10 @@ class UnifiedTaxationController:
             ("Basic Salary", annual_salary.basic_salary.to_float()),
             ("Dearness Allowance", annual_salary.dearness_allowance.to_float()),
             ("HRA Provided", annual_salary.hra_provided.to_float()),
+            ("PF Employee Contribution", annual_salary.pf_employee_contribution.to_float()),
+            ("PF Employer Contribution", annual_salary.pf_employer_contribution.to_float()),
+            ("ESI Contribution", annual_salary.esi_contribution.to_float()),
+            ("PF Voluntary Contribution", annual_salary.pf_voluntary_contribution.to_float()),
             ("Special Allowance", annual_salary.special_allowance.to_float()),
             ("Bonus", annual_salary.bonus.to_float()),
             ("Commission", annual_salary.commission.to_float()),
@@ -3869,6 +3922,10 @@ class UnifiedTaxationController:
             commission=monthly_salary.salary.commission.to_float(),
             other_allowances=0.0,  # Would need to sum specific allowances
             arrears=monthly_salary.salary.arrears.to_float(),
+            pf_employee_contribution=monthly_salary.salary.pf_employee_contribution.to_float(),
+            pf_employer_contribution=monthly_salary.salary.pf_employer_contribution.to_float(),
+            esi_contribution=monthly_salary.salary.esi_contribution.to_float(),
+            pf_voluntary_contribution=monthly_salary.salary.pf_voluntary_contribution.to_float(),
             
             # Deductions
             epf_employee=epf_employee.to_float(),
@@ -4280,8 +4337,8 @@ class UnifiedTaxationController:
 
         Deductions:
         -----------
-        EPF Employee: ₹{epf_employee.to_float():,.2f}
-        ESI Employee: ₹{esi_employee.to_float():,.2f}
+        EPF Employee: ₹{s.pf_employee_contribution.to_float():,.2f}
+        EPF Voluntary: ₹{s.pf_voluntary_contribution.to_float():,.2f}
         Professional Tax: ₹{professional_tax.to_float():,.2f}
         TDS: ₹{tds.to_float():,.2f}
         Advance Deduction: ₹{0.0:,.2f}

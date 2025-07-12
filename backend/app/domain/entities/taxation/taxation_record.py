@@ -1115,6 +1115,8 @@ class SalaryPackageRecord:
         
         # Salary exemptions (core) - use latest salary income
         total_exemptions = total_exemptions.add(self.annual_salary_income.calculate_total_exemptions(self.regime, self.is_government_employee))
+
+        total_exemptions = total_exemptions.add(self.regime.get_standard_deduction())
         
         # Retirement benefits exemptions
         if self.retirement_benefits:

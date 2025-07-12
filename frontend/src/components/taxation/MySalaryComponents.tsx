@@ -2200,6 +2200,16 @@ const MySalaryComponents: React.FC = () => {
   const availableTaxYears = getAvailableTaxYears();
   const employeeId = user?.employee_id;
 
+  // Helper to compute assessment year from tax year
+  const getAssessmentYear = (taxYear: string): string => {
+    const [start, end] = taxYear.split('-');
+    if (!start || !end) return '';
+    const startYear = parseInt(start, 10);
+    // If end is 2 digits, add to century
+    const fullEndYear = end.length === 2 ? (startYear + 1).toString().slice(0, 2) + end : end;
+    return `${startYear + 1}-${(parseInt(fullEndYear, 10) + 1).toString().slice(-2)}`;
+  };
+
   // 1. loadSalaryComponent
   const loadSalaryComponent = useCallback(async (): Promise<ComponentSummary | null> => {
     try {
@@ -3471,7 +3481,7 @@ const MySalaryComponents: React.FC = () => {
               My Salary Components
             </Typography>
             <Typography variant="body1" color="text.secondary">
-              Employee ID: {employeeId} | Tax Year: {selectedTaxYear}
+              Employee ID: {employeeId} | Tax Year: {selectedTaxYear} | Assessment Year: {getAssessmentYear(selectedTaxYear)}
               {!isCurrentYear && (
                 <Chip 
                   label="Previous Year" 

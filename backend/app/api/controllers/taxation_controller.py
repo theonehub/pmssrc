@@ -548,10 +548,9 @@ class UnifiedTaxationController:
         try:
             section_80c_data = safe_get(deductions_data, 'section_80c', {})
             section_80c_keys = [
-                'life_insurance_premium', 'epf_contribution', 'ppf_contribution', 
-                'nsc_investment', 'tax_saving_fd', 'elss_investment', 'home_loan_principal',
+                'life_insurance_premium', 'nsc_investment', 'tax_saving_fd', 'elss_investment',
                 'tuition_fees', 'ulip_premium', 'sukanya_samriddhi', 'stamp_duty_property',
-                'senior_citizen_savings', 'other_80c_investments'
+                'senior_citizen_savings', 'other_80c_investments', 'home_loan_principal'
             ]
             
             if section_80c_data or any(key in deductions_data for key in section_80c_keys):
@@ -560,8 +559,6 @@ class UnifiedTaxationController:
                 # Handle nested structure
                 if section_80c_data:
                     deductions.section_80c.life_insurance_premium = safe_money_from_value(safe_get(section_80c_data, 'life_insurance_premium', 0))
-                    deductions.section_80c.epf_contribution = safe_money_from_value(safe_get(section_80c_data, 'epf_contribution', 0))
-                    deductions.section_80c.ppf_contribution = safe_money_from_value(safe_get(section_80c_data, 'ppf_contribution', 0))
                     deductions.section_80c.nsc_investment = safe_money_from_value(safe_get(section_80c_data, 'nsc_investment', 0))
                     deductions.section_80c.tax_saving_fd = safe_money_from_value(safe_get(section_80c_data, 'tax_saving_fd', 0))
                     deductions.section_80c.elss_investment = safe_money_from_value(safe_get(section_80c_data, 'elss_investment', 0))
@@ -575,8 +572,6 @@ class UnifiedTaxationController:
                 else:
                     # Handle flat structure (from frontend)
                     deductions.section_80c.life_insurance_premium = safe_money_from_value(safe_get(deductions_data, 'life_insurance_premium', 0))
-                    deductions.section_80c.epf_contribution = safe_money_from_value(safe_get(deductions_data, 'epf_contribution', 0))
-                    deductions.section_80c.ppf_contribution = safe_money_from_value(safe_get(deductions_data, 'ppf_contribution', 0))
                     deductions.section_80c.nsc_investment = safe_money_from_value(safe_get(deductions_data, 'nsc_investment', 0))
                     deductions.section_80c.tax_saving_fd = safe_money_from_value(safe_get(deductions_data, 'tax_saving_fd', 0))
                     deductions.section_80c.elss_investment = safe_money_from_value(safe_get(deductions_data, 'elss_investment', 0))
@@ -674,7 +669,7 @@ class UnifiedTaxationController:
             from app.domain.value_objects.money import Money as MoneyClass
             regime = TaxRegime(TaxRegimeType.NEW)  # Default to new regime for calculation
             # Use default values for age and gross_income since we don't have them in this context
-            total_deductions = deductions.calculate_total_deductions(regime, 30, MoneyClass.zero())
+            total_deductions = deductions.calculate_total_deductions(regime, 30, MoneyClass.zero(), MoneyClass.zero())
             logger.info(f"Final deductions total after conversion: {total_deductions}")
         except Exception as e:
             logger.error(f"Error calculating total deductions: {str(e)}")
@@ -1056,6 +1051,8 @@ class UnifiedTaxationController:
         # Create new record with defaults
         employee_id_vo = EmployeeId(employee_id)
         tax_year_vo = TaxYear.from_string(tax_year)
+        user = await self.user_repository.get_by_id(employee_id_vo, organization_id)
+
         
         # Create default salary income
         if salary_income:
@@ -1106,7 +1103,7 @@ class UnifiedTaxationController:
         salary_package_record = SalaryPackageRecord(
             employee_id=employee_id_vo,
             tax_year=tax_year_vo,
-            age=25,  # Default age
+            age=user.get_age_in_years(),
             regime=TaxRegime.old_regime(),  # Default to old regime
             salary_incomes=[default_salary_income],
             deductions=default_deductions,
@@ -1248,7 +1245,7 @@ class UnifiedTaxationController:
             # Log existing deductions before update
             # Calculate gross income for deduction calculations
             gross_income = salary_package_record.calculate_gross_income()
-            existing_deductions_total = salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income)
+            existing_deductions_total = salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income, salary_package_record.get_pf_employee_contribution())
             logger.info(f"Existing deductions total before update: {existing_deductions_total}")
             
             # Update deductions using the salary package record's method
@@ -1257,7 +1254,7 @@ class UnifiedTaxationController:
             salary_package_record.updated_at = datetime.utcnow()
             
             # Log new deductions after update
-            new_deductions_total = salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income) 
+            new_deductions_total = salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income, salary_package_record.get_pf_employee_contribution()) 
             logger.info(f"New deductions total after update: {new_deductions_total}")
             
             # Save to database using salary package repository
@@ -1273,7 +1270,7 @@ class UnifiedTaxationController:
             if verification_record:
                 # Calculate gross income for verification record
                 verify_gross_income = verification_record.calculate_gross_income()
-                verify_deductions_total = verification_record.deductions.calculate_total_deductions(verification_record.regime, verification_record.age, verify_gross_income)
+                verify_deductions_total = verification_record.deductions.calculate_total_deductions(verification_record.regime, verification_record.age, verify_gross_income, verification_record.get_pf_employee_contribution())
                 logger.info(f"Verification successful - Deductions total in database: {verify_deductions_total}")
                 if verify_deductions_total != new_deductions_total:
                     logger.error(f"MISMATCH: Expected {new_deductions_total}, but found {verify_deductions_total} in database")
@@ -1978,11 +1975,11 @@ class UnifiedTaxationController:
             return {
                 "hra_exemption": {"actual_rent_paid": 0.0, "hra_city_type": "non_metro"},
                 "section_80c": {
-                    "life_insurance_premium": 0.0, "epf_contribution": 0.0, "ppf_contribution": 0.0,
+                    "life_insurance_premium": 0.0, "limit": 150000, "remaining_limit": 150000,
                     "nsc_investment": 0.0, "tax_saving_fd": 0.0, "elss_investment": 0.0,
                     "home_loan_principal": 0.0, "tuition_fees": 0.0, "ulip_premium": 0.0,
                     "sukanya_samriddhi": 0.0, "stamp_duty_property": 0.0, "senior_citizen_savings": 0.0,
-                    "other_80c_investments": 0.0, "total_invested": 0.0, "limit": 150000, "remaining_limit": 150000
+                    "other_80c_investments": 0.0, "total_invested": 0.0
                 },
                 "section_80ccc": {"pension_fund_contribution": 0.0},
                 "section_80ccd": {
@@ -2102,11 +2099,11 @@ class UnifiedTaxationController:
         """Serialize Section 80C details."""
         if not section_80c:
             return {
-                "life_insurance_premium": 0.0, "epf_contribution": 0.0, "ppf_contribution": 0.0,
+                "life_insurance_premium": 0.0, "limit": 150000, "remaining_limit": 150000,
                 "nsc_investment": 0.0, "tax_saving_fd": 0.0, "elss_investment": 0.0,
                 "home_loan_principal": 0.0, "tuition_fees": 0.0, "ulip_premium": 0.0,
                 "sukanya_samriddhi": 0.0, "stamp_duty_property": 0.0, "senior_citizen_savings": 0.0,
-                "other_80c_investments": 0.0, "total_invested": 0.0, "limit": 150000, "remaining_limit": 150000
+                "other_80c_investments": 0.0, "total_invested": 0.0
             }
         
         total_invested = float(section_80c.calculate_total_investment().amount)
@@ -2115,8 +2112,6 @@ class UnifiedTaxationController:
         
         return {
             "life_insurance_premium": float(section_80c.life_insurance_premium.amount),
-            "epf_contribution": float(section_80c.epf_contribution.amount),
-            "ppf_contribution": float(section_80c.ppf_contribution.amount),
             "nsc_investment": float(section_80c.nsc_investment.amount),
             "tax_saving_fd": float(section_80c.tax_saving_fd.amount),
             "elss_investment": float(section_80c.elss_investment.amount),
@@ -2286,7 +2281,7 @@ class UnifiedTaxationController:
         regime = TaxRegime(TaxRegimeType.OLD)
         
         # Use default values for age and gross_income since we don't have them in this context
-        total_deductions = float(deductions.calculate_total_deductions(regime, 30, Money.zero()).amount)
+        total_deductions = float(deductions.calculate_total_deductions(regime, 30, Money.zero(), Money.zero()).amount)
         total_interest_exemptions = float(deductions.calculate_interest_exemptions(regime).amount)
         combined_80c_80ccc_80ccd1 = float(deductions.calculate_combined_80c_80ccc_80ccd1_deduction(regime).amount)
         
@@ -3090,7 +3085,7 @@ class UnifiedTaxationController:
         row += 1  # Empty row
         # Calculate gross income for deduction calculations
         gross_income = salary_package_record.calculate_gross_income()
-        total_deductions = deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income).to_float()
+        total_deductions = deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income, salary_package_record.get_pf_employee_contribution()).to_float()
         ws.cell(row=row, column=2, value="TOTAL DEDUCTIONS").border = border
         ws.cell(row=row, column=2).font = Font(bold=True)
         ws.cell(row=row, column=3, value=f"₹{total_deductions:,.2f}").border = border
@@ -3585,7 +3580,7 @@ class UnifiedTaxationController:
         current_row += 1
         # Calculate gross income for deduction calculation
         gross_income = salary_package_record.calculate_gross_income()
-        total_deductions = deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income).to_float()
+        total_deductions = deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income, salary_package_record.get_pf_employee_contribution()).to_float()
         ws.cell(row=current_row, column=1, value="TOTAL DEDUCTIONS").border = border
         ws.cell(row=current_row, column=1).font = Font(bold=True)
         ws.cell(row=current_row, column=2, value=f"₹{total_deductions:,.2f}").border = border

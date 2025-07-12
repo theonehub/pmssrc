@@ -94,8 +94,6 @@ class TaxDeductionsDTO(BaseModel):
     
     # Section 80C fields
     life_insurance_premium: Decimal = Field(default=0, ge=0, description="Life insurance premium")
-    epf_contribution: Decimal = Field(default=0, ge=0, description="EPF contribution")
-    ppf_contribution: Decimal = Field(default=0, ge=0, description="PPF contribution")
     nsc_investment: Decimal = Field(default=0, ge=0, description="NSC investment")
     tax_saving_fd: Decimal = Field(default=0, ge=0, description="Tax saving fixed deposits")
     elss_investment: Decimal = Field(default=0, ge=0, description="ELSS investment")
@@ -213,8 +211,6 @@ class TaxDeductionsDTO(BaseModel):
         return {
             "section_80c": {
                 "life_insurance_premium": self.life_insurance_premium,
-                "epf_contribution": self.epf_contribution,
-                "ppf_contribution": self.ppf_contribution,
                 "nsc_investment": self.nsc_investment,
                 "tax_saving_fd": self.tax_saving_fd,
                 "elss_investment": self.elss_investment,
@@ -288,8 +284,6 @@ class TaxDeductionsDTO(BaseModel):
 class Section80CDTO(BaseModel):
     """Section 80C deductions DTO."""
     life_insurance_premium: Decimal = Field(default=0, ge=0)
-    epf_contribution: Decimal = Field(default=0, ge=0)
-    ppf_contribution: Decimal = Field(default=0, ge=0)
     nsc_investment: Decimal = Field(default=0, ge=0)
     tax_saving_fd: Decimal = Field(default=0, ge=0)
     elss_investment: Decimal = Field(default=0, ge=0)
@@ -322,8 +316,6 @@ class FlexibleDeductionsDTO(BaseModel):
     
     # Also accept flat structure fields for backward compatibility
     life_insurance_premium: Optional[Decimal] = None
-    epf_contribution: Optional[Decimal] = None
-    ppf_contribution: Optional[Decimal] = None
     nsc_investment: Optional[Decimal] = None
     tax_saving_fd: Optional[Decimal] = None
     elss_investment: Optional[Decimal] = None
@@ -355,8 +347,6 @@ class FlexibleDeductionsDTO(BaseModel):
         # Handle nested section_80c
         if self.section_80c:
             flat_dto.life_insurance_premium = self.section_80c.life_insurance_premium
-            flat_dto.epf_contribution = self.section_80c.epf_contribution
-            flat_dto.ppf_contribution = self.section_80c.ppf_contribution
             flat_dto.nsc_investment = self.section_80c.nsc_investment
             flat_dto.tax_saving_fd = self.section_80c.tax_saving_fd
             flat_dto.elss_investment = self.section_80c.elss_investment
@@ -371,10 +361,6 @@ class FlexibleDeductionsDTO(BaseModel):
             # Use flat fields if available
             if self.life_insurance_premium is not None:
                 flat_dto.life_insurance_premium = self.life_insurance_premium
-            if self.epf_contribution is not None:
-                flat_dto.epf_contribution = self.epf_contribution
-            if self.ppf_contribution is not None:
-                flat_dto.ppf_contribution = self.ppf_contribution
             if self.nsc_investment is not None:
                 flat_dto.nsc_investment = self.nsc_investment
             if self.tax_saving_fd is not None:

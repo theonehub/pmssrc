@@ -76,8 +76,6 @@ interface ToastState {
 interface DeductionsData {
   // Section 80C
   life_insurance_premium: number;
-  epf_contribution: number;
-  ppf_contribution: number;
   nsc_investment: number;
   tax_saving_fd: number;
   elss_investment: number;
@@ -312,8 +310,6 @@ const getAvailableTaxYears = (): string[] => {
 // Initial deductions data
 const initialDeductionsData: DeductionsData = {
   life_insurance_premium: 0,
-  epf_contribution: 0,
-  ppf_contribution: 0,
   nsc_investment: 0,
   tax_saving_fd: 0,
   elss_investment: 0,
@@ -511,8 +507,6 @@ const DeductionsDialog: React.FC<DeductionsDialogProps> = ({
 
   const calculate80CTotal = (): number => {
     return deductionsData.life_insurance_premium +
-           deductionsData.epf_contribution +
-           deductionsData.ppf_contribution +
            deductionsData.nsc_investment +
            deductionsData.tax_saving_fd +
            deductionsData.elss_investment +
@@ -537,8 +531,6 @@ const DeductionsDialog: React.FC<DeductionsDialogProps> = ({
       description: 'Tax-saving investments under Section 80C (Max: ₹1,50,000)',
       fields: [
         { name: 'life_insurance_premium', label: 'Life Insurance Premium' },
-        { name: 'epf_contribution', label: 'EPF Contribution' },
-        { name: 'ppf_contribution', label: 'PPF Contribution' },
         { name: 'nsc_investment', label: 'NSC Investment' },
         { name: 'tax_saving_fd', label: 'Tax Saving FD' },
         { name: 'elss_investment', label: 'ELSS Investment' },
@@ -2627,8 +2619,6 @@ const MySalaryComponents: React.FC = () => {
       
       const deductionsData: DeductionsData = {
         life_insurance_premium: section80c.life_insurance_premium || 0,
-        epf_contribution: section80c.epf_contribution || 0,
-        ppf_contribution: section80c.ppf_contribution || 0,
         nsc_investment: section80c.nsc_investment || 0,
         tax_saving_fd: section80c.tax_saving_fd || 0,
         elss_investment: section80c.elss_investment || 0,
@@ -2665,8 +2655,6 @@ const MySalaryComponents: React.FC = () => {
         deductions: {
           section_80c: {
             life_insurance_premium: data.life_insurance_premium,
-            epf_contribution: data.epf_contribution,
-            ppf_contribution: data.ppf_contribution,
             nsc_investment: data.nsc_investment,
             tax_saving_fd: data.tax_saving_fd,
             elss_investment: data.elss_investment,

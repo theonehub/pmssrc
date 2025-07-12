@@ -234,10 +234,10 @@ const SalaryComponentForm: React.FC = () => {
         const processedData = {
           ...responseData,
           effective_from: responseData.effective_from 
-            ? new Date(responseData.effective_from).toISOString().split('T')[0]
+            ? responseData.effective_from.split('T')[0]
             : undefined,
           effective_till: responseData.effective_till 
-            ? new Date(responseData.effective_till).toISOString().split('T')[0]
+            ? responseData.effective_till.split('T')[0]
             : undefined
         };
         

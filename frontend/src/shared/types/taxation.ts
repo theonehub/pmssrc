@@ -114,8 +114,6 @@ export interface TaxDeductionsDTO {
   hra_exemption?: HRAExemptionDTO;
   section_80c: {
     life_insurance_premium: number;
-    epf_contribution: number;
-    ppf_contribution: number;
     nsc_investment: number;
     tax_saving_fd: number;
     elss_investment: number;

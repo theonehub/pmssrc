@@ -20,7 +20,6 @@ from app.domain.entities.taxation.perquisites import Perquisites
 from app.domain.entities.taxation.house_property_income import HousePropertyIncome
 from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 from app.domain.entities.taxation.other_income import OtherIncome
-from app.domain.entities.taxation.payout import PayoutMonthlyProjection
 from app.domain.services.taxation.tax_calculation_service import TaxCalculationService, TaxCalculationResult
 from app.domain.value_objects.taxation.tax_regime import TaxRegimeType
 
@@ -585,6 +584,10 @@ class SalaryPackageRecord:
         weighted_special_allowance = Money.zero()
         weighted_bonus = Money.zero()
         weighted_commission = Money.zero()
+        weighted_pf_employee_contribution = Money.zero()
+        weighted_pf_employer_contribution = Money.zero()
+        weighted_pf_voluntary_contribution = Money.zero()
+        weighted_esi_contribution = Money.zero()
         
         # Track weighted specific allowances
         weighted_specific_allowances = {}
@@ -630,6 +633,18 @@ class SalaryPackageRecord:
                 weighted_commission = weighted_commission.add(
                     salary_income.commission.multiply(months_applicable)
                 )
+                weighted_pf_employee_contribution = weighted_pf_employee_contribution.add(
+                    salary_income.pf_employee_contribution.multiply(months_applicable)
+                )
+                weighted_pf_employer_contribution = weighted_pf_employer_contribution.add(
+                    salary_income.pf_employer_contribution.multiply(months_applicable)
+                )
+                weighted_pf_voluntary_contribution = weighted_pf_voluntary_contribution.add(
+                    salary_income.pf_voluntary_contribution.multiply(months_applicable)
+                )
+                weighted_esi_contribution = weighted_esi_contribution.add(
+                    salary_income.esi_contribution.multiply(months_applicable)
+                )
                 
                 # Handle specific allowances if present
                 if salary_income.specific_allowances:
@@ -656,6 +671,10 @@ class SalaryPackageRecord:
             annual_salary.special_allowance = weighted_special_allowance
             annual_salary.bonus = weighted_bonus
             annual_salary.commission = weighted_commission
+            annual_salary.pf_employee_contribution = weighted_pf_employee_contribution
+            annual_salary.pf_employer_contribution = weighted_pf_employer_contribution
+            annual_salary.pf_voluntary_contribution = weighted_pf_voluntary_contribution
+            annual_salary.esi_contribution = weighted_esi_contribution
             
             # Update specific allowances with weighted totals
             if weighted_specific_allowances:
@@ -894,6 +913,12 @@ class SalaryPackageRecord:
             total = total.add(arrear)
         return total
     
+    def get_pf_employee_contribution(self) -> Money:
+        """
+        Get the PF employee contribution.
+        """
+        return self.get_annual_salary_income().get_pf_employee_contribution()
+    
     def additional_tax_liability(self) -> Money:
         """
         Calculate additional tax liability from all sources.
@@ -926,7 +951,9 @@ class SalaryPackageRecord:
         logger.info(f"TheOne: Total exemptions: {total_exemptions}")
 
         # Calculate total deductions
-        total_deductions = self.deductions.calculate_total_deductions(self.regime, self.age, gross_income)
+        total_deductions = self.deductions.calculate_total_deductions(self.regime, self.age, 
+                                gross_income, self.get_pf_employee_contribution())
+        
         logger.info(f"TheOne: Total deductions: {total_deductions}")
 
         income_after_exemptions = gross_income.subtract(total_exemptions)
@@ -1277,9 +1304,9 @@ class SalaryPackageRecord:
         
         # Calculate gross income for deduction calculations
         gross_income = self.calculate_gross_income()
-        old_deductions = self.deductions.calculate_total_deductions(self.regime, self.age, gross_income)
+        old_deductions = self.deductions.calculate_total_deductions(self.regime, self.age, gross_income, self.get_pf_employee_contribution())
         self.deductions = new_deductions
-        new_deductions_total = new_deductions.calculate_total_deductions(self.regime, self.age, gross_income)
+        new_deductions_total = new_deductions.calculate_total_deductions(self.regime, self.age, gross_income, self.get_pf_employee_contribution())
         
         # Invalidate calculation
         self._invalidate_calculation()
@@ -1530,7 +1557,7 @@ class SalaryPackageRecord:
         if self.regime.allows_deductions():
             # Check if deductions are underutilized
             gross_income = self.calculate_gross_income()
-            total_deductions = self.deductions.calculate_total_deductions(self.regime, self.age, gross_income)
+            total_deductions = self.deductions.calculate_total_deductions(self.regime, self.age, gross_income, self.get_pf_employee_contribution())
             if total_deductions.is_less_than(Money.from_int(100000)):  # Less than 1 lakh
                 warnings.append("Consider maximizing tax-saving investments under Section 80C")
             

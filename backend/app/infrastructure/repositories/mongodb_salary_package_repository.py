@@ -121,7 +121,7 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             # Log deductions before conversion
             # Calculate gross income for deduction calculations
             gross_income = salary_package_record.calculate_gross_income()
-            deductions_total = salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income)
+            deductions_total = salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income, salary_package_record.get_pf_employee_contribution())
             logger.info(f"Record deductions total before conversion: {deductions_total}")
             
             document = self._convert_to_document(salary_package_record)
@@ -463,7 +463,7 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         # Log deductions before serialization
         # Calculate gross income for deduction calculations
         gross_income = record.calculate_gross_income()
-        deductions_total = record.deductions.calculate_total_deductions(record.regime, record.age, gross_income)
+        deductions_total = record.deductions.calculate_total_deductions(record.regime, record.age, gross_income, record.get_pf_employee_contribution())
         logger.debug(f"Deductions total before serialization: {deductions_total}")
         
         # Serialize deductions
@@ -653,8 +653,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         
         return {
             "life_insurance_premium": section_80c.life_insurance_premium.to_float(),
-            "epf_contribution": section_80c.epf_contribution.to_float(),
-            "ppf_contribution": section_80c.ppf_contribution.to_float(),
             "nsc_investment": section_80c.nsc_investment.to_float(),
             "tax_saving_fd": section_80c.tax_saving_fd.to_float(),
             "elss_investment": section_80c.elss_investment.to_float(),
@@ -1116,8 +1114,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         """Deserialize Section 80C from document format."""
         return DeductionSection80C(
             life_insurance_premium=Money.from_float(section_80c_doc.get("life_insurance_premium", 0.0)),
-            epf_contribution=Money.from_float(section_80c_doc.get("epf_contribution", 0.0)),
-            ppf_contribution=Money.from_float(section_80c_doc.get("ppf_contribution", 0.0)),
             nsc_investment=Money.from_float(section_80c_doc.get("nsc_investment", 0.0)),
             tax_saving_fd=Money.from_float(section_80c_doc.get("tax_saving_fd", 0.0)),
             elss_investment=Money.from_float(section_80c_doc.get("elss_investment", 0.0)),

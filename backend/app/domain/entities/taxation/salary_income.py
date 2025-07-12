@@ -334,13 +334,20 @@ class SalaryIncome:
                 .add(self.commission)               #considered for doc
                 .add(self.hra_provided)             #considered for doc
                 .add(self.special_allowance)        
-                .add(self.arrears))
+                .add(self.arrears)
+                .add(self.pf_employee_contribution))
         
         # Add specific allowances if available
         if self.specific_allowances:
             gross = gross.add(self.specific_allowances.calculate_total_specific_allowances())
         
         return gross
+    
+    def get_pf_employee_contribution(self) -> Money:
+        """
+        Get the PF employee contribution.
+        """
+        return self.pf_employee_contribution + self.pf_voluntary_contribution
 
     def calculate_basic_plus_da(self) -> Money:
         """
@@ -360,8 +367,13 @@ class SalaryIncome:
         Returns:
             Money: Total exemptions
         """
-        total_exemptions = Money.zero()
+        if regime.regime_type == TaxRegimeType.NEW:
+            return Money.zero()
         
+        #TODO: Need to check if this is correct
+        total_exemptions = Money.zero()
+        total_exemptions = self.pf_employee_contribution.add(self.pf_voluntary_contribution).min(Money.from_int(250000))
+
         # Specific allowances exemptions
         if self.specific_allowances:
             total_exemptions = total_exemptions.add(self.specific_allowances.calculate_total_specific_allowances_exemptions(regime, self.basic_salary, is_government_employee))

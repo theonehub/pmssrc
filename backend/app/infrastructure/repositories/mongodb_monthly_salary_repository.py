@@ -1273,8 +1273,6 @@ class MongoDBMonthlySalaryRepository(MonthlySalaryRepository):
             return None
         return {
             "life_insurance_premium": section_80c.life_insurance_premium.to_float(),
-            "epf_contribution": section_80c.epf_contribution.to_float(),
-            "ppf_contribution": section_80c.ppf_contribution.to_float(),
             "nsc_investment": section_80c.nsc_investment.to_float(),
             "tax_saving_fd": section_80c.tax_saving_fd.to_float(),
             "elss_investment": section_80c.elss_investment.to_float(),
@@ -1800,8 +1798,6 @@ class MongoDBMonthlySalaryRepository(MonthlySalaryRepository):
         return TaxDeductions(
             section_80c=DeductionSection80C(
                 life_insurance_premium=Money.from_float(section_80c.get("life_insurance_premium", 0.0)),
-                epf_contribution=Money.from_float(section_80c.get("epf_contribution", 0.0)),
-                ppf_contribution=Money.from_float(section_80c.get("ppf_contribution", 0.0)),
                 nsc_investment=Money.from_float(section_80c.get("nsc_investment", 0.0)),
                 tax_saving_fd=Money.from_float(section_80c.get("tax_saving_fd", 0.0)),
                 elss_investment=Money.from_float(section_80c.get("elss_investment", 0.0)),

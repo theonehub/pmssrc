@@ -701,18 +701,21 @@ class UserSummaryDTO:
                 return bool(value) if value is not None else default
             except (AttributeError, TypeError):
                 return default
-        
+        user_role = "user"
         # Prefer personal_details for mobile, gender, date_of_joining if present
         personal_details = safe_get_attr(user, 'personal_details')
         mobile = safe_get_attr(personal_details, 'mobile') if personal_details else safe_get_attr(user, 'mobile', '')
         gender = safe_enum_value(safe_get_attr(personal_details, 'gender')) if personal_details else safe_enum_value(safe_get_attr(user, 'gender'))
         date_of_joining = format_datetime(safe_get_attr(personal_details, 'date_of_joining')) if personal_details else format_datetime(safe_get_attr(user, 'date_of_joining'))
-        
+        permissions = safe_get_attr(user, 'permissions')
+        if permissions:
+            user_role = permissions.role.value
+
         return cls(
             employee_id=str(safe_get_attr(user, 'employee_id', '')),
             name=safe_get_attr(user, 'name', ''),
             email=safe_get_attr(user, 'email', ''),
-            role=safe_enum_value(safe_get_attr(user, 'role')) or 'user',
+            role=user_role,
             status=safe_enum_value(safe_get_attr(user, 'status')) or 'active',
             mobile=mobile or '',
             gender=gender,

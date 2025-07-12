@@ -31,7 +31,9 @@ import {
   ArrowUpward as ArrowUpwardIcon,
   ArrowDownward as ArrowDownwardIcon,
   Search as SearchIcon,
-  Info as InfoIcon
+  Info as InfoIcon,
+  Visibility,
+  PlaylistAddCheck
 } from '@mui/icons-material';
 import AttendanceCalendar from './AttendanceCalendar';
 import { useUsersQuery } from '../../shared/hooks/useUsers';
@@ -480,22 +482,25 @@ const AttendanceUserList: React.FC = () => {
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => handleViewAttendance(user.employee_id || '')}
-                      >
-                        View Attendance
-                      </Button>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => handleBulkAttendance(user.employee_id || '')}
-                      >
-                        Bulk Attendance
-                      </Button>
+                      <Tooltip title="View Attendance">
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => handleViewAttendance(user.employee_id || '')}
+                          sx={{ mr: 1 }}
+                        >
+                          <Visibility />
+                        </Button>
+                      </Tooltip>
+                      <Tooltip title="Bulk Attendance">
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => handleBulkAttendance(user.employee_id || '')}
+                        >
+                          <PlaylistAddCheck />
+                        </Button>
+                      </Tooltip>
                     </TableCell>
                   </TableRow>
                 ))

@@ -48,6 +48,8 @@ from app.application.dto.taxation_dto import (
     UpdateOtherIncomeComponentRequest,
     UpdateMonthlyPayrollComponentRequest,
     UpdateRegimeComponentRequest,
+    IsRegimeUpdateAllowedRequest,
+    IsRegimeUpdateAllowedResponse,
     ComponentUpdateResponse,
     ComponentResponse,
     TaxationRecordStatusResponse,
@@ -1474,6 +1476,30 @@ class UnifiedTaxationController:
             logger.error(f"Failed to update monthly payroll component: {str(e)}")
             raise
     
+
+    async def is_regime_update_allowed(
+        self,
+        request: "IsRegimeUpdateAllowedRequest",
+        organization_id: str
+    ) -> "IsRegimeUpdateAllowedResponse":
+        """Check if regime update is allowed."""
+
+        try:
+            # Get or create salary package record (it should ideally be present)
+            salary_package_record, found_record = await self._get_or_create_salary_package_record(
+                request.employee_id, request.tax_year, organization_id
+            )
+            
+            return IsRegimeUpdateAllowedResponse(
+                is_allowed=salary_package_record.is_regime_update_allowed,
+                regime_type=salary_package_record.regime.regime_type.value,
+                message="Regime update is allowed" if salary_package_record.is_regime_update_allowed else "Regime update is not allowed"
+            )
+            
+        except Exception as e:
+            logger.error(f"Failed to check if regime update is allowed: {str(e)}")
+            raise
+    
     async def update_regime_component(
         self,
         request: "UpdateRegimeComponentRequest",
@@ -1482,28 +1508,32 @@ class UnifiedTaxationController:
         """Update tax regime component individually."""
         
         try:
-            # Get or create taxation record
-            taxation_record = await self._get_or_create_taxation_record(
+            # Get or create salary package record (it should ideally be present)
+            salary_package_record, found_record = await self._get_or_create_salary_package_record(
                 request.employee_id, request.tax_year, organization_id
             )
+
+            if not salary_package_record.is_regime_update_allowed:
+                raise ValueError("Regime update is not allowed")
             
             # Update regime and age
             regime_type = TaxRegimeType(request.regime_type)
-            taxation_record.regime = TaxRegime(regime_type)
-            taxation_record.age = request.age
-            taxation_record.updated_at = datetime.utcnow()
+            salary_package_record.regime = TaxRegime(regime_type)
+            salary_package_record.age = request.age
+            salary_package_record.updated_at = datetime.utcnow()
+            salary_package_record.is_regime_update_allowed = False
             
             # Save to database
-            await self.taxation_repository.save(taxation_record, organization_id)
-            
-            return ComponentUpdateResponse(
-                taxation_id=taxation_record.taxation_id,
+            await self.salary_package_repository.save(salary_package_record, organization_id)
+
+            return ComponentUpdateResponse( 
+                taxation_id=salary_package_record.salary_package_id,
                 employee_id=request.employee_id,
                 tax_year=request.tax_year,
                 component_type="regime",
                 status="success",
                 message="Tax regime component updated successfully",
-                updated_at=taxation_record.updated_at,
+                updated_at=salary_package_record.updated_at,
                 notes=request.notes
             )
             

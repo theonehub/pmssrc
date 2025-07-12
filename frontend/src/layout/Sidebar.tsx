@@ -143,7 +143,7 @@ const Sidebar: React.FC = () => {
           title: 'Leaves Approval',
           icon: <PeopleIcon />,
           path: '/all-leaves',
-          roles: ['manager', 'admin', 'superadmin'],
+          roles: ['manager'],
         },
         {
           title: 'Leave Management',

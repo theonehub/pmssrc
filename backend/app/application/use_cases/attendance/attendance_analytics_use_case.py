@@ -11,7 +11,7 @@ from app.application.dto.attendance_dto import (
     AttendanceBusinessRuleError
 )
 from app.application.interfaces.repositories.attendance_repository import AttendanceQueryRepository
-from app.application.interfaces.repositories.employee_repository import EmployeeQueryRepository
+from app.application.interfaces.repositories.user_repository import UserQueryRepository
 from app.utils.logger import get_logger
 
 # Import CurrentUser for organisation context
@@ -36,7 +36,7 @@ class AttendanceAnalyticsUseCase:
     def __init__(
         self,
         attendance_query_repository: AttendanceQueryRepository,
-        employee_repository: EmployeeQueryRepository
+        employee_repository: UserQueryRepository
     ):
         self.attendance_query_repository = attendance_query_repository
         self.employee_repository = employee_repository

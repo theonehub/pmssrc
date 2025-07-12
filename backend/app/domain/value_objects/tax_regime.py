@@ -53,9 +53,9 @@ class TaxRegime:
         
         # Old regime age-based exemptions
         if age < 60:
-            return Money.from_int(300000)  # ₹3 lakh
+            return Money.from_int(250000)  # ₹2.5 lakh
         elif age < 80:
-            return Money.from_int(500000)  # ₹5 lakh (senior citizen)
+            return Money.from_int(300000)  # ₹3 lakh (senior citizen)
         else:
             return Money.from_int(500000)  # ₹5 lakh (super senior citizen)
     

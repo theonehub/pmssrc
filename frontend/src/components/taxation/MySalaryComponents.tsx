@@ -2187,9 +2187,28 @@ const MySalaryComponents: React.FC = () => {
   const [perquisitesLoading, setPerquisitesLoading] = useState<boolean>(false);
   const [perquisitesData, setPerquisitesData] = useState<PerquisitesData>(initialPerquisitesData);
 
+  const [selectedTaxRegime, setSelectedTaxRegime] = useState<'old' | 'new'>('old');
+  const [regimeLoading, setRegimeLoading] = useState<boolean>(false);
+  const [regimeEditAllowed, setRegimeEditAllowed] = useState<boolean>(true);
+  const [regimeLockMessage, setRegimeLockMessage] = useState<string | undefined>(undefined);
+  const [regimeConfirmDialog, setRegimeConfirmDialog] = useState<{
+    open: boolean;
+    newRegime: 'old' | 'new' | null;
+  }>({ open: false, newRegime: null });
+
   const isCurrentYear = selectedTaxYear === getCurrentTaxYear();
   const availableTaxYears = getAvailableTaxYears();
   const employeeId = user?.employee_id;
+
+  // Helper to compute assessment year from tax year
+  const getAssessmentYear = (taxYear: string): string => {
+    const [start, end] = taxYear.split('-');
+    if (!start || !end) return '';
+    const startYear = parseInt(start, 10);
+    // If end is 2 digits, add to century
+    const fullEndYear = end.length === 2 ? (startYear + 1).toString().slice(0, 2) + end : end;
+    return `${startYear + 1}-${(parseInt(fullEndYear, 10) + 1).toString().slice(-2)}`;
+  };
 
   // 1. loadSalaryComponent
   const loadSalaryComponent = useCallback(async (): Promise<ComponentSummary | null> => {
@@ -2237,8 +2256,29 @@ const MySalaryComponents: React.FC = () => {
       const section80c = data.section_80c || {};
       const section80d = data.section_80d || {};
       
-      const totalDeductions = Object.values(section80c).reduce((sum: number, val: any) => sum + (Number(val) || 0), 0) +
-                             Object.values(section80d).reduce((sum: number, val: any) => sum + (Number(val) || 0), 0);
+      // Fields to ignore when calculating total deductions
+      const ignoredFields = [
+        'limit',
+        'remaining_limit',
+        'limit_80ccd_1b',
+        'parent_age',
+        'self_family_limit',
+        'parent_limit',
+        'preventive_limit',
+        'exemption_limit'
+      ];
+      
+      // Filter out ignored fields and calculate total for section 80C
+      const section80cTotal = Object.entries(section80c)
+        .filter(([key]) => !ignoredFields.includes(key))
+        .reduce((sum: number, [, val]) => sum + (Number(val) || 0), 0);
+      
+      // Filter out ignored fields and calculate total for section 80D
+      const section80dTotal = Object.entries(section80d)
+        .filter(([key]) => !ignoredFields.includes(key))
+        .reduce((sum: number, [, val]) => sum + (Number(val) || 0), 0);
+      
+      const totalDeductions = section80cTotal + section80dTotal;
       
       return {
         id: 'deductions',
@@ -3336,6 +3376,90 @@ const MySalaryComponents: React.FC = () => {
     </Accordion>
   );
 
+  // Fetch current regime for the selected year and employee
+  const loadCurrentRegime = useCallback(async () => {
+    if (!employeeId) return;
+    try {
+      setRegimeLoading(true);
+      const allowedResp = await taxationApi.isRegimeUpdateAllowed(employeeId, selectedTaxYear);
+      setRegimeEditAllowed(allowedResp.is_allowed);
+      setSelectedTaxRegime((allowedResp.regime_type || 'old').toLowerCase() === 'new' ? 'new' : 'old');
+      setRegimeLockMessage(allowedResp.message);
+    } catch (error) {
+      setSelectedTaxRegime('old');
+      setRegimeEditAllowed(true);
+      setRegimeLockMessage(undefined);
+    } finally {
+      setRegimeLoading(false);
+    }
+  }, [employeeId, selectedTaxYear]);
+
+  // Update regime handler - shows confirmation dialog first
+  const handleRegimeChange = (event: SelectChangeEvent<string>) => {
+    const newRegime = event.target.value as 'old' | 'new';
+    
+    // If user is selecting the same regime, do nothing
+    if (newRegime === selectedTaxRegime) {
+      return;
+    }
+    
+    // Show confirmation dialog
+    setRegimeConfirmDialog({
+      open: true,
+      newRegime: newRegime
+    });
+    
+    // Reset the select to current value until user confirms
+    setSelectedTaxRegime(selectedTaxRegime);
+  };
+
+  // Handle confirmed regime change
+  const handleConfirmedRegimeChange = async () => {
+    const newRegime = regimeConfirmDialog.newRegime;
+    if (!newRegime || !employeeId) return;
+    
+    try {
+      setRegimeLoading(true);
+      setRegimeConfirmDialog({ open: false, newRegime: null });
+      
+      // Age is required by backend, try to get from salary component or default to 30
+      let age = 30;
+      const salaryComponent = components.find(c => c.id === 'salary');
+      if (salaryComponent && salaryComponent.details && salaryComponent.details.age) {
+        age = salaryComponent.details.age;
+      }
+      
+      await taxationApi.updateRegimeComponent({
+        employee_id: employeeId,
+        tax_year: selectedTaxYear,
+        regime_type: newRegime,
+        age,
+        notes: 'Updated via My Salary Components page',
+      });
+      
+      setSelectedTaxRegime(newRegime);
+      showToast('Tax regime updated successfully!', 'success');
+      await loadComponentsData();
+      
+    } catch (error) {
+      showToast('Failed to update tax regime. Please try again.', 'error');
+    } finally {
+      setRegimeLoading(false);
+    }
+  };
+
+  // Handle cancel regime change
+  const handleCancelRegimeChange = () => {
+    setRegimeConfirmDialog({ open: false, newRegime: null });
+  };
+
+  // Load regime when employee or year changes
+  useEffect(() => {
+    if (employeeId) {
+      loadCurrentRegime();
+    }
+  }, [employeeId, selectedTaxYear]); // Removed loadCurrentRegime from dependencies
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '70vh' }}>
@@ -3357,7 +3481,7 @@ const MySalaryComponents: React.FC = () => {
               My Salary Components
             </Typography>
             <Typography variant="body1" color="text.secondary">
-              Employee ID: {employeeId} | Tax Year: {selectedTaxYear}
+              Employee ID: {employeeId} | Tax Year: {selectedTaxYear} | Assessment Year: {getAssessmentYear(selectedTaxYear)}
               {!isCurrentYear && (
                 <Chip 
                   label="Previous Year" 
@@ -3367,6 +3491,27 @@ const MySalaryComponents: React.FC = () => {
                 />
               )}
             </Typography>
+            {/* Tax Regime Selection */}
+            <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+              <FormControl size="small" sx={{ minWidth: 180 }} disabled={regimeLoading || !isCurrentYear || !regimeEditAllowed}>
+                <InputLabel>Tax Regime</InputLabel>
+                <Select
+                  value={selectedTaxRegime}
+                  label="Tax Regime"
+                  onChange={handleRegimeChange}
+                  disabled={regimeLoading || !isCurrentYear || !regimeEditAllowed}
+                >
+                  <MenuItem value="old">Old Regime (with deductions)</MenuItem>
+                  <MenuItem value="new">New Regime (lower rates, no deductions)</MenuItem>
+                </Select>
+              </FormControl>
+              {regimeLoading && <CircularProgress size={20} />}
+              {!regimeEditAllowed && (
+                <Typography variant="body2" color="text.secondary">
+                  {regimeLockMessage || 'Regime selection is locked for this year.'}
+                </Typography>
+              )}
+            </Box>
           </Box>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             <FormControl size="small" sx={{ minWidth: 140 }}>
@@ -3485,7 +3630,9 @@ const MySalaryComponents: React.FC = () => {
         Salary Component Summary
       </Typography>
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        {components.map(renderComponentCard)}
+        {components
+          .filter(component => component.id !== 'deductions' || selectedTaxRegime !== 'new')
+          .map(renderComponentCard)}
       </Grid>
 
       {/* Detailed View */}
@@ -3493,7 +3640,9 @@ const MySalaryComponents: React.FC = () => {
         Detailed Component Values
       </Typography>
       <Box>
-        {components.map(renderComponentDetails)}
+        {components
+          .filter(component => component.id !== 'deductions' || selectedTaxRegime !== 'new')
+          .map(renderComponentDetails)}
       </Box>
 
       {/* Success/Error Messages */}
@@ -3513,13 +3662,15 @@ const MySalaryComponents: React.FC = () => {
       </Snackbar>
 
       {/* Deductions Update Dialog */}
-      <DeductionsDialog
-        open={deductionsDialogOpen}
-        onClose={handleCloseDeductionsDialog}
-        onSave={handleDeductionsSave}
-        initialData={deductionsData}
-        loading={deductionsLoading}
-      />
+      {selectedTaxRegime !== 'new' && (
+        <DeductionsDialog
+          open={deductionsDialogOpen}
+          onClose={handleCloseDeductionsDialog}
+          onSave={handleDeductionsSave}
+          initialData={deductionsData}
+          loading={deductionsLoading}
+        />
+      )}
 
       {/* House Property Update Dialog */}
       <HousePropertyDialog
@@ -3556,6 +3707,36 @@ const MySalaryComponents: React.FC = () => {
         initialData={perquisitesData}
         loading={perquisitesLoading}
       />
+
+      {/* Regime Confirmation Dialog */}
+      <Dialog
+        open={regimeConfirmDialog.open}
+        onClose={handleCancelRegimeChange}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{"Confirm Regime Change"}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" color="text.primary" sx={{ mb: 2 }}>
+            Are you sure you want to change the tax regime to <strong>"{regimeConfirmDialog.newRegime === 'new' ? 'New Regime (lower rates, no deductions)' : 'Old Regime (with deductions)'}"</strong>?
+          </Typography>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            <Typography variant="body2">
+              <strong>Important:</strong> Tax regime change is allowed only once per financial year. 
+              After this change, you will not be able to switch back to the current regime for the financial year {selectedTaxYear}.
+            </Typography>
+          </Alert>
+          <Typography variant="body2" color="text.secondary">
+            Please ensure you have reviewed the tax implications of this change before proceeding.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelRegimeChange}>Cancel</Button>
+          <Button onClick={handleConfirmedRegimeChange} autoFocus>
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

@@ -181,107 +181,6 @@ class UnifiedTaxationController:
             raise
     
     # =============================================================================
-    # COMPONENT-SPECIFIC CALCULATION METHODS
-    # =============================================================================
-    
-    async def calculate_perquisites_only(self,
-                                       perquisites: PerquisitesDTO,
-                                       regime_type: str,
-                                       organization_id: str) -> Dict[str, Any]:
-        """Calculate only perquisites tax impact."""
-        try:
-            # Convert DTO to entity
-            perquisites_entity = self._convert_perquisites_dto_to_entity(perquisites)
-            regime = TaxRegime(TaxRegimeType.OLD if regime_type.lower() == "old" else TaxRegimeType.NEW)
-            
-            # Calculate perquisites
-            total_perquisites = perquisites_entity.calculate_total_perquisites(regime)
-            breakdown = perquisites_entity.get_perquisites_breakdown(regime)
-            
-            return {
-                "total_perquisites_value": total_perquisites.to_float(),
-                "perquisites_breakdown": breakdown,
-                "regime_used": regime_type,
-                "perquisites_applicable": regime.regime_type == TaxRegimeType.OLD
-            }
-            
-        except Exception as e:
-            logger.error(f"Error calculating perquisites for org {organization_id}: {str(e)}")
-            raise
-    
-    async def calculate_house_property_income_only(self,
-                                          house_property_income: HousePropertyIncomeDTO,
-                                          regime_type: str,
-                                          organization_id: str) -> Dict[str, Any]:
-        """Calculate only house property income."""
-        try:
-            # Convert DTO to entity
-            house_property_entity = self._convert_house_property_income_dto_to_entity(house_property_income)
-            regime = TaxRegime(TaxRegimeType.OLD if regime_type.lower() == "old" else TaxRegimeType.NEW)
-            
-            # Calculate house property income
-            net_income = house_property_entity.calculate_net_income_from_house_property_income(regime)
-            breakdown = house_property_entity.get_house_property_income_breakdown(regime)
-            
-            return {
-                "net_house_property_income": net_income.to_float(),
-                "house_property_income_breakdown": breakdown,
-                "regime_used": regime_type
-            }
-            
-        except Exception as e:
-            logger.error(f"Error calculating house property for org {organization_id}: {str(e)}")
-            raise
-    
-    async def calculate_capital_gains_only(self,
-                                         capital_gains: CapitalGainsIncomeDTO,
-                                         regime_type: str,
-                                         organization_id: str) -> Dict[str, Any]:
-        """Calculate only capital gains tax."""
-        try:
-            # Convert DTO to entity
-            capital_gains_entity = self._convert_capital_gains_dto_to_entity(capital_gains)
-            regime = TaxRegime(TaxRegimeType.OLD if regime_type.lower() == "old" else TaxRegimeType.NEW)
-            
-            # Calculate capital gains
-            total_tax = capital_gains_entity.calculate_total_capital_gains_tax()
-            breakdown = capital_gains_entity.get_capital_gains_breakdown(regime)
-            
-            return {
-                "total_capital_gains_tax": total_tax.to_float(),
-                "capital_gains_breakdown": breakdown,
-                "regime_used": regime_type
-            }
-            
-        except Exception as e:
-            logger.error(f"Error calculating capital gains for org {organization_id}: {str(e)}")
-            raise
-    
-    async def calculate_retirement_benefits_only(self,
-                                               retirement_benefits: RetirementBenefitsDTO,
-                                               regime_type: str,
-                                               organization_id: str) -> Dict[str, Any]:
-        """Calculate only retirement benefits tax."""
-        try:
-            # Convert DTO to entity
-            retirement_entity = self._convert_retirement_benefits_dto_to_entity(retirement_benefits)
-            regime = TaxRegime(TaxRegimeType.OLD if regime_type.lower() == "old" else TaxRegimeType.NEW)
-            
-            # Calculate retirement benefits
-            total_income = retirement_entity.calculate_total_retirement_income(regime)
-            breakdown = retirement_entity.get_retirement_benefits_breakdown(regime)
-            
-            return {
-                "total_retirement_income": total_income.to_float(),
-                "retirement_benefits_breakdown": breakdown,
-                "regime_used": regime_type
-            }
-            
-        except Exception as e:
-            logger.error(f"Error calculating retirement benefits for org {organization_id}: {str(e)}")
-            raise
-    
-    # =============================================================================
     # DTO TO DOMAIN ENTITY CONVERSION METHODS
     # =============================================================================
     
@@ -2470,7 +2369,7 @@ class UnifiedTaxationController:
         """
         
         logger.debug(f"Computing monthly salary for employee {request.employee_id}")
-        logger.debug(f"Month: {request.month}, Year: {request.year}, Tax Year: {request.tax_year}")
+        logger.debug(f"Month: {request.month}, Tax Year: {request.tax_year}")
         
         try:
             # Use the monthly salary computation use case

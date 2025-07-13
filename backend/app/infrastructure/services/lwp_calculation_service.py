@@ -140,7 +140,7 @@ class LWPCalculationService(LWPCalculationServiceInterface):
             
             # Get attendance records using the attendance service
             attendance_records = await self._attendance_service.get_employee_attendance_by_month(
-                filters, None  # current_user will be handled by the service
+                filters, organisation_id  # current_user will be handled by the service
             )
             
             # Convert to simple format for LWP calculation

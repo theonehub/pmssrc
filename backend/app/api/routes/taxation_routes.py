@@ -63,133 +63,6 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/api/v2/taxation", tags=["taxation"])
 
 # =============================================================================
-# INDIVIDUAL INCOME COMPONENT CALCULATIONS
-# =============================================================================
-
-@router.post("/perquisites/calculate",
-             response_model=Dict[str, Any],
-             status_code=status.HTTP_200_OK,
-             summary="Calculate perquisites tax",
-             description="Calculate tax impact of perquisites only")
-async def calculate_perquisites(
-    perquisites: PerquisitesDTO,
-    regime_type: str = Query(..., description="Tax regime: 'old' or 'new'"),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_taxation_controller)
-) -> Dict[str, Any]:
-    """Calculate perquisites tax impact only."""
-    
-    try:
-        response = await controller.calculate_perquisites_only(
-            perquisites, regime_type, current_user.hostname
-        )
-        return response
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to calculate perquisites: {str(e)}"
-        )
-
-
-@router.post("/house-property/calculate",
-             response_model=Dict[str, Any],
-             status_code=status.HTTP_200_OK,
-             summary="Calculate house property income",
-             description="Calculate income from house property")
-async def calculate_house_property(
-    house_property_income: HousePropertyIncomeDTO,
-    regime_type: str = Query(..., description="Tax regime: 'old' or 'new'"),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_taxation_controller)
-) -> Dict[str, Any]:
-    """Calculate house property income tax."""
-    
-    try:
-        response = await controller.calculate_house_property_income_only(
-            house_property_income, regime_type, current_user.hostname
-        )
-        return response
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to calculate house property income: {str(e)}"
-        )
-
-
-@router.post("/capital-gains/calculate",
-             response_model=Dict[str, Any],
-             status_code=status.HTTP_200_OK,
-             summary="Calculate capital gains tax",
-             description="Calculate capital gains tax for all types")
-async def calculate_capital_gains(
-    capital_gains: CapitalGainsIncomeDTO,
-    regime_type: str = Query(..., description="Tax regime: 'old' or 'new'"),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_taxation_controller)
-) -> Dict[str, Any]:
-    """Calculate capital gains tax."""
-    
-    try:
-        response = await controller.calculate_capital_gains_only(
-            capital_gains, regime_type, current_user.hostname
-        )
-        return response
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to calculate capital gains: {str(e)}"
-        )
-
-
-@router.post("/retirement-benefits/calculate",
-             response_model=Dict[str, Any],
-             status_code=status.HTTP_200_OK,
-             summary="Calculate retirement benefits tax",
-             description="Calculate tax on all retirement benefits")
-async def calculate_retirement_benefits(
-    retirement_benefits: RetirementBenefitsDTO,
-    regime_type: str = Query(..., description="Tax regime: 'old' or 'new'"),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_taxation_controller)
-) -> Dict[str, Any]:
-    """Calculate retirement benefits tax."""
-    
-    try:
-        response = await controller.calculate_retirement_benefits_only(
-            retirement_benefits, regime_type, current_user.hostname
-        )
-        return response
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to calculate retirement benefits: {str(e)}"
-        )
-
-# =============================================================================
 # INDIVIDUAL COMPONENT UPDATE ENDPOINTS
 # =============================================================================
 
@@ -1117,7 +990,7 @@ async def compute_monthly_salary(
     
     try:
         logger.info(f"Computing monthly salary for employee {request.employee_id}")
-        logger.info(f"Month: {request.month}, Year: {request.year}, Tax Year: {request.tax_year}")
+        logger.info(f"Month: {request.month}, Tax Year: {request.tax_year}")
         
         result = await controller.compute_monthly_salary(request, current_user.hostname)
         

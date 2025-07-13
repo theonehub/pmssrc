@@ -519,10 +519,10 @@ const TDSReport: React.FC = () => {
         
         <Grid item xs={12} sm={6} md={2}>
           <FormControl fullWidth size="small">
-            <InputLabel>Year</InputLabel>
+            <InputLabel>Tax Year</InputLabel>
             <Select
               value={taxYear}
-              label="Year"
+              label="Tax Year"
               onChange={(e) => setTaxYear(e.target.value)}
             >
               {getAvailableTaxYears().map((year) => (

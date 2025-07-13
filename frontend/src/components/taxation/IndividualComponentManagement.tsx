@@ -258,7 +258,6 @@ const MonthlySalaryComputeDialog: React.FC<MonthlySalaryComputeDialogProps> = ({
   onCompute
 }) => {
   const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
-  const [year, setYear] = useState<number>(new Date().getFullYear());
   const [arrears, setArrears] = useState<number>(0);
   const [bonus, setBonus] = useState<number>(0);
   const [useDeclaredValues, setUseDeclaredValues] = useState<boolean>(true);
@@ -280,7 +279,8 @@ const MonthlySalaryComputeDialog: React.FC<MonthlySalaryComputeDialogProps> = ({
     { value: 12, label: 'December' }
   ];
 
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
+  const taxYears = getAvailableTaxYears();
+  const [selectedTaxYear, setSelectedTaxYear] = useState<string>(getCurrentTaxYear());
 
   const handleCompute = async () => {
     if (!employee) return;
@@ -300,8 +300,8 @@ const MonthlySalaryComputeDialog: React.FC<MonthlySalaryComputeDialogProps> = ({
       } = {
         employee_id: employee.employee_id,
         month,
-        year,
-        tax_year: taxYear,
+        year: new Date().getFullYear(), // Use current year for computation
+        tax_year: selectedTaxYear,
         use_declared_values: useDeclaredValues
       };
       
@@ -362,15 +362,15 @@ const MonthlySalaryComputeDialog: React.FC<MonthlySalaryComputeDialogProps> = ({
           </Grid>
           <Grid item xs={6}>
             <FormControl fullWidth>
-              <InputLabel>Year</InputLabel>
+              <InputLabel>Tax Year</InputLabel>
               <Select
-                value={year}
-                label="Year"
-                onChange={(e) => setYear(e.target.value as number)}
+                value={selectedTaxYear}
+                label="Tax Year"
+                onChange={(e) => setSelectedTaxYear(e.target.value as string)}
               >
-                {years.map((y) => (
-                  <MenuItem key={y} value={y}>
-                    {y}
+                {taxYears.map((ty) => (
+                  <MenuItem key={ty} value={ty}>
+                    {ty}
                   </MenuItem>
                 ))}
               </Select>
@@ -455,7 +455,6 @@ const BulkSalaryProcessingDialog: React.FC<BulkSalaryProcessingDialogProps> = ({
 }) => {
   const [employeeConfigs, setEmployeeConfigs] = useState<Map<string, EmployeeProcessingConfig>>(new Map());
   const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
-  const [year, setYear] = useState<number>(new Date().getFullYear());
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selectAll, setSelectAll] = useState<boolean>(false);
@@ -475,7 +474,8 @@ const BulkSalaryProcessingDialog: React.FC<BulkSalaryProcessingDialogProps> = ({
     { value: 12, label: 'December' }
   ];
 
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
+  const taxYears = getAvailableTaxYears();
+  const [selectedTaxYear, setSelectedTaxYear] = useState<string>(getCurrentTaxYear());
 
   // Initialize employee configurations when dialog opens
   useEffect(() => {
@@ -582,8 +582,8 @@ const BulkSalaryProcessingDialog: React.FC<BulkSalaryProcessingDialogProps> = ({
         } = {
           employee_id: config.employee_id,
           month,
-          year,
-          tax_year: taxYear,
+          year: new Date().getFullYear(), // Use current year for computation
+          tax_year: selectedTaxYear,
           use_declared_values: config.use_declared_values,
         };
         if (config.arrears > 0) {
@@ -650,15 +650,15 @@ const BulkSalaryProcessingDialog: React.FC<BulkSalaryProcessingDialogProps> = ({
               </Grid>
               <Grid item xs={6}>
                 <FormControl fullWidth>
-                  <InputLabel>Year</InputLabel>
+                  <InputLabel>Tax Year</InputLabel>
                   <Select
-                    value={year}
-                    label="Year"
-                    onChange={(e) => setYear(e.target.value as number)}
+                    value={selectedTaxYear}
+                    label="Tax Year"
+                    onChange={(e) => setSelectedTaxYear(e.target.value as string)}
                   >
-                    {years.map((y) => (
-                      <MenuItem key={y} value={y}>
-                        {y}
+                    {taxYears.map((ty) => (
+                      <MenuItem key={ty} value={ty}>
+                        {ty}
                       </MenuItem>
                     ))}
                   </Select>

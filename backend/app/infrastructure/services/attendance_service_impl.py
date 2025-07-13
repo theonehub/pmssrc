@@ -124,7 +124,7 @@ class AttendanceServiceImpl(AttendanceService):
         except Exception as e:
             self.logger.error(f"Error getting employee attendance for {filters.employee_id} in organisation {current_user.hostname}: {e}")
             raise
-    
+        
     async def get_employee_attendance_by_year(self, filters: AttendanceSearchFiltersDTO, current_user: "CurrentUser") -> List[AttendanceResponseDTO]:
         """Get employee attendance records for a specific year"""
         try:

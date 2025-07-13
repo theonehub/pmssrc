@@ -64,7 +64,7 @@ class ComputeMonthlySalaryUseCase:
             RuntimeError: If computation fails
         """
         logger.debug(f"Starting monthly salary computation for employee {request.employee_id}")
-        logger.debug(f"Month: {request.month}, Year: {request.year}, Tax Year: {request.tax_year}")
+        logger.debug(f"Month: {request.month}, Tax Year: {request.tax_year}")
         
         try:
             # 1. Get employee details
@@ -85,7 +85,7 @@ class ComputeMonthlySalaryUseCase:
                     f"Salary package record not found for employee {request.employee_id} "
                     f"in tax year {request.tax_year}"
                 )
-            financial_year_month = self._convert_to_financial_year_month(request.month, request.year, tax_year)
+            financial_year_month = self._convert_to_financial_year_month(request.month, tax_year)
             
             # 3. Update arrears if provided
             if request.arrears is not None and request.arrears > 0:
@@ -124,7 +124,7 @@ class ComputeMonthlySalaryUseCase:
             monthly_salary = MonthlySalary(
                 employee_id=employee_id,
                 month=request.month,
-                year=request.year,
+                year=tax_year.get_start_date().year, # Use the start year of the tax year
                 salary=monthly_salary_components['salary'],
                 perquisites_payouts=monthly_salary_components['perquisites_payouts'],
                 deductions=monthly_salary_components['deductions'],
@@ -187,7 +187,7 @@ class ComputeMonthlySalaryUseCase:
         monthly_commission = salary_income.commission
         
         # Get arrears and bonus from salary package record for the specific month
-        financial_year_month = self._convert_to_financial_year_month(request.month, request.year, salary_package_record.tax_year)
+        financial_year_month = self._convert_to_financial_year_month(request.month, salary_package_record.tax_year)
         monthly_arrears = salary_package_record.get_arrears_per_month(financial_year_month)
         monthly_bonus = salary_package_record.get_bonus_per_month(financial_year_month)
         
@@ -201,8 +201,8 @@ class ComputeMonthlySalaryUseCase:
             commission=monthly_commission,
             arrears=monthly_arrears,
             specific_allowances=salary_income.specific_allowances,  # Salary_income and its components are monthly
-            effective_from=datetime(request.year, request.month, 1),
-            effective_till=datetime(request.year, request.month, 1)
+            effective_from=datetime(salary_package_record.tax_year.get_start_date().year, request.month, 1),
+            effective_till=datetime(salary_package_record.tax_year.get_start_date().year, request.month, 1)
         )
         
         # Create other components (simplified for monthly)
@@ -213,7 +213,7 @@ class ComputeMonthlySalaryUseCase:
         monthly_retirement = RetirementBenefits()  # Empty for now
         
         # Calculate LWP details for the month
-        monthly_lwp = await self._calculate_lwp_days(request.employee_id, request.month, request.year, organization_id)
+        monthly_lwp = await self._calculate_lwp_days(request.employee_id, request.month, salary_package_record.tax_year.get_start_date().year, organization_id)
         
         return {
             'salary': monthly_salary_income,
@@ -366,7 +366,7 @@ class ComputeMonthlySalaryUseCase:
         return MonthlySalaryResponseDTO(
             employee_id=request.employee_id,
             month=request.month,
-            year=request.year,
+            year=monthly_salary.year, # Use the year from the MonthlySalary entity
             tax_year=request.tax_year,
             
             # Employee details
@@ -523,13 +523,12 @@ class ComputeMonthlySalaryUseCase:
                 # Re-raise other errors
                 raise
     
-    def _convert_to_financial_year_month(self, calendar_month: int, calendar_year: int, tax_year: TaxYear) -> int:
+    def _convert_to_financial_year_month(self, calendar_month: int, tax_year: TaxYear) -> int:
         """
         Convert calendar month/year to financial year month (1-12).
         
         Args:
             calendar_month: Calendar month (1-12)
-            calendar_year: Calendar year
             tax_year: Tax year object
             
         Returns:
@@ -541,7 +540,7 @@ class ComputeMonthlySalaryUseCase:
         fy_start_month = fy_start_date.month
         
         # Calculate the difference in months
-        month_diff = (calendar_year - fy_start_year) * 12 + (calendar_month - fy_start_month)
+        month_diff = (fy_start_year - fy_start_year) * 12 + (calendar_month - fy_start_month)
         
         # Convert to financial year month (1-12)
         financial_year_month = month_diff + 1

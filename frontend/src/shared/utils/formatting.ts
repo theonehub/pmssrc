@@ -318,6 +318,51 @@ export const formatIncomeSource = (source: string): string => {
 };
 
 // =============================================================================
+// TAX YEAR HELPERS
+// =============================================================================
+
+/**
+ * Get the current tax year as a string (e.g., '2024-25')
+ */
+export const getCurrentTaxYear = (): string => {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth() + 1;
+  // Indian tax year starts in April
+  if (currentMonth >= 4) {
+    return `${currentYear}-${(currentYear + 1).toString().slice(-2)}`;
+  } else {
+    return `${currentYear - 1}-${currentYear.toString().slice(-2)}`;
+  }
+};
+
+/**
+ * Get an array of available tax years (current + last 4 years)
+ */
+export const getAvailableTaxYears = (): string[] => {
+  const currentTaxYear = getCurrentTaxYear();
+  const yearParts = currentTaxYear.split('-');
+  const currentStartYear = parseInt(yearParts[0] || '2024');
+  const years: string[] = [];
+  for (let i = 0; i < 5; i++) {
+    const startYear = currentStartYear - i;
+    const endYear = startYear + 1;
+    years.push(`${startYear}-${endYear.toString().slice(-2)}`);
+  }
+  return years;
+};
+
+/**
+ * Convert a tax year string (e.g., '2024-25') to the start year as a number (e.g., 2024)
+ */
+export const taxYearStringToStartYear = (taxYear: string | undefined): number => {
+  if (!taxYear || typeof taxYear !== 'string') return 0;
+  const parts = taxYear.split('-');
+  if (!parts[0]) return 0;
+  return parseInt(parts[0], 10);
+};
+
+// =============================================================================
 // MOBILE-SPECIFIC FORMATTING
 // =============================================================================
 

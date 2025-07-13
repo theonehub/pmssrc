@@ -6,7 +6,6 @@ import logging
 from app.application.dto.taxation_dto import MonthlySalaryComputeRequestDTO, MonthlySalaryResponseDTO
 from app.application.interfaces.repositories.salary_package_repository import SalaryPackageRepository
 from app.application.interfaces.repositories.user_repository import UserQueryRepository
-from app.application.interfaces.repositories.monthly_salary_repository import MonthlySalaryRepository
 from app.domain.value_objects.employee_id import EmployeeId
 from app.domain.value_objects.tax_year import TaxYear
 from app.domain.value_objects.money import Money
@@ -39,12 +38,10 @@ class ComputeMonthlySalaryUseCase:
         self,
         salary_package_repository: SalaryPackageRepository,
         user_repository: UserQueryRepository,
-        monthly_salary_repository: MonthlySalaryRepository,
         tax_calculation_service: TaxCalculationService
     ):
         self.salary_package_repository = salary_package_repository
         self.user_repository = user_repository
-        self.monthly_salary_repository = monthly_salary_repository
         self.tax_calculation_service = tax_calculation_service
     
     async def execute(
@@ -152,8 +149,6 @@ class ComputeMonthlySalaryUseCase:
             salary_package_record.monthly_salary_records.append(monthly_salary)
             await self.salary_package_repository.save(salary_package_record, organization_id)
             
-            # # 10. Save computed monthly salary to database
-            # await self.monthly_salary_repository.save(monthly_salary, organization_id)
             
             logger.info(f"Successfully computed monthly salary for employee {request.employee_id}")
             logger.info(f"Gross: ₹{response.gross_salary:,.2f}, Net: ₹{response.net_salary:,.2f}")

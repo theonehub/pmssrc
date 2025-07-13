@@ -519,6 +519,9 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         
         # Deserialize calculation result if present
         calculation_result = self._deserialize_calculation_result(document.get("calculation_result"))
+
+        # Deserialize monthly_salary_records
+        monthly_salary_records = [self._deserialize_monthly_salary(ms_doc) for ms_doc in document.get("monthly_salary_records", [])]
         
         # Create SalaryPackageRecord
         record = SalaryPackageRecord(
@@ -552,6 +555,90 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             # Arrears and Bonuses (per month)
             arrears=[Money.from_float(a) for a in document.get("arrears", [0.0]*12)],
             bonuses=[Money.from_float(b) for b in document.get("bonuses", [0.0]*12)],
+
+            # Monthly salary records
+            monthly_salary_records=monthly_salary_records,
+        )
+        
+        return record
+
+    def _deserialize_monthly_salary(self, ms_doc: dict):
+        """Deserialize a single monthly salary record from document format."""
+        from app.domain.value_objects.employee_id import EmployeeId
+        from app.domain.value_objects.tax_year import TaxYear
+        from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
+        from app.domain.value_objects.money import Money
+        from app.domain.entities.monthly_salary import MonthlySalary
+        from datetime import datetime
+        return MonthlySalary(
+            employee_id=EmployeeId(ms_doc["employee_id"]),
+            month=ms_doc["month"],
+            year=ms_doc["year"],
+            salary=self._deserialize_salary_income(ms_doc.get("salary", {})),
+            perquisites_payouts=self._deserialize_perquisites_payouts(ms_doc.get("perquisites_payouts", {})),
+            deductions=self._deserialize_deductions(ms_doc.get("deductions", {})),
+            retirement=self._deserialize_retirement_benefits(ms_doc.get("retirement", {})),
+            lwp=self._deserialize_lwp_details(ms_doc.get("lwp", {})),
+            tax_year=TaxYear.from_string(ms_doc["tax_year"]),
+            tax_regime=TaxRegime(TaxRegimeType(ms_doc["tax_regime"])),
+            tax_amount=Money.from_float(ms_doc.get("tax_amount", 0.0)),
+            net_salary=Money.from_float(ms_doc.get("net_salary", 0.0)),
+        )
+    
+    def _convert_to_entity(self, document: dict) -> SalaryPackageRecord:
+        """Convert MongoDB document to salary package record."""
+        from datetime import datetime
+        
+        # Deserialize salary incomes (list)
+        salary_incomes = [self._deserialize_salary_income(salary_doc) for salary_doc in document.get("salary_incomes", [])]
+        
+        # Deserialize tax deductions
+        deductions = self._deserialize_deductions(document.get("deductions", {}))
+        
+        # Deserialize regime
+        regime = TaxRegime(TaxRegimeType(document["regime"]["regime_type"]))
+        
+        # Deserialize calculation result if present
+        calculation_result = self._deserialize_calculation_result(document.get("calculation_result"))
+
+        # Deserialize monthly_salary_records
+        monthly_salary_records = [self._deserialize_monthly_salary(ms_doc) for ms_doc in document.get("monthly_salary_records", [])]
+        
+        # Create SalaryPackageRecord
+        record = SalaryPackageRecord(
+            employee_id=EmployeeId(document["employee_id"]),
+            tax_year=TaxYear.from_string(document["tax_year"]),
+            age=document["age"],
+            is_government_employee=document.get("is_government_employee", False),
+            is_regime_update_allowed=document.get("is_regime_update_allowed", True),  # <--- Add this line
+            regime=regime,
+            salary_incomes=salary_incomes,
+            deductions=deductions,
+            
+            # Optional comprehensive income components
+            perquisites=self._deserialize_perquisites(document.get("perquisites")),
+            retirement_benefits=self._deserialize_retirement_benefits(document.get("retirement_benefits")),
+            other_income=self._deserialize_other_income(document.get("other_income")),
+            
+            # Calculated fields
+            calculation_result=calculation_result,
+            last_calculated_at=datetime.fromisoformat(document["last_calculated_at"]) if document.get("last_calculated_at") else None,
+            
+            # Metadata
+            is_final=document.get("is_final", False),
+            submitted_at=datetime.fromisoformat(document["submitted_at"]) if document.get("submitted_at") else None,
+            
+            # Audit fields
+            created_at=datetime.fromisoformat(document["created_at"]),
+            updated_at=datetime.fromisoformat(document["updated_at"]),
+            version=document.get("version", 1),
+
+            # Arrears and Bonuses (per month)
+            arrears=[Money.from_float(a) for a in document.get("arrears", [0.0]*12)],
+            bonuses=[Money.from_float(b) for b in document.get("bonuses", [0.0]*12)],
+
+            # Monthly salary records
+            monthly_salary_records=monthly_salary_records,
         )
         
         return record
@@ -1087,6 +1174,9 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
     
     def _deserialize_deductions(self, deductions_doc: dict) -> TaxDeductions:
         """Deserialize deductions from document format."""
+        if deductions_doc is None:
+            return TaxDeductions()
+        
         return TaxDeductions(
             section_80c=self._deserialize_section_80c(deductions_doc.get("section_80c", {})),
             section_80d=self._deserialize_section_80d(deductions_doc.get("section_80d", {})),
@@ -1098,6 +1188,9 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
     
     def _deserialize_section_80c(self, section_80c_doc: dict) -> DeductionSection80C:
         """Deserialize Section 80C from document format."""
+        if section_80c_doc is None:
+            return DeductionSection80C()
+        
         return DeductionSection80C(
             life_insurance_premium=Money.from_float(section_80c_doc.get("life_insurance_premium", 0.0)),
             nsc_investment=Money.from_float(section_80c_doc.get("nsc_investment", 0.0)),
@@ -1114,6 +1207,9 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
     
     def _deserialize_section_80d(self, section_80d_doc: dict) -> DeductionSection80D:
         """Deserialize Section 80D from document format."""
+        if section_80d_doc is None:
+            return DeductionSection80D()
+        
         return DeductionSection80D(
             self_family_premium=Money.from_float(section_80d_doc.get("self_family_premium", 0.0)),
             parent_premium=Money.from_float(section_80d_doc.get("parent_premium", 0.0)),
@@ -1123,6 +1219,9 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
     
     def _deserialize_section_80g(self, section_80g_doc: dict) -> DeductionSection80G:
         """Deserialize Section 80G from document format."""
+        if section_80g_doc is None:
+            return DeductionSection80G()
+        
         return DeductionSection80G(
             # 100% deduction without qualifying limit
             pm_relief_fund=Money.from_float(section_80g_doc.get("pm_relief_fund", 0.0)),
@@ -1166,6 +1265,9 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
     def _deserialize_section_80e(self, section_80e_doc: dict) -> DeductionSection80E:
         """Deserialize Section 80E from document format."""
         from app.domain.entities.taxation.deductions import RelationType
+
+        if section_80e_doc is None:
+            return DeductionSection80E()
         
         relation_str = section_80e_doc.get("relation", "SELF")
         try:
@@ -1180,6 +1282,9 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
     
     def _deserialize_section_80tta_ttb(self, section_80tta_ttb_doc: dict) -> DeductionSection80TTA_TTB:
         """Deserialize Section 80TTA/TTB from document format."""
+        if section_80tta_ttb_doc is None:
+            return DeductionSection80TTA_TTB()
+        
         return DeductionSection80TTA_TTB(
             savings_interest=Money.from_float(section_80tta_ttb_doc.get("savings_interest", 0.0)),
             fd_interest=Money.from_float(section_80tta_ttb_doc.get("fd_interest", 0.0)),
@@ -1190,6 +1295,9 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
     
     def _deserialize_other_deductions(self, other_deductions_doc: dict) -> OtherDeductions:
         """Deserialize other deductions from document format."""
+        if other_deductions_doc is None:
+            return OtherDeductions()
+        
         return OtherDeductions(
             other_deductions=Money.from_float(other_deductions_doc.get("other_deductions", 0.0))
         )
@@ -1826,7 +1934,7 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
     async def get_monthly_salaries_for_period(
         self,
         month: int,
-        year: int,
+        tax_year: str,
         organization_id: str,
         status: Optional[str] = None,
         department: Optional[str] = None,
@@ -1834,15 +1942,15 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         limit: int = 100
     ) -> List:
         """
-        Aggregate all monthly_salary_records for the given month/year from all SalaryPackageRecords in the organization.
+        Aggregate all monthly_salary_records for the given month/tax_year from all SalaryPackageRecords in the organization.
         Returns a flat list of MonthlySalary objects (or dicts if serialization is needed).
         """
-        # Get all salary package records for the organization
-        package_records = await self.get_by_organization(organization_id, limit=10000, offset=0)  # Large limit to get all
+        # Get all salary package records for the organization for the given tax_year
+        package_records = await self.get_by_tax_year(tax_year, organization_id, limit=10000, offset=0)  # Large limit to get all
         result = []
         for package in package_records:
             for ms in getattr(package, 'monthly_salary_records', []):
-                if ms.month == month and ms.year == year:
+                if ms.month == month and str(package.tax_year) == tax_year:
                     # Optionally filter by status/department if needed
                     result.append(ms)
         # Pagination
@@ -1852,3 +1960,43 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
     # Utility for safe Money to float conversion
     def _to_float(self, val):
         return val.to_float() if hasattr(val, 'to_float') else float(val) if val is not None else 0.0
+
+    async def get_monthly_summary(
+        self,
+        month: int,
+        tax_year: str,
+        organization_id: str
+    ) -> dict:
+        """
+        Aggregate all monthly_salary_records for the given month/tax_year from all SalaryPackageRecords in the organization,
+        and return summary statistics (total gross, deductions, net, tds, count).
+        """
+        # Get all salary package records for the organization for the given tax_year
+        package_records = await self.get_by_tax_year(tax_year, organization_id, limit=10000, offset=0)
+        result = []
+        for package in package_records:
+            for ms in getattr(package, 'monthly_salary_records', []):
+                if ms.month == month and str(package.tax_year) == tax_year:
+                    result.append(ms)
+        # Compute summary statistics
+        total_gross_salary = 0.0
+        total_deductions = 0.0
+        total_net_salary = 0.0
+        total_tds = 0.0
+        count = len(result)
+        for ms in result:
+            gross = ms.salary.calculate_gross_salary().to_float() if hasattr(ms.salary, 'calculate_gross_salary') else 0.0
+            net = ms.net_salary.to_float() if hasattr(ms.net_salary, 'to_float') else 0.0
+            tds = ms.tax_amount.to_float() if hasattr(ms.tax_amount, 'to_float') else 0.0
+            deductions = gross - net if gross >= net else 0.0
+            total_gross_salary += gross
+            total_net_salary += net
+            total_tds += tds
+            total_deductions += deductions
+        return {
+            "total_gross_salary": total_gross_salary,
+            "total_deductions": total_deductions,
+            "total_net_salary": total_net_salary,
+            "total_tds": total_tds,
+            "count": count
+        }

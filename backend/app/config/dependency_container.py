@@ -135,7 +135,6 @@ class DependencyContainer:
             from app.infrastructure.repositories.mongodb_company_leave_repository import MongoDBCompanyLeaveRepository
             from app.infrastructure.repositories.mongodb_salary_package_repository import MongoDBSalaryPackageRepository
             from app.infrastructure.repositories.mongodb_attendance_repository import MongoDBAttendanceRepository
-            from app.infrastructure.repositories.mongodb_monthly_salary_repository import MongoDBMonthlySalaryRepository
             from app.infrastructure.repositories.mongodb_reimbursement_repository import MongoDBReimbursementRepository
             from app.infrastructure.repositories.project_attributes_repository_impl import ProjectAttributesRepositoryImpl
             from app.infrastructure.repositories.employee_leave_repository_impl import EmployeeLeaveRepositoryImpl
@@ -148,7 +147,6 @@ class DependencyContainer:
             company_leave_repository = MongoDBCompanyLeaveRepository(self._database_connector)
             salary_package_repository = MongoDBSalaryPackageRepository(self._database_connector)
             attendance_repository = MongoDBAttendanceRepository(self._database_connector)
-            monthly_salary_repository = MongoDBMonthlySalaryRepository(self._database_connector)
             reimbursement_repository = MongoDBReimbursementRepository(self._database_connector)
             project_attributes_repository = ProjectAttributesRepositoryImpl(self._database_connector)
             employee_leave_repository = EmployeeLeaveRepositoryImpl(self._database_connector)
@@ -161,7 +159,6 @@ class DependencyContainer:
                 public_holiday_repository,
                 company_leave_repository,
                 salary_package_repository,
-                monthly_salary_repository,
                 attendance_repository,
                 reimbursement_repository,
                 project_attributes_repository,
@@ -182,7 +179,6 @@ class DependencyContainer:
             self._repositories['public_holiday'] = public_holiday_repository
             self._repositories['company_leave'] = company_leave_repository
             self._repositories['salary_package'] = salary_package_repository
-            self._repositories['monthly_salary'] = monthly_salary_repository
             self._repositories['attendance'] = attendance_repository
             self._repositories['reimbursement'] = reimbursement_repository
             self._repositories['project_attributes'] = project_attributes_repository
@@ -419,11 +415,6 @@ class DependencyContainer:
         """Get salary package repository instance."""
         self.initialize()
         return self._repositories['salary_package']
-    
-    def get_monthly_salary_repository(self):
-        """Get monthly salary repository instance."""
-        self.initialize()
-        return self._repositories['monthly_salary']
     
     # ==================== SERVICE GETTERS ====================
     
@@ -768,7 +759,6 @@ class DependencyContainer:
         self._controllers['taxation'] = UnifiedTaxationController(
             user_repository=self._repositories['user'],
             salary_package_repository=self._repositories['salary_package'],
-            monthly_salary_repository=self._repositories['monthly_salary']
         )
         
         return self._controllers['taxation']
@@ -783,7 +773,6 @@ class DependencyContainer:
         if 'export' not in self._controllers:
             self._controllers['export'] = ExportController(
                 file_generation_service=self._file_generation_service,
-                monthly_salary_repository=self._repositories['monthly_salary'],
                 taxation_controller=self.get_taxation_controller()
             )
         

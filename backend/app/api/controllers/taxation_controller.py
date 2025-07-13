@@ -120,7 +120,6 @@ class UnifiedTaxationController:
     def __init__(self,
                  user_repository,
                  salary_package_repository,
-                 monthly_salary_repository=None,
                  organisation_repository=None):
         self.user_repository = user_repository
         self.salary_package_repository = salary_package_repository
@@ -128,9 +127,6 @@ class UnifiedTaxationController:
         from app.config.dependency_container import get_dependency_container
         container = get_dependency_container()
         user_service = container.get_user_service()
-        if monthly_salary_repository is None:
-            monthly_salary_repository = container.get_monthly_salary_repository()
-        self.monthly_salary_repository = monthly_salary_repository
         self.get_employees_for_selection_use_case = GetEmployeesForSelectionUseCase(
             user_query_service=user_service,
             salary_package_repository=salary_package_repository
@@ -138,7 +134,6 @@ class UnifiedTaxationController:
         self.compute_monthly_salary_use_case = ComputeMonthlySalaryUseCase(
             salary_package_repository=salary_package_repository,
             user_repository=user_repository,
-            monthly_salary_repository=monthly_salary_repository,
             tax_calculation_service=self.tax_calculation_service
         )
         # Add organisation repository
@@ -3653,7 +3648,7 @@ class UnifiedTaxationController:
         
         try:
             # Get monthly salary from repository
-            monthly_salary = await self.monthly_salary_repository.get_by_employee_month_year(
+            monthly_salary = await self.salary_package_repository.get_by_employee_month_year(
                 employee_id, month, year, organization_id
             )
             
@@ -3748,7 +3743,7 @@ class UnifiedTaxationController:
         
         try:
             # Get summary from repository
-            summary = await self.monthly_salary_repository.get_monthly_summary(
+            summary = await self.salary_package_repository.get_monthly_summary(
                 month, year, organization_id
             )
             
@@ -3786,7 +3781,7 @@ class UnifiedTaxationController:
         
         try:
             # Check if salary exists
-            exists = await self.monthly_salary_repository.exists(
+            exists = await self.salary_package_repository.exists(
                 employee_id, month, year, organization_id
             )
             
@@ -3794,7 +3789,7 @@ class UnifiedTaxationController:
                 raise ValueError(f"Monthly salary not found for employee {employee_id}, month {month}, year {year}")
             
             # Delete the salary
-            deleted = await self.monthly_salary_repository.delete(
+            deleted = await self.salary_package_repository.delete(
                 employee_id, month, year, organization_id
             )
             
@@ -4128,7 +4123,7 @@ class UnifiedTaxationController:
             List of MonthlySalaryResponseDTO
         """
         try:
-            salary_entities = await self.monthly_salary_repository.get_by_employee(
+            salary_entities = await self.salary_package_repository.get_by_employee(
                 employee_id, organization_id, limit=limit, offset=offset
             )
             # Optionally enrich with user info
@@ -4157,7 +4152,7 @@ class UnifiedTaxationController:
         """
         try:
             # Get salary record
-            salary_record = await self.monthly_salary_repository.get_by_employee_month_year(
+            salary_record = await self.salary_package_repository.get_by_employee_month_year(
                 employee_id=employee_id,
                 month=month,
                 year=year,

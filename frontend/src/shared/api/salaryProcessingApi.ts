@@ -148,7 +148,7 @@ export const salaryProcessingApi = {
    */
   async getMonthlySalariesForPeriod(
     month: number,
-    year: number,
+    taxYear: string,
     params?: {
       status?: string;
       department?: string;
@@ -163,7 +163,7 @@ export const salaryProcessingApi = {
     if (params?.skip !== undefined) queryParams.append('skip', params.skip.toString());
     if (params?.limit !== undefined) queryParams.append('limit', params.limit.toString());
 
-    const url = `/api/v2/taxation/monthly-salary/period/month/${month}/year/${year}`;
+    const url = `/api/v2/taxation/monthly-salary/period/month/${month}/tax-year/${taxYear}`;
     const fullUrl = queryParams.toString() ? `${url}?${queryParams.toString()}` : url;
 
     const response = await apiClient.get(fullUrl);
@@ -205,10 +205,10 @@ export const salaryProcessingApi = {
    */
   async getMonthlySalarySummary(
     month: number,
-    year: number
+    taxYear: string
   ): Promise<MonthlySalarySummaryResponse> {
     const response = await apiClient.get(
-      `/api/v2/taxation/monthly-salary/summary/month/${month}/year/${year}`
+      `/api/v2/taxation/monthly-salary/summary/month/${month}/tax-year/${taxYear}`
     );
     return response.data;
   },
@@ -229,10 +229,10 @@ export const salaryProcessingApi = {
   async deleteMonthlySalary(
     employeeId: string,
     month: number,
-    year: number
+    taxYear: string
   ): Promise<{ message: string }> {
     const response = await apiClient.delete(
-      `/api/v2/taxation/monthly-salary/employee/${employeeId}/month/${month}/year/${year}`
+      `/api/v2/taxation/monthly-salary/employee/${employeeId}/month/${month}/tax-year/${taxYear}`
     );
     return response.data;
   },

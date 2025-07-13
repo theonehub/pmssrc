@@ -48,6 +48,7 @@ import {
   TableChart as TableChartIcon,
   GridOn as GridOnIcon
 } from '@mui/icons-material';
+import { getCurrentTaxYear, getAvailableTaxYears, taxYearStringToStartYear } from '../../shared/utils/formatting';
 
 /**
  * ProcessedSalaries Component - Display all processed salary records
@@ -58,7 +59,7 @@ const ProcessedSalaries: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   
   const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
-  const [year, setYear] = useState<number>(new Date().getFullYear());
+  const [taxYear, setTaxYear] = useState<string>(getCurrentTaxYear());
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [departmentFilter, setDepartmentFilter] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -92,7 +93,7 @@ const ProcessedSalaries: React.FC = () => {
       
       const response = await salaryProcessingApi.getMonthlySalariesForPeriod(
         month,
-        year,
+        taxYear,
         params
       );
       
@@ -107,13 +108,13 @@ const ProcessedSalaries: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [month, year, statusFilter, departmentFilter, page, rowsPerPage]);
+  }, [month, taxYear, statusFilter, departmentFilter, page, rowsPerPage]);
 
   const fetchSummary = useCallback(async () => {
     try {
       setSummaryLoading(true);
       
-      const response = await salaryProcessingApi.getMonthlySalarySummary(month, year);
+      const response = await salaryProcessingApi.getMonthlySalarySummary(month, taxYear);
       setSummary(response);
       
     } catch (err) {
@@ -122,12 +123,12 @@ const ProcessedSalaries: React.FC = () => {
     } finally {
       setSummaryLoading(false);
     }
-  }, [month, year]);
+  }, [month, taxYear]);
 
   useEffect(() => {
     fetchSalaries();
     fetchSummary();
-  }, [month, year, statusFilter, departmentFilter, page, rowsPerPage, fetchSalaries, fetchSummary]);
+  }, [month, taxYear, statusFilter, departmentFilter, page, rowsPerPage, fetchSalaries, fetchSummary]);
 
   const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
@@ -160,7 +161,7 @@ const ProcessedSalaries: React.FC = () => {
         await salaryProcessingApi.deleteMonthlySalary(
           salary.employee_id,
           salary.month,
-          salary.year
+          taxYear // Pass as string, not number
         );
         
         fetchSalaries();
@@ -222,9 +223,9 @@ const ProcessedSalaries: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportProcessedSalaries('csv', month, year, filters);
+      const blob = await exportApi.exportProcessedSalaries('csv', month, taxYearStringToStartYear(taxYear), filters);
       
-      exportApi.downloadFile(blob, `processed_salaries_${month}_${year}.csv`);
+      exportApi.downloadFile(blob, `processed_salaries_${month}_${taxYear}.csv`);
       
     } catch (err) {
       console.error('Error exporting to CSV:', err);
@@ -243,9 +244,9 @@ const ProcessedSalaries: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportProcessedSalaries('excel', month, year, filters);
+      const blob = await exportApi.exportProcessedSalaries('excel', month, taxYearStringToStartYear(taxYear), filters);
       
-      exportApi.downloadFile(blob, `processed_salaries_${month}_${year}.xlsx`);
+      exportApi.downloadFile(blob, `processed_salaries_${month}_${taxYear}.xlsx`);
       
     } catch (err) {
       console.error('Error exporting to Excel:', err);
@@ -264,9 +265,9 @@ const ProcessedSalaries: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportProcessedSalaries('bank_transfer', month, year, filters);
+      const blob = await exportApi.exportProcessedSalaries('bank_transfer', month, taxYearStringToStartYear(taxYear), filters);
       
-      exportApi.downloadFile(blob, `bank_transfer_${month}_${year}.csv`);
+      exportApi.downloadFile(blob, `bank_transfer_${month}_${taxYear}.csv`);
       
     } catch (err) {
       console.error('Error exporting bank transfer format:', err);
@@ -377,13 +378,13 @@ const ProcessedSalaries: React.FC = () => {
         
         <Grid item xs={12} sm={6} md={2}>
           <FormControl fullWidth size="small">
-            <InputLabel>Year</InputLabel>
+            <InputLabel>Tax Year</InputLabel>
             <Select
-              value={year}
-              label="Year"
-              onChange={(e) => setYear(e.target.value as number)}
+              value={taxYear}
+              label="Tax Year"
+              onChange={(e) => setTaxYear(e.target.value as string)}
             >
-              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((year) => (
+              {getAvailableTaxYears().map((year) => (
                 <MenuItem key={year} value={year}>
                   {year}
                 </MenuItem>

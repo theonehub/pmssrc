@@ -1250,14 +1250,14 @@ async def download_payslip(
             detail=f"Failed to download payslip: {str(e)}"
         )
 
-@router.get("/monthly-salary/period/month/{month}/year/{year}",
+@router.get("/monthly-salary/period/month/{month}/tax-year/{tax_year}",
             response_model=Dict[str, Any],
             status_code=status.HTTP_200_OK,
             summary="Get monthly salaries for period",
             description="Get all monthly salaries for a specific month and year with pagination")
 async def get_monthly_salaries_for_period(
     month: int,
-    year: int,
+    tax_year: str,
     salary_status: Optional[str] = Query(None, description="Filter by status"),
     department: Optional[str] = Query(None, description="Filter by department"),
     skip: int = Query(0, description="Number of records to skip"),
@@ -1270,7 +1270,7 @@ async def get_monthly_salaries_for_period(
     
     Args:
         month: Month number (1-12)
-        year: Year
+        tax_year: Tax year (e.g., '2024-25')
         salary_status: Optional status filter
         department: Optional department filter
         skip: Number of records to skip
@@ -1286,7 +1286,7 @@ async def get_monthly_salaries_for_period(
     
     try:
         result = await controller.get_monthly_salaries_for_period(
-            month, year, current_user.hostname, salary_status, department, skip, limit
+            month, tax_year, current_user.hostname, salary_status, department, skip, limit
         )
         return result
         
@@ -1297,14 +1297,14 @@ async def get_monthly_salaries_for_period(
             detail=f"Failed to get monthly salaries: {str(e)}"
         )
 
-@router.get("/monthly-salary/summary/month/{month}/year/{year}",
+@router.get("/monthly-salary/summary/month/{month}/tax-year/{tax_year}",
             response_model=Dict[str, Any],
             status_code=status.HTTP_200_OK,
             summary="Get monthly salary summary",
             description="Get summary statistics for monthly salaries in a period")
 async def get_monthly_salary_summary(
     month: int,
-    year: int,
+    tax_year: str,
     current_user: CurrentUser = Depends(get_current_user),
     controller: UnifiedTaxationController = Depends(get_taxation_controller)
 ) -> Dict[str, Any]:
@@ -1313,7 +1313,7 @@ async def get_monthly_salary_summary(
     
     Args:
         month: Month number (1-12)
-        year: Year
+        tax_year: Tax year (e.g., '2024-25')
         current_user: Current authenticated user
         
     Returns:
@@ -1324,7 +1324,7 @@ async def get_monthly_salary_summary(
     """
     
     try:
-        result = await controller.get_monthly_salary_summary(month, year, current_user.hostname)
+        result = await controller.get_monthly_salary_summary(month, tax_year, current_user.hostname)
         return result
         
     except Exception as e:

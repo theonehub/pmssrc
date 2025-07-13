@@ -48,6 +48,7 @@ import {
   Assessment as AssessmentIcon,
   Description as DescriptionIcon
 } from '@mui/icons-material';
+import { getCurrentTaxYear, getAvailableTaxYears, taxYearStringToStartYear } from '../../shared/utils/formatting';
 
 /**
  * TDS Report Component - Display TDS information for tax reporting
@@ -58,8 +59,7 @@ const TDSReport: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   
   const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
-  const [year, setYear] = useState<number>(new Date().getFullYear());
-  const [taxYear, setTaxYear] = useState<string>('');
+  const [taxYear, setTaxYear] = useState<string>(getCurrentTaxYear());
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [departmentFilter, setDepartmentFilter] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -99,7 +99,7 @@ const TDSReport: React.FC = () => {
       
       const response = await salaryProcessingApi.getMonthlySalariesForPeriod(
         month,
-        year,
+        taxYear,
         params
       );
       
@@ -114,13 +114,13 @@ const TDSReport: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [month, year, statusFilter, departmentFilter, page, rowsPerPage]);
+  }, [month, taxYear, statusFilter, departmentFilter, page, rowsPerPage]);
 
   const fetchSummary = useCallback(async () => {
     try {
       setSummaryLoading(true);
       
-      const response = await salaryProcessingApi.getMonthlySalarySummary(month, year);
+      const response = await salaryProcessingApi.getMonthlySalarySummary(month, taxYear);
       setSummary(response);
       
     } catch (err) {
@@ -129,7 +129,7 @@ const TDSReport: React.FC = () => {
     } finally {
       setSummaryLoading(false);
     }
-  }, [month, year]);
+  }, [month, taxYear]);
 
   // Calculate TDS summary
   const calculateTDSSummary = useCallback(() => {
@@ -173,7 +173,7 @@ const TDSReport: React.FC = () => {
   useEffect(() => {
     fetchSalaries();
     fetchSummary();
-  }, [month, year, statusFilter, departmentFilter, page, rowsPerPage, fetchSalaries, fetchSummary]);
+  }, [month, taxYear, statusFilter, departmentFilter, page, rowsPerPage, fetchSalaries, fetchSummary]);
 
   // Calculate TDS summary when salaries change
   useEffect(() => {
@@ -183,8 +183,8 @@ const TDSReport: React.FC = () => {
 
   // Set tax year based on selected year
   useEffect(() => {
-    setTaxYear(`${year}-${year + 1}`);
-  }, [year]);
+    setTaxYear(getCurrentTaxYear());
+  }, []);
 
   const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
@@ -259,9 +259,9 @@ const TDSReport: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportTDSReport('csv', month, year, undefined, filters);
+      const blob = await exportApi.exportTDSReport('csv', month, taxYearStringToStartYear(taxYear), undefined, filters);
       
-      exportApi.downloadFile(blob, `tds_report_${month}_${year}.csv`);
+      exportApi.downloadFile(blob, `tds_report_${month}_${taxYear}.csv`);
       
     } catch (err) {
       console.error('Error exporting TDS to CSV:', err);
@@ -280,9 +280,9 @@ const TDSReport: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportTDSReport('excel', month, year, undefined, filters);
+      const blob = await exportApi.exportTDSReport('excel', month, taxYearStringToStartYear(taxYear), undefined, filters);
       
-      exportApi.downloadFile(blob, `tds_report_${month}_${year}.xlsx`);
+      exportApi.downloadFile(blob, `tds_report_${month}_${taxYear}.xlsx`);
       
     } catch (err) {
       console.error('Error exporting TDS to Excel:', err);
@@ -301,9 +301,9 @@ const TDSReport: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportTDSReport('form_16', month, year, undefined, filters);
+      const blob = await exportApi.exportTDSReport('form_16', month, taxYearStringToStartYear(taxYear), undefined, filters);
       
-      exportApi.downloadFile(blob, `form_16_${year}.csv`);
+      exportApi.downloadFile(blob, `form_16_${taxYear}.csv`);
       
     } catch (err) {
       console.error('Error exporting Form 16:', err);
@@ -318,9 +318,9 @@ const TDSReport: React.FC = () => {
       setExportLoading(true);
       handleExportClose();
       
-      const blob = await exportApi.exportForm24Q(selectedQuarter, year, 'csv');
+      const blob = await exportApi.exportForm24Q(selectedQuarter, taxYearStringToStartYear(taxYear), 'csv');
       
-      exportApi.downloadFile(blob, `form_24q_q${selectedQuarter}_${year}.csv`);
+      exportApi.downloadFile(blob, `form_24q_q${selectedQuarter}_${taxYear}.csv`);
       
     } catch (err) {
       console.error('Error exporting Form 24Q:', err);
@@ -335,9 +335,9 @@ const TDSReport: React.FC = () => {
       setExportLoading(true);
       handleExportClose();
       
-      const blob = await exportApi.exportForm24Q(selectedQuarter, year, 'fvu');
+      const blob = await exportApi.exportForm24Q(selectedQuarter, taxYearStringToStartYear(taxYear), 'fvu');
       
-      exportApi.downloadFile(blob, `form24q_q${selectedQuarter}_${year}_FVU.txt`);
+      exportApi.downloadFile(blob, `form24q_q${selectedQuarter}_${taxYear}_FVU.txt`);
       
     } catch (err) {
       console.error('Error exporting FVU Form 24Q:', err);
@@ -521,11 +521,11 @@ const TDSReport: React.FC = () => {
           <FormControl fullWidth size="small">
             <InputLabel>Year</InputLabel>
             <Select
-              value={year}
+              value={taxYear}
               label="Year"
-              onChange={(e) => setYear(e.target.value as number)}
+              onChange={(e) => setTaxYear(e.target.value)}
             >
-              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((year) => (
+              {getAvailableTaxYears().map((year) => (
                 <MenuItem key={year} value={year}>
                   {year}
                 </MenuItem>

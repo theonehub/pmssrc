@@ -8,7 +8,7 @@ from typing import Optional, Dict, Any, Tuple
 from datetime import datetime
 
 from app.application.interfaces.services.file_generation_service import FileGenerationService
-from app.application.interfaces.repositories.monthly_salary_repository import MonthlySalaryRepository
+from app.api.controllers.taxation_controller import UnifiedTaxationController
 
 
 logger = logging.getLogger(__name__)
@@ -25,11 +25,9 @@ class ExportController:
     def __init__(
         self,
         file_generation_service: FileGenerationService,
-        monthly_salary_repository: MonthlySalaryRepository,
-        taxation_controller=None
+        taxation_controller: UnifiedTaxationController
     ):
         self.file_generation_service = file_generation_service
-        self.monthly_salary_repository = monthly_salary_repository
         self.taxation_controller = taxation_controller
 
     async def export_processed_salaries(
@@ -54,101 +52,6 @@ class ExportController:
                     limit=1000  # Get all records for export
                 )
                 salary_data = response.get('items', [])
-            else:
-                # Fallback to repository if taxation controller not available
-                salary_data = await self.monthly_salary_repository.get_monthly_salaries_for_period(
-                    month=filters.get('month'),
-                    year=filters.get('year'),
-                    organization_id=organisation_id,
-                    status=filters.get('status'),
-                    department=filters.get('department')
-                )
-                # Convert entities to DTOs (simplified)
-                salary_data = []
-                for salary in salary_data:
-                    # Calculate total provident fund if available
-                    pf_total = 0.0
-                    pf_fields = {
-                        'pf_employee_contribution': 0.0,
-                        'pf_employer_contribution': 0.0,
-                        'esi_contribution': 0.0,
-                        'pf_voluntary_contribution': 0.0,
-                        'pf_total_contribution': 0.0
-                    }
-                    
-                    # Expand all specific allowances
-                    allowances = {}
-                    if hasattr(salary.salary, 'specific_allowances') and salary.salary.specific_allowances:
-                        sa = salary.salary.specific_allowances
-                        allowances = {
-                            'monthly_hills_allowance': sa.monthly_hills_allowance.to_float(),
-                            'monthly_hills_exemption_limit': sa.monthly_hills_exemption_limit.to_float(),
-                            'monthly_border_allowance': sa.monthly_border_allowance.to_float(),
-                            'monthly_border_exemption_limit': sa.monthly_border_exemption_limit.to_float(),
-                            'transport_employee_allowance': sa.transport_employee_allowance.to_float(),
-                            'children_education_allowance': sa.children_education_allowance.to_float(),
-                            'children_education_count': sa.children_education_count,
-                            'hostel_allowance': sa.hostel_allowance.to_float(),
-                            'children_hostel_count': sa.children_hostel_count,
-                            'disabled_transport_allowance': sa.disabled_transport_allowance.to_float(),
-                            'is_disabled': sa.is_disabled,
-                            'underground_mines_allowance': sa.underground_mines_allowance.to_float(),
-                            'mine_work_months': sa.mine_work_months,
-                            'government_entertainment_allowance': sa.government_entertainment_allowance.to_float(),
-                            'city_compensatory_allowance': sa.city_compensatory_allowance.to_float(),
-                            'rural_allowance': sa.rural_allowance.to_float(),
-                            'proctorship_allowance': sa.proctorship_allowance.to_float(),
-                            'wardenship_allowance': sa.wardenship_allowance.to_float(),
-                            'project_allowance': sa.project_allowance.to_float(),
-                            'deputation_allowance': sa.deputation_allowance.to_float(),
-                            'overtime_allowance': sa.overtime_allowance.to_float(),
-                            'interim_relief': sa.interim_relief.to_float(),
-                            'tiffin_allowance': sa.tiffin_allowance.to_float(),
-                            'fixed_medical_allowance': sa.fixed_medical_allowance.to_float(),
-                            'servant_allowance': sa.servant_allowance.to_float(),
-                            'any_other_allowance': sa.any_other_allowance.to_float(),
-                            'any_other_allowance_exemption': sa.any_other_allowance_exemption.to_float(),
-                            'govt_employees_outside_india_allowance': sa.govt_employees_outside_india_allowance.to_float(),
-                            'supreme_high_court_judges_allowance': sa.supreme_high_court_judges_allowance.to_float(),
-                            'judge_compensatory_allowance': sa.judge_compensatory_allowance.to_float(),
-                            'section_10_14_special_allowances': sa.section_10_14_special_allowances.to_float(),
-                            'travel_on_tour_allowance': sa.travel_on_tour_allowance.to_float(),
-                            'tour_daily_charge_allowance': sa.tour_daily_charge_allowance.to_float(),
-                            'conveyance_in_performace_of_duties': sa.conveyance_in_performace_of_duties.to_float(),
-                            'helper_in_performace_of_duties': sa.helper_in_performace_of_duties.to_float(),
-                            'academic_research': sa.academic_research.to_float(),
-                            'uniform_allowance': sa.uniform_allowance.to_float(),
-                            'hills_allowance': sa.hills_allowance.to_float(),
-                            'border_allowance': sa.border_allowance.to_float(),
-                            'hills_exemption_limit': sa.hills_exemption_limit.to_float(),
-                            'border_exemption_limit': sa.border_exemption_limit.to_float(),
-                            'children_count': sa.children_count
-                        }
-
-                    salary_dict = {
-                        'employee_id': str(salary.employee_id),
-                        'employee_name': None,  # Would need user data
-                        'department': None,  # Would need user data
-                        'designation': None,  # Would need user data
-                        'month': salary.month,
-                        'year': salary.year,
-                        'basic_salary': salary.salary.basic_salary.to_float(),
-                        'hra': salary.salary.hra_provided.to_float(),
-                        'da': salary.salary.dearness_allowance.to_float(),
-                        'gross_salary': salary.salary.calculate_gross_salary().to_float(),
-                        'pf': pf_total,  # Updated with calculated PF
-                        'pt': 0.0,  # Would need calculation
-                        'tds': salary.tax_amount.to_float(),
-                        'net_salary': salary.net_salary.to_float(),
-                        'status': 'computed',
-                        'pf_employee_contribution': salary.salary.pf_employee_contribution.to_float(),
-                        'pf_employer_contribution': salary.salary.pf_employer_contribution.to_float(),
-                        'esi_contribution': salary.salary.esi_contribution.to_float(),
-                        'pf_voluntary_contribution': salary.salary.pf_voluntary_contribution.to_float(),
-                        'pf_total_contribution': salary.salary.pf_total_contribution.to_float(),
-                        **allowances
-                    }
-                    salary_data.append(salary_dict)
             
             # Convert to list of dictionaries for file generation
             salary_list = []
@@ -242,31 +145,7 @@ class ExportController:
                     limit=1000  # Get all records for export
                 )
                 salary_data = response.get('items', [])
-            else:
-                # Fallback to repository if taxation controller not available
-                salary_data = await self.monthly_salary_repository.get_monthly_salaries_for_period(
-                    month=filters.get('month'),
-                    year=filters.get('year'),
-                    organization_id=organisation_id,
-                    status=filters.get('status'),
-                    department=filters.get('department')
-                )
-                # Convert entities to DTOs (simplified)
-                salary_data = []
-                for salary in salary_data:
-                    salary_dict = {
-                        'employee_id': str(salary.employee_id),
-                        'employee_name': None,
-                        'department': None,
-                        'designation': None,
-                        'month': salary.month,
-                        'year': salary.year,
-                        'gross_salary': salary.salary.calculate_gross_salary().to_float(),
-                        'tds': salary.tax_amount.to_float(),
-                        'tax_regime': str(salary.tax_regime),
-                        'status': 'computed'
-                    }
-                    salary_data.append(salary_dict)
+            
             
             # Filter for TDS data and convert to list of dictionaries
             tds_list = []
@@ -364,27 +243,6 @@ class ExportController:
                     salary_data = response.get('items', [])
                     # Filter for specific employee
                     salary_data = [s for s in salary_data if s.get('employee_id') == employee_id]
-                else:
-                    # Fallback to repository
-                    salary_data = await self.monthly_salary_repository.get_monthly_salaries_for_period(
-                        month=month,
-                        year=start_year,
-                        organization_id=organisation_id,
-                        employee_id=employee_id
-                    )
-                    # Convert entities to DTOs
-                    salary_data = []
-                    for salary in salary_data:
-                        salary_dict = {
-                            'employee_id': str(salary.employee_id),
-                            'employee_name': None,
-                            'pan_number': None,
-                            'month': salary.month,
-                            'year': salary.year,
-                            'gross_salary': salary.salary.calculate_gross_salary().to_float(),
-                            'tds': salary.tax_amount.to_float()
-                        }
-                        salary_data.append(salary_dict)
                 
                 for salary in salary_data:
                     if isinstance(salary, dict):
@@ -473,28 +331,6 @@ class ExportController:
                         limit=1000
                     )
                     salary_data = response.get('items', [])
-                else:
-                    # Fallback to repository
-                    salary_data = await self.monthly_salary_repository.get_monthly_salaries_for_period(
-                        month=month,
-                        year=tax_year,
-                        organization_id=organisation_id
-                    )
-                    # Convert entities to DTOs
-                    salary_data = []
-                    for salary in salary_data:
-                        salary_dict = {
-                            'employee_id': str(salary.employee_id),
-                            'employee_name': None,
-                            'pan_number': None,
-                            'month': salary.month,
-                            'year': salary.year,
-                            'gross_salary': salary.salary.calculate_gross_salary().to_float(),
-                            'tds': salary.tax_amount.to_float(),
-                            'department': None,
-                            'designation': None
-                        }
-                        salary_data.append(salary_dict)
                 
                 for salary in salary_data:
                     if isinstance(salary, dict):
@@ -636,30 +472,6 @@ class ExportController:
                     limit=1000  # Get all records for export
                 )
                 salary_data = response.get('items', [])
-            else:
-                # Fallback to repository if taxation controller not available
-                salary_data = await self.monthly_salary_repository.get_monthly_salaries_for_period(
-                    month=filters.get('month'),
-                    year=filters.get('year'),
-                    organization_id=organisation_id,
-                    status=filters.get('status'),
-                    department=filters.get('department')
-                )
-                # Convert entities to DTOs (simplified)
-                salary_data = []
-                for salary in salary_data:
-                    salary_dict = {
-                        'employee_id': str(salary.employee_id),
-                        'employee_name': None,
-                        'department': None,
-                        'designation': None,
-                        'month': salary.month,
-                        'year': salary.year,
-                        'gross_salary': salary.salary.calculate_gross_salary().to_float(),
-                        'epf_employee': self._calculate_monthly_epf(salary.salary.calculate_gross_salary()),
-                        'status': 'computed'
-                    }
-                    salary_data.append(salary_dict)
             
             # Filter for PF data and convert to list of dictionaries
             pf_list = []

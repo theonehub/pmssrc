@@ -3687,58 +3687,32 @@ class UnifiedTaxationController:
     ) -> Dict[str, Any]:
         """
         Get all monthly salaries for a specific month and year with filtering and pagination.
-        
-        Args:
-            month: Month number (1-12)
-            year: Year
-            organization_id: Organization ID for multi-tenancy
-            status: Optional status filter
-            department: Optional department filter
-            skip: Number of records to skip
-            limit: Maximum number of records to return
-            
-        Returns:
-            Dict containing list of monthly salaries and pagination info
+        Now retrieves from SalaryPackageRecord.monthly_salary_records (embedded array).
         """
-        
-        logger.info(f"Getting monthly salaries for period: month {month}, year {year}")
-        
+        logger.info(f"Getting monthly salaries for period: month {month}, year {year} (from SalaryPackageRecord)")
         try:
-            # Get monthly salaries from repository
-            monthly_salaries = await self.monthly_salary_repository.get_by_month_year(
-                month, year, organization_id, limit, skip
+            # Use the new repository method to aggregate all monthly_salary_records for the period
+            monthly_salaries = await self.salary_package_repository.get_monthly_salaries_for_period(
+                month, year, organization_id, status=salary_status, department=department, skip=skip, limit=limit
             )
-            
-            # Apply filters if provided
+
+            # Apply filters if provided (status, department)
             filtered_salaries = []
             for salary in monthly_salaries:
-                # Get user details for filtering
                 from app.domain.value_objects.employee_id import EmployeeId
                 employee_id_vo = EmployeeId(salary.employee_id.value)
                 user = await self.user_repository.get_by_id(employee_id_vo, organization_id)
-                
                 # Apply status filter
-                if salary_status and salary.status != salary_status:
+                if salary_status and getattr(salary, 'status', None) != salary_status:
                     continue
-                
                 # Apply department filter
-                if department and user and user.department != department:
+                if department and user and getattr(user, 'department', None) != department:
                     continue
-                
-                filtered_salaries.append(salary)
-            
+                filtered_salaries.append((salary, user))
+
             # Convert entities to DTOs
-            items = []
-            for salary in filtered_salaries:
-                from app.domain.value_objects.employee_id import EmployeeId
-                employee_id_vo = EmployeeId(salary.employee_id.value)
-                user = await self.user_repository.get_by_id(employee_id_vo, organization_id)
-                dto = self._convert_monthly_salary_entity_to_dto(salary, user)
-                items.append(dto)
-            
-            # Get total count for pagination
+            items = [self._convert_monthly_salary_entity_to_dto(salary, user) for salary, user in filtered_salaries]
             total = len(filtered_salaries)
-            
             result = {
                 "items": items,
                 "total": total,
@@ -3746,10 +3720,8 @@ class UnifiedTaxationController:
                 "limit": limit,
                 "has_more": (skip + limit) < total
             }
-            
-            logger.info(f"Successfully retrieved {len(items)} monthly salaries for period")
+            logger.info(f"Successfully retrieved {len(items)} monthly salaries for period (from SalaryPackageRecord)")
             return result
-            
         except Exception as e:
             logger.error(f"Failed to get monthly salaries for period: {str(e)}")
             raise

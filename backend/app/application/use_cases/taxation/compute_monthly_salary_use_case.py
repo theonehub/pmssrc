@@ -11,6 +11,7 @@ from app.domain.value_objects.employee_id import EmployeeId
 from app.domain.value_objects.tax_year import TaxYear
 from app.domain.value_objects.money import Money
 from app.domain.entities.monthly_salary import MonthlySalary
+from app.domain.entities.taxation.taxation_record import TDSStatus
 from app.domain.entities.taxation.salary_income import SalaryIncome
 from app.domain.entities.taxation.perquisites import MonthlyPerquisitesPayouts
 from app.domain.entities.taxation.deductions import TaxDeductions
@@ -87,17 +88,23 @@ class ComputeMonthlySalaryUseCase:
                     f"Salary package record not found for employee {request.employee_id} "
                     f"in tax year {request.tax_year}"
                 )
+            financial_year_month = self._convert_to_financial_year_month(request.month, request.year, tax_year)
             
             # 3. Update arrears if provided
             if request.arrears is not None and request.arrears > 0:
-                # Convert month to financial year month (1-12)
-                financial_year_month = self._convert_to_financial_year_month(request.month, request.year, tax_year)
                 arrears_amount = Money.from_float(request.arrears)
                 salary_package_record.set_arrears_for_month(financial_year_month, arrears_amount)
-                
-                # Save the updated salary package record
-                await self.salary_package_repository.save(salary_package_record, organization_id)
                 logger.info(f"Updated arrears for month {financial_year_month}: ₹{request.arrears:,.2f}")
+
+                
+            if request.bonus is not None and request.bonus > 0:
+                bonus_amount = Money.from_float(request.bonus)
+                salary_package_record.set_bonus_for_month(financial_year_month, bonus_amount)
+                logger.info(f"Updated bonus for month {financial_year_month}: ₹{request.bonus:,.2f}")
+
+                
+            # Save the updated salary package record
+            await self.salary_package_repository.save(salary_package_record, organization_id)
             
             # 4. Get current salary income (latest one)
             current_salary_income = salary_package_record.get_latest_salary_income()
@@ -113,7 +120,9 @@ class ComputeMonthlySalaryUseCase:
             monthly_tax = await self._calculate_monthly_tax(
                 salary_package_record, request, organization_id
             )
+
             
+
             # 7. Create MonthlySalary entity
             monthly_salary = MonthlySalary(
                 employee_id=employee_id,
@@ -129,6 +138,8 @@ class ComputeMonthlySalaryUseCase:
                 tax_amount=monthly_tax,
                 net_salary=Money.zero()  # Will be computed below
             )
+
+
             
             # 8. Compute net salary
             monthly_salary.compute_net_pay()
@@ -137,9 +148,12 @@ class ComputeMonthlySalaryUseCase:
             response = self._build_response_dto(
                 monthly_salary, user, request, organization_id
             )
+
+            salary_package_record.monthly_salary_records.append(monthly_salary)
+            await self.salary_package_repository.save(salary_package_record, organization_id)
             
-            # 10. Save computed monthly salary to database
-            await self.monthly_salary_repository.save(monthly_salary, organization_id)
+            # # 10. Save computed monthly salary to database
+            # await self.monthly_salary_repository.save(monthly_salary, organization_id)
             
             logger.info(f"Successfully computed monthly salary for employee {request.employee_id}")
             logger.info(f"Gross: ₹{response.gross_salary:,.2f}, Net: ₹{response.net_salary:,.2f}")
@@ -177,9 +191,10 @@ class ComputeMonthlySalaryUseCase:
         monthly_bonus = salary_income.bonus
         monthly_commission = salary_income.commission
         
-        # Get arrears from salary package record for the specific month
+        # Get arrears and bonus from salary package record for the specific month
         financial_year_month = self._convert_to_financial_year_month(request.month, request.year, salary_package_record.tax_year)
         monthly_arrears = salary_package_record.get_arrears_per_month(financial_year_month)
+        monthly_bonus = salary_package_record.get_bonus_per_month(financial_year_month)
         
         # Create monthly salary income
         monthly_salary_income = SalaryIncome(

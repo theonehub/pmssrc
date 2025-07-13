@@ -22,8 +22,21 @@ from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 from app.domain.entities.taxation.other_income import OtherIncome
 from app.domain.services.taxation.tax_calculation_service import TaxCalculationService, TaxCalculationResult
 from app.domain.value_objects.taxation.tax_regime import TaxRegimeType
+from app.domain.entities.monthly_salary import MonthlySalary
 
 logger = get_logger(__name__)
+
+@dataclass
+class TDSStatus:
+    """
+    Represents a bonus for a given month.
+    """
+    paid: bool
+    month: int
+    total_tax_liability: Money
+    tds_challan_number: Optional[str] = None
+    tds_challan_date: Optional[date] = None
+    tds_challan_file_path: Optional[str] = None
 
 @dataclass
 class SalaryPackageRecord:
@@ -58,6 +71,9 @@ class SalaryPackageRecord:
     other_income: Optional[OtherIncome] = None
     is_regime_update_allowed: Optional[bool] = True
     arrears: List[Money] = field(default_factory=lambda: [Money.zero() for _ in range(12)])
+    bonuses: List[Money] = field(default_factory=lambda: [Money.zero() for _ in range(12)])
+    tds_status: List[TDSStatus] = field(default_factory=lambda: [TDSStatus(paid=False, month=i, total_tax_liability=Money.zero()) for i in range(12)])
+
     is_government_employee: bool = False
     is_senior_citizen: bool = False
     is_super_senior_citizen: bool = False
@@ -69,6 +85,7 @@ class SalaryPackageRecord:
     # Calculated fields
     calculation_result: Optional[TaxCalculationResult] = None
     last_calculated_at: Optional[datetime] = None
+    monthly_salary_records: List[MonthlySalary] = field(default_factory=list)
     
     # Metadata
     is_final: bool = False
@@ -1753,3 +1770,128 @@ class SalaryPackageRecord:
         if self.other_income:
             return self.other_income.capital_gains_income
         return None
+
+    # Bonuses management methods
+    def get_bonus_per_month(self, month: int) -> Money:
+        """
+        Get bonus for a specific month (1-12).
+        
+        Args:
+            month: Month number (1-12, where 1=April, 12=March)
+        
+        Returns:
+            Money: Bonus amount for the specified month
+        
+        Raises:
+            ValueError: If month is not between 1 and 12
+        """
+        if not 1 <= month <= 12:
+            raise ValueError("Month must be between 1 and 12")
+        self._ensure_bonuses_list_size()
+        return self.bonuses[month - 1]
+
+    def set_bonus_for_month(self, month: int, amount: Money) -> None:
+        """
+        Set bonus for a specific month (1-12).
+        
+        Args:
+            month: Month number (1-12, where 1=April, 12=March)
+            amount: Bonus amount for the month
+        
+        Raises:
+            ValueError: If month is not between 1 and 12
+            ValueError: If record is finalized
+        """
+        if self.is_final:
+            raise ValueError("Cannot update finalized salary package record")
+        if not 1 <= month <= 12:
+            raise ValueError("Month must be between 1 and 12")
+        self._ensure_bonuses_list_size()
+        old_amount = self.bonuses[month - 1]
+        self.bonuses[month - 1] = amount
+        self._invalidate_calculation()
+        self._add_domain_event({
+            "event_type": "BonusUpdated",
+            "employee_id": str(self.employee_id),
+            "tax_year": str(self.tax_year),
+            "month": month,
+            "old_bonus_amount": old_amount.to_float(),
+            "new_bonus_amount": amount.to_float(),
+            "updated_at": self.updated_at.isoformat()
+        })
+
+    def get_total_bonuses(self) -> Money:
+        """
+        Get total bonuses for the entire financial year.
+        
+        Returns:
+            Money: Total bonuses amount
+        """
+        self._ensure_bonuses_list_size()
+        total = Money.zero()
+        for bonus_amount in self.bonuses:
+            total = total.add(bonus_amount)
+        return total
+
+    def get_bonuses_breakdown(self) -> dict:
+        """
+        Get detailed breakdown of bonuses by month.
+        
+        Returns:
+            Dict: Bonuses breakdown with month-wise details
+        """
+        self._ensure_bonuses_list_size()
+        month_names = [
+            "April", "May", "June", "July", "August", "September",
+            "October", "November", "December", "January", "February", "March"
+        ]
+        breakdown = {
+            "total_bonuses": self.get_total_bonuses().to_float(),
+            "monthly_breakdown": {}
+        }
+        for i, (month_name, bonus_amount) in enumerate(zip(month_names, self.bonuses)):
+            breakdown["monthly_breakdown"][month_name] = {
+                "month_number": i + 1,
+                "amount": bonus_amount.to_float(),
+                "has_bonus": not bonus_amount.is_zero()
+            }
+        return breakdown
+
+    def clear_bonus_for_month(self, month: int) -> None:
+        """
+        Clear bonus for a specific month (set to zero).
+        
+        Args:
+            month: Month number (1-12, where 1=April, 12=March)
+        """
+        self.set_bonus_for_month(month, Money.zero())
+
+    def clear_all_bonuses(self) -> None:
+        """
+        Clear all bonuses for the financial year (set all to zero).
+        """
+        if self.is_final:
+            raise ValueError("Cannot update finalized salary package record")
+        self._ensure_bonuses_list_size()
+        old_total = self.get_total_bonuses()
+        for i in range(12):
+            self.bonuses[i] = Money.zero()
+        self._invalidate_calculation()
+        self._add_domain_event({
+            "event_type": "AllBonusesCleared",
+            "employee_id": str(self.employee_id),
+            "tax_year": str(self.tax_year),
+            "old_total_bonuses": old_total.to_float(),
+            "updated_at": self.updated_at.isoformat()
+        })
+
+    def _ensure_bonuses_list_size(self) -> None:
+        """
+        Ensure the bonuses list has exactly 12 elements.
+        If the list is smaller, pad with zeros. If larger, truncate.
+        """
+        if len(self.bonuses) < 12:
+            while len(self.bonuses) < 12:
+                self.bonuses.append(Money.zero())
+        elif len(self.bonuses) > 12:
+            self.bonuses = self.bonuses[:12]

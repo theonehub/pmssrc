@@ -1155,6 +1155,7 @@ class MonthlySalaryComputeRequestDTO(BaseModel):
     year: int = Field(..., ge=2020, le=2030, description="Year")
     tax_year: str = Field(..., description="Tax year (e.g., 2024-25)")
     arrears: Optional[float] = Field(default=None, ge=0, description="Arrears amount if any")
+    bonus: Optional[float] = Field(default=None, ge=0, description="Bonus amount if any")
     use_declared_values: bool = Field(default=True, description="Use declared values or actual proof submission")
     force_recompute: bool = Field(default=False, description="Force recomputation if already computed")
     computed_by: Optional[str] = Field(default=None, description="User who initiated computation")

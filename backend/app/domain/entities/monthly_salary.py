@@ -23,6 +23,7 @@ class MonthlySalary:
     tax_regime: TaxRegime
     tax_amount: Money
     net_salary: Money
+    
 
     def __post_init__(self):
         if self.salary is None:

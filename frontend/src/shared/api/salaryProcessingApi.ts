@@ -113,10 +113,11 @@ export interface MonthlySalaryStatusUpdateRequest {
   employee_id: string;
   month: number;
   year: number;
+  tax_year: string; // Add this field to match backend and frontend usage
   status: string;
   comments: string;
-  transaction_id?: string;
-  transfer_date?: string; // ISO date string
+  transaction_id?: string | undefined;
+  transfer_date?: string | undefined; // ISO date string
   updated_by?: string;
 }
 

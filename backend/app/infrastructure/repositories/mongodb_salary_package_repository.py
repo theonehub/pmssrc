@@ -570,6 +570,13 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         from app.domain.value_objects.money import Money
         from app.domain.entities.monthly_salary import MonthlySalary
         from datetime import datetime
+        from datetime import date as dt_date
+        transfer_date = None
+        if ms_doc.get("transfer_date"):
+            try:
+                transfer_date = dt_date.fromisoformat(ms_doc["transfer_date"])
+            except Exception:
+                transfer_date = None
         return MonthlySalary(
             employee_id=EmployeeId(ms_doc["employee_id"]),
             month=ms_doc["month"],
@@ -583,6 +590,10 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             tax_regime=TaxRegime(TaxRegimeType(ms_doc["tax_regime"])),
             tax_amount=Money.from_float(ms_doc.get("tax_amount", 0.0)),
             net_salary=Money.from_float(ms_doc.get("net_salary", 0.0)),
+            status=ms_doc.get("status", "computed"),
+            comments=ms_doc.get("comments"),
+            transaction_id=ms_doc.get("transaction_id"),
+            transfer_date=transfer_date
         )
     
     def _convert_to_entity(self, document: dict) -> SalaryPackageRecord:
@@ -1729,7 +1740,10 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             "net_salary": monthly_salary.net_salary.to_float(),
             # Metadata
             "computed_at": datetime.utcnow().isoformat(),
-            "status": "computed"
+            "status": monthly_salary.status if hasattr(monthly_salary, 'status') else "computed",
+            "comments": getattr(monthly_salary, 'comments', None),
+            "transaction_id": getattr(monthly_salary, 'transaction_id', None),
+            "transfer_date": monthly_salary.transfer_date.isoformat() if getattr(monthly_salary, 'transfer_date', None) else None
         }
 
     # --- MONTHLY SALARY SERIALIZATION HELPERS ---

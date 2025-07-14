@@ -4382,4 +4382,87 @@ class UnifiedTaxationController:
         pdf_bytes = buffer.getvalue()
         buffer.close()
         return pdf_bytes
+
+    async def update_monthly_salary_status(self, request: dict, current_user) -> 'MonthlySalaryResponseDTO':
+        """
+        Update the status of a monthly salary record with validation and audit.
+        """
+        from fastapi import HTTPException, status as http_status
+        from datetime import datetime
+        from app.domain.value_objects.employee_id import EmployeeId
+        from app.domain.value_objects.tax_year import TaxYear
+        from app.domain.value_objects.money import Money
+
+        # Extract and validate input
+        employee_id = request.get('employee_id')
+        month = request.get('month')
+        year = request.get('year')
+        new_status = request.get('status')
+        comments = request.get('comments')
+        transaction_id = request.get('transaction_id')
+        transfer_date = request.get('transfer_date')
+
+        # Role check
+        user_role = getattr(current_user, 'role', '').lower()
+        if user_role not in ['admin', 'superadmin']:
+            raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail='Only admin or superadmin can update salary status.')
+
+        # Comments required
+        if not comments or not str(comments).strip():
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail='Comments are required for status update.')
+
+        # Find the salary package record
+        tax_year = request.get('tax_year')
+        if not tax_year:
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail='tax_year is required.')
+        salary_package_record = await self.salary_package_repository.get_salary_package_record(employee_id, tax_year, current_user.hostname)
+        if not salary_package_record:
+            raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail='Salary package record not found.')
+
+        # Find the monthly salary record
+        ms = None
+        for rec in salary_package_record.monthly_salary_records:
+            if rec.month == month and rec.year == year:
+                ms = rec
+                break
+        if not ms:
+            raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail='Monthly salary record not found.')
+
+        # Allowed transitions
+        allowed = {
+            'computed': ['approved', 'rejected'],
+            'approved': ['transfer_initiated'],
+            'transfer_initiated': ['transferred'],
+        }
+        current_status = (ms.status or 'computed').lower()
+        if current_status == 'rejected':
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail='Rejected is a final status.')
+        if new_status not in allowed.get(current_status, []):
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f'Cannot transition from {current_status} to {new_status}.')
+
+        # For transferred, require transaction_id and transfer_date
+        if new_status == 'transferred':
+            if not transaction_id or not str(transaction_id).strip():
+                raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail='Transaction ID is required for Transferred status.')
+            if not transfer_date or not str(transfer_date).strip():
+                raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail='Transfer date is required for Transferred status.')
+            from datetime import date as dt_date
+            try:
+                ms.transfer_date = dt_date.fromisoformat(transfer_date)
+            except Exception:
+                raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail='Invalid transfer date format. Use YYYY-MM-DD.')
+            ms.transaction_id = transaction_id
+        else:
+            ms.transaction_id = None
+            ms.transfer_date = None
+
+        # Update status and comments
+        ms.status = new_status
+        ms.comments = comments
+        salary_package_record.updated_at = datetime.utcnow()
+        await self.salary_package_repository.save(salary_package_record, current_user.hostname)
+
+        # Get user info for DTO
+        user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
+        return self._convert_monthly_salary_entity_to_dto(ms, user)
  

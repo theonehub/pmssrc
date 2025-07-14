@@ -78,6 +78,99 @@ const ProcessedSalaries: React.FC = () => {
   const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(null);
   const [exportLoading, setExportLoading] = useState<boolean>(false);
 
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [statusDialogSalary, setStatusDialogSalary] = useState<MonthlySalaryResponse | null>(null);
+  const [nextStatus, setNextStatus] = useState<string>('');
+  const [statusComments, setStatusComments] = useState('');
+  const [transactionId, setTransactionId] = useState('');
+  const [transferDate, setTransferDate] = useState<string>('');
+  const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
+  const [statusUpdateError, setStatusUpdateError] = useState<string | null>(null);
+
+  // Placeholder for role check (replace with real auth logic)
+  const isAdminUser = true; // TODO: Replace with actual role check
+
+  // Status transition logic
+  const getNextStatusOptions = (current: string) => {
+    switch (current.toLowerCase()) {
+      case 'computed':
+        return [
+          { value: 'approved', label: 'Approved' },
+          { value: 'rejected', label: 'Rejected' }
+        ];
+      case 'approved':
+        return [
+          { value: 'transfer_initiated', label: 'Transfer Initiated' }
+        ];
+      case 'transfer_initiated':
+        return [
+          { value: 'transferred', label: 'Transferred' }
+        ];
+      default:
+        return [];
+    }
+  };
+
+  const handleStatusChipClick = (salary: MonthlySalaryResponse) => {
+    if (!isAdminUser) return;
+    setStatusDialogSalary(salary);
+    setNextStatus('');
+    setStatusComments('');
+    setTransactionId('');
+    setTransferDate('');
+    setStatusUpdateError(null);
+    setStatusDialogOpen(true);
+  };
+
+  const handleStatusDialogClose = () => {
+    setStatusDialogOpen(false);
+    setStatusDialogSalary(null);
+    setNextStatus('');
+    setStatusComments('');
+    setTransactionId('');
+    setTransferDate('');
+    setStatusUpdateError(null);
+  };
+
+  const handleStatusUpdate = async () => {
+    if (!statusDialogSalary || !nextStatus) return;
+    if (!statusComments.trim()) {
+      setStatusUpdateError('Comments are required.');
+      return;
+    }
+    if (nextStatus === 'transferred') {
+      if (!transactionId.trim()) {
+        setStatusUpdateError('Transaction ID is required for Transferred status.');
+        return;
+      }
+      if (!transferDate) {
+        setStatusUpdateError('Transfer date is required for Transferred status.');
+        return;
+      }
+    }
+    setStatusUpdateLoading(true);
+    setStatusUpdateError(null);
+    try {
+      await salaryProcessingApi.updateMonthlySalaryStatus({
+        employee_id: statusDialogSalary.employee_id,
+        month: statusDialogSalary.month,
+        year: statusDialogSalary.year,
+        tax_year: taxYear, // Add this line to include tax_year in the payload
+        status: nextStatus,
+        comments: statusComments,
+        transaction_id: nextStatus === 'transferred' ? transactionId : undefined,
+        transfer_date: nextStatus === 'transferred' && transferDate ? transferDate : undefined
+      });
+      setStatusDialogOpen(false);
+      fetchSalaries();
+      fetchSummary();
+    } catch (err: any) {
+      setStatusUpdateError('Failed to update status. Please try again.');
+    } finally {
+      setStatusUpdateLoading(false);
+    }
+  };
+
   const fetchSalaries = useCallback(async () => {
     try {
       setLoading(true);
@@ -735,6 +828,8 @@ const ProcessedSalaries: React.FC = () => {
                         label={salary.status}
                         color={getStatusColor(salary.status) as any}
                         size="small"
+                        onClick={isAdminUser ? () => handleStatusChipClick(salary) : undefined}
+                        style={{ cursor: isAdminUser ? 'pointer' : 'default' }}
                       />
                     </TableCell>
                     <TableCell>
@@ -780,6 +875,66 @@ const ProcessedSalaries: React.FC = () => {
 
       {/* Salary Details Dialog */}
       {renderSalaryDetailsDialog()}
+
+      {statusDialogOpen && statusDialogSalary && (
+        <Dialog open={statusDialogOpen} onClose={handleStatusDialogClose} maxWidth="xs" fullWidth>
+          <DialogTitle>Status Transition</DialogTitle>
+          <DialogContent>
+            <Typography gutterBottom>Current Status: <b>{statusDialogSalary.status}</b></Typography>
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel>Next Status</InputLabel>
+              <Select
+                value={nextStatus}
+                label="Next Status"
+                onChange={e => setNextStatus(e.target.value)}
+              >
+                {getNextStatusOptions(statusDialogSalary.status).map(opt => (
+                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              label="Comments"
+              value={statusComments}
+              onChange={e => setStatusComments(e.target.value)}
+              fullWidth
+              required
+              multiline
+              minRows={2}
+              sx={{ mt: 2 }}
+            />
+            {nextStatus === 'transferred' && (
+              <>
+                <TextField
+                  label="Transaction ID"
+                  value={transactionId}
+                  onChange={e => setTransactionId(e.target.value)}
+                  fullWidth
+                  required
+                  sx={{ mt: 2 }}
+                />
+                <TextField
+                  label="Transfer Date"
+                  type="date"
+                  value={transferDate}
+                  onChange={e => setTransferDate(e.target.value)}
+                  fullWidth
+                  required
+                  sx={{ mt: 2 }}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </>
+            )}
+            {statusUpdateError && <Alert severity="error" sx={{ mt: 2 }}>{statusUpdateError}</Alert>}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleStatusDialogClose} disabled={statusUpdateLoading}>Cancel</Button>
+            <Button onClick={handleStatusUpdate} variant="contained" disabled={statusUpdateLoading || !nextStatus}>
+              {statusUpdateLoading ? <CircularProgress size={20} /> : 'Update Status'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
     </Box>
   );
 };

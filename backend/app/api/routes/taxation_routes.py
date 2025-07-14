@@ -1305,32 +1305,16 @@ async def update_monthly_salary_status(
 ) -> MonthlySalaryResponseDTO:
     """
     Update monthly salary status.
-    
-    Args:
-        request: Status update request
-        current_user: Current authenticated user
-        
-    Returns:
-        Updated monthly salary details
-        
-    Raises:
-        HTTPException: If error occurs
     """
-    
     try:
-        # For now, return a placeholder response
-        # TODO: Implement status update logic
-        raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Status update functionality not yet implemented"
-        )
-        
+        return await controller.update_monthly_salary_status(request, current_user)
     except Exception as e:
-        logger.error(f"Error updating monthly salary status: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update monthly salary status: {str(e)}"
-        )
+        from fastapi import HTTPException
+        if isinstance(e, HTTPException):
+            raise e
+        import logging
+        logging.getLogger(__name__).error(f"Error updating monthly salary status: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update monthly salary status: {str(e)}")
 
 @router.put("/monthly-salary/payment",
             response_model=MonthlySalaryResponseDTO,

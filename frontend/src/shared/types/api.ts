@@ -381,6 +381,18 @@ export interface HealthCheckResponse {
 // EMPLOYEE SELECTION TYPES
 // =============================================================================
 
+export interface CalculationDetails {
+  annual_gross_income: number;
+  annual_exemptions: number;
+  annual_deductions: number;
+  annual_taxable_income: number;
+  annual_tax_liability: number;
+  effective_tax_rate: number;
+  tax_regime: string;
+  last_calculated_at: string;
+  // Add other fields as needed from backend
+}
+
 export interface EmployeeSelectionDTO {
   employee_id: string;
   user_name: string;
@@ -396,6 +408,7 @@ export interface EmployeeSelectionDTO {
   total_tax?: number;
   regime?: string;
   last_updated?: string;
+  calculation_details?: CalculationDetails; // <-- Added for annual_tax_liability
 }
 
 export interface EmployeeSelectionQuery {

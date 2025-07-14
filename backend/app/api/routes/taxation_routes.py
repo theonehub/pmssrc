@@ -91,7 +91,7 @@ async def update_salary_component(
             )
         
         response = await controller.update_salary_component(
-            request, current_user.hostname
+            request, current_user
         )
         logger.info(f"Successfully updated salary component for employee {employee_id}")
         return response
@@ -132,7 +132,7 @@ async def update_perquisites_component(
             )
         
         response = await controller.update_perquisites_component(
-            request, current_user.hostname
+            request, current_user
         )
         return response
         
@@ -172,7 +172,7 @@ async def update_deductions_component(
                 detail=f"Employee ID mismatch: URL parameter '{employee_id}' does not match request body '{request.employee_id}'"
             )
         
-        response = await controller.update_deductions_component(request, current_user.hostname)
+        response = await controller.update_deductions_component(request, current_user)
         
         logger.info(f"Successfully updated deductions component for employee {employee_id}")
         return response
@@ -225,7 +225,7 @@ async def update_house_property_component(
             )
         
         response = await controller.update_house_property_component(
-            request, current_user.hostname
+            request, current_user
         )
         return response
         
@@ -263,7 +263,7 @@ async def update_capital_gains_component(
             )
         
         response = await controller.update_capital_gains_component(
-            request, current_user.hostname
+            request, current_user
         )
         return response
         
@@ -301,7 +301,7 @@ async def update_retirement_benefits_component(
             )
         
         response = await controller.update_retirement_benefits_component(
-            request, current_user.hostname
+            request, current_user
         )
         return response
         
@@ -339,7 +339,7 @@ async def update_other_income_component(
             )
         
         response = await controller.update_other_income_component(
-            request, current_user.hostname
+            request, current_user
         )
         return response
         
@@ -377,7 +377,7 @@ async def update_monthly_payroll_component(
             )
         
         response = await controller.update_monthly_payroll_component(
-            request, current_user.hostname
+            request, current_user
         )
         return response
         
@@ -413,7 +413,7 @@ async def is_regime_update_allowed(
             tax_year=tax_year
         )
         response = await controller.is_regime_update_allowed(
-            request, current_user.hostname
+            request, current_user
         )
         logger.info(f"Regime update is allowed: {response.is_allowed}")
         return response 
@@ -445,7 +445,7 @@ async def update_regime_component(
             )
         
         response = await controller.update_regime_component(
-            request, current_user.hostname
+            request, current_user
         )
         return response
         
@@ -480,7 +480,7 @@ async def get_component(
     
     try:
         response = await controller.get_component(
-            employee_id, tax_year, component_type, current_user.hostname
+            employee_id, tax_year, component_type, current_user
         )
         return response
         
@@ -823,7 +823,7 @@ async def compute_monthly_tax(
     """
     
     try:
-        result = await controller.compute_monthly_tax(employee_id, current_user.hostname)
+        result = await controller.compute_monthly_tax(employee_id, current_user)
         return result
         
     except ValueError as e:
@@ -863,7 +863,7 @@ async def compute_current_month_tax(
         now = datetime.now()
         
         result = await controller.compute_monthly_tax(
-            employee_id, now.month, now.year, current_user.hostname
+            employee_id, now.month, now.year, current_user
         )
         return result
         
@@ -898,7 +898,7 @@ async def export_salary_package_to_excel(
     """
     try:
         excel_content = await controller.export_salary_package_to_excel(
-            employee_id, tax_year, current_user.hostname
+            employee_id, tax_year, current_user
         )
         
         # Generate filename
@@ -933,7 +933,7 @@ async def export_salary_package_single_sheet(
     """
     try:
         excel_content = await controller.export_salary_package_single_sheet(
-            employee_id, tax_year, current_user.hostname
+            employee_id, tax_year, current_user
         )
         
         # Generate filename
@@ -992,7 +992,7 @@ async def compute_monthly_salary(
         logger.info(f"Computing monthly salary for employee {request.employee_id}")
         logger.info(f"Month: {request.month}, Tax Year: {request.tax_year}")
         
-        result = await controller.compute_monthly_salary(request, current_user.hostname)
+        result = await controller.compute_monthly_salary(request, current_user)
         
         logger.info(f"Successfully computed monthly salary for employee {request.employee_id}")
         return result
@@ -1045,7 +1045,7 @@ async def get_monthly_salary(
     """
     
     try:
-        result = await controller.get_monthly_salary(employee_id, month, year, current_user.hostname)
+        result = await controller.get_monthly_salary(employee_id, month, year, current_user)
         return result
         
     except ValueError as e:
@@ -1077,7 +1077,7 @@ async def get_employee_salary_history(
     """
     try:
         return await controller.get_employee_salary_history(
-            employee_id, current_user.hostname, limit=limit, offset=offset
+            employee_id, current_user, limit=limit, offset=offset
         )
     except Exception as e:
         logger.error(f"Error getting salary history for employee {employee_id}: {str(e)}")
@@ -1103,7 +1103,7 @@ async def download_payslip(
             employee_id=employee_id,
             month=month,
             year=year,
-            organization_id=current_user.hostname
+            current_user=current_user
         )
         
         # Return PDF as response
@@ -1159,7 +1159,7 @@ async def get_monthly_salaries_for_period(
     
     try:
         result = await controller.get_monthly_salaries_for_period(
-            month, tax_year, current_user.hostname, salary_status, department, skip, limit
+            month, tax_year, current_user, salary_status, department, skip, limit
         )
         return result
         
@@ -1197,7 +1197,7 @@ async def get_monthly_salary_summary(
     """
     
     try:
-        result = await controller.get_monthly_salary_summary(month, tax_year, current_user.hostname)
+        result = await controller.get_monthly_salary_summary(month, tax_year, current_user)
         return result
         
     except Exception as e:
@@ -1235,7 +1235,7 @@ async def delete_monthly_salary(
     """
     
     try:
-        result = await controller.delete_monthly_salary(employee_id, month, year, current_user.hostname)
+        result = await controller.delete_monthly_salary(employee_id, month, year, current_user)
         return {"message": result}
         
     except ValueError as e:
@@ -1414,7 +1414,7 @@ async def process_loan_schedule(
         logger.info(f"Processing loan schedule for employee {employee_id} for tax year {tax_year}")
         
         result = await controller.process_loan_schedule(
-            employee_id, tax_year, current_user.hostname
+            employee_id, tax_year, current_user
         )
         
         logger.info(f"Successfully processed loan schedule for employee {employee_id}")

@@ -23,6 +23,7 @@ from app.application.interfaces.repositories.reimbursement_repository import (
 from app.application.interfaces.repositories.user_repository import UserQueryRepository
 from app.application.interfaces.services.event_publisher import EventPublisher
 from app.application.interfaces.services.notification_service import NotificationService
+from app.auth.auth_dependencies import CurrentUser
 
 
 logger = logging.getLogger(__name__)
@@ -59,9 +60,8 @@ class ProcessReimbursementPaymentUseCase:
     async def execute(
         self,
         request_id: str,
-        payment_request: ReimbursementPaymentDTO,
-        processed_by: str,
-        hostname: str
+        payment: ReimbursementPaymentDTO,
+        current_user: CurrentUser
     ) -> ReimbursementResponseDTO:
         """
         Execute reimbursement payment processing workflow.
@@ -78,34 +78,34 @@ class ProcessReimbursementPaymentUseCase:
         """
         
         try:
-            logger.info(f"Processing payment for reimbursement request: {request_id} by {processed_by}")
+            logger.info(f"Processing payment for reimbursement request: {request_id} by {current_user.user_id}")
             
             # Step 1: Validate request data
-            await self._validate_request(payment_request, processed_by)
+            await self._validate_request(payment, current_user.user_id)
             
             # Step 2: Check business rules and get entities
             reimbursement, reimbursement_type, employee = await self._check_business_rules(
-                request_id, payment_request, processed_by, hostname
+                request_id, payment, current_user.user_id, current_user.hostname
             )
             
             # Step 3: Process payment (if payment service available)
             payment_reference = await self._process_external_payment(
-                reimbursement, employee, payment_request
+                reimbursement, employee, payment
             )
             
             # Step 4: Update domain objects
             await self._update_domain_objects(
-                reimbursement, payment_request, processed_by, payment_reference
+                reimbursement, payment, current_user.user_id, payment_reference
             )
             
             # Step 5: Persist to repository
-            saved_reimbursement = await self._persist_entity(reimbursement, hostname)
+            saved_reimbursement = await self._persist_entity(reimbursement, current_user.hostname)
             
             # Step 6: Publish domain events
             await self._publish_events(saved_reimbursement)
             
             # Step 7: Send notifications
-            await self._send_notifications(saved_reimbursement, employee, reimbursement_type, processed_by)
+            await self._send_notifications(saved_reimbursement, employee, reimbursement_type, current_user.user_id)
             
             # Step 8: Return response
             response = create_reimbursement_response_from_entity(saved_reimbursement, reimbursement_type)

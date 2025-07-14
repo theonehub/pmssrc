@@ -75,7 +75,9 @@ class MongoDBUserRepository(UserRepository):
         # Fix database name logic - if organisation_id is None or global, use global database directly
         if organisation_id and organisation_id not in ["global", "pms_global_database"]:
             # For specific organisation, use pms_organisationid format
-            db_name = f"pms_{organisation_id}"
+            from app.utils.db_name_utils import sanitize_organisation_id
+            safe_org_id = sanitize_organisation_id(organisation_id)
+            db_name = f"pms_{safe_org_id}"
         else:
             # For global or None, use the global database name directly
             db_name = "pms_global_database"

@@ -110,7 +110,7 @@ class UserController:
         employee_id: str, 
         current_user: CurrentUser
     ) -> UserResponseDTO:
-        """Get user by ID with organisation context."""
+        """Get user by ID with organisation context from current_user."""
         try:
             user = await self.user_service.get_user_by_id(employee_id, current_user)
             if not user:
@@ -130,7 +130,7 @@ class UserController:
         include_deleted: bool = False,
         current_user: CurrentUser = None
     ) -> UserListResponseDTO:
-        """Get all users with pagination and organisation context."""
+        """Get all users with pagination and organisation context from current_user."""
         try:
             if current_user.role == 'superadmin' or current_user.role == 'admin':
                 return await self.user_service.get_all_users(
@@ -171,7 +171,7 @@ class UserController:
         request: UpdateUserRequestDTO,
         current_user: CurrentUser
     ) -> UserResponseDTO:
-        """Update user with organisation context."""
+        """Update user with organisation context from current_user."""
         try:
             return await self.user_service.update_user(employee_id, request, current_user)
         except Exception as e:
@@ -235,7 +235,7 @@ class UserController:
         request: UserStatusUpdateRequestDTO,
         current_user: CurrentUser
     ) -> UserResponseDTO:
-        """Update user status with organisation context."""
+        """Update user status with organisation context from current_user."""
         try:
             return await self.user_service.update_user_status(employee_id, request, current_user)
         except Exception as e:
@@ -250,7 +250,7 @@ class UserController:
         exclude_id: Optional[str] = None,
         current_user: CurrentUser = None
     ) -> Dict[str, bool]:
-        """Check if user exists with given criteria and organisation context."""
+        """Check if user exists with given criteria and organisation context from current_user."""
         try:
             return await self.user_service.check_user_exists(
                 email=email,

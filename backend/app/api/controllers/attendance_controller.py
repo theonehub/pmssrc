@@ -53,9 +53,9 @@ class AttendanceController:
     async def checkin(
         self,
         request: AttendanceCheckInRequestDTO,
-        current_user: "CurrentUser"
+        current_user: "CurrentUser"  # Organisation context is always provided via current_user
     ) -> AttendanceResponseDTO:
-        """Handle employee check-in request"""
+        """Handle employee check-in request (organisation context from current_user)"""
         try:
             logger.info(f"Check-in request for employee: {request.employee_id} in organisation: {current_user.hostname}")
             return await self.attendance_service.check_in(request, current_user)
@@ -73,9 +73,9 @@ class AttendanceController:
     async def checkout(
         self,
         request: AttendanceCheckOutRequestDTO,
-        current_user: "CurrentUser"
+        current_user: "CurrentUser"  # Organisation context is always provided via current_user
     ) -> AttendanceResponseDTO:
-        """Handle employee check-out request"""
+        """Handle employee check-out request (organisation context from current_user)"""
         try:
             logger.info(f"Check-out request for employee: {request.employee_id} in organisation: {current_user.hostname}")
             return await self.attendance_service.check_out(request, current_user)
@@ -93,9 +93,9 @@ class AttendanceController:
     async def punch(
         self,
         employee_id: str,
-        current_user: "CurrentUser"
+        current_user: "CurrentUser"  # Organisation context is always provided via current_user
     ) -> AttendanceResponseDTO:
-        """Handle employee punch (check-in or check-out)"""
+        """Handle employee punch (check-in or check-out) (organisation context from current_user)"""
         try:
             logger.info(f"Punch request for employee: {employee_id} in organisation: {current_user.hostname}")
             return await self.attendance_service.record_punch(employee_id, current_user)
@@ -113,9 +113,9 @@ class AttendanceController:
     async def get_employee_attendance_by_month(
         self, 
         filters: AttendanceSearchFiltersDTO,
-        current_user: "CurrentUser"
+        current_user: "CurrentUser"  # Organisation context is always provided via current_user
     ) -> List[AttendanceResponseDTO]:
-        """Get employee attendance records for a specific month"""
+        """Get employee attendance records for a specific month (organisation context from current_user)"""
         try:
             logger.info(f"Getting attendance for employee {filters.employee_id} for {filters.month}/{filters.year} in organisation: {current_user.hostname}")
             return await self.attendance_service.get_employee_attendance_by_month(filters, current_user)
@@ -130,9 +130,9 @@ class AttendanceController:
     async def get_employee_attendance_by_year(
         self, 
         filters: AttendanceSearchFiltersDTO,
-        current_user: "CurrentUser"
+        current_user: "CurrentUser"  # Organisation context is always provided via current_user
     ) -> List[AttendanceResponseDTO]:
-        """Get employee attendance records for a specific year"""
+        """Get employee attendance records for a specific year (organisation context from current_user)"""
         try:
             logger.info(f"Getting attendance for employee {filters.employee_id} for year {filters.year} in organisation: {current_user.hostname}")
             return await self.attendance_service.get_employee_attendance_by_year(filters, current_user)
@@ -147,9 +147,9 @@ class AttendanceController:
     async def get_team_attendance_by_date(
         self, 
         filters: AttendanceSearchFiltersDTO,
-        current_user: "CurrentUser"
+        current_user: "CurrentUser"  # Organisation context is always provided via current_user
     ) -> List[AttendanceResponseDTO]:
-        """Get team attendance records for a specific date"""
+        """Get team attendance records for a specific date (organisation context from current_user)"""
         try:
             logger.info(f"Getting team attendance for {filters.date}/{filters.month}/{filters.year} in organisation: {current_user.hostname}")
             return await self.attendance_service.get_team_attendance_by_date(filters, current_user)
@@ -164,9 +164,9 @@ class AttendanceController:
     async def get_team_attendance_by_month(
         self, 
         filters: AttendanceSearchFiltersDTO,
-        current_user: "CurrentUser"
+        current_user: "CurrentUser"  # Organisation context is always provided via current_user
     ) -> List[AttendanceResponseDTO]:
-        """Get team attendance records for a specific month"""
+        """Get team attendance records for a specific month (organisation context from current_user)"""
         try:
             logger.info(f"Getting team attendance for {filters.month}/{filters.year} in organisation: {current_user.hostname}")
             return await self.attendance_service.get_team_attendance_by_month(filters, current_user)
@@ -181,9 +181,9 @@ class AttendanceController:
     async def get_team_attendance_by_year(
         self, 
         filters: AttendanceSearchFiltersDTO,
-        current_user: "CurrentUser"
+        current_user: "CurrentUser"  # Organisation context is always provided via current_user
     ) -> List[AttendanceResponseDTO]:
-        """Get team attendance records for a specific year"""
+        """Get team attendance records for a specific year (organisation context from current_user)"""
         try:
             logger.info(f"Getting team attendance for year {filters.year} in organisation: {current_user.hostname}")
             return await self.attendance_service.get_team_attendance_by_year(filters, current_user)
@@ -196,7 +196,7 @@ class AttendanceController:
             raise AttendanceNotFoundError(f"Failed to get team attendance records: {str(e)}")
     
     async def get_todays_attendance_stats(self, current_user: "CurrentUser") -> AttendanceStatisticsDTO:
-        """Get today's attendance statistics"""
+        """Get today's attendance statistics (organisation context from current_user)"""
         try:
             logger.info(f"Getting today's attendance statistics for organisation: {current_user.hostname}")
             return await self.attendance_service.get_todays_attendance_stats(current_user)
@@ -210,9 +210,9 @@ class AttendanceController:
         employee_id: str,
         month: int,
         year: int,
-        current_user: "CurrentUser"
+        current_user: "CurrentUser"  # Organisation context is always provided via current_user
     ) -> dict:
-        """Get user attendance summary for a specific month"""
+        """Get user attendance summary for a specific month (organisation context from current_user)"""
         try:
             logger.info(f"Getting attendance summary for employee {employee_id} for {month}/{year} in organisation: {current_user.hostname}")
             

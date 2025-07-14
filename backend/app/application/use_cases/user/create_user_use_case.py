@@ -94,7 +94,7 @@ class CreateUserUseCase:
         
         Args:
             request: User creation request DTO
-            current_user: Current authenticated user with organisation context
+            current_user: Current authenticated user with organisation context (organisation_id is current_user.hostname)
         Returns:
             Created user response DTO
             
@@ -151,7 +151,7 @@ class CreateUserUseCase:
         await self._validate_business_rules(user)
         
         # Step 7: Save user
-        saved_user = await self.command_repository.save(user, current_user.hostname)
+        saved_user = await self.command_repository.save(user, current_user)
         
         # Step 8: Increment organisation used employee strength
         await self._increment_organisation_employee_strength(current_user)
@@ -179,7 +179,7 @@ class CreateUserUseCase:
             )
     
     async def _check_uniqueness_constraints(self, request: CreateUserRequestDTO, current_user: CurrentUser) -> None:
-        """Check uniqueness constraints"""
+        """Check uniqueness constraints using current_user for organisation context."""
         uniqueness_result = await self.validation_service.validate_uniqueness_constraints(
             email=request.email,
             mobile=request.mobile,
@@ -277,7 +277,7 @@ class CreateUserUseCase:
         """
         try:
             # Fetch active company leave policies for the organisation
-            company_leaves = await self.company_leave_query_repository.get_all_active(current_user.hostname)
+            company_leaves = await self.company_leave_query_repository.get_all_active(current_user)
             
             initial_balances = {}
             
@@ -310,14 +310,14 @@ class CreateUserUseCase:
         Check if organisation has available employee capacity.
         
         Args:
-            current_user: Current authenticated user with organisation context
+            current_user: Current authenticated user with organisation context (organisation_id is current_user.hostname)
             
         Raises:
             UserBusinessRuleError: If organisation is at capacity
         """
         try:
             # Get organisation by hostname
-            organisation = await self.organisation_query_repository.get_by_hostname(current_user.hostname)
+            organisation = await self.organisation_query_repository.get_by_hostname(current_user)
             
             if not organisation:
                 raise UserBusinessRuleError(
@@ -354,11 +354,11 @@ class CreateUserUseCase:
         Increment organisation used employee strength.
         
         Args:
-            current_user: Current authenticated user with organisation context
+            current_user: Current authenticated user with organisation context (organisation_id is current_user.hostname)
         """
         try:
             # Get organisation by hostname
-            organisation = await self.organisation_query_repository.get_by_hostname(current_user.hostname)
+            organisation = await self.organisation_query_repository.get_by_hostname(current_user)
             
             if organisation:
                 # Use the dedicated increment method from command repository
@@ -490,7 +490,7 @@ class MonthlyLeaveAllocationUseCase:
         Execute monthly leave allocation for all active users in an organisation.
         
         Args:
-            current_user: Current authenticated user with organisation context
+            current_user: Current authenticated user with organisation context (organisation_id is current_user.hostname)
             
         Returns:
             Dictionary with statistics about the allocation process
@@ -506,7 +506,7 @@ class MonthlyLeaveAllocationUseCase:
         
         try:
             # Fetch active company leave policies for the organisation
-            company_leaves = await self.company_leave_query_repository.get_all_active(current_user.hostname)
+            company_leaves = await self.company_leave_query_repository.get_all_active(current_user)
             
             if not company_leaves:
                 logger.warning(f"No company leave policies found for organisation {current_user.hostname}")
@@ -515,7 +515,7 @@ class MonthlyLeaveAllocationUseCase:
             stats["leave_types_processed"] = len(company_leaves)
             
             # Fetch all active users in the organisation
-            active_users = await self.user_query_repository.get_active_users(current_user.hostname)
+            active_users = await self.user_query_repository.get_active_users(current_user)
             
             for user in active_users:
                 stats["users_processed"] += 1
@@ -543,7 +543,7 @@ class MonthlyLeaveAllocationUseCase:
                     
                     # Save the updated user
                     if user_updated:
-                        await self.user_command_repository.save(user, current_user.hostname)
+                        await self.user_command_repository.save(user, current_user)
                         stats["users_updated"] += 1
                         logger.info(f"Successfully updated monthly leave allocation for user {user.employee_id}")
                 
@@ -565,7 +565,7 @@ class MonthlyLeaveAllocationUseCase:
         
         Args:
             employee_id: Employee ID of the user
-            current_user: Current authenticated user with organisation context
+            current_user: Current authenticated user with organisation context (organisation_id is current_user.hostname)
             
         Returns:
             True if successful, False otherwise
@@ -574,13 +574,13 @@ class MonthlyLeaveAllocationUseCase:
             logger.info(f"Adding monthly leave allocation for user {employee_id} in organisation {current_user.hostname}")
             
             # Fetch the user
-            user = await self.user_query_repository.get_by_employee_id(employee_id, current_user.hostname)
+            user = await self.user_query_repository.get_by_employee_id(employee_id, current_user)
             if not user:
                 logger.error(f"User {employee_id} not found in organisation {current_user.hostname}")
                 return False
             
             # Fetch active company leave policies for the organisation
-            company_leaves = await self.company_leave_query_repository.get_all_active(current_user.hostname)
+            company_leaves = await self.company_leave_query_repository.get_all_active(current_user)
             
             if not company_leaves:
                 logger.warning(f"No company leave policies found for organisation {current_user.hostname}")
@@ -608,7 +608,7 @@ class MonthlyLeaveAllocationUseCase:
             
             # Save the updated user
             if user_updated:
-                await self.user_command_repository.save(user, current_user.hostname)
+                await self.user_command_repository.save(user, current_user)
                 logger.info(f"Successfully updated monthly leave allocation for user {employee_id}")
                 return True
             

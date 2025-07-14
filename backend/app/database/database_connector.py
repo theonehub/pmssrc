@@ -8,6 +8,7 @@ from app.config import MONGO_URI
 
 # Import centralized logger
 from app.utils.logger import get_logger
+from app.utils.db_name_utils import sanitize_organisation_id
 
 logger = get_logger(__name__)
 
@@ -27,7 +28,7 @@ def get_database_client(organisation_id: str = None) -> MongoClient:
         global database_clients
         
         # Use default client for no organisation
-        client_key = organisation_id or 'default'
+        client_key = sanitize_organisation_id(organisation_id) or 'default'
         
         # Return existing client if available
         if client_key in database_clients:
@@ -58,7 +59,8 @@ def get_database(organisation_id: str = None) -> str:
     try:
         # Use organisation-specific database if provided
         if organisation_id:
-            db_name = f"pms_{organisation_id}"
+            safe_org_id = sanitize_organisation_id(organisation_id)
+            db_name = f"pms_{safe_org_id}"
             logger.debug(f"Using organisation database: {db_name}")
             return db_name
         

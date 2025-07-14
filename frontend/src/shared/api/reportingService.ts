@@ -94,13 +94,6 @@ export interface ExportResponse {
 
 class ReportingService {
   /**
-   * Get dashboard analytics - main overview statistics
-   */
-  async getDashboardAnalytics(): Promise<DashboardStats> {
-    return await get<DashboardStats>('/api/v2/reporting/dashboard/analytics/statistics');
-  }
-
-  /**
    * Get consolidated analytics from all modules
    */
   async getConsolidatedAnalytics(startDate?: string, endDate?: string): Promise<ConsolidatedAnalytics> {
@@ -112,55 +105,6 @@ class ReportingService {
     const url = `/api/v2/reporting/analytics/consolidated${queryString ? `?${queryString}` : ''}`;
     
     return await get<ConsolidatedAnalytics>(url);
-  }
-
-  /**
-   * Get user analytics data
-   */
-  async getUserAnalytics(): Promise<UserAnalytics> {
-    return await get<UserAnalytics>('/api/v2/reporting/analytics/users');
-  }
-
-  /**
-   * Get attendance analytics data
-   */
-  async getAttendanceAnalytics(startDate?: string, endDate?: string): Promise<AttendanceAnalytics> {
-    const params = new URLSearchParams();
-    if (startDate) params.append('start_date', startDate);
-    if (endDate) params.append('end_date', endDate);
-    
-    const queryString = params.toString();
-    const url = `/api/v2/reporting/analytics/attendance${queryString ? `?${queryString}` : ''}`;
-    
-    return await get<AttendanceAnalytics>(url);
-  }
-
-  /**
-   * Get leave analytics data
-   */
-  async getLeaveAnalytics(startDate?: string, endDate?: string): Promise<LeaveAnalytics> {
-    const params = new URLSearchParams();
-    if (startDate) params.append('start_date', startDate);
-    if (endDate) params.append('end_date', endDate);
-    
-    const queryString = params.toString();
-    const url = `/api/v2/reporting/analytics/leaves${queryString ? `?${queryString}` : ''}`;
-    
-    return await get<LeaveAnalytics>(url);
-  }
-
-  /**
-   * Get payroll analytics data
-   */
-  async getPayrollAnalytics(startDate?: string, endDate?: string): Promise<PayrollAnalytics> {
-    const params = new URLSearchParams();
-    if (startDate) params.append('start_date', startDate);
-    if (endDate) params.append('end_date', endDate);
-    
-    const queryString = params.toString();
-    const url = `/api/v2/reporting/analytics/payroll${queryString ? `?${queryString}` : ''}`;
-    
-    return await get<PayrollAnalytics>(url);
   }
 
   /**
@@ -194,13 +138,6 @@ class ReportingService {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  }
-
-  /**
-   * Get module health status
-   */
-  async getHealthStatus(): Promise<{ status: string; module: string; version: string; features: string[] }> {
-    return await get('/api/v2/reporting/health');
   }
 }
 

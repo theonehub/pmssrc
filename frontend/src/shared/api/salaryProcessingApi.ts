@@ -114,7 +114,9 @@ export interface MonthlySalaryStatusUpdateRequest {
   month: number;
   year: number;
   status: string;
-  notes?: string;
+  comments: string;
+  transaction_id?: string;
+  transfer_date?: string; // ISO date string
   updated_by?: string;
 }
 
@@ -129,20 +131,6 @@ export interface MonthlySalaryPaymentRequest {
 }
 
 export const salaryProcessingApi = {
-  /**
-   * Get monthly salary for a specific employee
-   */
-  async getMonthlySalary(
-    employeeId: string,
-    month: number,
-    year: number
-  ): Promise<MonthlySalaryResponse> {
-    const response = await apiClient.get(
-      `/api/v2/taxation/monthly-salary/employee/${employeeId}/month/${month}/year/${year}`
-    );
-    return response.data;
-  },
-
   /**
    * Get monthly salaries for a period
    */
@@ -181,26 +169,6 @@ export const salaryProcessingApi = {
   },
 
   /**
-   * Bulk compute monthly salaries
-   */
-  async bulkComputeMonthlySalaries(
-    request: MonthlySalaryBulkComputeRequest
-  ): Promise<MonthlySalaryBulkComputeResponse> {
-    const response = await apiClient.post('/api/v2/taxation/monthly-salary/bulk-compute', request);
-    return response.data;
-  },
-
-  /**
-   * Update monthly salary status
-   */
-  async updateMonthlySalaryStatus(
-    request: MonthlySalaryStatusUpdateRequest
-  ): Promise<MonthlySalaryResponse> {
-    const response = await apiClient.put('/api/v2/taxation/monthly-salary/status', request);
-    return response.data;
-  },
-
-  /**
    * Get monthly salary summary for a period
    */
   async getMonthlySalarySummary(
@@ -210,16 +178,6 @@ export const salaryProcessingApi = {
     const response = await apiClient.get(
       `/api/v2/taxation/monthly-salary/summary/month/${month}/tax-year/${taxYear}`
     );
-    return response.data;
-  },
-
-  /**
-   * Mark salary payment
-   */
-  async markSalaryPayment(
-    request: MonthlySalaryPaymentRequest
-  ): Promise<MonthlySalaryResponse> {
-    const response = await apiClient.put('/api/v2/taxation/monthly-salary/payment', request);
     return response.data;
   },
 
@@ -265,6 +223,16 @@ export const salaryProcessingApi = {
     const response = await apiClient.get(url, {
       responseType: 'blob'
     });
+    return response.data;
+  },
+
+  /**
+   * Update monthly salary status (with comments, transaction ID, transfer date)
+   */
+  async updateMonthlySalaryStatus(
+    request: MonthlySalaryStatusUpdateRequest
+  ): Promise<MonthlySalaryResponse> {
+    const response = await apiClient.put('/api/v2/taxation/monthly-salary/status', request);
     return response.data;
   }
 }; 

@@ -113,13 +113,13 @@ class TaxCalculationService:
         self.logger = get_logger(__name__)
 
 
-    async def compute_monthly_tax(self, employee_id: str, organization_id: str) -> Dict[str, Any]:
+    async def compute_monthly_tax(self, employee_id: str, current_user) -> Dict[str, Any]:
         """
         Compute monthly tax for an employee based on their salary package record.
         
         Args:
             employee_id: Employee ID
-            organization_id: Organization ID for database segregation
+            current_user: Current authenticated user with organisation context
             
         Returns:
             Dict[str, Any]: Monthly tax computation result
@@ -156,7 +156,7 @@ class TaxCalculationService:
             self.logger.debug(f"compute_monthly_tax: Fetching salary package record for employee {employee_id}, tax_year {tax_year}")
 
             salary_package_record = await self.salary_package_repository.get_salary_package_record(
-                employee_id, tax_year, organization_id
+                employee_id, tax_year, current_user.hostname
             )
             
             if not salary_package_record:
@@ -179,7 +179,7 @@ class TaxCalculationService:
             # Save the updated salary package record with calculation result to database
             self.logger.debug("compute_monthly_tax: Saving updated salary package record to database")
             try:
-                await self.salary_package_repository.save(salary_package_record, organization_id)
+                await self.salary_package_repository.save(salary_package_record, current_user.hostname)
                 self.logger.debug("compute_monthly_tax: Successfully saved updated salary package record to database")
             except Exception as save_error:
                 self.logger.error(f"compute_monthly_tax: Failed to save updated salary package record to database: {str(save_error)}")
@@ -270,7 +270,7 @@ class TaxCalculationService:
             # Wrap other errors in RuntimeError
             raise RuntimeError(f"Failed to compute monthly tax for employee {employee_id}: {str(e)}")
     
-    async def compute_monthly_tax_with_details(self, employee_id: str, organization_id: str) -> Dict[str, Any]:
+    async def compute_monthly_tax_with_details(self, employee_id: str, current_user) -> Dict[str, Any]:
         """
         Compute monthly tax with detailed breakdown for frontend display.
         
@@ -279,7 +279,7 @@ class TaxCalculationService:
         
         Args:
             employee_id: Employee ID
-            organization_id: Organization ID
+            current_user: Current authenticated user with organisation context
             
         Returns:
             Dict[str, Any]: Detailed monthly tax computation result
@@ -287,7 +287,7 @@ class TaxCalculationService:
         
         try:
             # Get basic computation
-            basic_result = await self.compute_monthly_tax(employee_id, organization_id)
+            basic_result = await self.compute_monthly_tax(employee_id, current_user)
             
             # Get salary package record for additional details
             tax_year = basic_result["tax_year"]
@@ -295,7 +295,7 @@ class TaxCalculationService:
             self.logger.debug(f"compute_monthly_tax_with_details: Fetching salary package record for additional details - employee {employee_id}, tax_year {tax_year}")
             
             salary_package_record = await self.salary_package_repository.get_salary_package_record(
-                employee_id, tax_year, organization_id
+                employee_id, tax_year, current_user.hostname
             )
             
             if not salary_package_record:

@@ -1190,18 +1190,17 @@ const IndividualComponentManagement: React.FC = () => {
       email: emp.email || '',
       department: emp.department || 'N/A',
       role: emp.role || 'N/A',
-      
       status: emp.status || 'active',
       joining_date: emp.joining_date || '',
       current_salary: emp.current_salary || 0,
       has_tax_record: emp.has_tax_record || false,
       tax_year: emp.tax_year || selectedTaxYear,
       filing_status: (emp.filing_status as FilingStatus) || 'pending',
-      total_tax: emp.total_tax || 0,
+      // Use annual_tax_liability from calculation_details if available, else fallback
+      total_tax: emp.calculation_details?.annual_tax_liability ?? emp.total_tax ?? 0,
       regime: emp.regime || 'new',
       last_updated: emp.last_updated || ''
     })) || [];
-    
     return transformedEmployees;
   }, [employeeResponse?.employees, selectedTaxYear]);
   

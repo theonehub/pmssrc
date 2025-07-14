@@ -18,6 +18,7 @@ from app.application.interfaces.repositories.public_holiday_repository import Pu
 from app.domain.entities.employee_leave import EmployeeLeave
 from app.application.dto.employee_leave_dto import LeaveStatus
 from app.domain.entities.attendance import Attendance
+from app.auth.auth_dependencies import CurrentUser
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ class LWPCalculationService(LWPCalculationServiceInterface):
         employee_id: str,
         month: int,
         year: int,
-        organisation_id: str
+        current_user: CurrentUser
     ) -> LWPCalculationDTO:
         """
         Calculate Leave Without Pay (LWP) for a specific month.
@@ -56,13 +57,13 @@ class LWPCalculationService(LWPCalculationServiceInterface):
             employee_id: Employee identifier
             month: Month (1-12)
             year: Year
-            organisation_id: Organization identifier
+            current_user: Current user object
             
         Returns:
             LWPCalculationDTO with LWP calculation details
         """
         try:
-            logger.info(f"Calculating LWP for {employee_id} in {month}/{year} for org: {organisation_id}")
+            logger.info(f"Calculating LWP for {employee_id} in {month}/{year} for org: {current_user.hostname}")
             
             # Validate inputs
             if not (1 <= month <= 12):
@@ -79,22 +80,22 @@ class LWPCalculationService(LWPCalculationServiceInterface):
             
             # Get attendance records for the month
             attendance_records = await self._get_attendance_records(
-                employee_id, month, year, organisation_id
+                employee_id, month, year, current_user
             )
             
             # Get leaves for the month
             leaves = await self._get_leave_records(
-                employee_id, month_start, month_end, organisation_id
+                employee_id, month_start, month_end, current_user
             )
             
             # Calculate LWP days
             lwp_days = await self._calculate_lwp_days(
-                month_start, month_end, attendance_records, leaves, organisation_id
+                month_start, month_end, attendance_records, leaves, current_user
             )
             
             # Calculate working days in month
             working_days = await self._calculate_working_days_in_month(
-                month_start, month_end, organisation_id
+                month_start, month_end, current_user
             )
             
             # Calculate LWP amount (placeholder - would need salary info)
@@ -126,7 +127,7 @@ class LWPCalculationService(LWPCalculationServiceInterface):
         employee_id: str,
         month: int,
         year: int,
-        organisation_id: str
+        current_user: CurrentUser
     ) -> List[Dict[str, Any]]:
         """Get attendance records for the employee in the specified month."""
         try:
@@ -140,18 +141,20 @@ class LWPCalculationService(LWPCalculationServiceInterface):
             
             # Get attendance records using the attendance service
             attendance_records = await self._attendance_service.get_employee_attendance_by_month(
-                filters, organisation_id  # current_user will be handled by the service
+                filters, current_user
             )
             
             # Convert to simple format for LWP calculation
             records = []
             for record in attendance_records:
-                if hasattr(record, 'checkin_time') and record.checkin_time:
+                check_in_time = None
+                if hasattr(record, 'working_hours') and hasattr(record.working_hours, 'check_in_time'):
+                    check_in_time = record.working_hours.check_in_time
+                if check_in_time:
                     records.append({
-                        'checkin_time': record.checkin_time,
-                        'date': record.checkin_time.date() if hasattr(record.checkin_time, 'date') else None
+                        'check_in_time': check_in_time,
+                        'date': record.attendance_date if hasattr(record, 'attendance_date') else (check_in_time.date() if hasattr(check_in_time, 'date') else None)
                     })
-            
             return records
             
         except Exception as e:
@@ -163,7 +166,7 @@ class LWPCalculationService(LWPCalculationServiceInterface):
         employee_id: str,
         month_start: datetime,
         month_end: datetime,
-        organisation_id: str
+        current_user: CurrentUser
     ) -> List[EmployeeLeave]:
         """Get leave records for the employee in the specified month."""
         try:
@@ -172,7 +175,7 @@ class LWPCalculationService(LWPCalculationServiceInterface):
                 start_date=month_start.date(),
                 end_date=month_end.date(),
                 employee_id=employee_id,
-                organisation_id=organisation_id
+                organisation_id=current_user.hostname
             )
             
             return leaves
@@ -187,7 +190,7 @@ class LWPCalculationService(LWPCalculationServiceInterface):
         month_end: datetime,
         attendance_records: List[Dict[str, Any]],
         leaves: List[EmployeeLeave],
-        organisation_id: str
+        current_user: CurrentUser
     ) -> int:
         """Calculate LWP days for the month."""
         lwp_days = 0
@@ -197,7 +200,7 @@ class LWPCalculationService(LWPCalculationServiceInterface):
             current_date_str = current_date.strftime("%Y-%m-%d")
             
             # Skip weekends and public holidays
-            if await self._is_weekend_or_holiday(current_date, organisation_id):
+            if await self._is_weekend_or_holiday(current_date, current_user):
                 current_date += timedelta(days=1)
                 continue
             
@@ -233,37 +236,37 @@ class LWPCalculationService(LWPCalculationServiceInterface):
         
         return lwp_days
     
-    async def _is_weekend_or_holiday(self, date_obj: datetime, organisation_id: str) -> bool:
+    async def _is_weekend_or_holiday(self, date_obj: datetime, current_user: CurrentUser) -> bool:
         """Check if a date is a weekend or public holiday."""
         # Check if weekend
         if date_obj.weekday() >= 5:  # 5 is Saturday, 6 is Sunday
             return True
         
-                    # Check if public holiday
-            try:
-                date_str = date_obj.strftime("%Y-%m-%d")
-                holidays = await self._public_holiday_repository.find_by_date_range(
-                    start_date=date_obj.date(),
-                    end_date=date_obj.date(),
-                    hostname=organisation_id
-                )
-                return len(holidays) > 0
-            except Exception as e:
-                logger.warning(f"Error checking public holiday for {date_str}: {e}")
-                return False
+        # Check if public holiday
+        try:
+            date_str = date_obj.strftime("%Y-%m-%d")
+            holidays = await self._public_holiday_repository.find_by_date_range(
+                start_date=date_obj.date(),
+                end_date=date_obj.date(),
+                hostname=current_user.hostname
+            )
+            return len(holidays) > 0
+        except Exception as e:
+            logger.warning(f"Error checking public holiday for {date_str}: {e}")
+            return False
     
     async def _calculate_working_days_in_month(
         self,
         month_start: datetime,
         month_end: datetime,
-        organisation_id: str
+        current_user: CurrentUser
     ) -> int:
         """Calculate total working days in the month (excluding weekends and holidays)."""
         working_days = 0
         current_date = month_start
         
         while current_date <= month_end:
-            if not await self._is_weekend_or_holiday(current_date, organisation_id):
+            if not await self._is_weekend_or_holiday(current_date, current_user):
                 working_days += 1
             current_date += timedelta(days=1)
         

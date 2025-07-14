@@ -14,6 +14,7 @@ from app.application.dto.user_dto import (
 )
 from app.application.interfaces.repositories.user_repository import UserQueryRepository
 from app.application.interfaces.services.user_service import UserAuthorizationService
+from app.auth.auth_dependencies import CurrentUser
 
 
 logger = logging.getLogger(__name__)
@@ -48,33 +49,26 @@ class GetUserUseCase:
     async def execute(
         self, 
         employee_id: str, 
-        requesting_employee_id: Optional[str] = None
+        current_user: CurrentUser
     ) -> UserResponseDTO:
         """
         Execute the get user use case.
-        
         Args:
             employee_id: ID of user to retrieve
-            requesting_employee_id: ID of user making the request
-            
+            current_user: Current user context (organisation_id is current_user.hostname)
         Returns:
             User response DTO
-            
         Raises:
             UserNotFoundError: If user not found
             UserAuthorizationError: If requesting user lacks permission
         """
         logger.info(f"Retrieving user: {employee_id}")
-        
-        # Step 1: Get user by ID
+        # Step 1: Get user by ID (repository should use current_user.hostname for organisation context)
         user = await self._get_user_by_id(employee_id)
-        
         # Step 2: Check authorization
-        await self._check_authorization(employee_id, requesting_employee_id)
-        
+        await self._check_authorization(employee_id, current_user.employee_id)
         # Step 3: Convert to response DTO with appropriate filtering
-        response = self._convert_to_response_dto(user, requesting_employee_id)
-        
+        response = self._convert_to_response_dto(user, current_user.employee_id)
         logger.info(f"User retrieved successfully: {employee_id}")
         return response
     

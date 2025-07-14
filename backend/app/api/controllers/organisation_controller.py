@@ -19,6 +19,7 @@ from app.application.dto.organisation_dto import (
     OrganisationListResponseDTO,
     OrganisationStatisticsDTO
 )
+from app.auth.auth_dependencies import CurrentUser
 
 
 logger = logging.getLogger(__name__)
@@ -71,15 +72,15 @@ class OrganisationController:
         logger.info("Listing organisations with filters")
         return await self.list_use_case.execute(filters)
 
-    async def get_organisation_by_id(self, organisation_id: str) -> Optional[OrganisationResponseDTO]:
-        """Get organisation by ID"""
-        logger.info(f"Getting organisation: {organisation_id}")
-        return await self.get_use_case.execute_by_id(organisation_id)
+    async def get_organisation_by_id(self, current_user: CurrentUser) -> Optional[OrganisationResponseDTO]:
+        """Get organisation by ID from current user context"""
+        logger.info(f"Getting organisation for user: {current_user.employee_id}")
+        return await self.get_use_case.execute_by_id(current_user)
 
-    async def get_organisation_by_hostname(self, hostname: str) -> Optional[OrganisationResponseDTO]:
-        """Get organisation by hostname"""
-        logger.info(f"Getting organisation by hostname: {hostname}")
-        return await self.get_use_case.execute_by_hostname(hostname)
+    async def get_organisation_by_hostname(self, current_user: CurrentUser) -> Optional[OrganisationResponseDTO]:
+        """Get organisation by hostname from current user context"""
+        logger.info(f"Getting organisation by hostname for user: {current_user.employee_id}")
+        return await self.get_use_case.execute_by_hostname(current_user)
 
     async def update_organisation(
         self, 

@@ -95,7 +95,9 @@ class AuthController:
             
             await connector.connect(connection_string, **options)
             
-            db_name = "pms_"+request.hostname
+            from app.utils.db_name_utils import sanitize_organisation_id
+            safe_hostname = sanitize_organisation_id(request.hostname)
+            db_name = "pms_" + safe_hostname
             # Get users collection
             users_collection = connector.get_collection(db_name, 'users_info')
             

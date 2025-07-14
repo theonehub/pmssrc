@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from app.application.dto.employee_leave_dto import LWPCalculationDTO
+from app.auth.auth_dependencies import CurrentUser
 
 
 class LWPCalculationServiceInterface(ABC):
@@ -18,7 +19,7 @@ class LWPCalculationServiceInterface(ABC):
         employee_id: str,
         month: int,
         year: int,
-        organisation_id: str
+        current_user: CurrentUser
     ) -> LWPCalculationDTO:
         """
         Calculate Leave Without Pay (LWP) for a specific month.
@@ -27,7 +28,7 @@ class LWPCalculationServiceInterface(ABC):
             employee_id: Employee identifier
             month: Month (1-12)
             year: Year
-            organisation_id: Organization identifier
+            current_user: Current user context for organization
             
         Returns:
             LWPCalculationDTO with LWP calculation details

@@ -80,7 +80,6 @@ class SalaryPackageRecord:
     
     # Identifiers
     salary_package_id: Optional[str] = None
-    organization_id: Optional[str] = None
     
     # Calculated fields
     calculation_result: Optional[TaxCalculationResult] = None

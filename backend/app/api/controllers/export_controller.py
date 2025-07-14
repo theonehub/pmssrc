@@ -9,7 +9,7 @@ from datetime import datetime
 
 from app.application.interfaces.services.file_generation_service import FileGenerationService
 from app.api.controllers.taxation_controller import UnifiedTaxationController
-
+from app.auth.auth_dependencies import CurrentUser
 
 logger = logging.getLogger(__name__)
 
@@ -34,18 +34,18 @@ class ExportController:
         self,
         format_type: str,
         filters: Dict[str, Any],
-        organisation_id: str
+        current_user: CurrentUser
     ) -> Tuple[bytes, str, str]:
         """Export processed salaries in specified format"""
         try:
-            logger.info(f"Exporting processed salaries in {format_type} format for organisation {organisation_id}")
+            logger.info(f"Exporting processed salaries in {format_type} format for organisation {current_user.hostname}")
             
             # Use taxation controller to get salary data with proper DTOs
             if self.taxation_controller:
                 response = await self.taxation_controller.get_monthly_salaries_for_period(
                     month=filters.get('month'),
                     year=filters.get('year'),
-                    organization_id=organisation_id,
+                    current_user=current_user,  # You may need to ensure current_user is available in this context
                     salary_status=filters.get('status'),
                     department=filters.get('department'),
                     skip=0,
@@ -105,7 +105,7 @@ class ExportController:
             # Generate file
             file_data = await self.file_generation_service.generate_processed_salaries_export(
                 salary_data=salary_list,
-                organisation_id=organisation_id,
+                current_user=current_user,
                 format_type=format_type,
                 filters=filters
             )
@@ -127,18 +127,18 @@ class ExportController:
         filters: Dict[str, Any],
         quarter: Optional[int],
         tax_year: int,
-        organisation_id: str
+        current_user: CurrentUser
     ) -> Tuple[bytes, str, str]:
         """Export TDS report in specified format"""
         try:
-            logger.info(f"Exporting TDS report in {format_type} format for organisation {organisation_id}")
+            logger.info(f"Exporting TDS report in {format_type} format for organisation {current_user.hostname}")
             
             # Use taxation controller to get salary data with proper DTOs
             if self.taxation_controller:
                 response = await self.taxation_controller.get_monthly_salaries_for_period(
                     month=filters.get('month'),
                     year=filters.get('year'),
-                    organization_id=organisation_id,
+                    current_user=current_user,  # You may need to ensure current_user is available in this context
                     salary_status=filters.get('status'),
                     department=filters.get('department'),
                     skip=0,
@@ -190,7 +190,7 @@ class ExportController:
             # Generate file
             file_data = await self.file_generation_service.generate_tds_report_export(
                 tds_data=tds_list,
-                organisation_id=organisation_id,
+                current_user=current_user,
                 format_type=format_type,
                 quarter=quarter,
                 tax_year=tax_year,
@@ -212,11 +212,11 @@ class ExportController:
         self,
         employee_id: str,
         tax_year: Optional[str],
-        organisation_id: str
+        current_user: CurrentUser
     ) -> Tuple[bytes, str, str]:
         """Export Form 16 for specific employee"""
         try:
-            logger.info(f"Exporting Form 16 for employee {employee_id} in organisation {organisation_id}")
+            logger.info(f"Exporting Form 16 for employee {employee_id} in organisation {current_user.hostname}")
             
             # Fetch TDS data for the employee for the entire tax year
             if not tax_year:
@@ -234,7 +234,7 @@ class ExportController:
                     response = await self.taxation_controller.get_monthly_salaries_for_period(
                         month=month,
                         year=start_year,
-                        organization_id=organisation_id,
+                        current_user=current_user,  # You may need to ensure current_user is available in this context
                         salary_status=None,
                         department=None,
                         skip=0,
@@ -279,7 +279,7 @@ class ExportController:
             # Generate file
             file_data = await self.file_generation_service.generate_form_16(
                 tds_data=tds_list,
-                organisation_id=organisation_id,
+                current_user=current_user,
                 employee_id=employee_id,
                 tax_year=tax_year
             )
@@ -299,7 +299,7 @@ class ExportController:
         quarter: int,
         tax_year: int,
         format_type: str,
-        organisation_id: str
+        current_user: CurrentUser
     ) -> Tuple[bytes, str, str]:
         """Export Form 24Q for specific quarter and year"""
         try:
@@ -324,7 +324,7 @@ class ExportController:
                     response = await self.taxation_controller.get_monthly_salaries_for_period(
                         month=month,
                         year=tax_year,
-                        organization_id=organisation_id,
+                        current_user=current_user,  # You may need to ensure current_user is available in this context
                         salary_status=None,
                         department=None,
                         skip=0,
@@ -372,7 +372,7 @@ class ExportController:
             if format_type.lower() == 'csv':
                 file_data = await self.file_generation_service.generate_form_24q(
                     tds_data=tds_list,
-                    organisation_id=organisation_id,
+                    current_user=current_user,
                     quarter=quarter,
                     tax_year=tax_year
                 )
@@ -380,7 +380,7 @@ class ExportController:
             elif format_type.lower() == 'fvu':
                 file_data = await self.file_generation_service.generate_fvu_form_24q(
                     tds_data=tds_list,
-                    organisation_id=organisation_id,
+                    current_user=current_user,
                     quarter=quarter,
                     tax_year=tax_year
                 )
@@ -454,18 +454,18 @@ class ExportController:
         filters: Dict[str, Any],
         quarter: Optional[int],
         tax_year: int,
-        organisation_id: str
+        current_user: CurrentUser
     ) -> Tuple[bytes, str, str]:
         """Export PF report in specified format"""
         try:
-            logger.info(f"Exporting PF report in {format_type} format for organisation {organisation_id}")
+            logger.info(f"Exporting PF report in {format_type} format for organisation {current_user.hostname}")
             
             # Use taxation controller to get salary data with proper DTOs
             if self.taxation_controller:
                 response = await self.taxation_controller.get_monthly_salaries_for_period(
                     month=filters.get('month'),
                     year=filters.get('year'),
-                    organization_id=organisation_id,
+                    current_user=current_user,  # You may need to ensure current_user is available in this context
                     salary_status=filters.get('status'),
                     department=filters.get('department'),
                     skip=0,
@@ -517,7 +517,7 @@ class ExportController:
             # Generate file
             file_data = await self.file_generation_service.generate_pf_report_export(
                 pf_data=pf_list,
-                organisation_id=organisation_id,
+                current_user=current_user,
                 format_type=format_type,
                 quarter=quarter,
                 tax_year=tax_year,

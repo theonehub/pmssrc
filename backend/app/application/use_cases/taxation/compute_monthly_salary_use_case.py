@@ -18,6 +18,8 @@ from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 from app.domain.entities.taxation.lwp_details import LWPDetails
 from app.domain.value_objects.tax_regime import TaxRegime
 from app.domain.services.taxation.tax_calculation_service import TaxCalculationService
+from app.auth.auth_dependencies import CurrentUser
+
 
 logger = logging.getLogger(__name__)
 
@@ -47,14 +49,14 @@ class ComputeMonthlySalaryUseCase:
     async def execute(
         self, 
         request: MonthlySalaryComputeRequestDTO,
-        organization_id: str
+        current_user: CurrentUser
     ) -> MonthlySalaryResponseDTO:
         """
         Execute monthly salary computation for an employee.
         
         Args:
             request: Monthly salary computation request
-            organization_id: Organization ID for multi-tenancy
+            current_user: Current authenticated user with organisation context
             
         Returns:
             MonthlySalaryResponseDTO: Computed monthly salary details
@@ -69,7 +71,7 @@ class ComputeMonthlySalaryUseCase:
         try:
             # 1. Get employee details
             employee_id = EmployeeId(request.employee_id)
-            user = await self.user_repository.get_by_id(employee_id, organization_id)
+            user = await self.user_repository.get_by_id(employee_id, current_user.hostname)
             
             if not user:
                 raise ValueError(f"Employee {request.employee_id} not found")
@@ -77,7 +79,7 @@ class ComputeMonthlySalaryUseCase:
             # 2. Get salary package record
             tax_year = TaxYear.from_string(request.tax_year)
             salary_package_record = await self.salary_package_repository.get_salary_package_record(
-                request.employee_id, str(tax_year), organization_id
+                request.employee_id, str(tax_year), current_user.hostname
             )
             
             if not salary_package_record:
@@ -101,7 +103,7 @@ class ComputeMonthlySalaryUseCase:
 
                 
             # Save the updated salary package record
-            await self.salary_package_repository.save(salary_package_record, organization_id)
+            await self.salary_package_repository.save(salary_package_record, current_user.hostname)
             
             # 4. Get current salary income (latest one)
             current_salary_income = salary_package_record.get_latest_salary_income()
@@ -110,12 +112,12 @@ class ComputeMonthlySalaryUseCase:
             
             # 5. Create monthly salary components
             monthly_salary_components = await self._create_monthly_salary_components(
-                current_salary_income, salary_package_record, request, organization_id
+                current_salary_income, salary_package_record, request, current_user
             )
             
             # 6. Calculate monthly tax
             monthly_tax = await self._calculate_monthly_tax(
-                salary_package_record, request, organization_id
+                salary_package_record, request, current_user
             )
 
             
@@ -143,11 +145,21 @@ class ComputeMonthlySalaryUseCase:
             
             # 9. Build response DTO
             response = self._build_response_dto(
-                monthly_salary, user, request, organization_id
+                monthly_salary, user, request, current_user
             )
 
-            salary_package_record.monthly_salary_records.append(monthly_salary)
-            await self.salary_package_repository.save(salary_package_record, organization_id)
+            # Upsert monthly_salary into monthly_salary_records
+            existing_index = next(
+                (i for i, record in enumerate(salary_package_record.monthly_salary_records)
+                 if record.month == monthly_salary.month and record.year == monthly_salary.year),
+                None
+            )
+
+            if existing_index is not None:
+                salary_package_record.monthly_salary_records[existing_index] = monthly_salary
+            else:
+                salary_package_record.monthly_salary_records.append(monthly_salary)
+            await self.salary_package_repository.save(salary_package_record, current_user.hostname)
             
             
             logger.info(f"Successfully computed monthly salary for employee {request.employee_id}")
@@ -164,7 +176,7 @@ class ComputeMonthlySalaryUseCase:
         salary_income: SalaryIncome, 
         salary_package_record, 
         request: MonthlySalaryComputeRequestDTO,
-        organization_id: str
+        current_user: CurrentUser
     ) -> Dict[str, Any]:
         """
         Create monthly salary components from annual salary income.
@@ -173,7 +185,7 @@ class ComputeMonthlySalaryUseCase:
             salary_income: Annual salary income
             salary_package_record: Employee's salary package record
             request: Computation request
-            organization_id: Organization ID for multi-tenancy
+            current_user: Current authenticated user with organisation context
             
         Returns:
             Dict containing monthly salary components
@@ -213,7 +225,7 @@ class ComputeMonthlySalaryUseCase:
         monthly_retirement = RetirementBenefits()  # Empty for now
         
         # Calculate LWP details for the month
-        monthly_lwp = await self._calculate_lwp_days(request.employee_id, request.month, salary_package_record.tax_year.get_start_date().year, organization_id)
+        monthly_lwp = await self._calculate_lwp_days(request.employee_id, request.month, salary_package_record.tax_year.get_start_date().year, current_user)
         
         return {
             'salary': monthly_salary_income,
@@ -228,7 +240,7 @@ class ComputeMonthlySalaryUseCase:
         employee_id: str,
         month: int,
         year: int,
-        organization_id: str
+        current_user: CurrentUser
     ) -> LWPDetails:
         """
         Calculate Leave Without Pay (LWP) days for the specified month.
@@ -237,7 +249,7 @@ class ComputeMonthlySalaryUseCase:
             employee_id: Employee identifier
             month: Month (1-12)
             year: Year
-            organization_id: Organization identifier
+            current_user: Current authenticated user with organisation context
             
         Returns:
             LWPDetails: LWP details for the month
@@ -261,7 +273,7 @@ class ComputeMonthlySalaryUseCase:
             
             # Calculate LWP using standardized service
             lwp_result = await lwp_service.calculate_lwp_for_month(
-                employee_id, month, year, organization_id
+                employee_id, month, year, current_user
             )
             
             # Create LWPDetails entity
@@ -289,7 +301,7 @@ class ComputeMonthlySalaryUseCase:
         self, 
         salary_package_record, 
         request: MonthlySalaryComputeRequestDTO,
-        organization_id: str
+        current_user: CurrentUser
     ) -> Money:
         """
         Calculate monthly tax liability.
@@ -297,7 +309,7 @@ class ComputeMonthlySalaryUseCase:
         Args:
             salary_package_record: Employee's salary package record
             request: Computation request
-            organization_id: Organization ID
+            current_user: CurrentUser
             
         Returns:
             Money: Monthly tax amount
@@ -305,7 +317,7 @@ class ComputeMonthlySalaryUseCase:
         try:
             # Use existing tax calculation service
             tax_result = await self.tax_calculation_service.compute_monthly_tax(
-                request.employee_id, organization_id
+                request.employee_id, current_user
             )
             
             # Extract monthly tax from result
@@ -322,7 +334,7 @@ class ComputeMonthlySalaryUseCase:
         monthly_salary: MonthlySalary, 
         user, 
         request: MonthlySalaryComputeRequestDTO,
-        organization_id: str
+        current_user: CurrentUser
     ) -> MonthlySalaryResponseDTO:
         """
         Build response DTO from MonthlySalary entity.
@@ -331,7 +343,7 @@ class ComputeMonthlySalaryUseCase:
             monthly_salary: Computed monthly salary entity
             user: User entity
             request: Original request
-            organization_id: Organization ID
+            current_user: Current authenticated user with organisation context
             
         Returns:
             MonthlySalaryResponseDTO: Response DTO

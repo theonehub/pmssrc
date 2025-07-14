@@ -51,9 +51,9 @@ class AttendanceQueryUseCase:
     async def get_employee_attendance_by_month(
         self, 
         filters: AttendanceSearchFiltersDTO,
-        current_user: "CurrentUser"
+        current_user: "CurrentUser"  # Organisation context is always provided via current_user
     ) -> List[AttendanceResponseDTO]:
-        """Get employee attendance records for a specific month"""
+        """Get employee attendance records for a specific month (organisation context from current_user)"""
         try:
             logger.info(f"Getting employee attendance for {filters.employee_id} for {filters.month}/{filters.year} in organisation {current_user.hostname}")
             
@@ -110,9 +110,9 @@ class AttendanceQueryUseCase:
     async def get_team_attendance_by_date(
         self, 
         filters: AttendanceSearchFiltersDTO,
-        current_user: "CurrentUser"
+        current_user: "CurrentUser"  # Organisation context is always provided via current_user
     ) -> List[AttendanceResponseDTO]:
-        """Get team attendance records for a specific date"""
+        """Get team attendance records for a specific date (organisation context from current_user)"""
         try:
             logger.info(f"Getting team attendance for {filters.date}/{filters.month}/{filters.year} in organisation {current_user.hostname}")
             
@@ -146,9 +146,9 @@ class AttendanceQueryUseCase:
     async def get_team_attendance_by_month(
         self, 
         filters: AttendanceSearchFiltersDTO,
-        current_user: "CurrentUser"
+        current_user: "CurrentUser"  # Organisation context is always provided via current_user
     ) -> List[AttendanceResponseDTO]:
-        """Get team attendance records for a specific month"""
+        """Get team attendance records for a specific month (organisation context from current_user)"""
         try:
             logger.info(f"Getting team attendance for {filters.month}/{filters.year} in organisation {current_user.hostname}")
             
@@ -182,9 +182,9 @@ class AttendanceQueryUseCase:
     async def get_team_attendance_by_year(
         self, 
         filters: AttendanceSearchFiltersDTO,
-        current_user: "CurrentUser"
+        current_user: "CurrentUser"  # Organisation context is always provided via current_user
     ) -> List[AttendanceResponseDTO]:
-        """Get team attendance records for a specific year"""
+        """Get team attendance records for a specific year (organisation context from current_user)"""
         try:
             logger.info(f"Getting team attendance for year {filters.year} in organisation {current_user.hostname}")
             

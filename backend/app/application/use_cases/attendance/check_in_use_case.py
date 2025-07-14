@@ -73,10 +73,10 @@ class CheckInUseCase:
     async def execute(
         self,
         request: AttendanceCheckInRequestDTO,
-        current_user: "CurrentUser"
+        current_user: "CurrentUser"  # Organisation context is always provided via current_user
     ) -> AttendanceResponseDTO:
         """
-        Execute check-in operation.
+        Execute check-in operation (organisation context from current_user).
         
         Steps:
         1. Validate request data
@@ -161,7 +161,7 @@ class CheckInUseCase:
             )
     
     async def _verify_employee(self, employee_id: str, current_user: "CurrentUser"):
-        """Verify employee exists and is active"""
+        """Verify employee exists and is active (organisation context from current_user)"""
         employee = await self.employee_repository.get_by_id(employee_id, current_user.hostname)
         
         if not employee:
@@ -192,9 +192,9 @@ class CheckInUseCase:
         employee_id: str,
         attendance_date: datetime,  # now datetime
         check_in_time: datetime,
-        current_user: "CurrentUser"
+        current_user: "CurrentUser"  # Organisation context is always provided via current_user
     ) -> None:
-        """Validate business rules for check-in"""
+        """Validate business rules for check-in (organisation context from current_user)"""
         
         # Check if employee is already checked in for the date
         existing_attendance = await self.attendance_query_repository.get_by_employee_and_date(
@@ -220,9 +220,9 @@ class CheckInUseCase:
         employee_id: str,
         attendance_date: datetime,  # now datetime
         created_by: str,
-        current_user: "CurrentUser"
+        current_user: "CurrentUser"  # Organisation context is always provided via current_user
     ) -> Attendance:
-        """Get existing attendance record or create new one"""
+        """Get existing attendance record or create new one (organisation context from current_user)"""
         
         # Try to get existing attendance record
         attendance = await self.attendance_query_repository.get_by_employee_and_date(

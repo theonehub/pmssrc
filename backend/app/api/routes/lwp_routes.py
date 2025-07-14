@@ -101,7 +101,7 @@ async def get_lwp_records(
             if lwp_service:
                 try:
                     lwp_result = await lwp_service.calculate_lwp_for_month(
-                        leave.employee_id, current_month, current_year, current_user.hostname
+                        leave.employee_id, current_month, current_year, current_user
                     )
                     calculated_lwp_days = lwp_result.lwp_days
                 except Exception as e:

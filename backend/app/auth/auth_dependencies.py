@@ -10,6 +10,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.auth.jwt_handler import decode_access_token
 from app.utils.logger import get_logger
+from app.utils.db_name_utils import sanitize_organisation_id
 
 logger = get_logger(__name__)
 
@@ -32,13 +33,13 @@ class CurrentUser:
     @property
     def organisation_id(self) -> str:
         """Get organisation ID based on hostname."""
-        return self.hostname
+        return sanitize_organisation_id(self.hostname)
     
     @property
     def database_name(self) -> str:
         """Get database name for organisation."""
         if self.hostname:
-            return f"pms_{self.hostname}"
+            return f"pms_{sanitize_organisation_id(self.hostname)}"
         return "pms_global_database"
     
     def has_permission(self, permission: str) -> bool:

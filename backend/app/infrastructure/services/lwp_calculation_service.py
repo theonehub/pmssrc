@@ -98,24 +98,14 @@ class LWPCalculationService(LWPCalculationServiceInterface):
                 month_start, month_end, current_user
             )
             
-            # Calculate LWP amount (placeholder - would need salary info)
-            lwp_amount = 0.0
+            logger.info(f"LWP days: {lwp_days}, Working days: {working_days}")
             
             return LWPCalculationDTO(
                 employee_id=employee_id,
-                month=month,
-                year=year,
                 lwp_days=lwp_days,
                 working_days=working_days,
-                lwp_amount=lwp_amount,
-                calculation_details={
-                    "calculated_at": date.today().isoformat(),
-                    "method": "legacy_standardized",
-                    "total_attendance_records": len(attendance_records),
-                    "total_leave_records": len(leaves),
-                    "month_start": month_start.strftime("%Y-%m-%d"),
-                    "month_end": month_end.strftime("%Y-%m-%d")
-                }
+                month=month,
+                year=year
             )
             
         except Exception as e:

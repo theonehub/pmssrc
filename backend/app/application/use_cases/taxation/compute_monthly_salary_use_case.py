@@ -102,6 +102,13 @@ class ComputeMonthlySalaryUseCase:
                 logger.info(f"Updated bonus for month {financial_year_month}: ₹{request.bonus:,.2f}")
 
                 
+            
+            # Calculate LWP details for the month
+            monthly_lwp = await self._calculate_lwp_days(request.employee_id, request.month, salary_package_record.tax_year.get_start_date().year, current_user)
+            salary_package_record.set_lwp_for_month(financial_year_month, monthly_lwp)
+            logger.info(f"Updated LWP for month {financial_year_month}: {monthly_lwp.lwp_days} LWP days")
+            
+        
             # Save the updated salary package record
             await self.salary_package_repository.save(salary_package_record, current_user.hostname)
             
@@ -112,7 +119,7 @@ class ComputeMonthlySalaryUseCase:
             
             # 5. Create monthly salary components
             monthly_salary_components = await self._create_monthly_salary_components(
-                current_salary_income, salary_package_record, request, current_user
+                current_salary_income, salary_package_record, request, current_user, monthly_lwp
             )
             
             # 6. Calculate monthly tax
@@ -176,7 +183,8 @@ class ComputeMonthlySalaryUseCase:
         salary_income: SalaryIncome, 
         salary_package_record, 
         request: MonthlySalaryComputeRequestDTO,
-        current_user: CurrentUser
+        current_user: CurrentUser,
+        monthly_lwp: LWPDetails
     ) -> Dict[str, Any]:
         """
         Create monthly salary components from annual salary income.
@@ -223,9 +231,6 @@ class ComputeMonthlySalaryUseCase:
         monthly_perquisites_payouts = MonthlyPerquisitesPayouts(components=perq_components, total=perq_total)
         monthly_deductions = TaxDeductions()  # Will be calculated
         monthly_retirement = RetirementBenefits()  # Empty for now
-        
-        # Calculate LWP details for the month
-        monthly_lwp = await self._calculate_lwp_days(request.employee_id, request.month, salary_package_record.tax_year.get_start_date().year, current_user)
         
         return {
             'salary': monthly_salary_income,

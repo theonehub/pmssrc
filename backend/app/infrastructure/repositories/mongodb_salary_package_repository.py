@@ -496,7 +496,8 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             # Arrears and Bonuses (per month)
             "arrears": [a.to_float() for a in record.arrears],
             "bonuses": [b.to_float() for b in record.bonuses],
-
+            # LWP details (per month)
+            "lwps": [self._serialize_lwp_details(lwp) for lwp in getattr(record, 'lwps', [])],
             # Monthly salary records
             "monthly_salary_records": [self._serialize_monthly_salary(salary) for salary in record.monthly_salary_records],
         }
@@ -522,6 +523,14 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
 
         # Deserialize monthly_salary_records
         monthly_salary_records = [self._deserialize_monthly_salary(ms_doc) for ms_doc in document.get("monthly_salary_records", [])]
+        
+        # Deserialize lwps (list of LWPDetails)
+        lwps_docs = document.get("lwps", [])
+        if lwps_docs:
+            lwps = [self._deserialize_lwp_details(lwp_doc) for lwp_doc in lwps_docs]
+        else:
+            from app.domain.entities.taxation.lwp_details import LWPDetails
+            lwps = [LWPDetails(month=i+1) for i in range(12)]
         
         # Create SalaryPackageRecord
         record = SalaryPackageRecord(
@@ -555,7 +564,8 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             # Arrears and Bonuses (per month)
             arrears=[Money.from_float(a) for a in document.get("arrears", [0.0]*12)],
             bonuses=[Money.from_float(b) for b in document.get("bonuses", [0.0]*12)],
-
+            # LWP details (per month)
+            lwps=lwps,
             # Monthly salary records
             monthly_salary_records=monthly_salary_records,
         )
@@ -615,6 +625,14 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         # Deserialize monthly_salary_records
         monthly_salary_records = [self._deserialize_monthly_salary(ms_doc) for ms_doc in document.get("monthly_salary_records", [])]
         
+        # Deserialize lwps (list of LWPDetails)
+        lwps_docs = document.get("lwps", [])
+        if lwps_docs:
+            lwps = [self._deserialize_lwp_details(lwp_doc) for lwp_doc in lwps_docs]
+        else:
+            from app.domain.entities.taxation.lwp_details import LWPDetails
+            lwps = [LWPDetails(month=i+1) for i in range(12)]
+        
         # Create SalaryPackageRecord
         record = SalaryPackageRecord(
             employee_id=EmployeeId(document["employee_id"]),
@@ -647,7 +665,8 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             # Arrears and Bonuses (per month)
             arrears=[Money.from_float(a) for a in document.get("arrears", [0.0]*12)],
             bonuses=[Money.from_float(b) for b in document.get("bonuses", [0.0]*12)],
-
+            # LWP details (per month)
+            lwps=lwps,
             # Monthly salary records
             monthly_salary_records=monthly_salary_records,
         )

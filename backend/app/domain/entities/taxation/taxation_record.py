@@ -23,6 +23,7 @@ from app.domain.entities.taxation.other_income import OtherIncome
 from app.domain.services.taxation.tax_calculation_service import TaxCalculationService, TaxCalculationResult
 from app.domain.value_objects.taxation.tax_regime import TaxRegimeType
 from app.domain.entities.monthly_salary import MonthlySalary
+from app.domain.entities.taxation.lwp_details import LWPDetails
 
 logger = get_logger(__name__)
 
@@ -72,6 +73,7 @@ class SalaryPackageRecord:
     is_regime_update_allowed: Optional[bool] = True
     arrears: List[Money] = field(default_factory=lambda: [Money.zero() for _ in range(12)])
     bonuses: List[Money] = field(default_factory=lambda: [Money.zero() for _ in range(12)])
+    lwps: List[LWPDetails] = field(default_factory=lambda: [LWPDetails(month=i) for i in range(12)])
     tds_status: List[TDSStatus] = field(default_factory=lambda: [TDSStatus(paid=False, month=i, total_tax_liability=Money.zero()) for i in range(12)])
 
     is_government_employee: bool = False
@@ -1894,3 +1896,64 @@ class SalaryPackageRecord:
                 self.bonuses.append(Money.zero())
         elif len(self.bonuses) > 12:
             self.bonuses = self.bonuses[:12]
+
+    # LWP management methods
+    def get_lwp_for_month(self, month: int) -> LWPDetails:
+        """
+        Get LWP details for a specific month (1-12).
+        
+        Args:
+            month: Month number (1-12, where 1=April, 12=March)
+        
+        Returns:
+            LWPDetails: LWP details for the specified month
+        
+        Raises:
+            ValueError: If month is not between 1 and 12
+        """
+        if not 1 <= month <= 12:
+            raise ValueError("Month must be between 1 and 12")
+        self._ensure_lwps_list_size()
+        return self.lwps[month - 1]
+
+    def set_lwp_for_month(self, month: int, lwp_details: LWPDetails) -> None:
+        """
+        Set LWP details for a specific month (1-12).
+        
+        Args:
+            month: Month number (1-12, where 1=April, 12=March)
+            lwp_details: LWPDetails object for the month
+        
+        Raises:
+            ValueError: If month is not between 1 and 12
+            ValueError: If record is finalized
+        """
+        if self.is_final:
+            raise ValueError("Cannot update finalized salary package record")
+        if not 1 <= month <= 12:
+            raise ValueError("Month must be between 1 and 12")
+        self._ensure_lwps_list_size()
+        old_lwp = self.lwps[month - 1]
+        self.lwps[month - 1] = lwp_details
+        self._invalidate_calculation()
+        self._add_domain_event({
+            "event_type": "LWPUpdated",
+            "employee_id": str(self.employee_id),
+            "tax_year": str(self.tax_year),
+            "month": month,
+            "old_lwp_days": getattr(old_lwp, 'lwp_days', None),
+            "new_lwp_days": getattr(lwp_details, 'lwp_days', None),
+            "updated_at": self.updated_at.isoformat()
+        })
+
+    def _ensure_lwps_list_size(self) -> None:
+        """
+        Ensure the lwps list has exactly 12 elements.
+        If the list is smaller, pad with default LWPDetails. If larger, truncate.
+        """
+        if len(self.lwps) < 12:
+            from app.domain.entities.taxation.lwp_details import LWPDetails
+            while len(self.lwps) < 12:
+                self.lwps.append(LWPDetails(month=len(self.lwps)+1))
+        elif len(self.lwps) > 12:
+            self.lwps = self.lwps[:12]

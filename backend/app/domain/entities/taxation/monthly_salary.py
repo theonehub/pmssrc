@@ -8,7 +8,7 @@ from app.domain.entities.taxation.perquisites import MonthlyPerquisitesPayouts
 from app.domain.entities.taxation.deductions import TaxDeductions
 from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 from app.domain.entities.taxation.lwp_details import LWPDetails
-from app.domain.entities.monthly_salary_status import TDSStatus, PayoutStatus
+from app.domain.entities.taxation.monthly_salary_status import TDSStatus, PayoutStatus
 from typing import Optional
 from datetime import date
 
@@ -35,6 +35,12 @@ class MonthlySalary:
     def __post_init__(self):
         if self.salary is None:
             raise ValueError("Salary cannot be None")
+        if self.payout_status is None:
+            self.payout_status = PayoutStatus(status='computed')
+        if self.tds_status is None:
+            self.tds_status = TDSStatus(paid=False, month=self.month, total_tax_liability=Money.zero())
+        if self.lwp is None:
+            self.lwp = LWPDetails(month=self.month)
         
     def compute_net_pay(self) -> Money:
         """

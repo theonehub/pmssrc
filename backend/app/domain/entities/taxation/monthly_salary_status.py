@@ -8,8 +8,7 @@ class TDSStatus:
     """
     Represents a TDS status for a given month.
     """
-    paid: bool
-    month: int
+    status: str
     total_tax_liability: Money
     tds_challan_number: Optional[str] = None
     tds_challan_date: Optional[date] = None

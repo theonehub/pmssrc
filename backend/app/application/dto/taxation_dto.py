@@ -876,10 +876,11 @@ class LWPDetailsDTO(BaseModel):
 class TDSStatusDTO(BaseModel):
     status: str = Field(..., description="TDS status, e.g. 'filed', 'paid', etc.")
     challan_number: Optional[str] = Field(None, description="Challan number if TDS is paid")
-    month: int = Field(..., ge=1, le=12, description="Month (1-12)")
     total_tax_liability: float = Field(default=0.0, description="Total tax liability for the month")
     # Optionally keep paid for backward compatibility
     paid: Optional[bool] = Field(None, description="Deprecated: use status instead")
+    month: Optional[int] = Field(..., ge=1, le=12, description="Month (1-12)")
+
 
 class MonthlySalaryComputeRequestDTO(BaseModel):
     """Request DTO for monthly salary computation."""

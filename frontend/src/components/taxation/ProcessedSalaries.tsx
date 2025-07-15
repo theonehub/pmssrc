@@ -156,7 +156,7 @@ const ProcessedSalaries: React.FC = () => {
         month: statusDialogSalary.month,
         year: statusDialogSalary.year,
         tax_year: taxYear, // Add this line to include tax_year in the payload
-        status: nextStatus,
+        payout_status: nextStatus, // Use payout_status instead of status
         comments: statusComments,
         transaction_id: nextStatus === 'transferred' ? transactionId : undefined,
         transfer_date: nextStatus === 'transferred' && transferDate ? transferDate : undefined
@@ -817,8 +817,8 @@ const ProcessedSalaries: React.FC = () => {
                     <TableCell>{formatCurrency(salary.tds)}</TableCell>
                     <TableCell>
                       <Chip
-                        label={salary.payout_status?.status || salary.status}
-                        color={getStatusColor(salary.payout_status?.status || salary.status) as any}
+                        label={salary.payout_status?.status || ''}
+                        color={getStatusColor(salary.payout_status?.status || '') as any}
                         size="small"
                         onClick={isAdminUser ? () => handleStatusChipClick(salary) : undefined}
                         style={{ cursor: isAdminUser ? 'pointer' : 'default' }}
@@ -872,7 +872,7 @@ const ProcessedSalaries: React.FC = () => {
         <Dialog open={statusDialogOpen} onClose={handleStatusDialogClose} maxWidth="xs" fullWidth>
           <DialogTitle>Status Transition</DialogTitle>
           <DialogContent>
-            <Typography gutterBottom>Current Status: <b>{statusDialogSalary.payout_status?.status || statusDialogSalary.status}</b></Typography>
+            <Typography gutterBottom>Current Status: <b>{statusDialogSalary.payout_status?.status || ''}</b></Typography>
             <FormControl fullWidth sx={{ mt: 2 }}>
               <InputLabel>Next Status</InputLabel>
               <Select
@@ -880,7 +880,7 @@ const ProcessedSalaries: React.FC = () => {
                 label="Next Status"
                 onChange={e => setNextStatus(e.target.value)}
               >
-                {getNextStatusOptions(statusDialogSalary.payout_status?.status || statusDialogSalary.status).map(opt => (
+                {getNextStatusOptions(statusDialogSalary.payout_status?.status || '').map(opt => (
                   <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
                 ))}
               </Select>

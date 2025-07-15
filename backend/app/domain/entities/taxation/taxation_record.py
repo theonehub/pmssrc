@@ -23,9 +23,9 @@ from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 from app.domain.entities.taxation.other_income import OtherIncome
 from app.domain.services.taxation.tax_calculation_service import TaxCalculationService, TaxCalculationResult
 from app.domain.value_objects.taxation.tax_regime import TaxRegimeType
-from app.domain.entities.monthly_salary import MonthlySalary
+from app.domain.entities.taxation.monthly_salary import MonthlySalary
 from app.domain.entities.taxation.lwp_details import LWPDetails
-from app.domain.entities.monthly_salary_status import TDSStatus
+from app.domain.entities.taxation.monthly_salary_status import TDSStatus
 
 logger = get_logger(__name__)
 

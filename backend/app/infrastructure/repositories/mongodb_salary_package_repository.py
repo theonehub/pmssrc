@@ -568,7 +568,7 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         from app.domain.value_objects.tax_year import TaxYear
         from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
         from app.domain.value_objects.money import Money
-        from app.domain.entities.monthly_salary import MonthlySalary
+        from app.domain.entities.taxation.monthly_salary import MonthlySalary
         from datetime import datetime
         from datetime import date as dt_date
         transfer_date = None
@@ -1948,3 +1948,79 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             "total_tds": total_tds,
             "count": count
         }
+
+    def _serialize_tds_status(self, tds_status):
+        """Serialize TDSStatus to dict for MongoDB."""
+        if tds_status is None:
+            return None
+        # Handle both Money and float types for total_tax_liability
+        ttl = tds_status.total_tax_liability
+        if hasattr(ttl, 'to_float'):
+            ttl_val = ttl.to_float()
+        else:
+            ttl_val = float(ttl) if ttl is not None else 0.0
+        # Use 'challan_number' for DTO, fallback to 'tds_challan_number' for entity
+        challan_number = getattr(tds_status, 'challan_number', None)
+        if challan_number is None:
+            challan_number = getattr(tds_status, 'tds_challan_number', None)
+        # Use 'tds_challan_date' and 'tds_challan_file_path' if present
+        tds_challan_date = getattr(tds_status, 'tds_challan_date', None)
+        tds_challan_file_path = getattr(tds_status, 'tds_challan_file_path', None)
+        return {
+            "status": getattr(tds_status, 'status', 'unpaid'),
+            "total_tax_liability": ttl_val,
+            "tds_challan_number": challan_number,
+            "tds_challan_date": tds_challan_date.isoformat() if tds_challan_date else None,
+            "tds_challan_file_path": tds_challan_file_path,
+        }
+
+    def _deserialize_tds_status(self, tds_status_doc):
+        """Deserialize dict to TDSStatus."""
+        from app.domain.entities.taxation.monthly_salary_status import TDSStatus
+        from app.domain.value_objects.money import Money
+        from datetime import date
+        if not tds_status_doc:
+            return None
+        tds_challan_date = None
+        if tds_status_doc.get("tds_challan_date"):
+            try:
+                tds_challan_date = date.fromisoformat(tds_status_doc["tds_challan_date"])
+            except Exception:
+                tds_challan_date = None
+        return TDSStatus(
+            status=tds_status_doc.get("status", "unpaid"),
+            total_tax_liability=Money.from_float(tds_status_doc.get("total_tax_liability", 0.0)),
+            tds_challan_number=tds_status_doc.get("tds_challan_number"),
+            tds_challan_date=tds_challan_date,
+            tds_challan_file_path=tds_status_doc.get("tds_challan_file_path"),
+        )
+
+    def _serialize_payout_status(self, payout_status):
+        """Serialize PayoutStatus to dict for MongoDB."""
+        if payout_status is None:
+            return None
+        return {
+            "status": payout_status.status,
+            "comments": payout_status.comments,
+            "transaction_id": payout_status.transaction_id,
+            "transfer_date": payout_status.transfer_date.isoformat() if payout_status.transfer_date else None,
+        }
+
+    def _deserialize_payout_status(self, payout_status_doc):
+        """Deserialize dict to PayoutStatus."""
+        from app.domain.entities.taxation.monthly_salary_status import PayoutStatus
+        from datetime import date
+        if not payout_status_doc:
+            return None
+        transfer_date = None
+        if payout_status_doc.get("transfer_date"):
+            try:
+                transfer_date = date.fromisoformat(payout_status_doc["transfer_date"])
+            except Exception:
+                transfer_date = None
+        return PayoutStatus(
+            status=payout_status_doc.get("status", "computed"),
+            comments=payout_status_doc.get("comments"),
+            transaction_id=payout_status_doc.get("transaction_id"),
+            transfer_date=transfer_date,
+        )

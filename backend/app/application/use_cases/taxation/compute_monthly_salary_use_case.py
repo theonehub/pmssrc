@@ -9,7 +9,7 @@ from app.application.interfaces.repositories.user_repository import UserQueryRep
 from app.domain.value_objects.employee_id import EmployeeId
 from app.domain.value_objects.tax_year import TaxYear
 from app.domain.value_objects.money import Money
-from app.domain.entities.monthly_salary import MonthlySalary
+from app.domain.entities.taxation.monthly_salary import MonthlySalary
 from app.domain.entities.taxation.taxation_record import TDSStatus
 from app.domain.entities.taxation.salary_income import SalaryIncome
 from app.domain.entities.taxation.perquisites import MonthlyPerquisitesPayouts
@@ -19,6 +19,7 @@ from app.domain.entities.taxation.lwp_details import LWPDetails
 from app.domain.value_objects.tax_regime import TaxRegime
 from app.domain.services.taxation.tax_calculation_service import TaxCalculationService
 from app.auth.auth_dependencies import CurrentUser
+from app.domain.entities.taxation.monthly_salary_status import PayoutStatus
 
 
 logger = logging.getLogger(__name__)
@@ -118,6 +119,7 @@ class ComputeMonthlySalaryUseCase:
             # 8. Compute net salary
             monthly_salary.compute_net_pay()
             monthly_salary.tax_amount = monthly_tax
+            monthly_salary.tds_status.total_tax_liability = monthly_tax
             await self.salary_package_repository.save(salary_package_record, current_user.hostname)
             
             # 9. Build response DTO
@@ -196,7 +198,8 @@ class ComputeMonthlySalaryUseCase:
             lwp=monthly_lwp,
             one_time_arrear=one_time_arrear,
             one_time_bonus=one_time_bonus,
-            tds_status=TDSStatus(paid=False, month=0, total_tax_liability=Money.zero()),
+            tds_status=TDSStatus(paid=False, month=request.month, total_tax_liability=Money.zero()),
+            payout_status=PayoutStatus(status='computed'),
             tax_year=salary_package_record.tax_year,
             tax_regime=salary_package_record.regime,
             tax_amount=Money.zero(),

@@ -98,7 +98,7 @@ from app.domain.services.taxation.tax_calculation_service import (
 )
 from app.application.use_cases.taxation.get_employees_for_selection_use_case import GetEmployeesForSelectionUseCase
 from app.application.use_cases.taxation.compute_monthly_salary_use_case import ComputeMonthlySalaryUseCase
-from app.domain.entities.monthly_salary_status import TDSStatus, PayoutStatus
+from app.domain.entities.taxation.monthly_salary_status import TDSStatus, PayoutStatus
 
 logger = get_logger(__name__)
 
@@ -3644,13 +3644,23 @@ class UnifiedTaxationController:
             logger.warning(f"Error extracting tax_regime value: {e}")
             tax_regime_value = "old_regime"  # Default fallback
 
-        def tds_status_to_dict(tds_status_obj):
-            if not tds_status_obj:
-                return None
-            return {
-                'status': 'paid' if getattr(tds_status_obj, 'paid', False) else 'unpaid',
-                'challan_number': getattr(tds_status_obj, 'tds_challan_number', None)
-            }
+        # --- TDS status mapping ---
+        tds_status_entity = getattr(monthly_salary, 'tds_status', None)
+        tds_status_dto = None
+        if tds_status_entity:
+            # Map entity to DTO, handling both TDSStatus and TDSStatusDTO types
+            from app.application.dto.taxation_dto import TDSStatusDTO
+            ttl = getattr(tds_status_entity, 'total_tax_liability', None)
+            if hasattr(ttl, 'to_float'):
+                ttl_val = ttl.to_float()
+            else:
+                ttl_val = float(ttl) if ttl is not None else 0.0
+            tds_status_dto = TDSStatusDTO(
+                status=getattr(tds_status_entity, 'status', 'unpaid'),
+                challan_number=getattr(tds_status_entity, 'tds_challan_number', None),
+                total_tax_liability=ttl_val,
+                month=getattr(monthly_salary, 'month', None)
+            )
 
         # Extract payout status fields
         payout_status = getattr(monthly_salary, 'payout_status', None)
@@ -3743,7 +3753,7 @@ class UnifiedTaxationController:
                 "net_salary": net_salary.to_float(),
                 "monthly_tax": tds.to_float()
             },
-            tds_status=tds_status_to_dict(getattr(monthly_salary, 'tds_status', None)),
+            tds_status=tds_status_dto,
             lwp=LWPDetailsDTO(
                 month=monthly_salary.lwp.month,
                 year=monthly_salary.lwp.year,
@@ -4423,7 +4433,7 @@ class UnifiedTaxationController:
         employee_id = request.get('employee_id')
         month = request.get('month')
         year = request.get('year')
-        new_status = request.get('status')
+        new_status = request.get('payout_status')
         comments = request.get('comments')
         transaction_id = request.get('transaction_id')
         transfer_date = request.get('transfer_date')
@@ -4456,39 +4466,41 @@ class UnifiedTaxationController:
         if not ms:
             raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail='Monthly salary record not found.')
 
-        # Allowed transitions
-        allowed = {
-            'computed': ['approved', 'rejected'],
-            'approved': ['transfer_initiated'],
-            'transfer_initiated': ['transferred'],
-        }
-        current_status = (ms.status or 'computed').lower()
-        if current_status == 'rejected':
-            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail='Rejected is a final status.')
-        if new_status not in allowed.get(current_status, []):
-            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f'Cannot transition from {current_status} to {new_status}.')
+        # --- Handle payout_status (salary status) ---
+        if new_status:
+            # Allowed transitions
+            allowed = {
+                'computed': ['approved', 'rejected'],
+                'approved': ['transfer_initiated'],
+                'transfer_initiated': ['transferred'],
+            }
+            current_status = (getattr(ms.payout_status, 'status', None) or 'computed').lower()
+            if current_status == 'rejected':
+                raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail='Rejected is a final status.')
+            if new_status not in allowed.get(current_status, []):
+                raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f'Cannot transition from {current_status} to {new_status}.')
 
-        # For transferred, require transaction_id and transfer_date
-        if new_status == 'transferred':
-            if not transaction_id or not str(transaction_id).strip():
-                raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail='Transaction ID is required for Transferred status.')
-            if not transfer_date or not str(transfer_date).strip():
-                raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail='Transfer date is required for Transferred status.')
-            from datetime import date as dt_date
-            try:
-                ms.transfer_date = dt_date.fromisoformat(transfer_date)
-            except Exception:
-                raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail='Invalid transfer date format. Use YYYY-MM-DD.')
-            ms.transaction_id = transaction_id
-        else:
-            ms.transaction_id = None
-            ms.transfer_date = None
+            # For transferred, require transaction_id and transfer_date
+            if new_status == 'transferred':
+                if not transaction_id or not str(transaction_id).strip():
+                    raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail='Transaction ID is required for Transferred status.')
+                if not transfer_date or not str(transfer_date).strip():
+                    raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail='Transfer date is required for Transferred status.')
+                from datetime import date as dt_date
+                try:
+                    ms.payout_status.transfer_date = dt_date.fromisoformat(transfer_date)
+                except Exception:
+                    raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail='Invalid transfer date format. Use YYYY-MM-DD.')
+                ms.payout_status.transaction_id = transaction_id
+            else:
+                ms.payout_status.transaction_id = None
+                ms.payout_status.transfer_date = None
 
-        # Update status and comments
-        ms.status = new_status
-        ms.comments = comments
+            # Update status and comments
+            ms.payout_status.status = new_status
+            ms.payout_status.comments = comments
 
-        # --- TDS status logic ---
+        # --- Handle TDS status logic ---
         if tds_status:
             # Convert to TDSStatus object
             paid = tds_status == 'paid'
@@ -4497,8 +4509,9 @@ class UnifiedTaxationController:
                 status=tds_status,
                 challan_number=challan_number,
                 month=month,
-                total_tax_liability=ms.tax_amount if hasattr(ms, 'tax_amount') else 0.0
+                total_tax_liability=ms.tax_amount.to_float() if hasattr(ms, 'tax_amount') and hasattr(ms.tax_amount, 'to_float') else 0.0
             )
+            ms.payout_status.comments = comments  # Optionally update comments for TDS status as well
 
         salary_package_record.updated_at = datetime.utcnow()
         await self.salary_package_repository.save(salary_package_record, current_user.hostname)

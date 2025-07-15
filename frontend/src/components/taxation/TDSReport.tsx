@@ -159,7 +159,6 @@ const TDSReport: React.FC = () => {
         tds_status: tdsNextStatus,
         comments: tdsStatusComments,
         challan_number: tdsNextStatus === 'paid' ? tdsChallanNumber : undefined,
-        status: tdsStatusDialogSalary.payout_status?.status || tdsStatusDialogSalary.status, // This is the main salary status, not TDS status
       };
       await salaryProcessingApi.updateMonthlySalaryStatus(payload);
       setTdsStatusDialogOpen(false);
@@ -323,7 +322,7 @@ const TDSReport: React.FC = () => {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase?.()) {
       case 'computed':
         return 'success';
       case 'pending':
@@ -956,8 +955,8 @@ const TDSReport: React.FC = () => {
                       <TableCell>{formatCurrency(salary.annual_tax_liability)}</TableCell>
                       <TableCell>
                         <Chip
-                          label={salary.payout_status?.status || salary.status}
-                          color={getStatusColor(salary.payout_status?.status || salary.status) as any}
+                          label={salary.tds_status?.status || ''}
+                          color={getStatusColor(salary.tds_status?.status || '') as any}
                           size="small"
                           onClick={isAdminUser ? () => handleTdsStatusChipClick(salary) : undefined}
                           style={{ cursor: isAdminUser ? 'pointer' : 'default' }}
@@ -1001,19 +1000,26 @@ const TDSReport: React.FC = () => {
         <Dialog open={tdsStatusDialogOpen} onClose={handleTdsStatusDialogClose} maxWidth="xs" fullWidth>
           <DialogTitle>TDS Status Transition</DialogTitle>
           <DialogContent>
-            <Typography gutterBottom>Current Status: <b>{tdsStatusDialogSalary.payout_status?.status || tdsStatusDialogSalary.status}</b></Typography>
-            <FormControl fullWidth sx={{ mt: 2 }}>
-              <InputLabel>Next Status</InputLabel>
-              <Select
-                value={tdsNextStatus}
-                label="Next Status"
-                onChange={e => setTdsNextStatus(e.target.value)}
-              >
-                {getTDSNextStatusOptions(tdsStatusDialogSalary.payout_status?.status || tdsStatusDialogSalary.status).map(opt => (
-                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Typography gutterBottom>Current Status: <b>{tdsStatusDialogSalary.tds_status?.status || ''}</b></Typography>
+            {/* Map 'unpaid' to 'computed' for status transitions */}
+            {(() => {
+              const currentStatus = tdsStatusDialogSalary.tds_status?.status || '';
+              const mappedStatus = currentStatus === 'unpaid' ? 'computed' : currentStatus;
+              return (
+                <FormControl fullWidth sx={{ mt: 2 }}>
+                  <InputLabel>Next Status</InputLabel>
+                  <Select
+                    value={tdsNextStatus}
+                    label="Next Status"
+                    onChange={e => setTdsNextStatus(e.target.value)}
+                  >
+                    {getTDSNextStatusOptions(mappedStatus).map(opt => (
+                      <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              );
+            })()}
             <TextField
               label="Comments"
               value={tdsStatusComments}

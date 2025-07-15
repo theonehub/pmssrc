@@ -7,6 +7,14 @@ export interface PayoutStatusDTO {
   transfer_date?: string | null; // ISO date string
 }
 
+export interface TDSStatus {
+  status: string;
+  challan_number?: string | null;
+  month: number;
+  total_tax_liability: number;
+  paid: boolean;
+}
+
 export interface MonthlySalaryResponse {
   employee_id: string;
   month: number;
@@ -46,7 +54,7 @@ export interface MonthlySalaryResponse {
   lwp_days: number;
   effective_working_days: number;
   payout_status?: PayoutStatusDTO; // New field for payout status
-  status: string;
+  tds_status?: TDSStatus; // <-- Added this line
   computation_date: string | null;
   notes: string | null;
   remarks: string | null;
@@ -123,8 +131,8 @@ export interface MonthlySalaryStatusUpdateRequest {
   month: number;
   year: number;
   tax_year: string; // Add this field to match backend and frontend usage
-  status: string;
   comments: string;
+  payout_status?: string;
   transaction_id?: string | undefined;
   transfer_date?: string | undefined; // ISO date string
   updated_by?: string;

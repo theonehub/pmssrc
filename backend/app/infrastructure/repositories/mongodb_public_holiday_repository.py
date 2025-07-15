@@ -97,7 +97,6 @@ class MongoDBPublicHolidayRepository(PublicHolidayRepository):
         try:
             db = self.db_connector.get_database(db_name)
             collection = db[self._collection_name]
-            logger.info(f"Successfully retrieved collection: {self._collection_name} from database: {db_name}")
             return collection
             
         except Exception as e:

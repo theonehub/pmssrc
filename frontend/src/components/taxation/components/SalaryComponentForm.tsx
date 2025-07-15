@@ -38,7 +38,6 @@ interface SalaryComponentData {
   hra_city_type: string;
 
   special_allowance: number;
-  bonus: number;
   commission: number;
   
   // Effective date fields for salary revisions
@@ -150,7 +149,6 @@ const initialSalaryData: SalaryComponentData = {
   hra_city_type: 'non_metro',
   
   special_allowance: 0,
-  bonus: 0,
   commission: 0,
   city_compensatory_allowance: 0,
   rural_allowance: 0,
@@ -469,7 +467,6 @@ const SalaryComponentForm: React.FC = () => {
       'pf_voluntary_contribution',
       'esi_contribution',
       'special_allowance',
-      'bonus',
       'commission',
       'city_compensatory_allowance',
       'rural_allowance',
@@ -526,7 +523,6 @@ const SalaryComponentForm: React.FC = () => {
         { name: 'basic_salary', label: 'Basic Salary', type: 'number' } as NumberField,
         { name: 'dearness_allowance', label: 'Dearness Allowance', type: 'number' } as NumberField,
         { name: 'special_allowance', label: 'Special Allowance', type: 'number' } as NumberField,
-        { name: 'bonus', label: 'Bonus', type: 'number' } as NumberField,
         { name: 'commission', label: 'Commission', type: 'number' } as NumberField
       ]
     },

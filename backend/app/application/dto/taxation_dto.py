@@ -19,7 +19,6 @@ class SalaryIncomeDTO(BaseModel):
     basic_salary: Decimal = Field(..., ge=0)
     dearness_allowance: Decimal = Field(default=0, ge=0)
     hra_provided: Decimal = Field(default=0, ge=0)
-    bonus: Decimal = Field(default=0, ge=0)
     commission: Decimal = Field(default=0, ge=0)
     special_allowance: Decimal = Field(default=0, ge=0)
     pf_employee_contribution: Decimal = Field(default=0, ge=0)
@@ -861,6 +860,12 @@ class OtherIncomeDTO(BaseModel):
 # MONTHLY PAYROLL DTOs
 # =============================================================================
 
+class PayoutStatusDTO(BaseModel):
+    status: str = Field(default="computed", description="Payout status")
+    comments: Optional[str] = Field(default=None, description="Payout comments")
+    transaction_id: Optional[str] = Field(default=None, description="Transaction ID for payout")
+    transfer_date: Optional[date] = Field(default=None, description="Date of transfer")
+
 class LWPDetailsDTO(BaseModel):
     """LWP details DTO."""
     month: int = Field(..., ge=1, le=12)
@@ -868,50 +873,118 @@ class LWPDetailsDTO(BaseModel):
     lwp_days: int = Field(..., ge=0, le=31)
     working_days_in_month: int = Field(..., ge=1, le=31)
 
+class TDSStatusDTO(BaseModel):
+    status: str = Field(..., description="TDS status, e.g. 'filed', 'paid', etc.")
+    challan_number: Optional[str] = Field(None, description="Challan number if TDS is paid")
+    month: int = Field(..., ge=1, le=12, description="Month (1-12)")
+    total_tax_liability: float = Field(default=0.0, description="Total tax liability for the month")
+    # Optionally keep paid for backward compatibility
+    paid: Optional[bool] = Field(None, description="Deprecated: use status instead")
 
-class PayoutMonthlyProjectionDTO(BaseModel):
-    """Payout monthly projection DTO."""
+class MonthlySalaryComputeRequestDTO(BaseModel):
+    """Request DTO for monthly salary computation."""
     employee_id: str = Field(..., description="Employee ID")
-    month: int = Field(..., ge=1, le=12, description="Month")
-    year: int = Field(..., ge=2020, le=2030, description="Year")
+    month: int = Field(..., ge=1, le=12, description="Month (1-12)")
+    tax_year: str = Field(..., description="Tax year (e.g., 2024-25)")
+    use_declared_values: bool = Field(default=True, description="Use declared values or actual proof submission")
+    force_recompute: bool = Field(default=False, description="Force recomputation if already computed")
+    computed_by: Optional[str] = Field(default=None, description="User who initiated computation")
+    arrears: Optional[float] = Field(default=None, description="Arrears to be included in this month's computation")
+    bonus: Optional[float] = Field(default=None, description="Bonus to be included in this month's computation")
+
+class MonthlySalaryResponseDTO(BaseModel):
+    """Response DTO for monthly salary computation."""
+    employee_id: str = Field(..., description="Employee ID")
+    month: int = Field(..., description="Month")
+    year: int = Field(..., description="Year")
+    tax_year: str = Field(..., description="Tax year")
+    
+    # Employee details
+    employee_name: Optional[str] = Field(default=None, description="Employee name")
+    employee_email: Optional[str] = Field(default=None, description="Employee email")
+    department: Optional[str] = Field(default=None, description="Department")
+    designation: Optional[str] = Field(default=None, description="Designation")
     
     # Salary components
-    basic_salary: float = Field(default=0.0, ge=0, description="Basic salary")
-    da: float = Field(default=0.0, ge=0, description="Dearness allowance")
-    hra: float = Field(default=0.0, ge=0, description="HRA")
-    special_allowance: float = Field(default=0.0, ge=0, description="Special allowance")
-    bonus: float = Field(default=0.0, ge=0, description="Bonus")
-    commission: float = Field(default=0.0, ge=0, description="Commission")
+    basic_salary: float = Field(default=0.0, description="Basic salary")
+    da: float = Field(default=0.0, description="Dearness allowance")
+    hra: float = Field(default=0.0, description="HRA")
+    special_allowance: float = Field(default=0.0, description="Special allowance")
+    transport_allowance: float = Field(default=0.0, description="Transport allowance")
+    medical_allowance: float = Field(default=0.0, description="Medical allowance")
+    commission: float = Field(default=0.0, description="Commission")
+    other_allowances: float = Field(default=0.0, description="Other allowances")
+    pf_employee_contribution: float = Field(default=0.0, description="PF employee contribution")
+    pf_employer_contribution: float = Field(default=0.0, description="PF employer contribution")
+    esi_contribution: float = Field(default=0.0, description="ESI contribution")
+    pf_voluntary_contribution: float = Field(default=0.0, description="PF voluntary contribution")
+    # Add new fields for TDS status and LWP details
+    one_time_bonus: float = Field(default=0.0, description="One time bonus")
+    one_time_arrear: float = Field(default=0.0, description="One time arrear")
+    tds_status: Optional[TDSStatusDTO] = None
+    lwp: Optional[LWPDetailsDTO] = None
     
     # Deductions
-    epf_employee: float = Field(default=0.0, ge=0, description="EPF employee contribution")
-    esi_employee: float = Field(default=0.0, ge=0, description="ESI employee contribution")
-    professional_tax: float = Field(default=0.0, ge=0, description="Professional tax")
-    advance_deduction: float = Field(default=0.0, ge=0, description="Advance deduction")
-    loan_deduction: float = Field(default=0.0, ge=0, description="Loan deduction")
-    other_deductions: float = Field(default=0.0, ge=0, description="Other deductions")
+    epf_employee: float = Field(default=0.0, description="EPF employee contribution")
+    esi_employee: float = Field(default=0.0, description="ESI employee contribution")
+    professional_tax: float = Field(default=0.0, description="Professional tax")
+    tds: float = Field(default=0.0, description="TDS")
+    advance_deduction: float = Field(default=0.0, description="Advance deduction")
+    loan_deduction: float = Field(default=0.0, description="Loan deduction")
+    other_deductions: float = Field(default=0.0, description="Other deductions")
     
     # Calculated totals
-    gross_salary: float = Field(default=0.0, ge=0, description="Gross salary")
-    net_salary: float = Field(default=0.0, ge=0, description="Net salary")
-    total_deductions: float = Field(default=0.0, ge=0, description="Total deductions")
-    tds: float = Field(default=0.0, ge=0, description="TDS")
+    gross_salary: float = Field(default=0.0, description="Gross salary")
+    total_deductions: float = Field(default=0.0, description="Total deductions")
+    net_salary: float = Field(default=0.0, description="Net salary")
     
     # Annual projections
-    annual_gross_salary: float = Field(default=0.0, ge=0, description="Annual gross salary")
-    annual_tax_liability: float = Field(default=0.0, ge=0, description="Annual tax liability")
+    annual_gross_salary: float = Field(default=0.0, description="Annual gross salary")
+    annual_tax_liability: float = Field(default=0.0, description="Annual tax liability")
     
     # Tax details
     tax_regime: str = Field(default="new", description="Tax regime")
+    tax_exemptions: float = Field(default=0.0, description="Tax exemptions")
+    standard_deduction: float = Field(default=0.0, description="Standard deduction")
     
     # Working days
-    effective_working_days: int = Field(default=22, ge=0, description="Effective working days")
-    lwp_days: int = Field(default=0, ge=0, description="LWP days")
+    total_days_in_month: int = Field(default=30, description="Total days in month")
+    working_days_in_period: int = Field(default=30, description="Working days in period")
+    lwp_days: int = Field(default=0, description="Leave without pay days")
+    effective_working_days: int = Field(default=30, description="Effective working days")
     
-    # Status and notes
-    status: str = Field(default="pending", description="Payout status")
-    notes: Optional[str] = Field(None, description="Notes")
-    remarks: Optional[str] = Field(None, description="Remarks")
+    # Status and metadata
+    status: str = Field(default="computed", description="Computation status")
+    computation_date: Optional[str] = Field(default=None, description="Computation date")
+    notes: Optional[str] = Field(default=None, description="Notes")
+    remarks: Optional[str] = Field(default=None, description="Remarks")
+    created_at: str = Field(..., description="Created at")
+    updated_at: str = Field(..., description="Updated at")
+    created_by: Optional[str] = Field(default=None, description="Created by")
+    updated_by: Optional[str] = Field(default=None, description="Updated by")
+    
+    # Computation details
+    use_declared_values: bool = Field(default=True, description="Whether declared values were used")
+    computation_mode: str = Field(default="declared", description="Computation mode")
+    computation_summary: Optional[Dict[str, Any]] = Field(default=None, description="Computation summary")
+    payout_status: Optional[PayoutStatusDTO] = Field(default=None, description="Payout status object")
+
+class MonthlySalaryBulkComputeRequestDTO(BaseModel):
+    """Request DTO for bulk monthly salary computation."""
+    month: int = Field(..., ge=1, le=12, description="Month (1-12)")
+    tax_year: str = Field(..., description="Tax year (e.g., 2024-25)")
+    employee_ids: Optional[List[str]] = Field(default=None, description="List of employee IDs (if None, compute for all)")
+    force_recompute: bool = Field(default=False, description="Force recomputation if already computed")
+    computed_by: Optional[str] = Field(default=None, description="User who initiated computation")
+
+class MonthlySalaryBulkComputeResponseDTO(BaseModel):
+    """Response DTO for bulk monthly salary computation."""
+    total_requested: int = Field(..., description="Total employees requested for computation")
+    successful: int = Field(..., description="Successfully computed count")
+    failed: int = Field(..., description="Failed computation count")
+    skipped: int = Field(..., description="Skipped computation count")
+    errors: List[Dict[str, str]] = Field(default_factory=list, description="List of errors")
+    computation_summary: Optional[Dict[str, Any]] = Field(default=None, description="Computation summary") 
 
 
 # =============================================================================
@@ -1072,7 +1145,7 @@ class UpdateMonthlyPayrollComponentRequest(BaseModel):
     """Request to update monthly payroll component individually."""
     employee_id: str = Field(..., description="Employee ID")
     tax_year: str = Field(..., description="Tax year (e.g., '2024-25')")
-    monthly_payroll: PayoutMonthlyProjectionDTO = Field(..., description="Monthly payroll data")
+    #monthly_payroll: PayoutMonthlyProjectionDTO = Field(..., description="Monthly payroll data")
     notes: Optional[str] = Field(None, description="Optional notes for the update")
 
 
@@ -1153,11 +1226,12 @@ class MonthlySalaryComputeRequestDTO(BaseModel):
     employee_id: str = Field(..., description="Employee ID")
     month: int = Field(..., ge=1, le=12, description="Month (1-12)")
     tax_year: str = Field(..., description="Tax year (e.g., 2024-25)")
-    arrears: Optional[float] = Field(default=None, ge=0, description="Arrears amount if any")
-    bonus: Optional[float] = Field(default=None, ge=0, description="Bonus amount if any")
     use_declared_values: bool = Field(default=True, description="Use declared values or actual proof submission")
     force_recompute: bool = Field(default=False, description="Force recomputation if already computed")
     computed_by: Optional[str] = Field(default=None, description="User who initiated computation")
+    one_time_arrear: Optional[float] = Field(default=None, description="Arrears to be included in this month's computation")
+    one_time_bonus: Optional[float] = Field(default=None, description="Bonus to be included in this month's computation")
+
 
 class MonthlySalaryResponseDTO(BaseModel):
     """Response DTO for monthly salary computation."""
@@ -1179,14 +1253,17 @@ class MonthlySalaryResponseDTO(BaseModel):
     special_allowance: float = Field(default=0.0, description="Special allowance")
     transport_allowance: float = Field(default=0.0, description="Transport allowance")
     medical_allowance: float = Field(default=0.0, description="Medical allowance")
-    bonus: float = Field(default=0.0, description="Bonus")
+    one_time_bonus: float = Field(default=0.0, description="One time bonus")
+    one_time_arrear: float = Field(default=0.0, description="One time arrear")
     commission: float = Field(default=0.0, description="Commission")
     other_allowances: float = Field(default=0.0, description="Other allowances")
-    arrears: float = Field(default=0.0, description="Arrears")
     pf_employee_contribution: float = Field(default=0.0, description="PF employee contribution")
     pf_employer_contribution: float = Field(default=0.0, description="PF employer contribution")
     esi_contribution: float = Field(default=0.0, description="ESI contribution")
     pf_voluntary_contribution: float = Field(default=0.0, description="PF voluntary contribution")
+    # Add new fields for TDS status and LWP details
+    tds_status: Optional[TDSStatusDTO] = None
+    lwp: Optional[LWPDetailsDTO] = None
     
     # Deductions
     epf_employee: float = Field(default=0.0, description="EPF employee contribution")
@@ -1231,6 +1308,7 @@ class MonthlySalaryResponseDTO(BaseModel):
     use_declared_values: bool = Field(default=True, description="Whether declared values were used")
     computation_mode: str = Field(default="declared", description="Computation mode")
     computation_summary: Optional[Dict[str, Any]] = Field(default=None, description="Computation summary")
+    payout_status: Optional[PayoutStatusDTO] = Field(default=None, description="Payout status object")
 
 class MonthlySalaryBulkComputeRequestDTO(BaseModel):
     """Request DTO for bulk monthly salary computation."""

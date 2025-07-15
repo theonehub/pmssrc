@@ -7,7 +7,6 @@ export interface TaxInputData {
   basic_salary: number;
   hra: number;
   special_allowance: number;
-  bonus: number;
   other_allowances: number;
   // Deductions
   pf_contribution: number;

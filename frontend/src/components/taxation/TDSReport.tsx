@@ -33,7 +33,7 @@ import {
   ListItemIcon,
   ListItemText
 } from '@mui/material';
-import { salaryProcessingApi, MonthlySalaryResponse } from '../../shared/api/salaryProcessingApi';
+import { salaryProcessingApi, MonthlySalaryResponse, MonthlySalaryStatusUpdateRequest } from '../../shared/api/salaryProcessingApi';
 import { exportApi } from '../../shared/api/exportApi';
 import {
   Search as SearchIcon,
@@ -83,6 +83,94 @@ const TDSReport: React.FC = () => {
 
   // 1. Add quarter selector state
   const [selectedQuarter, setSelectedQuarter] = useState<number>(Math.ceil((month) / 3));
+
+  // --- TDS Status Transition State ---
+  const [tdsStatusDialogOpen, setTdsStatusDialogOpen] = useState(false);
+  const [tdsStatusDialogSalary, setTdsStatusDialogSalary] = useState<MonthlySalaryResponse | null>(null);
+  const [tdsNextStatus, setTdsNextStatus] = useState<string>('');
+  const [tdsStatusComments, setTdsStatusComments] = useState('');
+  const [tdsChallanNumber, setTdsChallanNumber] = useState('');
+  const [tdsStatusUpdateLoading, setTdsStatusUpdateLoading] = useState(false);
+  const [tdsStatusUpdateError, setTdsStatusUpdateError] = useState<string | null>(null);
+
+  // Placeholder for role check (replace with real auth logic)
+  const isAdminUser = true; // TODO: Replace with actual role check
+
+  // TDS Status transition logic
+  const getTDSNextStatusOptions = (current: string) => {
+    switch (current.toLowerCase()) {
+      case 'computed':
+        return [
+          { value: 'approved', label: 'Approved' },
+          { value: 'rejected', label: 'Rejected' }
+        ];
+      case 'approved':
+        return [
+          { value: 'filed', label: 'Filed' }
+        ];
+      case 'filed':
+        return [
+          { value: 'paid', label: 'Paid' }
+        ];
+      default:
+        return [];
+    }
+  };
+
+  const handleTdsStatusChipClick = (salary: MonthlySalaryResponse) => {
+    if (!isAdminUser) return;
+    setTdsStatusDialogSalary(salary);
+    setTdsNextStatus('');
+    setTdsStatusComments('');
+    setTdsChallanNumber('');
+    setTdsStatusUpdateError(null);
+    setTdsStatusDialogOpen(true);
+  };
+
+  const handleTdsStatusDialogClose = () => {
+    setTdsStatusDialogOpen(false);
+    setTdsStatusDialogSalary(null);
+    setTdsNextStatus('');
+    setTdsStatusComments('');
+    setTdsChallanNumber('');
+    setTdsStatusUpdateError(null);
+  };
+
+  const handleTdsStatusUpdate = async () => {
+    if (!tdsStatusDialogSalary || !tdsNextStatus) return;
+    if (!tdsStatusComments.trim()) {
+      setTdsStatusUpdateError('Comments are required.');
+      return;
+    }
+    if (tdsNextStatus === 'paid') {
+      if (!tdsChallanNumber.trim()) {
+        setTdsStatusUpdateError('Challan number is required for Paid status.');
+        return;
+      }
+    }
+    setTdsStatusUpdateLoading(true);
+    setTdsStatusUpdateError(null);
+    try {
+      const payload: MonthlySalaryStatusUpdateRequest = {
+        employee_id: tdsStatusDialogSalary.employee_id,
+        month: tdsStatusDialogSalary.month,
+        year: tdsStatusDialogSalary.year,
+        tax_year: taxYear,
+        tds_status: tdsNextStatus,
+        comments: tdsStatusComments,
+        challan_number: tdsNextStatus === 'paid' ? tdsChallanNumber : undefined,
+        status: tdsStatusDialogSalary.payout_status?.status || tdsStatusDialogSalary.status, // This is the main salary status, not TDS status
+      };
+      await salaryProcessingApi.updateMonthlySalaryStatus(payload);
+      setTdsStatusDialogOpen(false);
+      fetchSalaries();
+      fetchSummary();
+    } catch (err) {
+      setTdsStatusUpdateError('Failed to update TDS status. Please try again.');
+    } finally {
+      setTdsStatusUpdateLoading(false);
+    }
+  };
 
   const fetchSalaries = useCallback(async () => {
     try {
@@ -708,10 +796,6 @@ const TDSReport: React.FC = () => {
                   <Typography variant="body1">{formatCurrency(selectedSalary.special_allowance)}</Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">Bonus</Typography>
-                  <Typography variant="body1">{formatCurrency(selectedSalary.bonus)}</Typography>
-                </Grid>
-                <Grid item xs={6}>
                   <Typography variant="body2" color="textSecondary">Commission</Typography>
                   <Typography variant="body1">{formatCurrency(selectedSalary.commission)}</Typography>
                 </Grid>
@@ -872,9 +956,11 @@ const TDSReport: React.FC = () => {
                       <TableCell>{formatCurrency(salary.annual_tax_liability)}</TableCell>
                       <TableCell>
                         <Chip
-                          label={salary.status}
-                          color={getStatusColor(salary.status) as any}
+                          label={salary.payout_status?.status || salary.status}
+                          color={getStatusColor(salary.payout_status?.status || salary.status) as any}
                           size="small"
+                          onClick={isAdminUser ? () => handleTdsStatusChipClick(salary) : undefined}
+                          style={{ cursor: isAdminUser ? 'pointer' : 'default' }}
                         />
                       </TableCell>
                       <TableCell>
@@ -909,6 +995,55 @@ const TDSReport: React.FC = () => {
 
       {/* TDS Details Dialog */}
       {renderTDSDetailsDialog()}
+
+      {/* TDS Status Transition Dialog */}
+      {tdsStatusDialogOpen && tdsStatusDialogSalary && (
+        <Dialog open={tdsStatusDialogOpen} onClose={handleTdsStatusDialogClose} maxWidth="xs" fullWidth>
+          <DialogTitle>TDS Status Transition</DialogTitle>
+          <DialogContent>
+            <Typography gutterBottom>Current Status: <b>{tdsStatusDialogSalary.payout_status?.status || tdsStatusDialogSalary.status}</b></Typography>
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel>Next Status</InputLabel>
+              <Select
+                value={tdsNextStatus}
+                label="Next Status"
+                onChange={e => setTdsNextStatus(e.target.value)}
+              >
+                {getTDSNextStatusOptions(tdsStatusDialogSalary.payout_status?.status || tdsStatusDialogSalary.status).map(opt => (
+                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              label="Comments"
+              value={tdsStatusComments}
+              onChange={e => setTdsStatusComments(e.target.value)}
+              fullWidth
+              required
+              multiline
+              minRows={2}
+              sx={{ mt: 2 }}
+            />
+            {tdsNextStatus === 'paid' && (
+              <TextField
+                label="Challan Number"
+                value={tdsChallanNumber}
+                onChange={e => setTdsChallanNumber(e.target.value)}
+                fullWidth
+                required
+                sx={{ mt: 2 }}
+              />
+            )}
+            {tdsStatusUpdateError && <Alert severity="error" sx={{ mt: 2 }}>{tdsStatusUpdateError}</Alert>}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleTdsStatusDialogClose} disabled={tdsStatusUpdateLoading}>Cancel</Button>
+            <Button onClick={handleTdsStatusUpdate} variant="contained" disabled={tdsStatusUpdateLoading || !tdsNextStatus}>
+              {tdsStatusUpdateLoading ? <CircularProgress size={20} /> : 'Update Status'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
     </Box>
   );
 };

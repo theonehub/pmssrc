@@ -403,8 +403,8 @@ const MySalary: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={salary.status}
-                            color={getStatusColor(salary.status)}
+                            label={salary.payout_status?.status || salary.status}
+                            color={getStatusColor(salary.payout_status?.status || salary.status)}
                             size="small"
                           />
                         </TableCell>

@@ -13,11 +13,6 @@ from app.utils.logger import get_logger
 
 from app.auth.auth_dependencies import get_current_user, CurrentUser
 from app.application.dto.taxation_dto import (
-    # Comprehensive DTOs
-    PerquisitesDTO,
-    HousePropertyIncomeDTO,
-    CapitalGainsIncomeDTO,
-    RetirementBenefitsDTO,
     # Employee Selection DTOs
     EmployeeSelectionQuery,
     EmployeeSelectionResponse,
@@ -55,7 +50,6 @@ from app.domain.exceptions.taxation_exceptions import (
     FinalizedRecordError,
     DuplicateTaxationRecordError
 )
-from app.domain.services.taxation.tax_calculation_service import TaxCalculationResult
 
 # Configure logger
 logger = get_logger(__name__)
@@ -1297,14 +1291,22 @@ async def bulk_compute_monthly_salaries(
             response_model=MonthlySalaryResponseDTO,
             status_code=status.HTTP_200_OK,
             summary="Update monthly salary status",
-            description="Update status of a monthly salary record")
+            description="Update status and payout status of a monthly salary record. The request can include payout_status fields (status, comments, transaction_id, transfer_date) as well as TDS status fields.")
 async def update_monthly_salary_status(
     request: Dict[str, Any],
     current_user: CurrentUser = Depends(get_current_user),
     controller: UnifiedTaxationController = Depends(get_taxation_controller)
 ) -> MonthlySalaryResponseDTO:
     """
-    Update monthly salary status.
+    Update monthly salary status and payout status.
+    Request body can include:
+      - status: new payout status (e.g. computed, approved, transferred, etc.)
+      - comments: payout comments
+      - transaction_id: payout transaction ID
+      - transfer_date: payout transfer date (YYYY-MM-DD)
+      - tds_status: TDS status (e.g. paid, filed, etc.)
+      - challan_number: TDS challan number (if paid)
+    Response includes the new payout_status object.
     """
     try:
         return await controller.update_monthly_salary_status(request, current_user)

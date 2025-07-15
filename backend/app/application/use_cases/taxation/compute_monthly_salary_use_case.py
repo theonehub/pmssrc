@@ -87,88 +87,44 @@ class ComputeMonthlySalaryUseCase:
                     f"Salary package record not found for employee {request.employee_id} "
                     f"in tax year {request.tax_year}"
                 )
-            financial_year_month = self._convert_to_financial_year_month(request.month, tax_year)
-            
-            # 3. Update arrears if provided
-            if request.arrears is not None and request.arrears > 0:
-                arrears_amount = Money.from_float(request.arrears)
-                salary_package_record.set_arrears_for_month(financial_year_month, arrears_amount)
-                logger.info(f"Updated arrears for month {financial_year_month}: ₹{request.arrears:,.2f}")
 
-                
-            if request.bonus is not None and request.bonus > 0:
-                bonus_amount = Money.from_float(request.bonus)
-                salary_package_record.set_bonus_for_month(financial_year_month, bonus_amount)
-                logger.info(f"Updated bonus for month {financial_year_month}: ₹{request.bonus:,.2f}")
-
-                
-            
-            # Calculate LWP details for the month
-            monthly_lwp = await self._calculate_lwp_days(request.employee_id, request.month, salary_package_record.tax_year.get_start_date().year, current_user)
-            salary_package_record.set_lwp_for_month(financial_year_month, monthly_lwp)
-            logger.info(f"Updated LWP for month {financial_year_month}: {monthly_lwp.lwp_days} LWP days")
-            
-        
-            # Save the updated salary package record
-            await self.salary_package_repository.save(salary_package_record, current_user.hostname)
-            
             # 4. Get current salary income (latest one)
             current_salary_income = salary_package_record.get_latest_salary_income()
             if not current_salary_income:
                 raise ValueError(f"No salary income found for employee {request.employee_id}")
             
             # 5. Create monthly salary components
-            monthly_salary_components = await self._create_monthly_salary_components(
-                current_salary_income, salary_package_record, request, current_user, monthly_lwp
+            monthly_salary = await self._create_monthly_salary(
+                current_salary_income, salary_package_record, request, current_user
             )
             
-            # 6. Calculate monthly tax
-            monthly_tax = await self._calculate_monthly_tax(
-                salary_package_record, request, current_user
-            )
-
-            
-
-            # 7. Create MonthlySalary entity
-            monthly_salary = MonthlySalary(
-                employee_id=employee_id,
-                month=request.month,
-                year=tax_year.get_start_date().year, # Use the start year of the tax year
-                salary=monthly_salary_components['salary'],
-                perquisites_payouts=monthly_salary_components['perquisites_payouts'],
-                deductions=monthly_salary_components['deductions'],
-                retirement=monthly_salary_components['retirement'],
-                lwp=monthly_salary_components['lwp'],
-                tax_year=tax_year,
-                tax_regime=salary_package_record.regime,
-                tax_amount=monthly_tax,
-                net_salary=Money.zero()  # Will be computed below
-            )
-
-
-            
-            # 8. Compute net salary
-            monthly_salary.compute_net_pay()
-            
-            # 9. Build response DTO
-            response = self._build_response_dto(
-                monthly_salary, user, request, current_user
-            )
-
-            # Upsert monthly_salary into monthly_salary_records
+            #6 Insert or replace monthly_salary for the same month and year
             existing_index = next(
                 (i for i, record in enumerate(salary_package_record.monthly_salary_records)
                  if record.month == monthly_salary.month and record.year == monthly_salary.year),
                 None
             )
-
             if existing_index is not None:
                 salary_package_record.monthly_salary_records[existing_index] = monthly_salary
             else:
                 salary_package_record.monthly_salary_records.append(monthly_salary)
             await self.salary_package_repository.save(salary_package_record, current_user.hostname)
             
+            # 7. Calculate monthly tax
+            monthly_tax = await self._calculate_monthly_tax(
+                salary_package_record, request, current_user
+            )
             
+            # 8. Compute net salary
+            monthly_salary.compute_net_pay()
+            monthly_salary.tax_amount = monthly_tax
+            await self.salary_package_repository.save(salary_package_record, current_user.hostname)
+            
+            # 9. Build response DTO
+            response = self._build_response_dto(
+                monthly_salary, user, request, current_user
+            )
+
             logger.info(f"Successfully computed monthly salary for employee {request.employee_id}")
             logger.info(f"Gross: ₹{response.gross_salary:,.2f}, Net: ₹{response.net_salary:,.2f}")
             
@@ -178,14 +134,13 @@ class ComputeMonthlySalaryUseCase:
             logger.error(f"Failed to compute monthly salary for employee {request.employee_id}: {str(e)}")
             raise
     
-    async def _create_monthly_salary_components(
+    async def _create_monthly_salary(
         self, 
         salary_income: SalaryIncome, 
         salary_package_record, 
         request: MonthlySalaryComputeRequestDTO,
-        current_user: CurrentUser,
-        monthly_lwp: LWPDetails
-    ) -> Dict[str, Any]:
+        current_user: CurrentUser
+    ) -> MonthlySalary:
         """
         Create monthly salary components from annual salary income.
         
@@ -203,23 +158,20 @@ class ComputeMonthlySalaryUseCase:
         monthly_da = salary_income.dearness_allowance
         monthly_hra = salary_income.hra_provided
         monthly_special = salary_income.special_allowance
-        monthly_bonus = salary_income.bonus
         monthly_commission = salary_income.commission
         
-        # Get arrears and bonus from salary package record for the specific month
-        financial_year_month = self._convert_to_financial_year_month(request.month, salary_package_record.tax_year)
-        monthly_arrears = salary_package_record.get_arrears_per_month(financial_year_month)
-        monthly_bonus = salary_package_record.get_bonus_per_month(financial_year_month)
-        
+
+        monthly_lwp = await self._calculate_lwp_days(request.employee_id, request.month, salary_package_record.tax_year.get_start_date().year, current_user)
+        one_time_bonus = Money.from_float(request.one_time_bonus) if request.one_time_bonus else Money.zero()
+        one_time_arrear = Money.from_float(request.one_time_arrear) if request.one_time_arrear else Money.zero()
+
         # Create monthly salary income
         monthly_salary_income = SalaryIncome(
             basic_salary=monthly_basic,
             dearness_allowance=monthly_da,
             hra_provided=monthly_hra,
             special_allowance=monthly_special,
-            bonus=monthly_bonus,
             commission=monthly_commission,
-            arrears=monthly_arrears,
             specific_allowances=salary_income.specific_allowances,  # Salary_income and its components are monthly
             effective_from=datetime(salary_package_record.tax_year.get_start_date().year, request.month, 1),
             effective_till=datetime(salary_package_record.tax_year.get_start_date().year, request.month, 1)
@@ -232,13 +184,25 @@ class ComputeMonthlySalaryUseCase:
         monthly_deductions = TaxDeductions()  # Will be calculated
         monthly_retirement = RetirementBenefits()  # Empty for now
         
-        return {
-            'salary': monthly_salary_income,
-            'perquisites_payouts': monthly_perquisites_payouts,
-            'deductions': monthly_deductions,
-            'retirement': monthly_retirement,
-            'lwp': monthly_lwp
-        }
+        # 7. Create MonthlySalary entity
+        monthly_salary = MonthlySalary(
+            employee_id=request.employee_id,
+            month=request.month,
+            year=salary_package_record.tax_year.get_start_date().year, # Use the start year of the tax year
+            salary=monthly_salary_income,
+            perquisites_payouts=monthly_perquisites_payouts,
+            deductions=monthly_deductions,
+            retirement=monthly_retirement,
+            lwp=monthly_lwp,
+            one_time_arrear=one_time_arrear,
+            one_time_bonus=one_time_bonus,
+            tds_status=TDSStatus(paid=False, month=0, total_tax_liability=Money.zero()),
+            tax_year=salary_package_record.tax_year,
+            tax_regime=salary_package_record.regime,
+            tax_amount=Money.zero(),
+            net_salary=Money.zero()  # Will be computed below
+        )
+        return monthly_salary
     
     async def _calculate_lwp_days(
         self,
@@ -404,10 +368,12 @@ class ComputeMonthlySalaryUseCase:
             special_allowance=monthly_salary.salary.special_allowance.to_float(),
             transport_allowance=0.0,  # Not in current model
             medical_allowance=0.0,  # Not in current model
-            bonus=monthly_salary.salary.bonus.to_float(),
             commission=monthly_salary.salary.commission.to_float(),
             other_allowances=0.0,  # Would need to sum specific allowances
-            arrears=monthly_salary.salary.arrears.to_float(),
+
+            # One time bonuses and arrears
+            one_time_arrear=monthly_salary.one_time_arrear.to_float() if hasattr(monthly_salary, 'one_time_arrear') else 0.0,
+            one_time_bonus=monthly_salary.one_time_bonus.to_float() if hasattr(monthly_salary, 'one_time_bonus') else 0.0,
             
             # Deductions
             epf_employee=epf_employee.to_float(),

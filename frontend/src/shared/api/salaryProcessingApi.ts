@@ -1,5 +1,12 @@
 import apiClient from '../utils/apiClient';
 
+export interface PayoutStatusDTO {
+  status: string;
+  comments?: string | null;
+  transaction_id?: string | null;
+  transfer_date?: string | null; // ISO date string
+}
+
 export interface MonthlySalaryResponse {
   employee_id: string;
   month: number;
@@ -15,10 +22,10 @@ export interface MonthlySalaryResponse {
   special_allowance: number;
   transport_allowance: number;
   medical_allowance: number;
-  bonus: number;
   commission: number;
   other_allowances: number;
-  arrears: number;
+  one_time_arrear: number;
+  one_time_bonus: number;
   epf_employee: number;
   esi_employee: number;
   professional_tax: number;
@@ -38,6 +45,7 @@ export interface MonthlySalaryResponse {
   working_days_in_period: number;
   lwp_days: number;
   effective_working_days: number;
+  payout_status?: PayoutStatusDTO; // New field for payout status
   status: string;
   computation_date: string | null;
   notes: string | null;
@@ -82,7 +90,8 @@ export interface MonthlySalaryComputeRequest {
   month: number;
   year: number;
   tax_year: string;
-  arrears?: number;
+  one_time_arrear?: number;
+  one_time_bonus?: number;
   use_declared_values?: boolean;
   force_recompute?: boolean;
   computed_by?: string;
@@ -119,6 +128,9 @@ export interface MonthlySalaryStatusUpdateRequest {
   transaction_id?: string | undefined;
   transfer_date?: string | undefined; // ISO date string
   updated_by?: string;
+  // Add these fields for TDS status update
+  tds_status?: string;
+  challan_number?: string | undefined;
 }
 
 export interface MonthlySalaryPaymentRequest {

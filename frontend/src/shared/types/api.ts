@@ -8,6 +8,8 @@ export type TaxRegime = 'old' | 'new';
 export type FilingStatus = 'pending' | 'filed' | 'reviewed' | 'finalized';
 export type IncomeType = 'salary' | 'house_property_income' | 'capital_gains' | 'other';
 
+export type { MonthlySalaryStatusUpdateRequest } from '../api/salaryProcessingApi';
+
 // =============================================================================
 // COMPREHENSIVE TAX INPUT DTO
 // =============================================================================
@@ -17,7 +19,6 @@ export interface SalaryIncomeDTO {
   hra: number;
   special_allowance: number;
   other_allowances: number;
-  bonus: number;
   commission: number;
   overtime: number;
   arrears: number;

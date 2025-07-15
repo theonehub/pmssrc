@@ -620,16 +620,8 @@ const ProcessedSalaries: React.FC = () => {
                   <Typography variant="body1">{formatCurrency(selectedSalary.special_allowance)}</Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">Bonus</Typography>
-                  <Typography variant="body1">{formatCurrency(selectedSalary.bonus)}</Typography>
-                </Grid>
-                <Grid item xs={6}>
                   <Typography variant="body2" color="textSecondary">Commission</Typography>
                   <Typography variant="body1">{formatCurrency(selectedSalary.commission)}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">Arrears</Typography>
-                  <Typography variant="body1">{formatCurrency(selectedSalary.arrears || 0)}</Typography>
                 </Grid>
                 <Grid item xs={6}>
                   <Typography variant="body2" color="textSecondary">Gross Salary</Typography>
@@ -825,8 +817,8 @@ const ProcessedSalaries: React.FC = () => {
                     <TableCell>{formatCurrency(salary.tds)}</TableCell>
                     <TableCell>
                       <Chip
-                        label={salary.status}
-                        color={getStatusColor(salary.status) as any}
+                        label={salary.payout_status?.status || salary.status}
+                        color={getStatusColor(salary.payout_status?.status || salary.status) as any}
                         size="small"
                         onClick={isAdminUser ? () => handleStatusChipClick(salary) : undefined}
                         style={{ cursor: isAdminUser ? 'pointer' : 'default' }}
@@ -880,7 +872,7 @@ const ProcessedSalaries: React.FC = () => {
         <Dialog open={statusDialogOpen} onClose={handleStatusDialogClose} maxWidth="xs" fullWidth>
           <DialogTitle>Status Transition</DialogTitle>
           <DialogContent>
-            <Typography gutterBottom>Current Status: <b>{statusDialogSalary.status}</b></Typography>
+            <Typography gutterBottom>Current Status: <b>{statusDialogSalary.payout_status?.status || statusDialogSalary.status}</b></Typography>
             <FormControl fullWidth sx={{ mt: 2 }}>
               <InputLabel>Next Status</InputLabel>
               <Select
@@ -888,7 +880,7 @@ const ProcessedSalaries: React.FC = () => {
                 label="Next Status"
                 onChange={e => setNextStatus(e.target.value)}
               >
-                {getNextStatusOptions(statusDialogSalary.status).map(opt => (
+                {getNextStatusOptions(statusDialogSalary.payout_status?.status || statusDialogSalary.status).map(opt => (
                   <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
                 ))}
               </Select>

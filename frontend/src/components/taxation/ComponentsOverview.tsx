@@ -101,7 +101,6 @@ const ComponentsOverview: React.FC = () => {
                           (data.dearness_allowance || 0) + 
                           (data.hra_provided || 0) + 
                           (data.special_allowance || 0) + 
-                          (data.bonus || 0) + 
                           (data.commission || 0);
       
       return {
@@ -506,12 +505,10 @@ const ComponentsOverview: React.FC = () => {
             basic_salary: salaryComponent.details.basic_salary || 0,
             hra: salaryComponent.details.hra_provided || 0,
             special_allowance: salaryComponent.details.special_allowance || 0,
-            bonus: salaryComponent.details.bonus || 0,
             commission: salaryComponent.details.commission || 0,
             other_allowances: (salaryComponent.details.dearness_allowance || 0) + 
                              (salaryComponent.details.city_compensatory_allowance || 0),
             overtime: 0,
-            arrears: 0,
             gratuity: 0,
             leave_encashment: 0,
             professional_tax: 0,

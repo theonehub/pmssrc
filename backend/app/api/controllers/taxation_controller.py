@@ -59,6 +59,9 @@ from app.application.dto.taxation_dto import (
     # Monthly Salary DTOs
     MonthlySalaryComputeRequestDTO,
     MonthlySalaryResponseDTO,
+    LWPDetailsDTO,
+    TDSStatusDTO,
+    PayoutStatusDTO,
 )
 
 # Import domain entities and value objects
@@ -95,6 +98,7 @@ from app.domain.services.taxation.tax_calculation_service import (
 )
 from app.application.use_cases.taxation.get_employees_for_selection_use_case import GetEmployeesForSelectionUseCase
 from app.application.use_cases.taxation.compute_monthly_salary_use_case import ComputeMonthlySalaryUseCase
+from app.domain.entities.monthly_salary_status import TDSStatus, PayoutStatus
 
 logger = get_logger(__name__)
 
@@ -208,9 +212,7 @@ class UnifiedTaxationController:
             pf_total_contribution=Money.zero(),
             esi_contribution=Money.zero(),
             special_allowance=Money.zero(),
-            bonus=Money.zero(),
             commission=Money.zero(),
-            arrears=Money.zero(),
             specific_allowances=SpecificAllowances()
         )
     
@@ -369,9 +371,7 @@ class UnifiedTaxationController:
             pf_voluntary_contribution=Money.from_decimal(getattr(salary_dto, 'pf_voluntary_contribution', 0)),
             pf_total_contribution=Money.from_decimal(getattr(salary_dto, 'pf_total_contribution', 0)),
             # Optional components with defaults
-            bonus=Money.from_decimal(getattr(salary_dto, 'bonus', 0)),
             commission=Money.from_decimal(getattr(salary_dto, 'commission', 0)),
-            arrears=Money.from_decimal(getattr(salary_dto, 'arrears', 0)),
             specific_allowances=specific_allowances
         )
     
@@ -966,7 +966,6 @@ class UnifiedTaxationController:
                 dearness_allowance=Money.zero(),
                 hra_provided=Money.zero(),
                 special_allowance=Money.zero(),
-                bonus=Money.zero(),
                 commission=Money.zero(),
                 pf_employee_contribution=Money.zero(),
                 pf_employer_contribution=Money.zero(),
@@ -1527,7 +1526,6 @@ class UnifiedTaxationController:
                 "basic_salary": salary.basic_salary.to_float(),
                 "special_allowance": salary.special_allowance.to_float(),
                 "hra_provided": salary.hra_provided.to_float(),
-                "bonus": salary.bonus.to_float(),
                 "commission": salary.commission.to_float(),
                 "pf_employee_contribution": salary.pf_employee_contribution.to_float(),
                 "pf_employer_contribution": salary.pf_employer_contribution.to_float(),
@@ -1580,7 +1578,6 @@ class UnifiedTaxationController:
             "dearness_allowance": float(salary_income.dearness_allowance.amount),
             "hra_provided": float(salary_income.hra_provided.amount),
             "special_allowance": float(salary_income.special_allowance.amount),
-            "bonus": float(salary_income.bonus.amount),
             "commission": float(salary_income.commission.amount),
             # Add effective dates for frontend to pre-populate
             "effective_from": salary_income.effective_from.isoformat() if salary_income.effective_from else None,
@@ -2480,7 +2477,6 @@ class UnifiedTaxationController:
                 components.get("dearness_allowance", 0),
                 components.get("hra_provided", 0),
                 components.get("special_allowance", 0),
-                components.get("bonus", 0),
                 components.get("commission", 0),
                 components.get("pf_employee_contribution", 0),
                 components.get("pf_employer_contribution", 0),
@@ -2561,7 +2557,6 @@ class UnifiedTaxationController:
             ("Dearness Allowance", annual_salary.dearness_allowance.to_float()),
             ("HRA Provided", annual_salary.hra_provided.to_float()),
             ("Special Allowance", annual_salary.special_allowance.to_float()),
-            ("Bonus", annual_salary.bonus.to_float()),
             ("Commission", annual_salary.commission.to_float()),
             ("PF Employee Contribution", annual_salary.pf_employee_contribution.to_float()),
             ("PF Employer Contribution", annual_salary.pf_employer_contribution.to_float()),
@@ -3173,7 +3168,6 @@ class UnifiedTaxationController:
             ("ESI Contribution", annual_salary.esi_contribution.to_float()),
             ("PF Voluntary Contribution", annual_salary.pf_voluntary_contribution.to_float()),
             ("Special Allowance", annual_salary.special_allowance.to_float()),
-            ("Bonus", annual_salary.bonus.to_float()),
             ("Commission", annual_salary.commission.to_float()),
         ]
         
@@ -3650,6 +3644,30 @@ class UnifiedTaxationController:
             logger.warning(f"Error extracting tax_regime value: {e}")
             tax_regime_value = "old_regime"  # Default fallback
 
+        def tds_status_to_dict(tds_status_obj):
+            if not tds_status_obj:
+                return None
+            return {
+                'status': 'paid' if getattr(tds_status_obj, 'paid', False) else 'unpaid',
+                'challan_number': getattr(tds_status_obj, 'tds_challan_number', None)
+            }
+
+        # Extract payout status fields
+        payout_status = getattr(monthly_salary, 'payout_status', None)
+        status = payout_status.status if payout_status else (getattr(monthly_salary, 'status', 'computed'))
+        comments = payout_status.comments if payout_status else None
+        transaction_id = payout_status.transaction_id if payout_status else None
+        transfer_date = payout_status.transfer_date.isoformat() if payout_status and payout_status.transfer_date else None
+
+        payout_status_dto = None
+        if payout_status:
+            payout_status_dto = PayoutStatusDTO(
+                status=payout_status.status,
+                comments=payout_status.comments,
+                transaction_id=payout_status.transaction_id,
+                transfer_date=payout_status.transfer_date
+            )
+
         return MonthlySalaryResponseDTO(
             employee_id=monthly_salary.employee_id.value,
             month=monthly_salary.month,
@@ -3669,10 +3687,10 @@ class UnifiedTaxationController:
             special_allowance=monthly_salary.salary.special_allowance.to_float(),
             transport_allowance=0.0,  # Not in current model
             medical_allowance=0.0,  # Not in current model
-            bonus=monthly_salary.salary.bonus.to_float(),
             commission=monthly_salary.salary.commission.to_float(),
             other_allowances=0.0,  # Would need to sum specific allowances
-            arrears=monthly_salary.salary.arrears.to_float(),
+            one_time_arrear=monthly_salary.one_time_arrear.to_float() if hasattr(monthly_salary, 'one_time_arrear') else 0.0,
+            one_time_bonus=monthly_salary.one_time_bonus.to_float() if hasattr(monthly_salary, 'one_time_bonus') else 0.0,
             pf_employee_contribution=monthly_salary.salary.pf_employee_contribution.to_float(),
             pf_employer_contribution=monthly_salary.salary.pf_employer_contribution.to_float(),
             esi_contribution=monthly_salary.salary.esi_contribution.to_float(),
@@ -3708,9 +3726,8 @@ class UnifiedTaxationController:
             effective_working_days=working_days_info['effective_days'],
             
             # Status and metadata
-            status=monthly_salary.status if hasattr(monthly_salary, 'status') else "computed",
-            computation_date=monthly_salary.created_at.isoformat() if hasattr(monthly_salary, 'created_at') else None,
-            notes=None,
+            status=status,
+            notes=comments,
             remarks=None,
             created_at=monthly_salary.created_at.isoformat() if hasattr(monthly_salary, 'created_at') else datetime.now().isoformat(),
             updated_at=monthly_salary.updated_at.isoformat() if hasattr(monthly_salary, 'updated_at') else datetime.now().isoformat(),
@@ -3718,14 +3735,22 @@ class UnifiedTaxationController:
             updated_by=None,
             
             # Computation details
-            use_declared_values=False,  # Default value
-            computation_mode="actual",  # Default value
+            use_declared_values=getattr(monthly_salary, 'use_declared_values', False),
+            computation_mode=getattr(monthly_salary, 'computation_mode', 'actual'),
             computation_summary={
                 "gross_salary": gross_salary.to_float(),
                 "total_deductions": total_deductions.to_float(),
                 "net_salary": net_salary.to_float(),
                 "monthly_tax": tds.to_float()
-            }
+            },
+            tds_status=tds_status_to_dict(getattr(monthly_salary, 'tds_status', None)),
+            lwp=LWPDetailsDTO(
+                month=monthly_salary.lwp.month,
+                year=monthly_salary.lwp.year,
+                lwp_days=monthly_salary.lwp.lwp_days,
+                working_days_in_month=monthly_salary.lwp.total_working_days
+            ) if monthly_salary.lwp else None,
+            payout_status=payout_status_dto,
         )
 
     def _calculate_monthly_epf(self, gross_salary):
@@ -4046,6 +4071,8 @@ class UnifiedTaxationController:
         esi_employee = self._calculate_monthly_esi(gross_salary)
         professional_tax = self._calculate_monthly_professional_tax(gross_salary)
         tds = salary_record.tax_amount
+        one_time_arrear = salary_record.one_time_arrear.to_float()
+        one_time_bonus = salary_record.one_time_bonus.to_float()
 
         total_deductions = epf_employee.add(esi_employee).add(professional_tax).add(tds)
         net_salary = self._safe_subtract(gross_salary, total_deductions)
@@ -4079,11 +4106,10 @@ class UnifiedTaxationController:
         House Rent Allowance: ₹{s.hra_provided.to_float():,.2f}
         Special Allowance: ₹{s.special_allowance.to_float():,.2f}
         Transport Allowance: ₹{0.0:,.2f}
-        Bonus: ₹{s.bonus.to_float():,.2f}
         Commission: ₹{s.commission.to_float():,.2f}
         Other Allowances: ₹{specific_allowances_total:,.2f}
-        Arrears: ₹{s.arrears.to_float():,.2f}
-
+        Bonus: ₹{one_time_bonus:,.2f}
+        Arrears: ₹{one_time_arrear:,.2f}
         Total Earnings: ₹{gross_salary.to_float():,.2f}
 
         Deductions:
@@ -4401,6 +4427,8 @@ class UnifiedTaxationController:
         comments = request.get('comments')
         transaction_id = request.get('transaction_id')
         transfer_date = request.get('transfer_date')
+        tds_status = request.get('tds_status')
+        challan_number = request.get('challan_number')
 
         # Role check
         user_role = getattr(current_user, 'role', '').lower()
@@ -4459,6 +4487,19 @@ class UnifiedTaxationController:
         # Update status and comments
         ms.status = new_status
         ms.comments = comments
+
+        # --- TDS status logic ---
+        if tds_status:
+            # Convert to TDSStatus object
+            paid = tds_status == 'paid'
+            tds_challan_number = challan_number if paid else None
+            ms.tds_status = TDSStatusDTO(
+                status=tds_status,
+                challan_number=challan_number,
+                month=month,
+                total_tax_liability=ms.tax_amount if hasattr(ms, 'tax_amount') else 0.0
+            )
+
         salary_package_record.updated_at = datetime.utcnow()
         await self.salary_package_repository.save(salary_package_record, current_user.hostname)
 

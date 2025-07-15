@@ -302,9 +302,7 @@ class SalaryIncome:
     pf_total_contribution: Money = Money.zero()
 
     # Optional components with defaults
-    bonus: Money = Money.zero()
     commission: Money = Money.zero()
-    arrears: Money = Money.zero()
 
     # Specific allowances with exemption rules
     specific_allowances: SpecificAllowances = None
@@ -330,11 +328,9 @@ class SalaryIncome:
         """
         gross = (self.basic_salary                  #considered for doc 
                 .add(self.dearness_allowance)       #considered for doc
-                .add(self.bonus)                    #considered for doc
                 .add(self.commission)               #considered for doc
                 .add(self.hra_provided)             #considered for doc
                 .add(self.special_allowance)        
-                .add(self.arrears)
                 .add(self.pf_employee_contribution))
         
         # Add specific allowances if available
@@ -420,11 +416,9 @@ class SalaryIncome:
             "gross_salary_components": {
                 "basic_salary": self.basic_salary.to_float(),
                 "dearness_allowance": self.dearness_allowance.to_float(),
-                "bonus": self.bonus.to_float(),
                 "commission": self.commission.to_float(),
                 "hra_provided": self.hra_provided.to_float(),
                 "special_allowance": self.special_allowance.to_float(),
-                "arrears": self.arrears.to_float(),
                 "specific_allowances": self.specific_allowances.calculate_total_specific_allowances().to_float() if self.specific_allowances else 0.0
             },
             "gross_salary_total": self.calculate_gross_salary().to_float(),

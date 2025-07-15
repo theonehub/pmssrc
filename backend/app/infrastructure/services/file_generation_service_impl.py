@@ -70,6 +70,8 @@ class FileGenerationServiceImpl(FileGenerationService):
                     salary.get('hra', 0),
                     salary.get('da', 0),
                     salary.get('other_allowances', 0),
+                    salary.get('one_time_arrear', 0),
+                    salary.get('one_time_bonus', 0),
                     salary.get('gross_salary', 0),
                     salary.get('pf', 0),
                     salary.get('pt', 0),
@@ -106,7 +108,7 @@ class FileGenerationServiceImpl(FileGenerationService):
             headers = [
                 'Employee ID', 'Employee Name', 'Department', 'Designation',
                 'Month', 'Year', 'Basic Salary', 'HRA', 'DA', 'Other Allowances',
-                'Gross Salary', 'PF', 'PT', 'TDS', 'Net Salary', 'Status'
+                'One Time Arrear', 'One Time Bonus', 'Gross Salary', 'PF', 'PT', 'TDS', 'Net Salary', 'Status'
             ]
             
             for col, header in enumerate(headers, 1):
@@ -127,10 +129,12 @@ class FileGenerationServiceImpl(FileGenerationService):
                 ws.cell(row=row_idx, column=8, value=salary.get('hra', 0))
                 ws.cell(row=row_idx, column=9, value=salary.get('da', 0))
                 ws.cell(row=row_idx, column=10, value=salary.get('other_allowances', 0))
-                ws.cell(row=row_idx, column=11, value=salary.get('gross_salary', 0))
-                ws.cell(row=row_idx, column=12, value=salary.get('pf', 0))
-                ws.cell(row=row_idx, column=13, value=salary.get('pt', 0))
-                ws.cell(row=row_idx, column=14, value=salary.get('tds', 0))
+                ws.cell(row=row_idx, column=11, value=salary.get('one_time_arrear', 0))
+                ws.cell(row=row_idx, column=12, value=salary.get('one_time_bonus', 0))
+                ws.cell(row=row_idx, column=13, value=salary.get('gross_salary', 0))
+                ws.cell(row=row_idx, column=14, value=salary.get('pf', 0))
+                ws.cell(row=row_idx, column=15, value=salary.get('pt', 0))
+                ws.cell(row=row_idx, column=16, value=salary.get('tds', 0))
                 ws.cell(row=row_idx, column=15, value=salary.get('net_salary', 0))
                 ws.cell(row=row_idx, column=16, value=salary.get('status', ''))
             

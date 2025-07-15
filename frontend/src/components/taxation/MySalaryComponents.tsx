@@ -2212,7 +2212,6 @@ const MySalaryComponents: React.FC = () => {
                           (data.dearness_allowance || 0) + 
                           (data.hra_provided || 0) + 
                           (data.special_allowance || 0) + 
-                          (data.bonus || 0) + 
                           (data.commission || 0);
       
       return {

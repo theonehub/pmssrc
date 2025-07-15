@@ -249,7 +249,6 @@ class TaxCalculationService:
                     "pf_voluntary_contribution": latest_salary.pf_voluntary_contribution.to_float(),
                     "pf_total_contribution": latest_salary.pf_total_contribution.to_float(),
                     "special_allowance": latest_salary.special_allowance.to_float(),
-                    "bonus": latest_salary.bonus.to_float(),
                     "commission": latest_salary.commission.to_float(),
                     "gross_salary": latest_salary.calculate_gross_salary().to_float()
                 }
@@ -568,11 +567,8 @@ class TaxCalculationService:
                     "dearness_allowance": input_data.salary_income.dearness_allowance.to_float(),
                     "hra_provided": input_data.salary_income.hra_provided.to_float(),
                     "special_allowance": input_data.salary_income.special_allowance.to_float(),
-                    "bonus": input_data.salary_income.bonus.to_float(),
                     "commission": input_data.salary_income.commission.to_float(),
-                    "overtime": input_data.salary_income.specific_allowances.overtime_allowance.to_float() if input_data.salary_income.specific_allowances else 0.0,
-                    "arrears": input_data.salary_income.arrears.to_float(),
-
+                    "overtime": input_data.salary_income.specific_allowances.overtime_allowance.to_float() if input_data.salary_income.specific_allowances else 0.0
                 },
                 "perquisites": {
                     "car_perquisite": input_data.perquisites.car_perquisite.to_float(),

@@ -493,11 +493,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             "updated_at": record.updated_at.isoformat(),
             "version": record.version,
 
-            # Arrears and Bonuses (per month)
-            "arrears": [a.to_float() for a in record.arrears],
-            "bonuses": [b.to_float() for b in record.bonuses],
-            # LWP details (per month)
-            "lwps": [self._serialize_lwp_details(lwp) for lwp in getattr(record, 'lwps', [])],
             # Monthly salary records
             "monthly_salary_records": [self._serialize_monthly_salary(salary) for salary in record.monthly_salary_records],
         }
@@ -561,11 +556,6 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             updated_at=datetime.fromisoformat(document["updated_at"]),
             version=document.get("version", 1),
 
-            # Arrears and Bonuses (per month)
-            arrears=[Money.from_float(a) for a in document.get("arrears", [0.0]*12)],
-            bonuses=[Money.from_float(b) for b in document.get("bonuses", [0.0]*12)],
-            # LWP details (per month)
-            lwps=lwps,
             # Monthly salary records
             monthly_salary_records=monthly_salary_records,
         )
@@ -600,78 +590,11 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             tax_regime=TaxRegime(TaxRegimeType(ms_doc["tax_regime"])),
             tax_amount=Money.from_float(ms_doc.get("tax_amount", 0.0)),
             net_salary=Money.from_float(ms_doc.get("net_salary", 0.0)),
-            status=ms_doc.get("status", "computed"),
-            comments=ms_doc.get("comments"),
-            transaction_id=ms_doc.get("transaction_id"),
-            transfer_date=transfer_date
+            one_time_arrear=Money.from_float(ms_doc.get("one_time_arrear", 0.0)),
+            one_time_bonus=Money.from_float(ms_doc.get("one_time_bonus", 0.0)),
+            tds_status=self._deserialize_tds_status(ms_doc.get("tds_status", {})) if hasattr(self, '_deserialize_tds_status') and ms_doc.get("tds_status") else None,
+            payout_status=self._deserialize_payout_status(ms_doc.get("payout_status", {})) if hasattr(self, '_deserialize_payout_status') and ms_doc.get("payout_status") else None
         )
-    
-    def _convert_to_entity(self, document: dict) -> SalaryPackageRecord:
-        """Convert MongoDB document to salary package record."""
-        from datetime import datetime
-        
-        # Deserialize salary incomes (list)
-        salary_incomes = [self._deserialize_salary_income(salary_doc) for salary_doc in document.get("salary_incomes", [])]
-        
-        # Deserialize tax deductions
-        deductions = self._deserialize_deductions(document.get("deductions", {}))
-        
-        # Deserialize regime
-        regime = TaxRegime(TaxRegimeType(document["regime"]["regime_type"]))
-        
-        # Deserialize calculation result if present
-        calculation_result = self._deserialize_calculation_result(document.get("calculation_result"))
-
-        # Deserialize monthly_salary_records
-        monthly_salary_records = [self._deserialize_monthly_salary(ms_doc) for ms_doc in document.get("monthly_salary_records", [])]
-        
-        # Deserialize lwps (list of LWPDetails)
-        lwps_docs = document.get("lwps", [])
-        if lwps_docs:
-            lwps = [self._deserialize_lwp_details(lwp_doc) for lwp_doc in lwps_docs]
-        else:
-            from app.domain.entities.taxation.lwp_details import LWPDetails
-            lwps = [LWPDetails(month=i+1) for i in range(12)]
-        
-        # Create SalaryPackageRecord
-        record = SalaryPackageRecord(
-            employee_id=EmployeeId(document["employee_id"]),
-            tax_year=TaxYear.from_string(document["tax_year"]),
-            age=document["age"],
-            is_government_employee=document.get("is_government_employee", False),
-            is_regime_update_allowed=document.get("is_regime_update_allowed", True),  # <--- Add this line
-            regime=regime,
-            salary_incomes=salary_incomes,
-            deductions=deductions,
-            
-            # Optional comprehensive income components
-            perquisites=self._deserialize_perquisites(document.get("perquisites")),
-            retirement_benefits=self._deserialize_retirement_benefits(document.get("retirement_benefits")),
-            other_income=self._deserialize_other_income(document.get("other_income")),
-            
-            # Calculated fields
-            calculation_result=calculation_result,
-            last_calculated_at=datetime.fromisoformat(document["last_calculated_at"]) if document.get("last_calculated_at") else None,
-            
-            # Metadata
-            is_final=document.get("is_final", False),
-            submitted_at=datetime.fromisoformat(document["submitted_at"]) if document.get("submitted_at") else None,
-            
-            # Audit fields
-            created_at=datetime.fromisoformat(document["created_at"]),
-            updated_at=datetime.fromisoformat(document["updated_at"]),
-            version=document.get("version", 1),
-
-            # Arrears and Bonuses (per month)
-            arrears=[Money.from_float(a) for a in document.get("arrears", [0.0]*12)],
-            bonuses=[Money.from_float(b) for b in document.get("bonuses", [0.0]*12)],
-            # LWP details (per month)
-            lwps=lwps,
-            # Monthly salary records
-            monthly_salary_records=monthly_salary_records,
-        )
-        
-        return record
     
     def _serialize_specific_allowances(self, specific_allowances: SpecificAllowances) -> dict:
         """Serialize specific allowances to document format."""
@@ -742,9 +665,7 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             "pf_voluntary_contribution": salary_income.pf_voluntary_contribution.to_float() if salary_income.pf_voluntary_contribution else 0.0,
             "pf_total_contribution": salary_income.pf_total_contribution.to_float() if salary_income.pf_total_contribution else 0.0,
             "special_allowance": salary_income.special_allowance.to_float() if salary_income.special_allowance else 0.0,
-            "bonus": salary_income.bonus.to_float() if salary_income.bonus else 0.0,
             "commission": salary_income.commission.to_float() if salary_income.commission else 0.0,
-            "arrears": salary_income.arrears.to_float() if salary_income.arrears else 0.0,
             "effective_from": salary_income.effective_from.isoformat() if salary_income.effective_from else None,
             "effective_till": salary_income.effective_till.isoformat() if salary_income.effective_till else None,
             "gross_salary": salary_income.calculate_gross_salary().to_float() if hasattr(salary_income, 'calculate_gross_salary') else 0.0,
@@ -1195,9 +1116,7 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             pf_voluntary_contribution=Money.from_float(salary_doc.get("pf_voluntary_contribution", 0.0)),
             pf_total_contribution=Money.from_float(salary_doc.get("pf_total_contribution", 0.0)),
             special_allowance=Money.from_float(salary_doc.get("special_allowance", 0.0)),
-            bonus=Money.from_float(salary_doc.get("bonus", 0.0)),
             commission=Money.from_float(salary_doc.get("commission", 0.0)),
-            arrears=Money.from_float(salary_doc.get("arrears", 0.0)),
             specific_allowances=self._deserialize_specific_allowances(salary_doc.get("specific_allowances", {})),
             # Note: hra_city_type and actual_rent_paid are now handled in deductions module
         )
@@ -1759,10 +1678,10 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             "net_salary": monthly_salary.net_salary.to_float(),
             # Metadata
             "computed_at": datetime.utcnow().isoformat(),
-            "status": monthly_salary.status if hasattr(monthly_salary, 'status') else "computed",
-            "comments": getattr(monthly_salary, 'comments', None),
-            "transaction_id": getattr(monthly_salary, 'transaction_id', None),
-            "transfer_date": monthly_salary.transfer_date.isoformat() if getattr(monthly_salary, 'transfer_date', None) else None
+            "one_time_arrear": monthly_salary.one_time_arrear.to_float() if hasattr(monthly_salary, 'one_time_arrear') else 0.0,
+            "one_time_bonus": monthly_salary.one_time_bonus.to_float() if hasattr(monthly_salary, 'one_time_bonus') else 0.0,
+            "tds_status": self._serialize_tds_status(monthly_salary.tds_status) if hasattr(self, '_serialize_tds_status') and monthly_salary.tds_status else None,
+            "payout_status": self._serialize_payout_status(monthly_salary.payout_status) if hasattr(self, '_serialize_payout_status') and monthly_salary.payout_status else None
         }
 
     # --- MONTHLY SALARY SERIALIZATION HELPERS ---
@@ -1779,9 +1698,7 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             "pf_voluntary_contribution": salary_income.pf_voluntary_contribution.to_float() if salary_income.pf_voluntary_contribution else 0.0,
             "pf_total_contribution": salary_income.pf_total_contribution.to_float() if salary_income.pf_total_contribution else 0.0,
             "special_allowance": salary_income.special_allowance.to_float() if salary_income.special_allowance else 0.0,
-            "bonus": salary_income.bonus.to_float() if salary_income.bonus else 0.0,
             "commission": salary_income.commission.to_float() if salary_income.commission else 0.0,
-            "arrears": salary_income.arrears.to_float() if salary_income.arrears else 0.0,
             "effective_from": salary_income.effective_from.isoformat() if salary_income.effective_from else None,
             "effective_till": salary_income.effective_till.isoformat() if salary_income.effective_till else None,
             "gross_salary": salary_income.calculate_gross_salary().to_float() if hasattr(salary_income, 'calculate_gross_salary') else 0.0,
@@ -1883,9 +1800,7 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             pf_voluntary_contribution=Money.from_float(salary_doc.get("pf_voluntary_contribution", 0.0)),
             pf_total_contribution=Money.from_float(salary_doc.get("pf_total_contribution", 0.0)),
             special_allowance=Money.from_float(salary_doc.get("special_allowance", 0.0)),
-            bonus=Money.from_float(salary_doc.get("bonus", 0.0)),
             commission=Money.from_float(salary_doc.get("commission", 0.0)),
-            arrears=Money.from_float(salary_doc.get("arrears", 0.0)),
             effective_from=effective_from,
             effective_till=effective_till,
             specific_allowances=specific_allowances

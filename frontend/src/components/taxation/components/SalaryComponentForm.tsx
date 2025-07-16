@@ -31,10 +31,10 @@ interface SalaryComponentData {
   basic_salary: number;
   dearness_allowance: number;
   hra_provided: number;
-  pf_employee_contribution: number;
-  pf_employer_contribution: number;
+  eps_employee: number;
+  eps_employer: number;
   esi_contribution: number;
-  pf_voluntary_contribution: number;
+  vps_employee: number;
   hra_city_type: string;
 
   special_allowance: number;
@@ -142,10 +142,10 @@ const initialSalaryData: SalaryComponentData = {
   basic_salary: 0,
   dearness_allowance: 0,
   hra_provided: 0,
-  pf_employee_contribution: 0,
-  pf_employer_contribution: 0,
+  eps_employee: 0,
+  eps_employer: 0,
   esi_contribution: 0,
-  pf_voluntary_contribution: 0,
+  vps_employee: 0,
   hra_city_type: 'non_metro',
   
   special_allowance: 0,
@@ -282,17 +282,17 @@ const SalaryComponentForm: React.FC = () => {
     const basic = salaryData.basic_salary || 0;
     const da = salaryData.dearness_allowance || 0;
     const baseAmount = basic + da;
-    const defaultRate = 0.0367;
+    const defaultRate = 0.12;
     return Math.round(baseAmount * defaultRate);
   }, [salaryData.basic_salary, salaryData.dearness_allowance]);
 
-  // Compute ESI based on basic salary and DA formula: (Basic+DA) * 0.833
+  // Compute ESI based on basic salary and DA formula: (Basic+DA) * 0.075
   const computeESI = useCallback((): number => {
     const basic = salaryData.basic_salary || 0;
     const da = salaryData.dearness_allowance || 0;
     const baseAmount = basic + da;
-    const defaultRate = 0.0833;
-    return Math.min(Math.round(baseAmount * defaultRate), 1250);
+    const defaultRate = 0.075;
+    return Math.round(baseAmount * defaultRate);
   }, [salaryData.basic_salary, salaryData.dearness_allowance]);
 
   useEffect(() => {
@@ -318,7 +318,7 @@ const SalaryComponentForm: React.FC = () => {
     const calculatedEmployeePF = computeEmployeePF();
     setSalaryData(prev => ({
       ...prev,
-      pf_employee_contribution: calculatedEmployeePF
+      eps_employee: calculatedEmployeePF
     }));
   }, [computeEmployeePF]);
 
@@ -327,7 +327,7 @@ const SalaryComponentForm: React.FC = () => {
     const calculatedEmployerPF = computeEmployerPF();
     setSalaryData(prev => ({
       ...prev,
-      pf_employer_contribution: calculatedEmployerPF
+      eps_employer: calculatedEmployerPF
     }));
   }, [computeEmployerPF]);
 
@@ -462,9 +462,9 @@ const SalaryComponentForm: React.FC = () => {
     const allowanceFields = [
       'dearness_allowance',
       'hra_provided', 
-      'pf_employee_contribution',
-      'pf_employer_contribution',
-      'pf_voluntary_contribution',
+      'eps_employee',
+      'eps_employer',
+      'vps_employee',
       'esi_contribution',
       'special_allowance',
       'commission',
@@ -535,10 +535,10 @@ const SalaryComponentForm: React.FC = () => {
     {
       label: 'PF Components(Monthly)',
       fields: [
-        { name: 'pf_employee_contribution', label: 'Employee PF (Auto-calculated)', type: 'number' } as NumberField,
-        { name: 'pf_employer_contribution', label: 'Employer PF (Auto-calculated)', type: 'number' } as NumberField,
+        { name: 'eps_employee', label: 'Employee PF (Auto-calculated)', type: 'number' } as NumberField,
+        { name: 'eps_employer', label: 'Employer PF (Auto-calculated)', type: 'number' } as NumberField,
         { name: 'esi_contribution', label: 'ESI (Auto-calculated)', type: 'number' } as NumberField,
-        { name: 'pf_voluntary_contribution', label: 'Voluntary PF', type: 'number' } as NumberField
+        { name: 'vps_employee', label: 'Voluntary PF', type: 'number' } as NumberField
       ]
     },
     {
@@ -684,11 +684,11 @@ const SalaryComponentForm: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <Typography variant="body2" color="text.secondary">Employee's contribution</Typography>
-              <Typography variant="h6">₹{salaryData.pf_employee_contribution.toLocaleString('en-IN')}</Typography>
+              <Typography variant="h6">₹{salaryData.eps_employee.toLocaleString('en-IN')}</Typography>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <Typography variant="body2" color="text.secondary">Employer's contribution</Typography>
-              <Typography variant="h6">₹{salaryData.pf_employer_contribution.toLocaleString('en-IN')}</Typography>
+              <Typography variant="h6">₹{salaryData.eps_employer.toLocaleString('en-IN')}</Typography>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <Typography variant="body2" color="text.secondary">ESI</Typography>
@@ -696,7 +696,7 @@ const SalaryComponentForm: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <Typography variant="body2" color="text.secondary">Voluntary contribution</Typography>
-              <Typography variant="h6">₹{salaryData.pf_voluntary_contribution.toLocaleString('en-IN')}</Typography>
+              <Typography variant="h6">₹{salaryData.vps_employee.toLocaleString('en-IN')}</Typography>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <Typography variant="body2" color="text.secondary">Total Salary</Typography>
@@ -794,14 +794,14 @@ const SalaryComponentForm: React.FC = () => {
                               }}
                               helperText={
                                 field.name === 'hra_provided' 
-                                  ? "Auto-calculated as (Basic + DA) × 50%. You can modify if needed." 
-                                  : field.name === 'pf_employee_contribution' 
-                                    ? "Auto-calculated as (Basic + DA) × 12%. You can modify if needed." 
-                                    : field.name === 'pf_employer_contribution' 
-                                      ? "Auto-calculated as (Basic + DA) × 3.67%. You can modify if needed." 
+                                  ? "Auto-calculated as (Basic + DA) × 50%. Over&Above Salary." 
+                                  : field.name === 'eps_employee' 
+                                    ? "Auto-calculated as (Basic + DA) × 12%. Included in Salary." 
+                                    : field.name === 'eps_employer' 
+                                      ? "Auto-calculated as (Basic + DA) × 12%. Over&Above Salary." 
                                       : field.name === 'esi_contribution' 
-                                        ? "Auto-calculated as (Basic + DA) × 0.833%. You can modify if needed." 
-                                        : field.name === 'pf_voluntary_contribution' 
+                                        ? "Auto-calculated as (Basic + DA) × 0.075%. Over&Above Salary." 
+                                        : field.name === 'vps_employee' 
                                           ? "You can modify if needed." 
                                           : undefined
                               }

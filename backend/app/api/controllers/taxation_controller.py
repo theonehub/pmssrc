@@ -62,6 +62,7 @@ from app.application.dto.taxation_dto import (
     LWPDetailsDTO,
     TDSStatusDTO,
     PayoutStatusDTO,
+    PfStatusDTO,
 )
 
 # Import domain entities and value objects
@@ -206,10 +207,9 @@ class UnifiedTaxationController:
             basic_salary=Money.zero(),
             dearness_allowance=Money.zero(),
             hra_provided=Money.zero(),
-            pf_employee_contribution=Money.zero(),
-            pf_employer_contribution=Money.zero(),
-            pf_voluntary_contribution=Money.zero(),
-            pf_total_contribution=Money.zero(),
+            eps_employee=Money.zero(),
+            eps_employer=Money.zero(),
+            vps_employee=Money.zero(),
             esi_contribution=Money.zero(),
             special_allowance=Money.zero(),
             commission=Money.zero(),
@@ -365,11 +365,10 @@ class UnifiedTaxationController:
             dearness_allowance=Money.from_decimal(salary_dto.dearness_allowance),
             hra_provided=Money.from_decimal(salary_dto.hra_provided),
             special_allowance=Money.from_decimal(salary_dto.special_allowance),
-            pf_employee_contribution=Money.from_decimal(getattr(salary_dto, 'pf_employee_contribution', 0)),
-            pf_employer_contribution=Money.from_decimal(getattr(salary_dto, 'pf_employer_contribution', 0)),
+            eps_employee=Money.from_decimal(getattr(salary_dto, 'eps_employee', 0)),
+            eps_employer=Money.from_decimal(getattr(salary_dto, 'eps_employer', 0)),
             esi_contribution=Money.from_decimal(getattr(salary_dto, 'esi_contribution', 0)),
-            pf_voluntary_contribution=Money.from_decimal(getattr(salary_dto, 'pf_voluntary_contribution', 0)),
-            pf_total_contribution=Money.from_decimal(getattr(salary_dto, 'pf_total_contribution', 0)),
+            vps_employee=Money.from_decimal(getattr(salary_dto, 'vps_employee', 0)),
             # Optional components with defaults
             commission=Money.from_decimal(getattr(salary_dto, 'commission', 0)),
             specific_allowances=specific_allowances
@@ -967,11 +966,10 @@ class UnifiedTaxationController:
                 hra_provided=Money.zero(),
                 special_allowance=Money.zero(),
                 commission=Money.zero(),
-                pf_employee_contribution=Money.zero(),
-                pf_employer_contribution=Money.zero(),
+                eps_employee=Money.zero(),
+                eps_employer=Money.zero(),
                 esi_contribution=Money.zero(),
-                pf_voluntary_contribution=Money.zero(),
-                pf_total_contribution=Money.zero(),
+                vps_employee=Money.zero()
             )
         
         # Create default deductions
@@ -1444,7 +1442,7 @@ class UnifiedTaxationController:
         try:
             # Get or create salary package record instead of taxation record
             salary_package_record, found_record = await self._get_or_create_salary_package_record(
-                employee_id, tax_year, current_user.hostname
+                employee_id, tax_year, current_user
             )
             
             # Extract component data based on type
@@ -1527,11 +1525,10 @@ class UnifiedTaxationController:
                 "special_allowance": salary.special_allowance.to_float(),
                 "hra_provided": salary.hra_provided.to_float(),
                 "commission": salary.commission.to_float(),
-                "pf_employee_contribution": salary.pf_employee_contribution.to_float(),
-                "pf_employer_contribution": salary.pf_employer_contribution.to_float(),
+                "eps_employee": salary.eps_employee.to_float(),
+                "eps_employer": salary.eps_employer.to_float(),
                 "esi_contribution": salary.esi_contribution.to_float(),
-                "pf_voluntary_contribution": salary.pf_voluntary_contribution.to_float(),
-                "pf_total_contribution": salary.pf_total_contribution.to_float()
+                "vps_employee": salary.vps_employee.to_float()
             }
             for i, salary in enumerate(salary_package_record.salary_incomes)
         ]
@@ -1585,10 +1582,10 @@ class UnifiedTaxationController:
             # HRA details are now in deductions module, not salary
             "hra_city_type": "metro",  # Default value for frontend compatibility
             "actual_rent_paid": 0.0,   # Default value for frontend compatibility
-            "pf_employee_contribution": float(salary_income.pf_employee_contribution.amount),
-            "pf_employer_contribution": float(salary_income.pf_employer_contribution.amount),
+            "eps_employee": float(salary_income.eps_employee.amount),
+            "eps_employer": float(salary_income.eps_employer.amount),
             "esi_contribution": float(salary_income.esi_contribution.amount),
-            "pf_voluntary_contribution": float(salary_income.pf_voluntary_contribution.amount)
+            "vps_employee": float(salary_income.vps_employee.amount)
         }
 
         # Add specific allowances if available
@@ -2478,10 +2475,10 @@ class UnifiedTaxationController:
                 components.get("hra_provided", 0),
                 components.get("special_allowance", 0),
                 components.get("commission", 0),
-                components.get("pf_employee_contribution", 0),
-                components.get("pf_employer_contribution", 0),
+                components.get("eps_employee", 0),
+                components.get("eps_employer", 0),
                 components.get("esi_contribution", 0),
-                components.get("pf_voluntary_contribution", 0),
+                components.get("vps_employee", 0),
                 total_specific,
                 period.get("monthly_gross_salary", 0),
                 period.get("total_for_period", 0)
@@ -2558,10 +2555,10 @@ class UnifiedTaxationController:
             ("HRA Provided", annual_salary.hra_provided.to_float()),
             ("Special Allowance", annual_salary.special_allowance.to_float()),
             ("Commission", annual_salary.commission.to_float()),
-            ("PF Employee Contribution", annual_salary.pf_employee_contribution.to_float()),
-            ("PF Employer Contribution", annual_salary.pf_employer_contribution.to_float()),
+            ("PF Employee Contribution", annual_salary.eps_employee.to_float()),
+            ("PF Employer Contribution", annual_salary.eps_employer.to_float()),
             ("ESI Contribution", annual_salary.esi_contribution.to_float()),
-            ("PF Voluntary Contribution", annual_salary.pf_voluntary_contribution.to_float()),
+            ("PF Voluntary Contribution", annual_salary.vps_employee.to_float()),
         ]
         
         row = 2
@@ -3163,10 +3160,10 @@ class UnifiedTaxationController:
             ("Basic Salary", annual_salary.basic_salary.to_float()),
             ("Dearness Allowance", annual_salary.dearness_allowance.to_float()),
             ("HRA Provided", annual_salary.hra_provided.to_float()),
-            ("PF Employee Contribution", annual_salary.pf_employee_contribution.to_float()),
-            ("PF Employer Contribution", annual_salary.pf_employer_contribution.to_float()),
+            ("PF Employee Contribution", annual_salary.eps_employee.to_float()),
+            ("PF Employer Contribution", annual_salary.eps_employer.to_float()),
             ("ESI Contribution", annual_salary.esi_contribution.to_float()),
-            ("PF Voluntary Contribution", annual_salary.pf_voluntary_contribution.to_float()),
+            ("PF Voluntary Contribution", annual_salary.vps_employee.to_float()),
             ("Special Allowance", annual_salary.special_allowance.to_float()),
             ("Commission", annual_salary.commission.to_float()),
         ]
@@ -3678,6 +3675,16 @@ class UnifiedTaxationController:
                 transfer_date=payout_status.transfer_date
             )
 
+        pf_status_entity = getattr(monthly_salary, 'pf_status', None)
+        pf_status_dto = None
+        if pf_status_entity:
+            pf_status_dto = PfStatusDTO(
+                status=getattr(pf_status_entity, 'status', 'computed'),
+                comments=getattr(pf_status_entity, 'comments', None),
+                transaction_id=getattr(pf_status_entity, 'transaction_id', None),
+                transfer_date=getattr(pf_status_entity, 'transfer_date', None)
+            )
+
         return MonthlySalaryResponseDTO(
             employee_id=monthly_salary.employee_id.value,
             month=monthly_salary.month,
@@ -3701,10 +3708,10 @@ class UnifiedTaxationController:
             other_allowances=0.0,  # Would need to sum specific allowances
             one_time_arrear=monthly_salary.one_time_arrear.to_float() if hasattr(monthly_salary, 'one_time_arrear') else 0.0,
             one_time_bonus=monthly_salary.one_time_bonus.to_float() if hasattr(monthly_salary, 'one_time_bonus') else 0.0,
-            pf_employee_contribution=monthly_salary.salary.pf_employee_contribution.to_float(),
-            pf_employer_contribution=monthly_salary.salary.pf_employer_contribution.to_float(),
+            eps_employee=monthly_salary.salary.eps_employee.to_float(),
+            eps_employer=monthly_salary.salary.eps_employer.to_float(),
             esi_contribution=monthly_salary.salary.esi_contribution.to_float(),
-            pf_voluntary_contribution=monthly_salary.salary.pf_voluntary_contribution.to_float(),
+            vps_employee=monthly_salary.salary.vps_employee.to_float(),
             
             # Deductions
             epf_employee=epf_employee.to_float(),
@@ -3761,6 +3768,7 @@ class UnifiedTaxationController:
                 working_days_in_month=monthly_salary.lwp.total_working_days
             ) if monthly_salary.lwp else None,
             payout_status=payout_status_dto,
+            pf_status=pf_status_dto,
         )
 
     def _calculate_monthly_epf(self, gross_salary):
@@ -4124,8 +4132,8 @@ class UnifiedTaxationController:
 
         Deductions:
         -----------
-        EPF Employee: ₹{s.pf_employee_contribution.to_float():,.2f}
-        EPF Voluntary: ₹{s.pf_voluntary_contribution.to_float():,.2f}
+        EPF Employee: ₹{s.eps_employee.to_float():,.2f}
+        EPF Voluntary: ₹{s.vps_employee.to_float():,.2f}
         Professional Tax: ₹{professional_tax.to_float():,.2f}
         TDS: ₹{tds.to_float():,.2f}
         Advance Deduction: ₹{0.0:,.2f}

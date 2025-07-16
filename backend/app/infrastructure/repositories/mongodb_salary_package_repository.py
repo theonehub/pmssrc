@@ -593,7 +593,8 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             one_time_arrear=Money.from_float(ms_doc.get("one_time_arrear", 0.0)),
             one_time_bonus=Money.from_float(ms_doc.get("one_time_bonus", 0.0)),
             tds_status=self._deserialize_tds_status(ms_doc.get("tds_status", {})) if hasattr(self, '_deserialize_tds_status') and ms_doc.get("tds_status") else None,
-            payout_status=self._deserialize_payout_status(ms_doc.get("payout_status", {})) if hasattr(self, '_deserialize_payout_status') and ms_doc.get("payout_status") else None
+            payout_status=self._deserialize_payout_status(ms_doc.get("payout_status", {})) if hasattr(self, '_deserialize_payout_status') and ms_doc.get("payout_status") else None,
+            pf_status=self._deserialize_pf_status(ms_doc.get("pf_status", {})) if hasattr(self, '_deserialize_pf_status') and ms_doc.get("pf_status") else None,
         )
     
     def _serialize_specific_allowances(self, specific_allowances: SpecificAllowances) -> dict:
@@ -659,11 +660,10 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             "basic_salary": salary_income.basic_salary.to_float() if salary_income.basic_salary else 0.0,
             "dearness_allowance": salary_income.dearness_allowance.to_float() if salary_income.dearness_allowance else 0.0,
             "hra_provided": salary_income.hra_provided.to_float() if salary_income.hra_provided else 0.0,
-            "pf_employee_contribution": salary_income.pf_employee_contribution.to_float() if salary_income.pf_employee_contribution else 0.0,
-            "pf_employer_contribution": salary_income.pf_employer_contribution.to_float() if salary_income.pf_employer_contribution else 0.0,
+            "eps_employee": salary_income.eps_employee.to_float() if salary_income.eps_employee else 0.0,
+            "eps_employer": salary_income.eps_employer.to_float() if salary_income.eps_employer else 0.0,
             "esi_contribution": salary_income.esi_contribution.to_float() if salary_income.esi_contribution else 0.0,
-            "pf_voluntary_contribution": salary_income.pf_voluntary_contribution.to_float() if salary_income.pf_voluntary_contribution else 0.0,
-            "pf_total_contribution": salary_income.pf_total_contribution.to_float() if salary_income.pf_total_contribution else 0.0,
+            "vps_employee": salary_income.vps_employee.to_float() if salary_income.vps_employee else 0.0,
             "special_allowance": salary_income.special_allowance.to_float() if salary_income.special_allowance else 0.0,
             "commission": salary_income.commission.to_float() if salary_income.commission else 0.0,
             "effective_from": salary_income.effective_from.isoformat() if salary_income.effective_from else None,
@@ -1110,11 +1110,10 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             basic_salary=Money.from_float(salary_doc.get("basic_salary", 0.0)),
             dearness_allowance=Money.from_float(salary_doc.get("dearness_allowance", 0.0)),
             hra_provided=Money.from_float(salary_doc.get("hra_provided", 0.0)),
-            pf_employee_contribution=Money.from_float(salary_doc.get("pf_employee_contribution", 0.0)),
-            pf_employer_contribution=Money.from_float(salary_doc.get("pf_employer_contribution", 0.0)),
+            eps_employee=Money.from_float(salary_doc.get("eps_employee", 0.0)),
+            eps_employer=Money.from_float(salary_doc.get("eps_employer", 0.0)),
             esi_contribution=Money.from_float(salary_doc.get("esi_contribution", 0.0)),
-            pf_voluntary_contribution=Money.from_float(salary_doc.get("pf_voluntary_contribution", 0.0)),
-            pf_total_contribution=Money.from_float(salary_doc.get("pf_total_contribution", 0.0)),
+            vps_employee=Money.from_float(salary_doc.get("vps_employee", 0.0)),
             special_allowance=Money.from_float(salary_doc.get("special_allowance", 0.0)),
             commission=Money.from_float(salary_doc.get("commission", 0.0)),
             specific_allowances=self._deserialize_specific_allowances(salary_doc.get("specific_allowances", {})),
@@ -1681,7 +1680,8 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             "one_time_arrear": monthly_salary.one_time_arrear.to_float() if hasattr(monthly_salary, 'one_time_arrear') else 0.0,
             "one_time_bonus": monthly_salary.one_time_bonus.to_float() if hasattr(monthly_salary, 'one_time_bonus') else 0.0,
             "tds_status": self._serialize_tds_status(monthly_salary.tds_status) if hasattr(self, '_serialize_tds_status') and monthly_salary.tds_status else None,
-            "payout_status": self._serialize_payout_status(monthly_salary.payout_status) if hasattr(self, '_serialize_payout_status') and monthly_salary.payout_status else None
+            "payout_status": self._serialize_payout_status(monthly_salary.payout_status) if hasattr(self, '_serialize_payout_status') and monthly_salary.payout_status else None,
+            "pf_status": self._serialize_pf_status(monthly_salary.pf_status) if hasattr(self, '_serialize_pf_status') and monthly_salary.pf_status else None,
         }
 
     # --- MONTHLY SALARY SERIALIZATION HELPERS ---
@@ -1692,11 +1692,10 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             "basic_salary": salary_income.basic_salary.to_float() if salary_income.basic_salary else 0.0,
             "dearness_allowance": salary_income.dearness_allowance.to_float() if salary_income.dearness_allowance else 0.0,
             "hra_provided": salary_income.hra_provided.to_float() if salary_income.hra_provided else 0.0,
-            "pf_employee_contribution": salary_income.pf_employee_contribution.to_float() if salary_income.pf_employee_contribution else 0.0,
-            "pf_employer_contribution": salary_income.pf_employer_contribution.to_float() if salary_income.pf_employer_contribution else 0.0,
+            "eps_employee": salary_income.eps_employee.to_float() if salary_income.eps_employee else 0.0,
+            "eps_employer": salary_income.eps_employer.to_float() if salary_income.eps_employer else 0.0,
             "esi_contribution": salary_income.esi_contribution.to_float() if salary_income.esi_contribution else 0.0,
-            "pf_voluntary_contribution": salary_income.pf_voluntary_contribution.to_float() if salary_income.pf_voluntary_contribution else 0.0,
-            "pf_total_contribution": salary_income.pf_total_contribution.to_float() if salary_income.pf_total_contribution else 0.0,
+            "vps_employee": salary_income.vps_employee.to_float() if salary_income.vps_employee else 0.0,
             "special_allowance": salary_income.special_allowance.to_float() if salary_income.special_allowance else 0.0,
             "commission": salary_income.commission.to_float() if salary_income.commission else 0.0,
             "effective_from": salary_income.effective_from.isoformat() if salary_income.effective_from else None,
@@ -1794,11 +1793,10 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             basic_salary=Money.from_float(salary_doc.get("basic_salary", 0.0)),
             dearness_allowance=Money.from_float(salary_doc.get("dearness_allowance", 0.0)),
             hra_provided=Money.from_float(salary_doc.get("hra_provided", 0.0)),
-            pf_employee_contribution=Money.from_float(salary_doc.get("pf_employee_contribution", 0.0)),
-            pf_employer_contribution=Money.from_float(salary_doc.get("pf_employer_contribution", 0.0)),
+            eps_employee=Money.from_float(salary_doc.get("eps_employee", 0.0)),
+            eps_employer=Money.from_float(salary_doc.get("eps_employer", 0.0)),
             esi_contribution=Money.from_float(salary_doc.get("esi_contribution", 0.0)),
-            pf_voluntary_contribution=Money.from_float(salary_doc.get("pf_voluntary_contribution", 0.0)),
-            pf_total_contribution=Money.from_float(salary_doc.get("pf_total_contribution", 0.0)),
+            vps_employee=Money.from_float(salary_doc.get("vps_employee", 0.0)),
             special_allowance=Money.from_float(salary_doc.get("special_allowance", 0.0)),
             commission=Money.from_float(salary_doc.get("commission", 0.0)),
             effective_from=effective_from,
@@ -2022,5 +2020,33 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             status=payout_status_doc.get("status", "computed"),
             comments=payout_status_doc.get("comments"),
             transaction_id=payout_status_doc.get("transaction_id"),
+            transfer_date=transfer_date,
+        )
+
+    def _serialize_pf_status(self, pf_status):
+        if pf_status is None:
+            return None
+        return {
+            "status": pf_status.status,
+            "comments": pf_status.comments,
+            "transaction_id": pf_status.transaction_id,
+            "transfer_date": pf_status.transfer_date.isoformat() if pf_status.transfer_date else None,
+        }
+
+    def _deserialize_pf_status(self, pf_status_doc):
+        from app.domain.entities.taxation.monthly_salary_status import PfStatus
+        from datetime import date
+        if not pf_status_doc:
+            return None
+        transfer_date = None
+        if pf_status_doc.get("transfer_date"):
+            try:
+                transfer_date = date.fromisoformat(pf_status_doc["transfer_date"])
+            except Exception:
+                transfer_date = None
+        return PfStatus(
+            status=pf_status_doc.get("status", "computed"),
+            comments=pf_status_doc.get("comments"),
+            transaction_id=pf_status_doc.get("transaction_id"),
             transfer_date=transfer_date,
         )

@@ -114,19 +114,21 @@ class SalaryPackageRecord:
         
         # If there are existing salary incomes and the new one has effective_from date
         if self.salary_incomes and salary_income.effective_from:
-            # Update the effective_till of the latest (most recent) salary income
             latest_salary = self.salary_incomes[-1]
-            
+            # Ensure the new salary's effective_from is after the latest salary's effective_from
+            if salary_income.effective_from <= latest_salary.effective_from:
+                raise ValueError("New salary income's effective_from date must be after the latest salary's effective_from date")
+            # Ensure increments only start from the 1st of the month
+            if len(self.salary_incomes) > 0 and salary_income.effective_from.day != 1:
+                raise ValueError("New salary income's effective_from date must be the 1st of the month for increments")
             # Calculate one day before the new effective_from date
             from datetime import timedelta
             new_effective_till = salary_income.effective_from - timedelta(days=1)
-            
             # Update the effective_till of the previous salary income
             # Create a new SalaryIncome instance with updated effective_till
             from copy import deepcopy
             updated_previous_salary = deepcopy(latest_salary)
             updated_previous_salary.effective_till = new_effective_till
-            
             # Replace the last salary income with the updated one
             self.salary_incomes[-1] = updated_previous_salary
         
@@ -634,13 +636,13 @@ class SalaryPackageRecord:
                     salary_income.commission.multiply(months_applicable)
                 )
                 weighted_pf_employee_contribution = weighted_pf_employee_contribution.add(
-                    salary_income.pf_employee_contribution.multiply(months_applicable)
+                    salary_income.eps_employee.multiply(months_applicable)
                 )
                 weighted_pf_employer_contribution = weighted_pf_employer_contribution.add(
-                    salary_income.pf_employer_contribution.multiply(months_applicable)
+                    salary_income.eps_employer.multiply(months_applicable)
                 )
                 weighted_pf_voluntary_contribution = weighted_pf_voluntary_contribution.add(
-                    salary_income.pf_voluntary_contribution.multiply(months_applicable)
+                    salary_income.vps_employee.multiply(months_applicable)
                 )
                 weighted_esi_contribution = weighted_esi_contribution.add(
                     salary_income.esi_contribution.multiply(months_applicable)
@@ -670,9 +672,9 @@ class SalaryPackageRecord:
             annual_salary.hra_provided = weighted_hra_provided
             annual_salary.special_allowance = weighted_special_allowance
             annual_salary.commission = weighted_commission
-            annual_salary.pf_employee_contribution = weighted_pf_employee_contribution
-            annual_salary.pf_employer_contribution = weighted_pf_employer_contribution
-            annual_salary.pf_voluntary_contribution = weighted_pf_voluntary_contribution
+            annual_salary.eps_employee = weighted_pf_employee_contribution
+            annual_salary.eps_employer = weighted_pf_employer_contribution
+            annual_salary.vps_employee = weighted_pf_voluntary_contribution
             annual_salary.esi_contribution = weighted_esi_contribution
             
             # Update specific allowances with weighted totals

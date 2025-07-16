@@ -48,6 +48,7 @@ import {
   Description as DescriptionIcon,
   Savings as SavingsIcon
 } from '@mui/icons-material';
+import { getCurrentTaxYear, getAvailableTaxYears, taxYearStringToStartYear } from '../../shared/utils/formatting';
 
 /**
  * PF Report Component - Display Provident Fund information for reporting
@@ -58,8 +59,7 @@ const PFReport: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   
   const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
-  const [year, setYear] = useState<number>(new Date().getFullYear());
-  const [taxYear, setTaxYear] = useState<string>('');
+  const [taxYear, setTaxYear] = useState<string>(getCurrentTaxYear());
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [departmentFilter, setDepartmentFilter] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -99,7 +99,7 @@ const PFReport: React.FC = () => {
       
       const response = await salaryProcessingApi.getMonthlySalariesForPeriod(
         month,
-        year,
+        taxYear,
         params
       );
       
@@ -114,13 +114,13 @@ const PFReport: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [month, year, statusFilter, departmentFilter, page, rowsPerPage]);
+  }, [month, taxYear, statusFilter, departmentFilter, page, rowsPerPage]);
 
   const fetchSummary = useCallback(async () => {
     try {
       setSummaryLoading(true);
       
-      const response = await salaryProcessingApi.getMonthlySalarySummary(month, year);
+      const response = await salaryProcessingApi.getMonthlySalarySummary(month, taxYear);
       setSummary(response);
       
     } catch (err) {
@@ -129,7 +129,7 @@ const PFReport: React.FC = () => {
     } finally {
       setSummaryLoading(false);
     }
-  }, [month, year]);
+  }, [month, taxYear]);
 
   // Calculate PF summary
   const calculatePFSummary = useCallback(() => {
@@ -209,7 +209,7 @@ const PFReport: React.FC = () => {
   useEffect(() => {
     fetchSalaries();
     fetchSummary();
-  }, [month, year, statusFilter, departmentFilter, page, rowsPerPage, fetchSalaries, fetchSummary]);
+  }, [month, taxYear, statusFilter, departmentFilter, page, rowsPerPage, fetchSalaries, fetchSummary]);
 
   // Calculate PF summary when salaries change
   useEffect(() => {
@@ -219,8 +219,8 @@ const PFReport: React.FC = () => {
 
   // Set tax year based on selected year
   useEffect(() => {
-    setTaxYear(`${year}-${year + 1}`);
-  }, [year]);
+    setTaxYear(`${new Date().getFullYear()}-${new Date().getFullYear() + 1}`);
+  }, []);
 
   const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
@@ -295,9 +295,9 @@ const PFReport: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportPFReport('csv', month, year, undefined, filters);
+      const blob = await exportApi.exportPFReport('csv', month, taxYearStringToStartYear(taxYear), undefined, filters);
       
-      exportApi.downloadFile(blob, `pf_report_${month}_${year}.csv`);
+      exportApi.downloadFile(blob, `pf_report_${month}_${taxYear}.csv`);
       
     } catch (err) {
       console.error('Error exporting PF to CSV:', err);
@@ -316,9 +316,9 @@ const PFReport: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportPFReport('excel', month, year, undefined, filters);
+      const blob = await exportApi.exportPFReport('excel', month, taxYearStringToStartYear(taxYear), undefined, filters);
       
-      exportApi.downloadFile(blob, `pf_report_${month}_${year}.xlsx`);
+      exportApi.downloadFile(blob, `pf_report_${month}_${taxYear}.xlsx`);
       
     } catch (err) {
       console.error('Error exporting PF to Excel:', err);
@@ -337,9 +337,9 @@ const PFReport: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportPFReport('challan', month, year, undefined, filters);
+      const blob = await exportApi.exportPFReport('challan', month, taxYearStringToStartYear(taxYear), undefined, filters);
       
-      exportApi.downloadFile(blob, `pf_challan_${month}_${year}.pdf`);
+      exportApi.downloadFile(blob, `pf_challan_${month}_${taxYear}.pdf`);
       
     } catch (err) {
       console.error('Error exporting PF Challan:', err);
@@ -358,9 +358,9 @@ const PFReport: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportPFReport('return', month, year, undefined, filters);
+      const blob = await exportApi.exportPFReport('return', month, taxYearStringToStartYear(taxYear), undefined, filters);
       
-      exportApi.downloadFile(blob, `pf_return_${month}_${year}.pdf`);
+      exportApi.downloadFile(blob, `pf_return_${month}_${taxYear}.pdf`);
       
     } catch (err) {
       console.error('Error exporting PF Return:', err);
@@ -574,11 +574,11 @@ const PFReport: React.FC = () => {
           <FormControl fullWidth size="small">
             <InputLabel>Year</InputLabel>
             <Select
-              value={year}
+              value={taxYear}
               label="Year"
-              onChange={(e) => setYear(e.target.value as number)}
+              onChange={(e) => setTaxYear(e.target.value as string)}
             >
-              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((year) => (
+              {getAvailableTaxYears().map((year) => (
                 <MenuItem key={year} value={year}>
                   {year}
                 </MenuItem>
@@ -931,8 +931,8 @@ const PFReport: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={salary.status}
-                          color={getStatusColor(salary.status) as any}
+                          label={salary.payout_status?.status || ''}
+                          color={getStatusColor(salary.payout_status?.status || '') as any}
                           size="small"
                         />
                       </TableCell>

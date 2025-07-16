@@ -54,10 +54,14 @@ from app.application.dto.taxation_dto import (
     ComponentResponse,
     TaxationRecordStatusResponse,
     FlatRetirementBenefitsDTO,
+    FlexibleDeductionsDTO,
     
     # Monthly Salary DTOs
     MonthlySalaryComputeRequestDTO,
     MonthlySalaryResponseDTO,
+    LWPDetailsDTO,
+    TDSStatusDTO,
+    PayoutStatusDTO,
 )
 
 # Import domain entities and value objects
@@ -86,6 +90,7 @@ from app.domain.entities.taxation.retirement_benefits import (
 )
 from app.domain.entities.taxation.other_income import OtherIncome, InterestIncome
 from app.domain.entities.taxation.taxation_record import SalaryPackageRecord
+from app.auth.auth_dependencies import CurrentUser
 
 # Import services
 from app.domain.services.taxation.tax_calculation_service import (
@@ -93,6 +98,7 @@ from app.domain.services.taxation.tax_calculation_service import (
 )
 from app.application.use_cases.taxation.get_employees_for_selection_use_case import GetEmployeesForSelectionUseCase
 from app.application.use_cases.taxation.compute_monthly_salary_use_case import ComputeMonthlySalaryUseCase
+from app.domain.entities.taxation.monthly_salary_status import TDSStatus, PayoutStatus
 
 logger = get_logger(__name__)
 
@@ -119,7 +125,6 @@ class UnifiedTaxationController:
     def __init__(self,
                  user_repository,
                  salary_package_repository,
-                 monthly_salary_repository=None,
                  organisation_repository=None):
         self.user_repository = user_repository
         self.salary_package_repository = salary_package_repository
@@ -127,9 +132,6 @@ class UnifiedTaxationController:
         from app.config.dependency_container import get_dependency_container
         container = get_dependency_container()
         user_service = container.get_user_service()
-        if monthly_salary_repository is None:
-            monthly_salary_repository = container.get_monthly_salary_repository()
-        self.monthly_salary_repository = monthly_salary_repository
         self.get_employees_for_selection_use_case = GetEmployeesForSelectionUseCase(
             user_query_service=user_service,
             salary_package_repository=salary_package_repository
@@ -137,7 +139,6 @@ class UnifiedTaxationController:
         self.compute_monthly_salary_use_case = ComputeMonthlySalaryUseCase(
             salary_package_repository=salary_package_repository,
             user_repository=user_repository,
-            monthly_salary_repository=monthly_salary_repository,
             tax_calculation_service=self.tax_calculation_service
         )
         # Add organisation repository
@@ -185,107 +186,6 @@ class UnifiedTaxationController:
             raise
     
     # =============================================================================
-    # COMPONENT-SPECIFIC CALCULATION METHODS
-    # =============================================================================
-    
-    async def calculate_perquisites_only(self,
-                                       perquisites: PerquisitesDTO,
-                                       regime_type: str,
-                                       organization_id: str) -> Dict[str, Any]:
-        """Calculate only perquisites tax impact."""
-        try:
-            # Convert DTO to entity
-            perquisites_entity = self._convert_perquisites_dto_to_entity(perquisites)
-            regime = TaxRegime(TaxRegimeType.OLD if regime_type.lower() == "old" else TaxRegimeType.NEW)
-            
-            # Calculate perquisites
-            total_perquisites = perquisites_entity.calculate_total_perquisites(regime)
-            breakdown = perquisites_entity.get_perquisites_breakdown(regime)
-            
-            return {
-                "total_perquisites_value": total_perquisites.to_float(),
-                "perquisites_breakdown": breakdown,
-                "regime_used": regime_type,
-                "perquisites_applicable": regime.regime_type == TaxRegimeType.OLD
-            }
-            
-        except Exception as e:
-            logger.error(f"Error calculating perquisites for org {organization_id}: {str(e)}")
-            raise
-    
-    async def calculate_house_property_income_only(self,
-                                          house_property_income: HousePropertyIncomeDTO,
-                                          regime_type: str,
-                                          organization_id: str) -> Dict[str, Any]:
-        """Calculate only house property income."""
-        try:
-            # Convert DTO to entity
-            house_property_entity = self._convert_house_property_income_dto_to_entity(house_property_income)
-            regime = TaxRegime(TaxRegimeType.OLD if regime_type.lower() == "old" else TaxRegimeType.NEW)
-            
-            # Calculate house property income
-            net_income = house_property_entity.calculate_net_income_from_house_property_income(regime)
-            breakdown = house_property_entity.get_house_property_income_breakdown(regime)
-            
-            return {
-                "net_house_property_income": net_income.to_float(),
-                "house_property_income_breakdown": breakdown,
-                "regime_used": regime_type
-            }
-            
-        except Exception as e:
-            logger.error(f"Error calculating house property for org {organization_id}: {str(e)}")
-            raise
-    
-    async def calculate_capital_gains_only(self,
-                                         capital_gains: CapitalGainsIncomeDTO,
-                                         regime_type: str,
-                                         organization_id: str) -> Dict[str, Any]:
-        """Calculate only capital gains tax."""
-        try:
-            # Convert DTO to entity
-            capital_gains_entity = self._convert_capital_gains_dto_to_entity(capital_gains)
-            regime = TaxRegime(TaxRegimeType.OLD if regime_type.lower() == "old" else TaxRegimeType.NEW)
-            
-            # Calculate capital gains
-            total_tax = capital_gains_entity.calculate_total_capital_gains_tax()
-            breakdown = capital_gains_entity.get_capital_gains_breakdown(regime)
-            
-            return {
-                "total_capital_gains_tax": total_tax.to_float(),
-                "capital_gains_breakdown": breakdown,
-                "regime_used": regime_type
-            }
-            
-        except Exception as e:
-            logger.error(f"Error calculating capital gains for org {organization_id}: {str(e)}")
-            raise
-    
-    async def calculate_retirement_benefits_only(self,
-                                               retirement_benefits: RetirementBenefitsDTO,
-                                               regime_type: str,
-                                               organization_id: str) -> Dict[str, Any]:
-        """Calculate only retirement benefits tax."""
-        try:
-            # Convert DTO to entity
-            retirement_entity = self._convert_retirement_benefits_dto_to_entity(retirement_benefits)
-            regime = TaxRegime(TaxRegimeType.OLD if regime_type.lower() == "old" else TaxRegimeType.NEW)
-            
-            # Calculate retirement benefits
-            total_income = retirement_entity.calculate_total_retirement_income(regime)
-            breakdown = retirement_entity.get_retirement_benefits_breakdown(regime)
-            
-            return {
-                "total_retirement_income": total_income.to_float(),
-                "retirement_benefits_breakdown": breakdown,
-                "regime_used": regime_type
-            }
-            
-        except Exception as e:
-            logger.error(f"Error calculating retirement benefits for org {organization_id}: {str(e)}")
-            raise
-    
-    # =============================================================================
     # DTO TO DOMAIN ENTITY CONVERSION METHODS
     # =============================================================================
     
@@ -306,10 +206,13 @@ class UnifiedTaxationController:
             basic_salary=Money.zero(),
             dearness_allowance=Money.zero(),
             hra_provided=Money.zero(),
+            pf_employee_contribution=Money.zero(),
+            pf_employer_contribution=Money.zero(),
+            pf_voluntary_contribution=Money.zero(),
+            pf_total_contribution=Money.zero(),
+            esi_contribution=Money.zero(),
             special_allowance=Money.zero(),
-            bonus=Money.zero(),
             commission=Money.zero(),
-            arrears=Money.zero(),
             specific_allowances=SpecificAllowances()
         )
     
@@ -454,7 +357,7 @@ class UnifiedTaxationController:
             academic_research=Money.from_decimal(getattr(salary_dto, 'academic_research', 0)),
             uniform_allowance=Money.from_decimal(getattr(salary_dto, 'uniform_allowance', 0))
         )
-        
+
         return SalaryIncome(
             effective_from=effective_from,
             effective_till=effective_till,
@@ -462,10 +365,13 @@ class UnifiedTaxationController:
             dearness_allowance=Money.from_decimal(salary_dto.dearness_allowance),
             hra_provided=Money.from_decimal(salary_dto.hra_provided),
             special_allowance=Money.from_decimal(salary_dto.special_allowance),
+            pf_employee_contribution=Money.from_decimal(getattr(salary_dto, 'pf_employee_contribution', 0)),
+            pf_employer_contribution=Money.from_decimal(getattr(salary_dto, 'pf_employer_contribution', 0)),
+            esi_contribution=Money.from_decimal(getattr(salary_dto, 'esi_contribution', 0)),
+            pf_voluntary_contribution=Money.from_decimal(getattr(salary_dto, 'pf_voluntary_contribution', 0)),
+            pf_total_contribution=Money.from_decimal(getattr(salary_dto, 'pf_total_contribution', 0)),
             # Optional components with defaults
-            bonus=Money.from_decimal(getattr(salary_dto, 'bonus', 0)),
             commission=Money.from_decimal(getattr(salary_dto, 'commission', 0)),
-            arrears=Money.from_decimal(getattr(salary_dto, 'arrears', 0)),
             specific_allowances=specific_allowances
         )
     
@@ -507,39 +413,39 @@ class UnifiedTaxationController:
         def safe_money_from_value(value, default=0):
             """Safely convert a value to Money, handling various edge cases."""
             import decimal
+            from app.domain.value_objects.money import Money as MoneyClass
             try:
                 # Handle None or empty values
                 if value is None or value == "":
-                    return Money.from_decimal(default)
+                    return MoneyClass.from_decimal(default)
                 
                 # Handle string values that might be invalid
                 if isinstance(value, str):
                     # Strip whitespace and handle common invalid values
                     value = value.strip()
                     if value.lower() in ['null', 'undefined', 'nan', 'none', '']:
-                        return Money.from_decimal(default)
+                        return MoneyClass.from_decimal(default)
                 
                 # Try to convert to float first, then to decimal
                 if isinstance(value, (int, float)):
-                    return Money.from_decimal(float(value))
+                    return MoneyClass.from_decimal(float(value))
                 elif isinstance(value, str):
-                    return Money.from_decimal(float(value))
+                    return MoneyClass.from_decimal(float(value))
                 else:
                     # For any other type, try direct conversion
-                    return Money.from_decimal(value)
+                    return MoneyClass.from_decimal(value)
                     
             except (ValueError, TypeError, decimal.InvalidOperation, decimal.ConversionSyntax) as e:
                 logger.warning(f"Failed to convert value '{value}' to Money, using default {default}: {str(e)}")
-                return Money.from_decimal(default)
+                return MoneyClass.from_decimal(default)
 
         # Map Section 80C fields - handle both nested and flat structures
         try:
             section_80c_data = safe_get(deductions_data, 'section_80c', {})
             section_80c_keys = [
-                'life_insurance_premium', 'epf_contribution', 'ppf_contribution', 
-                'nsc_investment', 'tax_saving_fd', 'elss_investment', 'home_loan_principal',
+                'life_insurance_premium', 'nsc_investment', 'tax_saving_fd', 'elss_investment',
                 'tuition_fees', 'ulip_premium', 'sukanya_samriddhi', 'stamp_duty_property',
-                'senior_citizen_savings', 'other_80c_investments'
+                'senior_citizen_savings', 'other_80c_investments', 'home_loan_principal'
             ]
             
             if section_80c_data or any(key in deductions_data for key in section_80c_keys):
@@ -548,8 +454,6 @@ class UnifiedTaxationController:
                 # Handle nested structure
                 if section_80c_data:
                     deductions.section_80c.life_insurance_premium = safe_money_from_value(safe_get(section_80c_data, 'life_insurance_premium', 0))
-                    deductions.section_80c.epf_contribution = safe_money_from_value(safe_get(section_80c_data, 'epf_contribution', 0))
-                    deductions.section_80c.ppf_contribution = safe_money_from_value(safe_get(section_80c_data, 'ppf_contribution', 0))
                     deductions.section_80c.nsc_investment = safe_money_from_value(safe_get(section_80c_data, 'nsc_investment', 0))
                     deductions.section_80c.tax_saving_fd = safe_money_from_value(safe_get(section_80c_data, 'tax_saving_fd', 0))
                     deductions.section_80c.elss_investment = safe_money_from_value(safe_get(section_80c_data, 'elss_investment', 0))
@@ -563,8 +467,6 @@ class UnifiedTaxationController:
                 else:
                     # Handle flat structure (from frontend)
                     deductions.section_80c.life_insurance_premium = safe_money_from_value(safe_get(deductions_data, 'life_insurance_premium', 0))
-                    deductions.section_80c.epf_contribution = safe_money_from_value(safe_get(deductions_data, 'epf_contribution', 0))
-                    deductions.section_80c.ppf_contribution = safe_money_from_value(safe_get(deductions_data, 'ppf_contribution', 0))
                     deductions.section_80c.nsc_investment = safe_money_from_value(safe_get(deductions_data, 'nsc_investment', 0))
                     deductions.section_80c.tax_saving_fd = safe_money_from_value(safe_get(deductions_data, 'tax_saving_fd', 0))
                     deductions.section_80c.elss_investment = safe_money_from_value(safe_get(deductions_data, 'elss_investment', 0))
@@ -659,10 +561,10 @@ class UnifiedTaxationController:
         # Log final deductions total
         try:
             from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
-            from app.domain.value_objects.money import Money
+            from app.domain.value_objects.money import Money as MoneyClass
             regime = TaxRegime(TaxRegimeType.NEW)  # Default to new regime for calculation
             # Use default values for age and gross_income since we don't have them in this context
-            total_deductions = deductions.calculate_total_deductions(regime, 30, Money.zero())
+            total_deductions = deductions.calculate_total_deductions(regime, 30, MoneyClass.zero(), MoneyClass.zero())
             logger.info(f"Final deductions total after conversion: {total_deductions}")
         except Exception as e:
             logger.error(f"Error calculating total deductions: {str(e)}")
@@ -676,8 +578,18 @@ class UnifiedTaxationController:
             logger.warning("Received None for comprehensive deductions DTO, creating default deductions")
             return self._create_default_deductions()
         
-        # This method would handle the comprehensive deductions conversion
-        # For now, we'll use the existing deductions conversion logic
+        # Handle FlexibleDeductionsDTO (new DTO that can handle nested structure)
+        if hasattr(comp_deductions_dto, 'to_flat_structure'):
+            logger.info("Converting FlexibleDeductionsDTO to flat structure")
+            try:
+                flat_dto = comp_deductions_dto.to_flat_structure()
+                logger.debug(f"Converted to flat DTO - life_insurance_premium: {flat_dto.life_insurance_premium}")
+                return self._convert_deductions_dto_to_entity(flat_dto)
+            except Exception as e:
+                logger.error(f"Error converting FlexibleDeductionsDTO to flat structure: {str(e)}")
+                return self._create_default_deductions()
+        
+        # Fallback to existing conversion logic for backward compatibility
         return self._convert_deductions_dto_to_entity(comp_deductions_dto)
     
     def _convert_perquisites_dto_to_entity(self, perquisites_dto) -> Perquisites:
@@ -693,9 +605,10 @@ class UnifiedTaxationController:
         
         # Helper function to safely convert to Money
         def safe_money_from_value(value, default=0):
+            from app.domain.value_objects.money import Money as MoneyClass
             if value is None:
-                return Money.from_decimal(Decimal(str(default)))
-            return Money.from_decimal(Decimal(str(value)))
+                return MoneyClass.from_decimal(Decimal(str(default)))
+            return MoneyClass.from_decimal(Decimal(str(value)))
         
         # Helper function to safely convert enum values
         def safe_enum_from_value(enum_class, value, default_value):
@@ -818,8 +731,9 @@ class UnifiedTaxationController:
         )
         
         # Convert gift voucher
+        from app.domain.value_objects.money import Money as MoneyClass
         gift_voucher = GiftVoucherPerquisite(
-            gift_voucher_amount=Money.zero()
+            gift_voucher_amount=MoneyClass.zero()
         )
         
         # Convert monetary benefits
@@ -1016,14 +930,14 @@ class UnifiedTaxationController:
         self,
         employee_id: str,
         tax_year: str,
-        organization_id: str,
+        current_user: CurrentUser,
         salary_income: SalaryIncome = None
     ) -> Tuple[SalaryPackageRecord, bool]:
         """Get existing salary package record or create a new one with defaults."""
         
         # Try to get existing record
         salary_package_record = await self.salary_package_repository.get_salary_package_record(
-            employee_id, tax_year, organization_id
+            employee_id, tax_year, current_user.hostname
         )
         
         if salary_package_record:
@@ -1032,6 +946,8 @@ class UnifiedTaxationController:
         # Create new record with defaults
         employee_id_vo = EmployeeId(employee_id)
         tax_year_vo = TaxYear.from_string(tax_year)
+        user = await self.user_repository.get_by_id(employee_id_vo, current_user.hostname)
+
         
         # Create default salary income
         if salary_income:
@@ -1050,8 +966,12 @@ class UnifiedTaxationController:
                 dearness_allowance=Money.zero(),
                 hra_provided=Money.zero(),
                 special_allowance=Money.zero(),
-                bonus=Money.zero(),
-                commission=Money.zero()
+                commission=Money.zero(),
+                pf_employee_contribution=Money.zero(),
+                pf_employer_contribution=Money.zero(),
+                esi_contribution=Money.zero(),
+                pf_voluntary_contribution=Money.zero(),
+                pf_total_contribution=Money.zero(),
             )
         
         # Create default deductions
@@ -1077,14 +997,13 @@ class UnifiedTaxationController:
         salary_package_record = SalaryPackageRecord(
             employee_id=employee_id_vo,
             tax_year=tax_year_vo,
-            age=25,  # Default age
+            age=user.get_age_in_years(),
             regime=TaxRegime.old_regime(),  # Default to old regime
             salary_incomes=[default_salary_income],
             deductions=default_deductions,
             perquisites=default_perquisites,  # Add default perquisites
             retirement_benefits=default_retirement_benefits,  # Add default retirement benefits
-            other_income=default_other_income,  # Add default other income
-            organization_id=organization_id
+            other_income=default_other_income
         )
         
         return salary_package_record, False
@@ -1096,38 +1015,30 @@ class UnifiedTaxationController:
     async def update_salary_component(
         self,
         request: "UpdateSalaryComponentRequest",
-        organization_id: str
+        current_user: CurrentUser
     ) -> "ComponentUpdateResponse":
-        """Update salary component individually using SalaryPackageRecord."""
-        
+        """Update salary component individually using SalaryPackageRecord.
+        Args:
+            request: UpdateSalaryComponentRequest
+            current_user: Current authenticated user with organisation context
+        Returns:
+            ComponentUpdateResponse
+        """
         try:
-            # Convert DTO to entity
             salary_income = self._convert_salary_dto_to_entity(request.salary_income)
-
-            # Get or create salary package record
             salary_package_record, found_record = await self._get_or_create_salary_package_record(
-                request.employee_id, request.tax_year, organization_id, salary_income
+                request.employee_id, request.tax_year, current_user, salary_income
             )
-            
-            # Handle different modes: new revision vs update existing
             if request.force_new_revision:
                 if found_record:
-                    # Force create new salary revision (always add new entry)
                     salary_package_record.add_salary_income(salary_income)
             else:
-                # Update mode: update existing or create first entry
                 if not salary_package_record.salary_incomes:
-                    # If no salary incomes exist, add the first one
                     salary_package_record.add_salary_income(salary_income)
                 else:
-                    # If salary incomes exist, update the latest one
                     salary_package_record.update_latest_salary_income(salary_income)
-            
             salary_package_record.updated_at = datetime.utcnow()
-            
-            # Save to database using salary package repository
-            await self.salary_package_repository.save(salary_package_record, organization_id)
-            
+            await self.salary_package_repository.save(salary_package_record, current_user.hostname)
             return ComponentUpdateResponse(
                 taxation_id=salary_package_record.salary_package_id,
                 employee_id=request.employee_id,
@@ -1138,7 +1049,6 @@ class UnifiedTaxationController:
                 updated_at=salary_package_record.updated_at,
                 notes=request.notes
             )
-            
         except Exception as e:
             logger.error(f"Failed to update salary component: {str(e)}")
             raise
@@ -1146,29 +1056,25 @@ class UnifiedTaxationController:
     async def update_perquisites_component(
         self,
         request: "UpdatePerquisitesComponentRequest",
-        organization_id: str
+        current_user: CurrentUser
     ) -> "ComponentUpdateResponse":
-        """Update perquisites component individually using SalaryPackageRecord."""
-        
+        """Update perquisites component individually using SalaryPackageRecord.
+        Args:
+            request: UpdatePerquisitesComponentRequest
+            current_user: Current authenticated user with organisation context
+        Returns:
+            ComponentUpdateResponse
+        """
         try:
-            # Convert DTO to entity
             perquisites = self._convert_perquisites_dto_to_entity(request.perquisites)
-            
-            # Get or create salary package record (it should ideally be present)
             salary_package_record, found_record = await self._get_or_create_salary_package_record(
-                request.employee_id, request.tax_year, organization_id
+                request.employee_id, request.tax_year, current_user
             )
-            
             if not found_record:
                 logger.warning(f"Salary package record not found for employee {request.employee_id} in {request.tax_year}, created new one")
-            
-            # Update perquisites in salary package record
             salary_package_record.perquisites = perquisites
             salary_package_record.updated_at = datetime.utcnow()
-            
-            # Save to database using salary package repository
-            await self.salary_package_repository.save(salary_package_record, organization_id)
-            
+            await self.salary_package_repository.save(salary_package_record, current_user.hostname)
             return ComponentUpdateResponse(
                 taxation_id=salary_package_record.salary_package_id,
                 employee_id=request.employee_id,
@@ -1179,7 +1085,6 @@ class UnifiedTaxationController:
                 updated_at=salary_package_record.updated_at,
                 notes=request.notes
             )
-            
         except Exception as e:
             logger.error(f"Failed to update perquisites component: {str(e)}")
             raise
@@ -1187,16 +1092,19 @@ class UnifiedTaxationController:
     async def update_deductions_component(
         self,
         request: "UpdateDeductionsComponentRequest",
-        organization_id: str
+        current_user: CurrentUser
     ) -> "ComponentUpdateResponse":
-        """Update deductions component individually using SalaryPackageRecord."""
-        
+        """Update deductions component individually using SalaryPackageRecord.
+        Args:
+            request: UpdateDeductionsComponentRequest
+            current_user: Current authenticated user with organisation context
+        Returns:
+            ComponentUpdateResponse
+        """
         try:
             logger.info(f"Starting deductions component update for employee {request.employee_id}, tax_year {request.tax_year}")
             logger.info(f"Deductions data received: {request.deductions}")
             logger.debug(f"Full request data: {request}")
-            
-            # Convert DTO to entity
             if request.deductions is None:
                 logger.info("No deductions data provided, creating default deductions")
                 deductions = self._create_default_deductions()
@@ -1204,53 +1112,37 @@ class UnifiedTaxationController:
                 logger.info("Converting deductions DTO to entity")
                 deductions = self._convert_comprehensive_deductions_dto_to_entity(request.deductions)
                 logger.debug(f"Converted deductions entity - Section 80C total: {deductions.section_80c.calculate_total_investment()}")
-
-            # Get or create salary package record (it should ideally be present)
             logger.info(f"Getting or creating salary package record for employee {request.employee_id}")
             salary_package_record, found_record = await self._get_or_create_salary_package_record(
-                request.employee_id, request.tax_year, organization_id
+                request.employee_id, request.tax_year, current_user
             )
-            
             if not found_record:
                 logger.warning(f"Salary package record not found for employee {request.employee_id} in {request.tax_year}, created new one")
             else:
                 logger.info(f"Found existing salary package record with ID: {salary_package_record.salary_package_id}")
-
-            # Log existing deductions before update
-            # Calculate gross income for deduction calculations
             gross_income = salary_package_record.calculate_gross_income()
-            existing_deductions_total = salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income)
+            existing_deductions_total = salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income, salary_package_record.get_pf_employee_contribution())
             logger.info(f"Existing deductions total before update: {existing_deductions_total}")
-            
-            # Update deductions using the salary package record's method
             logger.info("Updating deductions on salary package record")
             salary_package_record.update_deductions(deductions)
             salary_package_record.updated_at = datetime.utcnow()
-            
-            # Log new deductions after update
-            new_deductions_total = salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income) 
+            new_deductions_total = salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income, salary_package_record.get_pf_employee_contribution()) 
             logger.info(f"New deductions total after update: {new_deductions_total}")
-            
-            # Save to database using salary package repository
-            logger.info(f"Saving salary package record to database for organization {organization_id}")
-            saved_record = await self.salary_package_repository.save(salary_package_record, organization_id)
+            logger.info(f"Saving salary package record to database for organisation {current_user.hostname}")
+            saved_record = await self.salary_package_repository.save(salary_package_record, current_user.hostname)
             logger.info(f"Successfully saved salary package record. Returned record ID: {saved_record.salary_package_id}")
-            
-            # Verify the save by attempting to read back
             logger.info("Verifying save operation by reading back the record")
             verification_record = await self.salary_package_repository.get_salary_package_record(
-                request.employee_id, request.tax_year, organization_id
+                request.employee_id, request.tax_year, current_user
             )
             if verification_record:
-                # Calculate gross income for verification record
                 verify_gross_income = verification_record.calculate_gross_income()
-                verify_deductions_total = verification_record.deductions.calculate_total_deductions(verification_record.regime, verification_record.age, verify_gross_income)
+                verify_deductions_total = verification_record.deductions.calculate_total_deductions(verification_record.regime, verification_record.age, verify_gross_income, verification_record.get_pf_employee_contribution())
                 logger.info(f"Verification successful - Deductions total in database: {verify_deductions_total}")
                 if verify_deductions_total != new_deductions_total:
                     logger.error(f"MISMATCH: Expected {new_deductions_total}, but found {verify_deductions_total} in database")
             else:
                 logger.error("VERIFICATION FAILED: Could not read back the saved record from database")
-            
             return ComponentUpdateResponse(
                 taxation_id=salary_package_record.salary_package_id,
                 employee_id=request.employee_id,
@@ -1261,7 +1153,6 @@ class UnifiedTaxationController:
                 updated_at=salary_package_record.updated_at,
                 notes=request.notes
             )
-            
         except Exception as e:
             logger.error(f"Failed to update deductions component: {str(e)}")
             raise
@@ -1269,7 +1160,7 @@ class UnifiedTaxationController:
     async def update_house_property_component(
         self,
         request: "UpdateHousePropertyComponentRequest",
-        organization_id: str
+        current_user: CurrentUser
     ) -> "ComponentUpdateResponse":
         """Update house property component individually using SalaryPackageRecord."""
         
@@ -1279,7 +1170,7 @@ class UnifiedTaxationController:
             
             # Get or create salary package record (it should ideally be present)
             salary_package_record, found_record = await self._get_or_create_salary_package_record(
-                request.employee_id, request.tax_year, organization_id
+                request.employee_id, request.tax_year, current_user
             )
             
             if not found_record:
@@ -1294,7 +1185,7 @@ class UnifiedTaxationController:
             salary_package_record.updated_at = datetime.utcnow()
             
             # Save to database using salary package repository
-            await self.salary_package_repository.save(salary_package_record, organization_id)
+            await self.salary_package_repository.save(salary_package_record, current_user.hostname)
             
             return ComponentUpdateResponse(
                 taxation_id=salary_package_record.salary_package_id,
@@ -1314,7 +1205,7 @@ class UnifiedTaxationController:
     async def update_capital_gains_component(
         self,
         request: "UpdateCapitalGainsComponentRequest",
-        organization_id: str
+        current_user: CurrentUser
     ) -> "ComponentUpdateResponse":
         """Update capital gains component individually using SalaryPackageRecord."""
         
@@ -1324,7 +1215,7 @@ class UnifiedTaxationController:
             
             # Get or create salary package record (it should ideally be present)
             salary_package_record, found_record = await self._get_or_create_salary_package_record(
-                request.employee_id, request.tax_year, organization_id
+                request.employee_id, request.tax_year, current_user
             )
             
             if not found_record:
@@ -1339,7 +1230,7 @@ class UnifiedTaxationController:
             salary_package_record.updated_at = datetime.utcnow()
             
             # Save to database using salary package repository
-            await self.salary_package_repository.save(salary_package_record, organization_id)
+            await self.salary_package_repository.save(salary_package_record, current_user.hostname)
             
             return ComponentUpdateResponse(
                 taxation_id=salary_package_record.salary_package_id,
@@ -1359,7 +1250,7 @@ class UnifiedTaxationController:
     async def update_retirement_benefits_component(
         self,
         request: "UpdateRetirementBenefitsComponentRequest",
-        organization_id: str
+        current_user: CurrentUser
     ) -> "ComponentUpdateResponse":
         """Update retirement benefits component individually using SalaryPackageRecord."""
         
@@ -1369,7 +1260,7 @@ class UnifiedTaxationController:
             
             # Get or create salary package record (it should ideally be present)
             salary_package_record, found_record = await self._get_or_create_salary_package_record(
-                request.employee_id, request.tax_year, organization_id
+                request.employee_id, request.tax_year, current_user.hostname
             )
             
             if not found_record:
@@ -1380,7 +1271,7 @@ class UnifiedTaxationController:
             salary_package_record.updated_at = datetime.utcnow()
             
             # Save to database using salary package repository
-            await self.salary_package_repository.save(salary_package_record, organization_id)
+            await self.salary_package_repository.save(salary_package_record, current_user.hostname)
             
             return ComponentUpdateResponse(
                 taxation_id=salary_package_record.salary_package_id,
@@ -1400,7 +1291,7 @@ class UnifiedTaxationController:
     async def update_other_income_component(
         self,
         request: "UpdateOtherIncomeComponentRequest",
-        organization_id: str
+        current_user: CurrentUser
     ) -> "ComponentUpdateResponse":
         """Update other income component individually using SalaryPackageRecord."""
         
@@ -1410,7 +1301,7 @@ class UnifiedTaxationController:
             
             # Get or create salary package record (it should ideally be present)
             salary_package_record, found_record = await self._get_or_create_salary_package_record(
-                request.employee_id, request.tax_year, organization_id
+                request.employee_id, request.tax_year, current_user
             )
             
             if not found_record:
@@ -1421,7 +1312,7 @@ class UnifiedTaxationController:
             salary_package_record.updated_at = datetime.utcnow()
             
             # Save to database using salary package repository
-            await self.salary_package_repository.save(salary_package_record, organization_id)
+            await self.salary_package_repository.save(salary_package_record, current_user.hostname)
             
             return ComponentUpdateResponse(
                 taxation_id=salary_package_record.salary_package_id,
@@ -1441,14 +1332,14 @@ class UnifiedTaxationController:
     async def update_monthly_payroll_component(
         self,
         request: "UpdateMonthlyPayrollComponentRequest",
-        organization_id: str
+        current_user: CurrentUser
     ) -> "ComponentUpdateResponse":
         """Update monthly payroll component individually."""
         
         try:
             # Get or create taxation record
             taxation_record = await self._get_or_create_taxation_record(
-                request.employee_id, request.tax_year, organization_id
+                request.employee_id, request.tax_year, current_user.hostname
             )
             
             # Convert DTO to entity
@@ -1459,7 +1350,7 @@ class UnifiedTaxationController:
             taxation_record.updated_at = datetime.utcnow()
             
             # Save to database
-            await self.taxation_repository.save(taxation_record, organization_id)
+            await self.taxation_repository.save(taxation_record, current_user.hostname)
             
             return ComponentUpdateResponse(
                 taxation_id=taxation_record.taxation_id,
@@ -1480,14 +1371,14 @@ class UnifiedTaxationController:
     async def is_regime_update_allowed(
         self,
         request: "IsRegimeUpdateAllowedRequest",
-        organization_id: str
+        current_user: CurrentUser
     ) -> "IsRegimeUpdateAllowedResponse":
         """Check if regime update is allowed."""
 
         try:
             # Get or create salary package record (it should ideally be present)
             salary_package_record, found_record = await self._get_or_create_salary_package_record(
-                request.employee_id, request.tax_year, organization_id
+                request.employee_id, request.tax_year, current_user.hostname
             )
             
             return IsRegimeUpdateAllowedResponse(
@@ -1503,14 +1394,14 @@ class UnifiedTaxationController:
     async def update_regime_component(
         self,
         request: "UpdateRegimeComponentRequest",
-        organization_id: str
+        current_user: CurrentUser
     ) -> "ComponentUpdateResponse":
         """Update tax regime component individually."""
         
         try:
             # Get or create salary package record (it should ideally be present)
             salary_package_record, found_record = await self._get_or_create_salary_package_record(
-                request.employee_id, request.tax_year, organization_id
+                request.employee_id, request.tax_year, current_user.hostname
             )
 
             if not salary_package_record.is_regime_update_allowed:
@@ -1524,7 +1415,7 @@ class UnifiedTaxationController:
             salary_package_record.is_regime_update_allowed = False
             
             # Save to database
-            await self.salary_package_repository.save(salary_package_record, organization_id)
+            await self.salary_package_repository.save(salary_package_record, current_user.hostname)
 
             return ComponentUpdateResponse( 
                 taxation_id=salary_package_record.salary_package_id,
@@ -1546,14 +1437,14 @@ class UnifiedTaxationController:
         employee_id: str,
         tax_year: str,
         component_type: str,
-        organization_id: str
+        current_user: CurrentUser
     ) -> "ComponentResponse":
         """Get a specific component from salary package record."""
         
         try:
             # Get or create salary package record instead of taxation record
             salary_package_record, found_record = await self._get_or_create_salary_package_record(
-                employee_id, tax_year, organization_id
+                employee_id, tax_year, current_user.hostname
             )
             
             # Extract component data based on type
@@ -1572,45 +1463,6 @@ class UnifiedTaxationController:
         except Exception as e:
             logger.error(f"Failed to get component {component_type}: {str(e)}")
             raise
-    
-    # async def get_taxation_record_status(
-    #     self,
-    #     employee_id: str,
-    #     tax_year: str,
-    #     organization_id: str
-    # ) -> "TaxationRecordStatusResponse":
-    #     """Get status of all components in a taxation record."""
-        
-    #     try:
-    #         # Get taxation record
-    #         taxation_record = await self.taxation_repository.get_taxation_record(
-    #             employee_id, tax_year, organization_id
-    #         )
-            
-    #         if not taxation_record:
-    #             raise ValueError(f"Taxation record not found for employee {employee_id} and tax year {tax_year}")
-            
-    #         # Build components status
-    #         components_status = self._build_components_status(taxation_record)
-            
-    #         # Determine overall status
-    #         overall_status = self._determine_overall_status(components_status)
-            
-    #         return TaxationRecordStatusResponse(
-    #             taxation_id=taxation_record.taxation_id,
-    #             employee_id=employee_id,
-    #             tax_year=tax_year,
-    #             regime_type=taxation_record.regime.regime_type.value,
-    #             age=taxation_record.age,
-    #             components_status=components_status,
-    #             overall_status=overall_status,
-    #             last_updated=taxation_record.updated_at,
-    #             is_final=taxation_record.is_final
-    #         )
-            
-    #     except Exception as e:
-    #         logger.error(f"Failed to get taxation record status: {str(e)}")
-    #         raise
     
     def _extract_component_data_from_salary_package(self, salary_package_record: SalaryPackageRecord, component_type: str) -> Dict[str, Any]:
         """Extract component data from salary package record."""
@@ -1674,8 +1526,12 @@ class UnifiedTaxationController:
                 "basic_salary": salary.basic_salary.to_float(),
                 "special_allowance": salary.special_allowance.to_float(),
                 "hra_provided": salary.hra_provided.to_float(),
-                "bonus": salary.bonus.to_float(),
-                "commission": salary.commission.to_float()
+                "commission": salary.commission.to_float(),
+                "pf_employee_contribution": salary.pf_employee_contribution.to_float(),
+                "pf_employer_contribution": salary.pf_employer_contribution.to_float(),
+                "esi_contribution": salary.esi_contribution.to_float(),
+                "pf_voluntary_contribution": salary.pf_voluntary_contribution.to_float(),
+                "pf_total_contribution": salary.pf_total_contribution.to_float()
             }
             for i, salary in enumerate(salary_package_record.salary_incomes)
         ]
@@ -1722,13 +1578,19 @@ class UnifiedTaxationController:
             "dearness_allowance": float(salary_income.dearness_allowance.amount),
             "hra_provided": float(salary_income.hra_provided.amount),
             "special_allowance": float(salary_income.special_allowance.amount),
-            "bonus": float(salary_income.bonus.amount),
             "commission": float(salary_income.commission.amount),
+            # Add effective dates for frontend to pre-populate
+            "effective_from": salary_income.effective_from.isoformat() if salary_income.effective_from else None,
+            "effective_till": salary_income.effective_till.isoformat() if salary_income.effective_till else None,
             # HRA details are now in deductions module, not salary
             "hra_city_type": "metro",  # Default value for frontend compatibility
             "actual_rent_paid": 0.0,   # Default value for frontend compatibility
+            "pf_employee_contribution": float(salary_income.pf_employee_contribution.amount),
+            "pf_employer_contribution": float(salary_income.pf_employer_contribution.amount),
+            "esi_contribution": float(salary_income.esi_contribution.amount),
+            "pf_voluntary_contribution": float(salary_income.pf_voluntary_contribution.amount)
         }
-        
+
         # Add specific allowances if available
         if salary_income.specific_allowances:
             specific_allowances_data = {
@@ -1937,11 +1799,11 @@ class UnifiedTaxationController:
             return {
                 "hra_exemption": {"actual_rent_paid": 0.0, "hra_city_type": "non_metro"},
                 "section_80c": {
-                    "life_insurance_premium": 0.0, "epf_contribution": 0.0, "ppf_contribution": 0.0,
+                    "life_insurance_premium": 0.0, "limit": 150000, "remaining_limit": 150000,
                     "nsc_investment": 0.0, "tax_saving_fd": 0.0, "elss_investment": 0.0,
                     "home_loan_principal": 0.0, "tuition_fees": 0.0, "ulip_premium": 0.0,
                     "sukanya_samriddhi": 0.0, "stamp_duty_property": 0.0, "senior_citizen_savings": 0.0,
-                    "other_80c_investments": 0.0, "total_invested": 0.0, "limit": 150000, "remaining_limit": 150000
+                    "other_80c_investments": 0.0, "total_invested": 0.0
                 },
                 "section_80ccc": {"pension_fund_contribution": 0.0},
                 "section_80ccd": {
@@ -2061,11 +1923,11 @@ class UnifiedTaxationController:
         """Serialize Section 80C details."""
         if not section_80c:
             return {
-                "life_insurance_premium": 0.0, "epf_contribution": 0.0, "ppf_contribution": 0.0,
+                "life_insurance_premium": 0.0, "limit": 150000, "remaining_limit": 150000,
                 "nsc_investment": 0.0, "tax_saving_fd": 0.0, "elss_investment": 0.0,
                 "home_loan_principal": 0.0, "tuition_fees": 0.0, "ulip_premium": 0.0,
                 "sukanya_samriddhi": 0.0, "stamp_duty_property": 0.0, "senior_citizen_savings": 0.0,
-                "other_80c_investments": 0.0, "total_invested": 0.0, "limit": 150000, "remaining_limit": 150000
+                "other_80c_investments": 0.0, "total_invested": 0.0
             }
         
         total_invested = float(section_80c.calculate_total_investment().amount)
@@ -2074,8 +1936,6 @@ class UnifiedTaxationController:
         
         return {
             "life_insurance_premium": float(section_80c.life_insurance_premium.amount),
-            "epf_contribution": float(section_80c.epf_contribution.amount),
-            "ppf_contribution": float(section_80c.ppf_contribution.amount),
             "nsc_investment": float(section_80c.nsc_investment.amount),
             "tax_saving_fd": float(section_80c.tax_saving_fd.amount),
             "elss_investment": float(section_80c.elss_investment.amount),
@@ -2245,7 +2105,7 @@ class UnifiedTaxationController:
         regime = TaxRegime(TaxRegimeType.OLD)
         
         # Use default values for age and gross_income since we don't have them in this context
-        total_deductions = float(deductions.calculate_total_deductions(regime, 30, Money.zero()).amount)
+        total_deductions = float(deductions.calculate_total_deductions(regime, 30, Money.zero(), Money.zero()).amount)
         total_interest_exemptions = float(deductions.calculate_interest_exemptions(regime).amount)
         combined_80c_80ccc_80ccd1 = float(deductions.calculate_combined_80c_80ccc_80ccd1_deduction(regime).amount)
         
@@ -2367,89 +2227,61 @@ class UnifiedTaxationController:
         
         return result
 
-    async def compute_monthly_tax(self, employee_id: str, organization_id: str) -> Dict[str, Any]:
+    async def compute_monthly_tax(self, employee_id: str, current_user: CurrentUser) -> Dict[str, Any]:
         """
         Compute monthly tax for an employee based on their salary package record.
-        
         Args:
             employee_id: Employee ID as string
-            organization_id: Organization ID for database segregation
-            
+            current_user: Current user context
         Returns:
             Dict[str, Any]: Monthly tax computation result with details
-            
         Raises:
             ValueError: If employee or salary data not found
             RuntimeError: If computation fails
         """
-        logger.debug(f"UnifiedTaxationController.compute_monthly_tax: Starting for employee {employee_id}, organization {organization_id}")
-        
+        logger.debug(f"UnifiedTaxationController.compute_monthly_tax: Starting for employee {employee_id}, organization {current_user.hostname}")
         try:
-            
-            # Check if enhanced_tax_service is available
             if not self.tax_calculation_service:
                 logger.error("UnifiedTaxationController.compute_monthly_tax: Enhanced tax service not configured")
                 raise RuntimeError("Enhanced tax service not configured")
-            
-            # Use the enhanced tax service to compute monthly tax with details
             result = await self.tax_calculation_service.compute_monthly_tax_with_details(
-                employee_id, organization_id
+                employee_id, current_user
             )
-            
             logger.debug(f"UnifiedTaxationController.compute_monthly_tax: Successfully received result from enhanced tax service")
             logger.debug(f"UnifiedTaxationController.compute_monthly_tax: Result keys: {list(result.keys())}")
             logger.debug(f"UnifiedTaxationController.compute_monthly_tax: Monthly tax liability: {result.get('monthly_tax_liability', 'Not found')}")
-            
             return result
-            
         except ValueError as e:
             logger.error(f"UnifiedTaxationController.compute_monthly_tax: Validation error for employee {employee_id}: {str(e)}")
-            # Re-raise validation errors
             raise e
         except Exception as e:
             logger.error(f"UnifiedTaxationController.compute_monthly_tax: Unexpected error for employee {employee_id}: {str(e)}", exc_info=True)
-            # Wrap other errors
             raise RuntimeError(f"Failed to compute monthly tax for employee {employee_id}: {str(e)}")
-    
+
     async def compute_monthly_salary(
         self, 
         request: MonthlySalaryComputeRequestDTO,
-        organization_id: str
+        current_user: CurrentUser
     ) -> MonthlySalaryResponseDTO:
         """
         Compute monthly salary for an employee.
-        
-        This method:
-        1. Uses the monthly salary computation use case
-        2. Creates a MonthlySalary entity with current month's data
-        3. Computes monthly salary components including deductions
-        4. Calculates tax liability for the month
-        5. Returns the computed monthly salary details
-        
         Args:
             request: Monthly salary computation request
-            organization_id: Organization ID for multi-tenancy
-            
+            current_user: Current user context
         Returns:
             MonthlySalaryResponseDTO: Computed monthly salary details
-            
         Raises:
             ValueError: If employee or salary package not found
             RuntimeError: If computation fails
         """
-        
         logger.debug(f"Computing monthly salary for employee {request.employee_id}")
-        logger.debug(f"Month: {request.month}, Year: {request.year}, Tax Year: {request.tax_year}")
-        
+        logger.debug(f"Month: {request.month}, Tax Year: {request.tax_year}")
         try:
-            # Use the monthly salary computation use case
             result = await self.compute_monthly_salary_use_case.execute(
-                request, organization_id
+                request, current_user
             )
-            
             logger.info(f"Successfully computed monthly salary for employee {request.employee_id}")
             return result
-            
         except Exception as e:
             logger.error(f"Failed to compute monthly salary for employee {request.employee_id}: {str(e)}")
             raise
@@ -2568,7 +2400,6 @@ class UnifiedTaxationController:
             ("Tax Year", str(salary_package_record.tax_year)),
             ("Age", salary_package_record.age),
             ("Tax Regime", salary_package_record.regime.regime_type.value),
-            ("Organization ID", salary_package_record.organization_id or "N/A"),
             ("Is Government Employee", "Yes" if salary_package_record.is_government_employee else "No"),
             ("Is Final", "Yes" if salary_package_record.is_final else "No"),
             ("Salary Revisions Count", len(salary_package_record.salary_incomes)),
@@ -2646,8 +2477,11 @@ class UnifiedTaxationController:
                 components.get("dearness_allowance", 0),
                 components.get("hra_provided", 0),
                 components.get("special_allowance", 0),
-                components.get("bonus", 0),
                 components.get("commission", 0),
+                components.get("pf_employee_contribution", 0),
+                components.get("pf_employer_contribution", 0),
+                components.get("esi_contribution", 0),
+                components.get("pf_voluntary_contribution", 0),
                 total_specific,
                 period.get("monthly_gross_salary", 0),
                 period.get("total_for_period", 0)
@@ -2723,8 +2557,11 @@ class UnifiedTaxationController:
             ("Dearness Allowance", annual_salary.dearness_allowance.to_float()),
             ("HRA Provided", annual_salary.hra_provided.to_float()),
             ("Special Allowance", annual_salary.special_allowance.to_float()),
-            ("Bonus", annual_salary.bonus.to_float()),
             ("Commission", annual_salary.commission.to_float()),
+            ("PF Employee Contribution", annual_salary.pf_employee_contribution.to_float()),
+            ("PF Employer Contribution", annual_salary.pf_employer_contribution.to_float()),
+            ("ESI Contribution", annual_salary.esi_contribution.to_float()),
+            ("PF Voluntary Contribution", annual_salary.pf_voluntary_contribution.to_float()),
         ]
         
         row = 2
@@ -3041,7 +2878,7 @@ class UnifiedTaxationController:
         row += 1  # Empty row
         # Calculate gross income for deduction calculations
         gross_income = salary_package_record.calculate_gross_income()
-        total_deductions = deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income).to_float()
+        total_deductions = deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income, salary_package_record.get_pf_employee_contribution()).to_float()
         ws.cell(row=row, column=2, value="TOTAL DEDUCTIONS").border = border
         ws.cell(row=row, column=2).font = Font(bold=True)
         ws.cell(row=row, column=3, value=f"₹{total_deductions:,.2f}").border = border
@@ -3326,8 +3163,11 @@ class UnifiedTaxationController:
             ("Basic Salary", annual_salary.basic_salary.to_float()),
             ("Dearness Allowance", annual_salary.dearness_allowance.to_float()),
             ("HRA Provided", annual_salary.hra_provided.to_float()),
+            ("PF Employee Contribution", annual_salary.pf_employee_contribution.to_float()),
+            ("PF Employer Contribution", annual_salary.pf_employer_contribution.to_float()),
+            ("ESI Contribution", annual_salary.esi_contribution.to_float()),
+            ("PF Voluntary Contribution", annual_salary.pf_voluntary_contribution.to_float()),
             ("Special Allowance", annual_salary.special_allowance.to_float()),
-            ("Bonus", annual_salary.bonus.to_float()),
             ("Commission", annual_salary.commission.to_float()),
         ]
         
@@ -3532,7 +3372,7 @@ class UnifiedTaxationController:
         current_row += 1
         # Calculate gross income for deduction calculation
         gross_income = salary_package_record.calculate_gross_income()
-        total_deductions = deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income).to_float()
+        total_deductions = deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income, salary_package_record.get_pf_employee_contribution()).to_float()
         ws.cell(row=current_row, column=1, value="TOTAL DEDUCTIONS").border = border
         ws.cell(row=current_row, column=1).font = Font(bold=True)
         ws.cell(row=current_row, column=2, value=f"₹{total_deductions:,.2f}").border = border
@@ -3583,46 +3423,33 @@ class UnifiedTaxationController:
         employee_id: str,
         month: int,
         year: int,
-        organization_id: str
+        current_user: CurrentUser
     ) -> MonthlySalaryResponseDTO:
         """
         Get monthly salary for an employee for a specific month and year.
-        
         Args:
             employee_id: Employee ID
             month: Month number (1-12)
             year: Year
-            organization_id: Organization ID for multi-tenancy
-            
+            current_user: Current user context
         Returns:
             MonthlySalaryResponseDTO: Monthly salary details
-            
         Raises:
             ValueError: If salary not found
         """
-        
         logger.info(f"Getting monthly salary for employee {employee_id}, month {month}, year {year}")
-        
         try:
-            # Get monthly salary from repository
-            monthly_salary = await self.monthly_salary_repository.get_by_employee_month_year(
-                employee_id, month, year, organization_id
+            monthly_salary = await self.salary_package_repository.get_by_employee_month_year(
+                employee_id, month, year, current_user.hostname
             )
-            
             if not monthly_salary:
                 raise ValueError(f"Monthly salary not found for employee {employee_id}, month {month}, year {year}")
-            
-            # Get user details
             from app.domain.value_objects.employee_id import EmployeeId
             employee_id_vo = EmployeeId(employee_id)
-            user = await self.user_repository.get_by_id(employee_id_vo, organization_id)
-            
-            # Convert entity to DTO
+            user = await self.user_repository.get_by_id(employee_id_vo, current_user.hostname)
             response = self._convert_monthly_salary_entity_to_dto(monthly_salary, user)
-            
             logger.info(f"Successfully retrieved monthly salary for employee {employee_id}")
             return response
-            
         except Exception as e:
             logger.error(f"Failed to get monthly salary for employee {employee_id}: {str(e)}")
             raise
@@ -3631,7 +3458,7 @@ class UnifiedTaxationController:
         self,
         month: int,
         year: int,
-        organization_id: str,
+        current_user: CurrentUser,
         salary_status: Optional[str] = None,
         department: Optional[str] = None,
         skip: int = 0,
@@ -3639,69 +3466,40 @@ class UnifiedTaxationController:
     ) -> Dict[str, Any]:
         """
         Get all monthly salaries for a specific month and year with filtering and pagination.
-        
         Args:
             month: Month number (1-12)
             year: Year
-            organization_id: Organization ID for multi-tenancy
-            status: Optional status filter
+            current_user: Current user context
+            salary_status: Optional salary status filter
             department: Optional department filter
-            skip: Number of records to skip
-            limit: Maximum number of records to return
-            
+            skip: Pagination skip
+            limit: Pagination limit
         Returns:
-            Dict containing list of monthly salaries and pagination info
+            Dict[str, Any]: Paginated salary details
         """
-        
-        logger.info(f"Getting monthly salaries for period: month {month}, year {year}")
-        
+        logger.info(f"Getting monthly salaries for period: month {month}, year {year} (from SalaryPackageRecord)")
         try:
-            # Get monthly salaries from repository
-            monthly_salaries = await self.monthly_salary_repository.get_by_month_year(
-                month, year, organization_id, limit, skip
+            monthly_salaries = await self.salary_package_repository.get_monthly_salaries_for_period(
+                month, year, current_user.hostname, status=salary_status, department=department, skip=skip, limit=limit
             )
-            
-            # Apply filters if provided
             filtered_salaries = []
             for salary in monthly_salaries:
-                # Get user details for filtering
                 from app.domain.value_objects.employee_id import EmployeeId
                 employee_id_vo = EmployeeId(salary.employee_id.value)
-                user = await self.user_repository.get_by_id(employee_id_vo, organization_id)
-                
-                # Apply status filter
-                if salary_status and salary.status != salary_status:
+                user = await self.user_repository.get_by_id(employee_id_vo, current_user.hostname)
+                if salary_status and getattr(salary, 'status', None) != salary_status:
                     continue
-                
-                # Apply department filter
-                if department and user and user.department != department:
+                if department and user and getattr(user, 'department', None) != department:
                     continue
-                
-                filtered_salaries.append(salary)
-            
-            # Convert entities to DTOs
-            items = []
-            for salary in filtered_salaries:
-                from app.domain.value_objects.employee_id import EmployeeId
-                employee_id_vo = EmployeeId(salary.employee_id.value)
-                user = await self.user_repository.get_by_id(employee_id_vo, organization_id)
-                dto = self._convert_monthly_salary_entity_to_dto(salary, user)
-                items.append(dto)
-            
-            # Get total count for pagination
+                filtered_salaries.append((salary, user))
+            items = [self._convert_monthly_salary_entity_to_dto(salary, user) for salary, user in filtered_salaries]
             total = len(filtered_salaries)
-            
-            result = {
+            return {
                 "items": items,
                 "total": total,
-                "skip": skip,
-                "limit": limit,
-                "has_more": (skip + limit) < total
+                "month": month,
+                "year": year
             }
-            
-            logger.info(f"Successfully retrieved {len(items)} monthly salaries for period")
-            return result
-            
         except Exception as e:
             logger.error(f"Failed to get monthly salaries for period: {str(e)}")
             raise
@@ -3710,7 +3508,7 @@ class UnifiedTaxationController:
         self,
         month: int,
         year: int,
-        organization_id: str
+        current_user: CurrentUser
     ) -> Dict[str, Any]:
         """
         Get summary statistics for monthly salaries in a specific month and year.
@@ -3718,7 +3516,7 @@ class UnifiedTaxationController:
         Args:
             month: Month number (1-12)
             year: Year
-            organization_id: Organization ID for multi-tenancy
+            current_user: Current user context
             
         Returns:
             Dict containing summary statistics
@@ -3728,8 +3526,8 @@ class UnifiedTaxationController:
         
         try:
             # Get summary from repository
-            summary = await self.monthly_salary_repository.get_monthly_summary(
-                month, year, organization_id
+            summary = await self.salary_package_repository.get_monthly_summary(
+                month, year, current_user.hostname
             )
             
             logger.info(f"Successfully retrieved monthly salary summary")
@@ -3744,7 +3542,7 @@ class UnifiedTaxationController:
         employee_id: str,
         month: int,
         year: int,
-        organization_id: str
+        current_user: CurrentUser
     ) -> str:
         """
         Delete monthly salary record for an employee.
@@ -3753,7 +3551,7 @@ class UnifiedTaxationController:
             employee_id: Employee ID
             month: Month number (1-12)
             year: Year
-            organization_id: Organization ID for multi-tenancy
+            current_user: Current user context
             
         Returns:
             str: Success message
@@ -3766,16 +3564,16 @@ class UnifiedTaxationController:
         
         try:
             # Check if salary exists
-            exists = await self.monthly_salary_repository.exists(
-                employee_id, month, year, organization_id
+            exists = await self.salary_package_repository.exists(
+                employee_id, month, year, current_user.hostname
             )
             
             if not exists:
                 raise ValueError(f"Monthly salary not found for employee {employee_id}, month {month}, year {year}")
             
             # Delete the salary
-            deleted = await self.monthly_salary_repository.delete(
-                employee_id, month, year, organization_id
+            deleted = await self.salary_package_repository.delete(
+                employee_id, month, year, current_user.hostname
             )
             
             if not deleted:
@@ -3846,6 +3644,40 @@ class UnifiedTaxationController:
             logger.warning(f"Error extracting tax_regime value: {e}")
             tax_regime_value = "old_regime"  # Default fallback
 
+        # --- TDS status mapping ---
+        tds_status_entity = getattr(monthly_salary, 'tds_status', None)
+        tds_status_dto = None
+        if tds_status_entity:
+            # Map entity to DTO, handling both TDSStatus and TDSStatusDTO types
+            from app.application.dto.taxation_dto import TDSStatusDTO
+            ttl = getattr(tds_status_entity, 'total_tax_liability', None)
+            if hasattr(ttl, 'to_float'):
+                ttl_val = ttl.to_float()
+            else:
+                ttl_val = float(ttl) if ttl is not None else 0.0
+            tds_status_dto = TDSStatusDTO(
+                status=getattr(tds_status_entity, 'status', 'unpaid'),
+                challan_number=getattr(tds_status_entity, 'tds_challan_number', None),
+                total_tax_liability=ttl_val,
+                month=getattr(monthly_salary, 'month', None)
+            )
+
+        # Extract payout status fields
+        payout_status = getattr(monthly_salary, 'payout_status', None)
+        status = payout_status.status if payout_status else (getattr(monthly_salary, 'status', 'computed'))
+        comments = payout_status.comments if payout_status else None
+        transaction_id = payout_status.transaction_id if payout_status else None
+        transfer_date = payout_status.transfer_date.isoformat() if payout_status and payout_status.transfer_date else None
+
+        payout_status_dto = None
+        if payout_status:
+            payout_status_dto = PayoutStatusDTO(
+                status=payout_status.status,
+                comments=payout_status.comments,
+                transaction_id=payout_status.transaction_id,
+                transfer_date=payout_status.transfer_date
+            )
+
         return MonthlySalaryResponseDTO(
             employee_id=monthly_salary.employee_id.value,
             month=monthly_salary.month,
@@ -3865,10 +3697,14 @@ class UnifiedTaxationController:
             special_allowance=monthly_salary.salary.special_allowance.to_float(),
             transport_allowance=0.0,  # Not in current model
             medical_allowance=0.0,  # Not in current model
-            bonus=monthly_salary.salary.bonus.to_float(),
             commission=monthly_salary.salary.commission.to_float(),
             other_allowances=0.0,  # Would need to sum specific allowances
-            arrears=monthly_salary.salary.arrears.to_float(),
+            one_time_arrear=monthly_salary.one_time_arrear.to_float() if hasattr(monthly_salary, 'one_time_arrear') else 0.0,
+            one_time_bonus=monthly_salary.one_time_bonus.to_float() if hasattr(monthly_salary, 'one_time_bonus') else 0.0,
+            pf_employee_contribution=monthly_salary.salary.pf_employee_contribution.to_float(),
+            pf_employer_contribution=monthly_salary.salary.pf_employer_contribution.to_float(),
+            esi_contribution=monthly_salary.salary.esi_contribution.to_float(),
+            pf_voluntary_contribution=monthly_salary.salary.pf_voluntary_contribution.to_float(),
             
             # Deductions
             epf_employee=epf_employee.to_float(),
@@ -3900,9 +3736,8 @@ class UnifiedTaxationController:
             effective_working_days=working_days_info['effective_days'],
             
             # Status and metadata
-            status=monthly_salary.status if hasattr(monthly_salary, 'status') else "computed",
-            computation_date=monthly_salary.created_at.isoformat() if hasattr(monthly_salary, 'created_at') else None,
-            notes=None,
+            status=status,
+            notes=comments,
             remarks=None,
             created_at=monthly_salary.created_at.isoformat() if hasattr(monthly_salary, 'created_at') else datetime.now().isoformat(),
             updated_at=monthly_salary.updated_at.isoformat() if hasattr(monthly_salary, 'updated_at') else datetime.now().isoformat(),
@@ -3910,14 +3745,22 @@ class UnifiedTaxationController:
             updated_by=None,
             
             # Computation details
-            use_declared_values=False,  # Default value
-            computation_mode="actual",  # Default value
+            use_declared_values=getattr(monthly_salary, 'use_declared_values', False),
+            computation_mode=getattr(monthly_salary, 'computation_mode', 'actual'),
             computation_summary={
                 "gross_salary": gross_salary.to_float(),
                 "total_deductions": total_deductions.to_float(),
                 "net_salary": net_salary.to_float(),
                 "monthly_tax": tds.to_float()
-            }
+            },
+            tds_status=tds_status_dto,
+            lwp=LWPDetailsDTO(
+                month=monthly_salary.lwp.month,
+                year=monthly_salary.lwp.year,
+                lwp_days=monthly_salary.lwp.lwp_days,
+                working_days_in_month=monthly_salary.lwp.total_working_days
+            ) if monthly_salary.lwp else None,
+            payout_status=payout_status_dto,
         )
 
     def _calculate_monthly_epf(self, gross_salary):
@@ -3983,7 +3826,7 @@ class UnifiedTaxationController:
         self,
         employee_id: str,
         tax_year: str,
-        organization_id: str
+        current_user: CurrentUser
     ) -> Dict[str, Any]:
         """
         Process loan schedule for an employee.
@@ -3995,7 +3838,7 @@ class UnifiedTaxationController:
         Args:
             employee_id: Employee ID
             tax_year: Tax year
-            organization_id: Organization ID
+            current_user: Current user context
             
         Returns:
             Dict containing loan schedule information
@@ -4006,7 +3849,7 @@ class UnifiedTaxationController:
         try:
             # Get the salary package record
             salary_package_record, _ = await self._get_or_create_salary_package_record(
-                employee_id, tax_year, organization_id
+                employee_id, tax_year, current_user
             )
             
             # Extract loan information from perquisites
@@ -4089,7 +3932,7 @@ class UnifiedTaxationController:
     async def get_employee_salary_history(
         self,
         employee_id: str,
-        organization_id: str,
+        current_user: CurrentUser,
         limit: int = 100,
         offset: int = 0
     ) -> List[MonthlySalaryResponseDTO]:
@@ -4097,22 +3940,22 @@ class UnifiedTaxationController:
         Get all monthly salary records for an employee.
         Args:
             employee_id: Employee ID
-            organization_id: Organization ID for multi-tenancy
+            current_user: Current user context
             limit: Maximum number of records to return
             offset: Number of records to skip
         Returns:
             List of MonthlySalaryResponseDTO
         """
         try:
-            salary_entities = await self.monthly_salary_repository.get_by_employee(
-                employee_id, organization_id, limit=limit, offset=offset
+            salary_entities = await self.salary_package_repository.get_by_employee(
+                employee_id, current_user.hostname, limit=limit, offset=offset
             )
             # Optionally enrich with user info
             from app.domain.value_objects.employee_id import EmployeeId
             items = []
             for salary in salary_entities:
                 employee_id_vo = EmployeeId(salary.employee_id.value)
-                user = await self.user_repository.get_by_id(employee_id_vo, organization_id)
+                user = await self.user_repository.get_by_id(employee_id_vo, current_user.hostname)
                 dto = self._convert_monthly_salary_entity_to_dto(salary, user)
                 items.append(dto)
             return items
@@ -4125,7 +3968,7 @@ class UnifiedTaxationController:
         employee_id: str,
         month: int,
         year: int,
-        organization_id: str
+        current_user: CurrentUser
     ) -> bytes:
         """
         Download payslip for a specific month.
@@ -4133,11 +3976,11 @@ class UnifiedTaxationController:
         """
         try:
             # Get salary record
-            salary_record = await self.monthly_salary_repository.get_by_employee_month_year(
+            salary_record = await self.salary_package_repository.get_by_employee_month_year(
                 employee_id=employee_id,
                 month=month,
                 year=year,
-                organization_id=organization_id
+                current_user=current_user
             )
             if not salary_record:
                 raise HTTPException(
@@ -4146,7 +3989,7 @@ class UnifiedTaxationController:
                 )
             # Fetch organisation for logo and details
             from app.domain.value_objects.organisation_id import OrganisationId
-            organisation = await self.organisation_repository.get_by_id(OrganisationId(organization_id))
+            organisation = await self.organisation_repository.get_by_id(OrganisationId(current_user.hostname))
             logo_path = None
             organisation_details = {
                 'name': 'COMPANY NAME',
@@ -4183,7 +4026,7 @@ class UnifiedTaxationController:
             
             # Fetch user details for employee information
             from app.domain.value_objects.employee_id import EmployeeId
-            user = await self.user_repository.get_by_id(EmployeeId(employee_id), organization_id)
+            user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
             user_details = {
                 'name': 'N/A',
                 'department': 'N/A',
@@ -4238,6 +4081,8 @@ class UnifiedTaxationController:
         esi_employee = self._calculate_monthly_esi(gross_salary)
         professional_tax = self._calculate_monthly_professional_tax(gross_salary)
         tds = salary_record.tax_amount
+        one_time_arrear = salary_record.one_time_arrear.to_float()
+        one_time_bonus = salary_record.one_time_bonus.to_float()
 
         total_deductions = epf_employee.add(esi_employee).add(professional_tax).add(tds)
         net_salary = self._safe_subtract(gross_salary, total_deductions)
@@ -4271,17 +4116,16 @@ class UnifiedTaxationController:
         House Rent Allowance: ₹{s.hra_provided.to_float():,.2f}
         Special Allowance: ₹{s.special_allowance.to_float():,.2f}
         Transport Allowance: ₹{0.0:,.2f}
-        Bonus: ₹{s.bonus.to_float():,.2f}
         Commission: ₹{s.commission.to_float():,.2f}
         Other Allowances: ₹{specific_allowances_total:,.2f}
-        Arrears: ₹{s.arrears.to_float():,.2f}
-
+        Bonus: ₹{one_time_bonus:,.2f}
+        Arrears: ₹{one_time_arrear:,.2f}
         Total Earnings: ₹{gross_salary.to_float():,.2f}
 
         Deductions:
         -----------
-        EPF Employee: ₹{epf_employee.to_float():,.2f}
-        ESI Employee: ₹{esi_employee.to_float():,.2f}
+        EPF Employee: ₹{s.pf_employee_contribution.to_float():,.2f}
+        EPF Voluntary: ₹{s.pf_voluntary_contribution.to_float():,.2f}
         Professional Tax: ₹{professional_tax.to_float():,.2f}
         TDS: ₹{tds.to_float():,.2f}
         Advance Deduction: ₹{0.0:,.2f}
@@ -4574,4 +4418,105 @@ class UnifiedTaxationController:
         pdf_bytes = buffer.getvalue()
         buffer.close()
         return pdf_bytes
+
+    async def update_monthly_salary_status(self, request: dict, current_user) -> 'MonthlySalaryResponseDTO':
+        """
+        Update the status of a monthly salary record with validation and audit.
+        """
+        from fastapi import HTTPException, status as http_status
+        from datetime import datetime
+        from app.domain.value_objects.employee_id import EmployeeId
+        from app.domain.value_objects.tax_year import TaxYear
+        from app.domain.value_objects.money import Money
+
+        # Extract and validate input
+        employee_id = request.get('employee_id')
+        month = request.get('month')
+        year = request.get('year')
+        new_status = request.get('payout_status')
+        comments = request.get('comments')
+        transaction_id = request.get('transaction_id')
+        transfer_date = request.get('transfer_date')
+        tds_status = request.get('tds_status')
+        challan_number = request.get('challan_number')
+
+        # Role check
+        user_role = getattr(current_user, 'role', '').lower()
+        if user_role not in ['admin', 'superadmin']:
+            raise HTTPException(status_code=http_status.HTTP_403_FORBIDDEN, detail='Only admin or superadmin can update salary status.')
+
+        # Comments required
+        if not comments or not str(comments).strip():
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail='Comments are required for status update.')
+
+        # Find the salary package record
+        tax_year = request.get('tax_year')
+        if not tax_year:
+            raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail='tax_year is required.')
+        salary_package_record = await self.salary_package_repository.get_salary_package_record(employee_id, tax_year, current_user.hostname)
+        if not salary_package_record:
+            raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail='Salary package record not found.')
+
+        # Find the monthly salary record
+        ms = None
+        for rec in salary_package_record.monthly_salary_records:
+            if rec.month == month and rec.year == year:
+                ms = rec
+                break
+        if not ms:
+            raise HTTPException(status_code=http_status.HTTP_404_NOT_FOUND, detail='Monthly salary record not found.')
+
+        # --- Handle payout_status (salary status) ---
+        if new_status:
+            # Allowed transitions
+            allowed = {
+                'computed': ['approved', 'rejected'],
+                'approved': ['transfer_initiated'],
+                'transfer_initiated': ['transferred'],
+            }
+            current_status = (getattr(ms.payout_status, 'status', None) or 'computed').lower()
+            if current_status == 'rejected':
+                raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail='Rejected is a final status.')
+            if new_status not in allowed.get(current_status, []):
+                raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail=f'Cannot transition from {current_status} to {new_status}.')
+
+            # For transferred, require transaction_id and transfer_date
+            if new_status == 'transferred':
+                if not transaction_id or not str(transaction_id).strip():
+                    raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail='Transaction ID is required for Transferred status.')
+                if not transfer_date or not str(transfer_date).strip():
+                    raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail='Transfer date is required for Transferred status.')
+                from datetime import date as dt_date
+                try:
+                    ms.payout_status.transfer_date = dt_date.fromisoformat(transfer_date)
+                except Exception:
+                    raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail='Invalid transfer date format. Use YYYY-MM-DD.')
+                ms.payout_status.transaction_id = transaction_id
+            else:
+                ms.payout_status.transaction_id = None
+                ms.payout_status.transfer_date = None
+
+            # Update status and comments
+            ms.payout_status.status = new_status
+            ms.payout_status.comments = comments
+
+        # --- Handle TDS status logic ---
+        if tds_status:
+            # Convert to TDSStatus object
+            paid = tds_status == 'paid'
+            tds_challan_number = challan_number if paid else None
+            ms.tds_status = TDSStatusDTO(
+                status=tds_status,
+                challan_number=challan_number,
+                month=month,
+                total_tax_liability=ms.tax_amount.to_float() if hasattr(ms, 'tax_amount') and hasattr(ms.tax_amount, 'to_float') else 0.0
+            )
+            ms.payout_status.comments = comments  # Optionally update comments for TDS status as well
+
+        salary_package_record.updated_at = datetime.utcnow()
+        await self.salary_package_repository.save(salary_package_record, current_user.hostname)
+
+        # Get user info for DTO
+        user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
+        return self._convert_monthly_salary_entity_to_dto(ms, user)
  

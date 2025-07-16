@@ -31,14 +31,18 @@ interface SalaryComponentData {
   basic_salary: number;
   dearness_allowance: number;
   hra_provided: number;
+  pf_employee_contribution: number;
+  pf_employer_contribution: number;
+  esi_contribution: number;
+  pf_voluntary_contribution: number;
   hra_city_type: string;
 
   special_allowance: number;
-  bonus: number;
   commission: number;
   
   // Effective date fields for salary revisions
   effective_from?: string;
+  effective_till?: string;
   
   // Additional allowances
   city_compensatory_allowance: number;
@@ -138,10 +142,13 @@ const initialSalaryData: SalaryComponentData = {
   basic_salary: 0,
   dearness_allowance: 0,
   hra_provided: 0,
+  pf_employee_contribution: 0,
+  pf_employer_contribution: 0,
+  esi_contribution: 0,
+  pf_voluntary_contribution: 0,
   hra_city_type: 'non_metro',
   
   special_allowance: 0,
-  bonus: 0,
   commission: 0,
   city_compensatory_allowance: 0,
   rural_allowance: 0,
@@ -219,7 +226,20 @@ const SalaryComponentForm: React.FC = () => {
       
       if (response && response.component_data) {
         // Extract the actual salary data from component_data
-        setSalaryData({ ...initialSalaryData, ...response.component_data } as SalaryComponentData);
+        const responseData = response.component_data;
+        
+        // Convert ISO date strings to YYYY-MM-DD format for HTML date inputs
+        const processedData = {
+          ...responseData,
+          effective_from: responseData.effective_from 
+            ? responseData.effective_from.split('T')[0]
+            : undefined,
+          effective_till: responseData.effective_till 
+            ? responseData.effective_till.split('T')[0]
+            : undefined
+        };
+        
+        setSalaryData({ ...initialSalaryData, ...processedData } as SalaryComponentData);
         showToast('Salary data loaded successfully', 'success');
       } else if (response) {
         // Fallback: if component_data doesn't exist, try using response directly
@@ -248,6 +268,33 @@ const SalaryComponentForm: React.FC = () => {
     return Math.round(baseAmount * defaultRate);
   }, [salaryData.basic_salary, salaryData.dearness_allowance]);
 
+  // Compute Employee PF based on basic salary and DA formula: (Basic+DA) * 0.12
+  const computeEmployeePF = useCallback((): number => {
+    const basic = salaryData.basic_salary || 0;
+    const da = salaryData.dearness_allowance || 0;
+    const baseAmount = basic + da;
+    const defaultRate = 0.12;
+    return Math.round(baseAmount * defaultRate);
+  }, [salaryData.basic_salary, salaryData.dearness_allowance]);
+
+  // Compute Employer PF based on basic salary and DA formula: (Basic+DA) * 0.12
+  const computeEmployerPF = useCallback((): number => {
+    const basic = salaryData.basic_salary || 0;
+    const da = salaryData.dearness_allowance || 0;
+    const baseAmount = basic + da;
+    const defaultRate = 0.0367;
+    return Math.round(baseAmount * defaultRate);
+  }, [salaryData.basic_salary, salaryData.dearness_allowance]);
+
+  // Compute ESI based on basic salary and DA formula: (Basic+DA) * 0.833
+  const computeESI = useCallback((): number => {
+    const basic = salaryData.basic_salary || 0;
+    const da = salaryData.dearness_allowance || 0;
+    const baseAmount = basic + da;
+    const defaultRate = 0.0833;
+    return Math.min(Math.round(baseAmount * defaultRate), 1250);
+  }, [salaryData.basic_salary, salaryData.dearness_allowance]);
+
   useEffect(() => {
     if (empId && !isNewRevision) {
       loadSalaryData();
@@ -265,6 +312,33 @@ const SalaryComponentForm: React.FC = () => {
       hra_provided: calculatedHRA
     }));
   }, [computeHRA]);
+
+  // Auto-calculate Employee PF when basic salary or DA changes
+  useEffect(() => {
+    const calculatedEmployeePF = computeEmployeePF();
+    setSalaryData(prev => ({
+      ...prev,
+      pf_employee_contribution: calculatedEmployeePF
+    }));
+  }, [computeEmployeePF]);
+
+  // Auto-calculate Employer PF when basic salary or DA changes
+  useEffect(() => {
+    const calculatedEmployerPF = computeEmployerPF();
+    setSalaryData(prev => ({
+      ...prev,
+      pf_employer_contribution: calculatedEmployerPF
+    }));
+  }, [computeEmployerPF]);
+
+  // Auto-calculate ESI when basic salary or DA changes
+  useEffect(() => {
+    const calculatedESI = computeESI();
+    setSalaryData(prev => ({
+      ...prev,
+      esi_contribution: calculatedESI
+    }));
+  }, [computeESI]);
 
   // Early return for authentication and authorization checks
   if (userRole === null) {
@@ -322,7 +396,7 @@ const SalaryComponentForm: React.FC = () => {
       setSaving(true);
       setError(null);
 
-      // Validation for new revision
+      // Validation for new revision - only require effective_from for new revisions
       if (isNewRevision && !salaryData.effective_from) {
         setError('Effective From date is required for new salary revision.');
         showToast('Please provide Effective From date for the new salary revision', 'error');
@@ -388,8 +462,11 @@ const SalaryComponentForm: React.FC = () => {
     const allowanceFields = [
       'dearness_allowance',
       'hra_provided', 
+      'pf_employee_contribution',
+      'pf_employer_contribution',
+      'pf_voluntary_contribution',
+      'esi_contribution',
       'special_allowance',
-      'bonus',
       'commission',
       'city_compensatory_allowance',
       'rural_allowance',
@@ -436,11 +513,16 @@ const SalaryComponentForm: React.FC = () => {
     {
       label: 'Basic Salary Components(Monthly)',
       fields: [
-        ...(isNewRevision ? [{ name: 'effective_from', label: 'Effective From Date', type: 'date', required: true } as DateField] : []),
+        // Show effective_from field for both new revisions and updates
+        { 
+          name: 'effective_from', 
+          label: isNewRevision ? 'Effective From Date' : 'Effective From Date (Optional)', 
+          type: 'date', 
+          required: isNewRevision  // Required only for new revisions
+        } as DateField,
         { name: 'basic_salary', label: 'Basic Salary', type: 'number' } as NumberField,
         { name: 'dearness_allowance', label: 'Dearness Allowance', type: 'number' } as NumberField,
         { name: 'special_allowance', label: 'Special Allowance', type: 'number' } as NumberField,
-        { name: 'bonus', label: 'Bonus', type: 'number' } as NumberField,
         { name: 'commission', label: 'Commission', type: 'number' } as NumberField
       ]
     },
@@ -448,6 +530,15 @@ const SalaryComponentForm: React.FC = () => {
       label: 'HRA Components(Monthly)',
       fields: [
         { name: 'hra_provided', label: 'HRA Provided (Auto-calculated)', type: 'number' } as NumberField
+      ]
+    },
+    {
+      label: 'PF Components(Monthly)',
+      fields: [
+        { name: 'pf_employee_contribution', label: 'Employee PF (Auto-calculated)', type: 'number' } as NumberField,
+        { name: 'pf_employer_contribution', label: 'Employer PF (Auto-calculated)', type: 'number' } as NumberField,
+        { name: 'esi_contribution', label: 'ESI (Auto-calculated)', type: 'number' } as NumberField,
+        { name: 'pf_voluntary_contribution', label: 'Voluntary PF', type: 'number' } as NumberField
       ]
     },
     {
@@ -592,14 +683,38 @@ const SalaryComponentForm: React.FC = () => {
               <Typography variant="h6">₹{salaryData.hra_provided.toLocaleString('en-IN')}</Typography>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="body2" color="text.secondary">Employee's contribution</Typography>
+              <Typography variant="h6">₹{salaryData.pf_employee_contribution.toLocaleString('en-IN')}</Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="body2" color="text.secondary">Employer's contribution</Typography>
+              <Typography variant="h6">₹{salaryData.pf_employer_contribution.toLocaleString('en-IN')}</Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="body2" color="text.secondary">ESI</Typography>
+              <Typography variant="h6">₹{salaryData.esi_contribution.toLocaleString('en-IN')}</Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="body2" color="text.secondary">Voluntary contribution</Typography>
+              <Typography variant="h6">₹{salaryData.pf_voluntary_contribution.toLocaleString('en-IN')}</Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
               <Typography variant="body2" color="text.secondary">Total Salary</Typography>
               <Typography variant="h6" color="primary">₹{calculateTotalSalary().toLocaleString('en-IN')}</Typography>
             </Grid>
-            {isNewRevision && salaryData.effective_from && (
+            {salaryData.effective_from && (
               <Grid item xs={12} sm={6} md={3}>
                 <Typography variant="body2" color="text.secondary">Effective From</Typography>
                 <Typography variant="h6" color="secondary">
-                  {new Date(salaryData.effective_from).toLocaleDateString('en-IN')}
+                  {new Date(salaryData.effective_from + "T12:00:00").toLocaleDateString('en-IN')}
+                </Typography>
+              </Grid>
+            )}
+            {salaryData.effective_till && (
+              <Grid item xs={12} sm={6} md={3}>
+                <Typography variant="body2" color="text.secondary">Effective Till</Typography>
+                <Typography variant="h6" color="secondary">
+                  {new Date(salaryData.effective_till + "T12:00:00").toLocaleDateString('en-IN')}
                 </Typography>
               </Grid>
             )}
@@ -680,7 +795,15 @@ const SalaryComponentForm: React.FC = () => {
                               helperText={
                                 field.name === 'hra_provided' 
                                   ? "Auto-calculated as (Basic + DA) × 50%. You can modify if needed." 
-                                  : undefined
+                                  : field.name === 'pf_employee_contribution' 
+                                    ? "Auto-calculated as (Basic + DA) × 12%. You can modify if needed." 
+                                    : field.name === 'pf_employer_contribution' 
+                                      ? "Auto-calculated as (Basic + DA) × 3.67%. You can modify if needed." 
+                                      : field.name === 'esi_contribution' 
+                                        ? "Auto-calculated as (Basic + DA) × 0.833%. You can modify if needed." 
+                                        : field.name === 'pf_voluntary_contribution' 
+                                          ? "You can modify if needed." 
+                                          : undefined
                               }
                             />
                           </Box>

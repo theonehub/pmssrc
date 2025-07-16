@@ -27,6 +27,7 @@ from app.application.interfaces.repositories.reimbursement_repository import (
 from app.application.interfaces.repositories.user_repository import UserQueryRepository
 from app.application.interfaces.services.event_publisher import EventPublisher
 from app.application.interfaces.services.notification_service import NotificationService
+from app.auth.auth_dependencies import CurrentUser
 
 
 logger = logging.getLogger(__name__)
@@ -63,8 +64,7 @@ class CreateReimbursementRequestUseCase:
     async def execute(
         self,
         request: ReimbursementRequestCreateDTO,
-        hostname: str,
-        created_by: str = "system"
+        current_user: CurrentUser
     ) -> ReimbursementResponseDTO:
         """
         Execute reimbursement request creation workflow.
@@ -79,6 +79,8 @@ class CreateReimbursementRequestUseCase:
         7. Return response
         """
         
+        created_by = current_user.username
+        
         try:
             logger.info(f"Creating reimbursement request for employee: {request.employee_id} by {created_by}")
             
@@ -86,13 +88,13 @@ class CreateReimbursementRequestUseCase:
             await self._validate_request(request)
             
             # Step 2: Check business rules
-            employee, reimbursement_type = await self._check_business_rules(request, hostname)
+            employee, reimbursement_type = await self._check_business_rules(request, current_user)
             
             # Step 3: Create domain objects
-            reimbursement = await self._create_domain_objects(request, created_by, hostname)
+            reimbursement = await self._create_domain_objects(request, created_by, current_user)
             
             # Step 4: Persist to repository
-            saved_reimbursement = await self._persist_entity(reimbursement, hostname)
+            saved_reimbursement = await self._persist_entity(reimbursement, current_user)
             
             # Step 5: Publish domain events
             await self._publish_events(saved_reimbursement)
@@ -127,12 +129,12 @@ class CreateReimbursementRequestUseCase:
         
         logger.info("Request validation passed")
     
-    async def _check_business_rules(self, request: ReimbursementRequestCreateDTO, hostname: str):
+    async def _check_business_rules(self, request: ReimbursementRequestCreateDTO, current_user: CurrentUser):
         """Check business rules for reimbursement request creation"""
         
         # Rule 1: Employee must exist and be active
         employee_id = EmployeeId.from_string(request.employee_id)
-        employee = await self.employee_repository.get_by_id(employee_id, hostname)
+        employee = await self.employee_repository.get_by_id(employee_id, current_user.hostname)
         if not employee:
             raise ReimbursementBusinessRuleError(
                 f"Employee with ID '{request.employee_id}' not found",
@@ -140,7 +142,7 @@ class CreateReimbursementRequestUseCase:
             )
         
         # Rule 2: Reimbursement type must exist and be active
-        reimbursement_type = await self.reimbursement_type_repository.get_by_id(request.reimbursement_type_id, hostname)
+        reimbursement_type = await self.reimbursement_type_repository.get_by_id(request.reimbursement_type_id, current_user.hostname)
         if not reimbursement_type:
             raise ReimbursementBusinessRuleError(
                 f"Reimbursement type with ID '{request.reimbursement_type_id}' not found",
@@ -171,14 +173,14 @@ class CreateReimbursementRequestUseCase:
         self,
         request: ReimbursementRequestCreateDTO,
         created_by: str,
-        hostname: str
+        current_user: CurrentUser
     ) -> Reimbursement:
         """Create domain objects from request"""
         
         employee_id = EmployeeId.from_string(request.employee_id)
         
         # Get reimbursement type entity for domain object creation
-        reimbursement_type_entity = await self.reimbursement_type_repository.get_by_id(request.reimbursement_type_id, hostname)
+        reimbursement_type_entity = await self.reimbursement_type_repository.get_by_id(request.reimbursement_type_id, current_user.hostname)
         
         # Convert entity to value object for domain entity creation
         from app.domain.value_objects.reimbursement_type import ReimbursementType as ReimbursementTypeVO
@@ -216,11 +218,11 @@ class CreateReimbursementRequestUseCase:
         
         return reimbursement
     
-    async def _persist_entity(self, reimbursement: Reimbursement, hostname: str) -> Reimbursement:
+    async def _persist_entity(self, reimbursement: Reimbursement, current_user: CurrentUser) -> Reimbursement:
         """Persist entity to repository"""
         
         try:
-            saved_reimbursement = await self.command_repository.save(reimbursement, hostname)
+            saved_reimbursement = await self.command_repository.save(reimbursement, current_user.hostname)
             logger.info(f"Persisted entity: {saved_reimbursement.reimbursement_id}")
             return saved_reimbursement
             

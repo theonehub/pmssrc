@@ -156,6 +156,10 @@ class User:
         user._is_existing_user = True
         return user
     
+    def get_age_in_years(self) -> int:
+        """Get age in years from personal details"""
+        return self.personal_details.get_age_in_years()
+
     # ==================== AUTHENTICATION METHODS ====================
     
     def authenticate(self, plain_password: str) -> bool:

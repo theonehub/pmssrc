@@ -17,12 +17,15 @@ from app.domain.value_objects.tax_regime import TaxRegime
 from app.domain.entities.taxation.salary_income import SalaryIncome, SpecificAllowances
 from app.domain.entities.taxation.deductions import TaxDeductions
 from app.domain.entities.taxation.perquisites import Perquisites
+from app.domain.entities.taxation.capital_gains import CapitalGainsIncome
 from app.domain.entities.taxation.house_property_income import HousePropertyIncome
 from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 from app.domain.entities.taxation.other_income import OtherIncome
-from app.domain.entities.taxation.payout import PayoutMonthlyProjection
 from app.domain.services.taxation.tax_calculation_service import TaxCalculationService, TaxCalculationResult
 from app.domain.value_objects.taxation.tax_regime import TaxRegimeType
+from app.domain.entities.taxation.monthly_salary import MonthlySalary
+from app.domain.entities.taxation.lwp_details import LWPDetails
+from app.domain.entities.taxation.monthly_salary_status import TDSStatus
 
 logger = get_logger(__name__)
 
@@ -54,22 +57,23 @@ class SalaryPackageRecord:
     # Optional components
     salary_incomes: List[SalaryIncome]
     annual_salary_income: Optional[SalaryIncome] = None
+    capital_gains_income: Optional[CapitalGainsIncome] = None
     perquisites: Optional[Perquisites] = None
     retirement_benefits: Optional[RetirementBenefits] = None
     other_income: Optional[OtherIncome] = None
     is_regime_update_allowed: Optional[bool] = True
-    arrears: List[Money] = field(default_factory=lambda: [Money.zero() for _ in range(12)])
+    
     is_government_employee: bool = False
     is_senior_citizen: bool = False
     is_super_senior_citizen: bool = False
     
     # Identifiers
     salary_package_id: Optional[str] = None
-    organization_id: Optional[str] = None
     
     # Calculated fields
     calculation_result: Optional[TaxCalculationResult] = None
     last_calculated_at: Optional[datetime] = None
+    monthly_salary_records: List[MonthlySalary] = field(default_factory=list)
     
     # Metadata
     is_final: bool = False
@@ -362,7 +366,6 @@ class SalaryPackageRecord:
                         "dearness_allowance": salary_income.dearness_allowance.to_float(),
                         "hra_provided": salary_income.hra_provided.to_float(),
                         "special_allowance": salary_income.special_allowance.to_float(),
-                        "bonus": salary_income.bonus.to_float(),
                         "commission": salary_income.commission.to_float(),
                         "specific_allowances_total": salary_income.specific_allowances.calculate_total_specific_allowances().to_float() if salary_income.specific_allowances else 0.0,
                         "specific_allowances_breakdown": {
@@ -583,8 +586,11 @@ class SalaryPackageRecord:
         weighted_dearness_allowance = Money.zero()
         weighted_hra_provided = Money.zero()
         weighted_special_allowance = Money.zero()
-        weighted_bonus = Money.zero()
         weighted_commission = Money.zero()
+        weighted_pf_employee_contribution = Money.zero()
+        weighted_pf_employer_contribution = Money.zero()
+        weighted_pf_voluntary_contribution = Money.zero()
+        weighted_esi_contribution = Money.zero()
         
         # Track weighted specific allowances
         weighted_specific_allowances = {}
@@ -624,11 +630,20 @@ class SalaryPackageRecord:
                 weighted_special_allowance = weighted_special_allowance.add(
                     salary_income.special_allowance.multiply(months_applicable)
                 )
-                weighted_bonus = weighted_bonus.add(
-                    salary_income.bonus.multiply(months_applicable)
-                )
                 weighted_commission = weighted_commission.add(
                     salary_income.commission.multiply(months_applicable)
+                )
+                weighted_pf_employee_contribution = weighted_pf_employee_contribution.add(
+                    salary_income.pf_employee_contribution.multiply(months_applicable)
+                )
+                weighted_pf_employer_contribution = weighted_pf_employer_contribution.add(
+                    salary_income.pf_employer_contribution.multiply(months_applicable)
+                )
+                weighted_pf_voluntary_contribution = weighted_pf_voluntary_contribution.add(
+                    salary_income.pf_voluntary_contribution.multiply(months_applicable)
+                )
+                weighted_esi_contribution = weighted_esi_contribution.add(
+                    salary_income.esi_contribution.multiply(months_applicable)
                 )
                 
                 # Handle specific allowances if present
@@ -654,8 +669,11 @@ class SalaryPackageRecord:
             annual_salary.dearness_allowance = weighted_dearness_allowance
             annual_salary.hra_provided = weighted_hra_provided
             annual_salary.special_allowance = weighted_special_allowance
-            annual_salary.bonus = weighted_bonus
             annual_salary.commission = weighted_commission
+            annual_salary.pf_employee_contribution = weighted_pf_employee_contribution
+            annual_salary.pf_employer_contribution = weighted_pf_employer_contribution
+            annual_salary.pf_voluntary_contribution = weighted_pf_voluntary_contribution
+            annual_salary.esi_contribution = weighted_esi_contribution
             
             # Update specific allowances with weighted totals
             if weighted_specific_allowances:
@@ -890,9 +908,22 @@ class SalaryPackageRecord:
             Money: Gross salary of the employee
         """
         total = self.get_annual_salary_income().calculate_gross_salary()
-        for arrear in self.arrears:
-            total = total.add(arrear)
+        logger.info(f"TheOne: Annual Salary Income: {total}")
+        ##compute one time arrear and one time bonus for all the MonthlySalary records
+        for monthly_salary in self.monthly_salary_records:
+            logger.info(f"Month    | Bonus   | Arrear")
+            logger.info(f"{monthly_salary.month} | {monthly_salary.one_time_bonus} | {monthly_salary.one_time_arrear}")
+            total = total.add(monthly_salary.one_time_arrear).add(monthly_salary.one_time_bonus)
+        logger.info(f"*********************************************************************************************************")
+        logger.info(f"Total: {total}")
+        logger.info(f"*********************************************************************************************************")
         return total
+    
+    def get_pf_employee_contribution(self) -> Money:
+        """
+        Get the PF employee contribution.
+        """
+        return self.get_annual_salary_income().get_pf_employee_contribution()
     
     def additional_tax_liability(self) -> Money:
         """
@@ -926,7 +957,9 @@ class SalaryPackageRecord:
         logger.info(f"TheOne: Total exemptions: {total_exemptions}")
 
         # Calculate total deductions
-        total_deductions = self.deductions.calculate_total_deductions(self.regime, self.age, gross_income)
+        total_deductions = self.deductions.calculate_total_deductions(self.regime, self.age, 
+                                gross_income, self.get_pf_employee_contribution())
+        
         logger.info(f"TheOne: Total deductions: {total_deductions}")
 
         income_after_exemptions = gross_income.subtract(total_exemptions)
@@ -1115,6 +1148,8 @@ class SalaryPackageRecord:
         
         # Salary exemptions (core) - use latest salary income
         total_exemptions = total_exemptions.add(self.annual_salary_income.calculate_total_exemptions(self.regime, self.is_government_employee))
+
+        total_exemptions = total_exemptions.add(self.regime.get_standard_deduction())
         
         # Retirement benefits exemptions
         if self.retirement_benefits:
@@ -1275,9 +1310,9 @@ class SalaryPackageRecord:
         
         # Calculate gross income for deduction calculations
         gross_income = self.calculate_gross_income()
-        old_deductions = self.deductions.calculate_total_deductions(self.regime, self.age, gross_income)
+        old_deductions = self.deductions.calculate_total_deductions(self.regime, self.age, gross_income, self.get_pf_employee_contribution())
         self.deductions = new_deductions
-        new_deductions_total = new_deductions.calculate_total_deductions(self.regime, self.age, gross_income)
+        new_deductions_total = new_deductions.calculate_total_deductions(self.regime, self.age, gross_income, self.get_pf_employee_contribution())
         
         # Invalidate calculation
         self._invalidate_calculation()
@@ -1528,7 +1563,7 @@ class SalaryPackageRecord:
         if self.regime.allows_deductions():
             # Check if deductions are underutilized
             gross_income = self.calculate_gross_income()
-            total_deductions = self.deductions.calculate_total_deductions(self.regime, self.age, gross_income)
+            total_deductions = self.deductions.calculate_total_deductions(self.regime, self.age, gross_income, self.get_pf_employee_contribution())
             if total_deductions.is_less_than(Money.from_int(100000)):  # Less than 1 lakh
                 warnings.append("Consider maximizing tax-saving investments under Section 80C")
             
@@ -1546,181 +1581,3 @@ class SalaryPackageRecord:
             warnings.append(f"Multiple salary revisions detected ({len(self.salary_incomes)} versions)")
         
         return warnings
-    
-    # Arrears management methods
-    def get_arrears_per_month(self, month: int) -> Money:
-        """
-        Get arrears for a specific month (1-12).
-        
-        Args:
-            month: Month number (1-12, where 1=April, 12=March)
-            
-        Returns:
-            Money: Arrears amount for the specified month
-            
-        Raises:
-            ValueError: If month is not between 1 and 12
-        """
-        if not 1 <= month <= 12:
-            raise ValueError("Month must be between 1 and 12")
-        
-        # Ensure arrears list has exactly 12 elements
-        self._ensure_arrears_list_size()
-        
-        return self.arrears[month - 1]  # Convert to 0-based index
-    
-    def set_arrears_for_month(self, month: int, amount: Money) -> None:
-        """
-        Set arrears for a specific month (1-12).
-        
-        Args:
-            month: Month number (1-12, where 1=April, 12=March)
-            amount: Arrears amount for the month
-            
-        Raises:
-            ValueError: If month is not between 1 and 12
-            ValueError: If record is finalized
-        """
-        if self.is_final:
-            raise ValueError("Cannot update finalized salary package record")
-        
-        if not 1 <= month <= 12:
-            raise ValueError("Month must be between 1 and 12")
-        
-        # Ensure arrears list has exactly 12 elements
-        self._ensure_arrears_list_size()
-        
-        old_amount = self.arrears[month - 1]
-        self.arrears[month - 1] = amount  # Convert to 0-based index
-        
-        # Invalidate calculation since arrears affect tax calculation
-        self._invalidate_calculation()
-        
-        # Raise domain event
-        self._add_domain_event({
-            "event_type": "ArrearsUpdated",
-            "employee_id": str(self.employee_id),
-            "tax_year": str(self.tax_year),
-            "month": month,
-            "old_arrears_amount": old_amount.to_float(),
-            "new_arrears_amount": amount.to_float(),
-            "updated_at": self.updated_at.isoformat()
-        })
-    
-    def get_total_arrears(self) -> Money:
-        """
-        Get total arrears for the entire financial year.
-        
-        Returns:
-            Money: Total arrears amount
-        """
-        # Ensure arrears list has exactly 12 elements
-        self._ensure_arrears_list_size()
-        
-        total = Money.zero()
-        for arrears_amount in self.arrears:
-            total = total.add(arrears_amount)
-        
-        return total
-    
-    def get_arrears_breakdown(self) -> Dict[str, Any]:
-        """
-        Get detailed breakdown of arrears by month.
-        
-        Returns:
-            Dict: Arrears breakdown with month-wise details
-        """
-        # Ensure arrears list has exactly 12 elements
-        self._ensure_arrears_list_size()
-        
-        month_names = [
-            "April", "May", "June", "July", "August", "September",
-            "October", "November", "December", "January", "February", "March"
-        ]
-        
-        breakdown = {
-            "total_arrears": self.get_total_arrears().to_float(),
-            "monthly_breakdown": {}
-        }
-        
-        for i, (month_name, arrears_amount) in enumerate(zip(month_names, self.arrears)):
-            breakdown["monthly_breakdown"][month_name] = {
-                "month_number": i + 1,
-                "amount": arrears_amount.to_float(),
-                "has_arrears": not arrears_amount.is_zero()
-            }
-        
-        return breakdown
-    
-    def clear_arrears_for_month(self, month: int) -> None:
-        """
-        Clear arrears for a specific month (set to zero).
-        
-        Args:
-            month: Month number (1-12, where 1=April, 12=March)
-            
-        Raises:
-            ValueError: If month is not between 1 and 12
-        """
-        self.set_arrears_for_month(month, Money.zero())
-    
-    def clear_all_arrears(self) -> None:
-        """
-        Clear all arrears for the financial year (set all to zero).
-        """
-        if self.is_final:
-            raise ValueError("Cannot update finalized salary package record")
-        
-        # Ensure arrears list has exactly 12 elements
-        self._ensure_arrears_list_size()
-        
-        old_total = self.get_total_arrears()
-        
-        # Set all arrears to zero
-        for i in range(12):
-            self.arrears[i] = Money.zero()
-        
-        # Invalidate calculation
-        self._invalidate_calculation()
-        
-        # Raise domain event
-        self._add_domain_event({
-            "event_type": "AllArrearsCleared",
-            "employee_id": str(self.employee_id),
-            "tax_year": str(self.tax_year),
-            "old_total_arrears": old_total.to_float(),
-            "updated_at": self.updated_at.isoformat()
-        })
-    
-    def _ensure_arrears_list_size(self) -> None:
-        """
-        Ensure the arrears list has exactly 12 elements.
-        If the list is smaller, pad with zeros. If larger, truncate.
-        """
-        if len(self.arrears) < 12:
-            # Pad with zeros
-            while len(self.arrears) < 12:
-                self.arrears.append(Money.zero())
-        elif len(self.arrears) > 12:
-            # Truncate to 12 elements
-            self.arrears = self.arrears[:12]
-    
-    # Backward compatibility properties
-    @property
-    def salary_income(self) -> SalaryIncome:
-        """Backward compatibility: Get the latest salary income."""
-        return self.get_latest_salary_income()
-    
-    @property
-    def house_property_income(self) -> Optional[HousePropertyIncome]:
-        """Backward compatibility: Get house property income from other_income."""
-        if self.other_income:
-            return self.other_income.house_property_income
-        return None
-    
-    @property
-    def capital_gains_income(self):
-        """Backward compatibility: Get capital gains income from other_income."""
-        if self.other_income:
-            return self.other_income.capital_gains_income
-        return None

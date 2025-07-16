@@ -23,6 +23,7 @@ from app.domain.entities.employee_leave import EmployeeLeave
 from app.domain.value_objects.employee_id import EmployeeId
 from app.application.dto.employee_leave_dto import LeaveStatus
 from datetime import date
+from app.auth.auth_dependencies import CurrentUser
 
 
 class GetEmployeeLeavesUseCase:
@@ -76,47 +77,34 @@ class GetEmployeeLeavesUseCase:
     async def get_employee_leaves_by_employee_id(
         self, 
         employee_id: str,
-        organisation_id: str,
+        current_user: CurrentUser,
         status_filter: Optional[LeaveStatus] = None,
         limit: Optional[int] = None
-        
     ) -> List[EmployeeLeaveResponseDTO]:
         """
         Get employee leaves by employee ID.
-        
         Args:
             employee_id: Employee identifier
-            organisation_id: Organisation identifier for multi-tenancy
+            current_user: Current user context for organization
             status_filter: Optional status filter
             limit: Optional limit on results
-            
         Returns:
             List of EmployeeLeaveResponseDTO
         """
-        
         try:
-            self._logger.info(f"Retrieving leaves for employee: {employee_id}")
-            
-            # Get all leaves for the employee first
+            self._logger.info(f"Retrieving leaves for employee: {employee_id} in org: {current_user.hostname}")
             employee_leaves = await self._query_repository.get_by_employee_id(
-                employee_id, organisation_id
+                employee_id, current_user.hostname
             )
-            
-            # Apply filters in memory (since repository doesn't support them)
             if status_filter:
-                # Convert status filter to string if it's an enum
                 filter_value = status_filter.value if hasattr(status_filter, 'value') else str(status_filter)
                 employee_leaves = [leave for leave in employee_leaves if leave.status == filter_value]
-            
-            # Apply limit
             if limit:
                 employee_leaves = employee_leaves[:limit]
-            
             return [
                 EmployeeLeaveResponseDTO.from_entity(leave)
                 for leave in employee_leaves
             ]
-            
         except Exception as e:
             self._logger.error(f"Failed to retrieve leaves for employee {employee_id}: {str(e)}")
             raise Exception(f"Failed to retrieve employee leaves: {str(e)}")
@@ -188,30 +176,23 @@ class GetEmployeeLeavesUseCase:
     async def search_employee_leaves(
         self, 
         filters: EmployeeLeaveSearchFiltersDTO,
-        organisation_id: Optional[str] = None
+        current_user: CurrentUser
     ) -> List[EmployeeLeaveResponseDTO]:
         """
         Search employee leaves with filters.
-        
         Args:
             filters: Search filters
-            organisation_id: Organisation identifier for multi-tenancy
-            
+            current_user: Current user context for organization
         Returns:
             List of matching EmployeeLeaveResponseDTO
         """
-        
         try:
-            self._logger.info(f"Searching employee leaves with filters")
-            
-            # Call repository search with filters
-            employee_leaves = await self._query_repository.search(filters, organisation_id)
-            
+            self._logger.info(f"Searching employee leaves with filters for org: {current_user.hostname}")
+            employee_leaves = await self._query_repository.search(filters, current_user.hostname)
             return [
                 EmployeeLeaveResponseDTO.from_entity(leave)
                 for leave in employee_leaves
             ]
-            
         except Exception as e:
             self._logger.error(f"Failed to search employee leaves: {str(e)}")
             raise Exception(f"Failed to search employee leaves: {str(e)}")
@@ -249,31 +230,21 @@ class GetEmployeeLeavesUseCase:
             self._logger.error(f"Failed to retrieve monthly leaves: {str(e)}")
             raise Exception(f"Failed to retrieve monthly leaves: {str(e)}")
     
-    async def get_leave_balance(self, employee_id: str, organisation_id: str) -> EmployeeLeaveBalanceDTO:
+    async def get_leave_balance(self, employee_id: str, current_user: CurrentUser) -> EmployeeLeaveBalanceDTO:
         """
         Get leave balance for an employee.
-        
         Args:
             employee_id: Employee identifier
-            organisation_id: Organisation identifier for multi-tenancy
-            
+            current_user: Current user context for organization
         Returns:
             EmployeeLeaveBalanceDTO with leave balances
         """
-        
         try:
-            self._logger.info(f"Retrieving leave balance for employee: {employee_id} in org: {organisation_id}")
-            
-            # Get user by employee_id using the user repository
+            self._logger.info(f"Retrieving leave balance for employee: {employee_id} in org: {current_user.hostname}")
             employee_id_obj = EmployeeId(employee_id)
-            self._logger.info(f"Created EmployeeId object: {employee_id_obj}")
-            
-            user = await self._user_query_repository.get_by_id(employee_id_obj, organisation_id)
-            self._logger.info(f"User query result: {user}")
-            
+            user = await self._user_query_repository.get_by_id(employee_id_obj, current_user.hostname)
             if not user:
                 self._logger.warning(f"User not found: {employee_id}")
-                # Return default balances if user not found
                 return EmployeeLeaveBalanceDTO(
                     employee_id=employee_id,
                     balances={
@@ -284,122 +255,42 @@ class GetEmployeeLeavesUseCase:
                         "paternity_leave": 15.0
                     }
                 )
-            
-            # Extract leave balance from user entity
             leave_balances = getattr(user, 'leave_balance', {})
-            self._logger.info(f"Raw leave balances from user: {leave_balances}")
-            
-            # Convert values to float with proper handling to avoid Pydantic warnings
-            float_balances = {}
-            for leave_type, balance in leave_balances.items():
-                try:
-                    # Clean up leave type name (remove extra spaces and normalize)
-                    cleaned_leave_type = ' '.join(leave_type.strip().split())
-                    
-                    # Handle different input types
-                    if balance is None:
-                        float_balances[cleaned_leave_type] = 0.0
-                    elif isinstance(balance, (int, float)):
-                        # Keep as float
-                        float_balances[cleaned_leave_type] = float(balance)
-                    elif isinstance(balance, str):
-                        # For string values, try to convert to float
-                        float_balances[cleaned_leave_type] = float(balance)
-                    else:
-                        # For any other type, default to 0.0
-                        float_balances[cleaned_leave_type] = 0.0
-                        
-                    # Ensure the value is non-negative
-                    float_balances[cleaned_leave_type] = max(0.0, float_balances[cleaned_leave_type])
-                    
-                except (ValueError, TypeError, AttributeError) as e:
-                    self._logger.warning(f"Could not convert leave balance for {leave_type}: {balance} (error: {e})")
-                    float_balances[cleaned_leave_type] = 0.0
-            
-            self._logger.info(f"Processed float balances: {float_balances}")
-            
-            # If no balances found, return defaults
-            if not float_balances:
-                self._logger.info("No leave balances found, returning defaults")
-                float_balances = {
-                    "Casual Leave": 12.0,
-                    "Sick Leave": 12.0,
-                    "Earned Leave": 21.0,
-                    "Maternity Leave": 180.0,
-                    "Paternity Leave": 15.0
-                }
-            
-            result = EmployeeLeaveBalanceDTO(
+            float_balances = {k: float(v) for k, v in leave_balances.items() if v is not None}
+            return EmployeeLeaveBalanceDTO(
                 employee_id=employee_id,
                 balances=float_balances
             )
-            self._logger.info(f"Final result: {result}")
-            return result
-            
         except Exception as e:
-            self._logger.error(f"Failed to retrieve leave balance for {employee_id}: {str(e)}")
-            # Return default balances instead of raising exception
-            return EmployeeLeaveBalanceDTO(
-                employee_id=employee_id,
-                balances={
-                    "Casual Leave": 12.0,
-                    "Sick Leave": 12.0,
-                    "Earned Leave": 21.0,
-                    "Maternity Leave": 180.0,
-                    "Paternity Leave": 15.0
-                }
-            )
+            self._logger.error(f"Failed to retrieve leave balance for employee {employee_id}: {str(e)}")
+            raise Exception(f"Failed to retrieve employee leave balance: {str(e)}")
     
     async def get_leave_analytics(
         self,
-        organisation_id: str,
+        current_user: CurrentUser,
         employee_id: Optional[str] = None,
         manager_id: Optional[str] = None,
         year: Optional[int] = None
     ) -> EmployeeLeaveAnalyticsDTO:
         """
-        Get leave analytics.
-        
+        Get leave analytics for the organization.
         Args:
-            employee_id: Optional employee filter
-            manager_id: Optional manager filter
-            year: Optional year filter
-            
+            current_user: Current user context for organization
+            employee_id: Optional employee identifier
+            manager_id: Optional manager identifier
+            year: Optional year
         Returns:
-            EmployeeLeaveAnalyticsDTO with analytics data
+            EmployeeLeaveAnalyticsDTO
         """
-        
         try:
-            self._logger.info(f"Retrieving leave analytics")
-            
-            if not self._analytics_repository:
-                raise Exception("Analytics repository not available")
-            
-            employee_id = EmployeeId(employee_id) if employee_id else None
-            
-            # Get basic statistics
-            stats = await self._analytics_repository.get_leave_statistics(employee_id, manager_id, year, organisation_id)
-            
-            # Get leave type breakdown
-            type_breakdown = await self._analytics_repository.get_leave_type_breakdown(
-                employee_id, manager_id, year, organisation_id
+            self._logger.info(f"Retrieving leave analytics for org: {current_user.hostname}")
+            analytics = await self._analytics_repository.get_leave_statistics(
+                employee_id=employee_id,
+                manager_id=manager_id,
+                year=year,
+                organisation_id=current_user.hostname
             )
-            
-            # Get monthly trends
-            monthly_trends = await self._analytics_repository.get_monthly_leave_trends(
-                employee_id, manager_id, year, organisation_id
-            )
-            
-            return EmployeeLeaveAnalyticsDTO(
-                total_applications=stats.get("total_applications", 0),
-                approved_applications=stats.get("approved_applications", 0),
-                rejected_applications=stats.get("rejected_applications", 0),
-                pending_applications=stats.get("pending_applications", 0),
-                total_days_taken=stats.get("total_days_taken", 0),
-                leave_type_breakdown=type_breakdown,
-                monthly_breakdown=monthly_trends
-            )
-            
+            return EmployeeLeaveAnalyticsDTO(**analytics)
         except Exception as e:
             self._logger.error(f"Failed to retrieve leave analytics: {str(e)}")
             raise Exception(f"Failed to retrieve leave analytics: {str(e)}")
@@ -409,7 +300,7 @@ class GetEmployeeLeavesUseCase:
         employee_id: str,
         month: int,
         year: int,
-        organisation_id: str
+        current_user: CurrentUser
     ) -> LWPCalculationDTO:
         """
         Calculate Leave Without Pay (LWP) for a specific month.
@@ -418,7 +309,7 @@ class GetEmployeeLeavesUseCase:
             employee_id: Employee identifier
             month: Month (1-12)
             year: Year
-            organisation_id: Organization identifier
+            current_user: Current user object
             
         Returns:
             LWPCalculationDTO with LWP calculation details
@@ -434,7 +325,7 @@ class GetEmployeeLeavesUseCase:
             
             # Calculate LWP using standardized method
             response = await lwp_service.calculate_lwp_for_month(
-                employee_id, month, year, organisation_id
+                employee_id, month, year, current_user
             )
             
             return response

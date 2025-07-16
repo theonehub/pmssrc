@@ -33,7 +33,7 @@ import {
   ListItemIcon,
   ListItemText
 } from '@mui/material';
-import { salaryProcessingApi, MonthlySalaryResponse } from '../../shared/api/salaryProcessingApi';
+import { salaryProcessingApi, MonthlySalaryResponse, MonthlySalaryStatusUpdateRequest } from '../../shared/api/salaryProcessingApi';
 import { exportApi } from '../../shared/api/exportApi';
 import {
   Search as SearchIcon,
@@ -48,6 +48,7 @@ import {
   Assessment as AssessmentIcon,
   Description as DescriptionIcon
 } from '@mui/icons-material';
+import { getCurrentTaxYear, getAvailableTaxYears, taxYearStringToStartYear } from '../../shared/utils/formatting';
 
 /**
  * TDS Report Component - Display TDS information for tax reporting
@@ -58,8 +59,7 @@ const TDSReport: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   
   const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
-  const [year, setYear] = useState<number>(new Date().getFullYear());
-  const [taxYear, setTaxYear] = useState<string>('');
+  const [taxYear, setTaxYear] = useState<string>(getCurrentTaxYear());
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [departmentFilter, setDepartmentFilter] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -84,6 +84,93 @@ const TDSReport: React.FC = () => {
   // 1. Add quarter selector state
   const [selectedQuarter, setSelectedQuarter] = useState<number>(Math.ceil((month) / 3));
 
+  // --- TDS Status Transition State ---
+  const [tdsStatusDialogOpen, setTdsStatusDialogOpen] = useState(false);
+  const [tdsStatusDialogSalary, setTdsStatusDialogSalary] = useState<MonthlySalaryResponse | null>(null);
+  const [tdsNextStatus, setTdsNextStatus] = useState<string>('');
+  const [tdsStatusComments, setTdsStatusComments] = useState('');
+  const [tdsChallanNumber, setTdsChallanNumber] = useState('');
+  const [tdsStatusUpdateLoading, setTdsStatusUpdateLoading] = useState(false);
+  const [tdsStatusUpdateError, setTdsStatusUpdateError] = useState<string | null>(null);
+
+  // Placeholder for role check (replace with real auth logic)
+  const isAdminUser = true; // TODO: Replace with actual role check
+
+  // TDS Status transition logic
+  const getTDSNextStatusOptions = (current: string) => {
+    switch (current.toLowerCase()) {
+      case 'computed':
+        return [
+          { value: 'approved', label: 'Approved' },
+          { value: 'rejected', label: 'Rejected' }
+        ];
+      case 'approved':
+        return [
+          { value: 'filed', label: 'Filed' }
+        ];
+      case 'filed':
+        return [
+          { value: 'paid', label: 'Paid' }
+        ];
+      default:
+        return [];
+    }
+  };
+
+  const handleTdsStatusChipClick = (salary: MonthlySalaryResponse) => {
+    if (!isAdminUser) return;
+    setTdsStatusDialogSalary(salary);
+    setTdsNextStatus('');
+    setTdsStatusComments('');
+    setTdsChallanNumber('');
+    setTdsStatusUpdateError(null);
+    setTdsStatusDialogOpen(true);
+  };
+
+  const handleTdsStatusDialogClose = () => {
+    setTdsStatusDialogOpen(false);
+    setTdsStatusDialogSalary(null);
+    setTdsNextStatus('');
+    setTdsStatusComments('');
+    setTdsChallanNumber('');
+    setTdsStatusUpdateError(null);
+  };
+
+  const handleTdsStatusUpdate = async () => {
+    if (!tdsStatusDialogSalary || !tdsNextStatus) return;
+    if (!tdsStatusComments.trim()) {
+      setTdsStatusUpdateError('Comments are required.');
+      return;
+    }
+    if (tdsNextStatus === 'paid') {
+      if (!tdsChallanNumber.trim()) {
+        setTdsStatusUpdateError('Challan number is required for Paid status.');
+        return;
+      }
+    }
+    setTdsStatusUpdateLoading(true);
+    setTdsStatusUpdateError(null);
+    try {
+      const payload: MonthlySalaryStatusUpdateRequest = {
+        employee_id: tdsStatusDialogSalary.employee_id,
+        month: tdsStatusDialogSalary.month,
+        year: tdsStatusDialogSalary.year,
+        tax_year: taxYear,
+        tds_status: tdsNextStatus,
+        comments: tdsStatusComments,
+        challan_number: tdsNextStatus === 'paid' ? tdsChallanNumber : undefined,
+      };
+      await salaryProcessingApi.updateMonthlySalaryStatus(payload);
+      setTdsStatusDialogOpen(false);
+      fetchSalaries();
+      fetchSummary();
+    } catch (err) {
+      setTdsStatusUpdateError('Failed to update TDS status. Please try again.');
+    } finally {
+      setTdsStatusUpdateLoading(false);
+    }
+  };
+
   const fetchSalaries = useCallback(async () => {
     try {
       setLoading(true);
@@ -99,7 +186,7 @@ const TDSReport: React.FC = () => {
       
       const response = await salaryProcessingApi.getMonthlySalariesForPeriod(
         month,
-        year,
+        taxYear,
         params
       );
       
@@ -114,13 +201,13 @@ const TDSReport: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [month, year, statusFilter, departmentFilter, page, rowsPerPage]);
+  }, [month, taxYear, statusFilter, departmentFilter, page, rowsPerPage]);
 
   const fetchSummary = useCallback(async () => {
     try {
       setSummaryLoading(true);
       
-      const response = await salaryProcessingApi.getMonthlySalarySummary(month, year);
+      const response = await salaryProcessingApi.getMonthlySalarySummary(month, taxYear);
       setSummary(response);
       
     } catch (err) {
@@ -129,7 +216,7 @@ const TDSReport: React.FC = () => {
     } finally {
       setSummaryLoading(false);
     }
-  }, [month, year]);
+  }, [month, taxYear]);
 
   // Calculate TDS summary
   const calculateTDSSummary = useCallback(() => {
@@ -173,7 +260,7 @@ const TDSReport: React.FC = () => {
   useEffect(() => {
     fetchSalaries();
     fetchSummary();
-  }, [month, year, statusFilter, departmentFilter, page, rowsPerPage, fetchSalaries, fetchSummary]);
+  }, [month, taxYear, statusFilter, departmentFilter, page, rowsPerPage, fetchSalaries, fetchSummary]);
 
   // Calculate TDS summary when salaries change
   useEffect(() => {
@@ -183,8 +270,8 @@ const TDSReport: React.FC = () => {
 
   // Set tax year based on selected year
   useEffect(() => {
-    setTaxYear(`${year}-${year + 1}`);
-  }, [year]);
+    setTaxYear(getCurrentTaxYear());
+  }, []);
 
   const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
@@ -235,7 +322,7 @@ const TDSReport: React.FC = () => {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase?.()) {
       case 'computed':
         return 'success';
       case 'pending':
@@ -259,9 +346,9 @@ const TDSReport: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportTDSReport('csv', month, year, undefined, filters);
+      const blob = await exportApi.exportTDSReport('csv', month, taxYearStringToStartYear(taxYear), undefined, filters);
       
-      exportApi.downloadFile(blob, `tds_report_${month}_${year}.csv`);
+      exportApi.downloadFile(blob, `tds_report_${month}_${taxYear}.csv`);
       
     } catch (err) {
       console.error('Error exporting TDS to CSV:', err);
@@ -280,9 +367,9 @@ const TDSReport: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportTDSReport('excel', month, year, undefined, filters);
+      const blob = await exportApi.exportTDSReport('excel', month, taxYearStringToStartYear(taxYear), undefined, filters);
       
-      exportApi.downloadFile(blob, `tds_report_${month}_${year}.xlsx`);
+      exportApi.downloadFile(blob, `tds_report_${month}_${taxYear}.xlsx`);
       
     } catch (err) {
       console.error('Error exporting TDS to Excel:', err);
@@ -301,9 +388,9 @@ const TDSReport: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportTDSReport('form_16', month, year, undefined, filters);
+      const blob = await exportApi.exportTDSReport('form_16', month, taxYearStringToStartYear(taxYear), undefined, filters);
       
-      exportApi.downloadFile(blob, `form_16_${year}.csv`);
+      exportApi.downloadFile(blob, `form_16_${taxYear}.csv`);
       
     } catch (err) {
       console.error('Error exporting Form 16:', err);
@@ -318,9 +405,9 @@ const TDSReport: React.FC = () => {
       setExportLoading(true);
       handleExportClose();
       
-      const blob = await exportApi.exportForm24Q(selectedQuarter, year, 'csv');
+      const blob = await exportApi.exportForm24Q(selectedQuarter, taxYearStringToStartYear(taxYear), 'csv');
       
-      exportApi.downloadFile(blob, `form_24q_q${selectedQuarter}_${year}.csv`);
+      exportApi.downloadFile(blob, `form_24q_q${selectedQuarter}_${taxYear}.csv`);
       
     } catch (err) {
       console.error('Error exporting Form 24Q:', err);
@@ -335,9 +422,9 @@ const TDSReport: React.FC = () => {
       setExportLoading(true);
       handleExportClose();
       
-      const blob = await exportApi.exportForm24Q(selectedQuarter, year, 'fvu');
+      const blob = await exportApi.exportForm24Q(selectedQuarter, taxYearStringToStartYear(taxYear), 'fvu');
       
-      exportApi.downloadFile(blob, `form24q_q${selectedQuarter}_${year}_FVU.txt`);
+      exportApi.downloadFile(blob, `form24q_q${selectedQuarter}_${taxYear}_FVU.txt`);
       
     } catch (err) {
       console.error('Error exporting FVU Form 24Q:', err);
@@ -519,13 +606,13 @@ const TDSReport: React.FC = () => {
         
         <Grid item xs={12} sm={6} md={2}>
           <FormControl fullWidth size="small">
-            <InputLabel>Year</InputLabel>
+            <InputLabel>Tax Year</InputLabel>
             <Select
-              value={year}
-              label="Year"
-              onChange={(e) => setYear(e.target.value as number)}
+              value={taxYear}
+              label="Tax Year"
+              onChange={(e) => setTaxYear(e.target.value)}
             >
-              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((year) => (
+              {getAvailableTaxYears().map((year) => (
                 <MenuItem key={year} value={year}>
                   {year}
                 </MenuItem>
@@ -708,10 +795,6 @@ const TDSReport: React.FC = () => {
                   <Typography variant="body1">{formatCurrency(selectedSalary.special_allowance)}</Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">Bonus</Typography>
-                  <Typography variant="body1">{formatCurrency(selectedSalary.bonus)}</Typography>
-                </Grid>
-                <Grid item xs={6}>
                   <Typography variant="body2" color="textSecondary">Commission</Typography>
                   <Typography variant="body1">{formatCurrency(selectedSalary.commission)}</Typography>
                 </Grid>
@@ -872,9 +955,11 @@ const TDSReport: React.FC = () => {
                       <TableCell>{formatCurrency(salary.annual_tax_liability)}</TableCell>
                       <TableCell>
                         <Chip
-                          label={salary.status}
-                          color={getStatusColor(salary.status) as any}
+                          label={salary.tds_status?.status || ''}
+                          color={getStatusColor(salary.tds_status?.status || '') as any}
                           size="small"
+                          onClick={isAdminUser ? () => handleTdsStatusChipClick(salary) : undefined}
+                          style={{ cursor: isAdminUser ? 'pointer' : 'default' }}
                         />
                       </TableCell>
                       <TableCell>
@@ -909,6 +994,62 @@ const TDSReport: React.FC = () => {
 
       {/* TDS Details Dialog */}
       {renderTDSDetailsDialog()}
+
+      {/* TDS Status Transition Dialog */}
+      {tdsStatusDialogOpen && tdsStatusDialogSalary && (
+        <Dialog open={tdsStatusDialogOpen} onClose={handleTdsStatusDialogClose} maxWidth="xs" fullWidth>
+          <DialogTitle>TDS Status Transition</DialogTitle>
+          <DialogContent>
+            <Typography gutterBottom>Current Status: <b>{tdsStatusDialogSalary.tds_status?.status || ''}</b></Typography>
+            {/* Map 'unpaid' to 'computed' for status transitions */}
+            {(() => {
+              const currentStatus = tdsStatusDialogSalary.tds_status?.status || '';
+              const mappedStatus = currentStatus === 'unpaid' ? 'computed' : currentStatus;
+              return (
+                <FormControl fullWidth sx={{ mt: 2 }}>
+                  <InputLabel>Next Status</InputLabel>
+                  <Select
+                    value={tdsNextStatus}
+                    label="Next Status"
+                    onChange={e => setTdsNextStatus(e.target.value)}
+                  >
+                    {getTDSNextStatusOptions(mappedStatus).map(opt => (
+                      <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              );
+            })()}
+            <TextField
+              label="Comments"
+              value={tdsStatusComments}
+              onChange={e => setTdsStatusComments(e.target.value)}
+              fullWidth
+              required
+              multiline
+              minRows={2}
+              sx={{ mt: 2 }}
+            />
+            {tdsNextStatus === 'paid' && (
+              <TextField
+                label="Challan Number"
+                value={tdsChallanNumber}
+                onChange={e => setTdsChallanNumber(e.target.value)}
+                fullWidth
+                required
+                sx={{ mt: 2 }}
+              />
+            )}
+            {tdsStatusUpdateError && <Alert severity="error" sx={{ mt: 2 }}>{tdsStatusUpdateError}</Alert>}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleTdsStatusDialogClose} disabled={tdsStatusUpdateLoading}>Cancel</Button>
+            <Button onClick={handleTdsStatusUpdate} variant="contained" disabled={tdsStatusUpdateLoading || !tdsNextStatus}>
+              {tdsStatusUpdateLoading ? <CircularProgress size={20} /> : 'Update Status'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
     </Box>
   );
 };

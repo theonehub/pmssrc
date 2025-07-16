@@ -24,7 +24,6 @@ class EmployeeLeave(BaseEntity):
     employee_id: str
     employee_name: str
     employee_email: str
-    organisation_id: str
     
     # Leave details using leave_name instead of LeaveType
     leave_name: str  # e.g., "Casual Leave", "Sick Leave"
@@ -71,7 +70,6 @@ class EmployeeLeave(BaseEntity):
         employee_id: str,
         employee_name: str,
         employee_email: str,
-        organisation_id: str,
         leave_name: str,
         start_date: date,
         end_date: date,
@@ -88,7 +86,6 @@ class EmployeeLeave(BaseEntity):
             employee_id: ID of the employee
             employee_name: Name of the employee
             employee_email: Email of the employee
-            organisation_id: ID of the organisation
             leave_name: Name of the leave type
             start_date: Leave start date
             end_date: Leave end date
@@ -106,7 +103,6 @@ class EmployeeLeave(BaseEntity):
             employee_id=employee_id,
             employee_name=employee_name,
             employee_email=employee_email,
-            organisation_id=organisation_id,
             leave_name=leave_name,
             start_date=start_date,
             end_date=end_date,
@@ -124,7 +120,6 @@ class EmployeeLeave(BaseEntity):
         employee_id: str,
         employee_name: str,
         employee_email: str,
-        organisation_id: str,
         start_date: date,
         end_date: date,
         reason: Optional[str] = None,
@@ -142,7 +137,6 @@ class EmployeeLeave(BaseEntity):
             employee_id=employee_id,
             employee_name=employee_name,
             employee_email=employee_email,
-            organisation_id=organisation_id,
             leave_name=legacy_leave_name,
             start_date=start_date,
             end_date=end_date,
@@ -309,7 +303,6 @@ class EmployeeLeave(BaseEntity):
             "employee_id": self.employee_id,
             "employee_name": self.employee_name,
             "employee_email": self.employee_email,
-            "organisation_id": self.organisation_id,
             "leave_name": self.leave_name,
             "start_date": self.start_date.isoformat(),
             "end_date": self.end_date.isoformat(),
@@ -344,9 +337,6 @@ class EmployeeLeave(BaseEntity):
         # Basic field validation
         if not self.employee_id:
             errors.append("Employee ID is required")
-        
-        if not self.organisation_id:
-            errors.append("Organisation ID is required")
         
         if not self.leave_name:
             errors.append("Leave name is required")

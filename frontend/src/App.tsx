@@ -48,6 +48,7 @@ import MySalary from './components/taxation/MySalary';
 
 // Reporting Pages
 import ReportingDashboard from './components/Reporting/ReportingDashboard';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 const AppContent: React.FC = () => {
   const { isCalculatorOpen, closeCalculator } = useCalculatorStore();
@@ -253,10 +254,14 @@ const AppContent: React.FC = () => {
   );
 };
 
+const theme = createTheme();
+
 const App: React.FC = () => {
   return (
     <ErrorBoundary>
-      <AppContent />
+      <ThemeProvider theme={theme}>
+        <AppContent />
+      </ThemeProvider>
     </ErrorBoundary>
   );
 };

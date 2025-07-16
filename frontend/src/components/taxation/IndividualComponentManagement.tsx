@@ -98,7 +98,8 @@ interface MonthlySalaryComputeDialogProps {
     month: number;
     year: number;
     tax_year: string;
-    arrears?: number | undefined;
+    one_time_arrear?: number | undefined;
+    one_time_bonus?: number | undefined;
     use_declared_values: boolean;
   }) => Promise<void>;
 }
@@ -113,7 +114,8 @@ interface BulkSalaryProcessingDialogProps {
     month: number;
     year: number;
     tax_year: string;
-    arrears?: number | undefined;
+    one_time_arrear?: number | undefined;
+    one_time_bonus?: number | undefined;
     use_declared_values: boolean;
   }[]) => Promise<void>;
 }
@@ -129,7 +131,8 @@ interface LoanProcessingDialogProps {
 interface EmployeeProcessingConfig {
   employee_id: string;
   selected: boolean;
-  arrears: number;
+  one_time_arrear: number;
+  one_time_bonus: number;
   use_declared_values: boolean;
 }
 
@@ -255,8 +258,8 @@ const MonthlySalaryComputeDialog: React.FC<MonthlySalaryComputeDialogProps> = ({
   onCompute
 }) => {
   const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
-  const [year, setYear] = useState<number>(new Date().getFullYear());
-  const [arrears, setArrears] = useState<number>(0);
+  const [oneTimeArrear, setOneTimeArrear] = useState<number>(0);
+  const [oneTimeBonus, setOneTimeBonus] = useState<number>(0);
   const [useDeclaredValues, setUseDeclaredValues] = useState<boolean>(true);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -276,7 +279,8 @@ const MonthlySalaryComputeDialog: React.FC<MonthlySalaryComputeDialogProps> = ({
     { value: 12, label: 'December' }
   ];
 
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
+  const taxYears = getAvailableTaxYears();
+  const [selectedTaxYear, setSelectedTaxYear] = useState<string>(getCurrentTaxYear());
 
   const handleCompute = async () => {
     if (!employee) return;
@@ -285,24 +289,15 @@ const MonthlySalaryComputeDialog: React.FC<MonthlySalaryComputeDialogProps> = ({
       setLoading(true);
       setError(null);
 
-      const request: {
-        employee_id: string;
-        month: number;
-        year: number;
-        tax_year: string;
-        arrears?: number | undefined;
-        use_declared_values: boolean;
-      } = {
+      const request = {
         employee_id: employee.employee_id,
         month,
-        year,
-        tax_year: taxYear,
-        use_declared_values: useDeclaredValues
+        year: new Date().getFullYear(), // Use current year for computation
+        tax_year: selectedTaxYear,
+        use_declared_values: useDeclaredValues,
+        one_time_arrear: Number(oneTimeArrear) || 0,
+        one_time_bonus: Number(oneTimeBonus) || 0,
       };
-      
-      if (arrears > 0) {
-        request.arrears = arrears;
-      }
       
       await onCompute(request);
 
@@ -354,15 +349,15 @@ const MonthlySalaryComputeDialog: React.FC<MonthlySalaryComputeDialogProps> = ({
           </Grid>
           <Grid item xs={6}>
             <FormControl fullWidth>
-              <InputLabel>Year</InputLabel>
+              <InputLabel>Tax Year</InputLabel>
               <Select
-                value={year}
-                label="Year"
-                onChange={(e) => setYear(e.target.value as number)}
+                value={selectedTaxYear}
+                label="Tax Year"
+                onChange={(e) => setSelectedTaxYear(e.target.value as string)}
               >
-                {years.map((y) => (
-                  <MenuItem key={y} value={y}>
-                    {y}
+                {taxYears.map((ty) => (
+                  <MenuItem key={ty} value={ty}>
+                    {ty}
                   </MenuItem>
                 ))}
               </Select>
@@ -373,12 +368,25 @@ const MonthlySalaryComputeDialog: React.FC<MonthlySalaryComputeDialogProps> = ({
               fullWidth
               label="Arrears (if any)"
               type="number"
-              value={arrears}
-              onChange={(e) => setArrears(parseFloat(e.target.value) || 0)}
+              value={oneTimeArrear}
+              onChange={(e) => setOneTimeArrear(parseFloat(e.target.value) || 0)}
               InputProps={{
                 startAdornment: <InputAdornment position="start">₹</InputAdornment>,
               }}
               helperText="Enter any arrears amount for this month"
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label="Bonus (if any)"
+              type="number"
+              value={oneTimeBonus}
+              onChange={(e) => setOneTimeBonus(parseFloat(e.target.value) || 0)}
+              InputProps={{
+                startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+              }}
+              helperText="Enter any bonus amount for this month"
             />
           </Grid>
           <Grid item xs={12}>
@@ -434,7 +442,6 @@ const BulkSalaryProcessingDialog: React.FC<BulkSalaryProcessingDialogProps> = ({
 }) => {
   const [employeeConfigs, setEmployeeConfigs] = useState<Map<string, EmployeeProcessingConfig>>(new Map());
   const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
-  const [year, setYear] = useState<number>(new Date().getFullYear());
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [selectAll, setSelectAll] = useState<boolean>(false);
@@ -454,7 +461,8 @@ const BulkSalaryProcessingDialog: React.FC<BulkSalaryProcessingDialogProps> = ({
     { value: 12, label: 'December' }
   ];
 
-  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
+  const taxYears = getAvailableTaxYears();
+  const [selectedTaxYear, setSelectedTaxYear] = useState<string>(getCurrentTaxYear());
 
   // Initialize employee configurations when dialog opens
   useEffect(() => {
@@ -464,7 +472,8 @@ const BulkSalaryProcessingDialog: React.FC<BulkSalaryProcessingDialogProps> = ({
         configs.set(emp.employee_id, {
           employee_id: emp.employee_id,
           selected: false,
-          arrears: 0,
+          one_time_arrear: 0,
+          one_time_bonus: 0,
           use_declared_values: true
         });
       });
@@ -508,7 +517,18 @@ const BulkSalaryProcessingDialog: React.FC<BulkSalaryProcessingDialogProps> = ({
     const newConfigs = new Map(employeeConfigs);
     const config = newConfigs.get(employeeId);
     if (config) {
-      config.arrears = value;
+      config.one_time_arrear = value;
+      newConfigs.set(employeeId, config);
+      setEmployeeConfigs(newConfigs);
+    }
+  };
+
+  // Handle bonus change for specific employee
+  const handleBonusChange = (employeeId: string, value: number) => {
+    const newConfigs = new Map(employeeConfigs);
+    const config = newConfigs.get(employeeId);
+    if (config) {
+      config.one_time_bonus = value;
       newConfigs.set(employeeId, config);
       setEmployeeConfigs(newConfigs);
     }
@@ -537,14 +557,30 @@ const BulkSalaryProcessingDialog: React.FC<BulkSalaryProcessingDialogProps> = ({
       setLoading(true);
       setError(null);
 
-      const requests = selectedConfigs.map(config => ({
-        employee_id: config.employee_id,
-        month,
-        year,
-        tax_year: taxYear,
-        use_declared_values: config.use_declared_values,
-        ...(config.arrears > 0 && { arrears: config.arrears })
-      }));
+      const requests = selectedConfigs.map(config => {
+        const req: {
+          employee_id: string;
+          month: number;
+          year: number;
+          tax_year: string;
+          one_time_arrear?: number | undefined;
+          one_time_bonus?: number | undefined;
+          use_declared_values: boolean;
+        } = {
+          employee_id: config.employee_id,
+          month,
+          year: new Date().getFullYear(), // Use current year for computation
+          tax_year: selectedTaxYear,
+          use_declared_values: config.use_declared_values,
+        };
+        if (config.one_time_arrear > 0) {
+          req.one_time_arrear = config.one_time_arrear;
+        }
+        if (config.one_time_bonus > 0) {
+          req.one_time_bonus = config.one_time_bonus;
+        }
+        return req;
+      });
 
       await onBulkCompute(requests);
       onClose();
@@ -601,15 +637,15 @@ const BulkSalaryProcessingDialog: React.FC<BulkSalaryProcessingDialogProps> = ({
               </Grid>
               <Grid item xs={6}>
                 <FormControl fullWidth>
-                  <InputLabel>Year</InputLabel>
+                  <InputLabel>Tax Year</InputLabel>
                   <Select
-                    value={year}
-                    label="Year"
-                    onChange={(e) => setYear(e.target.value as number)}
+                    value={selectedTaxYear}
+                    label="Tax Year"
+                    onChange={(e) => setSelectedTaxYear(e.target.value as string)}
                   >
-                    {years.map((y) => (
-                      <MenuItem key={y} value={y}>
-                        {y}
+                    {taxYears.map((ty) => (
+                      <MenuItem key={ty} value={ty}>
+                        {ty}
                       </MenuItem>
                     ))}
                   </Select>
@@ -679,12 +715,26 @@ const BulkSalaryProcessingDialog: React.FC<BulkSalaryProcessingDialogProps> = ({
                               size="small"
                               label="Arrears (₹)"
                               type="number"
-                              value={config.arrears}
+                              value={config.one_time_arrear}
                               onChange={(e) => handleArrearsChange(employee.employee_id, parseFloat(e.target.value) || 0)}
                               InputProps={{
                                 startAdornment: <InputAdornment position="start">₹</InputAdornment>,
                               }}
                               helperText="Enter arrears amount if any"
+                            />
+                          </Grid>
+                          <Grid item xs={12} sm={6}>
+                            <TextField
+                              fullWidth
+                              size="small"
+                              label="Bonus (₹)"
+                              type="number"
+                              value={config.one_time_bonus}
+                              onChange={(e) => handleBonusChange(employee.employee_id, parseFloat(e.target.value) || 0)}
+                              InputProps={{
+                                startAdornment: <InputAdornment position="start">₹</InputAdornment>,
+                              }}
+                              helperText="Enter bonus amount if any"
                             />
                           </Grid>
                           <Grid item xs={12} sm={6}>
@@ -1127,18 +1177,17 @@ const IndividualComponentManagement: React.FC = () => {
       email: emp.email || '',
       department: emp.department || 'N/A',
       role: emp.role || 'N/A',
-      
       status: emp.status || 'active',
       joining_date: emp.joining_date || '',
       current_salary: emp.current_salary || 0,
       has_tax_record: emp.has_tax_record || false,
       tax_year: emp.tax_year || selectedTaxYear,
       filing_status: (emp.filing_status as FilingStatus) || 'pending',
-      total_tax: emp.total_tax || 0,
+      // Use annual_tax_liability from calculation_details if available, else fallback
+      total_tax: emp.calculation_details?.annual_tax_liability ?? emp.total_tax ?? 0,
       regime: emp.regime || 'new',
       last_updated: emp.last_updated || ''
     })) || [];
-    
     return transformedEmployees;
   }, [employeeResponse?.employees, selectedTaxYear]);
   
@@ -1369,7 +1418,8 @@ const IndividualComponentManagement: React.FC = () => {
     month: number;
     year: number;
     tax_year: string;
-    arrears?: number | undefined;
+    one_time_arrear?: number | undefined;
+    one_time_bonus?: number | undefined;
     use_declared_values: boolean;
   }): Promise<void> => {
     try {
@@ -1377,10 +1427,9 @@ const IndividualComponentManagement: React.FC = () => {
       
       // Call the monthly salary computation API
       await salaryProcessingApi.computeMonthlySalary({
-        employee_id: request.employee_id,
-        month: request.month,
-        year: request.year,
-        tax_year: request.tax_year,
+        ...request,
+        one_time_arrear: request.one_time_arrear ?? 0,
+        one_time_bonus: request.one_time_bonus ?? 0,
         force_recompute: true,
         computed_by: 'admin'
       });
@@ -1412,7 +1461,8 @@ const IndividualComponentManagement: React.FC = () => {
     month: number;
     year: number;
     tax_year: string;
-    arrears?: number | undefined;
+    one_time_arrear?: number | undefined;
+    one_time_bonus?: number | undefined;
     use_declared_values: boolean;
   }[]): Promise<void> => {
     try {
@@ -1425,10 +1475,9 @@ const IndividualComponentManagement: React.FC = () => {
         
         try {
           await salaryProcessingApi.computeMonthlySalary({
-            employee_id: request.employee_id,
-            month: request.month,
-            year: request.year,
-            tax_year: request.tax_year,
+            ...request,
+            one_time_arrear: request.one_time_arrear ?? 0,
+            one_time_bonus: request.one_time_bonus ?? 0,
             force_recompute: true,
             computed_by: 'admin'
           });

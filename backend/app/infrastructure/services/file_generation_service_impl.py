@@ -19,6 +19,7 @@ from openpyxl.utils import get_column_letter
 from app.application.interfaces.services.file_generation_service import FileGenerationService
 from app.application.interfaces.repositories.organisation_repository import OrganisationRepository
 from app.application.interfaces.repositories.user_repository import UserRepository
+from app.auth.auth_dependencies import CurrentUser
 
 
 logger = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ class FileGenerationServiceImpl(FileGenerationService):
     async def generate_salary_csv(
         self,
         salary_data: List[Dict[str, Any]],
-        organisation_id: str,
+        current_user: CurrentUser,
         filters: Optional[Dict[str, Any]] = None
     ) -> bytes:
         """Generate CSV file for salary data"""
@@ -69,6 +70,8 @@ class FileGenerationServiceImpl(FileGenerationService):
                     salary.get('hra', 0),
                     salary.get('da', 0),
                     salary.get('other_allowances', 0),
+                    salary.get('one_time_arrear', 0),
+                    salary.get('one_time_bonus', 0),
                     salary.get('gross_salary', 0),
                     salary.get('pf', 0),
                     salary.get('pt', 0),
@@ -87,7 +90,7 @@ class FileGenerationServiceImpl(FileGenerationService):
     async def generate_salary_excel(
         self,
         salary_data: List[Dict[str, Any]],
-        organisation_id: str,
+        current_user: CurrentUser,
         filters: Optional[Dict[str, Any]] = None
     ) -> bytes:
         """Generate Excel file for salary data"""
@@ -105,7 +108,7 @@ class FileGenerationServiceImpl(FileGenerationService):
             headers = [
                 'Employee ID', 'Employee Name', 'Department', 'Designation',
                 'Month', 'Year', 'Basic Salary', 'HRA', 'DA', 'Other Allowances',
-                'Gross Salary', 'PF', 'PT', 'TDS', 'Net Salary', 'Status'
+                'One Time Arrear', 'One Time Bonus', 'Gross Salary', 'PF', 'PT', 'TDS', 'Net Salary', 'Status'
             ]
             
             for col, header in enumerate(headers, 1):
@@ -126,10 +129,12 @@ class FileGenerationServiceImpl(FileGenerationService):
                 ws.cell(row=row_idx, column=8, value=salary.get('hra', 0))
                 ws.cell(row=row_idx, column=9, value=salary.get('da', 0))
                 ws.cell(row=row_idx, column=10, value=salary.get('other_allowances', 0))
-                ws.cell(row=row_idx, column=11, value=salary.get('gross_salary', 0))
-                ws.cell(row=row_idx, column=12, value=salary.get('pf', 0))
-                ws.cell(row=row_idx, column=13, value=salary.get('pt', 0))
-                ws.cell(row=row_idx, column=14, value=salary.get('tds', 0))
+                ws.cell(row=row_idx, column=11, value=salary.get('one_time_arrear', 0))
+                ws.cell(row=row_idx, column=12, value=salary.get('one_time_bonus', 0))
+                ws.cell(row=row_idx, column=13, value=salary.get('gross_salary', 0))
+                ws.cell(row=row_idx, column=14, value=salary.get('pf', 0))
+                ws.cell(row=row_idx, column=15, value=salary.get('pt', 0))
+                ws.cell(row=row_idx, column=16, value=salary.get('tds', 0))
                 ws.cell(row=row_idx, column=15, value=salary.get('net_salary', 0))
                 ws.cell(row=row_idx, column=16, value=salary.get('status', ''))
             
@@ -159,7 +164,7 @@ class FileGenerationServiceImpl(FileGenerationService):
     async def generate_salary_bank_transfer(
         self,
         salary_data: List[Dict[str, Any]],
-        organisation_id: str,
+        current_user: CurrentUser,
         filters: Optional[Dict[str, Any]] = None
     ) -> bytes:
         """Generate bank transfer format file for salary data"""
@@ -177,7 +182,7 @@ class FileGenerationServiceImpl(FileGenerationService):
             # Data rows
             for salary in salary_data:
                 # Get user bank details
-                user = await self.user_repository.get_by_id(salary.get('employee_id'), organisation_id)
+                user = await self.user_repository.get_by_id(salary.get('employee_id'), current_user.hostname)
                 bank_details = user.bank_details if user else None
                 
                 row = [
@@ -202,7 +207,7 @@ class FileGenerationServiceImpl(FileGenerationService):
     async def generate_tds_csv(
         self,
         tds_data: List[Dict[str, Any]],
-        organisation_id: str,
+        current_user: CurrentUser,
         filters: Optional[Dict[str, Any]] = None
     ) -> bytes:
         """Generate CSV file for TDS data"""
@@ -243,7 +248,7 @@ class FileGenerationServiceImpl(FileGenerationService):
     async def generate_tds_excel(
         self,
         tds_data: List[Dict[str, Any]],
-        organisation_id: str,
+        current_user: CurrentUser,
         filters: Optional[Dict[str, Any]] = None
     ) -> bytes:
         """Generate Excel file for TDS data"""
@@ -309,14 +314,14 @@ class FileGenerationServiceImpl(FileGenerationService):
     async def generate_form_16(
         self,
         tds_data: List[Dict[str, Any]],
-        organisation_id: str,
+        current_user: CurrentUser,
         employee_id: Optional[str] = None,
         tax_year: Optional[str] = None
     ) -> bytes:
         """Generate Form 16 format file"""
         try:
             # Get organisation details
-            organisation = await self.organisation_repository.get_by_id(organisation_id)
+            organisation = await self.organisation_repository.get_by_id(current_user.hostname)
             
             output = io.StringIO()
             writer = csv.writer(output)
@@ -373,14 +378,14 @@ class FileGenerationServiceImpl(FileGenerationService):
     async def generate_form_24q(
         self,
         tds_data: List[Dict[str, Any]],
-        organisation_id: str,
+        current_user: CurrentUser,
         quarter: int,
         tax_year: int
     ) -> bytes:
         """Generate Form 24Q format file"""
         try:
             # Get organisation details
-            organisation = await self.organisation_repository.get_by_id(organisation_id)
+            organisation = await self.organisation_repository.get_by_id(current_user.hostname)
             
             output = io.StringIO()
             writer = csv.writer(output)
@@ -427,14 +432,14 @@ class FileGenerationServiceImpl(FileGenerationService):
     async def generate_fvu_form_24q(
         self,
         tds_data: List[Dict[str, Any]],
-        organisation_id: str,
+        current_user: CurrentUser,
         quarter: int,
         tax_year: int
     ) -> bytes:
         """Generate FVU (File Validation Utility) format for Form 24Q"""
         try:
             # Get organisation details
-            organisation = await self.organisation_repository.get_by_id(organisation_id)
+            organisation = await self.organisation_repository.get_by_id(current_user.hostname)
             
             lines = []
             
@@ -489,18 +494,18 @@ class FileGenerationServiceImpl(FileGenerationService):
     async def generate_processed_salaries_export(
         self,
         salary_data: List[Dict[str, Any]],
-        organisation_id: str,
+        current_user: CurrentUser,
         format_type: str,
         filters: Optional[Dict[str, Any]] = None
     ) -> bytes:
         """Generate processed salaries export in specified format"""
         try:
             if format_type.lower() == 'csv':
-                return await self.generate_salary_csv(salary_data, organisation_id, filters)
+                return await self.generate_salary_csv(salary_data, current_user, filters)
             elif format_type.lower() == 'excel':
-                return await self.generate_salary_excel(salary_data, organisation_id, filters)
+                return await self.generate_salary_excel(salary_data, current_user, filters)
             elif format_type.lower() == 'bank_transfer':
-                return await self.generate_salary_bank_transfer(salary_data, organisation_id, filters)
+                return await self.generate_salary_bank_transfer(salary_data, current_user, filters)
             else:
                 raise ValueError(f"Unsupported format: {format_type}")
                 
@@ -511,7 +516,7 @@ class FileGenerationServiceImpl(FileGenerationService):
     async def generate_tds_report_export(
         self,
         tds_data: List[Dict[str, Any]],
-        organisation_id: str,
+        current_user: CurrentUser,
         format_type: str,
         quarter: Optional[int] = None,
         tax_year: Optional[int] = None,
@@ -520,19 +525,19 @@ class FileGenerationServiceImpl(FileGenerationService):
         """Generate TDS report export in specified format"""
         try:
             if format_type.lower() == 'csv':
-                return await self.generate_tds_csv(tds_data, organisation_id, filters)
+                return await self.generate_tds_csv(tds_data, current_user, filters)
             elif format_type.lower() == 'excel':
-                return await self.generate_tds_excel(tds_data, organisation_id, filters)
+                return await self.generate_tds_excel(tds_data, current_user, filters)
             elif format_type.lower() == 'form_16':
-                return await self.generate_form_16(tds_data, organisation_id, None, str(tax_year) if tax_year else None)
+                return await self.generate_form_16(tds_data, current_user, None, str(tax_year) if tax_year else None)
             elif format_type.lower() == 'form_24q':
                 if not quarter or not tax_year:
                     raise ValueError("Quarter and tax_year are required for Form 24Q")
-                return await self.generate_form_24q(tds_data, organisation_id, quarter, tax_year)
+                return await self.generate_form_24q(tds_data, current_user, quarter, tax_year)
             elif format_type.lower() == 'fvu':
                 if not quarter or not tax_year:
                     raise ValueError("Quarter and tax_year are required for FVU")
-                return await self.generate_fvu_form_24q(tds_data, organisation_id, quarter, tax_year)
+                return await self.generate_fvu_form_24q(tds_data, current_user, quarter, tax_year)
             else:
                 raise ValueError(f"Unsupported format: {format_type}")
                 
@@ -543,7 +548,7 @@ class FileGenerationServiceImpl(FileGenerationService):
     async def generate_pf_report_export(
         self,
         pf_data: List[Dict[str, Any]],
-        organisation_id: str,
+        current_user: CurrentUser,
         format_type: str,
         quarter: Optional[int] = None,
         tax_year: Optional[int] = None,
@@ -552,17 +557,17 @@ class FileGenerationServiceImpl(FileGenerationService):
         """Generate PF report export in specified format"""
         try:
             if format_type.lower() == 'csv':
-                return await self.generate_pf_csv(pf_data, organisation_id, filters)
+                return await self.generate_pf_csv(pf_data, current_user, filters)
             elif format_type.lower() == 'excel':
-                return await self.generate_pf_excel(pf_data, organisation_id, filters)
+                return await self.generate_pf_excel(pf_data, current_user, filters)
             elif format_type.lower() == 'challan':
                 if not quarter or not tax_year:
                     raise ValueError("Quarter and tax_year are required for PF Challan")
-                return await self.generate_pf_challan(pf_data, organisation_id, quarter, tax_year)
+                return await self.generate_pf_challan(pf_data, current_user, quarter, tax_year)
             elif format_type.lower() == 'return':
                 if not quarter or not tax_year:
                     raise ValueError("Quarter and tax_year are required for PF Return")
-                return await self.generate_pf_return(pf_data, organisation_id, quarter, tax_year)
+                return await self.generate_pf_return(pf_data, current_user, quarter, tax_year)
             else:
                 raise ValueError(f"Unsupported format: {format_type}")
                 
@@ -573,13 +578,13 @@ class FileGenerationServiceImpl(FileGenerationService):
     async def generate_pf_csv(
         self,
         pf_data: List[Dict[str, Any]],
-        organisation_id: str,
+        current_user: CurrentUser,
         filters: Optional[Dict[str, Any]] = None
     ) -> bytes:
         """Generate PF report in CSV format"""
         try:
             # Get organisation details
-            organisation = await self.organisation_repository.get_by_id(organisation_id)
+            organisation = await self.organisation_repository.get_by_id(current_user.hostname)
             
             output = io.StringIO()
             writer = csv.writer(output)
@@ -650,13 +655,13 @@ class FileGenerationServiceImpl(FileGenerationService):
     async def generate_pf_excel(
         self,
         pf_data: List[Dict[str, Any]],
-        organisation_id: str,
+        current_user: CurrentUser,
         filters: Optional[Dict[str, Any]] = None
     ) -> bytes:
         """Generate PF report in Excel format"""
         try:
             # Get organisation details
-            organisation = await self.organisation_repository.get_by_id(organisation_id)
+            organisation = await self.organisation_repository.get_by_id(current_user.hostname)
             
             # Create workbook and worksheet
             workbook = Workbook()
@@ -769,14 +774,14 @@ class FileGenerationServiceImpl(FileGenerationService):
     async def generate_pf_challan(
         self,
         pf_data: List[Dict[str, Any]],
-        organisation_id: str,
+        current_user: CurrentUser,
         quarter: int,
         tax_year: int
     ) -> bytes:
         """Generate PF Challan format"""
         try:
             # Get organisation details
-            organisation = await self.organisation_repository.get_by_id(organisation_id)
+            organisation = await self.organisation_repository.get_by_id(current_user.hostname)
             
             output = io.StringIO()
             writer = csv.writer(output)
@@ -832,14 +837,14 @@ class FileGenerationServiceImpl(FileGenerationService):
     async def generate_pf_return(
         self,
         pf_data: List[Dict[str, Any]],
-        organisation_id: str,
+        current_user: CurrentUser,
         quarter: int,
         tax_year: int
     ) -> bytes:
         """Generate PF Return format"""
         try:
             # Get organisation details
-            organisation = await self.organisation_repository.get_by_id(organisation_id)
+            organisation = await self.organisation_repository.get_by_id(current_user.hostname)
             
             output = io.StringIO()
             writer = csv.writer(output)

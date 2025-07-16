@@ -36,18 +36,6 @@ export class ReimbursementAPI {
     this.baseApi = BaseAPI.getInstance();
   }
 
-  // Get my reimbursement requests
-  async getMyRequests(): Promise<ReimbursementRequest[]> {
-    const response = await this.baseApi.get('/api/v2/reimbursements/requests/my');
-    return response.data || [];
-  }
-
-  // Get reimbursement types
-  async getReimbursementTypes(): Promise<ReimbursementType[]> {
-    const response = await this.baseApi.get('/api/v2/reimbursements/types');
-    return response.data || [];
-  }
-
   // Create reimbursement request
   async createRequest(data: Omit<ReimbursementRequest, 'request_id' | 'created_at' | 'updated_at'>): Promise<ReimbursementResponse> {
     const response = await this.baseApi.post('/api/v2/reimbursements/requests', data);
@@ -79,35 +67,11 @@ export class ReimbursementAPI {
     return response;
   }
 
-  // Update reimbursement request
-  async updateRequest(requestId: string, data: Partial<ReimbursementRequest>): Promise<ReimbursementResponse> {
-    const response = await this.baseApi.put(`/api/v2/reimbursements/requests/${requestId}`, data);
-    return response;
-  }
-
-  // Delete reimbursement request
-  async deleteRequest(requestId: string): Promise<ReimbursementResponse> {
-    const response = await this.baseApi.delete(`/api/v2/reimbursements/requests/${requestId}`);
-    return response;
-  }
-
-  // Get specific request
-  async getRequest(requestId: string): Promise<ReimbursementRequest> {
-    const response = await this.baseApi.get(`/api/v2/reimbursements/requests/${requestId}`);
-    return response.data;
-  }
-
   // Download receipt
   downloadReceipt(requestId: string): void {
     // Open receipt in new tab/window
     const receiptUrl = `${this.baseApi.getBaseURL()}/api/v2/reimbursements/requests/${requestId}/receipt`;
     window.open(receiptUrl, '_blank');
-  }
-
-  // Get analytics/summary
-  async getAnalytics(): Promise<any> {
-    const response = await this.baseApi.get('/api/v2/reimbursements/analytics/summary');
-    return response.data;
   }
 }
 

@@ -48,6 +48,7 @@ import {
   TableChart as TableChartIcon,
   GridOn as GridOnIcon
 } from '@mui/icons-material';
+import { getCurrentTaxYear, getAvailableTaxYears, taxYearStringToStartYear } from '../../shared/utils/formatting';
 
 /**
  * ProcessedSalaries Component - Display all processed salary records
@@ -58,7 +59,7 @@ const ProcessedSalaries: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   
   const [month, setMonth] = useState<number>(new Date().getMonth() + 1);
-  const [year, setYear] = useState<number>(new Date().getFullYear());
+  const [taxYear, setTaxYear] = useState<string>(getCurrentTaxYear());
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [departmentFilter, setDepartmentFilter] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -77,6 +78,99 @@ const ProcessedSalaries: React.FC = () => {
   const [exportAnchorEl, setExportAnchorEl] = useState<null | HTMLElement>(null);
   const [exportLoading, setExportLoading] = useState<boolean>(false);
 
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [statusDialogSalary, setStatusDialogSalary] = useState<MonthlySalaryResponse | null>(null);
+  const [nextStatus, setNextStatus] = useState<string>('');
+  const [statusComments, setStatusComments] = useState('');
+  const [transactionId, setTransactionId] = useState('');
+  const [transferDate, setTransferDate] = useState<string>('');
+  const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
+  const [statusUpdateError, setStatusUpdateError] = useState<string | null>(null);
+
+  // Placeholder for role check (replace with real auth logic)
+  const isAdminUser = true; // TODO: Replace with actual role check
+
+  // Status transition logic
+  const getNextStatusOptions = (current: string) => {
+    switch (current.toLowerCase()) {
+      case 'computed':
+        return [
+          { value: 'approved', label: 'Approved' },
+          { value: 'rejected', label: 'Rejected' }
+        ];
+      case 'approved':
+        return [
+          { value: 'transfer_initiated', label: 'Transfer Initiated' }
+        ];
+      case 'transfer_initiated':
+        return [
+          { value: 'transferred', label: 'Transferred' }
+        ];
+      default:
+        return [];
+    }
+  };
+
+  const handleStatusChipClick = (salary: MonthlySalaryResponse) => {
+    if (!isAdminUser) return;
+    setStatusDialogSalary(salary);
+    setNextStatus('');
+    setStatusComments('');
+    setTransactionId('');
+    setTransferDate('');
+    setStatusUpdateError(null);
+    setStatusDialogOpen(true);
+  };
+
+  const handleStatusDialogClose = () => {
+    setStatusDialogOpen(false);
+    setStatusDialogSalary(null);
+    setNextStatus('');
+    setStatusComments('');
+    setTransactionId('');
+    setTransferDate('');
+    setStatusUpdateError(null);
+  };
+
+  const handleStatusUpdate = async () => {
+    if (!statusDialogSalary || !nextStatus) return;
+    if (!statusComments.trim()) {
+      setStatusUpdateError('Comments are required.');
+      return;
+    }
+    if (nextStatus === 'transferred') {
+      if (!transactionId.trim()) {
+        setStatusUpdateError('Transaction ID is required for Transferred status.');
+        return;
+      }
+      if (!transferDate) {
+        setStatusUpdateError('Transfer date is required for Transferred status.');
+        return;
+      }
+    }
+    setStatusUpdateLoading(true);
+    setStatusUpdateError(null);
+    try {
+      await salaryProcessingApi.updateMonthlySalaryStatus({
+        employee_id: statusDialogSalary.employee_id,
+        month: statusDialogSalary.month,
+        year: statusDialogSalary.year,
+        tax_year: taxYear, // Add this line to include tax_year in the payload
+        payout_status: nextStatus, // Use payout_status instead of status
+        comments: statusComments,
+        transaction_id: nextStatus === 'transferred' ? transactionId : undefined,
+        transfer_date: nextStatus === 'transferred' && transferDate ? transferDate : undefined
+      });
+      setStatusDialogOpen(false);
+      fetchSalaries();
+      fetchSummary();
+    } catch (err: any) {
+      setStatusUpdateError('Failed to update status. Please try again.');
+    } finally {
+      setStatusUpdateLoading(false);
+    }
+  };
+
   const fetchSalaries = useCallback(async () => {
     try {
       setLoading(true);
@@ -92,7 +186,7 @@ const ProcessedSalaries: React.FC = () => {
       
       const response = await salaryProcessingApi.getMonthlySalariesForPeriod(
         month,
-        year,
+        taxYear,
         params
       );
       
@@ -107,13 +201,13 @@ const ProcessedSalaries: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [month, year, statusFilter, departmentFilter, page, rowsPerPage]);
+  }, [month, taxYear, statusFilter, departmentFilter, page, rowsPerPage]);
 
   const fetchSummary = useCallback(async () => {
     try {
       setSummaryLoading(true);
       
-      const response = await salaryProcessingApi.getMonthlySalarySummary(month, year);
+      const response = await salaryProcessingApi.getMonthlySalarySummary(month, taxYear);
       setSummary(response);
       
     } catch (err) {
@@ -122,12 +216,12 @@ const ProcessedSalaries: React.FC = () => {
     } finally {
       setSummaryLoading(false);
     }
-  }, [month, year]);
+  }, [month, taxYear]);
 
   useEffect(() => {
     fetchSalaries();
     fetchSummary();
-  }, [month, year, statusFilter, departmentFilter, page, rowsPerPage, fetchSalaries, fetchSummary]);
+  }, [month, taxYear, statusFilter, departmentFilter, page, rowsPerPage, fetchSalaries, fetchSummary]);
 
   const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
@@ -160,7 +254,7 @@ const ProcessedSalaries: React.FC = () => {
         await salaryProcessingApi.deleteMonthlySalary(
           salary.employee_id,
           salary.month,
-          salary.year
+          taxYear // Pass as string, not number
         );
         
         fetchSalaries();
@@ -222,9 +316,9 @@ const ProcessedSalaries: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportProcessedSalaries('csv', month, year, filters);
+      const blob = await exportApi.exportProcessedSalaries('csv', month, taxYearStringToStartYear(taxYear), filters);
       
-      exportApi.downloadFile(blob, `processed_salaries_${month}_${year}.csv`);
+      exportApi.downloadFile(blob, `processed_salaries_${month}_${taxYear}.csv`);
       
     } catch (err) {
       console.error('Error exporting to CSV:', err);
@@ -243,9 +337,9 @@ const ProcessedSalaries: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportProcessedSalaries('excel', month, year, filters);
+      const blob = await exportApi.exportProcessedSalaries('excel', month, taxYearStringToStartYear(taxYear), filters);
       
-      exportApi.downloadFile(blob, `processed_salaries_${month}_${year}.xlsx`);
+      exportApi.downloadFile(blob, `processed_salaries_${month}_${taxYear}.xlsx`);
       
     } catch (err) {
       console.error('Error exporting to Excel:', err);
@@ -264,9 +358,9 @@ const ProcessedSalaries: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportProcessedSalaries('bank_transfer', month, year, filters);
+      const blob = await exportApi.exportProcessedSalaries('bank_transfer', month, taxYearStringToStartYear(taxYear), filters);
       
-      exportApi.downloadFile(blob, `bank_transfer_${month}_${year}.csv`);
+      exportApi.downloadFile(blob, `bank_transfer_${month}_${taxYear}.csv`);
       
     } catch (err) {
       console.error('Error exporting bank transfer format:', err);
@@ -377,13 +471,13 @@ const ProcessedSalaries: React.FC = () => {
         
         <Grid item xs={12} sm={6} md={2}>
           <FormControl fullWidth size="small">
-            <InputLabel>Year</InputLabel>
+            <InputLabel>Tax Year</InputLabel>
             <Select
-              value={year}
-              label="Year"
-              onChange={(e) => setYear(e.target.value as number)}
+              value={taxYear}
+              label="Tax Year"
+              onChange={(e) => setTaxYear(e.target.value as string)}
             >
-              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i).map((year) => (
+              {getAvailableTaxYears().map((year) => (
                 <MenuItem key={year} value={year}>
                   {year}
                 </MenuItem>
@@ -526,16 +620,8 @@ const ProcessedSalaries: React.FC = () => {
                   <Typography variant="body1">{formatCurrency(selectedSalary.special_allowance)}</Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">Bonus</Typography>
-                  <Typography variant="body1">{formatCurrency(selectedSalary.bonus)}</Typography>
-                </Grid>
-                <Grid item xs={6}>
                   <Typography variant="body2" color="textSecondary">Commission</Typography>
                   <Typography variant="body1">{formatCurrency(selectedSalary.commission)}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">Arrears</Typography>
-                  <Typography variant="body1">{formatCurrency(selectedSalary.arrears || 0)}</Typography>
                 </Grid>
                 <Grid item xs={6}>
                   <Typography variant="body2" color="textSecondary">Gross Salary</Typography>
@@ -731,9 +817,11 @@ const ProcessedSalaries: React.FC = () => {
                     <TableCell>{formatCurrency(salary.tds)}</TableCell>
                     <TableCell>
                       <Chip
-                        label={salary.status}
-                        color={getStatusColor(salary.status) as any}
+                        label={salary.payout_status?.status || ''}
+                        color={getStatusColor(salary.payout_status?.status || '') as any}
                         size="small"
+                        onClick={isAdminUser ? () => handleStatusChipClick(salary) : undefined}
+                        style={{ cursor: isAdminUser ? 'pointer' : 'default' }}
                       />
                     </TableCell>
                     <TableCell>
@@ -779,6 +867,66 @@ const ProcessedSalaries: React.FC = () => {
 
       {/* Salary Details Dialog */}
       {renderSalaryDetailsDialog()}
+
+      {statusDialogOpen && statusDialogSalary && (
+        <Dialog open={statusDialogOpen} onClose={handleStatusDialogClose} maxWidth="xs" fullWidth>
+          <DialogTitle>Status Transition</DialogTitle>
+          <DialogContent>
+            <Typography gutterBottom>Current Status: <b>{statusDialogSalary.payout_status?.status || ''}</b></Typography>
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel>Next Status</InputLabel>
+              <Select
+                value={nextStatus}
+                label="Next Status"
+                onChange={e => setNextStatus(e.target.value)}
+              >
+                {getNextStatusOptions(statusDialogSalary.payout_status?.status || '').map(opt => (
+                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              label="Comments"
+              value={statusComments}
+              onChange={e => setStatusComments(e.target.value)}
+              fullWidth
+              required
+              multiline
+              minRows={2}
+              sx={{ mt: 2 }}
+            />
+            {nextStatus === 'transferred' && (
+              <>
+                <TextField
+                  label="Transaction ID"
+                  value={transactionId}
+                  onChange={e => setTransactionId(e.target.value)}
+                  fullWidth
+                  required
+                  sx={{ mt: 2 }}
+                />
+                <TextField
+                  label="Transfer Date"
+                  type="date"
+                  value={transferDate}
+                  onChange={e => setTransferDate(e.target.value)}
+                  fullWidth
+                  required
+                  sx={{ mt: 2 }}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </>
+            )}
+            {statusUpdateError && <Alert severity="error" sx={{ mt: 2 }}>{statusUpdateError}</Alert>}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleStatusDialogClose} disabled={statusUpdateLoading}>Cancel</Button>
+            <Button onClick={handleStatusUpdate} variant="contained" disabled={statusUpdateLoading || !nextStatus}>
+              {statusUpdateLoading ? <CircularProgress size={20} /> : 'Update Status'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
     </Box>
   );
 };

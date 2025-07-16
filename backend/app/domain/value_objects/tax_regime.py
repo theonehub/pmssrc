@@ -9,7 +9,9 @@ from enum import Enum
 from typing import List, Dict, Any
 
 from app.domain.value_objects.money import Money
+from app.utils.logger import get_logger
 
+logger = get_logger(__name__)
 
 class TaxRegimeType(Enum):
     """Tax regime types in India."""
@@ -33,8 +35,10 @@ class TaxRegime:
     
     def get_standard_deduction(self) -> Money:
         if self.regime_type == TaxRegimeType.NEW:
+            logger.info("TheOne: Standard Deduction : 75000")
             return Money.from_int(75000)  # ₹75,000 for new regime
         else:
+            logger.info("TheOne: Standard Deduction: 50000")
             return Money.from_int(50000)  # ₹50,000 for old regime
     
     def get_basic_exemption_limit(self, age: int) -> Money:

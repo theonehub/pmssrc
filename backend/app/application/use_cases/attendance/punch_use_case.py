@@ -50,10 +50,10 @@ class PunchUseCase:
     async def execute(
         self,
         employee_id: str,
-        current_user: "CurrentUser"
+        current_user: "CurrentUser"  # Organisation context is always provided via current_user
     ) -> AttendanceResponseDTO:
         """
-        Execute the punch operation.
+        Execute the punch operation (organisation context from current_user).
         
         If no attendance record exists for the day, it's a check-in.
         If a record exists, it's a check-out.

@@ -95,6 +95,12 @@ class PersonalDetails:
             (today.month, today.day) < (self.date_of_birth.month, self.date_of_birth.day)
         )
     
+    def get_age_in_years(self) -> int:
+        """Calculate age in years from date of birth"""
+        from datetime import date
+        today = date.today()
+        return today.year - self.date_of_birth.year
+    
     def get_formatted_mobile(self) -> str:
         """Get formatted mobile number"""
         digits_only = re.sub(r'\D', '', self.mobile)

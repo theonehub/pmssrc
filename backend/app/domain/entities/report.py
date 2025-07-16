@@ -60,7 +60,6 @@ class Report:
     updated_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     created_by: Optional[str] = None
-    organisation_id: Optional[str] = None
     
     def __post_init__(self):
         """Initialize timestamps if not provided."""
@@ -78,8 +77,7 @@ class Report:
         report_type: ReportType,
         format: ReportFormat,
         parameters: Dict[str, Any],
-        created_by: str,
-        organisation_id: str
+        created_by: str
     ) -> 'Report':
         """Create a new report."""
         return cls(
@@ -91,7 +89,6 @@ class Report:
             status=ReportStatus.PENDING,
             parameters=parameters,
             created_by=created_by,
-            organisation_id=organisation_id,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )
@@ -171,6 +168,5 @@ class Report:
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
-            "created_by": self.created_by,
-            "organisation_id": self.organisation_id
+            "created_by": self.created_by
         } 

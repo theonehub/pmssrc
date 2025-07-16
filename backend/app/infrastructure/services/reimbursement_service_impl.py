@@ -142,8 +142,7 @@ class ReimbursementServiceImpl(ReimbursementService):
             # Execute use case with organisation context
             response = await self._create_reimbursement_type_use_case.execute(
                 use_case_request, 
-                current_user.hostname,
-                current_user.employee_id
+                current_user
             )
             
             logger.info(f"Successfully created reimbursement type: {response.type_id}")
@@ -242,7 +241,7 @@ class ReimbursementServiceImpl(ReimbursementService):
             # Execute use case with organisation context
             response = await self._create_reimbursement_request_use_case.execute(
                 request, 
-                current_user.hostname
+                current_user
             )
             
             logger.info(f"Successfully created reimbursement request: {response.request_id}")
@@ -364,8 +363,7 @@ class ReimbursementServiceImpl(ReimbursementService):
             response = await self._process_payment_use_case.execute(
                 request_id, 
                 payment, 
-                current_user.employee_id,
-                current_user.hostname
+                current_user
             )
             
             logger.info(f"Successfully processed payment for reimbursement request: {request_id}")
@@ -660,16 +658,16 @@ class ReimbursementServiceImpl(ReimbursementService):
             if filters:
                 if filters.employee_id:
                     # Get requests for specific employee
-                    requests = await self._get_reimbursement_requests_use_case.get_requests_by_employee(filters.employee_id, current_user.hostname)
+                    requests = await self._get_reimbursement_requests_use_case.get_requests_by_employee(filters.employee_id, current_user)
                 elif filters.status:
                     # Get requests by status
-                    requests = await self._get_reimbursement_requests_use_case.get_requests_by_status(filters.status, current_user.hostname)
+                    requests = await self._get_reimbursement_requests_use_case.get_requests_by_status(filters.status, current_user)
                 else:
                     # Use search with filters
-                    requests = await self._get_reimbursement_requests_use_case.search_requests(filters, current_user.hostname)
+                    requests = await self._get_reimbursement_requests_use_case.search_requests(filters, current_user)
             else:
                 # Get all requests
-                requests = await self._get_reimbursement_requests_use_case.get_all_requests(current_user.hostname)
+                requests = await self._get_reimbursement_requests_use_case.get_all_requests(current_user)
             
             # Convert to summary DTOs
             summaries = []

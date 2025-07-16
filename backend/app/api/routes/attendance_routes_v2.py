@@ -114,25 +114,6 @@ async def checkin_bulk(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.post("/punch/{employee_id}", response_model=AttendanceResponseDTO)
-async def punch(
-    employee_id: str = Path(..., description="Employee ID"),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: AttendanceController = Depends(get_attendance_controller)
-):
-    """Record employee punch (check-in or check-out)"""
-    try:
-        logger.info(f"Punch request for employee: {employee_id}")
-        response = await controller.punch(employee_id, current_user)
-        return response
-    except (AttendanceValidationError, AttendanceBusinessRuleError, AttendanceNotFoundError) as e:
-        logger.warning(f"Error during punch: {e}")
-        raise HTTPException(status_code=422, detail={"error": "punch_error", "message": str(e)})
-    except Exception as e:
-        logger.error(f"Unexpected error during punch: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
 @router.post("/checkin", response_model=AttendanceResponseDTO)
 async def checkin(
     current_user: CurrentUser = Depends(get_current_user),
@@ -321,35 +302,6 @@ async def get_team_attendance_by_month(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/team/year/{year}", response_model=List[AttendanceResponseDTO])
-async def get_team_attendance_by_year(
-    year: int = Path(..., ge=2000, le=3000, description="Year"),
-    current_user: CurrentUser = Depends(get_current_user),
-    role: str = Depends(role_checker(["admin", "superadmin", "manager"])),
-    controller: AttendanceController = Depends(get_attendance_controller)
-):
-    """Get team attendance records for a specific year"""
-    try:
-        logger.info(f"Getting team attendance for year {year}")
-        
-        filters = AttendanceSearchFiltersDTO(
-            manager_id=current_user.employee_id,
-            year=year
-        )
-        
-        response = await controller.get_team_attendance_by_year(filters, current_user)
-        
-        return response
-        
-    except AttendanceNotFoundError as e:
-        logger.warning(f"Team attendance not found: {e}")
-        raise HTTPException(status_code=404, detail={"error": "not_found", "message": str(e)})
-    
-    except Exception as e:
-        logger.error(f"Error getting team attendance: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
 @router.get("/stats/today", response_model=AttendanceStatisticsDTO)
 async def get_todays_attendance_stats(
     current_user: CurrentUser = Depends(get_current_user),
@@ -425,17 +377,6 @@ async def get_my_attendance_by_year(
     except Exception as e:
         logger.error(f"Error getting my attendance: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    return {
-        "status": "healthy", 
-        "service": "attendance_v2",
-        "timestamp": datetime.now().isoformat(),
-        "version": "2.0.0"
-    }
 
 
 @router.get("/user/{employee_id}/{month}/{year}", response_model=List[Dict[str, Any]])

@@ -438,7 +438,7 @@ async def get_current_organisation(
         logger.info(f"Getting current organisation for user: {current_user.employee_id} with hostname: {current_user.hostname}")
         
         # Get organisation by hostname
-        response = await controller.get_organisation_by_hostname(current_user.hostname)
+        response = await controller.get_organisation_by_hostname(current_user)
         
         if not response:
             raise HTTPException(status_code=404, detail="Organisation not found for current user")

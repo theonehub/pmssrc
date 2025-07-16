@@ -45,7 +45,7 @@ class GetEmployeesForSelectionUseCase:
         
         Args:
             query: Query parameters for filtering and pagination
-            current_user: Current authenticated user with organization context
+            current_user: Current authenticated user with organisation context
             
         Returns:
             Employee selection response with enriched data
@@ -75,7 +75,7 @@ class GetEmployeesForSelectionUseCase:
         # Enrich each employee with tax information
         for user_summary in user_list_response.users:
             employee_dto = await self._enrich_employee_with_tax_info(
-                user_summary, query.tax_year, current_user.hostname
+                user_summary, query.tax_year, current_user
             )
             
             # Apply tax-specific filtering if needed
@@ -101,7 +101,7 @@ class GetEmployeesForSelectionUseCase:
         self,
         user_summary,
         tax_year: str,
-        organization_id: str
+        current_user: CurrentUser
     ) -> EmployeeSelectionDTO:
         """
         Enrich employee data with tax record information.
@@ -109,7 +109,7 @@ class GetEmployeesForSelectionUseCase:
         Args:
             user_summary: User summary from user service
             tax_year: Optional tax year filter
-            organization_id: Organization ID for context
+            current_user: Current user context
             
         Returns:
             Enriched employee DTO with tax information
@@ -133,7 +133,7 @@ class GetEmployeesForSelectionUseCase:
             tax_record = await self._salary_package_repository.get_salary_package_record(
                 user_summary.employee_id, 
                 tax_year, 
-                organization_id
+                current_user.hostname
             )
             
             if tax_record:

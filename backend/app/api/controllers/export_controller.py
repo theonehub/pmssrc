@@ -8,8 +8,8 @@ from typing import Optional, Dict, Any, Tuple
 from datetime import datetime
 
 from app.application.interfaces.services.file_generation_service import FileGenerationService
-from app.application.interfaces.repositories.monthly_salary_repository import MonthlySalaryRepository
-
+from app.api.controllers.taxation_controller import UnifiedTaxationController
+from app.auth.auth_dependencies import CurrentUser
 
 logger = logging.getLogger(__name__)
 
@@ -25,66 +25,33 @@ class ExportController:
     def __init__(
         self,
         file_generation_service: FileGenerationService,
-        monthly_salary_repository: MonthlySalaryRepository,
-        taxation_controller=None
+        taxation_controller: UnifiedTaxationController
     ):
         self.file_generation_service = file_generation_service
-        self.monthly_salary_repository = monthly_salary_repository
         self.taxation_controller = taxation_controller
 
     async def export_processed_salaries(
         self,
         format_type: str,
         filters: Dict[str, Any],
-        organisation_id: str
+        current_user: CurrentUser
     ) -> Tuple[bytes, str, str]:
         """Export processed salaries in specified format"""
         try:
-            logger.info(f"Exporting processed salaries in {format_type} format for organisation {organisation_id}")
+            logger.info(f"Exporting processed salaries in {format_type} format for organisation {current_user.hostname}")
             
             # Use taxation controller to get salary data with proper DTOs
             if self.taxation_controller:
                 response = await self.taxation_controller.get_monthly_salaries_for_period(
                     month=filters.get('month'),
                     year=filters.get('year'),
-                    organization_id=organisation_id,
+                    current_user=current_user,  # You may need to ensure current_user is available in this context
                     salary_status=filters.get('status'),
                     department=filters.get('department'),
                     skip=0,
                     limit=1000  # Get all records for export
                 )
                 salary_data = response.get('items', [])
-            else:
-                # Fallback to repository if taxation controller not available
-                salary_data = await self.monthly_salary_repository.get_monthly_salaries_for_period(
-                    month=filters.get('month'),
-                    year=filters.get('year'),
-                    organization_id=organisation_id,
-                    status=filters.get('status'),
-                    department=filters.get('department')
-                )
-                # Convert entities to DTOs (simplified)
-                salary_data = []
-                for salary in salary_data:
-                    salary_dict = {
-                        'employee_id': str(salary.employee_id),
-                        'employee_name': None,  # Would need user data
-                        'department': None,  # Would need user data
-                        'designation': None,  # Would need user data
-                        'month': salary.month,
-                        'year': salary.year,
-                        'basic_salary': salary.salary.basic_salary.to_float(),
-                        'hra': salary.salary.hra_provided.to_float(),
-                        'da': salary.salary.dearness_allowance.to_float(),
-                        'other_allowances': 0.0,
-                        'gross_salary': salary.salary.calculate_gross_salary().to_float(),
-                        'pf': 0.0,  # Would need calculation
-                        'pt': 0.0,  # Would need calculation
-                        'tds': salary.tax_amount.to_float(),
-                        'net_salary': salary.net_salary.to_float(),
-                        'status': 'computed'
-                    }
-                    salary_data.append(salary_dict)
             
             # Convert to list of dictionaries for file generation
             salary_list = []
@@ -105,6 +72,8 @@ class ExportController:
                         'hra': salary.hra,
                         'da': salary.da,
                         'other_allowances': salary.other_allowances,
+                        'one_time_arrear': salary.one_time_arrear,
+                        'one_time_bonus': salary.one_time_bonus,
                         'gross_salary': salary.gross_salary,
                         'pf': salary.epf_employee,
                         'pt': salary.professional_tax,
@@ -126,6 +95,8 @@ class ExportController:
                         'hra': salary.salary.hra_provided.to_float(),
                         'da': salary.salary.dearness_allowance.to_float(),
                         'other_allowances': 0.0,
+                        'one_time_arrear': salary.one_time_arrear.to_float(),
+                        'one_time_bonus': salary.one_time_bonus.to_float(),
                         'gross_salary': salary.salary.calculate_gross_salary().to_float(),
                         'pf': 0.0,
                         'pt': 0.0,
@@ -138,7 +109,7 @@ class ExportController:
             # Generate file
             file_data = await self.file_generation_service.generate_processed_salaries_export(
                 salary_data=salary_list,
-                organisation_id=organisation_id,
+                current_user=current_user,
                 format_type=format_type,
                 filters=filters
             )
@@ -160,49 +131,25 @@ class ExportController:
         filters: Dict[str, Any],
         quarter: Optional[int],
         tax_year: int,
-        organisation_id: str
+        current_user: CurrentUser
     ) -> Tuple[bytes, str, str]:
         """Export TDS report in specified format"""
         try:
-            logger.info(f"Exporting TDS report in {format_type} format for organisation {organisation_id}")
+            logger.info(f"Exporting TDS report in {format_type} format for organisation {current_user.hostname}")
             
             # Use taxation controller to get salary data with proper DTOs
             if self.taxation_controller:
                 response = await self.taxation_controller.get_monthly_salaries_for_period(
                     month=filters.get('month'),
                     year=filters.get('year'),
-                    organization_id=organisation_id,
+                    current_user=current_user,  # You may need to ensure current_user is available in this context
                     salary_status=filters.get('status'),
                     department=filters.get('department'),
                     skip=0,
                     limit=1000  # Get all records for export
                 )
                 salary_data = response.get('items', [])
-            else:
-                # Fallback to repository if taxation controller not available
-                salary_data = await self.monthly_salary_repository.get_monthly_salaries_for_period(
-                    month=filters.get('month'),
-                    year=filters.get('year'),
-                    organization_id=organisation_id,
-                    status=filters.get('status'),
-                    department=filters.get('department')
-                )
-                # Convert entities to DTOs (simplified)
-                salary_data = []
-                for salary in salary_data:
-                    salary_dict = {
-                        'employee_id': str(salary.employee_id),
-                        'employee_name': None,
-                        'department': None,
-                        'designation': None,
-                        'month': salary.month,
-                        'year': salary.year,
-                        'gross_salary': salary.salary.calculate_gross_salary().to_float(),
-                        'tds': salary.tax_amount.to_float(),
-                        'tax_regime': str(salary.tax_regime),
-                        'status': 'computed'
-                    }
-                    salary_data.append(salary_dict)
+            
             
             # Filter for TDS data and convert to list of dictionaries
             tds_list = []
@@ -247,7 +194,7 @@ class ExportController:
             # Generate file
             file_data = await self.file_generation_service.generate_tds_report_export(
                 tds_data=tds_list,
-                organisation_id=organisation_id,
+                current_user=current_user,
                 format_type=format_type,
                 quarter=quarter,
                 tax_year=tax_year,
@@ -269,11 +216,11 @@ class ExportController:
         self,
         employee_id: str,
         tax_year: Optional[str],
-        organisation_id: str
+        current_user: CurrentUser
     ) -> Tuple[bytes, str, str]:
         """Export Form 16 for specific employee"""
         try:
-            logger.info(f"Exporting Form 16 for employee {employee_id} in organisation {organisation_id}")
+            logger.info(f"Exporting Form 16 for employee {employee_id} in organisation {current_user.hostname}")
             
             # Fetch TDS data for the employee for the entire tax year
             if not tax_year:
@@ -291,7 +238,7 @@ class ExportController:
                     response = await self.taxation_controller.get_monthly_salaries_for_period(
                         month=month,
                         year=start_year,
-                        organization_id=organisation_id,
+                        current_user=current_user,  # You may need to ensure current_user is available in this context
                         salary_status=None,
                         department=None,
                         skip=0,
@@ -300,27 +247,6 @@ class ExportController:
                     salary_data = response.get('items', [])
                     # Filter for specific employee
                     salary_data = [s for s in salary_data if s.get('employee_id') == employee_id]
-                else:
-                    # Fallback to repository
-                    salary_data = await self.monthly_salary_repository.get_monthly_salaries_for_period(
-                        month=month,
-                        year=start_year,
-                        organization_id=organisation_id,
-                        employee_id=employee_id
-                    )
-                    # Convert entities to DTOs
-                    salary_data = []
-                    for salary in salary_data:
-                        salary_dict = {
-                            'employee_id': str(salary.employee_id),
-                            'employee_name': None,
-                            'pan_number': None,
-                            'month': salary.month,
-                            'year': salary.year,
-                            'gross_salary': salary.salary.calculate_gross_salary().to_float(),
-                            'tds': salary.tax_amount.to_float()
-                        }
-                        salary_data.append(salary_dict)
                 
                 for salary in salary_data:
                     if isinstance(salary, dict):
@@ -357,7 +283,7 @@ class ExportController:
             # Generate file
             file_data = await self.file_generation_service.generate_form_16(
                 tds_data=tds_list,
-                organisation_id=organisation_id,
+                current_user=current_user,
                 employee_id=employee_id,
                 tax_year=tax_year
             )
@@ -377,7 +303,7 @@ class ExportController:
         quarter: int,
         tax_year: int,
         format_type: str,
-        organisation_id: str
+        current_user: CurrentUser
     ) -> Tuple[bytes, str, str]:
         """Export Form 24Q for specific quarter and year"""
         try:
@@ -402,35 +328,13 @@ class ExportController:
                     response = await self.taxation_controller.get_monthly_salaries_for_period(
                         month=month,
                         year=tax_year,
-                        organization_id=organisation_id,
+                        current_user=current_user,  # You may need to ensure current_user is available in this context
                         salary_status=None,
                         department=None,
                         skip=0,
                         limit=1000
                     )
                     salary_data = response.get('items', [])
-                else:
-                    # Fallback to repository
-                    salary_data = await self.monthly_salary_repository.get_monthly_salaries_for_period(
-                        month=month,
-                        year=tax_year,
-                        organization_id=organisation_id
-                    )
-                    # Convert entities to DTOs
-                    salary_data = []
-                    for salary in salary_data:
-                        salary_dict = {
-                            'employee_id': str(salary.employee_id),
-                            'employee_name': None,
-                            'pan_number': None,
-                            'month': salary.month,
-                            'year': salary.year,
-                            'gross_salary': salary.salary.calculate_gross_salary().to_float(),
-                            'tds': salary.tax_amount.to_float(),
-                            'department': None,
-                            'designation': None
-                        }
-                        salary_data.append(salary_dict)
                 
                 for salary in salary_data:
                     if isinstance(salary, dict):
@@ -472,7 +376,7 @@ class ExportController:
             if format_type.lower() == 'csv':
                 file_data = await self.file_generation_service.generate_form_24q(
                     tds_data=tds_list,
-                    organisation_id=organisation_id,
+                    current_user=current_user,
                     quarter=quarter,
                     tax_year=tax_year
                 )
@@ -480,7 +384,7 @@ class ExportController:
             elif format_type.lower() == 'fvu':
                 file_data = await self.file_generation_service.generate_fvu_form_24q(
                     tds_data=tds_list,
-                    organisation_id=organisation_id,
+                    current_user=current_user,
                     quarter=quarter,
                     tax_year=tax_year
                 )
@@ -554,48 +458,24 @@ class ExportController:
         filters: Dict[str, Any],
         quarter: Optional[int],
         tax_year: int,
-        organisation_id: str
+        current_user: CurrentUser
     ) -> Tuple[bytes, str, str]:
         """Export PF report in specified format"""
         try:
-            logger.info(f"Exporting PF report in {format_type} format for organisation {organisation_id}")
+            logger.info(f"Exporting PF report in {format_type} format for organisation {current_user.hostname}")
             
             # Use taxation controller to get salary data with proper DTOs
             if self.taxation_controller:
                 response = await self.taxation_controller.get_monthly_salaries_for_period(
                     month=filters.get('month'),
                     year=filters.get('year'),
-                    organization_id=organisation_id,
+                    current_user=current_user,  # You may need to ensure current_user is available in this context
                     salary_status=filters.get('status'),
                     department=filters.get('department'),
                     skip=0,
                     limit=1000  # Get all records for export
                 )
                 salary_data = response.get('items', [])
-            else:
-                # Fallback to repository if taxation controller not available
-                salary_data = await self.monthly_salary_repository.get_monthly_salaries_for_period(
-                    month=filters.get('month'),
-                    year=filters.get('year'),
-                    organization_id=organisation_id,
-                    status=filters.get('status'),
-                    department=filters.get('department')
-                )
-                # Convert entities to DTOs (simplified)
-                salary_data = []
-                for salary in salary_data:
-                    salary_dict = {
-                        'employee_id': str(salary.employee_id),
-                        'employee_name': None,
-                        'department': None,
-                        'designation': None,
-                        'month': salary.month,
-                        'year': salary.year,
-                        'gross_salary': salary.salary.calculate_gross_salary().to_float(),
-                        'epf_employee': self._calculate_monthly_epf(salary.salary.calculate_gross_salary()),
-                        'status': 'computed'
-                    }
-                    salary_data.append(salary_dict)
             
             # Filter for PF data and convert to list of dictionaries
             pf_list = []
@@ -641,7 +521,7 @@ class ExportController:
             # Generate file
             file_data = await self.file_generation_service.generate_pf_report_export(
                 pf_data=pf_list,
-                organisation_id=organisation_id,
+                current_user=current_user,
                 format_type=format_type,
                 quarter=quarter,
                 tax_year=tax_year,

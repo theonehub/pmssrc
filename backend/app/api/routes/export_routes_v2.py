@@ -54,7 +54,7 @@ async def export_processed_salaries(
         file_data, filename, content_type = await controller.export_processed_salaries(
             format_type=format_type,
             filters=filters,
-            organisation_id=current_user.hostname
+            current_user=current_user
         )
         
         # Return file as streaming response
@@ -119,7 +119,7 @@ async def export_tds_report(
             filters=filters,
             quarter=quarter,
             tax_year=year,
-            organisation_id=current_user.hostname
+            current_user=current_user
         )
         
         # Return file as streaming response
@@ -149,7 +149,7 @@ async def export_form_16(
         file_data, filename, content_type = await controller.export_form_16(
             employee_id=employee_id,
             tax_year=tax_year,
-            organisation_id=current_user.hostname
+            current_user=current_user
         )
         
         # Return file as streaming response
@@ -195,7 +195,7 @@ async def export_form_24q(
             quarter=quarter,
             tax_year=year,
             format_type=format_type,
-            organisation_id=current_user.hostname
+            current_user=current_user
         )
         
         # Return file as streaming response
@@ -260,7 +260,7 @@ async def export_pf_report(
             filters=filters,
             quarter=quarter,
             tax_year=year,
-            organisation_id=current_user.hostname
+            current_user=current_user
         )
         
         # Return file as streaming response

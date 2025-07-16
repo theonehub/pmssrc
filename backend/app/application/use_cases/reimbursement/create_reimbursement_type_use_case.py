@@ -25,6 +25,7 @@ from app.application.interfaces.repositories.reimbursement_repository import (
 )
 from app.application.interfaces.services.event_publisher import EventPublisher
 from app.application.interfaces.services.notification_service import NotificationService
+from app.auth.auth_dependencies import CurrentUser
 
 
 logger = logging.getLogger(__name__)
@@ -57,8 +58,7 @@ class CreateReimbursementTypeUseCase:
     async def execute(
         self,
         request: ReimbursementTypeCreateRequestDTO,
-        organisation_id: str,
-        created_by: str = "system"
+        current_user: CurrentUser
     ) -> ReimbursementTypeResponseDTO:
         """
         Execute reimbursement type creation workflow.
@@ -73,6 +73,8 @@ class CreateReimbursementTypeUseCase:
         7. Return response
         """
         
+        created_by = current_user.username
+        
         try:
             logger.info(f"Creating reimbursement type: {request.category_name} by {created_by}")
             
@@ -80,13 +82,13 @@ class CreateReimbursementTypeUseCase:
             await self._validate_request(request)
             
             # Step 2: Check business rules
-            await self._check_business_rules(request, organisation_id)
+            await self._check_business_rules(request, current_user)
             
             # Step 3: Create domain objects
             reimbursement_type_entity = await self._create_domain_objects(request, created_by)
             
             # Step 4: Persist to repository
-            saved_entity = await self._persist_entity(reimbursement_type_entity, organisation_id)
+            saved_entity = await self._persist_entity(reimbursement_type_entity, current_user)
             
             # Step 5: Publish domain events
             await self._publish_events(saved_entity)
@@ -117,11 +119,11 @@ class CreateReimbursementTypeUseCase:
         
         logger.info("Request validation passed")
     
-    async def _check_business_rules(self, request: ReimbursementTypeCreateRequestDTO, organisation_id: str):
+    async def _check_business_rules(self, request: ReimbursementTypeCreateRequestDTO, current_user: CurrentUser):
         """Check business rules for reimbursement type creation"""
         
         # Rule 1: Code must be unique
-        existing_type = await self.query_repository.get_by_code(request.category_name, organisation_id)
+        existing_type = await self.query_repository.get_by_code(request.category_name, current_user)
         if existing_type:
             raise ReimbursementBusinessRuleError(
                 f"Reimbursement type with category_name '{request.category_name}' already exists"
@@ -159,11 +161,11 @@ class CreateReimbursementTypeUseCase:
         logger.info(f"Created domain entity: {entity.reimbursement_type_id}")
         return entity
     
-    async def _persist_entity(self, entity: ReimbursementTypeEntity, organisation_id: str) -> ReimbursementTypeEntity:
+    async def _persist_entity(self, entity: ReimbursementTypeEntity, current_user: CurrentUser) -> ReimbursementTypeEntity:
         """Persist entity to repository"""
         
         try:
-            saved_entity = await self.command_repository.save(entity, organisation_id)
+            saved_entity = await self.command_repository.save(entity, current_user.hostname)
             logger.info(f"Persisted entity: {saved_entity.reimbursement_type_id}")
             return saved_entity
             

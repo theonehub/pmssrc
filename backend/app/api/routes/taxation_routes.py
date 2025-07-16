@@ -13,11 +13,6 @@ from app.utils.logger import get_logger
 
 from app.auth.auth_dependencies import get_current_user, CurrentUser
 from app.application.dto.taxation_dto import (
-    # Comprehensive DTOs
-    PerquisitesDTO,
-    HousePropertyIncomeDTO,
-    CapitalGainsIncomeDTO,
-    RetirementBenefitsDTO,
     # Employee Selection DTOs
     EmployeeSelectionQuery,
     EmployeeSelectionResponse,
@@ -55,139 +50,11 @@ from app.domain.exceptions.taxation_exceptions import (
     FinalizedRecordError,
     DuplicateTaxationRecordError
 )
-from app.domain.services.taxation.tax_calculation_service import TaxCalculationResult
 
 # Configure logger
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/v2/taxation", tags=["taxation"])
-
-# =============================================================================
-# INDIVIDUAL INCOME COMPONENT CALCULATIONS
-# =============================================================================
-
-@router.post("/perquisites/calculate",
-             response_model=Dict[str, Any],
-             status_code=status.HTTP_200_OK,
-             summary="Calculate perquisites tax",
-             description="Calculate tax impact of perquisites only")
-async def calculate_perquisites(
-    perquisites: PerquisitesDTO,
-    regime_type: str = Query(..., description="Tax regime: 'old' or 'new'"),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_taxation_controller)
-) -> Dict[str, Any]:
-    """Calculate perquisites tax impact only."""
-    
-    try:
-        response = await controller.calculate_perquisites_only(
-            perquisites, regime_type, current_user.hostname
-        )
-        return response
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to calculate perquisites: {str(e)}"
-        )
-
-
-@router.post("/house-property/calculate",
-             response_model=Dict[str, Any],
-             status_code=status.HTTP_200_OK,
-             summary="Calculate house property income",
-             description="Calculate income from house property")
-async def calculate_house_property(
-    house_property_income: HousePropertyIncomeDTO,
-    regime_type: str = Query(..., description="Tax regime: 'old' or 'new'"),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_taxation_controller)
-) -> Dict[str, Any]:
-    """Calculate house property income tax."""
-    
-    try:
-        response = await controller.calculate_house_property_income_only(
-            house_property_income, regime_type, current_user.hostname
-        )
-        return response
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to calculate house property income: {str(e)}"
-        )
-
-
-@router.post("/capital-gains/calculate",
-             response_model=Dict[str, Any],
-             status_code=status.HTTP_200_OK,
-             summary="Calculate capital gains tax",
-             description="Calculate capital gains tax for all types")
-async def calculate_capital_gains(
-    capital_gains: CapitalGainsIncomeDTO,
-    regime_type: str = Query(..., description="Tax regime: 'old' or 'new'"),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_taxation_controller)
-) -> Dict[str, Any]:
-    """Calculate capital gains tax."""
-    
-    try:
-        response = await controller.calculate_capital_gains_only(
-            capital_gains, regime_type, current_user.hostname
-        )
-        return response
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to calculate capital gains: {str(e)}"
-        )
-
-
-@router.post("/retirement-benefits/calculate",
-             response_model=Dict[str, Any],
-             status_code=status.HTTP_200_OK,
-             summary="Calculate retirement benefits tax",
-             description="Calculate tax on all retirement benefits")
-async def calculate_retirement_benefits(
-    retirement_benefits: RetirementBenefitsDTO,
-    regime_type: str = Query(..., description="Tax regime: 'old' or 'new'"),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_taxation_controller)
-) -> Dict[str, Any]:
-    """Calculate retirement benefits tax."""
-    
-    try:
-        response = await controller.calculate_retirement_benefits_only(
-            retirement_benefits, regime_type, current_user.hostname
-        )
-        return response
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to calculate retirement benefits: {str(e)}"
-        )
 
 # =============================================================================
 # INDIVIDUAL COMPONENT UPDATE ENDPOINTS
@@ -218,7 +85,7 @@ async def update_salary_component(
             )
         
         response = await controller.update_salary_component(
-            request, current_user.hostname
+            request, current_user
         )
         logger.info(f"Successfully updated salary component for employee {employee_id}")
         return response
@@ -259,7 +126,7 @@ async def update_perquisites_component(
             )
         
         response = await controller.update_perquisites_component(
-            request, current_user.hostname
+            request, current_user
         )
         return response
         
@@ -299,7 +166,7 @@ async def update_deductions_component(
                 detail=f"Employee ID mismatch: URL parameter '{employee_id}' does not match request body '{request.employee_id}'"
             )
         
-        response = await controller.update_deductions_component(request, current_user.hostname)
+        response = await controller.update_deductions_component(request, current_user)
         
         logger.info(f"Successfully updated deductions component for employee {employee_id}")
         return response
@@ -352,7 +219,7 @@ async def update_house_property_component(
             )
         
         response = await controller.update_house_property_component(
-            request, current_user.hostname
+            request, current_user
         )
         return response
         
@@ -390,7 +257,7 @@ async def update_capital_gains_component(
             )
         
         response = await controller.update_capital_gains_component(
-            request, current_user.hostname
+            request, current_user
         )
         return response
         
@@ -428,7 +295,7 @@ async def update_retirement_benefits_component(
             )
         
         response = await controller.update_retirement_benefits_component(
-            request, current_user.hostname
+            request, current_user
         )
         return response
         
@@ -466,7 +333,7 @@ async def update_other_income_component(
             )
         
         response = await controller.update_other_income_component(
-            request, current_user.hostname
+            request, current_user
         )
         return response
         
@@ -504,7 +371,7 @@ async def update_monthly_payroll_component(
             )
         
         response = await controller.update_monthly_payroll_component(
-            request, current_user.hostname
+            request, current_user
         )
         return response
         
@@ -540,7 +407,7 @@ async def is_regime_update_allowed(
             tax_year=tax_year
         )
         response = await controller.is_regime_update_allowed(
-            request, current_user.hostname
+            request, current_user
         )
         logger.info(f"Regime update is allowed: {response.is_allowed}")
         return response 
@@ -572,7 +439,7 @@ async def update_regime_component(
             )
         
         response = await controller.update_regime_component(
-            request, current_user.hostname
+            request, current_user
         )
         return response
         
@@ -607,7 +474,7 @@ async def get_component(
     
     try:
         response = await controller.get_component(
-            employee_id, tax_year, component_type, current_user.hostname
+            employee_id, tax_year, component_type, current_user
         )
         return response
         
@@ -950,7 +817,7 @@ async def compute_monthly_tax(
     """
     
     try:
-        result = await controller.compute_monthly_tax(employee_id, current_user.hostname)
+        result = await controller.compute_monthly_tax(employee_id, current_user)
         return result
         
     except ValueError as e:
@@ -990,7 +857,7 @@ async def compute_current_month_tax(
         now = datetime.now()
         
         result = await controller.compute_monthly_tax(
-            employee_id, now.month, now.year, current_user.hostname
+            employee_id, now.month, now.year, current_user
         )
         return result
         
@@ -1025,7 +892,7 @@ async def export_salary_package_to_excel(
     """
     try:
         excel_content = await controller.export_salary_package_to_excel(
-            employee_id, tax_year, current_user.hostname
+            employee_id, tax_year, current_user
         )
         
         # Generate filename
@@ -1060,7 +927,7 @@ async def export_salary_package_single_sheet(
     """
     try:
         excel_content = await controller.export_salary_package_single_sheet(
-            employee_id, tax_year, current_user.hostname
+            employee_id, tax_year, current_user
         )
         
         # Generate filename
@@ -1117,9 +984,9 @@ async def compute_monthly_salary(
     
     try:
         logger.info(f"Computing monthly salary for employee {request.employee_id}")
-        logger.info(f"Month: {request.month}, Year: {request.year}, Tax Year: {request.tax_year}")
+        logger.info(f"Month: {request.month}, Tax Year: {request.tax_year}")
         
-        result = await controller.compute_monthly_salary(request, current_user.hostname)
+        result = await controller.compute_monthly_salary(request, current_user)
         
         logger.info(f"Successfully computed monthly salary for employee {request.employee_id}")
         return result
@@ -1172,7 +1039,7 @@ async def get_monthly_salary(
     """
     
     try:
-        result = await controller.get_monthly_salary(employee_id, month, year, current_user.hostname)
+        result = await controller.get_monthly_salary(employee_id, month, year, current_user)
         return result
         
     except ValueError as e:
@@ -1204,7 +1071,7 @@ async def get_employee_salary_history(
     """
     try:
         return await controller.get_employee_salary_history(
-            employee_id, current_user.hostname, limit=limit, offset=offset
+            employee_id, current_user, limit=limit, offset=offset
         )
     except Exception as e:
         logger.error(f"Error getting salary history for employee {employee_id}: {str(e)}")
@@ -1230,7 +1097,7 @@ async def download_payslip(
             employee_id=employee_id,
             month=month,
             year=year,
-            organization_id=current_user.hostname
+            current_user=current_user
         )
         
         # Return PDF as response
@@ -1250,14 +1117,14 @@ async def download_payslip(
             detail=f"Failed to download payslip: {str(e)}"
         )
 
-@router.get("/monthly-salary/period/month/{month}/year/{year}",
+@router.get("/monthly-salary/period/month/{month}/tax-year/{tax_year}",
             response_model=Dict[str, Any],
             status_code=status.HTTP_200_OK,
             summary="Get monthly salaries for period",
             description="Get all monthly salaries for a specific month and year with pagination")
 async def get_monthly_salaries_for_period(
     month: int,
-    year: int,
+    tax_year: str,
     salary_status: Optional[str] = Query(None, description="Filter by status"),
     department: Optional[str] = Query(None, description="Filter by department"),
     skip: int = Query(0, description="Number of records to skip"),
@@ -1270,7 +1137,7 @@ async def get_monthly_salaries_for_period(
     
     Args:
         month: Month number (1-12)
-        year: Year
+        tax_year: Tax year (e.g., '2024-25')
         salary_status: Optional status filter
         department: Optional department filter
         skip: Number of records to skip
@@ -1286,7 +1153,7 @@ async def get_monthly_salaries_for_period(
     
     try:
         result = await controller.get_monthly_salaries_for_period(
-            month, year, current_user.hostname, salary_status, department, skip, limit
+            month, tax_year, current_user, salary_status, department, skip, limit
         )
         return result
         
@@ -1297,14 +1164,14 @@ async def get_monthly_salaries_for_period(
             detail=f"Failed to get monthly salaries: {str(e)}"
         )
 
-@router.get("/monthly-salary/summary/month/{month}/year/{year}",
+@router.get("/monthly-salary/summary/month/{month}/tax-year/{tax_year}",
             response_model=Dict[str, Any],
             status_code=status.HTTP_200_OK,
             summary="Get monthly salary summary",
             description="Get summary statistics for monthly salaries in a period")
 async def get_monthly_salary_summary(
     month: int,
-    year: int,
+    tax_year: str,
     current_user: CurrentUser = Depends(get_current_user),
     controller: UnifiedTaxationController = Depends(get_taxation_controller)
 ) -> Dict[str, Any]:
@@ -1313,7 +1180,7 @@ async def get_monthly_salary_summary(
     
     Args:
         month: Month number (1-12)
-        year: Year
+        tax_year: Tax year (e.g., '2024-25')
         current_user: Current authenticated user
         
     Returns:
@@ -1324,7 +1191,7 @@ async def get_monthly_salary_summary(
     """
     
     try:
-        result = await controller.get_monthly_salary_summary(month, year, current_user.hostname)
+        result = await controller.get_monthly_salary_summary(month, tax_year, current_user)
         return result
         
     except Exception as e:
@@ -1362,7 +1229,7 @@ async def delete_monthly_salary(
     """
     
     try:
-        result = await controller.delete_monthly_salary(employee_id, month, year, current_user.hostname)
+        result = await controller.delete_monthly_salary(employee_id, month, year, current_user)
         return {"message": result}
         
     except ValueError as e:
@@ -1424,40 +1291,32 @@ async def bulk_compute_monthly_salaries(
             response_model=MonthlySalaryResponseDTO,
             status_code=status.HTTP_200_OK,
             summary="Update monthly salary status",
-            description="Update status of a monthly salary record")
+            description="Update status and payout status of a monthly salary record. The request can include payout_status fields (status, comments, transaction_id, transfer_date) as well as TDS status fields.")
 async def update_monthly_salary_status(
     request: Dict[str, Any],
     current_user: CurrentUser = Depends(get_current_user),
     controller: UnifiedTaxationController = Depends(get_taxation_controller)
 ) -> MonthlySalaryResponseDTO:
     """
-    Update monthly salary status.
-    
-    Args:
-        request: Status update request
-        current_user: Current authenticated user
-        
-    Returns:
-        Updated monthly salary details
-        
-    Raises:
-        HTTPException: If error occurs
+    Update monthly salary status and payout status.
+    Request body can include:
+      - status: new payout status (e.g. computed, approved, transferred, etc.)
+      - comments: payout comments
+      - transaction_id: payout transaction ID
+      - transfer_date: payout transfer date (YYYY-MM-DD)
+      - tds_status: TDS status (e.g. paid, filed, etc.)
+      - challan_number: TDS challan number (if paid)
+    Response includes the new payout_status object.
     """
-    
     try:
-        # For now, return a placeholder response
-        # TODO: Implement status update logic
-        raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Status update functionality not yet implemented"
-        )
-        
+        return await controller.update_monthly_salary_status(request, current_user)
     except Exception as e:
-        logger.error(f"Error updating monthly salary status: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to update monthly salary status: {str(e)}"
-        )
+        from fastapi import HTTPException
+        if isinstance(e, HTTPException):
+            raise e
+        import logging
+        logging.getLogger(__name__).error(f"Error updating monthly salary status: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update monthly salary status: {str(e)}")
 
 @router.put("/monthly-salary/payment",
             response_model=MonthlySalaryResponseDTO,
@@ -1541,7 +1400,7 @@ async def process_loan_schedule(
         logger.info(f"Processing loan schedule for employee {employee_id} for tax year {tax_year}")
         
         result = await controller.process_loan_schedule(
-            employee_id, tax_year, current_user.hostname
+            employee_id, tax_year, current_user
         )
         
         logger.info(f"Successfully processed loan schedule for employee {employee_id}")

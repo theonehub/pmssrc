@@ -508,43 +508,6 @@ export class UserAPI {
     const response = await this.baseApi.put(`/api/v2/users/${empId}`, userData);
     return response.data;
   }
-
-  async createUserWithFilesLegacy(userData: any, files?: FileList): Promise<User> {
-    if (files && files.length > 0) {
-      const formData = new FormData();
-      
-      // Append user data
-      Object.keys(userData).forEach(key => {
-        if (userData[key] !== undefined && userData[key] !== null) {
-          formData.append(key, userData[key]);
-        }
-      });
-      
-      // Append files
-      Array.from(files).forEach((file, index) => {
-        formData.append(`file_${index}`, file);
-      });
-      
-      const response = await this.baseApi.post('/api/v2/users/with-files', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      return response.data;
-    } else {
-      return this.createUser(userData);
-    }
-  }
-
-  async getUsersLegacy(params?: { skip?: number; limit?: number; search?: string }): Promise<{ users: User[]; total: number }> {
-    const queryParams = new URLSearchParams();
-    if (params?.skip) queryParams.append('skip', params.skip.toString());
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
-    if (params?.search) queryParams.append('search', params.search);
-    
-    const response = await this.baseApi.get(`/api/v2/users?${queryParams.toString()}`);
-    return response.data;
-  }
 }
 
 // Export singleton instance

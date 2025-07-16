@@ -60,7 +60,7 @@ class AttendanceServiceImpl(AttendanceService):
     # ==================== COMMAND OPERATIONS ====================
     
     async def check_in(self, request: AttendanceCheckInRequestDTO, current_user: "CurrentUser") -> AttendanceResponseDTO:
-        """Process employee check-in"""
+        """Process employee check-in (organisation context from current_user)"""
         try:
             self.logger.info(f"Processing check-in for employee {request.employee_id} in organisation {current_user.hostname}")
             
@@ -76,7 +76,7 @@ class AttendanceServiceImpl(AttendanceService):
             raise
     
     async def check_out(self, request: AttendanceCheckOutRequestDTO, current_user: "CurrentUser") -> AttendanceResponseDTO:
-        """Process employee check-out"""
+        """Process employee check-out (organisation context from current_user)"""
         try:
             self.logger.info(f"Processing check-out for employee {request.employee_id} in organisation {current_user.hostname}")
             
@@ -92,7 +92,7 @@ class AttendanceServiceImpl(AttendanceService):
             raise
 
     async def record_punch(self, employee_id: str, current_user: "CurrentUser") -> AttendanceResponseDTO:
-        """Process employee punch (check-in or check-out)"""
+        """Process employee punch (check-in or check-out) (organisation context from current_user)"""
         try:
             self.logger.info(f"Processing punch for employee {employee_id} in organisation {current_user.hostname}")
             
@@ -110,7 +110,7 @@ class AttendanceServiceImpl(AttendanceService):
     # ==================== QUERY OPERATIONS ====================
     
     async def get_employee_attendance_by_month(self, filters: AttendanceSearchFiltersDTO, current_user: "CurrentUser") -> List[AttendanceResponseDTO]:
-        """Get employee attendance records for a specific month"""
+        """Get employee attendance records for a specific month (organisation context from current_user)"""
         try:
             self.logger.info(f"Getting employee attendance for {filters.employee_id} for {filters.month}/{filters.year} in organisation {current_user.hostname}")
             
@@ -124,9 +124,9 @@ class AttendanceServiceImpl(AttendanceService):
         except Exception as e:
             self.logger.error(f"Error getting employee attendance for {filters.employee_id} in organisation {current_user.hostname}: {e}")
             raise
-    
+        
     async def get_employee_attendance_by_year(self, filters: AttendanceSearchFiltersDTO, current_user: "CurrentUser") -> List[AttendanceResponseDTO]:
-        """Get employee attendance records for a specific year"""
+        """Get employee attendance records for a specific year (organisation context from current_user)"""
         try:
             self.logger.info(f"Getting employee attendance for {filters.employee_id} for year {filters.year} in organisation {current_user.hostname}")
             
@@ -174,7 +174,7 @@ class AttendanceServiceImpl(AttendanceService):
             raise
     
     async def get_team_attendance_by_year(self, filters: AttendanceSearchFiltersDTO, current_user: "CurrentUser") -> List[AttendanceResponseDTO]:
-        """Get team attendance records for a specific year"""
+        """Get team attendance records for a specific year (organisation context from current_user)"""
         try:
             self.logger.info(f"Getting team attendance for year {filters.year} in organisation {current_user.hostname}")
             
@@ -192,7 +192,7 @@ class AttendanceServiceImpl(AttendanceService):
     # ==================== ANALYTICS OPERATIONS ====================
     
     async def get_todays_attendance_stats(self, current_user: "CurrentUser") -> AttendanceStatisticsDTO:
-        """Get today's attendance statistics"""
+        """Get today's attendance statistics (organisation context from current_user)"""
         try:
             self.logger.info(f"Getting today's attendance statistics for organisation {current_user.hostname}")
             

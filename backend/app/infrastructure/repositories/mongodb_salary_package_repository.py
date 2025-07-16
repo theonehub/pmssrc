@@ -118,15 +118,8 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             collection = await self._get_collection(organization_id)
             logger.info(f"Successfully got collection for organization {organization_id}")
             
-            # Log deductions before conversion
-            # Calculate gross income for deduction calculations
-            gross_income = salary_package_record.calculate_gross_income()
-            deductions_total = salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime, salary_package_record.age, gross_income)
-            logger.info(f"Record deductions total before conversion: {deductions_total}")
-            
             document = self._convert_to_document(salary_package_record)
             logger.info(f"Successfully converted record to document")
-            logger.debug(f"Document deductions section: {document.get('deductions', {})}")
             
             # Check if record already exists - convert value objects to strings for MongoDB query
             query = {
@@ -460,15 +453,8 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         
         logger.debug(f"Converting salary package record to document for employee {record.employee_id}")
         
-        # Log deductions before serialization
-        # Calculate gross income for deduction calculations
-        gross_income = record.calculate_gross_income()
-        deductions_total = record.deductions.calculate_total_deductions(record.regime, record.age, gross_income)
-        logger.debug(f"Deductions total before serialization: {deductions_total}")
-        
         # Serialize deductions
         deductions_doc = self._serialize_deductions(record.deductions)
-        logger.debug(f"Serialized deductions document: {deductions_doc}")
         
         document = {
             # Core identification
@@ -505,7 +491,10 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             # Audit fields
             "created_at": record.created_at.isoformat(),
             "updated_at": record.updated_at.isoformat(),
-            "version": record.version
+            "version": record.version,
+
+            # Monthly salary records
+            "monthly_salary_records": [self._serialize_monthly_salary(salary) for salary in record.monthly_salary_records],
         }
         
         logger.debug(f"Successfully converted record to document with {len(document)} fields")
@@ -526,6 +515,17 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         
         # Deserialize calculation result if present
         calculation_result = self._deserialize_calculation_result(document.get("calculation_result"))
+
+        # Deserialize monthly_salary_records
+        monthly_salary_records = [self._deserialize_monthly_salary(ms_doc) for ms_doc in document.get("monthly_salary_records", [])]
+        
+        # Deserialize lwps (list of LWPDetails)
+        lwps_docs = document.get("lwps", [])
+        if lwps_docs:
+            lwps = [self._deserialize_lwp_details(lwp_doc) for lwp_doc in lwps_docs]
+        else:
+            from app.domain.entities.taxation.lwp_details import LWPDetails
+            lwps = [LWPDetails(month=i+1) for i in range(12)]
         
         # Create SalaryPackageRecord
         record = SalaryPackageRecord(
@@ -554,10 +554,47 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             # Audit fields
             created_at=datetime.fromisoformat(document["created_at"]),
             updated_at=datetime.fromisoformat(document["updated_at"]),
-            version=document.get("version", 1)
+            version=document.get("version", 1),
+
+            # Monthly salary records
+            monthly_salary_records=monthly_salary_records,
         )
         
         return record
+
+    def _deserialize_monthly_salary(self, ms_doc: dict):
+        """Deserialize a single monthly salary record from document format."""
+        from app.domain.value_objects.employee_id import EmployeeId
+        from app.domain.value_objects.tax_year import TaxYear
+        from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
+        from app.domain.value_objects.money import Money
+        from app.domain.entities.taxation.monthly_salary import MonthlySalary
+        from datetime import datetime
+        from datetime import date as dt_date
+        transfer_date = None
+        if ms_doc.get("transfer_date"):
+            try:
+                transfer_date = dt_date.fromisoformat(ms_doc["transfer_date"])
+            except Exception:
+                transfer_date = None
+        return MonthlySalary(
+            employee_id=EmployeeId(ms_doc["employee_id"]),
+            month=ms_doc["month"],
+            year=ms_doc["year"],
+            salary=self._deserialize_salary_income(ms_doc.get("salary", {})),
+            perquisites_payouts=self._deserialize_perquisites_payouts(ms_doc.get("perquisites_payouts", {})),
+            deductions=self._deserialize_deductions(ms_doc.get("deductions", {})),
+            retirement=self._deserialize_retirement_benefits(ms_doc.get("retirement", {})),
+            lwp=self._deserialize_lwp_details(ms_doc.get("lwp", {})),
+            tax_year=TaxYear.from_string(ms_doc["tax_year"]),
+            tax_regime=TaxRegime(TaxRegimeType(ms_doc["tax_regime"])),
+            tax_amount=Money.from_float(ms_doc.get("tax_amount", 0.0)),
+            net_salary=Money.from_float(ms_doc.get("net_salary", 0.0)),
+            one_time_arrear=Money.from_float(ms_doc.get("one_time_arrear", 0.0)),
+            one_time_bonus=Money.from_float(ms_doc.get("one_time_bonus", 0.0)),
+            tds_status=self._deserialize_tds_status(ms_doc.get("tds_status", {})) if hasattr(self, '_deserialize_tds_status') and ms_doc.get("tds_status") else None,
+            payout_status=self._deserialize_payout_status(ms_doc.get("payout_status", {})) if hasattr(self, '_deserialize_payout_status') and ms_doc.get("payout_status") else None
+        )
     
     def _serialize_specific_allowances(self, specific_allowances: SpecificAllowances) -> dict:
         """Serialize specific allowances to document format."""
@@ -615,135 +652,125 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         }
 
     # Serialization methods (reuse from MongoDBTaxationRepository)
-    def _serialize_salary_income(self, salary_income: SalaryIncome) -> dict:
-        """Serialize salary income to document format."""
+    def _serialize_salary_income(self, salary_income):
+        if salary_income is None:
+            return None
         return {
-            "basic_salary": salary_income.basic_salary.to_float(),
-            "dearness_allowance": salary_income.dearness_allowance.to_float(),
-            "hra_provided": salary_income.hra_provided.to_float(),
-            "special_allowance": salary_income.special_allowance.to_float(),
-            "bonus": salary_income.bonus.to_float(),
-            "commission": salary_income.commission.to_float(),
-            "arrears": salary_income.arrears.to_float(),
-            "effective_from": salary_income.effective_from.isoformat(),
-            "effective_till": salary_income.effective_till.isoformat(),
-            "specific_allowances": self._serialize_specific_allowances(salary_income.specific_allowances)
-        }   
-    
-    def _serialize_deductions(self, deductions: TaxDeductions) -> dict:
-        """Serialize deductions to document format."""
-        return {
-            "section_80c": self._serialize_section_80c(deductions.section_80c),
-            "section_80d": self._serialize_section_80d(deductions.section_80d),
-            "section_80g": self._serialize_section_80g(deductions.section_80g),
-            "section_80e": self._serialize_section_80e(deductions.section_80e),
-            "section_80tta_ttb": self._serialize_section_80tta_ttb(deductions.section_80tta_ttb),
-            "other_deductions": self._serialize_other_deductions(deductions.other_deductions)
+            "basic_salary": salary_income.basic_salary.to_float() if salary_income.basic_salary else 0.0,
+            "dearness_allowance": salary_income.dearness_allowance.to_float() if salary_income.dearness_allowance else 0.0,
+            "hra_provided": salary_income.hra_provided.to_float() if salary_income.hra_provided else 0.0,
+            "pf_employee_contribution": salary_income.pf_employee_contribution.to_float() if salary_income.pf_employee_contribution else 0.0,
+            "pf_employer_contribution": salary_income.pf_employer_contribution.to_float() if salary_income.pf_employer_contribution else 0.0,
+            "esi_contribution": salary_income.esi_contribution.to_float() if salary_income.esi_contribution else 0.0,
+            "pf_voluntary_contribution": salary_income.pf_voluntary_contribution.to_float() if salary_income.pf_voluntary_contribution else 0.0,
+            "pf_total_contribution": salary_income.pf_total_contribution.to_float() if salary_income.pf_total_contribution else 0.0,
+            "special_allowance": salary_income.special_allowance.to_float() if salary_income.special_allowance else 0.0,
+            "commission": salary_income.commission.to_float() if salary_income.commission else 0.0,
+            "effective_from": salary_income.effective_from.isoformat() if salary_income.effective_from else None,
+            "effective_till": salary_income.effective_till.isoformat() if salary_income.effective_till else None,
+            "gross_salary": salary_income.calculate_gross_salary().to_float() if hasattr(salary_income, 'calculate_gross_salary') else 0.0,
+            "specific_allowances": self._serialize_specific_allowances(salary_income.specific_allowances) if salary_income.specific_allowances else None
         }
-    
-    def _serialize_section_80c(self, section_80c) -> dict:
-        """Serialize Section 80C deductions to document format."""
+
+    def _serialize_deductions(self, deductions):
+        return {
+            "section_80c": self._serialize_section_80c(deductions.section_80c) if deductions.section_80c else None,
+            "section_80d": self._serialize_section_80d(deductions.section_80d) if deductions.section_80d else None,
+            "section_80g": self._serialize_section_80g(deductions.section_80g) if deductions.section_80g else None,
+            "section_80e": self._serialize_section_80e(deductions.section_80e) if deductions.section_80e else None,
+            "section_80tta_ttb": self._serialize_section_80tta_ttb(deductions.section_80tta_ttb) if deductions.section_80tta_ttb else None,
+            "other_deductions": self._serialize_other_deductions(deductions.other_deductions) if deductions.other_deductions else None
+        }
+
+    def _serialize_section_80c(self, section_80c):
         if not section_80c:
             return {}
-        
         return {
-            "life_insurance_premium": section_80c.life_insurance_premium.to_float(),
-            "epf_contribution": section_80c.epf_contribution.to_float(),
-            "ppf_contribution": section_80c.ppf_contribution.to_float(),
-            "nsc_investment": section_80c.nsc_investment.to_float(),
-            "tax_saving_fd": section_80c.tax_saving_fd.to_float(),
-            "elss_investment": section_80c.elss_investment.to_float(),
-            "home_loan_principal": section_80c.home_loan_principal.to_float(),
-            "tuition_fees": section_80c.tuition_fees.to_float(),
-            "ulip_premium": section_80c.ulip_premium.to_float(),
-            "sukanya_samriddhi": section_80c.sukanya_samriddhi.to_float(),
-            "stamp_duty_property": section_80c.stamp_duty_property.to_float(),
-            "senior_citizen_savings": section_80c.senior_citizen_savings.to_float(),
-            "other_80c_investments": section_80c.other_80c_investments.to_float(),
-            "total_investment": section_80c.calculate_total_investment().to_float()
+            "life_insurance_premium": section_80c.life_insurance_premium.to_float() if section_80c.life_insurance_premium else 0.0,
+            "nsc_investment": section_80c.nsc_investment.to_float() if section_80c.nsc_investment else 0.0,
+            "tax_saving_fd": section_80c.tax_saving_fd.to_float() if section_80c.tax_saving_fd else 0.0,
+            "elss_investment": section_80c.elss_investment.to_float() if section_80c.elss_investment else 0.0,
+            "home_loan_principal": section_80c.home_loan_principal.to_float() if section_80c.home_loan_principal else 0.0,
+            "tuition_fees": section_80c.tuition_fees.to_float() if section_80c.tuition_fees else 0.0,
+            "ulip_premium": section_80c.ulip_premium.to_float() if section_80c.ulip_premium else 0.0,
+            "sukanya_samriddhi": section_80c.sukanya_samriddhi.to_float() if section_80c.sukanya_samriddhi else 0.0,
+            "stamp_duty_property": section_80c.stamp_duty_property.to_float() if section_80c.stamp_duty_property else 0.0,
+            "senior_citizen_savings": section_80c.senior_citizen_savings.to_float() if section_80c.senior_citizen_savings else 0.0,
+            "other_80c_investments": section_80c.other_80c_investments.to_float() if section_80c.other_80c_investments else 0.0,
+            "total_investment": section_80c.calculate_total_investment().to_float() if hasattr(section_80c, 'calculate_total_investment') else 0.0
         }
-    
-    def _serialize_section_80d(self, section_80d) -> dict:
-        """Serialize Section 80D deductions to document format."""
+
+    def _serialize_section_80d(self, section_80d):
         if not section_80d:
             return {}
-        
         return {
-            "self_family_premium": section_80d.self_family_premium.to_float(),
-            "parent_premium": section_80d.parent_premium.to_float(),
-            "preventive_health_checkup": section_80d.preventive_health_checkup.to_float(),
+            "self_family_premium": section_80d.self_family_premium.to_float() if section_80d.self_family_premium else 0.0,
+            "parent_premium": section_80d.parent_premium.to_float() if section_80d.parent_premium else 0.0,
+            "preventive_health_checkup": section_80d.preventive_health_checkup.to_float() if section_80d.preventive_health_checkup else 0.0,
             "parent_age": section_80d.parent_age
         }
-    
-    def _serialize_section_80g(self, section_80g) -> dict:
-        """Serialize Section 80G deductions to document format."""
+
+    def _serialize_section_80g(self, section_80g):
         if not section_80g:
             return {}
-        
         return {
-            "pm_relief_fund": section_80g.pm_relief_fund.to_float(),
-            "national_defence_fund": section_80g.national_defence_fund.to_float(),
-            "national_foundation_communal_harmony": section_80g.national_foundation_communal_harmony.to_float(),
-            "zila_saksharta_samiti": section_80g.zila_saksharta_samiti.to_float(),
-            "national_illness_assistance_fund": section_80g.national_illness_assistance_fund.to_float(),
-            "national_blood_transfusion_council": section_80g.national_blood_transfusion_council.to_float(),
-            "national_trust_autism_fund": section_80g.national_trust_autism_fund.to_float(),
-            "national_sports_fund": section_80g.national_sports_fund.to_float(),
-            "national_cultural_fund": section_80g.national_cultural_fund.to_float(),
-            "technology_development_fund": section_80g.technology_development_fund.to_float(),
-            "national_children_fund": section_80g.national_children_fund.to_float(),
-            "cm_relief_fund": section_80g.cm_relief_fund.to_float(),
-            "army_naval_air_force_funds": section_80g.army_naval_air_force_funds.to_float(),
-            "swachh_bharat_kosh": section_80g.swachh_bharat_kosh.to_float(),
-            "clean_ganga_fund": section_80g.clean_ganga_fund.to_float(),
-            "drug_abuse_control_fund": section_80g.drug_abuse_control_fund.to_float(),
-            "other_100_percent_wo_limit": section_80g.other_100_percent_wo_limit.to_float(),
-            "jn_memorial_fund": section_80g.jn_memorial_fund.to_float(),
-            "pm_drought_relief": section_80g.pm_drought_relief.to_float(),
-            "indira_gandhi_memorial_trust": section_80g.indira_gandhi_memorial_trust.to_float(),
-            "rajiv_gandhi_foundation": section_80g.rajiv_gandhi_foundation.to_float(),
-            "other_50_percent_wo_limit": section_80g.other_50_percent_wo_limit.to_float(),
-            "family_planning_donation": section_80g.family_planning_donation.to_float(),
-            "indian_olympic_association": section_80g.indian_olympic_association.to_float(),
-            "other_100_percent_w_limit": section_80g.other_100_percent_w_limit.to_float(),
-            "govt_charitable_donations": section_80g.govt_charitable_donations.to_float(),
-            "housing_authorities_donations": section_80g.housing_authorities_donations.to_float(),
-            "religious_renovation_donations": section_80g.religious_renovation_donations.to_float(),
-            "other_charitable_donations": section_80g.other_charitable_donations.to_float(),
-            "other_50_percent_w_limit": section_80g.other_50_percent_w_limit.to_float()
+            "pm_relief_fund": section_80g.pm_relief_fund.to_float() if section_80g.pm_relief_fund else 0.0,
+            "national_defence_fund": section_80g.national_defence_fund.to_float() if section_80g.national_defence_fund else 0.0,
+            "national_foundation_communal_harmony": section_80g.national_foundation_communal_harmony.to_float() if section_80g.national_foundation_communal_harmony else 0.0,
+            "zila_saksharta_samiti": section_80g.zila_saksharta_samiti.to_float() if section_80g.zila_saksharta_samiti else 0.0,
+            "national_illness_assistance_fund": section_80g.national_illness_assistance_fund.to_float() if section_80g.national_illness_assistance_fund else 0.0,
+            "national_blood_transfusion_council": section_80g.national_blood_transfusion_council.to_float() if section_80g.national_blood_transfusion_council else 0.0,
+            "national_trust_autism_fund": section_80g.national_trust_autism_fund.to_float() if section_80g.national_trust_autism_fund else 0.0,
+            "national_sports_fund": section_80g.national_sports_fund.to_float() if section_80g.national_sports_fund else 0.0,
+            "national_cultural_fund": section_80g.national_cultural_fund.to_float() if section_80g.national_cultural_fund else 0.0,
+            "technology_development_fund": section_80g.technology_development_fund.to_float() if section_80g.technology_development_fund else 0.0,
+            "national_children_fund": section_80g.national_children_fund.to_float() if section_80g.national_children_fund else 0.0,
+            "cm_relief_fund": section_80g.cm_relief_fund.to_float() if section_80g.cm_relief_fund else 0.0,
+            "army_naval_air_force_funds": section_80g.army_naval_air_force_funds.to_float() if section_80g.army_naval_air_force_funds else 0.0,
+            "swachh_bharat_kosh": section_80g.swachh_bharat_kosh.to_float() if section_80g.swachh_bharat_kosh else 0.0,
+            "clean_ganga_fund": section_80g.clean_ganga_fund.to_float() if section_80g.clean_ganga_fund else 0.0,
+            "drug_abuse_control_fund": section_80g.drug_abuse_control_fund.to_float() if section_80g.drug_abuse_control_fund else 0.0,
+            "other_100_percent_wo_limit": section_80g.other_100_percent_wo_limit.to_float() if section_80g.other_100_percent_wo_limit else 0.0,
+            "jn_memorial_fund": section_80g.jn_memorial_fund.to_float() if section_80g.jn_memorial_fund else 0.0,
+            "pm_drought_relief": section_80g.pm_drought_relief.to_float() if section_80g.pm_drought_relief else 0.0,
+            "indira_gandhi_memorial_trust": section_80g.indira_gandhi_memorial_trust.to_float() if section_80g.indira_gandhi_memorial_trust else 0.0,
+            "rajiv_gandhi_foundation": section_80g.rajiv_gandhi_foundation.to_float() if section_80g.rajiv_gandhi_foundation else 0.0,
+            "other_50_percent_wo_limit": section_80g.other_50_percent_wo_limit.to_float() if section_80g.other_50_percent_wo_limit else 0.0,
+            "family_planning_donation": section_80g.family_planning_donation.to_float() if section_80g.family_planning_donation else 0.0,
+            "indian_olympic_association": section_80g.indian_olympic_association.to_float() if section_80g.indian_olympic_association else 0.0,
+            "other_100_percent_w_limit": section_80g.other_100_percent_w_limit.to_float() if section_80g.other_100_percent_w_limit else 0.0,
+            "govt_charitable_donations": section_80g.govt_charitable_donations.to_float() if section_80g.govt_charitable_donations else 0.0,
+            "housing_authorities_donations": section_80g.housing_authorities_donations.to_float() if section_80g.housing_authorities_donations else 0.0,
+            "religious_renovation_donations": section_80g.religious_renovation_donations.to_float() if section_80g.religious_renovation_donations else 0.0,
+            "other_charitable_donations": section_80g.other_charitable_donations.to_float() if section_80g.other_charitable_donations else 0.0,
+            "other_50_percent_w_limit": section_80g.other_50_percent_w_limit.to_float() if section_80g.other_50_percent_w_limit else 0.0
         }
-    
-    def _serialize_section_80e(self, section_80e) -> dict:
-        """Serialize Section 80E deductions to document format."""
+
+    def _serialize_section_80e(self, section_80e):
         if not section_80e:
             return {}
-        
         return {
-            "education_loan_interest": section_80e.education_loan_interest.to_float(),
+            "education_loan_interest": section_80e.education_loan_interest.to_float() if section_80e.education_loan_interest else 0.0,
             "relation": section_80e.relation.value if hasattr(section_80e, 'relation') and section_80e.relation else 'SELF'
         }
-    
-    def _serialize_section_80tta_ttb(self, section_80tta_ttb) -> dict:
-        """Serialize Section 80TTA/80TTB deductions to document format."""
+
+    def _serialize_section_80tta_ttb(self, section_80tta_ttb):
         if not section_80tta_ttb:
             return {}
-        
         return {
-            "savings_interest": section_80tta_ttb.savings_interest.to_float(),
-            "fd_interest": section_80tta_ttb.fd_interest.to_float(),
-            "rd_interest": section_80tta_ttb.rd_interest.to_float(),
-            "post_office_interest": section_80tta_ttb.post_office_interest.to_float(),
+            "savings_interest": section_80tta_ttb.savings_interest.to_float() if section_80tta_ttb.savings_interest else 0.0,
+            "fd_interest": section_80tta_ttb.fd_interest.to_float() if section_80tta_ttb.fd_interest else 0.0,
+            "rd_interest": section_80tta_ttb.rd_interest.to_float() if section_80tta_ttb.rd_interest else 0.0,
+            "post_office_interest": section_80tta_ttb.post_office_interest.to_float() if section_80tta_ttb.post_office_interest else 0.0,
             "age": section_80tta_ttb.age
         }
-    
-    def _serialize_other_deductions(self, other_deductions) -> dict:
-        """Serialize other deductions to document format."""
+
+    def _serialize_other_deductions(self, other_deductions):
         if not other_deductions:
             return {}
-        
         return {
-            "other_deductions": other_deductions.other_deductions.to_float(),
-            "total": other_deductions.calculate_total().to_float()
+            "other_deductions": other_deductions.other_deductions.to_float() if other_deductions.other_deductions else 0.0,
+            "total": other_deductions.calculate_total().to_float() if hasattr(other_deductions, 'calculate_total') else 0.0
         }
     
     def _serialize_perquisites(self, perquisites: Optional[Perquisites]) -> Optional[dict]:
@@ -1083,16 +1110,22 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             basic_salary=Money.from_float(salary_doc.get("basic_salary", 0.0)),
             dearness_allowance=Money.from_float(salary_doc.get("dearness_allowance", 0.0)),
             hra_provided=Money.from_float(salary_doc.get("hra_provided", 0.0)),
+            pf_employee_contribution=Money.from_float(salary_doc.get("pf_employee_contribution", 0.0)),
+            pf_employer_contribution=Money.from_float(salary_doc.get("pf_employer_contribution", 0.0)),
+            esi_contribution=Money.from_float(salary_doc.get("esi_contribution", 0.0)),
+            pf_voluntary_contribution=Money.from_float(salary_doc.get("pf_voluntary_contribution", 0.0)),
+            pf_total_contribution=Money.from_float(salary_doc.get("pf_total_contribution", 0.0)),
             special_allowance=Money.from_float(salary_doc.get("special_allowance", 0.0)),
-            bonus=Money.from_float(salary_doc.get("bonus", 0.0)),
             commission=Money.from_float(salary_doc.get("commission", 0.0)),
-            arrears=Money.from_float(salary_doc.get("arrears", 0.0)),
             specific_allowances=self._deserialize_specific_allowances(salary_doc.get("specific_allowances", {})),
             # Note: hra_city_type and actual_rent_paid are now handled in deductions module
         )
     
     def _deserialize_deductions(self, deductions_doc: dict) -> TaxDeductions:
         """Deserialize deductions from document format."""
+        if deductions_doc is None:
+            return TaxDeductions()
+        
         return TaxDeductions(
             section_80c=self._deserialize_section_80c(deductions_doc.get("section_80c", {})),
             section_80d=self._deserialize_section_80d(deductions_doc.get("section_80d", {})),
@@ -1104,10 +1137,11 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
     
     def _deserialize_section_80c(self, section_80c_doc: dict) -> DeductionSection80C:
         """Deserialize Section 80C from document format."""
+        if section_80c_doc is None:
+            return DeductionSection80C()
+        
         return DeductionSection80C(
             life_insurance_premium=Money.from_float(section_80c_doc.get("life_insurance_premium", 0.0)),
-            epf_contribution=Money.from_float(section_80c_doc.get("epf_contribution", 0.0)),
-            ppf_contribution=Money.from_float(section_80c_doc.get("ppf_contribution", 0.0)),
             nsc_investment=Money.from_float(section_80c_doc.get("nsc_investment", 0.0)),
             tax_saving_fd=Money.from_float(section_80c_doc.get("tax_saving_fd", 0.0)),
             elss_investment=Money.from_float(section_80c_doc.get("elss_investment", 0.0)),
@@ -1122,6 +1156,9 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
     
     def _deserialize_section_80d(self, section_80d_doc: dict) -> DeductionSection80D:
         """Deserialize Section 80D from document format."""
+        if section_80d_doc is None:
+            return DeductionSection80D()
+        
         return DeductionSection80D(
             self_family_premium=Money.from_float(section_80d_doc.get("self_family_premium", 0.0)),
             parent_premium=Money.from_float(section_80d_doc.get("parent_premium", 0.0)),
@@ -1131,6 +1168,9 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
     
     def _deserialize_section_80g(self, section_80g_doc: dict) -> DeductionSection80G:
         """Deserialize Section 80G from document format."""
+        if section_80g_doc is None:
+            return DeductionSection80G()
+        
         return DeductionSection80G(
             # 100% deduction without qualifying limit
             pm_relief_fund=Money.from_float(section_80g_doc.get("pm_relief_fund", 0.0)),
@@ -1174,6 +1214,9 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
     def _deserialize_section_80e(self, section_80e_doc: dict) -> DeductionSection80E:
         """Deserialize Section 80E from document format."""
         from app.domain.entities.taxation.deductions import RelationType
+
+        if section_80e_doc is None:
+            return DeductionSection80E()
         
         relation_str = section_80e_doc.get("relation", "SELF")
         try:
@@ -1188,6 +1231,9 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
     
     def _deserialize_section_80tta_ttb(self, section_80tta_ttb_doc: dict) -> DeductionSection80TTA_TTB:
         """Deserialize Section 80TTA/TTB from document format."""
+        if section_80tta_ttb_doc is None:
+            return DeductionSection80TTA_TTB()
+        
         return DeductionSection80TTA_TTB(
             savings_interest=Money.from_float(section_80tta_ttb_doc.get("savings_interest", 0.0)),
             fd_interest=Money.from_float(section_80tta_ttb_doc.get("fd_interest", 0.0)),
@@ -1198,6 +1244,9 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
     
     def _deserialize_other_deductions(self, other_deductions_doc: dict) -> OtherDeductions:
         """Deserialize other deductions from document format."""
+        if other_deductions_doc is None:
+            return OtherDeductions()
+        
         return OtherDeductions(
             other_deductions=Money.from_float(other_deductions_doc.get("other_deductions", 0.0))
         )
@@ -1601,3 +1650,377 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         )
         
         return result 
+
+    def _serialize_monthly_salary(self, monthly_salary) -> dict:
+        """
+        Serialize a MonthlySalary entity to a MongoDB document (dict), including all nested components.
+        Mirrors the logic from MongoDBMonthlySalaryRepository._entity_to_document.
+        """
+        from datetime import datetime
+        return {
+            "employee_id": str(monthly_salary.employee_id),
+            "month": monthly_salary.month,
+            "year": monthly_salary.year,
+            "tax_year": str(monthly_salary.tax_year),
+            "tax_regime": monthly_salary.tax_regime.regime_type.value,
+            # Comprehensive salary components
+            "salary": self._serialize_salary_income(monthly_salary.salary) if monthly_salary.salary else None,
+            # Comprehensive perquisites payouts
+            "perquisites_payouts": self._serialize_perquisites_payouts(monthly_salary.perquisites_payouts) if hasattr(self, '_serialize_perquisites_payouts') and monthly_salary.perquisites_payouts else None,
+            # Comprehensive deductions
+            "deductions": self._serialize_deductions(monthly_salary.deductions) if monthly_salary.deductions else None,
+            # Comprehensive retirement benefits
+            "retirement": self._serialize_retirement_benefits(monthly_salary.retirement) if monthly_salary.retirement else None,
+            # LWP details
+            "lwp": self._serialize_lwp_details(monthly_salary.lwp) if hasattr(self, '_serialize_lwp_details') and monthly_salary.lwp else None,
+            # Tax and net salary
+            "tax_amount": monthly_salary.tax_amount.to_float(),
+            "net_salary": monthly_salary.net_salary.to_float(),
+            # Metadata
+            "computed_at": datetime.utcnow().isoformat(),
+            "one_time_arrear": monthly_salary.one_time_arrear.to_float() if hasattr(monthly_salary, 'one_time_arrear') else 0.0,
+            "one_time_bonus": monthly_salary.one_time_bonus.to_float() if hasattr(monthly_salary, 'one_time_bonus') else 0.0,
+            "tds_status": self._serialize_tds_status(monthly_salary.tds_status) if hasattr(self, '_serialize_tds_status') and monthly_salary.tds_status else None,
+            "payout_status": self._serialize_payout_status(monthly_salary.payout_status) if hasattr(self, '_serialize_payout_status') and monthly_salary.payout_status else None
+        }
+
+    # --- MONTHLY SALARY SERIALIZATION HELPERS ---
+    def _serialize_salary_income(self, salary_income):
+        if salary_income is None:
+            return None
+        return {
+            "basic_salary": salary_income.basic_salary.to_float() if salary_income.basic_salary else 0.0,
+            "dearness_allowance": salary_income.dearness_allowance.to_float() if salary_income.dearness_allowance else 0.0,
+            "hra_provided": salary_income.hra_provided.to_float() if salary_income.hra_provided else 0.0,
+            "pf_employee_contribution": salary_income.pf_employee_contribution.to_float() if salary_income.pf_employee_contribution else 0.0,
+            "pf_employer_contribution": salary_income.pf_employer_contribution.to_float() if salary_income.pf_employer_contribution else 0.0,
+            "esi_contribution": salary_income.esi_contribution.to_float() if salary_income.esi_contribution else 0.0,
+            "pf_voluntary_contribution": salary_income.pf_voluntary_contribution.to_float() if salary_income.pf_voluntary_contribution else 0.0,
+            "pf_total_contribution": salary_income.pf_total_contribution.to_float() if salary_income.pf_total_contribution else 0.0,
+            "special_allowance": salary_income.special_allowance.to_float() if salary_income.special_allowance else 0.0,
+            "commission": salary_income.commission.to_float() if salary_income.commission else 0.0,
+            "effective_from": salary_income.effective_from.isoformat() if salary_income.effective_from else None,
+            "effective_till": salary_income.effective_till.isoformat() if salary_income.effective_till else None,
+            "gross_salary": salary_income.calculate_gross_salary().to_float() if hasattr(salary_income, 'calculate_gross_salary') else 0.0,
+            "specific_allowances": self._serialize_specific_allowances(salary_income.specific_allowances) if salary_income.specific_allowances else None
+        }
+
+    def _serialize_specific_allowances(self, specific_allowances):
+        if specific_allowances is None:
+            return None
+        # Ensure all fields are float, not Money objects
+        return {
+            "monthly_hills_allowance": specific_allowances.monthly_hills_allowance.to_float() if specific_allowances.monthly_hills_allowance else 0.0,
+            "monthly_hills_exemption_limit": specific_allowances.monthly_hills_exemption_limit.to_float() if specific_allowances.monthly_hills_exemption_limit else 0.0,
+            "monthly_border_allowance": specific_allowances.monthly_border_allowance.to_float() if specific_allowances.monthly_border_allowance else 0.0,
+            "monthly_border_exemption_limit": specific_allowances.monthly_border_exemption_limit.to_float() if specific_allowances.monthly_border_exemption_limit else 0.0,
+            "transport_employee_allowance": specific_allowances.transport_employee_allowance.to_float() if specific_allowances.transport_employee_allowance else 0.0,
+            "children_education_allowance": specific_allowances.children_education_allowance.to_float() if specific_allowances.children_education_allowance else 0.0,
+            "children_education_count": specific_allowances.children_education_count,
+            "hostel_allowance": specific_allowances.hostel_allowance.to_float() if specific_allowances.hostel_allowance else 0.0,
+            "children_hostel_count": specific_allowances.children_hostel_count,
+            "disabled_transport_allowance": specific_allowances.disabled_transport_allowance.to_float() if specific_allowances.disabled_transport_allowance else 0.0,
+            "is_disabled": specific_allowances.is_disabled,
+            "underground_mines_allowance": specific_allowances.underground_mines_allowance.to_float() if specific_allowances.underground_mines_allowance else 0.0,
+            "mine_work_months": specific_allowances.mine_work_months,
+            "government_entertainment_allowance": specific_allowances.government_entertainment_allowance.to_float() if specific_allowances.government_entertainment_allowance else 0.0,
+            "city_compensatory_allowance": specific_allowances.city_compensatory_allowance.to_float() if specific_allowances.city_compensatory_allowance else 0.0,
+            "rural_allowance": specific_allowances.rural_allowance.to_float() if specific_allowances.rural_allowance else 0.0,
+            "proctorship_allowance": specific_allowances.proctorship_allowance.to_float() if specific_allowances.proctorship_allowance else 0.0,
+            "wardenship_allowance": specific_allowances.wardenship_allowance.to_float() if specific_allowances.wardenship_allowance else 0.0,
+            "project_allowance": specific_allowances.project_allowance.to_float() if specific_allowances.project_allowance else 0.0,
+            "deputation_allowance": specific_allowances.deputation_allowance.to_float() if specific_allowances.deputation_allowance else 0.0,
+            "overtime_allowance": specific_allowances.overtime_allowance.to_float() if specific_allowances.overtime_allowance else 0.0,
+            "interim_relief": specific_allowances.interim_relief.to_float() if specific_allowances.interim_relief else 0.0,
+            "tiffin_allowance": specific_allowances.tiffin_allowance.to_float() if specific_allowances.tiffin_allowance else 0.0,
+            "fixed_medical_allowance": specific_allowances.fixed_medical_allowance.to_float() if specific_allowances.fixed_medical_allowance else 0.0,
+            "servant_allowance": specific_allowances.servant_allowance.to_float() if specific_allowances.servant_allowance else 0.0,
+            "any_other_allowance": specific_allowances.any_other_allowance.to_float() if specific_allowances.any_other_allowance else 0.0,
+            "any_other_allowance_exemption": specific_allowances.any_other_allowance_exemption.to_float() if specific_allowances.any_other_allowance_exemption else 0.0,
+            "govt_employees_outside_india_allowance": specific_allowances.govt_employees_outside_india_allowance.to_float() if specific_allowances.govt_employees_outside_india_allowance else 0.0,
+            "supreme_high_court_judges_allowance": specific_allowances.supreme_high_court_judges_allowance.to_float() if specific_allowances.supreme_high_court_judges_allowance else 0.0,
+            "judge_compensatory_allowance": specific_allowances.judge_compensatory_allowance.to_float() if specific_allowances.judge_compensatory_allowance else 0.0,
+            "section_10_14_special_allowances": specific_allowances.section_10_14_special_allowances.to_float() if specific_allowances.section_10_14_special_allowances else 0.0,
+            "travel_on_tour_allowance": specific_allowances.travel_on_tour_allowance.to_float() if specific_allowances.travel_on_tour_allowance else 0.0,
+            "tour_daily_charge_allowance": specific_allowances.tour_daily_charge_allowance.to_float() if specific_allowances.tour_daily_charge_allowance else 0.0,
+            "conveyance_in_performace_of_duties": specific_allowances.conveyance_in_performace_of_duties.to_float() if specific_allowances.conveyance_in_performace_of_duties else 0.0,
+            "helper_in_performace_of_duties": specific_allowances.helper_in_performace_of_duties.to_float() if specific_allowances.helper_in_performace_of_duties else 0.0,
+            "academic_research": specific_allowances.academic_research.to_float() if specific_allowances.academic_research else 0.0,
+            "uniform_allowance": specific_allowances.uniform_allowance.to_float() if specific_allowances.uniform_allowance else 0.0,
+            # Aliases for backward compatibility, always as float
+            "hills_allowance": specific_allowances.hills_allowance.to_float() if specific_allowances.hills_allowance else 0.0,
+            "border_allowance": specific_allowances.border_allowance.to_float() if specific_allowances.border_allowance else 0.0,
+            "hills_exemption_limit": specific_allowances.hills_exemption_limit.to_float() if specific_allowances.hills_exemption_limit else 0.0,
+            "border_exemption_limit": specific_allowances.border_exemption_limit.to_float() if specific_allowances.border_exemption_limit else 0.0,
+            "children_count": getattr(specific_allowances, "children_count", 0)
+        }
+
+    def _serialize_perquisites_payouts(self, perquisites_payouts):
+        if perquisites_payouts is None:
+            return None
+        return {
+            "components": [
+                {
+                    "key": component.key,
+                    "display_name": component.display_name,
+                    "value": component.value.to_float() if component.value else 0.0
+                }
+                for component in perquisites_payouts.components
+            ],
+            "total": perquisites_payouts.total.to_float() if perquisites_payouts.total else 0.0
+        }
+
+    def _serialize_lwp_details(self, lwp):
+        return {
+            "lwp_days": lwp.lwp_days,
+            "total_working_days": lwp.total_working_days,
+            "month": lwp.month,
+            "year": lwp.year
+        }
+
+    # --- MONTHLY SALARY DESERIALIZATION HELPERS ---
+    def _deserialize_salary_income(self, salary_doc):
+        from datetime import datetime
+        effective_from = None
+        effective_till = None
+        if salary_doc.get("effective_from"):
+            effective_from = datetime.fromisoformat(salary_doc["effective_from"])
+        if salary_doc.get("effective_till"):
+            effective_till = datetime.fromisoformat(salary_doc["effective_till"])
+        specific_allowances = self._deserialize_specific_allowances(salary_doc.get("specific_allowances", {}))
+        from app.domain.entities.taxation.salary_income import SalaryIncome
+        from app.domain.value_objects.money import Money
+        return SalaryIncome(
+            basic_salary=Money.from_float(salary_doc.get("basic_salary", 0.0)),
+            dearness_allowance=Money.from_float(salary_doc.get("dearness_allowance", 0.0)),
+            hra_provided=Money.from_float(salary_doc.get("hra_provided", 0.0)),
+            pf_employee_contribution=Money.from_float(salary_doc.get("pf_employee_contribution", 0.0)),
+            pf_employer_contribution=Money.from_float(salary_doc.get("pf_employer_contribution", 0.0)),
+            esi_contribution=Money.from_float(salary_doc.get("esi_contribution", 0.0)),
+            pf_voluntary_contribution=Money.from_float(salary_doc.get("pf_voluntary_contribution", 0.0)),
+            pf_total_contribution=Money.from_float(salary_doc.get("pf_total_contribution", 0.0)),
+            special_allowance=Money.from_float(salary_doc.get("special_allowance", 0.0)),
+            commission=Money.from_float(salary_doc.get("commission", 0.0)),
+            effective_from=effective_from,
+            effective_till=effective_till,
+            specific_allowances=specific_allowances
+        )
+
+    def _deserialize_specific_allowances(self, specific_allowances_doc):
+        from app.domain.entities.taxation.salary_income import SpecificAllowances
+        from app.domain.value_objects.money import Money
+        return SpecificAllowances(
+            monthly_hills_allowance=Money.from_float(specific_allowances_doc.get("monthly_hills_allowance", 0.0)),
+            monthly_hills_exemption_limit=Money.from_float(specific_allowances_doc.get("monthly_hills_exemption_limit", 0.0)),
+            monthly_border_allowance=Money.from_float(specific_allowances_doc.get("monthly_border_allowance", 0.0)),
+            monthly_border_exemption_limit=Money.from_float(specific_allowances_doc.get("monthly_border_exemption_limit", 0.0)),
+            transport_employee_allowance=Money.from_float(specific_allowances_doc.get("transport_employee_allowance", 0.0)),
+            children_education_allowance=Money.from_float(specific_allowances_doc.get("children_education_allowance", 0.0)),
+            children_education_count=specific_allowances_doc.get("children_education_count", 0),
+            hostel_allowance=Money.from_float(specific_allowances_doc.get("hostel_allowance", 0.0)),
+            children_hostel_count=specific_allowances_doc.get("children_hostel_count", 0),
+            disabled_transport_allowance=Money.from_float(specific_allowances_doc.get("disabled_transport_allowance", 0.0)),
+            is_disabled=specific_allowances_doc.get("is_disabled", False),
+            underground_mines_allowance=Money.from_float(specific_allowances_doc.get("underground_mines_allowance", 0.0)),
+            mine_work_months=specific_allowances_doc.get("mine_work_months", 0),
+            government_entertainment_allowance=Money.from_float(specific_allowances_doc.get("government_entertainment_allowance", 0.0)),
+            city_compensatory_allowance=Money.from_float(specific_allowances_doc.get("city_compensatory_allowance", 0.0)),
+            rural_allowance=Money.from_float(specific_allowances_doc.get("rural_allowance", 0.0)),
+            proctorship_allowance=Money.from_float(specific_allowances_doc.get("proctorship_allowance", 0.0)),
+            wardenship_allowance=Money.from_float(specific_allowances_doc.get("wardenship_allowance", 0.0)),
+            project_allowance=Money.from_float(specific_allowances_doc.get("project_allowance", 0.0)),
+            deputation_allowance=Money.from_float(specific_allowances_doc.get("deputation_allowance", 0.0)),
+            overtime_allowance=Money.from_float(specific_allowances_doc.get("overtime_allowance", 0.0)),
+            interim_relief=Money.from_float(specific_allowances_doc.get("interim_relief", 0.0)),
+            tiffin_allowance=Money.from_float(specific_allowances_doc.get("tiffin_allowance", 0.0)),
+            fixed_medical_allowance=Money.from_float(specific_allowances_doc.get("fixed_medical_allowance", 0.0)),
+            servant_allowance=Money.from_float(specific_allowances_doc.get("servant_allowance", 0.0)),
+            any_other_allowance=Money.from_float(specific_allowances_doc.get("any_other_allowance", 0.0)),
+            any_other_allowance_exemption=Money.from_float(specific_allowances_doc.get("any_other_allowance_exemption", 0.0)),
+            govt_employees_outside_india_allowance=Money.from_float(specific_allowances_doc.get("govt_employees_outside_india_allowance", 0.0)),
+            supreme_high_court_judges_allowance=Money.from_float(specific_allowances_doc.get("supreme_high_court_judges_allowance", 0.0)),
+            judge_compensatory_allowance=Money.from_float(specific_allowances_doc.get("judge_compensatory_allowance", 0.0)),
+            section_10_14_special_allowances=Money.from_float(specific_allowances_doc.get("section_10_14_special_allowances", 0.0)),
+            travel_on_tour_allowance=Money.from_float(specific_allowances_doc.get("travel_on_tour_allowance", 0.0)),
+            tour_daily_charge_allowance=Money.from_float(specific_allowances_doc.get("tour_daily_charge_allowance", 0.0)),
+            conveyance_in_performace_of_duties=Money.from_float(specific_allowances_doc.get("conveyance_in_performace_of_duties", 0.0)),
+            helper_in_performace_of_duties=Money.from_float(specific_allowances_doc.get("helper_in_performace_of_duties", 0.0)),
+            academic_research=Money.from_float(specific_allowances_doc.get("academic_research", 0.0)),
+            uniform_allowance=Money.from_float(specific_allowances_doc.get("uniform_allowance", 0.0)),
+            hills_allowance=Money.from_float(specific_allowances_doc.get("hills_allowance", 0.0)),
+            border_allowance=Money.from_float(specific_allowances_doc.get("border_allowance", 0.0)),
+            hills_exemption_limit=Money.from_float(specific_allowances_doc.get("hills_exemption_limit", 0.0)),
+            border_exemption_limit=Money.from_float(specific_allowances_doc.get("border_exemption_limit", 0.0)),
+            children_count=specific_allowances_doc.get("children_count", 0)
+        )
+
+    def _deserialize_perquisites_payouts(self, perq_payouts_doc):
+        from app.domain.entities.taxation.perquisites import MonthlyPerquisitesPayouts, MonthlyPerquisitesComponents
+        from app.domain.value_objects.money import Money
+        if not perq_payouts_doc:
+            return MonthlyPerquisitesPayouts(components=[], total=Money.zero())
+        components = []
+        for comp_doc in perq_payouts_doc.get("components", []):
+            component = MonthlyPerquisitesComponents(
+                key=comp_doc.get("key", ""),
+                display_name=comp_doc.get("display_name", ""),
+                value=Money.from_float(comp_doc.get("value", 0.0))
+            )
+            components.append(component)
+        total = Money.from_float(perq_payouts_doc.get("total", 0.0))
+        return MonthlyPerquisitesPayouts(components=components, total=total)
+
+    def _deserialize_lwp_details(self, lwp_doc):
+        from app.domain.entities.taxation.lwp_details import LWPDetails
+        return LWPDetails(
+            lwp_days=lwp_doc.get("lwp_days", 0),
+            total_working_days=lwp_doc.get("total_working_days", 30),
+            month=lwp_doc.get("month", 1),
+            year=lwp_doc.get("year", 2024)
+        )
+
+    async def get_monthly_salaries_for_period(
+        self,
+        month: int,
+        tax_year: str,
+        organization_id: str,
+        status: Optional[str] = None,
+        department: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List:
+        """
+        Aggregate all monthly_salary_records for the given month/tax_year from all SalaryPackageRecords in the organization.
+        Returns a flat list of MonthlySalary objects (or dicts if serialization is needed).
+        """
+        # Get all salary package records for the organization for the given tax_year
+        package_records = await self.get_by_tax_year(tax_year, organization_id, limit=10000, offset=0)  # Large limit to get all
+        result = []
+        for package in package_records:
+            for ms in getattr(package, 'monthly_salary_records', []):
+                if ms.month == month and str(package.tax_year) == tax_year:
+                    # Optionally filter by status/department if needed
+                    result.append(ms)
+        # Pagination
+        paginated = result[skip:skip+limit]
+        return paginated
+
+    # Utility for safe Money to float conversion
+    def _to_float(self, val):
+        return val.to_float() if hasattr(val, 'to_float') else float(val) if val is not None else 0.0
+
+    async def get_monthly_summary(
+        self,
+        month: int,
+        tax_year: str,
+        organization_id: str
+    ) -> dict:
+        """
+        Aggregate all monthly_salary_records for the given month/tax_year from all SalaryPackageRecords in the organization,
+        and return summary statistics (total gross, deductions, net, tds, count).
+        """
+        # Get all salary package records for the organization for the given tax_year
+        package_records = await self.get_by_tax_year(tax_year, organization_id, limit=10000, offset=0)
+        result = []
+        for package in package_records:
+            for ms in getattr(package, 'monthly_salary_records', []):
+                if ms.month == month and str(package.tax_year) == tax_year:
+                    result.append(ms)
+        # Compute summary statistics
+        total_gross_salary = 0.0
+        total_deductions = 0.0
+        total_net_salary = 0.0
+        total_tds = 0.0
+        count = len(result)
+        for ms in result:
+            gross = ms.salary.calculate_gross_salary().to_float() if hasattr(ms.salary, 'calculate_gross_salary') else 0.0
+            net = ms.net_salary.to_float() if hasattr(ms.net_salary, 'to_float') else 0.0
+            tds = ms.tax_amount.to_float() if hasattr(ms.tax_amount, 'to_float') else 0.0
+            deductions = gross - net if gross >= net else 0.0
+            total_gross_salary += gross
+            total_net_salary += net
+            total_tds += tds
+            total_deductions += deductions
+        return {
+            "total_gross_salary": total_gross_salary,
+            "total_deductions": total_deductions,
+            "total_net_salary": total_net_salary,
+            "total_tds": total_tds,
+            "count": count
+        }
+
+    def _serialize_tds_status(self, tds_status):
+        """Serialize TDSStatus to dict for MongoDB."""
+        if tds_status is None:
+            return None
+        # Handle both Money and float types for total_tax_liability
+        ttl = tds_status.total_tax_liability
+        if hasattr(ttl, 'to_float'):
+            ttl_val = ttl.to_float()
+        else:
+            ttl_val = float(ttl) if ttl is not None else 0.0
+        # Use 'challan_number' for DTO, fallback to 'tds_challan_number' for entity
+        challan_number = getattr(tds_status, 'challan_number', None)
+        if challan_number is None:
+            challan_number = getattr(tds_status, 'tds_challan_number', None)
+        # Use 'tds_challan_date' and 'tds_challan_file_path' if present
+        tds_challan_date = getattr(tds_status, 'tds_challan_date', None)
+        tds_challan_file_path = getattr(tds_status, 'tds_challan_file_path', None)
+        return {
+            "status": getattr(tds_status, 'status', 'unpaid'),
+            "total_tax_liability": ttl_val,
+            "tds_challan_number": challan_number,
+            "tds_challan_date": tds_challan_date.isoformat() if tds_challan_date else None,
+            "tds_challan_file_path": tds_challan_file_path,
+        }
+
+    def _deserialize_tds_status(self, tds_status_doc):
+        """Deserialize dict to TDSStatus."""
+        from app.domain.entities.taxation.monthly_salary_status import TDSStatus
+        from app.domain.value_objects.money import Money
+        from datetime import date
+        if not tds_status_doc:
+            return None
+        tds_challan_date = None
+        if tds_status_doc.get("tds_challan_date"):
+            try:
+                tds_challan_date = date.fromisoformat(tds_status_doc["tds_challan_date"])
+            except Exception:
+                tds_challan_date = None
+        return TDSStatus(
+            status=tds_status_doc.get("status", "unpaid"),
+            total_tax_liability=Money.from_float(tds_status_doc.get("total_tax_liability", 0.0)),
+            tds_challan_number=tds_status_doc.get("tds_challan_number"),
+            tds_challan_date=tds_challan_date,
+            tds_challan_file_path=tds_status_doc.get("tds_challan_file_path"),
+        )
+
+    def _serialize_payout_status(self, payout_status):
+        """Serialize PayoutStatus to dict for MongoDB."""
+        if payout_status is None:
+            return None
+        return {
+            "status": payout_status.status,
+            "comments": payout_status.comments,
+            "transaction_id": payout_status.transaction_id,
+            "transfer_date": payout_status.transfer_date.isoformat() if payout_status.transfer_date else None,
+        }
+
+    def _deserialize_payout_status(self, payout_status_doc):
+        """Deserialize dict to PayoutStatus."""
+        from app.domain.entities.taxation.monthly_salary_status import PayoutStatus
+        from datetime import date
+        if not payout_status_doc:
+            return None
+        transfer_date = None
+        if payout_status_doc.get("transfer_date"):
+            try:
+                transfer_date = date.fromisoformat(payout_status_doc["transfer_date"])
+            except Exception:
+                transfer_date = None
+        return PayoutStatus(
+            status=payout_status_doc.get("status", "computed"),
+            comments=payout_status_doc.get("comments"),
+            transaction_id=payout_status_doc.get("transaction_id"),
+            transfer_date=transfer_date,
+        )

@@ -38,8 +38,6 @@ class DeductionSection80C:
     """Section 80C deductions with validation and limits."""
     
     life_insurance_premium: Money = Money.zero()
-    epf_contribution: Money = Money.zero()
-    ppf_contribution: Money = Money.zero()
     nsc_investment: Money = Money.zero()
     tax_saving_fd: Money = Money.zero()
     elss_investment: Money = Money.zero()
@@ -54,8 +52,6 @@ class DeductionSection80C:
     def calculate_total_investment(self) -> Money:
         """Calculate total Section 80C investments."""
         logger.info(f"TheOne: Life insurance premium: {self.life_insurance_premium}")
-        logger.info(f"TheOne: EPF contribution: {self.epf_contribution}")
-        logger.info(f"TheOne: PPF contribution: {self.ppf_contribution}")
         logger.info(f"TheOne: NSC investment: {self.nsc_investment}")
         logger.info(f"TheOne: Tax saving FD: {self.tax_saving_fd}")
         logger.info(f"TheOne: ELSS investment: {self.elss_investment}")
@@ -67,8 +63,6 @@ class DeductionSection80C:
         logger.info(f"TheOne: Senior citizen savings: {self.senior_citizen_savings}")
         logger.info(f"TheOne: Other 80C investments: {self.other_80c_investments}")
         ret_val = (self.life_insurance_premium
-                .add(self.epf_contribution)
-                .add(self.ppf_contribution)
                 .add(self.nsc_investment)
                 .add(self.tax_saving_fd)
                 .add(self.elss_investment)
@@ -109,8 +103,6 @@ class DeductionSection80C:
         """Get breakdown of investments."""
         return {
             "life_insurance_premium": self.life_insurance_premium.to_float(),
-            "epf_contribution": self.epf_contribution.to_float(),
-            "ppf_contribution": self.ppf_contribution.to_float(),
             "nsc_investment": self.nsc_investment.to_float(),
             "tax_saving_fd": self.tax_saving_fd.to_float(),
             "elss_investment": self.elss_investment.to_float(),
@@ -914,16 +906,6 @@ class TaxDeductions:
         self.section_80c.ppf_contribution = value
     
     @property
-    def employee_provident_fund(self) -> Money:
-        return self.section_80c.epf_contribution if self.section_80c else Money.zero()
-    
-    @employee_provident_fund.setter
-    def employee_provident_fund(self, value: Money):
-        if self.section_80c is None:
-            self.section_80c = DeductionSection80C()
-        self.section_80c.epf_contribution = value
-    
-    @property
     def sukanya_samriddhi(self) -> Money:
         return self.section_80c.sukanya_samriddhi if self.section_80c else Money.zero()
     
@@ -1171,22 +1153,18 @@ class TaxDeductions:
     def interest_on_savings_deduction(self) -> Money:
         return self.savings_account_interest
     
-    def calculate_combined_80c_80ccc_80ccd1_deduction(self, regime: TaxRegime) -> Money:
+    def calculate_combined_80c_80ccc_80ccd1_deduction(self, regime: TaxRegime, pf_employee_contribution: Money) -> Money:
         """Calculate combined 80C + 80CCC + 80CCD(1) deduction with ₹1.5L limit."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
         
         total_investment = Money.zero()
+        total_investment = total_investment.add(pf_employee_contribution)
         
         # Add 80C investments
         if self.section_80c:
             total_investment = total_investment.add(self.section_80c.calculate_total_investment())
 
-        # Add 80CCC pension fund
-        if self.section_80ccc:
-            logger.info(f"TheOne: Pension fund contribution: {self.section_80ccc.pension_fund_contribution}")
-            total_investment = total_investment.add(self.section_80ccc.pension_fund_contribution)
-        
         # Add 80CCD(1) employee NPS
         if self.section_80ccd:
             logger.info(f"TheOne: Employee NPS contribution: {self.section_80ccd.employee_nps_contribution}")
@@ -1279,9 +1257,9 @@ class TaxDeductions:
             adjusted_income = self.calculate_adjusted_gross_income_for_80g(gross_total_income, regime, is_government_employee)
         
         # Now calculate total deductions normally
-        return self.calculate_total_deductions(regime, age, gross_total_income)
+        return self.calculate_total_deductions(regime, age, gross_total_income, Money.zero()) #TODO: Need to add pf_employee_contribution
     
-    def calculate_total_deductions(self, regime: TaxRegime, age: int, gross_income: Money) -> Money:
+    def calculate_total_deductions(self, regime: TaxRegime, age: int, gross_income: Money, pf_employee_contribution: Money) -> Money:
         """
         Calculate total eligible deductions across all sections.
         
@@ -1302,7 +1280,7 @@ class TaxDeductions:
         total = Money.zero()
         
         # Combined 80C + 80CCC + 80CCD(1) limit
-        total = total.add(self.calculate_combined_80c_80ccc_80ccd1_deduction(regime))
+        total = total.add(self.calculate_combined_80c_80ccc_80ccd1_deduction(regime, pf_employee_contribution))
         
         # 80CCD(1B) - Additional NPS (separate ₹50,000 limit)
         if self.section_80ccd:
@@ -1458,13 +1436,13 @@ class TaxDeductions:
                 breakdown["other_deductions"] = self.other_deductions.get_breakdown()
             
             # For breakdown, use default values since we don't have age and gross_income here
-            breakdown["total_deductions"] = self.calculate_total_deductions(regime, 30, Money.zero()).to_float()
+            breakdown["total_deductions"] = self.calculate_total_deductions(regime, 30, Money.zero(), Money.zero()).to_float()
             breakdown["total_interest_exemptions"] = self.calculate_interest_exemptions(regime).to_float()
         else:
             # New regime - only employer NPS allowed
             breakdown["new_regime_deductions"] = {
                 "employer_nps_80ccd2": self.section_80ccd.employer_nps_contribution.to_float() if self.section_80ccd else 0,
-                "total": self.calculate_total_deductions(regime, 30, Money.zero()).to_float()
+                "total": self.calculate_total_deductions(regime, 30, Money.zero(), Money.zero()).to_float()
             }
         
         return breakdown

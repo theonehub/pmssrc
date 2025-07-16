@@ -114,7 +114,7 @@ class UserServiceImpl(UserService):
     
     # Command Service Implementation
     async def create_user(self, request: CreateUserRequestDTO, current_user: "CurrentUser") -> UserResponseDTO:
-        """Create a new user."""
+        """Create a new user with organisation context from current_user."""
         try:
             logger.info(f"Creating user: {request.employee_id} in organisation: {current_user.hostname}")
             # Pass current_user to use case for organisation context
@@ -129,7 +129,7 @@ class UserServiceImpl(UserService):
         request: UpdateUserRequestDTO,
         current_user: "CurrentUser"
     ) -> UserResponseDTO:
-        """Update an existing user."""
+        """Update an existing user with organisation context from current_user."""
         try:
             logger.info(f"Updating user: {employee_id} in organisation: {current_user.hostname}")
             
@@ -217,7 +217,8 @@ class UserServiceImpl(UserService):
     async def update_user_documents(
         self, 
         employee_id: str, 
-        request: UpdateUserDocumentsRequestDTO
+        request: UpdateUserDocumentsRequestDTO,
+        current_user: "CurrentUser"
     ) -> UserResponseDTO:
         """Update user documents."""
         try:
@@ -327,7 +328,7 @@ class UserServiceImpl(UserService):
         request: UserStatusUpdateRequestDTO,
         current_user: "CurrentUser"
     ) -> UserResponseDTO:
-        """Update user status."""
+        """Update user status with organisation context from current_user."""
         try:
             logger.info(f"Updating status for user: {employee_id} in organisation: {current_user.hostname}")
             
@@ -396,7 +397,7 @@ class UserServiceImpl(UserService):
         deleted_by: Optional[str] = None,
         soft_delete: bool = True
     ) -> bool:
-        """Delete a user."""
+        """Delete a user with organisation context from current_user."""
         try:
             logger.info(f"Deleting user: {employee_id} (soft: {soft_delete})")
             
@@ -420,7 +421,7 @@ class UserServiceImpl(UserService):
     
     # Query Service Implementation
     async def get_user_by_id(self, employee_id: str, current_user: "CurrentUser") -> Optional[UserResponseDTO]:
-        """Get user by ID."""
+        """Get user by ID with organisation context from current_user."""
         try:
             logger.info(f"Getting user {employee_id} from organisation {current_user.hostname}")
             user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
@@ -457,7 +458,7 @@ class UserServiceImpl(UserService):
         include_deleted: bool = False,
         current_user: "CurrentUser" = None
     ) -> UserListResponseDTO:
-        """Get all users with pagination."""
+        """Get all users with pagination and organisation context from current_user."""
         try:
             logger.info(f"Getting all users from organisation {current_user.hostname if current_user else 'global'}")
             users = await self.user_repository.get_all(

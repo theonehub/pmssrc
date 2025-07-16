@@ -6,7 +6,6 @@ Core business object for organization-specific configuration attributes
 from typing import Optional, Dict, Any, Union
 from datetime import datetime
 from app.domain.entities.base_entity import BaseEntity
-from app.domain.value_objects.organisation_id import OrganisationId
 from app.application.dto.project_attributes_dto import ValueType
 
 
@@ -23,7 +22,6 @@ class ProjectAttribute(BaseEntity):
         key: str,
         value: Union[str, bool, int, float],
         value_type: ValueType,
-        organisation_id: OrganisationId,
         description: Optional[str] = None,
         is_active: bool = True,
         default_value: Optional[Union[str, bool, int, float]] = None,
@@ -43,7 +41,6 @@ class ProjectAttribute(BaseEntity):
             key: Unique identifier for the attribute
             value: Current value of the attribute
             value_type: Type of the value (boolean, string, number, etc.)
-            organisation_id: Organization this attribute belongs to
             description: Optional description of the attribute
             is_active: Whether the attribute is active
             default_value: Default value for the attribute
@@ -61,7 +58,6 @@ class ProjectAttribute(BaseEntity):
         self._key = key
         self._value = value
         self._value_type = value_type
-        self._organisation_id = organisation_id
         self._description = description
         self._is_active = is_active
         self._default_value = default_value
@@ -88,11 +84,6 @@ class ProjectAttribute(BaseEntity):
     def value_type(self) -> ValueType:
         """Get value type."""
         return self._value_type
-    
-    @property
-    def organisation_id(self) -> OrganisationId:
-        """Get organization ID."""
-        return self._organisation_id
     
     @property
     def description(self) -> Optional[str]:
@@ -323,7 +314,6 @@ class ProjectAttribute(BaseEntity):
             'key': self._key,
             'value': self._value,
             'value_type': self._value_type.value,
-            'organisation_id': str(self._organisation_id),
             'description': self._description,
             'is_active': self._is_active,
             'default_value': self._default_value,
@@ -339,14 +329,12 @@ class ProjectAttribute(BaseEntity):
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'ProjectAttribute':
         """Create from dictionary."""
-        from app.domain.value_objects.organisation_id import OrganisationId
         
         return cls(
             id=data.get('id'),
             key=data['key'],
             value=data['value'],
             value_type=ValueType(data['value_type']),
-            organisation_id=OrganisationId(data['organisation_id']),
             description=data.get('description'),
             is_active=data.get('is_active', True),
             default_value=data.get('default_value'),

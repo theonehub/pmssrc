@@ -63,23 +63,12 @@ class ApproveEmployeeLeaveUseCase:
     ) -> EmployeeLeaveResponseDTO:
         """
         Execute employee leave approval/rejection workflow.
-        
-        Business Rules:
-        1. Leave application must exist and be in pending status
-        2. Approver must have permission to approve this leave
-        3. For approvals: Deduct leave balance from employee
-        4. For rejections: Reason must be provided
-        5. Events must be published for downstream processing
-        
         Args:
             leave_id: Leave application identifier
             request: Approval/rejection request
-            approver_id: User approving/rejecting the leave
-            hostname: Organisation hostname
-            
+            current_user: User approving/rejecting the leave (provides organization context)
         Returns:
             EmployeeLeaveResponseDTO with updated leave details
-            
         Raises:
             EmployeeLeaveNotFoundError: If leave application not found
             EmployeeLeaveValidationError: If request data is invalid

@@ -70,17 +70,14 @@ class DeleteUserUseCase:
     ) -> bool:
         """
         Execute the delete user use case.
-        
         Args:
             employee_id: ID of user to delete
             deletion_reason: Reason for deletion
-            current_user: Current authenticated user with organisation context
+            current_user: Current authenticated user with organisation context (organisation_id is current_user.hostname)
             deleted_by: User performing the deletion
             soft_delete: Whether to soft delete (mark as deleted) or hard delete
-            
         Returns:
             True if deleted successfully
-            
         Raises:
             UserNotFoundError: If user not found
             UserBusinessRuleError: If deletion is not allowed
@@ -136,7 +133,7 @@ class DeleteUserUseCase:
             )
     
     async def _get_existing_user(self, employee_id: str, current_user: CurrentUser) -> User:
-        """Get existing user"""
+        """Get existing user using current_user for organisation context."""
         user = await self.query_repository.get_by_id(
             EmployeeId(employee_id), 
             current_user.hostname
@@ -169,9 +166,8 @@ class DeleteUserUseCase:
     async def _decrement_organisation_employee_strength(self, current_user: CurrentUser) -> None:
         """
         Decrement organisation used employee strength.
-        
         Args:
-            current_user: Current authenticated user with organisation context
+            current_user: Current authenticated user with organisation context (organisation_id is current_user.hostname)
         """
         try:
             # Get organisation by hostname

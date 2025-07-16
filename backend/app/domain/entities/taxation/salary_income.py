@@ -11,6 +11,9 @@ from typing import Dict, Any
 from app.domain.value_objects.money import Money
 from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
 
+from app.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 @dataclass
 class SpecificAllowances:
@@ -292,11 +295,14 @@ class SalaryIncome:
     dearness_allowance: Money
     hra_provided: Money
     special_allowance: Money
-    
+    pf_employee_contribution: Money = Money.zero()
+    pf_employer_contribution: Money = Money.zero()
+    esi_contribution: Money = Money.zero()
+    pf_voluntary_contribution: Money = Money.zero()
+    pf_total_contribution: Money = Money.zero()
+
     # Optional components with defaults
-    bonus: Money = Money.zero()
     commission: Money = Money.zero()
-    arrears: Money = Money.zero()
 
     # Specific allowances with exemption rules
     specific_allowances: SpecificAllowances = None
@@ -305,6 +311,10 @@ class SalaryIncome:
         """Initialize defaults."""
         if self.specific_allowances is None:
             self.specific_allowances = SpecificAllowances()
+
+        if self.pf_total_contribution is None:
+            self.pf_total_contribution = self.pf_employee_contribution.add(self.pf_employer_contribution).add(self.pf_voluntary_contribution).add(self.esi_contribution)
+
         # Remove automatic setting of effective_from - it must be provided by user
         # if self.effective_from is None:
         #     self.effective_from = datetime.now()
@@ -318,17 +328,22 @@ class SalaryIncome:
         """
         gross = (self.basic_salary                  #considered for doc 
                 .add(self.dearness_allowance)       #considered for doc
-                .add(self.bonus)                    #considered for doc
                 .add(self.commission)               #considered for doc
                 .add(self.hra_provided)             #considered for doc
                 .add(self.special_allowance)        
-                .add(self.arrears))
+                .add(self.pf_employee_contribution))
         
         # Add specific allowances if available
         if self.specific_allowances:
             gross = gross.add(self.specific_allowances.calculate_total_specific_allowances())
         
         return gross
+    
+    def get_pf_employee_contribution(self) -> Money:
+        """
+        Get the PF employee contribution.
+        """
+        return self.pf_employee_contribution + self.pf_voluntary_contribution
 
     def calculate_basic_plus_da(self) -> Money:
         """
@@ -348,8 +363,13 @@ class SalaryIncome:
         Returns:
             Money: Total exemptions
         """
-        total_exemptions = Money.zero()
+        if regime.regime_type == TaxRegimeType.NEW:
+            return Money.zero()
         
+        #TODO: Need to check if this is correct
+        total_exemptions = Money.zero()
+        total_exemptions = self.pf_employee_contribution.add(self.pf_voluntary_contribution).min(Money.from_int(250000))
+
         # Specific allowances exemptions
         if self.specific_allowances:
             total_exemptions = total_exemptions.add(self.specific_allowances.calculate_total_specific_allowances_exemptions(regime, self.basic_salary, is_government_employee))
@@ -396,11 +416,9 @@ class SalaryIncome:
             "gross_salary_components": {
                 "basic_salary": self.basic_salary.to_float(),
                 "dearness_allowance": self.dearness_allowance.to_float(),
-                "bonus": self.bonus.to_float(),
                 "commission": self.commission.to_float(),
                 "hra_provided": self.hra_provided.to_float(),
                 "special_allowance": self.special_allowance.to_float(),
-                "arrears": self.arrears.to_float(),
                 "specific_allowances": self.specific_allowances.calculate_total_specific_allowances().to_float() if self.specific_allowances else 0.0
             },
             "gross_salary_total": self.calculate_gross_salary().to_float(),

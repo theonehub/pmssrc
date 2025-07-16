@@ -25,92 +25,6 @@ logger = logging.getLogger(__name__)
 # Create router
 router = APIRouter(prefix="/v2/users", tags=["Users V2"])
 
-# Health check endpoint
-@router.get("/health")
-async def health_check(
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller)
-) -> Dict[str, str]:
-    """Health check for user service."""
-    try:
-        # Pass organisation context to controller
-        return await controller.health_check(current_user)
-    except Exception:
-        # Fallback for minimal implementation
-        return {
-            "service": "user_service",
-            "status": "healthy",
-            "timestamp": datetime.now().isoformat(),
-            "version": "2.0.0-complete",
-            "organisation": current_user.hostname
-        }
-
-# User creation endpoints
-@router.post("", response_model=UserResponseDTO)
-async def create_user(
-    request: CreateUserRequestDTO,
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller),
-) -> UserResponseDTO:
-    """Create a new user."""
-    # Pass organisation context to controller
-    return await controller.create_user(request, current_user)
-
-@router.post("/create")
-async def create_user_legacy(
-    user_data: Dict[str, Any] = Body(..., description="User creation data"),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller)
-) -> Dict[str, Any]:
-    """Create a new user (legacy endpoint)."""
-    try:
-        # Convert legacy format to DTO and include organisation context
-        request = CreateUserRequestDTO(**user_data)
-        result = await controller.create_user(request, current_user)
-        
-        return {
-            "success": True,
-            "message": "User created successfully",
-            "employee_id": result.employee_id,
-            "name": result.name,
-            "email": result.email,
-            "department": result.department,
-            "designation": result.designation,
-            "organisation": current_user.hostname,
-            "created_at": datetime.now().isoformat(),
-            "created_by": current_user.employee_id
-        }
-    except Exception as e:
-        logger.error(f"Error creating user in organisation {current_user.hostname}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/with-files", response_model=UserResponseDTO)
-async def create_user_with_files(
-    user_data: str = Form(..., description="JSON string containing user data"),
-    pan_file: Optional[UploadFile] = File(None, description="PAN document file"),
-    aadhar_file: Optional[UploadFile] = File(None, description="Aadhar document file"),
-    photo: Optional[UploadFile] = File(None, description="User photo file"),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller)
-) -> UserResponseDTO:
-    """Create a new user with document uploads."""
-    return await controller.create_user_with_files(
-        user_data=user_data,
-        pan_file=pan_file,
-        aadhar_file=aadhar_file,
-        photo=photo,
-        current_user=current_user
-    )
-
-# Authentication endpoints (no auth required for login)
-@router.post("/auth/login", response_model=UserLoginResponseDTO)
-async def authenticate_user(
-    request: UserLoginRequestDTO,
-    controller: UserController = Depends(get_user_controller)
-) -> UserLoginResponseDTO:
-    """Authenticate user and return access tokens."""
-    return await controller.authenticate_user(request)
-
 # User query endpoints
 @router.get("/me")
 async def get_current_user_profile(
@@ -129,7 +43,7 @@ async def get_current_user_profile(
             "email": user.email,
             "department": user.department,
             "designation": user.designation,
-            "role": user.role,
+            "role": user.permissions.role.value if hasattr(user.permissions.role, 'value') else user.permissions.role,
             "organisation": current_user.hostname,
             "last_login": user.last_login_at,
             "permissions": current_user.permissions
@@ -695,46 +609,6 @@ async def get_user_profile_picture(
         logger.error(f"Error getting profile picture for user {user_id} in organisation {current_user.hostname}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/{user_id}/documents")
-async def upload_user_documents(
-    user_id: str,
-    pan_file: Optional[UploadFile] = File(None, description="PAN document file"),
-    aadhar_file: Optional[UploadFile] = File(None, description="Aadhar document file"),
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller)
-) -> Dict[str, Any]:
-    """Upload user documents (PAN, Aadhar)."""
-    try:
-        # Validate user exists
-        user = await controller.get_user_by_id(user_id, current_user)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-        
-        # Upload documents using controller
-        result = await controller.upload_user_documents(
-            user_id=user_id,
-            pan_file=pan_file,
-            aadhar_file=aadhar_file,
-            current_user=current_user
-        )
-        
-        return {
-            "success": True,
-            "message": "Documents uploaded successfully",
-            "pan_document_path": result.pan_document_path,
-            "aadhar_document_path": result.aadhar_document_path,
-            "user_id": user_id,
-            "organisation": current_user.hostname,
-            "uploaded_at": datetime.now().isoformat(),
-            "uploaded_by": current_user.employee_id
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error uploading documents for user {user_id} in organisation {current_user.hostname}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to upload documents: {str(e)}")
-
 @router.post("/{user_id}/profile-picture")
 async def upload_user_profile_picture(
     user_id: str,
@@ -790,7 +664,6 @@ async def get_users(
     limit: int = Query(10, ge=1, le=1000, description="Number of records to return for pagination"),
     include_inactive: bool = Query(False, description="Include inactive users"),
     include_deleted: bool = Query(False, description="Include deleted users"),
-    organisation_id: Optional[str] = Query(None, description="Organisation ID to filter users"),
     search: Optional[str] = Query(None, description="Search query for users"),
     department: Optional[str] = Query(None, description="Filter by department"),
     role: Optional[str] = Query(None, description="Filter by role"),
@@ -807,7 +680,6 @@ async def get_users(
             "limit": limit,
             "include_inactive": include_inactive,
             "include_deleted": include_deleted,
-            "organisation_id": organisation_id,
             "search": search,
             "department": department,
             "role": role,

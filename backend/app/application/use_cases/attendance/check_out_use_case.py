@@ -73,10 +73,10 @@ class CheckOutUseCase:
     async def execute(
         self,
         request: AttendanceCheckOutRequestDTO,
-        current_user: "CurrentUser"
+        current_user: "CurrentUser"  # Organisation context is always provided via current_user
     ) -> AttendanceResponseDTO:
         """
-        Execute check-out operation.
+        Execute check-out operation (organisation context from current_user).
         
         Steps:
         1. Validate request data
@@ -155,7 +155,7 @@ class CheckOutUseCase:
             )
     
     async def _verify_employee(self, employee_id: str, current_user: "CurrentUser") -> dict:
-        """Verify employee exists and is active"""
+        """Verify employee exists and is active (organisation context from current_user)"""
         employee = await self.employee_repository.get_by_id(employee_id, current_user.hostname)
         
         if not employee:
@@ -181,9 +181,9 @@ class CheckOutUseCase:
         self,
         employee_id: str,
         attendance_date: date,
-        current_user: "CurrentUser"
+        current_user: "CurrentUser"  # Organisation context is always provided via current_user
     ) -> Attendance:
-        """Get existing attendance record"""
+        """Get existing attendance record (organisation context from current_user)"""
         attendance = await self.attendance_query_repository.get_by_employee_and_date(
             employee_id, attendance_date, current_user.hostname
         )

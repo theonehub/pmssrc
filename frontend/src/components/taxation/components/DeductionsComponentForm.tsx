@@ -34,8 +34,6 @@ interface DeductionsComponentData {
 
   // Section 80C
   life_insurance_premium: number;
-  epf_contribution: number;
-  ppf_contribution: number;
   nsc_investment: number;
   tax_saving_fd: number;
   elss_investment: number;
@@ -145,8 +143,6 @@ const flattenDeductionsData = (nestedData: any): DeductionsComponentData => {
     if (nestedData.section_80c) {
       console.log('Processing Section 80C:', nestedData.section_80c);
       flattened.life_insurance_premium = nestedData.section_80c.life_insurance_premium || 0;
-      flattened.epf_contribution = nestedData.section_80c.epf_contribution || 0;
-      flattened.ppf_contribution = nestedData.section_80c.ppf_contribution || 0;
       flattened.nsc_investment = nestedData.section_80c.nsc_investment || 0;
       flattened.tax_saving_fd = nestedData.section_80c.tax_saving_fd || 0;
       flattened.elss_investment = nestedData.section_80c.elss_investment || 0;
@@ -300,8 +296,6 @@ const initialDeductionsData: DeductionsComponentData = {
 
   // Section 80C
   life_insurance_premium: 0,
-  epf_contribution: 0,
-  ppf_contribution: 0,
   nsc_investment: 0,
   tax_saving_fd: 0,
   elss_investment: 0,
@@ -511,8 +505,6 @@ const DeductionsComponentForm: React.FC = () => {
 
   const calculate80CTotal = (): number => {
     return deductionsData.life_insurance_premium +
-           deductionsData.epf_contribution +
-           deductionsData.ppf_contribution +
            deductionsData.nsc_investment +
            deductionsData.tax_saving_fd +
            deductionsData.elss_investment +
@@ -558,8 +550,6 @@ const DeductionsComponentForm: React.FC = () => {
       maxLimit: 150000,
       fields: [
         { name: 'life_insurance_premium', label: 'Life Insurance Premium', type: 'number' } as NumberField,
-        { name: 'epf_contribution', label: 'EPF Contribution', type: 'number' } as NumberField,
-        { name: 'ppf_contribution', label: 'PPF Contribution', type: 'number' } as NumberField,
         { name: 'nsc_investment', label: 'NSC Investment', type: 'number' } as NumberField,
         { name: 'tax_saving_fd', label: 'Tax Saving FD', type: 'number' } as NumberField,
         { name: 'elss_investment', label: 'ELSS Investment', type: 'number' } as NumberField,

@@ -57,7 +57,6 @@ export interface User {
 export type UserRole = 'admin' | 'hr' | 'employee' | 'manager' | 'superadmin' | 'user';
 
 // Import taxation types from dedicated file
-export * from './taxation';
 
 export type TaxRegime = 'old' | 'new';
 export type FilingStatus = 'not_filed' | 'filed' | 'processed' | 'verified' | 'draft' | 'submitted' | 'approved' | 'rejected' | 'pending';

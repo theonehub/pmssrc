@@ -113,13 +113,13 @@ class TaxCalculationService:
         self.logger = get_logger(__name__)
 
 
-    async def compute_monthly_tax(self, employee_id: str, organization_id: str) -> Dict[str, Any]:
+    async def compute_monthly_tax(self, employee_id: str, current_user) -> Dict[str, Any]:
         """
         Compute monthly tax for an employee based on their salary package record.
         
         Args:
             employee_id: Employee ID
-            organization_id: Organization ID for database segregation
+            current_user: Current authenticated user with organisation context
             
         Returns:
             Dict[str, Any]: Monthly tax computation result
@@ -156,7 +156,7 @@ class TaxCalculationService:
             self.logger.debug(f"compute_monthly_tax: Fetching salary package record for employee {employee_id}, tax_year {tax_year}")
 
             salary_package_record = await self.salary_package_repository.get_salary_package_record(
-                employee_id, tax_year, organization_id
+                employee_id, tax_year, current_user.hostname
             )
             
             if not salary_package_record:
@@ -179,7 +179,7 @@ class TaxCalculationService:
             # Save the updated salary package record with calculation result to database
             self.logger.debug("compute_monthly_tax: Saving updated salary package record to database")
             try:
-                await self.salary_package_repository.save(salary_package_record, organization_id)
+                await self.salary_package_repository.save(salary_package_record, current_user.hostname)
                 self.logger.debug("compute_monthly_tax: Successfully saved updated salary package record to database")
             except Exception as save_error:
                 self.logger.error(f"compute_monthly_tax: Failed to save updated salary package record to database: {str(save_error)}")
@@ -241,9 +241,14 @@ class TaxCalculationService:
                 latest_salary = salary_package_record.get_latest_salary_income()
                 response["latest_salary_info"] = {
                     "basic_salary": latest_salary.basic_salary.to_float(),
+                    "dearness_allowance": latest_salary.dearness_allowance.to_float(),
                     "hra_provided": latest_salary.hra_provided.to_float(),
+                    "pf_employee_contribution": latest_salary.pf_employee_contribution.to_float(),
+                    "pf_employer_contribution": latest_salary.pf_employer_contribution.to_float(),
+                    "esi_contribution": latest_salary.esi_contribution.to_float(),
+                    "pf_voluntary_contribution": latest_salary.pf_voluntary_contribution.to_float(),
+                    "pf_total_contribution": latest_salary.pf_total_contribution.to_float(),
                     "special_allowance": latest_salary.special_allowance.to_float(),
-                    "bonus": latest_salary.bonus.to_float(),
                     "commission": latest_salary.commission.to_float(),
                     "gross_salary": latest_salary.calculate_gross_salary().to_float()
                 }
@@ -264,7 +269,7 @@ class TaxCalculationService:
             # Wrap other errors in RuntimeError
             raise RuntimeError(f"Failed to compute monthly tax for employee {employee_id}: {str(e)}")
     
-    async def compute_monthly_tax_with_details(self, employee_id: str, organization_id: str) -> Dict[str, Any]:
+    async def compute_monthly_tax_with_details(self, employee_id: str, current_user) -> Dict[str, Any]:
         """
         Compute monthly tax with detailed breakdown for frontend display.
         
@@ -273,7 +278,7 @@ class TaxCalculationService:
         
         Args:
             employee_id: Employee ID
-            organization_id: Organization ID
+            current_user: Current authenticated user with organisation context
             
         Returns:
             Dict[str, Any]: Detailed monthly tax computation result
@@ -281,7 +286,7 @@ class TaxCalculationService:
         
         try:
             # Get basic computation
-            basic_result = await self.compute_monthly_tax(employee_id, organization_id)
+            basic_result = await self.compute_monthly_tax(employee_id, current_user)
             
             # Get salary package record for additional details
             tax_year = basic_result["tax_year"]
@@ -289,7 +294,7 @@ class TaxCalculationService:
             self.logger.debug(f"compute_monthly_tax_with_details: Fetching salary package record for additional details - employee {employee_id}, tax_year {tax_year}")
             
             salary_package_record = await self.salary_package_repository.get_salary_package_record(
-                employee_id, tax_year, organization_id
+                employee_id, tax_year, current_user.hostname
             )
             
             if not salary_package_record:
@@ -300,65 +305,6 @@ class TaxCalculationService:
             
             # Add detailed breakdown
             detailed_result = basic_result.copy()
-            
-            # Note: The salary package record has already been saved to database in compute_monthly_tax method
-            # No additional save needed here as the calculation result is already persisted
-            
-            # # Add component status
-            # self.logger.debug("compute_monthly_tax_with_details: Building component status")
-            # detailed_result["component_status"] = {
-            #     "salary": {
-            #         "configured": len(salary_package_record.salary_incomes) > 0,
-            #         "count": len(salary_package_record.salary_incomes)
-            #     },
-            #     "perquisites": {
-            #         "configured": salary_package_record.perquisites is not None,
-            #         "value": salary_package_record.perquisites.calculate_total_perquisites(salary_package_record.regime).to_float() if salary_package_record.perquisites else 0.0
-            #     },
-            #     "deductions": {
-            #         "configured": True,  # Always have default deductions
-            #         "value": salary_package_record.deductions.calculate_total_deductions(salary_package_record.regime).to_float()
-            #     },
-            #     "other_income": {
-            #         "configured": salary_package_record.other_income is not None,
-            #         "value": salary_package_record.other_income.calculate_total_other_income_slab_rates(salary_package_record.regime, salary_package_record.age).to_float() if salary_package_record.other_income else 0.0
-            #     },
-            #     "retirement_benefits": {
-            #         "configured": salary_package_record.retirement_benefits is not None,
-            #         "value": salary_package_record.retirement_benefits.calculate_total_retirement_income(salary_package_record.regime).to_float() if salary_package_record.retirement_benefits else 0.0
-            #     }
-            # }
-            
-            # self.logger.debug(f"compute_monthly_tax_with_details: Component status - Salary configured: {detailed_result['component_status']['salary']['configured']}")
-            # self.logger.debug(f"compute_monthly_tax_with_details: Component status - Perquisites configured: {detailed_result['component_status']['perquisites']['configured']}")
-            # self.logger.debug(f"compute_monthly_tax_with_details: Component status - Deductions value: {detailed_result['component_status']['deductions']['value']}")
-            
-            # Add recommendation - compute fresh calculation result
-            # fresh_calculation_result = salary_package_record.calculate_tax(self)
-            # if fresh_calculation_result:
-            #     self.logger.debug("compute_monthly_tax_with_details: Generating tax recommendation")
-            #     monthly_tax = fresh_calculation_result.monthly_tax_liability.to_float()
-            #     annual_income = fresh_calculation_result.total_income.to_float()
-                
-            #     if monthly_tax == 0:
-            #         detailed_result["recommendation"] = "No tax liability"
-            #         self.logger.debug("compute_monthly_tax_with_details: Recommendation - No tax liability")
-            #     elif annual_income > 0:
-            #         tax_rate = (monthly_tax * 12 / annual_income) * 100
-            #         if tax_rate < 5:
-            #             detailed_result["recommendation"] = "Low tax rate - consider new regime"
-            #             self.logger.debug(f"compute_monthly_tax_with_details: Recommendation - Low tax rate ({tax_rate:.2f}%)")
-            #         elif tax_rate > 20:
-            #             detailed_result["recommendation"] = "High tax rate - review deductions"
-            #             self.logger.debug(f"compute_monthly_tax_with_details: Recommendation - High tax rate ({tax_rate:.2f}%)")
-            #         else:
-            #             detailed_result["recommendation"] = "Moderate tax rate"
-            #             self.logger.debug(f"compute_monthly_tax_with_details: Recommendation - Moderate tax rate ({tax_rate:.2f}%)")
-            #     else:
-            #         detailed_result["recommendation"] = "Review income configuration"
-            #         self.logger.debug("compute_monthly_tax_with_details: Recommendation - Review income configuration")
-            # else:
-            #     self.logger.warning("compute_monthly_tax_with_details: No fresh calculation result available for recommendation")
             
             self.logger.debug(f"compute_monthly_tax_with_details: Successfully completed detailed computation for employee {employee_id}")
             return detailed_result
@@ -621,11 +567,8 @@ class TaxCalculationService:
                     "dearness_allowance": input_data.salary_income.dearness_allowance.to_float(),
                     "hra_provided": input_data.salary_income.hra_provided.to_float(),
                     "special_allowance": input_data.salary_income.special_allowance.to_float(),
-                    "bonus": input_data.salary_income.bonus.to_float(),
                     "commission": input_data.salary_income.commission.to_float(),
-                    "overtime": input_data.salary_income.specific_allowances.overtime_allowance.to_float() if input_data.salary_income.specific_allowances else 0.0,
-                    "arrears": input_data.salary_income.arrears.to_float(),
-
+                    "overtime": input_data.salary_income.specific_allowances.overtime_allowance.to_float() if input_data.salary_income.specific_allowances else 0.0
                 },
                 "perquisites": {
                     "car_perquisite": input_data.perquisites.car_perquisite.to_float(),
@@ -912,206 +855,4 @@ class TaxCalculationService:
         """Calculate VRS compensation exemption."""
         # VRS compensation is exempt up to ₹5 lakh
         five_lakh = Money(Decimal('500000'))
-        return vrs_compensation.min(five_lakh)
-    
-    def _get_old_regime_slabs(self,
-                             age: int,
-                             is_senior_citizen: bool,
-                             is_super_senior_citizen: bool) -> List[Dict[str, Any]]:
-        """Get tax slabs for old regime."""
-        if is_super_senior_citizen:
-            # Super Senior Citizen (above 80 years)
-            return [
-                {"min": Decimal('0'), "max": Decimal('500000'), "rate": Decimal('0')},
-                {"min": Decimal('500000'), "max": Decimal('1000000'), "rate": Decimal('20')},
-                {"min": Decimal('1000000'), "max": None, "rate": Decimal('30')}
-            ]
-        elif is_senior_citizen:
-            # Senior Citizen (60-80 years)
-            return [
-                {"min": Decimal('0'), "max": Decimal('300000'), "rate": Decimal('0')},
-                {"min": Decimal('300000'), "max": Decimal('500000'), "rate": Decimal('5')},
-                {"min": Decimal('500000'), "max": Decimal('1000000'), "rate": Decimal('20')},
-                {"min": Decimal('1000000'), "max": None, "rate": Decimal('30')}
-            ]
-        else:
-            # Individual (below 60 years)
-            return [
-                {"min": Decimal('0'), "max": Decimal('250000'), "rate": Decimal('0')},
-                {"min": Decimal('250000'), "max": Decimal('500000'), "rate": Decimal('5')},
-                {"min": Decimal('500000'), "max": Decimal('1000000'), "rate": Decimal('20')},
-                {"min": Decimal('1000000'), "max": None, "rate": Decimal('30')}
-            ]
-    
-    def _get_new_regime_slabs(self) -> List[Dict[str, Any]]:
-        """Get tax slabs for new regime."""
-        # New regime slabs are same for all age groups
-        return [
-            {"min": Decimal('0'), "max": Decimal('300000'), "rate": Decimal('0')},
-            {"min": Decimal('300000'), "max": Decimal('600000'), "rate": Decimal('5')},
-            {"min": Decimal('600000'), "max": Decimal('900000'), "rate": Decimal('10')},
-            {"min": Decimal('900000'), "max": Decimal('1200000'), "rate": Decimal('15')},
-            {"min": Decimal('1200000'), "max": Decimal('1500000'), "rate": Decimal('20')},
-            {"min": Decimal('1500000'), "max": None, "rate": Decimal('30')}
-        ] 
-
-    def _create_monthly_payout_from_taxation_record(self, 
-                                                   taxation_record, 
-                                                   calculation_result: TaxCalculationResult) -> 'PayoutBase':
-        """
-        Create a monthly payout record based on taxation record and calculation result.
-        
-        This method calculates monthly salary components by dividing annual amounts by 12,
-        and includes TDS calculation based on the annual tax liability.
-        
-        Args:
-            taxation_record: The taxation record containing salary and other details
-            calculation_result: The tax calculation result
-            
-        Returns:
-            PayoutBase: Monthly payout record with calculated values
-        """
-        from datetime import date
-        from app.domain.entities.taxation.payout import PayoutBase, PayoutFrequency, PayoutStatus
-        
-        # Get current year for payout dates
-        current_year = date.today().year
-        current_month = date.today().month
-        
-        # Calculate monthly salary components from annual salary
-        annual_gross = calculation_result.total_income
-        monthly_gross = annual_gross.divide(Decimal('12'))
-        
-        # Extract salary components from the salary income entity
-        salary_income = taxation_record.salary_income
-        
-        # Calculate monthly components
-        monthly_basic = salary_income.basic_salary.divide(Decimal('12'))
-        monthly_da = salary_income.dearness_allowance.divide(Decimal('12'))
-        monthly_hra = salary_income.hra_provided.divide(Decimal('12'))
-        monthly_special = salary_income.special_allowance.divide(Decimal('12'))
-        monthly_bonus = salary_income.bonus.divide(Decimal('12'))
-        monthly_commission = salary_income.commission.divide(Decimal('12'))
-        monthly_overtime = salary_income.specific_allowances.overtime_allowance.divide(Decimal('12')) if salary_income.specific_allowances else Money.zero()
-        monthly_arrears = salary_income.arrears.divide(Decimal('12'))
-        
-        # Calculate monthly TDS (Tax Deducted at Source)
-        annual_tax = calculation_result.tax_liability
-        monthly_tds = annual_tax.divide(Decimal('12'))
-        
-        # Calculate statutory deductions (EPF, ESI, Professional Tax)
-        monthly_epf_employee = self._calculate_monthly_epf_employee(monthly_basic, monthly_da)
-        monthly_epf_employer = self._calculate_monthly_epf_employer(monthly_basic, monthly_da)
-        monthly_esi_employee = self._calculate_monthly_esi_employee(monthly_gross)
-        monthly_esi_employer = self._calculate_monthly_esi_employer(monthly_gross)
-        monthly_professional_tax = self._calculate_monthly_professional_tax(monthly_gross)
-        
-        # Get loan EMI amount from perquisites
-        loan_emi_amount = taxation_record.perquisites.get_loan_emi_amount() if taxation_record.perquisites else Money.zero()
-        
-        # Calculate total monthly deductions
-        total_monthly_deductions = (
-            monthly_epf_employee
-            .add(monthly_esi_employee)
-            .add(monthly_professional_tax)
-            .add(monthly_tds)
-            .add(loan_emi_amount)
-        )
-        
-        # Calculate net monthly salary
-        net_monthly_salary = monthly_gross.subtract(total_monthly_deductions)
-        
-        # Create payout record
-        return PayoutBase(
-            employee_id=str(taxation_record.employee_id),
-            pay_period_start=date(current_year, current_month, 1),
-            pay_period_end=date(current_year, current_month, 28),  # Approximate month end
-            payout_date=date(current_year, current_month, 30),  # Assumed payout on 30th
-            frequency=PayoutFrequency.MONTHLY,
-            
-            # Monthly salary components
-            basic_salary=monthly_basic.to_float(),
-            da=monthly_da.to_float(),
-            hra=monthly_hra.to_float(),
-            special_allowance=monthly_special.to_float(),
-            bonus=monthly_bonus.to_float(),
-            commission=monthly_commission.to_float(),
-            overtime=monthly_overtime.to_float(),
-            arrears=monthly_arrears.to_float(),
-            
-            # Monthly deductions
-            epf_employee=monthly_epf_employee.to_float(),
-            epf_employer=monthly_epf_employer.to_float(),
-            esi_employee=monthly_esi_employee.to_float(),
-            esi_employer=monthly_esi_employer.to_float(),
-            professional_tax=monthly_professional_tax.to_float(),
-            tds=monthly_tds.to_float(),
-            advance_deduction=0.0,
-            loan_deduction=loan_emi_amount.to_float(),
-            other_deductions=0.0,
-            
-            # Calculated totals
-            gross_salary=monthly_gross.to_float(),
-            total_deductions=total_monthly_deductions.to_float(),
-            net_salary=net_monthly_salary.to_float(),
-            
-            # Annual projections
-            annual_gross_salary=annual_gross.to_float(),
-            annual_tax_liability=annual_tax.to_float(),
-            monthly_tds=monthly_tds.to_float(),
-            
-            # Tax details
-            tax_regime=taxation_record.regime.regime_type.value,
-            tax_exemptions=calculation_result.total_exemptions.to_float(),
-            standard_deduction=50000.0 if taxation_record.regime.regime_type.value == "new" else 0.0,
-            section_80c_claimed=0.0,  # Can be enhanced later
-            
-            # Reimbursements
-            reimbursements=0.0,
-            
-            # Working days (default values - can be enhanced)
-            total_days_in_month=30,
-            working_days_in_period=22,
-            lwp_days=0,
-            effective_working_days=22,
-            
-            # Status
-            status=PayoutStatus.PENDING,
-            notes=f"Auto-generated monthly payout for tax year {taxation_record.tax_year}",
-            remarks=f"Based on {taxation_record.regime.regime_type.value} tax regime calculation"
-        )
-
-    def _calculate_monthly_epf_employee(self, monthly_basic: Money, monthly_da: Money) -> Money:
-        """Calculate monthly EPF employee contribution (12% of basic + DA, capped at ₹1,800)."""
-        epf_eligible_salary = monthly_basic.add(monthly_da)
-        epf_contribution = epf_eligible_salary.multiply(Decimal('0.12'))
-        epf_cap = Money(Decimal('1800'))  # Current EPF cap is ₹1,800 per month
-        return epf_contribution.min(epf_cap)
-
-    def _calculate_monthly_epf_employer(self, monthly_basic: Money, monthly_da: Money) -> Money:
-        """Calculate monthly EPF employer contribution (12% of basic + DA, capped at ₹1,800)."""
-        return self._calculate_monthly_epf_employee(monthly_basic, monthly_da)
-
-    def _calculate_monthly_esi_employee(self, monthly_gross: Money) -> Money:
-        """Calculate monthly ESI employee contribution (0.75% of gross, applicable if gross ≤ ₹21,000)."""
-        esi_threshold = Money(Decimal('21000'))
-        if monthly_gross.is_greater_than(esi_threshold):
-            return Money.zero()
-        return monthly_gross.multiply(Decimal('0.0075'))
-
-    def _calculate_monthly_esi_employer(self, monthly_gross: Money) -> Money:
-        """Calculate monthly ESI employer contribution (3.25% of gross, applicable if gross ≤ ₹21,000)."""
-        esi_threshold = Money(Decimal('21000'))
-        if monthly_gross.is_greater_than(esi_threshold):
-            return Money.zero()
-        return monthly_gross.multiply(Decimal('0.0325'))
-
-    def _calculate_monthly_professional_tax(self, monthly_gross: Money) -> Money:
-        """Calculate monthly professional tax based on gross salary slabs."""
-        # Professional tax varies by state. Using Maharashtra rates as example:
-        if monthly_gross.is_less_than(Money(Decimal('15000'))) or monthly_gross.is_equal_to(Money(Decimal('15000'))):
-            return Money.zero()
-        elif monthly_gross.is_less_than(Money(Decimal('25000'))) or monthly_gross.is_equal_to(Money(Decimal('25000'))):
-            return Money(Decimal('175'))
-        else:
-            return Money(Decimal('200')) 
+        return vrs_compensation.min(five_lakh) 

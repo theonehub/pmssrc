@@ -1,5 +1,20 @@
 import apiClient from '../utils/apiClient';
 
+export interface PayoutStatusDTO {
+  status: string;
+  comments?: string | null;
+  transaction_id?: string | null;
+  transfer_date?: string | null; // ISO date string
+}
+
+export interface TDSStatus {
+  status: string;
+  challan_number?: string | null;
+  month: number;
+  total_tax_liability: number;
+  paid: boolean;
+}
+
 export interface MonthlySalaryResponse {
   employee_id: string;
   month: number;
@@ -15,10 +30,10 @@ export interface MonthlySalaryResponse {
   special_allowance: number;
   transport_allowance: number;
   medical_allowance: number;
-  bonus: number;
   commission: number;
   other_allowances: number;
-  arrears: number;
+  one_time_arrear: number;
+  one_time_bonus: number;
   epf_employee: number;
   esi_employee: number;
   professional_tax: number;
@@ -38,7 +53,8 @@ export interface MonthlySalaryResponse {
   working_days_in_period: number;
   lwp_days: number;
   effective_working_days: number;
-  status: string;
+  payout_status?: PayoutStatusDTO; // New field for payout status
+  tds_status?: TDSStatus; // <-- Added this line
   computation_date: string | null;
   notes: string | null;
   remarks: string | null;
@@ -82,7 +98,8 @@ export interface MonthlySalaryComputeRequest {
   month: number;
   year: number;
   tax_year: string;
-  arrears?: number;
+  one_time_arrear?: number;
+  one_time_bonus?: number;
   use_declared_values?: boolean;
   force_recompute?: boolean;
   computed_by?: string;
@@ -113,9 +130,15 @@ export interface MonthlySalaryStatusUpdateRequest {
   employee_id: string;
   month: number;
   year: number;
-  status: string;
-  notes?: string;
+  tax_year: string; // Add this field to match backend and frontend usage
+  comments: string;
+  payout_status?: string;
+  transaction_id?: string | undefined;
+  transfer_date?: string | undefined; // ISO date string
   updated_by?: string;
+  // Add these fields for TDS status update
+  tds_status?: string;
+  challan_number?: string | undefined;
 }
 
 export interface MonthlySalaryPaymentRequest {
@@ -130,25 +153,11 @@ export interface MonthlySalaryPaymentRequest {
 
 export const salaryProcessingApi = {
   /**
-   * Get monthly salary for a specific employee
-   */
-  async getMonthlySalary(
-    employeeId: string,
-    month: number,
-    year: number
-  ): Promise<MonthlySalaryResponse> {
-    const response = await apiClient.get(
-      `/api/v2/taxation/monthly-salary/employee/${employeeId}/month/${month}/year/${year}`
-    );
-    return response.data;
-  },
-
-  /**
    * Get monthly salaries for a period
    */
   async getMonthlySalariesForPeriod(
     month: number,
-    year: number,
+    taxYear: string,
     params?: {
       status?: string;
       department?: string;
@@ -163,7 +172,7 @@ export const salaryProcessingApi = {
     if (params?.skip !== undefined) queryParams.append('skip', params.skip.toString());
     if (params?.limit !== undefined) queryParams.append('limit', params.limit.toString());
 
-    const url = `/api/v2/taxation/monthly-salary/period/month/${month}/year/${year}`;
+    const url = `/api/v2/taxation/monthly-salary/period/month/${month}/tax-year/${taxYear}`;
     const fullUrl = queryParams.toString() ? `${url}?${queryParams.toString()}` : url;
 
     const response = await apiClient.get(fullUrl);
@@ -181,45 +190,15 @@ export const salaryProcessingApi = {
   },
 
   /**
-   * Bulk compute monthly salaries
-   */
-  async bulkComputeMonthlySalaries(
-    request: MonthlySalaryBulkComputeRequest
-  ): Promise<MonthlySalaryBulkComputeResponse> {
-    const response = await apiClient.post('/api/v2/taxation/monthly-salary/bulk-compute', request);
-    return response.data;
-  },
-
-  /**
-   * Update monthly salary status
-   */
-  async updateMonthlySalaryStatus(
-    request: MonthlySalaryStatusUpdateRequest
-  ): Promise<MonthlySalaryResponse> {
-    const response = await apiClient.put('/api/v2/taxation/monthly-salary/status', request);
-    return response.data;
-  },
-
-  /**
    * Get monthly salary summary for a period
    */
   async getMonthlySalarySummary(
     month: number,
-    year: number
+    taxYear: string
   ): Promise<MonthlySalarySummaryResponse> {
     const response = await apiClient.get(
-      `/api/v2/taxation/monthly-salary/summary/month/${month}/year/${year}`
+      `/api/v2/taxation/monthly-salary/summary/month/${month}/tax-year/${taxYear}`
     );
-    return response.data;
-  },
-
-  /**
-   * Mark salary payment
-   */
-  async markSalaryPayment(
-    request: MonthlySalaryPaymentRequest
-  ): Promise<MonthlySalaryResponse> {
-    const response = await apiClient.put('/api/v2/taxation/monthly-salary/payment', request);
     return response.data;
   },
 
@@ -229,10 +208,10 @@ export const salaryProcessingApi = {
   async deleteMonthlySalary(
     employeeId: string,
     month: number,
-    year: number
+    taxYear: string
   ): Promise<{ message: string }> {
     const response = await apiClient.delete(
-      `/api/v2/taxation/monthly-salary/employee/${employeeId}/month/${month}/year/${year}`
+      `/api/v2/taxation/monthly-salary/employee/${employeeId}/month/${month}/tax-year/${taxYear}`
     );
     return response.data;
   },
@@ -265,6 +244,16 @@ export const salaryProcessingApi = {
     const response = await apiClient.get(url, {
       responseType: 'blob'
     });
+    return response.data;
+  },
+
+  /**
+   * Update monthly salary status (with comments, transaction ID, transfer date)
+   */
+  async updateMonthlySalaryStatus(
+    request: MonthlySalaryStatusUpdateRequest
+  ): Promise<MonthlySalaryResponse> {
+    const response = await apiClient.put('/api/v2/taxation/monthly-salary/status', request);
     return response.data;
   }
 }; 

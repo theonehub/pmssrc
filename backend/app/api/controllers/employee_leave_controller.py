@@ -61,28 +61,21 @@ class EmployeeLeaveController:
         
         Args:
             request: Leave application request
-            current_user: Current user applying for leave
-            
+            current_user: Current user applying for leave (provides organization context)
         Returns:
             EmployeeLeaveResponseDTO with created leave details
-            
         Raises:
             EmployeeLeaveValidationError: If request data is invalid
             EmployeeLeaveBusinessRuleError: If business rules are violated
             InsufficientLeaveBalanceError: If insufficient leave balance
         """
-        
         try:
             self._logger.info(f"Processing leave application for employee: {current_user.employee_id} in org: {current_user.hostname}")
-            
-            response = await self._apply_use_case.execute(request, current_user, current_user.hostname)
-            
+            response = await self._apply_use_case.execute(request, current_user)
             self._logger.info(f"Successfully processed leave application: {response.leave_id}")
             return response
-            
         except (EmployeeLeaveValidationError, EmployeeLeaveBusinessRuleError, 
                 InsufficientLeaveBalanceError):
-            # Re-raise known exceptions
             raise
         except Exception as e:
             self._logger.error(f"Unexpected error in leave application: {e}")
@@ -96,33 +89,23 @@ class EmployeeLeaveController:
     ) -> EmployeeLeaveResponseDTO:
         """
         Approve or reject employee leave.
-        
         Args:
             leave_id: Leave application identifier
             request: Approval/rejection request
-            current_user: User approving/rejecting the leave
-            
+            current_user: User approving/rejecting the leave (organization context)
         Returns:
             EmployeeLeaveResponseDTO with updated leave details
-            
         Raises:
             EmployeeLeaveNotFoundError: If leave application not found
             EmployeeLeaveValidationError: If request data is invalid
             EmployeeLeaveBusinessRuleError: If business rules are violated
         """
-        
         try:
             self._logger.info(f"Processing leave approval: {leave_id} by {current_user.employee_id} in org: {current_user.hostname}")
-            
-            response = await self._approve_use_case.execute(
-                leave_id, request, current_user)
-            
+            response = await self._approve_use_case.execute(leave_id, request, current_user)
             self._logger.info(f"Leave approval Processed: {response}")
             return response
-            
-        except (EmployeeLeaveNotFoundError, EmployeeLeaveValidationError, 
-                EmployeeLeaveBusinessRuleError):
-            # Re-raise known exceptions
+        except (EmployeeLeaveNotFoundError, EmployeeLeaveValidationError, EmployeeLeaveBusinessRuleError):
             raise
         except Exception as e:
             self._logger.error(f"Unexpected error in leave approval: {e}")
@@ -131,22 +114,16 @@ class EmployeeLeaveController:
     async def get_leave_by_id(self, leave_id: str, current_user: CurrentUser) -> Optional[EmployeeLeaveResponseDTO]:
         """
         Get employee leave by ID.
-        
         Args:
             leave_id: Leave application identifier
-            current_user: Current user context
-            
+            current_user: Current user context (organization context)
         Returns:
             EmployeeLeaveResponseDTO if found, None otherwise
         """
-        
         try:
             self._logger.info(f"Retrieving leave: {leave_id} in org: {current_user.hostname}")
-            
-            response = self._query_use_case.get_employee_leave_by_id(leave_id)
-            
+            response = await self._query_use_case.get_employee_leave_by_id(leave_id, current_user)
             return response
-            
         except Exception as e:
             self._logger.error(f"Error retrieving leave {leave_id}: {e}")
             raise Exception(f"Failed to retrieve leave: {str(e)}")
@@ -160,33 +137,26 @@ class EmployeeLeaveController:
     ) -> List[EmployeeLeaveResponseDTO]:
         """
         Get employee leaves by employee ID.
-        
         Args:
             employee_id: Employee identifier
             status_filter: Optional status filter
             limit: Optional limit on results
             current_user: Current user context for organization
-            
         Returns:
             List of EmployeeLeaveResponseDTO
         """
-        
         try:
             self._logger.info(f"Retrieving leaves for employee: {employee_id} in org: {current_user.hostname if current_user else 'unknown'}")
-            
             status = None
             if status_filter:
                 try:
                     status = LeaveStatus(status_filter.upper())
                 except ValueError:
                     raise EmployeeLeaveValidationError([f"Invalid status: {status_filter}"])
-            
             response = await self._query_use_case.get_employee_leaves_by_employee_id(
-                employee_id, current_user.hostname if current_user else "default", status, limit
+                employee_id, current_user
             )
-            
             return response
-            
         except EmployeeLeaveValidationError:
             raise
         except Exception as e:
@@ -243,27 +213,19 @@ class EmployeeLeaveController:
     ) -> List[EmployeeLeaveResponseDTO]:
         """
         Get pending leave approvals.
-        
         Args:
-            manager_id: Optional manager identifier for filtering
+            manager_id: Optional manager filter
             limit: Optional limit on results
-            current_user: Current user context for organization
-            
+            current_user: Current user context (organization context)
         Returns:
-            List of EmployeeLeaveResponseDTO with pending status
+            List of pending EmployeeLeaveResponseDTO
         """
-        
         try:
             self._logger.info(f"Retrieving pending approvals for manager: {manager_id} in org: {current_user.hostname if current_user else 'unknown'}")
-            
-            response = self._query_use_case.get_pending_approvals(
-                manager_id, limit
-            )
-            
+            response = await self._query_use_case.get_pending_approvals(manager_id, limit, current_user)
             return response
-            
         except Exception as e:
-            self._logger.error(f"Error retrieving pending approvals: {e}")
+            self._logger.error(f"Failed to retrieve pending approvals: {str(e)}")
             raise Exception(f"Failed to retrieve pending approvals: {str(e)}")
     
     async def search_leaves(
@@ -272,26 +234,20 @@ class EmployeeLeaveController:
         current_user: CurrentUser
     ) -> List[EmployeeLeaveResponseDTO]:
         """
-        Search leaves with filters.
-        
+        Search employee leaves with filters.
         Args:
             filters: Search filters
             current_user: Current user context for organization
-            
         Returns:
-            List of EmployeeLeaveResponseDTO matching filters
+            List of matching EmployeeLeaveResponseDTO
         """
-        
         try:
-            self._logger.info(f"Searching leaves with filters in org: {current_user.hostname}")
-            
-            response = await self._query_use_case.search_employee_leaves(filters, current_user.hostname)
-            
+            self._logger.info(f"Searching employee leaves with filters for org: {current_user.hostname}")
+            response = await self._query_use_case.search_employee_leaves(filters, current_user)
             return response
-            
         except Exception as e:
-            self._logger.error(f"Error searching leaves: {e}")
-            raise Exception(f"Failed to search leaves: {str(e)}")
+            self._logger.error(f"Error searching employee leaves: {e}")
+            raise Exception(f"Failed to search employee leaves: {str(e)}")
     
     async def get_monthly_leaves(
         self, 
@@ -378,54 +334,19 @@ class EmployeeLeaveController:
     async def get_leave_balance(self, employee_id: str, current_user: CurrentUser) -> EmployeeLeaveBalanceDTO:
         """
         Get leave balance for an employee.
-        
         Args:
             employee_id: Employee identifier
             current_user: Current user context for organization
-            
         Returns:
-            EmployeeLeaveBalanceDTO with balance information
+            EmployeeLeaveBalanceDTO with leave balances
         """
-        
         try:
-            self._logger.info(f"Retrieving leave balance for {employee_id} in org: {current_user.hostname}")
-            
-            if self._query_use_case and hasattr(self._query_use_case, 'get_leave_balance'):
-                self._logger.info("Using query use case to get leave balance")
-                response = await self._query_use_case.get_leave_balance(employee_id, current_user.hostname)
-                self._logger.info(f"Query use case response: {response}")
-            else:
-                self._logger.info("Query use case not available, using fallback")
-                # Fallback - return default balances
-                response = EmployeeLeaveBalanceDTO(
-                    employee_id=employee_id,
-                    balances={
-                        "casual_leave": 12,
-                        "sick_leave": 12,
-                        "earned_leave": 21,
-                        "maternity_leave": 180,
-                        "paternity_leave": 15
-                    }
-                )
-                self._logger.info(f"Fallback response: {response}")
-            
+            self._logger.info(f"Retrieving leave balance for employee: {employee_id} in org: {current_user.hostname}")
+            response = await self._query_use_case.get_leave_balance(employee_id, current_user)
             return response
-            
         except Exception as e:
             self._logger.error(f"Error retrieving leave balance: {e}")
-            # Return fallback response instead of raising exception
-            fallback_response = EmployeeLeaveBalanceDTO(
-                employee_id=employee_id,
-                balances={
-                    "casual_leave": 12,
-                    "sick_leave": 12,
-                    "earned_leave": 21,
-                    "maternity_leave": 180,
-                    "paternity_leave": 15
-                }
-            )
-            self._logger.info(f"Returning fallback response due to error: {fallback_response}")
-            return fallback_response
+            raise Exception(f"Failed to retrieve leave balance: {str(e)}")
     
     async def get_leave_analytics(
         self,
@@ -436,41 +357,20 @@ class EmployeeLeaveController:
     ) -> EmployeeLeaveAnalyticsDTO:
         """
         Get leave analytics.
-        
         Args:
-            employee_id: Optional employee identifier
-            manager_id: Optional manager identifier
+            employee_id: Optional employee filter
+            manager_id: Optional manager filter
             year: Optional year filter
-            current_user: Current user context for organization
-            
+            current_user: Current user context (organization context)
         Returns:
             EmployeeLeaveAnalyticsDTO with analytics data
         """
-        
         try:
-            self._logger.info(f"Retrieving leave analytics in org: {current_user.hostname if current_user else 'unknown'}")
-            
-            if self._query_use_case and hasattr(self._query_use_case, 'get_leave_analytics'):
-                response = await self._query_use_case.get_leave_analytics(
-                    current_user.hostname, employee_id, manager_id, year
-                )
-            else:
-                # Fallback - return default analytics
-                response = EmployeeLeaveAnalyticsDTO(
-                    total_applications=0,
-                    pending_applications=0,
-                    approved_applications=0,
-                    rejected_applications=0,
-                    total_days_taken=0,
-                    average_days_per_application=0.0,
-                    most_common_leave_type="casual_leave",
-                    analytics_period=f"Year {year}" if year else "All time"
-                )
-            
+            self._logger.info(f"Retrieving leave analytics for org: {current_user.hostname if current_user else 'unknown'}")
+            response = await self._query_use_case.get_leave_analytics(current_user, employee_id, manager_id, year)
             return response
-            
         except Exception as e:
-            self._logger.error(f"Error retrieving leave analytics: {e}")
+            self._logger.error(f"Failed to retrieve leave analytics: {str(e)}")
             raise Exception(f"Failed to retrieve leave analytics: {str(e)}")
     
     async def calculate_lwp(
@@ -482,35 +382,25 @@ class EmployeeLeaveController:
     ) -> LWPCalculationDTO:
         """
         Calculate Loss of Pay (LWP) for an employee.
-        
         Args:
             employee_id: Employee identifier
             month: Month (1-12)
             year: Year
             current_user: Current user context for organization
-            
         Returns:
             LWPCalculationDTO with LWP calculation details
         """
-        
         try:
             self._logger.info(f"Calculating LWP for {employee_id} ({month}/{year}) in org: {current_user.hostname}")
-            
-            # Use standardized LWP calculation service from dependency container
             from app.config.dependency_container import get_dependency_container
             container = get_dependency_container()
             lwp_service = container.get_lwp_calculation_service()
-            
-            # Calculate LWP using standardized method
             response = await lwp_service.calculate_lwp_for_month(
-                employee_id, month, year, current_user.hostname
+                employee_id, month, year, current_user
             )
-            
             return response
-            
         except Exception as e:
             self._logger.error(f"Error calculating LWP: {e}")
-            # Fallback to existing implementation
             return await self._calculate_lwp_fallback(employee_id, month, year, current_user)
     
     async def _calculate_lwp_fallback(
@@ -662,26 +552,20 @@ class EmployeeLeaveController:
         current_user: CurrentUser
     ) -> EmployeeLeaveResponseDTO:
         """
-        Update employee leave.
-        
+        Update leave application.
         Args:
             leave_id: Leave application identifier
             request: Update request
-            current_user: Current user context
-            
+            current_user: Current user context (organization context)
         Returns:
             EmployeeLeaveResponseDTO with updated leave details
         """
-        
         try:
-            self._logger.info(f"Updating leave: {leave_id} by {current_user.employee_id} in org: {current_user.hostname}")
-            
-            # This would typically call an update use case
-            # For now, return a placeholder response
-            raise NotImplementedError("Leave update functionality not yet implemented")
-            
+            self._logger.info(f"Updating leave {leave_id} for org: {current_user.hostname}")
+            response = await self._query_use_case.update_leave(leave_id, request, current_user)
+            return response
         except Exception as e:
-            self._logger.error(f"Error updating leave {leave_id}: {e}")
+            self._logger.error(f"Failed to update leave {leave_id}: {str(e)}")
             raise Exception(f"Failed to update leave: {str(e)}")
 
     async def get_user_leave_summary(

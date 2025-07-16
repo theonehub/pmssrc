@@ -69,7 +69,8 @@ interface ProcessedSalaryRecord {
   total_earnings: number;
   total_deductions: number;
   net_salary: number;
-  arrears: number;
+  one_time_arrear: number;
+  one_time_bonus: number;
   computation_mode: 'declared' | 'actual';
   processing_status: 'completed' | 'failed' | 'pending';
   processed_at: string;
@@ -136,7 +137,8 @@ const getMockProcessedSalaries = (): ProcessedSalaryRecord[] => {
     const totalEarnings = basicSalary * (1 + Math.random() * 0.5);
     const totalDeductions = totalEarnings * (0.1 + Math.random() * 0.2);
     const netSalary = totalEarnings - totalDeductions;
-    const arrears = Math.random() > 0.7 ? Math.random() * 20000 : 0;
+    const oneTimeArrear = Math.random() > 0.7 ? Math.random() * 20000 : 0;
+    const oneTimeBonus = Math.random() > 0.7 ? Math.random() * 20000 : 0;
     
     return {
       id: `salary_${index + 1}`,
@@ -150,7 +152,8 @@ const getMockProcessedSalaries = (): ProcessedSalaryRecord[] => {
       total_earnings: Math.round(totalEarnings),
       total_deductions: Math.round(totalDeductions),
       net_salary: Math.round(netSalary),
-      arrears: Math.round(arrears),
+      one_time_arrear: Math.round(oneTimeArrear),
+      one_time_bonus: Math.round(oneTimeBonus),
       computation_mode: Math.random() > 0.5 ? 'declared' : 'actual',
       processing_status: ['completed', 'failed', 'pending'][Math.floor(Math.random() * 3)] as 'completed' | 'failed' | 'pending',
       processed_at: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
@@ -158,7 +161,7 @@ const getMockProcessedSalaries = (): ProcessedSalaryRecord[] => {
       ...(Math.random() > 0.8 && { remarks: 'Some processing remarks' }),
       ...(Math.random() > 0.7 && { lwp_days: Math.floor(Math.random() * 5) }),
       ...(Math.random() > 0.7 && { lwp_amount: Math.random() * 5000 }),
-      gross_salary: Math.round(totalEarnings + arrears),
+      gross_salary: Math.round(totalEarnings + oneTimeArrear + oneTimeBonus),
       taxable_salary: Math.round(totalEarnings - totalDeductions),
       allowances: {
         hra: Math.round(basicSalary * 0.4),
@@ -299,10 +302,16 @@ const SalaryDetailDialog: React.FC<SalaryDetailDialogProps> = ({
                     <Typography variant="subtitle2" color="text.secondary">Net Salary</Typography>
                     <Typography variant="h6" fontWeight="bold">{formatCurrency(salaryRecord.net_salary)}</Typography>
                   </Grid>
-                  {salaryRecord.arrears > 0 && (
+                  {salaryRecord.one_time_arrear > 0 && (
                     <Grid item xs={12} sm={6}>
                       <Typography variant="subtitle2" color="text.secondary">Arrears</Typography>
-                      <Typography variant="h6" color="warning.main">{formatCurrency(salaryRecord.arrears)}</Typography>
+                      <Typography variant="h6" color="warning.main">{formatCurrency(salaryRecord.one_time_arrear)}</Typography>
+                    </Grid>
+                  )}
+                  {salaryRecord.one_time_bonus > 0 && (
+                    <Grid item xs={12} sm={6}>
+                      <Typography variant="subtitle2" color="text.secondary">Bonus</Typography>
+                      <Typography variant="h6" color="warning.main">{formatCurrency(salaryRecord.one_time_bonus)}</Typography>
                     </Grid>
                   )}
                   {salaryRecord.lwp_days && salaryRecord.lwp_days > 0 && (
@@ -958,9 +967,9 @@ const SalaryProcessing: React.FC = () => {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        {record.arrears > 0 ? (
+                        {record.one_time_arrear > 0 ? (
                           <Typography variant="body2" color="warning.main" fontWeight="medium">
-                            {formatCurrency(record.arrears)}
+                            {formatCurrency(record.one_time_arrear)}
                           </Typography>
                         ) : (
                           <Typography variant="body2" color="text.secondary">

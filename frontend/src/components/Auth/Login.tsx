@@ -20,7 +20,7 @@ import { useAuth } from '../../context/AuthContext';
 import { LoginCredentials } from '../../shared/types';
 import { validateRequired, validatePassword } from '../../shared/utils/validation';
 
-const hostname = window.location.hostname;
+const hostname = window.location.hostname.replace('www.', '').replace('https://', '').replace('http://', '').replace('.', '_');
 
 interface LoginFormData {
   username: string;

@@ -8,5 +8,5 @@ def sanitize_organisation_id(organisation_id: str) -> str:
     Replaces spaces with underscores and strips leading/trailing whitespace.
     """
     if organisation_id:
-        return organisation_id.strip().replace(' ', '_')
+        return organisation_id.strip().replace('.', '_').replace(' ', '_')
     return organisation_id 

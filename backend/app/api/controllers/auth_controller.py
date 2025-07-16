@@ -133,7 +133,7 @@ class AuthController:
             user_info = {
                 "employee_id": user.get("employee_id", user["username"]),
                 "name": user.get("name", "User"),
-                "email": user.get("email", user["username"]+"@"+request.hostname+".com"),
+                "email": user.get("email", user["username"]+"@"+safe_hostname+".com"),
                 "role": user.get("role", "user"),
                 "department": user.get("department", "General"),
                 "position": user.get("position", user.get("designation", "Employee"))
@@ -152,7 +152,7 @@ class AuthController:
                 "username": user["username"],
                 "employee_id": user.get("employee_id", user["username"]),
                 "role": user.get("role", "user"),
-                "hostname": request.hostname,
+                "hostname": safe_hostname,
                 "permissions": permissions,
                 "iat": datetime.now().timestamp(),  # Issued at
                 "type": "access_token"

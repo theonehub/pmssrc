@@ -31,6 +31,10 @@ class MonthlySalary:
     lwp: LWPDetails = field(default_factory=lambda: LWPDetails(month=0))
     payout_status: PayoutStatus = field(default_factory=PayoutStatus)
     pf_status: PfStatus = field(default_factory=PfStatus)
+    eps_employee: Money = Money.zero()
+    eps_employer: Money = Money.zero()
+    vps_employee: Money = Money.zero()
+    esi_contribution: Money = Money.zero()
     
 
     def __post_init__(self):

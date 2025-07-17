@@ -114,7 +114,7 @@ class TaxCalculationService:
         self.logger = get_logger(__name__)
 
 
-    async def compute_monthly_tax(self, employee_id: str, current_user) -> Dict[str, Any]:
+    async def compute_monthly_tax(self, employee_id: str, current_user, computing_month: int = datetime.now().month) -> Dict[str, Any]:
         """
         Compute monthly tax for an employee based on their salary package record.
         
@@ -134,7 +134,7 @@ class TaxCalculationService:
             # Get current month and year for computation
             from datetime import datetime
             now = datetime.now()
-            month = now.month
+            month = computing_month
             year = now.year
             
             self.logger.debug(f"compute_monthly_tax: Using current month={month}, year={year}")
@@ -175,7 +175,7 @@ class TaxCalculationService:
             # Compute monthly tax using the salary package record
             self.logger.debug("compute_monthly_tax: Computing monthly tax from salary package record")
             logger.info(f"*********************************************************************************************************")
-            calculation_result = salary_package_record.calculate_tax(self)
+            calculation_result = salary_package_record.calculate_tax(self, computing_month)
 
             salary_package_record.last_calculated_at = datetime.utcnow()
             salary_package_record.calculation_result = calculation_result

@@ -295,10 +295,16 @@ class SalaryIncome:
     dearness_allowance: Money
     hra_provided: Money
     special_allowance: Money
+
+    epf_employee: Money = Money.zero()
+    vps_employee: Money = Money.zero()
+
+    epf_employer: Money = Money.zero()
+
     eps_employee: Money = Money.zero()
     eps_employer: Money = Money.zero()
+
     esi_contribution: Money = Money.zero()
-    vps_employee: Money = Money.zero()
 
     # Optional components with defaults
     commission: Money = Money.zero()

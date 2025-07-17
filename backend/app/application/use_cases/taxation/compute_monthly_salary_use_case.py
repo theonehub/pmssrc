@@ -46,7 +46,7 @@ class ComputeMonthlySalaryUseCase:
         self.salary_package_repository = salary_package_repository
         self.user_repository = user_repository
         self.tax_calculation_service = tax_calculation_service
-    
+
     async def execute(
         self, 
         request: MonthlySalaryComputeRequestDTO,
@@ -167,10 +167,16 @@ class ComputeMonthlySalaryUseCase:
             hra_provided=salary_income.hra_provided,
             special_allowance=salary_income.special_allowance,
             commission=salary_income.commission,
+            epf_employee=salary_income.epf_employee,
+            vps_employee=salary_income.vps_employee,    
+
+            epf_employer=salary_income.epf_employer,
+
             eps_employee=salary_income.eps_employee,
             eps_employer=salary_income.eps_employer,
-            vps_employee=salary_income.vps_employee,    
+
             esi_contribution=salary_income.esi_contribution,
+
             specific_allowances=salary_income.specific_allowances,  # Salary_income and its components are monthly
             effective_from=datetime(salary_package_record.tax_year.get_start_date().year, request.month, 1),
             effective_till=datetime(salary_package_record.tax_year.get_start_date().year, request.month, 1)
@@ -286,7 +292,7 @@ class ComputeMonthlySalaryUseCase:
         try:
             # Use existing tax calculation service
             tax_result = await self.tax_calculation_service.compute_monthly_tax(
-                request.employee_id, current_user
+                request.employee_id, current_user, computing_month=request.month
             )
             
             # Extract monthly tax from result

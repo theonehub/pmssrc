@@ -21,6 +21,8 @@ class SalaryIncomeDTO(BaseModel):
     hra_provided: Decimal = Field(default=0, ge=0)
     commission: Decimal = Field(default=0, ge=0)
     special_allowance: Decimal = Field(default=0, ge=0)
+    epf_employee: Decimal = Field(default=0, ge=0)  # Added
+    epf_employer: Decimal = Field(default=0, ge=0)  # Added
     eps_employee: Decimal = Field(default=0, ge=0)
     eps_employer: Decimal = Field(default=0, ge=0)
     vps_employee: Decimal = Field(default=0, ge=0)

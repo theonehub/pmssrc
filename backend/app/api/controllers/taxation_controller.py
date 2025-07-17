@@ -7,6 +7,7 @@ from typing import List, Dict, Any, Optional, Union, Tuple
 from datetime import datetime, date
 from decimal import Decimal
 from fastapi import HTTPException, status
+from numpy import pad
 
 # Import centralized logger
 from app.utils.logger import get_logger
@@ -365,11 +366,12 @@ class UnifiedTaxationController:
             dearness_allowance=Money.from_decimal(salary_dto.dearness_allowance),
             hra_provided=Money.from_decimal(salary_dto.hra_provided),
             special_allowance=Money.from_decimal(salary_dto.special_allowance),
-            eps_employee=Money.from_decimal(getattr(salary_dto, 'eps_employee', 0)),  # Employee's EPS (PF) contribution
-            eps_employer=Money.from_decimal(getattr(salary_dto, 'eps_employer', 0)),  # Employer's EPS (PF) contribution
-            esi_contribution=Money.from_decimal(getattr(salary_dto, 'esi_contribution', 0)),  # Employee's ESI contribution
-            vps_employee=Money.from_decimal(getattr(salary_dto, 'vps_employee', 0)),  # Employee's Voluntary PF contribution
-            # Optional components with defaults
+            epf_employee=Money.from_decimal(getattr(salary_dto, 'epf_employee', 0)),  # Added
+            epf_employer=Money.from_decimal(getattr(salary_dto, 'epf_employer', 0)),  # Added
+            eps_employee=Money.from_decimal(getattr(salary_dto, 'eps_employee', 0)),
+            eps_employer=Money.from_decimal(getattr(salary_dto, 'eps_employer', 0)),
+            esi_contribution=Money.from_decimal(getattr(salary_dto, 'esi_contribution', 0)),
+            vps_employee=Money.from_decimal(getattr(salary_dto, 'vps_employee', 0)),
             commission=Money.from_decimal(getattr(salary_dto, 'commission', 0)),
             specific_allowances=specific_allowances
         )
@@ -1576,12 +1578,12 @@ class UnifiedTaxationController:
             "hra_provided": float(salary_income.hra_provided.amount),
             "special_allowance": float(salary_income.special_allowance.amount),
             "commission": float(salary_income.commission.amount),
-            # Add effective dates for frontend to pre-populate
             "effective_from": salary_income.effective_from.isoformat() if salary_income.effective_from else None,
             "effective_till": salary_income.effective_till.isoformat() if salary_income.effective_till else None,
-            # HRA details are now in deductions module, not salary
-            "hra_city_type": "metro",  # Default value for frontend compatibility
-            "actual_rent_paid": 0.0,   # Default value for frontend compatibility
+            "hra_city_type": "metro",
+            "actual_rent_paid": 0.0,
+            "epf_employee": float(getattr(salary_income, 'epf_employee', Money.zero()).amount),  # Added
+            "epf_employer": float(getattr(salary_income, 'epf_employer', Money.zero()).amount),  # Added
             "eps_employee": float(salary_income.eps_employee.amount),
             "eps_employer": float(salary_income.eps_employer.amount),
             "esi_contribution": float(salary_income.esi_contribution.amount),
@@ -3609,6 +3611,7 @@ class UnifiedTaxationController:
         epf_employee = self._calculate_monthly_epf(gross_salary)
         esi_employee = self._calculate_monthly_esi(gross_salary)
         tds = monthly_salary.tax_amount
+        total_deductions = epf_employee.add(esi_employee).add(tds)
         
         # Get loan EMI amount from perquisites payouts
         loan_emi = Money.zero()
@@ -4512,8 +4515,8 @@ class UnifiedTaxationController:
         # --- Handle TDS status logic ---
         if tds_status:
             # Convert to TDSStatus object
-            paid = tds_status == 'paid'
-            tds_challan_number = challan_number if paid else None
+            tds_status == 'paid'
+            tds_challan_number = challan_number if pad else None
             ms.tds_status = TDSStatusDTO(
                 status=tds_status,
                 challan_number=challan_number,

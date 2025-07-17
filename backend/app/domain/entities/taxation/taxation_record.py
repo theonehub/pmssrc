@@ -941,13 +941,29 @@ class SalaryPackageRecord:
         Calculate professional tax.
         """
         if gross_salary > Money(10000):
-            return Money(150)
+            return Money(150).multiply(12)
         elif gross_salary > Money(15000):
-            return Money(200)
+            return Money(200).multiply(12)
         
         return Money.zero()
 
-    def calculate_tax(self, calculation_service: TaxCalculationService) -> TaxCalculationResult:
+
+    def calculate_tds_deducted_till_date(self) -> Money:
+        """
+        Calculate TDS deducted till date.
+        """
+        tds_deducted_till_date = Money.zero()
+        for monthly_salary in self.monthly_salary_records:
+            logger.info(f"TheOne: TDS status Details")
+            logger.info(f"Month  | TDS Status    | TDS Amount")
+            logger.info(f"{monthly_salary.month} | {monthly_salary.tds_status.status} | {monthly_salary.tds_status.total_tax_liability}")
+            if monthly_salary.tds_status.status == 'paid':
+                tds_deducted_till_date = tds_deducted_till_date.add(monthly_salary.tds_status.total_tax_liability)
+            else:
+                break
+        return tds_deducted_till_date
+
+    def calculate_tax(self, calculation_service: TaxCalculationService, computing_month: int = datetime.now().month) -> TaxCalculationResult:
         """
         Calculate tax using domain service and update SalaryPackageRecord with results.
         
@@ -983,8 +999,20 @@ class SalaryPackageRecord:
             self.age,
             self.additional_tax_liability()
         )
-
+        #Keeping professional tax here not with additional tax liability as Cess is not applicable on professional tax
         professional_tax = self.calculate_professional_tax(gross_income)
+
+        tds_deducted_till_date = self.calculate_tds_deducted_till_date()
+        tds_remaining = total_tax.subtract(tds_deducted_till_date)
+        #get remaing months in current year
+        months_passed = computing_month - 4#(april is 4th month)
+        remaining_months = 12 - months_passed
+        if remaining_months == 0:
+            monthly_tax = total_tax.divide(Decimal('12')) 
+        else:
+            monthly_tax = tds_remaining.divide(remaining_months)
+
+        monthly_tax = monthly_tax.add(professional_tax.divide(Decimal('12')))   
         
         # Create simplified tax breakdown
         tax_breakdown = {
@@ -1001,11 +1029,11 @@ class SalaryPackageRecord:
                 "professional_tax": professional_tax.to_float() * 12,
                 "surcharge": surcharge.to_float(),
                 "cess": cess.to_float(),
-                "total_tax": total_tax.to_float()
+                "total_tax": total_tax.to_float() + professional_tax.to_float()
             },
             "summary": {
-                "effective_tax_rate": ((total_tax.to_float() + professional_tax.to_float() * 12) / gross_income.to_float() * 100) if not gross_income.is_zero() else 0.0,
-                "monthly_tax": (total_tax.divide(Decimal('12')).to_float() + professional_tax.to_float())
+                "effective_tax_rate": ((total_tax.to_float() + professional_tax.to_float()) / gross_income.to_float() * 100) if not gross_income.is_zero() else 0.0,
+                "monthly_tax": monthly_tax.to_float()
             }
         }
         

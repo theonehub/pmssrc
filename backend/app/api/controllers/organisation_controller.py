@@ -72,15 +72,15 @@ class OrganisationController:
         logger.info("Listing organisations with filters")
         return await self.list_use_case.execute(filters)
 
-    async def get_organisation_by_id(self, current_user: CurrentUser) -> Optional[OrganisationResponseDTO]:
+    async def get_organisation_by_id(self, organisation_id:str) -> Optional[OrganisationResponseDTO]:
         """Get organisation by ID from current user context"""
-        logger.info(f"Getting organisation for user: {current_user.employee_id}")
-        return await self.get_use_case.execute_by_id(current_user)
+        logger.info(f"Getting organisation for user: {organisation_id}")
+        return await self.get_use_case.execute_by_id(organisation_id)
 
-    async def get_organisation_by_hostname(self, current_user: CurrentUser) -> Optional[OrganisationResponseDTO]:
+    async def get_organisation_by_hostname(self, hostname:str) -> Optional[OrganisationResponseDTO]:
         """Get organisation by hostname from current user context"""
-        logger.info(f"Getting organisation by hostname for user: {current_user.employee_id}")
-        return await self.get_use_case.execute_by_hostname(current_user)
+        logger.info(f"Getting organisation by hostname for user: {hostname}")
+        return await self.get_use_case.execute_by_hostname(hostname)
 
     async def update_organisation(
         self, 

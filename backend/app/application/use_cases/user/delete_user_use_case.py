@@ -167,7 +167,7 @@ class DeleteUserUseCase:
         """
         Decrement organisation used employee strength.
         Args:
-            current_user: Current authenticated user with organisation context (organisation_id is current_user.hostname)
+            hostname: Hostname of the organisation
         """
         try:
             # Get organisation by hostname

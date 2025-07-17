@@ -119,14 +119,6 @@ class PersonalDetails:
         digits_only = re.sub(r'\D', '', self.aadhar_number)
         return f"XXXX XXXX {digits_only[-4:]}"
     
-    def is_adult(self) -> bool:
-        """Check if person is adult (18+ years)"""
-        return self.get_age() >= 18
-    
-    def is_senior_citizen(self) -> bool:
-        """Check if person is senior citizen (60+ years)"""
-        return self.get_age() >= 60
-    
     def has_complete_documents(self) -> bool:
         """Check if all required documents are provided"""
         return bool(self.pan_number and self.aadhar_number)
@@ -177,8 +169,6 @@ class PersonalDetails:
             "formatted_mobile": self.get_formatted_mobile(),
             "masked_pan": self.get_masked_pan(),
             "masked_aadhar": self.get_masked_aadhar(),
-            "is_adult": self.is_adult(),
-            "is_senior_citizen": self.is_senior_citizen(),
             "document_completion_percentage": self.get_document_completion_percentage(),
             "missing_documents": self.get_missing_documents()
         }

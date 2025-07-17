@@ -199,9 +199,12 @@ const CapitalGainsComponentForm: React.FC = () => {
       }, 1500);
       
     } catch (error) {
-      console.error('Error saving capital gains data:', error);
-      setError('Failed to save capital gains data. Please try again.');
-      showToast('Failed to save capital gains data', 'error');
+      let backendMessage: string | undefined;
+      if (error && typeof error === 'object' && 'response' in error) {
+        backendMessage = (error as any).response?.data?.detail;
+      }
+      setError(backendMessage || 'Failed to save capital gains data. Please try again.');
+      showToast(backendMessage || 'Failed to save capital gains data', 'error');
     } finally {
       setSaving(false);
     }

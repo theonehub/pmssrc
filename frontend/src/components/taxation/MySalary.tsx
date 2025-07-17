@@ -72,9 +72,9 @@ const MySalary: React.FC = () => {
       const response = await salaryProcessingApi.getEmployeeSalaryHistory(employeeId, 200, 0);
       setSalaryHistory(response);
       
-    } catch (err) {
-      console.error('Error loading salary history:', err);
-      setError('Failed to load salary history. Please try again.');
+    } catch (err: any) {
+      const backendMessage = err?.response?.data?.detail;
+      setError(backendMessage || 'Failed to load salary history. Please try again.');
       setSalaryHistory([]);
     } finally {
       setLoading(false);
@@ -138,9 +138,10 @@ const MySalary: React.FC = () => {
       
       showToast(`Payslip downloaded for ${getMonthName(salary.month)} ${salary.year}`, 'success');
       
-    } catch (err) {
+    } catch (err: any) {
+      const backendMessage = err?.response?.data?.detail;
       console.error('Error downloading payslip:', err);
-      showToast('Failed to download payslip. Please try again.', 'error');
+      showToast(backendMessage || 'Failed to download payslip. Please try again.', 'error');
     } finally {
       setDownloadLoading(null);
     }

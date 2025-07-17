@@ -597,8 +597,9 @@ const PerquisitesComponentForm: React.FC = () => {
       }, 1500);
       
     } catch (error: any) {
-      setError('Failed to save perquisites data. Please try again.');
-      showToast('Failed to save perquisites data', 'error');
+      const backendMessage = error?.response?.data?.detail;
+      setError(backendMessage || 'Failed to save perquisites data. Please try again.');
+      showToast(backendMessage || 'Failed to save perquisites data', 'error');
     } finally {
       setSaving(false);
     }

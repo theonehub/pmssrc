@@ -10,7 +10,6 @@ export interface TaxInputData {
   other_allowances: number;
   // Deductions
   pf_contribution: number;
-  professional_tax: number;
   tds: number;
   // Tax Saving Investments
   section_80c: number;
@@ -18,7 +17,6 @@ export interface TaxInputData {
   nps_contribution: number;
   // Personal Details
   age: number;
-  is_senior_citizen: boolean;
   metro_city: boolean;
   // Tax Regime
   tax_regime: 'old' | 'new';

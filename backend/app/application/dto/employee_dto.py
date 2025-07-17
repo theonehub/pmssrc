@@ -213,8 +213,6 @@ class EmployeeResponse:
     current_salary: float
     address: Optional[Dict[str, str]]
     emergency_contact: Optional[Dict[str, str]]
-    is_senior_citizen: bool
-    is_super_senior_citizen: bool
     created_at: datetime
     updated_at: datetime
 

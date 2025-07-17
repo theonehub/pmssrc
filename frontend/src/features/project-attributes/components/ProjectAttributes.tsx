@@ -78,7 +78,8 @@ const ProjectAttributes: React.FC = () => {
         // eslint-disable-next-line no-console
         console.error('Error fetching attributes:', err);
       }
-      setError('Failed to fetch attributes');
+      const backendMessage = err?.response?.data?.detail;
+      setError(backendMessage || 'Failed to fetch attributes');
     } finally {
       setLoading(false);
     }
@@ -130,7 +131,8 @@ const ProjectAttributes: React.FC = () => {
         // eslint-disable-next-line no-console
         console.error('Error saving attribute:', err);
       }
-      setError("Error saving attribute.");
+      const backendMessage = err?.response?.data?.detail;
+      setError(backendMessage || 'Error saving attribute.');
     }
   };
 
@@ -169,7 +171,8 @@ const ProjectAttributes: React.FC = () => {
         // eslint-disable-next-line no-console
         console.error('Error deleting attribute:', err);
       }
-      setError('Failed to delete attribute');
+      const backendMessage = err?.response?.data?.detail;
+      setError(backendMessage || 'Failed to delete attribute');
     }
   };
 

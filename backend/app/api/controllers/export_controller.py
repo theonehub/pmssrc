@@ -76,7 +76,6 @@ class ExportController:
                         'one_time_bonus': salary.one_time_bonus,
                         'gross_salary': salary.gross_salary,
                         'pf': salary.epf_employee,
-                        'pt': salary.professional_tax,
                         'tds': salary.tds,
                         'net_salary': salary.net_salary,
                         'status': salary.status

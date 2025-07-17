@@ -24,7 +24,6 @@ export interface SalaryIncomeDTO {
   arrears: number;
   gratuity: number;
   leave_encashment: number;
-  professional_tax: number;
   tds_deducted: number;
   employer_pf: number;
   employee_pf: number;

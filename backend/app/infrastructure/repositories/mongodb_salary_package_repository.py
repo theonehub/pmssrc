@@ -1640,9 +1640,13 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         
         result = TaxCalculationResult(
             total_income=safe_money_from_value(calc_data.get("total_income", 0)),
+            professional_tax=safe_money_from_value(calc_data.get("professional_tax", 0)),
             total_exemptions=safe_money_from_value(calc_data.get("total_exemptions", 0)),
             total_deductions=safe_money_from_value(calc_data.get("total_deductions", 0)),
             taxable_income=safe_money_from_value(calc_data.get("taxable_income", 0)),
+            tax_amount=safe_money_from_value(calc_data.get("tax_amount", 0)),
+            surcharge=safe_money_from_value(calc_data.get("surcharge", 0)),
+            cess=safe_money_from_value(calc_data.get("cess", 0)),
             tax_liability=safe_money_from_value(tax_liability_value),
             tax_breakdown=calc_data.get("tax_breakdown", {}),
             regime_comparison=calc_data.get("regime_comparison")

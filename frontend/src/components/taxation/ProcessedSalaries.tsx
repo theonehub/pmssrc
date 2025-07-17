@@ -164,8 +164,12 @@ const ProcessedSalaries: React.FC = () => {
       setStatusDialogOpen(false);
       fetchSalaries();
       fetchSummary();
-    } catch (err: any) {
-      setStatusUpdateError('Failed to update status. Please try again.');
+    } catch (error: any) {
+      let backendMessage: string | undefined;
+      if (error && typeof error === 'object' && 'response' in error) {
+        backendMessage = (error as any).response?.data?.detail;
+      }
+      setStatusUpdateError(backendMessage || 'Failed to update status. Please try again.');
     } finally {
       setStatusUpdateLoading(false);
     }
@@ -645,10 +649,7 @@ const ProcessedSalaries: React.FC = () => {
                   <Typography variant="body2" color="textSecondary">ESI Employee</Typography>
                   <Typography variant="body1">{formatCurrency(selectedSalary.esi_employee)}</Typography>
                 </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">Professional Tax</Typography>
-                  <Typography variant="body1">{formatCurrency(selectedSalary.professional_tax)}</Typography>
-                </Grid>
+
                 <Grid item xs={6}>
                   <Typography variant="body2" color="textSecondary">TDS</Typography>
                   <Typography variant="body1">{formatCurrency(selectedSalary.tds)}</Typography>

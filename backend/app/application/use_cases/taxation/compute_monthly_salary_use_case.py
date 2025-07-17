@@ -155,13 +155,6 @@ class ComputeMonthlySalaryUseCase:
         Returns:
             Dict containing monthly salary components
         """
-        # Use monthly components directly (salary_income already contains monthly values)
-        monthly_basic = salary_income.basic_salary
-        monthly_da = salary_income.dearness_allowance
-        monthly_hra = salary_income.hra_provided
-        monthly_special = salary_income.special_allowance
-        monthly_commission = salary_income.commission
-        
 
         monthly_lwp = await self._calculate_lwp_days(request.employee_id, request.month, salary_package_record.tax_year.get_start_date().year, current_user)
         one_time_bonus = Money.from_float(request.one_time_bonus) if request.one_time_bonus else Money.zero()
@@ -169,11 +162,15 @@ class ComputeMonthlySalaryUseCase:
 
         # Create monthly salary income
         monthly_salary_income = SalaryIncome(
-            basic_salary=monthly_basic,
-            dearness_allowance=monthly_da,
-            hra_provided=monthly_hra,
-            special_allowance=monthly_special,
-            commission=monthly_commission,
+            basic_salary=salary_income.basic_salary,
+            dearness_allowance=salary_income.dearness_allowance,
+            hra_provided=salary_income.hra_provided,
+            special_allowance=salary_income.special_allowance,
+            commission=salary_income.commission,
+            eps_employee=salary_income.eps_employee,
+            eps_employer=salary_income.eps_employer,
+            vps_employee=salary_income.vps_employee,    
+            esi_contribution=salary_income.esi_contribution,
             specific_allowances=salary_income.specific_allowances,  # Salary_income and its components are monthly
             effective_from=datetime(salary_package_record.tax_year.get_start_date().year, request.month, 1),
             effective_till=datetime(salary_package_record.tax_year.get_start_date().year, request.month, 1)
@@ -320,14 +317,7 @@ class ComputeMonthlySalaryUseCase:
         Returns:
             MonthlySalaryResponseDTO: Response DTO
         """
-        # Calculate deductions
-        gross_salary = monthly_salary.salary.calculate_gross_salary()
-        
-        # Calculate statutory deductions (simplified)
-        epf_employee = self._calculate_monthly_epf(gross_salary)
-        esi_employee = self._calculate_monthly_esi(gross_salary)
-        professional_tax = self._calculate_monthly_professional_tax(gross_salary)
-        
+  
         # Use monthly tax from entity
         tds = monthly_salary.tax_amount
         
@@ -341,8 +331,11 @@ class ComputeMonthlySalaryUseCase:
                     loan_emi = component.value
                     break
         
-        total_deductions = epf_employee.add(esi_employee).add(professional_tax).add(tds).add(loan_emi)
-        net_salary = self._safe_subtract(gross_salary, total_deductions)
+        # Calculate professional tax
+        professional_tax = self._calculate_monthly_professional_tax(monthly_salary.salary.basic_salary + monthly_salary.salary.dearness_allowance)
+
+        total_deductions = (monthly_salary.salary.eps_employee + monthly_salary.salary.esi_contribution + tds + loan_emi)
+        net_salary = self._safe_subtract(monthly_salary.salary.basic_salary + monthly_salary.salary.dearness_allowance, total_deductions)
         
         # Get working days info from LWP details
         working_days_info = self._get_working_days_info_from_lwp(monthly_salary.lwp)
@@ -359,14 +352,14 @@ class ComputeMonthlySalaryUseCase:
             department=user.department if user else None,
             designation=user.designation if user else None,
             
-            # Salary components
+            # Salary components (from salary structure)
             basic_salary=monthly_salary.salary.basic_salary.to_float(),
             da=monthly_salary.salary.dearness_allowance.to_float(),
             hra=monthly_salary.salary.hra_provided.to_float(),
-            eps_employee=monthly_salary.salary.eps_employee.to_float(),
+            eps_employee=monthly_salary.salary.eps_employee.to_float(),  # Employee Pension Scheme (part of EPF, 8.33% of basic+DA)
             eps_employer=monthly_salary.salary.eps_employer.to_float(),
             esi_contribution=monthly_salary.salary.esi_contribution.to_float(),
-            vps_employee=monthly_salary.salary.vps_employee.to_float(),
+            vps_employee=monthly_salary.salary.vps_employee.to_float(),  # Voluntary PF (over and above statutory EPF)
             special_allowance=monthly_salary.salary.special_allowance.to_float(),
             transport_allowance=0.0,  # Not in current model
             medical_allowance=0.0,  # Not in current model
@@ -377,22 +370,21 @@ class ComputeMonthlySalaryUseCase:
             one_time_arrear=monthly_salary.one_time_arrear.to_float() if hasattr(monthly_salary, 'one_time_arrear') else 0.0,
             one_time_bonus=monthly_salary.one_time_bonus.to_float() if hasattr(monthly_salary, 'one_time_bonus') else 0.0,
             
-            # Deductions
-            epf_employee=epf_employee.to_float(),
-            esi_employee=esi_employee.to_float(),
-            professional_tax=professional_tax.to_float(),
+            # Deductions (statutory, calculated)
+            epf_employee=monthly_salary.salary.eps_employee.to_float(),  # Employee Provident Fund (12% of basic+DA, includes EPS+VPF)
+            esi_employee=monthly_salary.salary.esi_contribution.to_float(),
             tds=tds.to_float(),
             advance_deduction=0.0,
             loan_deduction=loan_emi.to_float(),
             other_deductions=0.0,
             
             # Calculated totals
-            gross_salary=gross_salary.to_float(),
+            gross_salary=monthly_salary.salary.basic_salary.to_float() + monthly_salary.salary.dearness_allowance.to_float(),
             total_deductions=total_deductions.to_float(),
             net_salary=net_salary.to_float(),
             
             # Annual projections (from salary package)
-            annual_gross_salary=gross_salary.multiply(12).to_float(),
+            annual_gross_salary=monthly_salary.salary.basic_salary.multiply(12).to_float() + monthly_salary.salary.dearness_allowance.multiply(12).to_float(),
             annual_tax_liability=tds.multiply(12).to_float(),
             
             # Tax details
@@ -420,13 +412,14 @@ class ComputeMonthlySalaryUseCase:
             use_declared_values=request.use_declared_values,
             computation_mode="declared" if request.use_declared_values else "actual",
             computation_summary={
-                "gross_salary": gross_salary.to_float(),
+                "gross_salary": monthly_salary.salary.basic_salary.to_float() + monthly_salary.salary.dearness_allowance.to_float(),
                 "total_deductions": total_deductions.to_float(),
                 "net_salary": net_salary.to_float(),
                 "monthly_tax": tds.to_float(),
                 "lwp_days": working_days_info['lwp_days'],
                 "lwp_factor": monthly_salary.lwp.get_lwp_factor()
-            }
+            },
+            professional_tax=professional_tax.to_float()
         )
     
     def _get_working_days_info_from_lwp(self, lwp_details: LWPDetails) -> Dict[str, int]:
@@ -455,15 +448,6 @@ class ComputeMonthlySalaryUseCase:
             'lwp_days': lwp_days,
             'effective_days': effective_days
         }
-    
-    def _calculate_monthly_epf(self, gross_salary: Money) -> Money:
-        """Calculate monthly EPF contribution (12% of basic + DA)."""
-        # Simplified calculation - in reality would need basic + DA
-        return gross_salary.multiply(Decimal('0.12'))
-    
-    def _calculate_monthly_esi(self, gross_salary: Money) -> Money:
-        """Calculate monthly ESI contribution (0.75% of gross)."""
-        return gross_salary.multiply(Decimal('0.0075'))
     
     def _calculate_monthly_professional_tax(self, gross_salary: Money) -> Money:
         """Calculate monthly professional tax based on slabs."""

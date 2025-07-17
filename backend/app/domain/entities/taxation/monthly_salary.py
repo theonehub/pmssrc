@@ -18,10 +18,6 @@ class MonthlySalary:
     month: int
     year: int
     salary: SalaryIncome
-    eps_employee: Money = Money.zero()
-    eps_employer: Money = Money.zero()
-    vps_employee: Money = Money.zero()
-    esi_contribution: Money = Money.zero()
     perquisites_payouts: MonthlyPerquisitesPayouts
     deductions: TaxDeductions
     retirement: RetirementBenefits

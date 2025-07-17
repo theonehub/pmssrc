@@ -365,10 +365,10 @@ class UnifiedTaxationController:
             dearness_allowance=Money.from_decimal(salary_dto.dearness_allowance),
             hra_provided=Money.from_decimal(salary_dto.hra_provided),
             special_allowance=Money.from_decimal(salary_dto.special_allowance),
-            eps_employee=Money.from_decimal(getattr(salary_dto, 'eps_employee', 0)),
-            eps_employer=Money.from_decimal(getattr(salary_dto, 'eps_employer', 0)),
-            esi_contribution=Money.from_decimal(getattr(salary_dto, 'esi_contribution', 0)),
-            vps_employee=Money.from_decimal(getattr(salary_dto, 'vps_employee', 0)),
+            eps_employee=Money.from_decimal(getattr(salary_dto, 'eps_employee', 0)),  # Employee's EPS (PF) contribution
+            eps_employer=Money.from_decimal(getattr(salary_dto, 'eps_employer', 0)),  # Employer's EPS (PF) contribution
+            esi_contribution=Money.from_decimal(getattr(salary_dto, 'esi_contribution', 0)),  # Employee's ESI contribution
+            vps_employee=Money.from_decimal(getattr(salary_dto, 'vps_employee', 0)),  # Employee's Voluntary PF contribution
             # Optional components with defaults
             commission=Money.from_decimal(getattr(salary_dto, 'commission', 0)),
             specific_allowances=specific_allowances
@@ -2919,6 +2919,7 @@ class UnifiedTaxationController:
             ("Total Exemptions", calc_result.total_exemptions.to_float()),
             ("Income After Exemptions", calc_result.gross_income.subtract(calc_result.total_exemptions).to_float()),
             ("Total Deductions", calc_result.total_deductions.to_float()),
+            ("Professional Tax", calc_result.professional_tax.to_float()),
             ("Taxable Income", calc_result.taxable_income.to_float()),
             ("Tax Liability", calc_result.tax_liability.to_float()),
             ("Monthly Tax", calc_result.tax_liability.divide(12).to_float()),
@@ -3394,6 +3395,7 @@ class UnifiedTaxationController:
             ("Gross Income", calc_result.gross_income.to_float()),
             ("Total Exemptions", calc_result.total_exemptions.to_float()),
             ("Total Deductions", calc_result.total_deductions.to_float()),
+            ("Professional Tax", calc_result.professional_tax.to_float()),
             ("Taxable Income", calc_result.taxable_income.to_float()),
             ("Tax Liability", calc_result.tax_liability.to_float()),
             ("Monthly Tax", calc_result.tax_liability.divide(12).to_float()),
@@ -3606,7 +3608,6 @@ class UnifiedTaxationController:
         # Calculate deductions
         epf_employee = self._calculate_monthly_epf(gross_salary)
         esi_employee = self._calculate_monthly_esi(gross_salary)
-        professional_tax = self._calculate_monthly_professional_tax(gross_salary)
         tds = monthly_salary.tax_amount
         
         # Get loan EMI amount from perquisites payouts
@@ -3617,7 +3618,6 @@ class UnifiedTaxationController:
                     loan_emi = component.value
                     break
         
-        total_deductions = epf_employee.add(esi_employee).add(professional_tax).add(tds).add(loan_emi)
         net_salary = self._safe_subtract(gross_salary, total_deductions)
         
         # Get working days info
@@ -3685,6 +3685,9 @@ class UnifiedTaxationController:
                 transfer_date=getattr(pf_status_entity, 'transfer_date', None)
             )
 
+        # Calculate professional tax
+        professional_tax = self._calculate_monthly_professional_tax(gross_salary)
+
         return MonthlySalaryResponseDTO(
             employee_id=monthly_salary.employee_id.value,
             month=monthly_salary.month,
@@ -3702,10 +3705,10 @@ class UnifiedTaxationController:
             da=monthly_salary.salary.dearness_allowance.to_float(),
             hra=monthly_salary.salary.hra_provided.to_float(),
             special_allowance=monthly_salary.salary.special_allowance.to_float(),
-            transport_allowance=0.0,  # Not in current model
-            medical_allowance=0.0,  # Not in current model
+            transport_allowance=0.0,
+            medical_allowance=0.0,
             commission=monthly_salary.salary.commission.to_float(),
-            other_allowances=0.0,  # Would need to sum specific allowances
+            other_allowances=0.0,
             one_time_arrear=monthly_salary.one_time_arrear.to_float() if hasattr(monthly_salary, 'one_time_arrear') else 0.0,
             one_time_bonus=monthly_salary.one_time_bonus.to_float() if hasattr(monthly_salary, 'one_time_bonus') else 0.0,
             eps_employee=monthly_salary.salary.eps_employee.to_float(),
@@ -3716,7 +3719,6 @@ class UnifiedTaxationController:
             # Deductions
             epf_employee=epf_employee.to_float(),
             esi_employee=esi_employee.to_float(),
-            professional_tax=professional_tax.to_float(),
             tds=tds.to_float(),
             advance_deduction=0.0,
             loan_deduction=loan_emi.to_float(),
@@ -3769,6 +3771,7 @@ class UnifiedTaxationController:
             ) if monthly_salary.lwp else None,
             payout_status=payout_status_dto,
             pf_status=pf_status_dto,
+            professional_tax=professional_tax.to_float(),
         )
 
     def _calculate_monthly_epf(self, gross_salary):
@@ -4087,12 +4090,11 @@ class UnifiedTaxationController:
         # Calculate deductions using the same logic as DTO conversion
         epf_employee = self._calculate_monthly_epf(gross_salary)
         esi_employee = self._calculate_monthly_esi(gross_salary)
-        professional_tax = self._calculate_monthly_professional_tax(gross_salary)
         tds = salary_record.tax_amount
         one_time_arrear = salary_record.one_time_arrear.to_float()
         one_time_bonus = salary_record.one_time_bonus.to_float()
 
-        total_deductions = epf_employee.add(esi_employee).add(professional_tax).add(tds)
+        total_deductions = epf_employee.add(esi_employee).add(tds)
         net_salary = self._safe_subtract(gross_salary, total_deductions)
 
         # Get working days info
@@ -4134,7 +4136,6 @@ class UnifiedTaxationController:
         -----------
         EPF Employee: ₹{s.eps_employee.to_float():,.2f}
         EPF Voluntary: ₹{s.vps_employee.to_float():,.2f}
-        Professional Tax: ₹{professional_tax.to_float():,.2f}
         TDS: ₹{tds.to_float():,.2f}
         Advance Deduction: ₹{0.0:,.2f}
         Loan Deduction: ₹{0.0:,.2f}

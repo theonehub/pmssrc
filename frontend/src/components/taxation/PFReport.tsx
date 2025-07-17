@@ -106,9 +106,9 @@ const PFReport: React.FC = () => {
       setSalaries(response.items);
       setTotalCount(response.total);
       
-    } catch (err) {
-      console.error('Error fetching salaries:', err);
-      setError('Failed to fetch salary data. Please try again.');
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail;
+      setError(backendMessage || 'Failed to fetch PF report.');
       setSalaries([]);
       setTotalCount(0);
     } finally {
@@ -123,8 +123,9 @@ const PFReport: React.FC = () => {
       const response = await salaryProcessingApi.getMonthlySalarySummary(month, taxYear);
       setSummary(response);
       
-    } catch (err) {
-      console.error('Error fetching summary:', err);
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail;
+      setError(backendMessage || 'Failed to fetch summary. Please try again.');
       setSummary(null);
     } finally {
       setSummaryLoading(false);
@@ -299,9 +300,9 @@ const PFReport: React.FC = () => {
       
       exportApi.downloadFile(blob, `pf_report_${month}_${taxYear}.csv`);
       
-    } catch (err) {
-      console.error('Error exporting PF to CSV:', err);
-      alert('Failed to export PF to CSV. Please try again.');
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail;
+      setError(backendMessage || 'Failed to export PF to CSV. Please try again.');
     } finally {
       setExportLoading(false);
     }
@@ -320,9 +321,9 @@ const PFReport: React.FC = () => {
       
       exportApi.downloadFile(blob, `pf_report_${month}_${taxYear}.xlsx`);
       
-    } catch (err) {
-      console.error('Error exporting PF to Excel:', err);
-      alert('Failed to export PF to Excel. Please try again.');
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail;
+      setError(backendMessage || 'Failed to export PF to Excel. Please try again.');
     } finally {
       setExportLoading(false);
     }
@@ -341,9 +342,9 @@ const PFReport: React.FC = () => {
       
       exportApi.downloadFile(blob, `pf_challan_${month}_${taxYear}.pdf`);
       
-    } catch (err) {
-      console.error('Error exporting PF Challan:', err);
-      alert('Failed to export PF Challan. Please try again.');
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail;
+      setError(backendMessage || 'Failed to export PF Challan. Please try again.');
     } finally {
       setExportLoading(false);
     }
@@ -362,9 +363,9 @@ const PFReport: React.FC = () => {
       
       exportApi.downloadFile(blob, `pf_return_${month}_${taxYear}.pdf`);
       
-    } catch (err) {
-      console.error('Error exporting PF Return:', err);
-      alert('Failed to export PF Return. Please try again.');
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail;
+      setError(backendMessage || 'Failed to export PF Return. Please try again.');
     } finally {
       setExportLoading(false);
     }

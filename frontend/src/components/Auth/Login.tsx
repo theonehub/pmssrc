@@ -103,12 +103,9 @@ const Login: React.FC = () => {
 
       await login(credentials);
       navigate('/home');
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('Login failed. Please check your credentials and try again.');
-      }
+    } catch (err: any) {
+      const backendMessage = err?.response?.data?.detail;
+      setError(backendMessage || 'Login failed. Please check your credentials and try again.');
     } finally {
       setLoading(false);
     }

@@ -64,8 +64,6 @@ class SalaryPackageRecord:
     is_regime_update_allowed: Optional[bool] = True
     
     is_government_employee: bool = False
-    is_senior_citizen: bool = False
-    is_super_senior_citizen: bool = False
     
     # Identifiers
     salary_package_id: Optional[str] = None
@@ -938,6 +936,17 @@ class SalaryPackageRecord:
             return self.capital_gains_income.calculate_stcg_111a_tax().add(self.capital_gains_income.calculate_ltcg_112a_tax())
         return Money.zero()
 
+    def calculate_professional_tax(self, gross_salary: Money) -> Money:
+        """
+        Calculate professional tax.
+        """
+        if gross_salary > Money(10000):
+            return Money(150)
+        elif gross_salary > Money(15000):
+            return Money(200)
+        
+        return Money.zero()
+
     def calculate_tax(self, calculation_service: TaxCalculationService) -> TaxCalculationResult:
         """
         Calculate tax using domain service and update SalaryPackageRecord with results.
@@ -948,9 +957,6 @@ class SalaryPackageRecord:
         Returns:
             TaxCalculationResult: Complete calculation result
         """
-        is_senior_citizen = False
-        is_super_senior_citizen = False
-
         gross_income = self.calculate_gross_income()
         logger.info(f"TheOne: Total income: {gross_income}")
         
@@ -971,14 +977,14 @@ class SalaryPackageRecord:
         logger.info(f"TheOne: Taxable income: {taxable_income}")
         
         # Perform tax calculation
-        tax_liability = calculation_service._calculate_tax_liability(
+        tax_amount, surcharge, cess, total_tax = calculation_service._calculate_tax_liability(
             taxable_income,
             self.regime,
             self.age,
-            self.additional_tax_liability(),
-            is_senior_citizen,
-            is_super_senior_citizen
+            self.additional_tax_liability()
         )
+
+        professional_tax = self.calculate_professional_tax(gross_income)
         
         # Create simplified tax breakdown
         tax_breakdown = {
@@ -991,13 +997,15 @@ class SalaryPackageRecord:
             },
             "tax_calculation": {
                 "regime": self.regime.regime_type.value,
-                "age_category": "super_senior" if self.is_super_senior_citizen else "senior" if self.is_senior_citizen else "regular",
-                "basic_tax": tax_liability.to_float(),
-                "total_tax_liability": tax_liability.to_float()
+                "basic_tax": tax_amount.to_float(),
+                "professional_tax": professional_tax.to_float() * 12,
+                "surcharge": surcharge.to_float(),
+                "cess": cess.to_float(),
+                "total_tax": total_tax.to_float()
             },
             "summary": {
-                "effective_tax_rate": (tax_liability.to_float() / gross_income.to_float() * 100) if not gross_income.is_zero() else 0.0,
-                "monthly_tax": tax_liability.divide(Decimal('12')).to_float()
+                "effective_tax_rate": ((total_tax.to_float() + professional_tax.to_float() * 12) / gross_income.to_float() * 100) if not gross_income.is_zero() else 0.0,
+                "monthly_tax": (total_tax.divide(Decimal('12')).to_float() + professional_tax.to_float())
             }
         }
         
@@ -1007,13 +1015,14 @@ class SalaryPackageRecord:
             total_exemptions=total_exemptions,
             total_deductions=total_deductions,
             taxable_income=taxable_income,
-            tax_liability=tax_liability,
+            professional_tax=professional_tax,
+            tax_amount=tax_amount,
+            surcharge=surcharge,
+            cess=cess,
+            tax_liability=total_tax,
             tax_breakdown=tax_breakdown,
             regime_comparison=None
         )
-        
-        # Update SalaryPackageRecord with calculation results
-        self._update_salary_package_with_calculation_result()
         
         print(f"**************************************************")
         print(f"TheOne: Result: {self.calculation_result}")
@@ -1034,38 +1043,7 @@ class SalaryPackageRecord:
         })
         
         return self.calculation_result
-    
-    def _update_salary_package_with_calculation_result(self) -> None:
-        """
-        Update SalaryPackageRecord fields with TaxCalculationResult data.
-        This method extracts key values from the calculation result and stores them
-        in the SalaryPackageRecord for easy access and persistence.
-        """
-        if not self.calculation_result:
-            logger.warning("Cannot update salary package: no calculation result available")
-            return
-        
-        # Store key calculation values as attributes for easy access
-        # These can be used by repositories to update database records
-        self._calculated_gross_income = self.calculation_result.total_income
-        self._calculated_total_exemptions = self.calculation_result.total_exemptions
-        self._calculated_total_deductions = self.calculation_result.total_deductions
-        self._calculated_taxable_income = self.calculation_result.taxable_income
-        self._calculated_tax_liability = self.calculation_result.tax_liability
-        self._calculated_monthly_tax = self.calculation_result.monthly_tax_liability
-        self._calculated_effective_tax_rate = self.calculation_result.effective_tax_rate
-        
-        # Store additional calculation metadata
-        self._calculation_breakdown = self.calculation_result.tax_breakdown
-        self._regime_comparison = self.calculation_result.regime_comparison
-        
-        logger.info(f"Updated SalaryPackageRecord with calculation results for employee {self.employee_id}")
-        logger.info(f"Gross Income: {self._calculated_gross_income}")
-        logger.info(f"Taxable Income: {self._calculated_taxable_income}")
-        logger.info(f"Tax Liability: {self._calculated_tax_liability}")
-        logger.info(f"Monthly Tax: {self._calculated_monthly_tax}")
-        logger.info(f"Effective Tax Rate: {self._calculated_effective_tax_rate}%")
-    
+
     def get_calculation_summary(self) -> Dict[str, Any]:
         """
         Get a summary of the calculation results stored in the SalaryPackageRecord.

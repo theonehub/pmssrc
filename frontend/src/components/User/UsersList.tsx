@@ -162,8 +162,8 @@ const UsersList: React.FC = () => {
       setImportFile(null);
       refetch();
     } catch (error: any) {
-      const errorMessage = error.response?.data?.detail || 'Failed to import users';
-      showAlert(errorMessage, 'error');
+      const backendMessage = error?.response?.data?.detail;
+      showAlert(backendMessage || 'Failed to import users', 'error');
     } finally {
       setImporting(false);
     }
@@ -185,8 +185,8 @@ const UsersList: React.FC = () => {
       
       showAlert('Template downloaded successfully', 'success');
     } catch (error: any) {
-      const errorMessage = error.response?.data?.detail || 'Failed to download template';
-      showAlert(errorMessage, 'error');
+      const backendMessage = error?.response?.data?.detail;
+      showAlert(backendMessage || 'Failed to download template', 'error');
     }
   };
 

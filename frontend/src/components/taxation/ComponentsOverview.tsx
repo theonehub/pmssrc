@@ -53,6 +53,7 @@ interface ComponentSummary {
   hasData: boolean;
   totalValue: number;
   details: Record<string, any>;
+  error?: string; // Added error property
 }
 
 const ComponentsOverview: React.FC = () => {
@@ -92,7 +93,7 @@ const ComponentsOverview: React.FC = () => {
   };
 
   // 1. loadSalaryComponent
-  const loadSalaryComponent = useCallback(async (): Promise<ComponentSummary | null> => {
+  const loadSalaryComponent = useCallback(async (): Promise<ComponentSummary> => {
     try {
       const response = await taxationApi.getComponent(empId!, taxYear, 'salary');
       const data = response?.component_data || response;
@@ -112,7 +113,8 @@ const ComponentsOverview: React.FC = () => {
         totalValue: totalSalary,
         details: data
       };
-    } catch (error) {
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail;
       return {
         id: 'salary',
         name: 'Salary Income',
@@ -120,13 +122,14 @@ const ComponentsOverview: React.FC = () => {
         color: 'primary',
         hasData: false,
         totalValue: 0,
-        details: {}
+        details: {},
+        error: backendMessage || 'Failed to fetch salary data.'
       };
     }
   }, [empId, taxYear]);
 
   // 2. loadDeductionsComponent
-  const loadDeductionsComponent = useCallback(async (): Promise<ComponentSummary | null> => {
+  const loadDeductionsComponent = useCallback(async (): Promise<ComponentSummary> => {
     try {
       const response = await taxationApi.getComponent(empId!, taxYear, 'deductions');
       const data = response?.component_data || response;
@@ -168,7 +171,8 @@ const ComponentsOverview: React.FC = () => {
         totalValue: totalDeductions,
         details: data
       };
-    } catch (error) {
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail;
       return {
         id: 'deductions',
         name: 'Deductions',
@@ -176,13 +180,14 @@ const ComponentsOverview: React.FC = () => {
         color: 'info',
         hasData: false,
         totalValue: 0,
-        details: {}
+        details: {},
+        error: backendMessage || 'Failed to fetch deductions data.'
       };
     }
   }, [empId, taxYear]);
 
   // 3. loadHousePropertyComponent
-  const loadHousePropertyComponent = useCallback(async (): Promise<ComponentSummary | null> => {
+  const loadHousePropertyComponent = useCallback(async (): Promise<ComponentSummary> => {
     try {
       const response = await taxationApi.getComponent(empId!, taxYear, 'house_property_income');
       const data = response?.component_data || response;
@@ -198,7 +203,8 @@ const ComponentsOverview: React.FC = () => {
         totalValue: totalValue,
         details: data
       };
-    } catch (error) {
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail;
       return {
         id: 'house_property_income',
         name: 'House Property',
@@ -206,13 +212,14 @@ const ComponentsOverview: React.FC = () => {
         color: 'warning',
         hasData: false,
         totalValue: 0,
-        details: {}
+        details: {},
+        error: backendMessage || 'Failed to fetch house property data.'
       };
     }
   }, [empId, taxYear]);
 
   // 4. loadCapitalGainsComponent
-  const loadCapitalGainsComponent = useCallback(async (): Promise<ComponentSummary | null> => {
+  const loadCapitalGainsComponent = useCallback(async (): Promise<ComponentSummary> => {
     try {
       const response = await taxationApi.getComponent(empId!, taxYear, 'capital_gains');
       const data = response?.component_data || response;
@@ -229,7 +236,8 @@ const ComponentsOverview: React.FC = () => {
         totalValue: totalCapitalGains,
         details: data
       };
-    } catch (error) {
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail;
       return {
         id: 'capital_gains',
         name: 'Capital Gains',
@@ -237,13 +245,14 @@ const ComponentsOverview: React.FC = () => {
         color: 'success',
         hasData: false,
         totalValue: 0,
-        details: {}
+        details: {},
+        error: backendMessage || 'Failed to fetch capital gains data.'
       };
     }
   }, [empId, taxYear]);
 
   // 5. loadOtherIncomeComponent
-  const loadOtherIncomeComponent = useCallback(async (): Promise<ComponentSummary | null> => {
+  const loadOtherIncomeComponent = useCallback(async (): Promise<ComponentSummary> => {
     try {
       const response = await taxationApi.getComponent(empId!, taxYear, 'other_income');
       const data = response?.component_data || response;
@@ -260,7 +269,8 @@ const ComponentsOverview: React.FC = () => {
         totalValue: totalOtherIncome,
         details: data
       };
-    } catch (error) {
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail;
       return {
         id: 'other_income',
         name: 'Other Income',
@@ -268,13 +278,14 @@ const ComponentsOverview: React.FC = () => {
         color: 'secondary',
         hasData: false,
         totalValue: 0,
-        details: {}
+        details: {},
+        error: backendMessage || 'Failed to fetch other income data.'
       };
     }
   }, [empId, taxYear]);
 
   // 6. loadPerquisitesComponent
-  const loadPerquisitesComponent = useCallback(async (): Promise<ComponentSummary | null> => {
+  const loadPerquisitesComponent = useCallback(async (): Promise<ComponentSummary> => {
     try {
       const response = await taxationApi.getComponent(empId!, taxYear, 'perquisites');
       const data = response?.component_data || response;
@@ -409,7 +420,8 @@ const ComponentsOverview: React.FC = () => {
         totalValue: totalPerquisites,
         details: data
       };
-    } catch (error) {
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail;
       return {
         id: 'perquisites',
         name: 'Perquisites',
@@ -417,7 +429,8 @@ const ComponentsOverview: React.FC = () => {
         color: 'error',
         hasData: false,
         totalValue: 0,
-        details: {}
+        details: {},
+        error: backendMessage || 'Failed to fetch perquisites data.'
       };
     }
   }, [empId, taxYear]);
@@ -449,7 +462,8 @@ const ComponentsOverview: React.FC = () => {
       setComponents(loadedComponents);
       
     } catch (error: any) {
-      setError('Failed to load components data. Please try again.');
+      const backendMessage = error?.response?.data?.detail;
+      setError(backendMessage || 'Failed to load components data. Please try again.');
       console.error('Error loading components:', error);
     } finally {
       setLoading(false);
@@ -511,7 +525,6 @@ const ComponentsOverview: React.FC = () => {
             overtime: 0,
             gratuity: 0,
             leave_encashment: 0,
-            professional_tax: 0,
             tds_deducted: 0,
             employer_pf: 0,
             employee_pf: 0,
@@ -629,11 +642,12 @@ const ComponentsOverview: React.FC = () => {
         message: 'Salary package exported successfully!',
         severity: 'success'
       });
-    } catch (error) {
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail;
       console.error('Error exporting salary package:', error);
       setExportMessage({
         show: true,
-        message: 'Failed to export salary package',
+        message: backendMessage || 'Failed to export salary package',
         severity: 'error'
       });
     } finally {
@@ -661,11 +675,12 @@ const ComponentsOverview: React.FC = () => {
         message: 'Salary package (single sheet) exported successfully!',
         severity: 'success'
       });
-    } catch (error) {
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail;
       console.error('Error exporting salary package (single sheet):', error);
       setExportMessage({
         show: true,
-        message: 'Failed to export salary package (single sheet)',
+        message: backendMessage || 'Failed to export salary package (single sheet)',
         severity: 'error'
       });
     } finally {

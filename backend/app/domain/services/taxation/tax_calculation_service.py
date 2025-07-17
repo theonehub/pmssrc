@@ -5,7 +5,7 @@ Handles all tax calculations for Indian taxation
 
 import logging
 from decimal import Decimal
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -35,8 +35,6 @@ class TaxCalculationInput:
     deductions: TaxDeductions
     regime: TaxRegime
     age: int
-    is_senior_citizen: bool
-    is_super_senior_citizen: bool
     is_government_employee: bool
 
 
@@ -44,13 +42,16 @@ class TaxCalculationInput:
 class TaxCalculationResult:
     """Result of tax calculation."""
     total_income: Money
+    professional_tax: Money
     total_exemptions: Money
     total_deductions: Money
     taxable_income: Money
+    tax_amount: Money
+    surcharge: Money
+    cess: Money
     tax_liability: Money
     tax_breakdown: Dict[str, Any]
     regime_comparison: Optional[Dict[str, Any]] = None
-    monthly_payroll: Optional[Any] = None  # Add monthly payroll projection
     
     def __post_init__(self):
         """Validate that all monetary fields are Money objects."""
@@ -175,6 +176,9 @@ class TaxCalculationService:
             self.logger.debug("compute_monthly_tax: Computing monthly tax from salary package record")
             logger.info(f"*********************************************************************************************************")
             calculation_result = salary_package_record.calculate_tax(self)
+
+            salary_package_record.last_calculated_at = datetime.utcnow()
+            salary_package_record.calculation_result = calculation_result
             
             # Save the updated salary package record with calculation result to database
             self.logger.debug("compute_monthly_tax: Saving updated salary package record to database")
@@ -333,18 +337,16 @@ class TaxCalculationService:
         
         # Calculate taxable income
         # First subtract exemptions, then deductions, ensuring we don't go negative
-        income_after_exemptions = total_income.subtract(total_exemptions) if total_income.is_greater_than(total_exemptions) else Money.zero()
-        taxable_income = income_after_exemptions.subtract(total_deductions) if income_after_exemptions.is_greater_than(total_deductions) else Money.zero()
+        income_after_exemptions = total_income.subtract(total_exemptions) if total_income > total_exemptions else Money.zero()
+        taxable_income = income_after_exemptions.subtract(total_deductions) if income_after_exemptions > total_deductions else Money.zero()
         
         # Calculate tax liability
-        tax_liability = self._calculate_tax_liability(
+        tax_amount, surcharge, cess, total_tax = self._calculate_tax_liability(
             taxable_income,
             input_data.regime,
             input_data.age,
             input_data.capital_gains_income.calculate_stcg_111a_tax(),
             input_data.capital_gains_income.calculate_ltcg_112a_tax(),
-            input_data.is_senior_citizen,
-            input_data.is_super_senior_citizen
         )
         
         # Get tax breakdown
@@ -353,7 +355,7 @@ class TaxCalculationService:
             total_exemptions,
             total_deductions,
             taxable_income,
-            tax_liability,
+            total_tax,
             input_data
         )
         
@@ -365,7 +367,7 @@ class TaxCalculationService:
             total_exemptions=total_exemptions,
             total_deductions=total_deductions,
             taxable_income=taxable_income,
-            tax_liability=tax_liability,
+            tax_liability=total_tax,
             tax_breakdown=tax_breakdown,
             regime_comparison=regime_comparison
         )
@@ -391,24 +393,18 @@ class TaxCalculationService:
         Returns:
             TaxCalculationResult: Tax calculation result
         """
-        # Determine citizen categories based on age
-        is_senior_citizen = age >= 60
-        is_super_senior_citizen = age >= 80
-        
         # Calculate taxable income
-        income_after_exemptions = gross_income.subtract(total_exemptions) if gross_income.is_greater_than(total_exemptions) else Money.zero()
-        taxable_income = income_after_exemptions.subtract(total_deductions) if income_after_exemptions.is_greater_than(total_deductions) else Money.zero()
+        income_after_exemptions = gross_income.subtract(total_exemptions) if gross_income > total_exemptions else Money.zero()
+        taxable_income = income_after_exemptions.subtract(total_deductions) if income_after_exemptions > total_deductions else Money.zero()
         logger.info(f"TheOne: Taxable income: {taxable_income.to_float()}")
         
         # Calculate tax liability
-        tax_liability = self._calculate_tax_liability(
+        tax_amount, surcharge, cess, total_tax = self._calculate_tax_liability(
             taxable_income,
             regime,
             age,
             stcg_tax,
-            ltcg_tax,
-            is_senior_citizen,
-            is_super_senior_citizen
+            ltcg_tax
         )
         
         # Create tax breakdown
@@ -419,7 +415,7 @@ class TaxCalculationService:
                 "income_after_exemptions": income_after_exemptions.to_float(),
                 "total_deductions": total_deductions.to_float(),
                 "taxable_income": taxable_income.to_float(),
-                "tax_liability": tax_liability.to_float()
+                "tax_liability": total_tax.to_float()
             }
         }
         
@@ -478,9 +474,8 @@ class TaxCalculationService:
                                taxable_income: Money,
                                regime: TaxRegime,
                                age: int,
-                               additional_tax_liability: Money,
-                               is_senior_citizen: bool,
-                               is_super_senior_citizen: bool) -> Money:
+                               additional_tax_liability: Money
+                               ) -> Tuple[Money, Money, Money, Money]:
         """Calculate tax liability based on tax slabs."""
         # Get tax slabs
         slabs = regime.get_tax_slabs(age)
@@ -490,16 +485,13 @@ class TaxCalculationService:
         max_rebate = regime.get_max_rebate_87a()
         print(f"TheOne: Max rebate: {max_rebate}")
 
-        # if regime.regime_type == TaxRegimeType.OLD:
-        #     slabs = self._get_old_regime_slabs(age, is_senior_citizen, is_super_senior_citizen)
-        # else:
-        #     slabs = self._get_new_regime_slabs()
-
         print(f"TheOne: Slabs: {slabs}")
         
         # Calculate tax for each slab using progressive taxation
         tax_amount = Money(Decimal('0'))
-        if taxable_income.is_greater_than(rebate_limit):
+        surcharge = Money(Decimal('0'))  # Ensure always defined
+        cess = Money(Decimal('0'))  # Ensure always defined
+        if taxable_income > rebate_limit:
             for slab in slabs:
                 slab_min = Money(slab["min"])
                 slab_max = Money(slab["max"]) if slab["max"] is not None else taxable_income
@@ -516,7 +508,7 @@ class TaxCalculationService:
                         income_in_slab = taxable_income.subtract(slab_min)
                     
                     # Ensure we don't have negative income in slab
-                    if income_in_slab.is_greater_than(Money.zero()):
+                    if income_in_slab > Money.zero():
                         tax_for_slab = income_in_slab.multiply(slab_rate)
                         tax_amount = tax_amount.add(tax_for_slab)
                         
@@ -546,10 +538,10 @@ class TaxCalculationService:
         # Add health and education cess
         cess_rate = Decimal('0.04')  # 4% cess
         cess = tax_amount.multiply(cess_rate)
-        tax_amount = tax_amount.add(cess)
-        logger.info(f"TheOne: Tax amount: {tax_amount.to_float()}")
+        total_tax = tax_amount.add(cess)
+        logger.info(f"TheOne: Tax amount: {tax_amount.to_float(), surcharge.to_float(), cess.to_float()} => {total_tax.to_float()}")
         
-        return tax_amount
+        return tax_amount, surcharge, cess, total_tax
     
     def _get_tax_breakdown(self,
                           total_income: Money,
@@ -695,7 +687,7 @@ class TaxCalculationService:
                 "section_80ttb": min(
                     input_data.deductions.senior_citizen_interest.to_float(),
                     50000.0  # Max ₹50,000
-                ) if input_data.is_senior_citizen else 0.0,
+                ),
                 "section_80u": (
                     input_data.deductions.disability_deduction
                     .add(input_data.deductions.medical_treatment_deduction)
@@ -743,8 +735,6 @@ class TaxCalculationService:
             deductions=input_data.deductions,
             regime=TaxRegime(TaxRegimeType.NEW),
             age=input_data.age,
-            is_senior_citizen=input_data.is_senior_citizen,
-            is_super_senior_citizen=input_data.is_super_senior_citizen,
             is_government_employee=input_data.is_government_employee
         )
         new_regime_result = self.calculate_tax(new_regime_input)
@@ -763,18 +753,18 @@ class TaxCalculationService:
             "difference": {
                 "tax_liability": (
                     new_regime_result.tax_liability.subtract(old_regime_result.tax_liability) 
-                    if new_regime_result.tax_liability.is_greater_than(old_regime_result.tax_liability)
+                    if new_regime_result.tax_liability > old_regime_result.tax_liability
                     else old_regime_result.tax_liability.subtract(new_regime_result.tax_liability).multiply(Decimal('-1'))
                 ).to_float(),
                 "percentage": float(
                     (new_regime_result.tax_liability.subtract(old_regime_result.tax_liability) 
-                     if new_regime_result.tax_liability.is_greater_than(old_regime_result.tax_liability)
+                     if new_regime_result.tax_liability > old_regime_result.tax_liability
                      else old_regime_result.tax_liability.subtract(new_regime_result.tax_liability).multiply(Decimal('-1')))
                     .divide(old_regime_result.tax_liability).multiply(Decimal('100'))
-                ) if old_regime_result.tax_liability.is_greater_than(Money(Decimal('0'))) else 0.0
+                ) if old_regime_result.tax_liability > Money(Decimal('0')) else 0.0
             },
             "recommended_regime": (
-                "new" if new_regime_result.tax_liability.is_less_than(old_regime_result.tax_liability)
+                "new" if new_regime_result.tax_liability < old_regime_result.tax_liability
                 else "old"
             )
         }
@@ -791,7 +781,7 @@ class TaxCalculationService:
         # 3. 50% of (Basic + DA) for metro cities, 40% for others
         basic_plus_da = basic_salary.add(dearness_allowance)
         ten_percent_basic_da = basic_plus_da.multiply(Decimal('0.10'))
-        rent_minus_10_percent = rent_paid.subtract(ten_percent_basic_da) if rent_paid.is_greater_than(ten_percent_basic_da) else Money.zero()
+        rent_minus_10_percent = rent_paid.subtract(ten_percent_basic_da) if rent_paid > ten_percent_basic_da else Money.zero()
         hra_percentage = Decimal('0.50')  # Assuming metro city
         fifty_percent_basic_da = basic_plus_da.multiply(hra_percentage)
         

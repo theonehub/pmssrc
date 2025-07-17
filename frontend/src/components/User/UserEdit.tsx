@@ -228,7 +228,11 @@ const UserEdit: React.FC = () => {
         // eslint-disable-next-line no-console
         console.error('Error fetching user:', error);
       }
-      setError(error.response?.data?.detail || error.message || 'Failed to fetch user details');
+      let backendMessage: string | undefined;
+      if (error && typeof error === 'object' && 'response' in error) {
+        backendMessage = (error as any).response?.data?.detail;
+      }
+      setError(backendMessage || 'Failed to fetch user details');
     } finally {
       setLoading(false);
     }
@@ -352,12 +356,9 @@ const UserEdit: React.FC = () => {
         navigate(`/users/emp/${empId}`);
       }, 1500);
     } catch (error: any) {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.error('Error updating user:', error);
-      }
-      const errorMessage = error.response?.data?.detail || 'Failed to update user';
-      showToast(errorMessage, 'error');
+      const backendMessage = error?.response?.data?.detail;
+      setError(backendMessage || 'Failed to update user.');
+      showToast(backendMessage || 'Failed to update user', 'error');
     } finally {
       setSaving(false);
     }

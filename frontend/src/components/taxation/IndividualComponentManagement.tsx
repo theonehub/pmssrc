@@ -302,8 +302,12 @@ const MonthlySalaryComputeDialog: React.FC<MonthlySalaryComputeDialogProps> = ({
       await onCompute(request);
 
       onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to compute monthly salary');
+    } catch (err: any) {
+      let backendMessage: string | undefined;
+      if (err && typeof err === 'object' && 'response' in err) {
+        backendMessage = (err as any).response?.data?.detail;
+      }
+      setError(backendMessage || 'Failed to compute monthly salary');
     } finally {
       setLoading(false);
     }
@@ -584,8 +588,12 @@ const BulkSalaryProcessingDialog: React.FC<BulkSalaryProcessingDialogProps> = ({
 
       await onBulkCompute(requests);
       onClose();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to process bulk salary computation');
+    } catch (err: any) {
+      let backendMessage: string | undefined;
+      if (err && typeof err === 'object' && 'response' in err) {
+        backendMessage = (err as any).response?.data?.detail;
+      }
+      setError(backendMessage || 'Failed to process bulk salary computation');
     } finally {
       setLoading(false);
     }
@@ -810,8 +818,12 @@ const LoanProcessingDialog: React.FC<LoanProcessingDialogProps> = ({
 
       const result = await onProcessLoan(employee.employee_id, taxYear);
       setLoanData(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to process loan schedule');
+    } catch (err: any) {
+      let backendMessage: string | undefined;
+      if (err && typeof err === 'object' && 'response' in err) {
+        backendMessage = (err as any).response?.data?.detail;
+      }
+      setError(backendMessage || 'Failed to process loan schedule');
     } finally {
       setLoading(false);
     }
@@ -1266,9 +1278,12 @@ const IndividualComponentManagement: React.FC = () => {
       // Refresh the employee data to show updated tax values
       await handleRefresh();
       
-    } catch (error) {
-      console.error('Error computing tax:', error);
-      showToast(`Failed to compute tax for ${employee.user_name || employee.employee_id}`, 'error');
+    } catch (error: any) {
+      let backendMessage: string | undefined;
+      if (error && typeof error === 'object' && 'response' in error) {
+        backendMessage = (error as any).response?.data?.detail;
+      }
+      showToast(backendMessage || `Failed to compute tax for ${employee.user_name || employee.employee_id}`, 'error');
     }
   };
 
@@ -1316,9 +1331,12 @@ const IndividualComponentManagement: React.FC = () => {
       await refetch();
       refreshEmployeeSelection(query);
       showToast(`Employee data refreshed for ${selectedTaxYear}`, 'success');
-    } catch (error) {
-      console.error('Error refreshing employees:', error);
-      showToast('Failed to refresh employee data', 'error');
+    } catch (error: any) {
+      let backendMessage: string | undefined;
+      if (error && typeof error === 'object' && 'response' in error) {
+        backendMessage = (error as any).response?.data?.detail;
+      }
+      showToast(backendMessage || 'Failed to refresh employee data', 'error');
     }
   };
 
@@ -1439,9 +1457,12 @@ const IndividualComponentManagement: React.FC = () => {
       // Refresh the employee data to show updated values
       await handleRefresh();
       
-    } catch (error) {
-      console.error('Error computing monthly salary:', error);
-      showToast(`Failed to compute monthly salary for ${request.employee_id}`, 'error');
+    } catch (error: any) {
+      let backendMessage: string | undefined;
+      if (error && typeof error === 'object' && 'response' in error) {
+        backendMessage = (error as any).response?.data?.detail;
+      }
+      showToast(backendMessage || `Failed to compute monthly salary for ${request.employee_id}`, 'error');
       throw error;
     }
   };
@@ -1486,7 +1507,17 @@ const IndividualComponentManagement: React.FC = () => {
           if ((i + 1) % 5 === 0 || i === requests.length - 1) {
             showToast(`Processed ${i + 1} of ${requests.length} employees`, 'info');
           }
-        } catch (error) {
+        } catch (error: any) {
+          let backendMessage: string | undefined;
+          if (error && typeof error === 'object' && 'response' in error) {
+            backendMessage = (error as any).response?.data?.detail;
+          }
+          showToast(
+            backendMessage
+              ? `Error for ${request.employee_id}: ${backendMessage}`
+              : `Error processing employee ${request.employee_id}`,
+            'error'
+          );
           console.error(`Error processing employee ${request.employee_id}:`, error);
           // Continue with other employees even if one fails
         }
@@ -1497,9 +1528,12 @@ const IndividualComponentManagement: React.FC = () => {
       // Refresh the employee data to show updated values
       await handleRefresh();
       
-    } catch (error) {
-      console.error('Error in bulk salary processing:', error);
-      showToast(`Failed to process bulk salary for some employees`, 'error');
+    } catch (error: any) {
+      let backendMessage: string | undefined;
+      if (error && typeof error === 'object' && 'response' in error) {
+        backendMessage = (error as any).response?.data?.detail;
+      }
+      showToast(backendMessage || `Failed to process bulk salary for some employees`, 'error');
       throw error;
     }
   };
@@ -1523,9 +1557,12 @@ const IndividualComponentManagement: React.FC = () => {
       
       return result;
       
-    } catch (error) {
-      console.error('Error processing loan schedule:', error);
-      showToast(`Failed to process loan schedule for ${employeeId}`, 'error');
+    } catch (error: any) {
+      let backendMessage: string | undefined;
+      if (error && typeof error === 'object' && 'response' in error) {
+        backendMessage = (error as any).response?.data?.detail;
+      }
+      showToast(backendMessage || `Failed to process loan schedule for ${employeeId}`, 'error');
       throw error;
     }
   };

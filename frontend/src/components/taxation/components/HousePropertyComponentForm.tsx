@@ -263,10 +263,10 @@ const HousePropertyComponentForm: React.FC = () => {
       // Reload data to get updated values
       await loadHousePropertyData();
       
-    } catch (error) {
-      console.error('Error saving house property data:', error);
-      setError('Failed to save house property data. Please try again.');
-      showToast('Failed to save house property data', 'error');
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail;
+      setError(backendMessage || 'Failed to save house property data. Please try again.');
+      showToast(backendMessage || 'Failed to save house property data', 'error');
     } finally {
       setSaving(false);
     }

@@ -58,10 +58,11 @@ const Home: React.FC = () => {
         if (dashboardResponse) {
           setDashboardStats(dashboardResponse);
         }
-      } catch (error) {
+      } catch (error: any) {
+        const backendMessage = error?.response?.data?.detail;
         setSnackbar({
           open: true,
-          message: 'Failed to load dashboard data',
+          message: backendMessage || 'Failed to load dashboard data',
           severity: 'error',
         });
       } finally {
@@ -83,14 +84,15 @@ const Home: React.FC = () => {
         message: 'Check-in successful!',
         severity: 'success',
       });
-    } catch (error) {
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail;
       if (process.env.NODE_ENV === 'development') {
         // eslint-disable-next-line no-console
         console.error('Check-in error:', error);
       }
       setSnackbar({
         open: true,
-        message: error instanceof Error ? error.message : 'Failed to check in',
+        message: backendMessage || 'Failed to check in',
         severity: 'error',
       });
     } finally {
@@ -109,14 +111,15 @@ const Home: React.FC = () => {
         message: 'Check-out successful!',
         severity: 'success',
       });
-    } catch (error) {
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail;
       if (process.env.NODE_ENV === 'development') {
         // eslint-disable-next-line no-console
         console.error('Check-out error:', error);
       }
       setSnackbar({
         open: true,
-        message: error instanceof Error ? error.message : 'Failed to check out',
+        message: backendMessage || 'Failed to check out',
         severity: 'error',
       });
     } finally {

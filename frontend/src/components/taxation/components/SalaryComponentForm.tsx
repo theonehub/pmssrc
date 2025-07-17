@@ -428,8 +428,10 @@ const SalaryComponentForm: React.FC = () => {
       }, 1500);
       
     } catch (error: any) {
-      setError('Failed to save salary data. Please try again.');
-      showToast('Failed to save salary data', 'error');
+      // Show backend error message if available
+      const backendMessage = error?.response?.data?.detail;
+      setError(backendMessage || 'Failed to save salary data. Please try again.');
+      showToast(backendMessage || 'Failed to save salary data', 'error');
     } finally {
       setSaving(false);
     }

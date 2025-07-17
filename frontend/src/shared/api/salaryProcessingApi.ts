@@ -43,7 +43,6 @@ export interface MonthlySalaryResponse {
   one_time_bonus: number;
   epf_employee: number;
   esi_employee: number;
-  professional_tax: number;
   tds: number;
   advance_deduction: number;
   loan_deduction: number;

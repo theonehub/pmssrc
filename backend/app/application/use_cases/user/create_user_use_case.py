@@ -305,19 +305,19 @@ class CreateUserUseCase:
                 "Sick Leave": 0
             }
     
-    async def _check_organisation_capacity(self, current_user: CurrentUser) -> None:
+    async def _check_organisation_capacity(self, hostname:str) -> None:
         """
         Check if organisation has available employee capacity.
         
         Args:
-            current_user: Current authenticated user with organisation context (organisation_id is current_user.hostname)
+            hostname: Hostname of the organisation
             
         Raises:
             UserBusinessRuleError: If organisation is at capacity
         """
         try:
             # Get organisation by hostname
-            organisation = await self.organisation_query_repository.get_by_hostname(current_user)
+            organisation = await self.organisation_query_repository.get_by_hostname(hostname)
             
             if not organisation:
                 raise UserBusinessRuleError(
@@ -358,7 +358,7 @@ class CreateUserUseCase:
         """
         try:
             # Get organisation by hostname
-            organisation = await self.organisation_query_repository.get_by_hostname(current_user)
+            organisation = await self.organisation_query_repository.get_by_hostname(current_user.hostname)
             
             if organisation:
                 # Use the dedicated increment method from command repository

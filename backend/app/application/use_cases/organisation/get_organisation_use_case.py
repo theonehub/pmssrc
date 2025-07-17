@@ -39,7 +39,7 @@ class GetOrganisationUseCase:
     def __init__(self, query_repository: OrganisationQueryRepository):
         self.query_repository = query_repository
     
-    async def execute_by_id(self, current_user: CurrentUser) -> OrganisationResponseDTO:
+    async def execute_by_id(self, organisation_id:str) -> OrganisationResponseDTO:
         """
         Execute the get organisation by ID use case.
         Args:
@@ -49,16 +49,16 @@ class GetOrganisationUseCase:
         Raises:
             OrganisationNotFoundError: If organisation not found
         """
-        logger.info(f"Getting organisation by ID: {current_user.organisation_id}")
-        org_id = OrganisationId.from_string(current_user.organisation_id)
+        logger.info(f"Getting organisation by ID: {organisation_id}")
+        org_id = OrganisationId.from_string(organisation_id)
         organisation = await self.query_repository.get_by_id(org_id)
         if not organisation:
-            raise OrganisationNotFoundError(current_user.organisation_id)
+            raise OrganisationNotFoundError(organisation_id)
         response = self._convert_to_response_dto(organisation)
-        logger.info(f"Organisation retrieved successfully: {current_user.organisation_id}")
+        logger.info(f"Organisation retrieved successfully: {organisation_id}")
         return response
 
-    async def execute_by_hostname(self, current_user: CurrentUser) -> Optional[OrganisationResponseDTO]:
+    async def execute_by_hostname(self, hostname:str) -> Optional[OrganisationResponseDTO]:
         """
         Execute the get organisation by hostname use case.
         Args:
@@ -66,13 +66,13 @@ class GetOrganisationUseCase:
         Returns:
             Organisation response DTO or None if not found
         """
-        logger.info(f"Getting organisation by hostname: {current_user.hostname}")
-        organisation = await self.query_repository.get_by_hostname(current_user.hostname)
+        logger.info(f"Getting organisation by hostname: {hostname}")
+        organisation = await self.query_repository.get_by_hostname(hostname)
         if not organisation:
-            logger.warning(f"Organisation not found for hostname: {current_user.hostname}")
+            logger.warning(f"Organisation not found for hostname: {hostname}")
             return None
         response = self._convert_to_response_dto(organisation)
-        logger.info(f"Organisation retrieved successfully by hostname: {current_user.hostname}")
+        logger.info(f"Organisation retrieved successfully by hostname: {hostname}")
         return response
     
     def _convert_to_response_dto(self, organisation: Organisation) -> OrganisationResponseDTO:

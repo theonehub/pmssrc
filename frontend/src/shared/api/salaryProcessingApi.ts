@@ -15,6 +15,13 @@ export interface TDSStatus {
   paid: boolean;
 }
 
+export interface PfStatus {
+  status: string;
+  comments?: string | null;
+  transaction_id?: string | null;
+  transfer_date?: string | null;
+}
+
 export interface MonthlySalaryResponse {
   employee_id: string;
   month: number;
@@ -55,6 +62,7 @@ export interface MonthlySalaryResponse {
   effective_working_days: number;
   payout_status?: PayoutStatusDTO; // New field for payout status
   tds_status?: TDSStatus; // <-- Added this line
+  pf_status?: PfStatus;
   computation_date: string | null;
   notes: string | null;
   remarks: string | null;

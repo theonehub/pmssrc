@@ -21,9 +21,9 @@ class SalaryIncomeDTO(BaseModel):
     hra_provided: Decimal = Field(default=0, ge=0)
     commission: Decimal = Field(default=0, ge=0)
     special_allowance: Decimal = Field(default=0, ge=0)
-    pf_employee_contribution: Decimal = Field(default=0, ge=0)
-    pf_employer_contribution: Decimal = Field(default=0, ge=0)
-    pf_voluntary_contribution: Decimal = Field(default=0, ge=0)
+    eps_employee: Decimal = Field(default=0, ge=0)
+    eps_employer: Decimal = Field(default=0, ge=0)
+    vps_employee: Decimal = Field(default=0, ge=0)
     esi_contribution: Decimal = Field(default=0, ge=0)
 
     # Effective date fields for salary revisions
@@ -877,9 +877,16 @@ class TDSStatusDTO(BaseModel):
     status: str = Field(..., description="TDS status, e.g. 'filed', 'paid', etc.")
     challan_number: Optional[str] = Field(None, description="Challan number if TDS is paid")
     total_tax_liability: float = Field(default=0.0, description="Total tax liability for the month")
-    # Optionally keep paid for backward compatibility
-    paid: Optional[bool] = Field(None, description="Deprecated: use status instead")
-    month: Optional[int] = Field(..., ge=1, le=12, description="Month (1-12)")
+    tds_challan_number: Optional[str] = Field(None, description="TDS challan number")
+    tds_challan_date: Optional[date] = Field(None, description="TDS challan date")
+    tds_challan_file_path: Optional[str] = Field(None, description="TDS challan file path")
+
+
+class PfStatusDTO(BaseModel):
+    status: str = Field(default="computed", description="PF status")
+    comments: Optional[str] = Field(default=None, description="PF comments")
+    transaction_id: Optional[str] = Field(default=None, description="PF transaction ID")
+    transfer_date: Optional[date] = Field(default=None, description="PF transfer date")
 
 
 class MonthlySalaryComputeRequestDTO(BaseModel):
@@ -915,15 +922,16 @@ class MonthlySalaryResponseDTO(BaseModel):
     medical_allowance: float = Field(default=0.0, description="Medical allowance")
     commission: float = Field(default=0.0, description="Commission")
     other_allowances: float = Field(default=0.0, description="Other allowances")
-    pf_employee_contribution: float = Field(default=0.0, description="PF employee contribution")
-    pf_employer_contribution: float = Field(default=0.0, description="PF employer contribution")
+    eps_employee: float = Field(default=0.0, description="PF employee contribution")
+    eps_employer: float = Field(default=0.0, description="PF employer contribution")
     esi_contribution: float = Field(default=0.0, description="ESI contribution")
-    pf_voluntary_contribution: float = Field(default=0.0, description="PF voluntary contribution")
+    vps_employee: float = Field(default=0.0, description="PF voluntary contribution")
     # Add new fields for TDS status and LWP details
     one_time_bonus: float = Field(default=0.0, description="One time bonus")
     one_time_arrear: float = Field(default=0.0, description="One time arrear")
     tds_status: Optional[TDSStatusDTO] = None
     lwp: Optional[LWPDetailsDTO] = None
+    pf_status: Optional[PfStatusDTO] = None
     
     # Deductions
     epf_employee: float = Field(default=0.0, description="EPF employee contribution")
@@ -1258,13 +1266,14 @@ class MonthlySalaryResponseDTO(BaseModel):
     one_time_arrear: float = Field(default=0.0, description="One time arrear")
     commission: float = Field(default=0.0, description="Commission")
     other_allowances: float = Field(default=0.0, description="Other allowances")
-    pf_employee_contribution: float = Field(default=0.0, description="PF employee contribution")
-    pf_employer_contribution: float = Field(default=0.0, description="PF employer contribution")
+    eps_employee: float = Field(default=0.0, description="PF employee contribution")
+    eps_employer: float = Field(default=0.0, description="PF employer contribution")
     esi_contribution: float = Field(default=0.0, description="ESI contribution")
-    pf_voluntary_contribution: float = Field(default=0.0, description="PF voluntary contribution")
+    vps_employee: float = Field(default=0.0, description="PF voluntary contribution")
     # Add new fields for TDS status and LWP details
     tds_status: Optional[TDSStatusDTO] = None
     lwp: Optional[LWPDetailsDTO] = None
+    pf_status: Optional[PfStatusDTO] = None
     
     # Deductions
     epf_employee: float = Field(default=0.0, description="EPF employee contribution")

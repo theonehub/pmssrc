@@ -8,7 +8,7 @@ from app.domain.entities.taxation.perquisites import MonthlyPerquisitesPayouts
 from app.domain.entities.taxation.deductions import TaxDeductions
 from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 from app.domain.entities.taxation.lwp_details import LWPDetails
-from app.domain.entities.taxation.monthly_salary_status import TDSStatus, PayoutStatus
+from app.domain.entities.taxation.monthly_salary_status import TDSStatus, PayoutStatus, PfStatus
 from typing import Optional
 from datetime import date
 
@@ -18,6 +18,10 @@ class MonthlySalary:
     month: int
     year: int
     salary: SalaryIncome
+    eps_employee: Money = Money.zero()
+    eps_employer: Money = Money.zero()
+    vps_employee: Money = Money.zero()
+    esi_contribution: Money = Money.zero()
     perquisites_payouts: MonthlyPerquisitesPayouts
     deductions: TaxDeductions
     retirement: RetirementBenefits
@@ -30,6 +34,7 @@ class MonthlySalary:
     tds_status: TDSStatus = field(default_factory=lambda: TDSStatus(paid=False, month=0, total_tax_liability=Money.zero()))
     lwp: LWPDetails = field(default_factory=lambda: LWPDetails(month=0))
     payout_status: PayoutStatus = field(default_factory=PayoutStatus)
+    pf_status: PfStatus = field(default_factory=PfStatus)
     
 
     def __post_init__(self):
@@ -41,6 +46,8 @@ class MonthlySalary:
             self.tds_status = TDSStatus(paid=False, month=self.month, total_tax_liability=Money.zero())
         if self.lwp is None:
             self.lwp = LWPDetails(month=self.month)
+        if self.pf_status is None:
+            self.pf_status = PfStatus()
         
     def compute_net_pay(self) -> Money:
         """

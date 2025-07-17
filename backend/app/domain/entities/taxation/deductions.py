@@ -1153,13 +1153,13 @@ class TaxDeductions:
     def interest_on_savings_deduction(self) -> Money:
         return self.savings_account_interest
     
-    def calculate_combined_80c_80ccc_80ccd1_deduction(self, regime: TaxRegime, pf_employee_contribution: Money) -> Money:
+    def calculate_combined_80c_80ccc_80ccd1_deduction(self, regime: TaxRegime, eps_employee: Money) -> Money:
         """Calculate combined 80C + 80CCC + 80CCD(1) deduction with ₹1.5L limit."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
         
         total_investment = Money.zero()
-        total_investment = total_investment.add(pf_employee_contribution)
+        total_investment = total_investment.add(eps_employee)
         
         # Add 80C investments
         if self.section_80c:
@@ -1257,9 +1257,9 @@ class TaxDeductions:
             adjusted_income = self.calculate_adjusted_gross_income_for_80g(gross_total_income, regime, is_government_employee)
         
         # Now calculate total deductions normally
-        return self.calculate_total_deductions(regime, age, gross_total_income, Money.zero()) #TODO: Need to add pf_employee_contribution
+        return self.calculate_total_deductions(regime, age, gross_total_income, Money.zero()) #TODO: Need to add eps_employee
     
-    def calculate_total_deductions(self, regime: TaxRegime, age: int, gross_income: Money, pf_employee_contribution: Money) -> Money:
+    def calculate_total_deductions(self, regime: TaxRegime, age: int, gross_income: Money, eps_employee: Money) -> Money:
         """
         Calculate total eligible deductions across all sections.
         
@@ -1280,7 +1280,7 @@ class TaxDeductions:
         total = Money.zero()
         
         # Combined 80C + 80CCC + 80CCD(1) limit
-        total = total.add(self.calculate_combined_80c_80ccc_80ccd1_deduction(regime, pf_employee_contribution))
+        total = total.add(self.calculate_combined_80c_80ccc_80ccd1_deduction(regime, eps_employee))
         
         # 80CCD(1B) - Additional NPS (separate ₹50,000 limit)
         if self.section_80ccd:

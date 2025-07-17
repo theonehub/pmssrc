@@ -198,7 +198,7 @@ class ComputeMonthlySalaryUseCase:
             lwp=monthly_lwp,
             one_time_arrear=one_time_arrear,
             one_time_bonus=one_time_bonus,
-            tds_status=TDSStatus(paid=False, month=request.month, total_tax_liability=Money.zero()),
+            tds_status=TDSStatus(status='unpaid', total_tax_liability=Money.zero()),
             payout_status=PayoutStatus(status='computed'),
             tax_year=salary_package_record.tax_year,
             tax_regime=salary_package_record.regime,
@@ -363,11 +363,10 @@ class ComputeMonthlySalaryUseCase:
             basic_salary=monthly_salary.salary.basic_salary.to_float(),
             da=monthly_salary.salary.dearness_allowance.to_float(),
             hra=monthly_salary.salary.hra_provided.to_float(),
-            pf_employee_contribution=monthly_salary.salary.pf_employee_contribution.to_float(),
-            pf_employer_contribution=monthly_salary.salary.pf_employer_contribution.to_float(),
+            eps_employee=monthly_salary.salary.eps_employee.to_float(),
+            eps_employer=monthly_salary.salary.eps_employer.to_float(),
             esi_contribution=monthly_salary.salary.esi_contribution.to_float(),
-            pf_voluntary_contribution=monthly_salary.salary.pf_voluntary_contribution.to_float(),
-            pf_total_contribution=monthly_salary.salary.pf_total_contribution.to_float(),
+            vps_employee=monthly_salary.salary.vps_employee.to_float(),
             special_allowance=monthly_salary.salary.special_allowance.to_float(),
             transport_allowance=0.0,  # Not in current model
             medical_allowance=0.0,  # Not in current model

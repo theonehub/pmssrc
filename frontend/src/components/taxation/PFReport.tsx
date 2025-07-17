@@ -931,8 +931,8 @@ const PFReport: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label={salary.payout_status?.status || ''}
-                          color={getStatusColor(salary.payout_status?.status || '') as any}
+                          label={salary.pf_status?.status || ''}
+                          color={getStatusColor(salary.pf_status?.status || '') as any}
                           size="small"
                         />
                       </TableCell>

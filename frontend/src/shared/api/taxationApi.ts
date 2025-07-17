@@ -179,6 +179,7 @@ class TaxationAPI {
       employee_id: string;
       tax_year: string;
       salary_income: any;
+      force_new_revision?: boolean;
       notes?: string;
     }
   ): Promise<any> {
@@ -188,7 +189,8 @@ class TaxationAPI {
         employee_id: request.employee_id,
         tax_year: request.tax_year,
         salary_income: request.salary_income,
-        notes: request.notes
+        notes: request.notes,
+        force_new_revision: request.force_new_revision
       });
     } catch (error) {
       console.error('Error updating salary component:', error);

@@ -295,11 +295,10 @@ class SalaryIncome:
     dearness_allowance: Money
     hra_provided: Money
     special_allowance: Money
-    pf_employee_contribution: Money = Money.zero()
-    pf_employer_contribution: Money = Money.zero()
+    eps_employee: Money = Money.zero()
+    eps_employer: Money = Money.zero()
     esi_contribution: Money = Money.zero()
-    pf_voluntary_contribution: Money = Money.zero()
-    pf_total_contribution: Money = Money.zero()
+    vps_employee: Money = Money.zero()
 
     # Optional components with defaults
     commission: Money = Money.zero()
@@ -312,12 +311,6 @@ class SalaryIncome:
         if self.specific_allowances is None:
             self.specific_allowances = SpecificAllowances()
 
-        if self.pf_total_contribution is None:
-            self.pf_total_contribution = self.pf_employee_contribution.add(self.pf_employer_contribution).add(self.pf_voluntary_contribution).add(self.esi_contribution)
-
-        # Remove automatic setting of effective_from - it must be provided by user
-        # if self.effective_from is None:
-        #     self.effective_from = datetime.now()
     
     def calculate_gross_salary(self) -> Money:
         """
@@ -330,8 +323,7 @@ class SalaryIncome:
                 .add(self.dearness_allowance)       #considered for doc
                 .add(self.commission)               #considered for doc
                 .add(self.hra_provided)             #considered for doc
-                .add(self.special_allowance)        
-                .add(self.pf_employee_contribution))
+                .add(self.special_allowance))
         
         # Add specific allowances if available
         if self.specific_allowances:
@@ -343,7 +335,7 @@ class SalaryIncome:
         """
         Get the PF employee contribution.
         """
-        return self.pf_employee_contribution + self.pf_voluntary_contribution
+        return self.eps_employee + self.vps_employee
 
     def calculate_basic_plus_da(self) -> Money:
         """
@@ -368,7 +360,7 @@ class SalaryIncome:
         
         #TODO: Need to check if this is correct
         total_exemptions = Money.zero()
-        total_exemptions = self.pf_employee_contribution.add(self.pf_voluntary_contribution).min(Money.from_int(250000))
+        total_exemptions = self.eps_employee.add(self.vps_employee).min(Money.from_int(250000))
 
         # Specific allowances exemptions
         if self.specific_allowances:

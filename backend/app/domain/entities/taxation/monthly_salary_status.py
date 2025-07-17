@@ -24,3 +24,22 @@ class PayoutStatus:
     comments: Optional[str] = None
     transaction_id: Optional[str] = None
     transfer_date: Optional[date] = None
+
+@dataclass
+class PfStatus:
+    """
+    Represents a PF status for a given month.
+    """
+    status: str = 'computed'
+    comments: Optional[str] = None
+    transaction_id: Optional[str] = None
+    transfer_date: Optional[date] = None
+    
+class EsiStatus:
+    """
+    Represents a ESI status for a given month.
+    """
+    status: str = 'computed'
+    comments: Optional[str] = None
+    transaction_id: Optional[str] = None
+    transfer_date: Optional[date] = None

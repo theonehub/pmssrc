@@ -48,7 +48,7 @@ import {
   Description as DescriptionIcon,
   Savings as SavingsIcon
 } from '@mui/icons-material';
-import { getCurrentTaxYear, getAvailableTaxYears, taxYearStringToStartYear } from '../../shared/utils/formatting';
+import { getCurrentTaxYear, getAvailableTaxYears, taxYearStringToStartYear, formatTaxYearForApi } from '../../shared/utils/formatting';
 
 /**
  * PF Report Component - Display Provident Fund information for reporting
@@ -99,7 +99,7 @@ const PFReport: React.FC = () => {
       
       const response = await salaryProcessingApi.getMonthlySalariesForPeriod(
         month,
-        taxYear,
+        formatTaxYearForApi(taxYear),
         params
       );
       
@@ -120,7 +120,7 @@ const PFReport: React.FC = () => {
     try {
       setSummaryLoading(true);
       
-      const response = await salaryProcessingApi.getMonthlySalarySummary(month, taxYear);
+      const response = await salaryProcessingApi.getMonthlySalarySummary(month, formatTaxYearForApi(taxYear));
       setSummary(response);
       
     } catch (error: any) {
@@ -136,18 +136,18 @@ const PFReport: React.FC = () => {
   const calculatePFSummary = useCallback(() => {
     if (!salaries.length) return null;
 
-    const pfData = salaries.filter(salary => salary.epf_employee > 0);
+    const pfData = salaries.filter(salary => (salary.epf_employee > 0 || salary.epf_employer > 0));
     
     const summary = {
       totalEmployees: salaries.length,
       employeesWithPF: pfData.length,
-      totalEmployeePF: pfData.reduce((sum, salary) => sum + salary.epf_employee, 0),
-      totalEmployerPF: pfData.reduce((sum, salary) => sum + (salary.epf_employee || 0), 0), // Assuming employer PF equals employee PF
-      totalPFContribution: pfData.reduce((sum, salary) => sum + salary.epf_employee * 2, 0), // Employee + Employer
-      averageEmployeePF: pfData.length > 0 ? pfData.reduce((sum, salary) => sum + salary.epf_employee, 0) / pfData.length : 0,
-      averageEmployerPF: pfData.length > 0 ? pfData.reduce((sum, salary) => sum + (salary.epf_employee || 0), 0) / pfData.length : 0,
-      totalGrossSalary: salaries.reduce((sum, salary) => sum + salary.gross_salary, 0),
-      totalNetSalary: salaries.reduce((sum, salary) => sum + salary.net_salary, 0),
+      totalEmployeePF: pfData.reduce((sum, salary) => sum + (salary.epf_employee || 0), 0),
+      totalEmployerPF: pfData.reduce((sum, salary) => sum + (salary.epf_employer || 0), 0),
+      totalPFContribution: pfData.reduce((sum, salary) => sum + (salary.epf_employee || 0) + (salary.epf_employer || 0), 0),
+      averageEmployeePF: pfData.length > 0 ? pfData.reduce((sum, salary) => sum + (salary.epf_employee || 0), 0) / pfData.length : 0,
+      averageEmployerPF: pfData.length > 0 ? pfData.reduce((sum, salary) => sum + (salary.epf_employer || 0), 0) / pfData.length : 0,
+      totalGrossSalary: salaries.reduce((sum, salary) => sum + (salary.gross_salary || 0), 0),
+      totalNetSalary: salaries.reduce((sum, salary) => sum + (salary.net_salary || 0), 0),
       pfByDepartment: {} as Record<string, { employee: number; employer: number; total: number }>,
       pfByTaxRegime: {} as Record<string, { employee: number; employer: number; total: number }>,
       monthlyPF: {} as Record<string, { employee: number; employer: number; total: number }>
@@ -156,15 +156,16 @@ const PFReport: React.FC = () => {
     // Calculate PF by department
     pfData.forEach(salary => {
       const dept = salary.department || 'Unknown';
-      const employerPF = salary.epf_employee || 0; // Assuming employer PF equals employee PF
-      const totalPF = salary.epf_employee + employerPF;
+      const employerPF = salary.epf_employer || 0;
+      const employeePF = salary.epf_employee || 0;
+      const totalPF = employeePF + employerPF;
       
       if (!summary.pfByDepartment[dept]) {
         summary.pfByDepartment[dept] = { employee: 0, employer: 0, total: 0 };
       }
       const deptData = summary.pfByDepartment[dept];
       if (deptData) {
-        deptData.employee += salary.epf_employee;
+        deptData.employee += employeePF;
         deptData.employer += employerPF;
         deptData.total += totalPF;
       }
@@ -173,15 +174,16 @@ const PFReport: React.FC = () => {
     // Calculate PF by tax regime
     pfData.forEach(salary => {
       const regime = salary.tax_regime || 'Unknown';
-      const employerPF = salary.epf_employee || 0;
-      const totalPF = salary.epf_employee + employerPF;
+      const employerPF = salary.epf_employer || 0;
+      const employeePF = salary.epf_employee || 0;
+      const totalPF = employeePF + employerPF;
       
       if (!summary.pfByTaxRegime[regime]) {
         summary.pfByTaxRegime[regime] = { employee: 0, employer: 0, total: 0 };
       }
       const regimeData = summary.pfByTaxRegime[regime];
       if (regimeData) {
-        regimeData.employee += salary.epf_employee;
+        regimeData.employee += employeePF;
         regimeData.employer += employerPF;
         regimeData.total += totalPF;
       }
@@ -190,15 +192,16 @@ const PFReport: React.FC = () => {
     // Calculate monthly PF
     pfData.forEach(salary => {
       const monthKey = `${salary.month}/${salary.year}`;
-      const employerPF = salary.epf_employee || 0;
-      const totalPF = salary.epf_employee + employerPF;
+      const employerPF = salary.epf_employer || 0;
+      const employeePF = salary.epf_employee || 0;
+      const totalPF = employeePF + employerPF;
       
       if (!summary.monthlyPF[monthKey]) {
         summary.monthlyPF[monthKey] = { employee: 0, employer: 0, total: 0 };
       }
       const monthData = summary.monthlyPF[monthKey];
       if (monthData) {
-        monthData.employee += salary.epf_employee;
+        monthData.employee += employeePF;
         monthData.employer += employerPF;
         monthData.total += totalPF;
       }
@@ -338,7 +341,8 @@ const PFReport: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportPFReport('challan', month, taxYearStringToStartYear(taxYear), undefined, filters);
+      // Pass selectedQuarter for challan
+      const blob = await exportApi.exportPFReport('challan', month, taxYearStringToStartYear(taxYear), selectedQuarter, filters);
       
       exportApi.downloadFile(blob, `pf_challan_${month}_${taxYear}.pdf`);
       
@@ -359,7 +363,8 @@ const PFReport: React.FC = () => {
       if (statusFilter) filters.status = statusFilter;
       if (departmentFilter) filters.department = departmentFilter;
       
-      const blob = await exportApi.exportPFReport('return', month, taxYearStringToStartYear(taxYear), undefined, filters);
+      // Pass selectedQuarter for return
+      const blob = await exportApi.exportPFReport('return', month, taxYearStringToStartYear(taxYear), selectedQuarter, filters);
       
       exportApi.downloadFile(blob, `pf_return_${month}_${taxYear}.pdf`);
       
@@ -706,35 +711,59 @@ const PFReport: React.FC = () => {
               <Divider sx={{ mb: 2 }} />
               <Grid container spacing={2}>
                 <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">Employee PF</Typography>
-                  <Typography variant="body1" color="primary" fontWeight="bold">
-                    {formatCurrency(selectedSalary.epf_employee)}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">Employer PF</Typography>
+                  <Tooltip title="Employee's contribution to EPF (12% of Basic + DA)"><Typography variant="body2" color="textSecondary">Employee PF (EPF)</Typography></Tooltip>
                   <Typography variant="body1" color="primary" fontWeight="bold">
                     {formatCurrency(selectedSalary.epf_employee || 0)}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">Total PF Contribution</Typography>
+                  <Tooltip title="Employer's contribution to EPF (12% of Basic + DA)"><Typography variant="body2" color="textSecondary">Employer PF (EPF)</Typography></Tooltip>
                   <Typography variant="body1" color="primary" fontWeight="bold">
-                    {formatCurrency(selectedSalary.epf_employee * 2)}
+                    {formatCurrency(selectedSalary.epf_employer || 0)}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">PF Rate</Typography>
+                  <Tooltip title="Employee Pension Scheme (part of EPF, 8.33% of Basic + DA)"><Typography variant="body2" color="textSecondary">EPS (Employee)</Typography></Tooltip>
+                  <Typography variant="body1" color="primary">
+                    {formatCurrency(selectedSalary.eps_employee || 0)}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Tooltip title="Employer's contribution to EPS (part of EPF)"><Typography variant="body2" color="textSecondary">EPS (Employer)</Typography></Tooltip>
+                  <Typography variant="body1" color="primary">
+                    {formatCurrency(selectedSalary.eps_employer || 0)}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Tooltip title="Voluntary Provident Fund (employee's extra contribution)"><Typography variant="body2" color="textSecondary">VPF</Typography></Tooltip>
+                  <Typography variant="body1" color="primary">
+                    {formatCurrency(selectedSalary.vps_employee || 0)}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Tooltip title="Employee State Insurance contribution"><Typography variant="body2" color="textSecondary">ESI Contribution</Typography></Tooltip>
+                  <Typography variant="body1" color="primary">
+                    {formatCurrency(selectedSalary.esi_contribution || 0)}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Tooltip title="Total PF = Employee PF + Employer PF"><Typography variant="body2" color="textSecondary">Total PF Contribution</Typography></Tooltip>
+                  <Typography variant="body1" color="primary" fontWeight="bold">
+                    {formatCurrency((selectedSalary.epf_employee || 0) + (selectedSalary.epf_employer || 0))}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Tooltip title="Statutory PF rate"><Typography variant="body2" color="textSecondary">PF Rate</Typography></Tooltip>
                   <Typography variant="body1">12% (Employee) + 12% (Employer)</Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">PF UAN</Typography>
+                  <Tooltip title="Universal Account Number (UAN) for PF"><Typography variant="body2" color="textSecondary">PF UAN</Typography></Tooltip>
                   <Typography variant="body1" fontFamily="monospace">
                     {selectedSalary.employee_id.replace(/\D/g, '').padStart(12, '0')}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>
-                  <Typography variant="body2" color="textSecondary">PF Payment Reference</Typography>
+                  <Tooltip title="Reference for PF payment"><Typography variant="body2" color="textSecondary">PF Payment Reference</Typography></Tooltip>
                   <Typography variant="body1" fontFamily="monospace">
                     PF_{selectedSalary.employee_id}_{selectedSalary.month}_{selectedSalary.year}
                   </Typography>
@@ -871,6 +900,10 @@ const PFReport: React.FC = () => {
                 <TableCell>Basic + DA</TableCell>
                 <TableCell>Employee PF</TableCell>
                 <TableCell>Employer PF</TableCell>
+                <TableCell>EPS (Emp)</TableCell>
+                <TableCell>EPS (Empr)</TableCell>
+                <TableCell>VPF</TableCell>
+                <TableCell>ESI</TableCell>
                 <TableCell>Total PF</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Actions</TableCell>
@@ -879,13 +912,13 @@ const PFReport: React.FC = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={13} align="center" sx={{ py: 4 }}>
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
-              ) : filteredSalaries.filter(salary => salary.epf_employee > 0).length === 0 ? (
+              ) : filteredSalaries.filter(salary => (salary.epf_employee > 0 || salary.epf_employer > 0)).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={13} align="center" sx={{ py: 4 }}>
                     <Typography variant="body1" color="textSecondary">
                       {searchTerm ? 'No PF records found matching your search' : 'No PF records found for the selected period'}
                     </Typography>
@@ -893,7 +926,7 @@ const PFReport: React.FC = () => {
                 </TableRow>
               ) : (
                 filteredSalaries
-                  .filter(salary => salary.epf_employee > 0) // Only show employees with PF
+                  .filter(salary => (salary.epf_employee > 0 || salary.epf_employer > 0)) // Only show employees with PF
                   .map((salary) => (
                     <TableRow key={`${salary.employee_id}-${salary.month}-${salary.year}`}>
                       <TableCell>
@@ -917,17 +950,37 @@ const PFReport: React.FC = () => {
                       <TableCell>{formatCurrency(salary.basic_salary + salary.da)}</TableCell>
                       <TableCell>
                         <Typography variant="body1" color="primary" fontWeight="bold">
-                          {formatCurrency(salary.epf_employee)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body1" color="primary" fontWeight="bold">
                           {formatCurrency(salary.epf_employee || 0)}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body1" color="primary" fontWeight="bold">
-                          {formatCurrency(salary.epf_employee * 2)}
+                          {formatCurrency(salary.epf_employer || 0)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body1" color="primary">
+                          {formatCurrency(salary.eps_employee || 0)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body1" color="primary">
+                          {formatCurrency(salary.eps_employer || 0)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body1" color="primary">
+                          {formatCurrency(salary.vps_employee || 0)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body1" color="primary">
+                          {formatCurrency(salary.esi_contribution || 0)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body1" color="primary" fontWeight="bold">
+                          {formatCurrency((salary.epf_employee || 0) + (salary.epf_employer || 0))}
                         </Typography>
                       </TableCell>
                       <TableCell>

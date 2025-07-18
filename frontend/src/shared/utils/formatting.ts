@@ -362,6 +362,12 @@ export const taxYearStringToStartYear = (taxYear: string | undefined): number =>
   return parseInt(parts[0], 10);
 };
 
+export function formatTaxYearForApi(taxYear: string): string {
+  const [start, end] = taxYear.split('-');
+  if (!start || !end) return taxYear;
+  return `${start}-${end.slice(-2)}`;
+}
+
 // =============================================================================
 // MOBILE-SPECIFIC FORMATTING
 // =============================================================================

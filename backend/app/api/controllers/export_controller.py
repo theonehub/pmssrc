@@ -480,12 +480,28 @@ class ExportController:
             pf_list = []
             for salary in salary_data:
                 if isinstance(salary, dict):
-                    # DTO object
-                    if salary.get('epf_employee', 0) > 0:
+                    epf_employee = salary.get('epf_employee')
+                    if epf_employee is None or epf_employee == 0:
+                        # Calculate if missing
+                        basic = salary.get('basic_salary', 0)
+                        da = salary.get('da', 0)
+                        try:
+                            epf_employee = round((basic + da) * 0.12)
+                        except Exception:
+                            epf_employee = 0
+                        salary['epf_employee'] = epf_employee
+                    if epf_employee > 0:
                         pf_list.append(salary)
                 elif hasattr(salary, 'basic_salary'):
-                    # MonthlySalaryResponseDTO object - has flat fields
-                    if salary.epf_employee > 0:
+                    epf_employee = getattr(salary, 'epf_employee', 0)
+                    if not epf_employee or epf_employee == 0:
+                        basic = getattr(salary, 'basic_salary', 0)
+                        da = getattr(salary, 'da', 0)
+                        try:
+                            epf_employee = round((basic + da) * 0.12)
+                        except Exception:
+                            epf_employee = 0
+                    if epf_employee > 0:
                         pf_dict = {
                             'employee_id': salary.employee_id,
                             'employee_name': salary.employee_name,
@@ -494,13 +510,12 @@ class ExportController:
                             'month': salary.month,
                             'year': salary.year,
                             'gross_salary': salary.gross_salary,
-                            'epf_employee': salary.epf_employee,
-                            'epf_employer': salary.epf_employee,  # Assuming employer PF equals employee PF
+                            'epf_employee': epf_employee,
+                            'epf_employer': epf_employee,  # or calculate separately if needed
                             'status': salary.status
                         }
                         pf_list.append(pf_dict)
                 else:
-                    # Entity object (fallback)
                     epf_amount = self._calculate_monthly_epf(salary.salary.calculate_gross_salary())
                     if epf_amount > 0:
                         pf_dict = {

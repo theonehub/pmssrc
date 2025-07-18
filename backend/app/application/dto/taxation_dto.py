@@ -21,6 +21,8 @@ class SalaryIncomeDTO(BaseModel):
     hra_provided: Decimal = Field(default=0, ge=0)
     commission: Decimal = Field(default=0, ge=0)
     special_allowance: Decimal = Field(default=0, ge=0)
+    epf_employee: Decimal = Field(default=0, ge=0)  # Added
+    epf_employer: Decimal = Field(default=0, ge=0)  # Added
     eps_employee: Decimal = Field(default=0, ge=0)
     eps_employer: Decimal = Field(default=0, ge=0)
     vps_employee: Decimal = Field(default=0, ge=0)
@@ -454,6 +456,7 @@ class TaxCalculationBreakdownDTO(BaseModel):
     total_tax_liability: Decimal
     effective_tax_rate: str
     monthly_tax_liability: Decimal
+    professional_tax: Decimal = Field(default=0, description="Professional tax")
 
 # =============================================================================
 # LEGACY RESPONSE DTOs
@@ -936,8 +939,6 @@ class MonthlySalaryResponseDTO(BaseModel):
     # Deductions
     epf_employee: float = Field(default=0.0, description="EPF employee contribution")
     esi_employee: float = Field(default=0.0, description="ESI employee contribution")
-    professional_tax: float = Field(default=0.0, description="Professional tax")
-    tds: float = Field(default=0.0, description="TDS")
     advance_deduction: float = Field(default=0.0, description="Advance deduction")
     loan_deduction: float = Field(default=0.0, description="Loan deduction")
     other_deductions: float = Field(default=0.0, description="Other deductions")
@@ -977,6 +978,7 @@ class MonthlySalaryResponseDTO(BaseModel):
     computation_mode: str = Field(default="declared", description="Computation mode")
     computation_summary: Optional[Dict[str, Any]] = Field(default=None, description="Computation summary")
     payout_status: Optional[PayoutStatusDTO] = Field(default=None, description="Payout status object")
+    professional_tax: float = Field(default=0.0, description="Professional tax")
 
 class MonthlySalaryBulkComputeRequestDTO(BaseModel):
     """Request DTO for bulk monthly salary computation."""
@@ -1278,7 +1280,6 @@ class MonthlySalaryResponseDTO(BaseModel):
     # Deductions
     epf_employee: float = Field(default=0.0, description="EPF employee contribution")
     esi_employee: float = Field(default=0.0, description="ESI employee contribution")
-    professional_tax: float = Field(default=0.0, description="Professional tax")
     tds: float = Field(default=0.0, description="TDS")
     advance_deduction: float = Field(default=0.0, description="Advance deduction")
     loan_deduction: float = Field(default=0.0, description="Loan deduction")
@@ -1319,6 +1320,7 @@ class MonthlySalaryResponseDTO(BaseModel):
     computation_mode: str = Field(default="declared", description="Computation mode")
     computation_summary: Optional[Dict[str, Any]] = Field(default=None, description="Computation summary")
     payout_status: Optional[PayoutStatusDTO] = Field(default=None, description="Payout status object")
+    professional_tax: float = Field(default=0.0, description="Professional tax")
 
 class MonthlySalaryBulkComputeRequestDTO(BaseModel):
     """Request DTO for bulk monthly salary computation."""
@@ -1336,3 +1338,54 @@ class MonthlySalaryBulkComputeResponseDTO(BaseModel):
     skipped: int = Field(..., description="Skipped computation count")
     errors: List[Dict[str, str]] = Field(default_factory=list, description="List of errors")
     computation_summary: Optional[Dict[str, Any]] = Field(default=None, description="Computation summary") 
+
+# =============================================================================
+# TAX CALCULATION RESULT DTO & SERIALIZATION
+# =============================================================================
+
+class TaxCalculationResultDTO(BaseModel):
+    total_income: float
+    professional_tax: float
+    total_exemptions: float
+    total_deductions: float
+    taxable_income: float
+    tax_amount: float
+    surcharge: float
+    cess: float
+    tax_liability: float
+    tax_breakdown: Dict[str, Any]
+    regime_comparison: Optional[Dict[str, Any]] = None
+
+
+def serialize_tax_calculation_result(result) -> TaxCalculationResultDTO:
+    """Serialize TaxCalculationResult domain object to DTO."""
+    return TaxCalculationResultDTO(
+        total_income=result.total_income.to_float(),
+        professional_tax=result.professional_tax.to_float(),
+        total_exemptions=result.total_exemptions.to_float(),
+        total_deductions=result.total_deductions.to_float(),
+        taxable_income=result.taxable_income.to_float(),
+        tax_amount=result.tax_amount.to_float() if hasattr(result, 'tax_amount') else 0.0,
+        surcharge=result.surcharge.to_float() if hasattr(result, 'surcharge') else 0.0,
+        cess=result.cess.to_float() if hasattr(result, 'cess') else 0.0,
+        tax_liability=result.tax_liability.to_float(),
+        tax_breakdown=result.tax_breakdown,
+        regime_comparison=result.regime_comparison
+    )
+
+
+def deserialize_tax_calculation_result(dto: TaxCalculationResultDTO, money_cls) -> 'TaxCalculationResult':
+    """Deserialize DTO to TaxCalculationResult domain object. Requires Money class as money_cls."""
+    return TaxCalculationResult(
+        total_income=money_cls(dto.total_income),
+        professional_tax=money_cls(dto.professional_tax),
+        total_exemptions=money_cls(dto.total_exemptions),
+        total_deductions=money_cls(dto.total_deductions),
+        taxable_income=money_cls(dto.taxable_income),
+        tax_amount=money_cls(dto.tax_amount),
+        surcharge=money_cls(dto.surcharge),
+        cess=money_cls(dto.cess),
+        tax_liability=money_cls(dto.tax_liability),
+        tax_breakdown=dto.tax_breakdown,
+        regime_comparison=dto.regime_comparison
+    )

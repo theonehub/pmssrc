@@ -114,8 +114,8 @@ const CompanyLeaves: React.FC = () => {
       
       handleCloseForm();
     } catch (error: any) {
-      const errorMessage = error.response?.data?.detail || error.message || 'Failed to save company leave';
-      showAlert(errorMessage, 'error');
+      const backendMessage = error?.response?.data?.detail;
+      showAlert(backendMessage || 'Failed to save company leave', 'error');
       throw error;
     }
   };
@@ -131,8 +131,8 @@ const CompanyLeaves: React.FC = () => {
         await deleteMutation.mutateAsync(id);
         showAlert('Company leave deleted successfully!', 'success');
       } catch (error: any) {
-        const errorMessage = error.response?.data?.detail || error.message || 'Failed to delete company leave';
-        showAlert(errorMessage, 'error');
+        const backendMessage = error?.response?.data?.detail;
+        showAlert(backendMessage || 'Failed to delete company leave', 'error');
       }
     }
   };

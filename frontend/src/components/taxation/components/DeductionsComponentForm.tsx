@@ -480,8 +480,9 @@ const DeductionsComponentForm: React.FC = () => {
       }, 1500);
       
     } catch (error: any) {
-      setError('Failed to save deductions data. Please try again.');
-      showToast('Failed to save deductions data', 'error');
+      const backendMessage = error?.response?.data?.detail;
+      setError(backendMessage || 'Failed to save deductions data. Please try again.');
+      showToast(backendMessage || 'Failed to save deductions data', 'error');
     } finally {
       setSaving(false);
     }

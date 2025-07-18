@@ -660,6 +660,8 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             "basic_salary": salary_income.basic_salary.to_float() if salary_income.basic_salary else 0.0,
             "dearness_allowance": salary_income.dearness_allowance.to_float() if salary_income.dearness_allowance else 0.0,
             "hra_provided": salary_income.hra_provided.to_float() if salary_income.hra_provided else 0.0,
+            "epf_employee": salary_income.epf_employee.to_float() if hasattr(salary_income, 'epf_employee') and salary_income.epf_employee else 0.0,  # Added
+            "epf_employer": salary_income.epf_employer.to_float() if hasattr(salary_income, 'epf_employer') and salary_income.epf_employer else 0.0,  # Added
             "eps_employee": salary_income.eps_employee.to_float() if salary_income.eps_employee else 0.0,
             "eps_employer": salary_income.eps_employer.to_float() if salary_income.eps_employer else 0.0,
             "esi_contribution": salary_income.esi_contribution.to_float() if salary_income.esi_contribution else 0.0,
@@ -1022,6 +1024,9 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             "total_deductions": calculation_result.total_deductions.to_float(),
             "taxable_income": calculation_result.taxable_income.to_float(),
             "tax_liability": calculation_result.tax_liability.to_float(),
+            "professional_tax": calculation_result.professional_tax.to_float(),
+            "cess": calculation_result.cess.to_float(),
+            "surcharge": calculation_result.surcharge.to_float(),       
             "tax_breakdown": calculation_result.tax_breakdown,
             "regime_comparison": calculation_result.regime_comparison
         }
@@ -1104,20 +1109,24 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             current_tax_year = TaxYear.current()
             effective_till = datetime.combine(current_tax_year.get_end_date(), datetime.min.time())
         
+        specific_allowances = self._deserialize_specific_allowances(salary_doc.get("specific_allowances", {}))
+        from app.domain.entities.taxation.salary_income import SalaryIncome
+        from app.domain.value_objects.money import Money
         return SalaryIncome(
-            effective_from=effective_from,
-            effective_till=effective_till,
             basic_salary=Money.from_float(salary_doc.get("basic_salary", 0.0)),
             dearness_allowance=Money.from_float(salary_doc.get("dearness_allowance", 0.0)),
             hra_provided=Money.from_float(salary_doc.get("hra_provided", 0.0)),
+            epf_employee=Money.from_float(salary_doc.get("epf_employee", 0.0)),  # Added
+            epf_employer=Money.from_float(salary_doc.get("epf_employer", 0.0)),  # Added
             eps_employee=Money.from_float(salary_doc.get("eps_employee", 0.0)),
             eps_employer=Money.from_float(salary_doc.get("eps_employer", 0.0)),
             esi_contribution=Money.from_float(salary_doc.get("esi_contribution", 0.0)),
             vps_employee=Money.from_float(salary_doc.get("vps_employee", 0.0)),
             special_allowance=Money.from_float(salary_doc.get("special_allowance", 0.0)),
             commission=Money.from_float(salary_doc.get("commission", 0.0)),
-            specific_allowances=self._deserialize_specific_allowances(salary_doc.get("specific_allowances", {})),
-            # Note: hra_city_type and actual_rent_paid are now handled in deductions module
+            effective_from=effective_from,
+            effective_till=effective_till,
+            specific_allowances=specific_allowances
         )
     
     def _deserialize_deductions(self, deductions_doc: dict) -> TaxDeductions:
@@ -1640,9 +1649,13 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         
         result = TaxCalculationResult(
             total_income=safe_money_from_value(calc_data.get("total_income", 0)),
+            professional_tax=safe_money_from_value(calc_data.get("professional_tax", 0)),
             total_exemptions=safe_money_from_value(calc_data.get("total_exemptions", 0)),
             total_deductions=safe_money_from_value(calc_data.get("total_deductions", 0)),
             taxable_income=safe_money_from_value(calc_data.get("taxable_income", 0)),
+            tax_amount=safe_money_from_value(calc_data.get("tax_amount", 0)),
+            surcharge=safe_money_from_value(calc_data.get("surcharge", 0)),
+            cess=safe_money_from_value(calc_data.get("cess", 0)),
             tax_liability=safe_money_from_value(tax_liability_value),
             tax_breakdown=calc_data.get("tax_breakdown", {}),
             regime_comparison=calc_data.get("regime_comparison")
@@ -1692,6 +1705,8 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             "basic_salary": salary_income.basic_salary.to_float() if salary_income.basic_salary else 0.0,
             "dearness_allowance": salary_income.dearness_allowance.to_float() if salary_income.dearness_allowance else 0.0,
             "hra_provided": salary_income.hra_provided.to_float() if salary_income.hra_provided else 0.0,
+            "epf_employee": salary_income.epf_employee.to_float() if hasattr(salary_income, 'epf_employee') and salary_income.epf_employee else 0.0,  # Added
+            "epf_employer": salary_income.epf_employer.to_float() if hasattr(salary_income, 'epf_employer') and salary_income.epf_employer else 0.0,  # Added
             "eps_employee": salary_income.eps_employee.to_float() if salary_income.eps_employee else 0.0,
             "eps_employer": salary_income.eps_employer.to_float() if salary_income.eps_employer else 0.0,
             "esi_contribution": salary_income.esi_contribution.to_float() if salary_income.esi_contribution else 0.0,
@@ -1793,6 +1808,8 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             basic_salary=Money.from_float(salary_doc.get("basic_salary", 0.0)),
             dearness_allowance=Money.from_float(salary_doc.get("dearness_allowance", 0.0)),
             hra_provided=Money.from_float(salary_doc.get("hra_provided", 0.0)),
+            epf_employee=Money.from_float(salary_doc.get("epf_employee", 0.0)),  # Added
+            epf_employer=Money.from_float(salary_doc.get("epf_employer", 0.0)),  # Added
             eps_employee=Money.from_float(salary_doc.get("eps_employee", 0.0)),
             eps_employer=Money.from_float(salary_doc.get("eps_employer", 0.0)),
             esi_contribution=Money.from_float(salary_doc.get("esi_contribution", 0.0)),

@@ -133,11 +133,9 @@ const UserDetail: React.FC = () => {
         throw new Error('User not found');
       }
     } catch (error: any) {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.error('Error fetching user:', error);
-      }
-      setError(error.response?.data?.detail || error.message || 'Failed to fetch user details');
+      const backendMessage = error?.response?.data?.detail;
+      setError(backendMessage || 'Failed to fetch user details.');
+      showToast(backendMessage || 'Failed to fetch user details.', 'error');
     } finally {
       setLoading(false);
     }

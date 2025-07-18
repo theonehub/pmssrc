@@ -76,7 +76,8 @@ const LWPManagement: React.FC = () => {
         // eslint-disable-next-line no-console
         console.error('Error fetching LWP records:', err);
       }
-      setError('Failed to fetch LWP records.');
+      const backendMessage = err?.response?.data?.detail;
+      setError(backendMessage || 'Failed to fetch LWP records.');
     } finally {
       setLoading(false);
     }
@@ -104,7 +105,8 @@ const LWPManagement: React.FC = () => {
         // eslint-disable-next-line no-console
         console.error('Error updating LWP:', err);
       }
-      setUpdateStatus({ message: 'Failed to update LWP.', type: 'danger' });
+      const backendMessage = err?.response?.data?.detail;
+      setUpdateStatus({ message: backendMessage || 'Failed to update LWP.', type: 'danger' });
     }
   };
 
@@ -131,7 +133,8 @@ const LWPManagement: React.FC = () => {
         // eslint-disable-next-line no-console
         console.error('Error bulk updating LWP:', err);
       }
-      setUpdateStatus({ message: 'Failed to bulk update LWP.', type: 'danger' });
+      const backendMessage = err?.response?.data?.detail;
+      setUpdateStatus({ message: backendMessage || 'Failed to bulk update LWP.', type: 'danger' });
     } finally {
       setIsUpdatingBulk(false);
     }
@@ -172,7 +175,8 @@ const LWPManagement: React.FC = () => {
         // eslint-disable-next-line no-console
         console.error('Error importing LWP data:', err);
       }
-      setUploadStatus({ message: 'Failed to import LWP data.', type: 'danger' });
+      const backendMessage = err?.response?.data?.detail;
+      setUploadStatus({ message: backendMessage || 'Failed to import LWP data.', type: 'danger' });
     }
   };
 

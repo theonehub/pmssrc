@@ -113,11 +113,8 @@ const CompanyLeaveForm: React.FC<CompanyLeaveFormProps> = ({
       
       await onSubmit(formData);
     } catch (error: any) {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.error('Submit error:', error);
-      }
-      setSubmitError(error.message || 'An error occurred while saving. Please try again.');
+      const backendMessage = error?.response?.data?.detail;
+      setSubmitError(backendMessage || 'Failed to submit company leave form.');
     } finally {
       setIsSubmitting(false);
     }

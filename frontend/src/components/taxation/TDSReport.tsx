@@ -164,8 +164,9 @@ const TDSReport: React.FC = () => {
       setTdsStatusDialogOpen(false);
       fetchSalaries();
       fetchSummary();
-    } catch (err) {
-      setTdsStatusUpdateError('Failed to update TDS status. Please try again.');
+    } catch (err: any) {
+      const backendMessage = err?.response?.data?.detail;
+      setTdsStatusUpdateError(backendMessage || 'Failed to update TDS status. Please try again.');
     } finally {
       setTdsStatusUpdateLoading(false);
     }
@@ -193,9 +194,9 @@ const TDSReport: React.FC = () => {
       setSalaries(response.items);
       setTotalCount(response.total);
       
-    } catch (err) {
-      console.error('Error fetching salaries:', err);
-      setError('Failed to fetch salary data. Please try again.');
+    } catch (err: any) {
+      const backendMessage = err?.response?.data?.detail;
+      setError(backendMessage || 'Failed to fetch salary data. Please try again.');
       setSalaries([]);
       setTotalCount(0);
     } finally {
@@ -210,8 +211,9 @@ const TDSReport: React.FC = () => {
       const response = await salaryProcessingApi.getMonthlySalarySummary(month, taxYear);
       setSummary(response);
       
-    } catch (err) {
-      console.error('Error fetching summary:', err);
+    } catch (err: any) {
+      const backendMessage = err?.response?.data?.detail;
+      setError(backendMessage || 'Failed to fetch summary.');
       setSummary(null);
     } finally {
       setSummaryLoading(false);
@@ -350,9 +352,9 @@ const TDSReport: React.FC = () => {
       
       exportApi.downloadFile(blob, `tds_report_${month}_${taxYear}.csv`);
       
-    } catch (err) {
-      console.error('Error exporting TDS to CSV:', err);
-      alert('Failed to export TDS to CSV. Please try again.');
+    } catch (err: any) {
+      const backendMessage = err?.response?.data?.detail;
+      alert(backendMessage || 'Failed to export TDS to CSV. Please try again.');
     } finally {
       setExportLoading(false);
     }
@@ -371,9 +373,9 @@ const TDSReport: React.FC = () => {
       
       exportApi.downloadFile(blob, `tds_report_${month}_${taxYear}.xlsx`);
       
-    } catch (err) {
-      console.error('Error exporting TDS to Excel:', err);
-      alert('Failed to export TDS to Excel. Please try again.');
+    } catch (err: any) {
+      const backendMessage = err?.response?.data?.detail;
+      alert(backendMessage || 'Failed to export TDS to Excel. Please try again.');
     } finally {
       setExportLoading(false);
     }
@@ -392,9 +394,9 @@ const TDSReport: React.FC = () => {
       
       exportApi.downloadFile(blob, `form_16_${taxYear}.csv`);
       
-    } catch (err) {
-      console.error('Error exporting Form 16:', err);
-      alert('Failed to export Form 16. Please try again.');
+    } catch (err: any) {
+      const backendMessage = err?.response?.data?.detail;
+      alert(backendMessage || 'Failed to export Form 16. Please try again.');
     } finally {
       setExportLoading(false);
     }
@@ -409,9 +411,9 @@ const TDSReport: React.FC = () => {
       
       exportApi.downloadFile(blob, `form_24q_q${selectedQuarter}_${taxYear}.csv`);
       
-    } catch (err) {
-      console.error('Error exporting Form 24Q:', err);
-      alert('Failed to export Form 24Q. Please try again.');
+    } catch (err: any) {
+      const backendMessage = err?.response?.data?.detail;
+      alert(backendMessage || 'Failed to export Form 24Q. Please try again.');
     } finally {
       setExportLoading(false);
     }
@@ -426,9 +428,9 @@ const TDSReport: React.FC = () => {
       
       exportApi.downloadFile(blob, `form24q_q${selectedQuarter}_${taxYear}_FVU.txt`);
       
-    } catch (err) {
-      console.error('Error exporting FVU Form 24Q:', err);
-      alert('Failed to export FVU Form 24Q. Please try again.');
+    } catch (err: any) {
+      const backendMessage = err?.response?.data?.detail;
+      alert(backendMessage || 'Failed to export FVU Form 24Q. Please try again.');
     } finally {
       setExportLoading(false);
     }

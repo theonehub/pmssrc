@@ -7,6 +7,7 @@ from typing import List, Dict, Any, Optional, Union, Tuple
 from datetime import datetime, date
 from decimal import Decimal
 from fastapi import HTTPException, status
+from numpy import pad
 
 # Import centralized logger
 from app.utils.logger import get_logger
@@ -365,11 +366,12 @@ class UnifiedTaxationController:
             dearness_allowance=Money.from_decimal(salary_dto.dearness_allowance),
             hra_provided=Money.from_decimal(salary_dto.hra_provided),
             special_allowance=Money.from_decimal(salary_dto.special_allowance),
+            epf_employee=Money.from_decimal(getattr(salary_dto, 'epf_employee', 0)),  # Added
+            epf_employer=Money.from_decimal(getattr(salary_dto, 'epf_employer', 0)),  # Added
             eps_employee=Money.from_decimal(getattr(salary_dto, 'eps_employee', 0)),
             eps_employer=Money.from_decimal(getattr(salary_dto, 'eps_employer', 0)),
             esi_contribution=Money.from_decimal(getattr(salary_dto, 'esi_contribution', 0)),
             vps_employee=Money.from_decimal(getattr(salary_dto, 'vps_employee', 0)),
-            # Optional components with defaults
             commission=Money.from_decimal(getattr(salary_dto, 'commission', 0)),
             specific_allowances=specific_allowances
         )
@@ -1576,12 +1578,12 @@ class UnifiedTaxationController:
             "hra_provided": float(salary_income.hra_provided.amount),
             "special_allowance": float(salary_income.special_allowance.amount),
             "commission": float(salary_income.commission.amount),
-            # Add effective dates for frontend to pre-populate
             "effective_from": salary_income.effective_from.isoformat() if salary_income.effective_from else None,
             "effective_till": salary_income.effective_till.isoformat() if salary_income.effective_till else None,
-            # HRA details are now in deductions module, not salary
-            "hra_city_type": "metro",  # Default value for frontend compatibility
-            "actual_rent_paid": 0.0,   # Default value for frontend compatibility
+            "hra_city_type": "metro",
+            "actual_rent_paid": 0.0,
+            "epf_employee": float(getattr(salary_income, 'epf_employee', Money.zero()).amount),  # Added
+            "epf_employer": float(getattr(salary_income, 'epf_employer', Money.zero()).amount),  # Added
             "eps_employee": float(salary_income.eps_employee.amount),
             "eps_employer": float(salary_income.eps_employer.amount),
             "esi_contribution": float(salary_income.esi_contribution.amount),
@@ -2919,6 +2921,7 @@ class UnifiedTaxationController:
             ("Total Exemptions", calc_result.total_exemptions.to_float()),
             ("Income After Exemptions", calc_result.gross_income.subtract(calc_result.total_exemptions).to_float()),
             ("Total Deductions", calc_result.total_deductions.to_float()),
+            ("Professional Tax", calc_result.professional_tax.to_float()),
             ("Taxable Income", calc_result.taxable_income.to_float()),
             ("Tax Liability", calc_result.tax_liability.to_float()),
             ("Monthly Tax", calc_result.tax_liability.divide(12).to_float()),
@@ -3394,6 +3397,7 @@ class UnifiedTaxationController:
             ("Gross Income", calc_result.gross_income.to_float()),
             ("Total Exemptions", calc_result.total_exemptions.to_float()),
             ("Total Deductions", calc_result.total_deductions.to_float()),
+            ("Professional Tax", calc_result.professional_tax.to_float()),
             ("Taxable Income", calc_result.taxable_income.to_float()),
             ("Tax Liability", calc_result.tax_liability.to_float()),
             ("Monthly Tax", calc_result.tax_liability.divide(12).to_float()),
@@ -3606,8 +3610,8 @@ class UnifiedTaxationController:
         # Calculate deductions
         epf_employee = self._calculate_monthly_epf(gross_salary)
         esi_employee = self._calculate_monthly_esi(gross_salary)
-        professional_tax = self._calculate_monthly_professional_tax(gross_salary)
         tds = monthly_salary.tax_amount
+        total_deductions = epf_employee.add(esi_employee).add(tds)
         
         # Get loan EMI amount from perquisites payouts
         loan_emi = Money.zero()
@@ -3617,7 +3621,6 @@ class UnifiedTaxationController:
                     loan_emi = component.value
                     break
         
-        total_deductions = epf_employee.add(esi_employee).add(professional_tax).add(tds).add(loan_emi)
         net_salary = self._safe_subtract(gross_salary, total_deductions)
         
         # Get working days info
@@ -3685,6 +3688,9 @@ class UnifiedTaxationController:
                 transfer_date=getattr(pf_status_entity, 'transfer_date', None)
             )
 
+        # Calculate professional tax
+        professional_tax = self._calculate_monthly_professional_tax(gross_salary)
+
         return MonthlySalaryResponseDTO(
             employee_id=monthly_salary.employee_id.value,
             month=monthly_salary.month,
@@ -3702,10 +3708,10 @@ class UnifiedTaxationController:
             da=monthly_salary.salary.dearness_allowance.to_float(),
             hra=monthly_salary.salary.hra_provided.to_float(),
             special_allowance=monthly_salary.salary.special_allowance.to_float(),
-            transport_allowance=0.0,  # Not in current model
-            medical_allowance=0.0,  # Not in current model
+            transport_allowance=0.0,
+            medical_allowance=0.0,
             commission=monthly_salary.salary.commission.to_float(),
-            other_allowances=0.0,  # Would need to sum specific allowances
+            other_allowances=0.0,
             one_time_arrear=monthly_salary.one_time_arrear.to_float() if hasattr(monthly_salary, 'one_time_arrear') else 0.0,
             one_time_bonus=monthly_salary.one_time_bonus.to_float() if hasattr(monthly_salary, 'one_time_bonus') else 0.0,
             eps_employee=monthly_salary.salary.eps_employee.to_float(),
@@ -3716,7 +3722,6 @@ class UnifiedTaxationController:
             # Deductions
             epf_employee=epf_employee.to_float(),
             esi_employee=esi_employee.to_float(),
-            professional_tax=professional_tax.to_float(),
             tds=tds.to_float(),
             advance_deduction=0.0,
             loan_deduction=loan_emi.to_float(),
@@ -3769,6 +3774,7 @@ class UnifiedTaxationController:
             ) if monthly_salary.lwp else None,
             payout_status=payout_status_dto,
             pf_status=pf_status_dto,
+            professional_tax=professional_tax.to_float(),
         )
 
     def _calculate_monthly_epf(self, gross_salary):
@@ -4087,12 +4093,11 @@ class UnifiedTaxationController:
         # Calculate deductions using the same logic as DTO conversion
         epf_employee = self._calculate_monthly_epf(gross_salary)
         esi_employee = self._calculate_monthly_esi(gross_salary)
-        professional_tax = self._calculate_monthly_professional_tax(gross_salary)
         tds = salary_record.tax_amount
         one_time_arrear = salary_record.one_time_arrear.to_float()
         one_time_bonus = salary_record.one_time_bonus.to_float()
 
-        total_deductions = epf_employee.add(esi_employee).add(professional_tax).add(tds)
+        total_deductions = epf_employee.add(esi_employee).add(tds)
         net_salary = self._safe_subtract(gross_salary, total_deductions)
 
         # Get working days info
@@ -4134,7 +4139,6 @@ class UnifiedTaxationController:
         -----------
         EPF Employee: ₹{s.eps_employee.to_float():,.2f}
         EPF Voluntary: ₹{s.vps_employee.to_float():,.2f}
-        Professional Tax: ₹{professional_tax.to_float():,.2f}
         TDS: ₹{tds.to_float():,.2f}
         Advance Deduction: ₹{0.0:,.2f}
         Loan Deduction: ₹{0.0:,.2f}
@@ -4511,8 +4515,8 @@ class UnifiedTaxationController:
         # --- Handle TDS status logic ---
         if tds_status:
             # Convert to TDSStatus object
-            paid = tds_status == 'paid'
-            tds_challan_number = challan_number if paid else None
+            tds_status == 'paid'
+            tds_challan_number = challan_number if pad else None
             ms.tds_status = TDSStatusDTO(
                 status=tds_status,
                 challan_number=challan_number,

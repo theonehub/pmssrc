@@ -352,50 +352,12 @@ const AddNewUser: React.FC = () => {
         navigate('/users');
       }, 1500);
     } catch (error: any) {
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.error('Error creating user:', error);
+      let backendMessage: string | undefined;
+      if (error && typeof error === 'object' && 'response' in error) {
+        backendMessage = (error as any).response?.data?.detail;
       }
-      let errorMessage = 'Failed to create user';
-      
-      if (error.response?.data?.detail) {
-        // Handle different types of error responses
-        const detail = error.response.data.detail;
-        if (typeof detail === 'string') {
-          errorMessage = detail;
-        } else if (Array.isArray(detail)) {
-          // Handle validation errors array
-          errorMessage = detail.map((err: any) => err.msg || err.message || 'Validation error').join(', ');
-        } else if (typeof detail === 'object' && detail.msg) {
-          // Handle single validation error object
-          errorMessage = detail.msg;
-        } else {
-          errorMessage = 'Validation failed';
-        }
-      } else if (error.response?.data?.message) {
-        // Handle specific error messages
-        errorMessage = error.response.data.message;
-      } else if (error.response?.status === 422) {
-        // Handle 422 validation errors
-        if (error.response.data?.detail?.includes('employee strength') || 
-            error.response.data?.detail?.includes('capacity') ||
-            error.response.data?.detail?.includes('employee limit')) {
-          errorMessage = 'Cannot create user: Organisation has reached its employee capacity limit. Please contact your administrator.';
-        } else {
-          errorMessage = 'Validation failed. Please check your input and try again.';
-        }
-      } else if (error.response?.status === 400) {
-        // Handle 400 bad request errors
-        if (error.response.data?.detail?.includes('employee strength') || 
-            error.response.data?.detail?.includes('capacity') ||
-            error.response.data?.detail?.includes('employee limit')) {
-          errorMessage = 'Cannot create user: Organisation has reached its employee capacity limit. Please contact your administrator.';
-        } else {
-          errorMessage = 'Invalid request. Please check your input and try again.';
-        }
-      }
-      
-      showToast(errorMessage, 'error');
+      setErrors(prev => ({ ...prev, general: backendMessage || 'Failed to create user. Please try again.' }));
+      showToast(backendMessage || 'Failed to ...', 'error');
     } finally {
       setIsSubmitting(false);
     }

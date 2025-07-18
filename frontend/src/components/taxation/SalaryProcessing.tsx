@@ -510,9 +510,12 @@ const SalaryProcessing: React.FC = () => {
         const mockData = getMockProcessedSalaries();
         setSalaryRecords(mockData);
         showToast(`Loaded ${mockData.length} salary records for ${selectedTaxYear}`, 'success');
-      } catch (error) {
-        console.error('Error loading salary records:', error);
-        showToast('Failed to load salary records', 'error');
+      } catch (error: any) {
+        let backendMessage: string | undefined;
+        if (error && typeof error === 'object' && 'response' in error) {
+          backendMessage = (error as any).response?.data?.detail;
+        }
+        showToast(backendMessage || 'Failed to load salary records', 'error');
       } finally {
         setLoading(false);
       }
@@ -614,9 +617,12 @@ const SalaryProcessing: React.FC = () => {
       const mockData = getMockProcessedSalaries();
       setSalaryRecords(mockData);
       showToast(`Salary records refreshed for ${selectedTaxYear}`, 'success');
-    } catch (error) {
-      console.error('Error refreshing salary records:', error);
-      showToast('Failed to refresh salary records', 'error');
+    } catch (error: any) {
+      let backendMessage: string | undefined;
+      if (error && typeof error === 'object' && 'response' in error) {
+        backendMessage = (error as any).response?.data?.detail;
+      }
+      showToast(backendMessage || 'Failed to refresh salary records', 'error');
     } finally {
       setLoading(false);
     }

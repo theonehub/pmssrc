@@ -53,7 +53,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({ title, children }) => {
       try {
         const orgData = await organizationApi.getCurrentOrganization();
         setOrganization(orgData);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to fetch organization data:', error);
         // Don't show error to user, just continue without org data
       }

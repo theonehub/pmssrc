@@ -295,10 +295,10 @@ const RetirementBenefitsComponentForm: React.FC = () => {
         navigate('/taxation/component-management');
       }, 1500);
       
-    } catch (error) {
-      console.error('Error saving retirement benefits data:', error);
-      setError('Failed to save retirement benefits data. Please try again.');
-      showToast('Failed to save retirement benefits data', 'error');
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail;
+      setError(backendMessage || 'Failed to save retirement benefits data. Please try again.');
+      showToast(backendMessage || 'Failed to save retirement benefits data', 'error');
     } finally {
       setSaving(false);
     }

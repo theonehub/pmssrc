@@ -51,17 +51,17 @@ class DeductionSection80C:
     
     def calculate_total_investment(self) -> Money:
         """Calculate total Section 80C investments."""
-        logger.info(f"TheOne: Life insurance premium: {self.life_insurance_premium}")
-        logger.info(f"TheOne: NSC investment: {self.nsc_investment}")
-        logger.info(f"TheOne: Tax saving FD: {self.tax_saving_fd}")
-        logger.info(f"TheOne: ELSS investment: {self.elss_investment}")
-        logger.info(f"TheOne: Home loan principal: {self.home_loan_principal}")
-        logger.info(f"TheOne: Tuition fees: {self.tuition_fees}")
-        logger.info(f"TheOne: ULP investment: {self.ulip_premium}")
-        logger.info(f"TheOne: Sukanya samriddhi: {self.sukanya_samriddhi}")
-        logger.info(f"TheOne: Stamp duty property: {self.stamp_duty_property}")
-        logger.info(f"TheOne: Senior citizen savings: {self.senior_citizen_savings}")
-        logger.info(f"TheOne: Other 80C investments: {self.other_80c_investments}")
+        if self.life_insurance_premium.to_float() > 0: logger.info(f"TheOne: Life insurance premium: {self.life_insurance_premium}")
+        if self.nsc_investment.to_float() > 0: logger.info(f"TheOne: NSC investment: {self.nsc_investment}")
+        if self.tax_saving_fd.to_float() > 0: logger.info(f"TheOne: Tax saving FD: {self.tax_saving_fd}")
+        if self.elss_investment.to_float() > 0: logger.info(f"TheOne: ELSS investment: {self.elss_investment}")
+        if self.home_loan_principal.to_float() > 0: logger.info(f"TheOne: Home loan principal: {self.home_loan_principal}")
+        if self.tuition_fees.to_float() > 0: logger.info(f"TheOne: Tuition fees: {self.tuition_fees}")
+        if self.ulip_premium.to_float() > 0: logger.info(f"TheOne: ULP investment: {self.ulip_premium}")
+        if self.sukanya_samriddhi.to_float() > 0: logger.info(f"TheOne: Sukanya samriddhi: {self.sukanya_samriddhi}")
+        if self.stamp_duty_property.to_float() > 0: logger.info(f"TheOne: Stamp duty property: {self.stamp_duty_property}")
+        if self.senior_citizen_savings.to_float() > 0: logger.info(f"TheOne: Senior citizen savings: {self.senior_citizen_savings}")
+        if self.other_80c_investments.to_float() > 0: logger.info(f"TheOne: Other 80C investments: {self.other_80c_investments}")
         ret_val = (self.life_insurance_premium
                 .add(self.nsc_investment)
                 .add(self.tax_saving_fd)

@@ -21,6 +21,9 @@ from app.application.interfaces.repositories.organisation_repository import Orga
 from app.application.interfaces.repositories.user_repository import UserRepository
 from app.auth.auth_dependencies import CurrentUser
 
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+
 
 logger = logging.getLogger(__name__)
 
@@ -778,60 +781,75 @@ class FileGenerationServiceImpl(FileGenerationService):
         quarter: int,
         tax_year: int
     ) -> bytes:
-        """Generate PF Challan format"""
+        """Generate PF Challan as a real PDF file using reportlab"""
         try:
-            # Get organisation details
             organisation = await self.organisation_repository.get_by_id(current_user.hostname)
-            
-            output = io.StringIO()
-            writer = csv.writer(output)
-            
-            # PF Challan header
-            writer.writerow(['PROVIDENT FUND CHALLAN'])
-            writer.writerow([''])
-            writer.writerow(['Employer Details:'])
-            writer.writerow(['Name:', organisation.name if organisation else 'MISSING'])
-            writer.writerow(['Establishment Code:', 'MISSING'])
-            writer.writerow(['Quarter:', f'Q{quarter}'])
-            writer.writerow(['Financial Year:', f'{tax_year}-{tax_year+1}'])
-            writer.writerow([''])
-            
+            buffer = io.BytesIO()
+            c = canvas.Canvas(buffer, pagesize=A4)
+            width, height = A4
+
+            y = height - 40
+            c.setFont("Helvetica-Bold", 16)
+            c.drawString(180, y, "PROVIDENT FUND CHALLAN")
+            y -= 40
+
+            c.setFont("Helvetica", 12)
+            c.drawString(50, y, f"Employer: {organisation.name if organisation else 'MISSING'}")
+            y -= 20
+            c.drawString(50, y, f"Quarter: Q{quarter}")
+            y -= 20
+            c.drawString(50, y, f"Financial Year: {tax_year}-{tax_year+1}")
+            y -= 30
+
             # Calculate totals
             total_employee_pf = sum(pf.get('epf_employee', 0) for pf in pf_data)
             total_employer_pf = sum(pf.get('epf_employer', pf.get('epf_employee', 0)) for pf in pf_data)
             total_pf = total_employee_pf + total_employer_pf
-            
-            # Challan details
-            writer.writerow(['Challan Details:'])
-            writer.writerow(['Employee PF Contribution:', total_employee_pf])
-            writer.writerow(['Employer PF Contribution:', total_employer_pf])
-            writer.writerow(['Total PF Amount:', total_pf])
-            writer.writerow([''])
-            
-            # Employee details
-            writer.writerow(['Employee Details:'])
-            headers = ['Sr No', 'Employee ID', 'Name', 'Employee PF', 'Employer PF', 'Total PF']
-            writer.writerow(headers)
-            
+
+            c.setFont("Helvetica-Bold", 12)
+            c.drawString(50, y, "Challan Details:")
+            y -= 20
+            c.setFont("Helvetica", 12)
+            c.drawString(60, y, f"Employee PF Contribution: {total_employee_pf}")
+            y -= 20
+            c.drawString(60, y, f"Employer PF Contribution: {total_employer_pf}")
+            y -= 20
+            c.drawString(60, y, f"Total PF Amount: {total_pf}")
+            y -= 30
+
+            c.setFont("Helvetica-Bold", 12)
+            c.drawString(50, y, "Employee Details:")
+            y -= 20
+            c.setFont("Helvetica-Bold", 10)
+            c.drawString(50, y, "Sr No")
+            c.drawString(90, y, "Employee ID")
+            c.drawString(180, y, "Name")
+            c.drawString(300, y, "Employee PF")
+            c.drawString(390, y, "Employer PF")
+            c.drawString(480, y, "Total PF")
+            y -= 15
+            c.setFont("Helvetica", 10)
             for idx, pf in enumerate(pf_data, 1):
+                if y < 60:
+                    c.showPage()
+                    y = height - 40
                 employee_pf = pf.get('epf_employee', 0)
                 employer_pf = pf.get('epf_employer', employee_pf)
                 total_pf_amount = employee_pf + employer_pf
-                
-                row = [
-                    idx,
-                    pf.get('employee_id', 'MISSING'),
-                    pf.get('employee_name', 'MISSING'),
-                    employee_pf,
-                    employer_pf,
-                    total_pf_amount
-                ]
-                writer.writerow(row)
-            
-            return output.getvalue().encode('utf-8')
-            
+                c.drawString(50, y, str(idx))
+                c.drawString(90, y, str(pf.get('employee_id', 'MISSING')))
+                c.drawString(180, y, str(pf.get('employee_name', 'MISSING')))
+                c.drawString(300, y, str(employee_pf))
+                c.drawString(390, y, str(employer_pf))
+                c.drawString(480, y, str(total_pf_amount))
+                y -= 15
+
+            c.showPage()
+            c.save()
+            buffer.seek(0)
+            return buffer.getvalue()
         except Exception as e:
-            logger.error(f"Error generating PF Challan: {e}")
+            logger.error(f"Error generating PF Challan PDF: {e}")
             raise
 
     async def generate_pf_return(

@@ -7,7 +7,7 @@ export const useLeavesQuery = (filters = {}) => {
   return useQuery({
     queryKey: ['leaves', filters],
     queryFn: async () => {
-      const response = await apiClient.get('/api/v2/employee-leave/', { params: filters });
+      const response = await apiClient.get('/v2/employee-leave/', { params: filters });
       return response.data;
     },
   });
@@ -17,7 +17,7 @@ export const useLeaveBalanceQuery = () => {
   return useQuery({
     queryKey: ['leave-balance'],
     queryFn: async (): Promise<LeaveBalanceData> => {
-      const response = await apiClient.get('/api/v2/leaves/leave-balance');
+      const response = await apiClient.get('/v2/leaves/leave-balance');
       return response.data;
     },
   });

@@ -95,7 +95,7 @@ const AttendanceCalendar: React.FC<AttendanceCalendarProps> = ({ employee_id, sh
       try {
         const month = currentDate.getMonth() + 1;
         const year = currentDate.getFullYear();
-        const res = await fetch(`/api/v2/public-holidays/month/${month}/${year}`);
+        const res = await fetch(`/v2/public-holidays/month/${month}/${year}`);
         const data = await res.json();
         setPublicHolidays(data || []);
       } catch (e) {

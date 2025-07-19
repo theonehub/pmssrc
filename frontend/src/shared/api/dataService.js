@@ -84,7 +84,7 @@ const transformFrontendToBackend = (frontendUser) => {
 // Front-end service layer matching back-end FastAPI v2 routes
 const dataService = {
   async getUserById(userId) {
-    const response = await apiClient.get(`/api/v2/users/${userId}`);
+    const response = await apiClient.get(`/v2/users/${userId}`);
     const mappedUser = transformBackendToFrontend(response.data);
     
     if (!mappedUser) {
@@ -94,7 +94,7 @@ const dataService = {
   },
 
   async getUserByEmpIdLegacy(empId, hostname) {
-    const response = await apiClient.get(`/api/v2/users/legacy/${empId}`, {
+    const response = await apiClient.get(`/v2/users/legacy/${empId}`, {
       params: { hostname }
     });
     const mappedUser = transformBackendToFrontend(response.data);
@@ -106,7 +106,7 @@ const dataService = {
 
   async updateUserLegacy(empId, userData) {
     const backendData = transformFrontendToBackend(userData);
-    const response = await apiClient.put(`/api/v2/users/${empId}`, backendData);
+    const response = await apiClient.put(`/v2/users/${empId}`, backendData);
     return transformBackendToFrontend(response.data);
   },
 
@@ -124,7 +124,7 @@ const dataService = {
       formData.append('photo', files.photo);
     }
 
-    const response = await apiClient.post('/api/v2/users/with-files', formData, {
+    const response = await apiClient.post('/v2/users/with-files', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return transformBackendToFrontend(response.data);
@@ -132,7 +132,7 @@ const dataService = {
 
   async createUser(userData) {
     const backendData = transformFrontendToBackend(userData);
-    const response = await apiClient.post('/api/v2/users/create', backendData);
+    const response = await apiClient.post('/v2/users/create', backendData);
     return transformBackendToFrontend(response.data);
   },
 
@@ -140,7 +140,7 @@ const dataService = {
     const formData = new FormData();
     formData.append('file', file);
     
-    const response = await apiClient.post('/api/v2/users/import', formData, {
+    const response = await apiClient.post('/v2/users/import', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -149,7 +149,7 @@ const dataService = {
   },
 
   async downloadUserTemplate() {
-    const response = await apiClient.get('/api/v2/users/template', {
+    const response = await apiClient.get('/v2/users/template', {
       params: { format: 'csv' },
       responseType: 'blob'
     });

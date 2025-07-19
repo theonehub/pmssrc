@@ -40,7 +40,7 @@ class ExportAPI {
       });
 
       const response = await this.baseApi.download(
-        `/api/v2/exports/processed-salaries/${formatType}?${params.toString()}`
+        `/v2/exports/processed-salaries/${formatType}?${params.toString()}`
       );
       return response;
     } catch (error: any) {
@@ -72,7 +72,7 @@ class ExportAPI {
       });
 
       const response = await this.baseApi.download(
-        `/api/v2/exports/tds-report/${formatType}?${params.toString()}`
+        `/v2/exports/tds-report/${formatType}?${params.toString()}`
       );
       return response;
     } catch (error: any) {
@@ -95,7 +95,7 @@ class ExportAPI {
       }
 
       const response = await this.baseApi.download(
-        `/api/v2/exports/form-16/${employeeId}?${params.toString()}`
+        `/v2/exports/form-16/${employeeId}?${params.toString()}`
       );
       return response;
     } catch (error: any) {
@@ -114,7 +114,7 @@ class ExportAPI {
   ): Promise<Blob> {
     try {
       const response = await this.baseApi.download(
-        `/api/v2/exports/form-24q/quarter/${quarter}/year/${year}?format_type=${formatType}`
+        `/v2/exports/form-24q/quarter/${quarter}/year/${year}?format_type=${formatType}`
       );
       return response;
     } catch (error: any) {
@@ -146,7 +146,7 @@ class ExportAPI {
       });
 
       const response = await this.baseApi.download(
-        `/api/v2/exports/pf-report/${formatType}?${params.toString()}`
+        `/v2/exports/pf-report/${formatType}?${params.toString()}`
       );
       return response;
     } catch (error: any) {

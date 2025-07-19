@@ -5,7 +5,7 @@ import uuid
 
 def login(base_url, username, password):
     """Authenticate and get access token"""
-    login_url = f"{base_url}/api/v2/auth/login"
+    login_url = f"{base_url}/v2/auth/login"
     login_data = {
         "username": username,
         "password": password,
@@ -82,7 +82,7 @@ def process_date_range(start_date, end_date, base_url, username, password):
         check_in_data = generate_check_in_data(date_str, username.upper())
         
         # Make the check-in request
-        check_in_url = f"{base_url}/api/v2/attendance/checkin"
+        check_in_url = f"{base_url}/v2/attendance/checkin"
         response = requests.post(check_in_url, headers=headers, json=check_in_data)
         
         if response.status_code == 200:

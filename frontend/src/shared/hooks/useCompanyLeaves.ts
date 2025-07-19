@@ -71,7 +71,7 @@ export const useCompanyLeavesQuery = (filters: CompanyLeaveFilters = {}) => {
       if (filters.limit !== undefined) params.append('limit', filters.limit.toString());
 
       const queryString = params.toString();
-      const response = await apiClient.get(`/api/v2/company-leaves${queryString ? `?${queryString}` : ''}`);
+      const response = await apiClient.get(`/v2/company-leaves${queryString ? `?${queryString}` : ''}`);
       return response.data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -83,7 +83,7 @@ export const useCompanyLeaveQuery = (id: string) => {
   return useQuery({
     queryKey: companyLeaveKeys.detail(id),
     queryFn: async (): Promise<CompanyLeave> => {
-      const response = await apiClient.get(`/api/v2/company-leaves/${id}`);
+      const response = await apiClient.get(`/v2/company-leaves/${id}`);
       return response.data;
     },
     enabled: !!id,
@@ -97,7 +97,7 @@ export const useCreateCompanyLeaveMutation = () => {
 
   return useMutation({
     mutationFn: async (data: CompanyLeaveFormData): Promise<CompanyLeave> => {
-      const response = await apiClient.post('/api/v2/company-leaves', data);
+      const response = await apiClient.post('/v2/company-leaves', data);
       return response.data;
     },
     onSuccess: () => {
@@ -112,7 +112,7 @@ export const useUpdateCompanyLeaveMutation = () => {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: CompanyLeaveFormData }): Promise<CompanyLeave> => {
-      const response = await apiClient.put(`/api/v2/company-leaves/${id}`, data);
+      const response = await apiClient.put(`/v2/company-leaves/${id}`, data);
       return response.data;
     },
     onSuccess: (data, variables) => {
@@ -129,7 +129,7 @@ export const useDeleteCompanyLeaveMutation = () => {
 
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
-      await apiClient.delete(`/api/v2/company-leaves/${id}`);
+      await apiClient.delete(`/v2/company-leaves/${id}`);
     },
     onSuccess: (_, id) => {
       // Invalidate and refetch company leaves list

@@ -38,7 +38,7 @@ export class ReimbursementAPI {
 
   // Create reimbursement request
   async createRequest(data: Omit<ReimbursementRequest, 'request_id' | 'created_at' | 'updated_at'>): Promise<ReimbursementResponse> {
-    const response = await this.baseApi.post('/api/v2/reimbursements/requests', data);
+    const response = await this.baseApi.post('/v2/reimbursements/requests', data);
     return response;
   }
 
@@ -59,7 +59,7 @@ export class ReimbursementAPI {
     // Append file
     formData.append('file', file);
     
-    const response = await this.baseApi.post('/api/v2/reimbursements/requests/with-file', formData, {
+    const response = await this.baseApi.post('/v2/reimbursements/requests/with-file', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -70,7 +70,7 @@ export class ReimbursementAPI {
   // Download receipt
   downloadReceipt(requestId: string): void {
     // Open receipt in new tab/window
-    const receiptUrl = `${this.baseApi.getBaseURL()}/api/v2/reimbursements/requests/${requestId}/receipt`;
+    const receiptUrl = `${this.baseApi.getBaseURL()}/v2/reimbursements/requests/${requestId}/receipt`;
     window.open(receiptUrl, '_blank');
   }
 }

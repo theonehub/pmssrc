@@ -64,7 +64,7 @@ class DataService {
 
   async downloadUserTemplate(): Promise<Blob> {
     try {
-      return await userApi.downloadUserTemplate('csv');
+      return await userApi.downloadTemplate();
     } catch (error) {
       console.error('Error downloading user template:', error);
       throw error;

@@ -102,14 +102,14 @@ const LeaveManagement: React.FC = () => {
       };
 
       if (editingLeave) {
-        await apiClient.put(`/api/v2/leaves/${editingLeave._id}`, leaveData);
+        await apiClient.put(`/v2/leaves/${editingLeave._id}`, leaveData);
         setAlert({
           open: true,
           message: 'Leave request updated successfully',
           severity: 'success'
         });
       } else {
-        await apiClient.post('/api/v2/leaves/apply', leaveData);
+        await apiClient.post('/v2/leaves/apply', leaveData);
         setAlert({
           open: true,
           message: 'Leave application submitted successfully',

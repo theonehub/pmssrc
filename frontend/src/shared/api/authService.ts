@@ -16,7 +16,7 @@ class AuthService {
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
       // Updated to use v2 API endpoint
-      const response = await post<AuthResponse>('/api/v2/auth/login', credentials);
+      const response = await post<AuthResponse>('/v2/auth/login', credentials);
 
       // Accept direct backend response (not wrapped in { success, data })
       if (!response.access_token) {
@@ -60,7 +60,7 @@ class AuthService {
   async logout(): Promise<void> {
     try {
       // Call v2 logout endpoint to invalidate token on server
-      await post('/api/v2/auth/logout', { logout_all_devices: false });
+      await post('/v2/auth/logout', { logout_all_devices: false });
 
       // Remove token and user data from storage
       removeToken();
@@ -148,7 +148,7 @@ class AuthService {
   async refreshUserData(): Promise<User | null> {
     try {
       // Get user data from user endpoint which includes profile picture
-      const response = await get<any>('/api/v2/users/me');
+      const response = await get<any>('/v2/users/me');
 
       if (response) {
         // Map the response to include profile_picture field
@@ -200,7 +200,7 @@ class AuthService {
     try {
       // Updated to use v2 API endpoint
       const response = await post<{ message: string }>(
-        '/api/v2/auth/change-password',
+        '/v2/auth/change-password',
         {
           current_password: currentPassword,
           new_password: newPassword,
@@ -227,7 +227,7 @@ class AuthService {
     try {
       // Updated to use v2 API endpoint
       const response = await post<{ message: string }>(
-        '/api/v2/auth/reset-password',
+        '/v2/auth/reset-password',
         {
           email,
         }
@@ -252,7 +252,7 @@ class AuthService {
   async resetPassword(token: string, newPassword: string): Promise<boolean> {
     try {
       // Updated to use v2 API endpoint
-      const response = await post<{ message: string }>('/api/v2/auth/reset-password/confirm', {
+      const response = await post<{ message: string }>('/v2/auth/reset-password/confirm', {
         reset_token: token,
         new_password: newPassword,
       });
@@ -277,7 +277,7 @@ class AuthService {
       if (!token) return false;
 
       // Use v2 API endpoint for token validation
-      const response = await post<{ is_valid: boolean }>('/api/v2/auth/validate');
+      const response = await post<{ is_valid: boolean }>('/v2/auth/validate');
       
       return response.is_valid === true;
     } catch (error) {
@@ -296,7 +296,7 @@ class AuthService {
   async getSessionInfo(): Promise<any> {
     try {
       // Use v2 API endpoint for session info
-      const response = await get<any>('/api/v2/auth/session');
+      const response = await get<any>('/v2/auth/session');
       
       return response || null;
     } catch (error) {
@@ -316,7 +316,7 @@ class AuthService {
   async refreshToken(refreshToken: string): Promise<any> {
     try {
       // Use v2 API endpoint for token refresh
-      const response = await post<any>('/api/v2/auth/refresh', {
+      const response = await post<any>('/v2/auth/refresh', {
         refresh_token: refreshToken
       });
       

@@ -71,7 +71,7 @@ export const usePublicHolidaysQuery = (filters: PublicHolidayFilters = {}) => {
       if (filters.sort_by) params.append('sort_by', filters.sort_by);
       if (filters.sort_order) params.append('sort_order', filters.sort_order);
 
-      const response = await apiClient.get(`/api/v2/public-holidays/?${params.toString()}`);
+      const response = await apiClient.get(`/v2/public-holidays/?${params.toString()}`);
       return response.data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -83,7 +83,7 @@ export const usePublicHolidayQuery = (id: string) => {
   return useQuery({
     queryKey: publicHolidayKeys.detail(id),
     queryFn: async (): Promise<PublicHoliday> => {
-      const response = await apiClient.get(`/api/v2/public-holidays/${id}`);
+      const response = await apiClient.get(`/v2/public-holidays/${id}`);
       return response.data;
     },
     enabled: !!id,
@@ -97,7 +97,7 @@ export const useCreatePublicHolidayMutation = () => {
 
   return useMutation({
     mutationFn: async (data: HolidayFormData): Promise<PublicHoliday> => {
-      const response = await apiClient.post('/api/v2/public-holidays/', data);
+      const response = await apiClient.post('/v2/public-holidays/', data);
       return response.data;
     },
     onSuccess: () => {
@@ -112,7 +112,7 @@ export const useUpdatePublicHolidayMutation = () => {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: HolidayFormData }): Promise<PublicHoliday> => {
-      const response = await apiClient.put(`/api/v2/public-holidays/${id}`, data);
+      const response = await apiClient.put(`/v2/public-holidays/${id}`, data);
       return response.data;
     },
     onSuccess: (data, variables) => {
@@ -129,7 +129,7 @@ export const useDeletePublicHolidayMutation = () => {
 
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
-      await apiClient.delete(`/api/v2/public-holidays/${id}`);
+      await apiClient.delete(`/v2/public-holidays/${id}`);
     },
     onSuccess: (_, id) => {
       // Invalidate and refetch public holidays list
@@ -148,7 +148,7 @@ export const useImportPublicHolidaysMutation = () => {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await apiClient.post('/api/v2/public-holidays/import', formData, {
+      const response = await apiClient.post('/v2/public-holidays/import', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

@@ -101,7 +101,7 @@ const OrganisationDetails: React.FC = () => {
           throw new Error('No authentication token found');
         }
 
-        const response = await axios.get(`${API_CONFIG.BASE_URL}/api/v2/organisations/${id}`, {
+        const response = await axios.get(`${API_CONFIG.BASE_URL}/v2/organisations/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setOrganisation(response.data);

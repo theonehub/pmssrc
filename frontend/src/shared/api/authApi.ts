@@ -88,7 +88,7 @@ class AuthAPI {
    */
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
-      const response = await this.baseApi.post<AuthResponse>('/api/v2/auth/login', credentials);
+      const response = await this.baseApi.post<AuthResponse>('/v2/auth/login', credentials);
 
       if (!response.access_token) {
         throw new Error('Invalid login response');
@@ -109,7 +109,7 @@ class AuthAPI {
    */
   async logout(logoutAllDevices: boolean = false): Promise<void> {
     try {
-      await this.baseApi.post('/api/v2/auth/logout', { 
+      await this.baseApi.post('/v2/auth/logout', { 
         logout_all_devices: logoutAllDevices 
       });
     } catch (error) {
@@ -125,7 +125,7 @@ class AuthAPI {
    */
   async getCurrentUserProfile(): Promise<User> {
     try {
-      const response = await this.baseApi.get<User>('/api/v2/auth/me');
+      const response = await this.baseApi.get<User>('/v2/auth/me');
       
       // Update stored user info
       if (response) {
@@ -145,7 +145,7 @@ class AuthAPI {
   async changePassword(passwordData: ChangePasswordRequest): Promise<{ message: string }> {
     try {
       const response = await this.baseApi.post<{ message: string }>(
-        '/api/v2/auth/change-password',
+        '/v2/auth/change-password',
         passwordData
       );
       return response;
@@ -161,7 +161,7 @@ class AuthAPI {
   async requestPasswordReset(resetData: PasswordResetRequest): Promise<{ message: string }> {
     try {
       const response = await this.baseApi.post<{ message: string }>(
-        '/api/v2/auth/password-reset',
+        '/v2/auth/password-reset',
         resetData
       );
       return response;
@@ -177,7 +177,7 @@ class AuthAPI {
   async confirmPasswordReset(resetData: PasswordResetConfirm): Promise<{ message: string }> {
     try {
       const response = await this.baseApi.post<{ message: string }>(
-        '/api/v2/auth/password-reset/confirm',
+        '/v2/auth/password-reset/confirm',
         resetData
       );
       return response;
@@ -197,7 +197,7 @@ class AuthAPI {
         throw new Error('No refresh token available');
       }
 
-      const response = await this.baseApi.post<AuthResponse>('/api/v2/auth/refresh', {
+      const response = await this.baseApi.post<AuthResponse>('/v2/auth/refresh', {
         refresh_token: refreshToken
       });
 
@@ -218,7 +218,7 @@ class AuthAPI {
    */
   async validateToken(): Promise<boolean> {
     try {
-      await this.baseApi.get('/api/v2/auth/validate');
+      await this.baseApi.get('/v2/auth/validate');
       return true;
     } catch (error) {
       console.error('Token validation error:', error);
@@ -231,7 +231,7 @@ class AuthAPI {
    */
   async getSessionInfo(): Promise<any> {
     try {
-      const response = await this.baseApi.get('/api/v2/auth/session');
+      const response = await this.baseApi.get('/v2/auth/session');
       return response;
     } catch (error: any) {
       console.error('Session info error:', error);

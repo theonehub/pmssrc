@@ -54,7 +54,7 @@ const Home: React.FC = () => {
         setLoading(true);
 
         // Fetch dashboard statistics using reporting service
-        const dashboardResponse = await get<DashboardStats>('/api/v2/reporting/dashboard/analytics/statistics');
+        const dashboardResponse = await get<DashboardStats>('/v2/reporting/dashboard/analytics/statistics');
         if (dashboardResponse) {
           setDashboardStats(dashboardResponse);
         }
@@ -76,7 +76,7 @@ const Home: React.FC = () => {
   const handleCheckIn = async (): Promise<void> => {
     try {
       setLoading(true);
-      await post('/api/v2/attendance/checkin');
+      await post('/v2/attendance/checkin');
 
       // If we get a response without error, consider it successful
       setSnackbar({
@@ -103,7 +103,7 @@ const Home: React.FC = () => {
   const handleCheckOut = async (): Promise<void> => {
     try {
       setLoading(true);
-      await post('/api/v2/attendance/checkout');
+      await post('/v2/attendance/checkout');
 
       // If we get a response without error, consider it successful
       setSnackbar({

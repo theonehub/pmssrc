@@ -113,7 +113,7 @@ class TaxationAPI {
     input: Types.ComprehensiveTaxInputDTO
   ): Promise<Types.PeriodicTaxCalculationResponseDTO> {
     try {
-      return await this.baseApi.post('/api/v2/taxation/calculate-comprehensive', input);
+      return await this.baseApi.post('/v2/taxation/calculate-comprehensive', input);
     } catch (error) {
       console.error('Error calculating comprehensive tax:', error);
       throw error;
@@ -140,7 +140,7 @@ class TaxationAPI {
         });
       }
 
-      const url = `/api/v2/taxation/employees/selection${params.toString() ? `?${params.toString()}` : ''}`;
+      const url = `/v2/taxation/employees/selection${params.toString() ? `?${params.toString()}` : ''}`;
       return await this.baseApi.get(url);
     } catch (error) {
       console.error('Error fetching employees for selection:', error);
@@ -161,7 +161,7 @@ class TaxationAPI {
     componentType: string
   ): Promise<Types.ComponentResponse> {
     try {
-      const url = `/api/v2/taxation/records/employee/${employeeId}/component/${componentType}?tax_year=${taxYear}`;
+      const url = `/v2/taxation/records/employee/${employeeId}/component/${componentType}?tax_year=${taxYear}`;
       return await this.baseApi.get(url);
     } catch (error) {
       console.error('Error fetching component:', error);
@@ -182,7 +182,7 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      const url = `/api/v2/taxation/records/employee/${request.employee_id}/salary`;
+      const url = `/v2/taxation/records/employee/${request.employee_id}/salary`;
       return await this.baseApi.put(url, {
         employee_id: request.employee_id,
         tax_year: request.tax_year,
@@ -208,7 +208,7 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      const url = `/api/v2/taxation/records/employee/${request.employee_id}/perquisites`;
+      const url = `/v2/taxation/records/employee/${request.employee_id}/perquisites`;
       return await this.baseApi.put(url, {
         employee_id: request.employee_id,
         tax_year: request.tax_year,
@@ -233,7 +233,7 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      const url = `/api/v2/taxation/records/employee/${request.employee_id}/deductions`;
+      const url = `/v2/taxation/records/employee/${request.employee_id}/deductions`;
       return await this.baseApi.put(url, {
         employee_id: request.employee_id,
         tax_year: request.tax_year,
@@ -258,7 +258,7 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      const url = `/api/v2/taxation/records/employee/${request.employee_id}/house-property`;
+      const url = `/v2/taxation/records/employee/${request.employee_id}/house-property`;
       return await this.baseApi.put(url, {
         employee_id: request.employee_id,
         tax_year: request.tax_year,
@@ -283,7 +283,7 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      const url = `/api/v2/taxation/records/employee/${request.employee_id}/capital-gains`;
+      const url = `/v2/taxation/records/employee/${request.employee_id}/capital-gains`;
       return await this.baseApi.put(url, {
         employee_id: request.employee_id,
         tax_year: request.tax_year,
@@ -308,7 +308,7 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      const url = `/api/v2/taxation/records/employee/${request.employee_id}/retirement-benefits`;
+      const url = `/v2/taxation/records/employee/${request.employee_id}/retirement-benefits`;
       return await this.baseApi.put(url, {
         employee_id: request.employee_id,
         tax_year: request.tax_year,
@@ -333,7 +333,7 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      const url = `/api/v2/taxation/records/employee/${request.employee_id}/other-income`;
+      const url = `/v2/taxation/records/employee/${request.employee_id}/other-income`;
       return await this.baseApi.put(url, {
         employee_id: request.employee_id,
         tax_year: request.tax_year,
@@ -359,7 +359,7 @@ class TaxationAPI {
     }
   ): Promise<any> {
     try {
-      const url = `/api/v2/taxation/records/employee/${request.employee_id}/regime`;
+      const url = `/v2/taxation/records/employee/${request.employee_id}/regime`;
       return await this.baseApi.put(url, {    
         employee_id: request.employee_id,
         tax_year: request.tax_year,
@@ -378,7 +378,7 @@ class TaxationAPI {
    */
   async isRegimeUpdateAllowed(employee_id: string, tax_year: string): Promise<{ is_allowed: boolean; regime_type: 'old' | 'new'; message?: string }> {
     try {
-      const url = `/api/v2/taxation/records/employee/${employee_id}/regime/allowed`;
+      const url = `/v2/taxation/records/employee/${employee_id}/regime/allowed`;
       // Backend expects query parameters for GET request
       return await this.baseApi.get(url, { params: { tax_year } });
     } catch (error) {
@@ -398,7 +398,7 @@ class TaxationAPI {
     employeeId: string,
   ): Promise<any> {
     try {
-      const url = `/api/v2/taxation/monthly-tax/employee/${employeeId}`;
+      const url = `/v2/taxation/monthly-tax/employee/${employeeId}`;
       return await this.baseApi.get(url);
     } catch (error) {
       console.error('Error computing monthly tax:', error);
@@ -414,7 +414,7 @@ class TaxationAPI {
     taxYear?: string
   ): Promise<Blob> {
     try {
-      const url = `/api/v2/taxation/export/salary-package/${employeeId}`;
+      const url = `/v2/taxation/export/salary-package/${employeeId}`;
       const params: Record<string, string> = {};
       if (taxYear) {
         params.tax_year = taxYear;
@@ -435,7 +435,7 @@ class TaxationAPI {
     taxYear?: string
   ): Promise<Blob> {
     try {
-      const url = `/api/v2/taxation/export/salary-package-single/${employeeId}`;
+      const url = `/v2/taxation/export/salary-package-single/${employeeId}`;
       const params: Record<string, string> = {};
       if (taxYear) {
         params.tax_year = taxYear;
@@ -457,7 +457,7 @@ class TaxationAPI {
     taxYear: string
   ): Promise<any> {
     try {
-      return await this.baseApi.get(`/api/v2/taxation/loan-schedule/employee/${employeeId}?tax_year=${taxYear}`);
+      return await this.baseApi.get(`/v2/taxation/loan-schedule/employee/${employeeId}?tax_year=${taxYear}`);
     } catch (error) {
       console.error('Error processing loan schedule:', error);
       throw error;

@@ -137,7 +137,7 @@ const AddNewOrganisation: React.FC = () => {
         }
 
         const response = await axios.get(
-          `${API_CONFIG.BASE_URL}/api/v2/organisations/${id}`,
+          `${API_CONFIG.BASE_URL}/v2/organisations/${id}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -425,8 +425,8 @@ const AddNewOrganisation: React.FC = () => {
       }
 
       const url = isEditing 
-        ? `${API_CONFIG.BASE_URL}/api/v2/organisations/${id}/`
-        : `${API_CONFIG.BASE_URL}/api/v2/organisations/`;
+        ? `${API_CONFIG.BASE_URL}/v2/organisations/${id}/`
+        : `${API_CONFIG.BASE_URL}/v2/organisations/`;
       const method = isEditing ? 'put' : 'post';
       
       console.log(`Making ${method.toUpperCase()} request to:`, url);

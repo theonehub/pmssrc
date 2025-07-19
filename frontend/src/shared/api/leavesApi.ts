@@ -167,7 +167,7 @@ class LeavesAPI {
         status: approvalData.status,
         comments: approvalData.comments || approvalData.rejection_reason
       };
-      const response = await this.baseApi.put<LeaveRequest>(`/api/v2/leaves/${leaveId}/status`, {}, { params });
+      const response = await this.baseApi.put<LeaveRequest>(`/v2/leaves/${leaveId}/status`, {}, { params });
       return response;
     } catch (error: any) {
       console.error('Error processing leave request:', error);

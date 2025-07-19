@@ -184,7 +184,7 @@ export const salaryProcessingApi = {
     if (params?.skip !== undefined) queryParams.append('skip', params.skip.toString());
     if (params?.limit !== undefined) queryParams.append('limit', params.limit.toString());
 
-    const url = `/api/v2/taxation/monthly-salary/period/month/${month}/tax-year/${taxYear}`;
+    const url = `/v2/taxation/monthly-salary/period/month/${month}/tax-year/${taxYear}`;
     const fullUrl = queryParams.toString() ? `${url}?${queryParams.toString()}` : url;
 
     const response = await apiClient.get(fullUrl);
@@ -197,7 +197,7 @@ export const salaryProcessingApi = {
   async computeMonthlySalary(
     request: MonthlySalaryComputeRequest
   ): Promise<MonthlySalaryResponse> {
-    const response = await apiClient.post('/api/v2/taxation/monthly-salary/compute', request);
+    const response = await apiClient.post('/v2/taxation/monthly-salary/compute', request);
     return response.data;
   },
 
@@ -209,7 +209,7 @@ export const salaryProcessingApi = {
     taxYear: string
   ): Promise<MonthlySalarySummaryResponse> {
     const response = await apiClient.get(
-      `/api/v2/taxation/monthly-salary/summary/month/${month}/tax-year/${taxYear}`
+      `/v2/taxation/monthly-salary/summary/month/${month}/tax-year/${taxYear}`
     );
     return response.data;
   },
@@ -223,7 +223,7 @@ export const salaryProcessingApi = {
     taxYear: string
   ): Promise<{ message: string }> {
     const response = await apiClient.delete(
-      `/api/v2/taxation/monthly-salary/employee/${employeeId}/month/${month}/tax-year/${taxYear}`
+      `/v2/taxation/monthly-salary/employee/${employeeId}/month/${month}/tax-year/${taxYear}`
     );
     return response.data;
   },
@@ -239,7 +239,7 @@ export const salaryProcessingApi = {
     const params = new URLSearchParams();
     if (limit) params.append('limit', limit.toString());
     if (offset) params.append('offset', offset.toString());
-    const url = `/api/v2/taxation/monthly-salary/employee/${employeeId}/history?${params.toString()}`;
+    const url = `/v2/taxation/monthly-salary/employee/${employeeId}/history?${params.toString()}`;
     const response = await apiClient.get(url);
     return response.data;
   },
@@ -252,7 +252,7 @@ export const salaryProcessingApi = {
     month: number,
     year: number
   ): Promise<Blob> {
-    const url = `/api/v2/taxation/monthly-salary/employee/${employeeId}/month/${month}/year/${year}/payslip`;
+    const url = `/v2/taxation/monthly-salary/employee/${employeeId}/month/${month}/year/${year}/payslip`;
     const response = await apiClient.get(url, {
       responseType: 'blob'
     });
@@ -265,7 +265,7 @@ export const salaryProcessingApi = {
   async updateMonthlySalaryStatus(
     request: MonthlySalaryStatusUpdateRequest
   ): Promise<MonthlySalaryResponse> {
-    const response = await apiClient.put('/api/v2/taxation/monthly-salary/status', request);
+    const response = await apiClient.put('/v2/taxation/monthly-salary/status', request);
     return response.data;
   }
 }; 

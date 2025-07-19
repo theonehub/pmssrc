@@ -112,6 +112,18 @@ export interface UserFiles {
   photo?: File;
 }
 
+export interface ImportOptions {
+  update_existing?: boolean;
+  skip_errors?: boolean;
+}
+
+export interface ImportResult {
+  success: boolean;
+  message: string;
+  imported_count?: number;
+  errors?: string[];
+}
+
 /**
  * Enhanced User Management API using BaseAPI pattern
  * Provides comprehensive user management functionality
@@ -124,7 +136,7 @@ export class UserAPI {
   }
 
   /**
-   * Get list of users with filtering and pagination
+   * Get all users with pagination and filters
    */
   async getUsers(filters: UserFilters = {}): Promise<UserListResponse> {
     try {
@@ -157,7 +169,7 @@ export class UserAPI {
       if (designation) params.designation = designation;
       if (location) params.location = location;
 
-      const response = await this.baseApi.get<UserListResponse>('/api/v2/users', { params });
+      const response = await this.baseApi.get<UserListResponse>('/v2/users', { params });
       return response;
     } catch (error: any) {
       console.error('Error fetching users:', error);
@@ -170,7 +182,7 @@ export class UserAPI {
    */
   async getUserById(userId: string): Promise<User> {
     try {
-      const response = await this.baseApi.get<User>(`/api/v2/users/${userId}`);
+      const response = await this.baseApi.get<User>(`/v2/users/${userId}`);
       return response;
     } catch (error: any) {
       console.error('Error fetching user:', error);
@@ -183,7 +195,7 @@ export class UserAPI {
    */
   async getUserByEmail(email: string): Promise<User> {
     try {
-      const response = await this.baseApi.get<User>(`/api/v2/users/email/${email}`);
+      const response = await this.baseApi.get<User>(`/v2/users/email/${email}`);
       return response;
     } catch (error: any) {
       console.error('Error fetching user by email:', error);
@@ -196,7 +208,7 @@ export class UserAPI {
    */
   async getCurrentUser(): Promise<User> {
     try {
-      const response = await this.baseApi.get<User>('/api/v2/users/me');
+      const response = await this.baseApi.get<User>('/v2/users/me');
       return response;
     } catch (error: any) {
       console.error('Error fetching current user:', error);
@@ -209,7 +221,7 @@ export class UserAPI {
    */
   async getUserStats(): Promise<UserStats> {
     try {
-      const response = await this.baseApi.get<UserStats>('/api/v2/users/stats');
+      const response = await this.baseApi.get<UserStats>('/v2/users/stats');
       return response;
     } catch (error: any) {
       console.error('Error fetching user stats:', error);
@@ -220,9 +232,9 @@ export class UserAPI {
   /**
    * Get direct reports for current user
    */
-  async getMyDirectReports(): Promise<User[]> {
+  async getDirectReports(): Promise<User[]> {
     try {
-      const response = await this.baseApi.get<User[]>('/api/v2/users/my/directs');
+      const response = await this.baseApi.get<User[]>('/v2/users/my/directs');
       return response;
     } catch (error: any) {
       console.error('Error fetching direct reports:', error);
@@ -235,7 +247,7 @@ export class UserAPI {
    */
   async getManagerDirectReports(managerId: string): Promise<User[]> {
     try {
-      const response = await this.baseApi.get<User[]>('/api/v2/users/manager/directs', {
+      const response = await this.baseApi.get<User[]>('/v2/users/manager/directs', {
         params: { manager_id: managerId }
       });
       return response;
@@ -246,11 +258,11 @@ export class UserAPI {
   }
 
   /**
-   * Create new user
+   * Create a new user
    */
   async createUser(userData: CreateUserRequest): Promise<User> {
     try {
-      const response = await this.baseApi.post<User>('/api/v2/users/create', userData);
+      const response = await this.baseApi.post<User>('/v2/users/create', userData);
       return response;
     } catch (error: any) {
       console.error('Error creating user:', error);
@@ -259,24 +271,21 @@ export class UserAPI {
   }
 
   /**
-   * Create user with file uploads
+   * Create user with file upload
    */
-  async createUserWithFiles(userData: CreateUserRequest, files: UserFiles = {}): Promise<User> {
+  async createUserWithFiles(userData: CreateUserRequest, files: File[]): Promise<User> {
     try {
       const formData = new FormData();
+      
+      // Add user data
       formData.append('user_data', JSON.stringify(userData));
+      
+      // Add files
+      files.forEach((file, index) => {
+        formData.append(`file_${index}`, file);
+      });
 
-      if (files.pan_file) {
-        formData.append('pan_file', files.pan_file);
-      }
-      if (files.aadhar_file) {
-        formData.append('aadhar_file', files.aadhar_file);
-      }
-      if (files.photo) {
-        formData.append('photo', files.photo);
-      }
-
-      const response = await this.baseApi.upload<User>('/api/v2/users/with-files', formData);
+      const response = await this.baseApi.upload<User>('/v2/users/with-files', formData);
       return response;
     } catch (error: any) {
       console.error('Error creating user with files:', error);
@@ -289,7 +298,7 @@ export class UserAPI {
    */
   async updateUser(userId: string, userData: UpdateUserRequest): Promise<User> {
     try {
-      const response = await this.baseApi.put<User>(`/api/v2/users/${userId}`, userData);
+      const response = await this.baseApi.put<User>(`/v2/users/${userId}`, userData);
       return response;
     } catch (error: any) {
       console.error('Error updating user:', error);
@@ -298,12 +307,34 @@ export class UserAPI {
   }
 
   /**
+   * Update user with file upload
+   */
+  async updateUserWithFiles(userId: string, userData: UpdateUserRequest, files: File[]): Promise<User> {
+    try {
+      const formData = new FormData();
+      
+      // Add user data
+      formData.append('user_data', JSON.stringify(userData));
+      
+      // Add files
+      files.forEach((file, index) => {
+        formData.append(`file_${index}`, file);
+      });
+
+      const response = await this.baseApi.upload<User>(`/v2/users/${userId}/with-files`, formData);
+      return response;
+    } catch (error: any) {
+      console.error('Error updating user with files:', error);
+      throw new Error(error.response?.data?.detail || 'Failed to update user with files');
+    }
+  }
+
+  /**
    * Delete user
    */
-  async deleteUser(userId: string): Promise<{ message: string }> {
+  async deleteUser(userId: string): Promise<void> {
     try {
-      const response = await this.baseApi.delete<{ message: string }>(`/api/v2/users/${userId}`);
-      return response;
+      await this.baseApi.delete(`/v2/users/${userId}`);
     } catch (error: any) {
       console.error('Error deleting user:', error);
       throw new Error(error.response?.data?.detail || 'Failed to delete user');
@@ -315,7 +346,7 @@ export class UserAPI {
    */
   async changeUserPassword(userId: string, passwordData: PasswordChangeRequest): Promise<{ message: string }> {
     try {
-      const response = await this.baseApi.patch<{ message: string }>(`/api/v2/users/${userId}/password`, passwordData);
+      const response = await this.baseApi.patch<{ message: string }>(`/v2/users/${userId}/password`, passwordData);
       return response;
     } catch (error: any) {
       console.error('Error changing user password:', error);
@@ -328,7 +359,7 @@ export class UserAPI {
    */
   async changeUserRole(userId: string, roleData: RoleChangeRequest): Promise<User> {
     try {
-      const response = await this.baseApi.patch<User>(`/api/v2/users/${userId}/role`, roleData);
+      const response = await this.baseApi.patch<User>(`/v2/users/${userId}/role`, roleData);
       return response;
     } catch (error: any) {
       console.error('Error changing user role:', error);
@@ -341,7 +372,7 @@ export class UserAPI {
    */
   async updateUserStatus(userId: string, statusData: StatusChangeRequest): Promise<User> {
     try {
-      const response = await this.baseApi.patch<User>(`/api/v2/users/${userId}/status`, statusData);
+      const response = await this.baseApi.patch<User>(`/v2/users/${userId}/status`, statusData);
       return response;
     } catch (error: any) {
       console.error('Error updating user status:', error);
@@ -352,13 +383,13 @@ export class UserAPI {
   /**
    * Check if user exists
    */
-  async checkUserExists(checkData: UserExistsCheck): Promise<{ exists: boolean; field?: string }> {
+  async checkUserExists(checkData: { field: string; value: string; exclude_id?: string }): Promise<{ exists: boolean; field?: string }> {
     try {
-      const response = await this.baseApi.post<{ exists: boolean; field?: string }>('/api/v2/users/check-exists', checkData);
+      const response = await this.baseApi.post<{ exists: boolean; field?: string }>('/v2/users/check-exists', checkData);
       return response;
     } catch (error: any) {
-      console.error('Error checking user existence:', error);
-      throw new Error(error.response?.data?.detail || 'Failed to check user existence');
+      console.error('Error checking user exists:', error);
+      throw new Error(error.response?.data?.detail || 'Failed to check if user exists');
     }
   }
 
@@ -376,15 +407,22 @@ export class UserAPI {
   }
 
   /**
-   * Import users from file
+   * Bulk import users
    */
-  async importUsers(file: File): Promise<{ message: string; imported_count: number; errors?: any[] }> {
+  async importUsers(file: File, options: ImportOptions = {}): Promise<ImportResult> {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      
+      if (options.update_existing !== undefined) {
+        formData.append('update_existing', options.update_existing.toString());
+      }
+      if (options.skip_errors !== undefined) {
+        formData.append('skip_errors', options.skip_errors.toString());
+      }
 
-      const response = await this.baseApi.upload<{ message: string; imported_count: number; errors?: any[] }>(
-        '/api/v2/users/import',
+      const response = await this.baseApi.upload<ImportResult>(
+        '/v2/users/import',
         formData
       );
       return response;
@@ -395,12 +433,40 @@ export class UserAPI {
   }
 
   /**
-   * Export users to file
+   * Export users
    */
-  async exportUsers(filters: UserFilters = {}, format: string = 'csv'): Promise<Blob> {
+  async exportUsers(filters: UserFilters = {}): Promise<Blob> {
     try {
-      const params = { ...filters, format };
-      const response = await this.baseApi.download('/api/v2/users/export', {
+      const {
+        skip = 0,
+        limit = 10,
+        include_inactive = false,
+        include_deleted = false,
+        organisation_id = null,
+        search,
+        department,
+        role,
+        manager_id,
+        designation,
+        location
+      } = filters;
+
+      const params: Record<string, any> = {
+        skip,
+        limit,
+        include_inactive,
+        include_deleted
+      };
+
+      if (organisation_id) params.organisation_id = organisation_id;
+      if (search) params.search = search;
+      if (department) params.department = department;
+      if (role) params.role = role;
+      if (manager_id) params.manager_id = manager_id;
+      if (designation) params.designation = designation;
+      if (location) params.location = location;
+
+      const response = await this.baseApi.download('/v2/users/export', {
         params
       });
       return response;
@@ -413,41 +479,39 @@ export class UserAPI {
   /**
    * Download user import template
    */
-  async downloadUserTemplate(format: string = 'csv'): Promise<Blob> {
+  async downloadTemplate(): Promise<Blob> {
     try {
-      const response = await this.baseApi.download('/api/v2/users/template', {
-        params: { format }
-      });
+      const response = await this.baseApi.download('/v2/users/template');
       return response;
     } catch (error: any) {
-      console.error('Error downloading user template:', error);
+      console.error('Error downloading template:', error);
       throw new Error(error.response?.data?.detail || 'Failed to download template');
     }
   }
 
   /**
-   * Get user departments
+   * Get all departments
    */
-  async getUserDepartments(): Promise<{ departments: string[] }> {
+  async getDepartments(): Promise<string[]> {
     try {
-      const response = await this.baseApi.get<{ departments: string[] }>('/api/v2/users/departments');
-      return response;
+      const response = await this.baseApi.get<{ departments: string[] }>('/v2/users/departments');
+      return response.departments;
     } catch (error: any) {
-      console.error('Error fetching user departments:', error);
-      throw new Error(error.response?.data?.detail || 'Failed to fetch user departments');
+      console.error('Error fetching departments:', error);
+      throw new Error(error.response?.data?.detail || 'Failed to fetch departments');
     }
   }
 
   /**
-   * Get user designations
+   * Get all designations
    */
-  async getUserDesignations(): Promise<{ designations: string[] }> {
+  async getDesignations(): Promise<string[]> {
     try {
-      const response = await this.baseApi.get<{ designations: string[] }>('/api/v2/users/designations');
-      return response;
+      const response = await this.baseApi.get<{ designations: string[] }>('/v2/users/designations');
+      return response.designations;
     } catch (error: any) {
-      console.error('Error fetching user designations:', error);
-      throw new Error(error.response?.data?.detail || 'Failed to fetch user designations');
+      console.error('Error fetching designations:', error);
+      throw new Error(error.response?.data?.detail || 'Failed to fetch designations');
     }
   }
 
@@ -460,7 +524,7 @@ export class UserAPI {
       formData.append('photo', photoFile);
 
       const response = await this.baseApi.upload<{ profile_picture_url: string }>(
-        `/api/v2/users/${userId}/profile-picture`,
+        `/v2/users/${userId}/profile-picture`,
         formData
       );
       return response;
@@ -490,7 +554,7 @@ export class UserAPI {
       const response = await this.baseApi.upload<{
         pan_document_path?: string;
         aadhar_document_path?: string;
-      }>(`/api/v2/users/${userId}/documents`, formData);
+      }>(`/v2/users/${userId}/documents`, formData);
       return response;
     } catch (error: any) {
       console.error('Error uploading user documents:', error);
@@ -500,12 +564,12 @@ export class UserAPI {
 
   // Add missing methods for legacy compatibility
   async getUserByEmpIdLegacy(empId: string): Promise<User> {
-    const response = await this.baseApi.get(`/api/v2/users/${empId}`);
+    const response = await this.baseApi.get(`/v2/users/${empId}`);
     return response.data;
   }
 
   async updateUserLegacy(empId: string, userData: Partial<User>): Promise<User> {
-    const response = await this.baseApi.put(`/api/v2/users/${empId}`, userData);
+    const response = await this.baseApi.put(`/v2/users/${empId}`, userData);
     return response.data;
   }
 }

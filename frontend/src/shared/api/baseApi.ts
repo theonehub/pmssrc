@@ -237,7 +237,7 @@ export class BaseAPI {
 
   private async refreshAuthToken(refreshToken: string): Promise<string> {
     try {
-      const response = await axios.post(`${API_CONFIG.BASE_URL}/api/v2/auth/refresh`, {
+      const response = await axios.post(`${API_CONFIG.BASE_URL}/v2/auth/refresh`, {
         refresh_token: refreshToken,
       });
       

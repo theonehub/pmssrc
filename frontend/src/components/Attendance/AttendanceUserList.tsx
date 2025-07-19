@@ -106,7 +106,7 @@ const AttendanceUserList: React.FC = () => {
 
       // Use relative path to ensure correct backend port is used
       const lwpPromises = users.map((user: User) =>
-        fetch(`/api/v2/employee-leave/lwp/${user.employee_id}/${month}/${year}`)
+        fetch(`/v2/employee-leave/lwp/${user.employee_id}/${month}/${year}`)
           .then(res => res.json())
       );
 
@@ -246,7 +246,7 @@ const AttendanceUserList: React.FC = () => {
     try {
       const startDateFormatted = toDDMMYYYY(bulkForm.startDate);
       const endDateFormatted = toDDMMYYYY(bulkForm.endDate);
-      const url = `/api/v2/attendance/bulk/checkin/checkout/${bulkDialogEmployeeId}/start/${startDateFormatted}/${bulkForm.startTime}/end/${endDateFormatted}/${bulkForm.endTime}`;
+      const url = `/v2/attendance/bulk/checkin/checkout/${bulkDialogEmployeeId}/start/${startDateFormatted}/${bulkForm.startTime}/end/${endDateFormatted}/${bulkForm.endTime}`;
       await apiClient.post(url);
       toast.success('Bulk attendance entry successful');
       setBulkDialogOpen(false);

@@ -102,7 +102,7 @@ class ReportingService {
     if (endDate) params.append('end_date', endDate);
     
     const queryString = params.toString();
-    const url = `/api/v2/reporting/analytics/consolidated${queryString ? `?${queryString}` : ''}`;
+    const url = `/v2/reporting/analytics/consolidated${queryString ? `?${queryString}` : ''}`;
     
     return await get<ConsolidatedAnalytics>(url);
   }
@@ -116,7 +116,7 @@ class ReportingService {
     if (endDate) params.append('end_date', endDate);
     
     const queryString = params.toString();
-    const url = `/api/v2/reporting/analytics/reimbursements${queryString ? `?${queryString}` : ''}`;
+    const url = `/v2/reporting/analytics/reimbursements${queryString ? `?${queryString}` : ''}`;
     
     return await get<ReimbursementAnalytics>(url);
   }
@@ -125,7 +125,7 @@ class ReportingService {
    * Export report data
    */
   async exportReport(request: ExportRequest): Promise<ExportResponse> {
-    return await post<ExportResponse>('/api/v2/reporting/export', request);
+    return await post<ExportResponse>('/v2/reporting/export', request);
   }
 
   /**

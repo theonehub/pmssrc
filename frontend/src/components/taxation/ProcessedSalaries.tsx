@@ -41,7 +41,6 @@ import {
   Visibility as VisibilityIcon,
   AttachMoney as AttachMoneyIcon,
   Receipt as ReceiptIcon,
-  Delete as DeleteIcon,
   TrendingUp as TrendingUpIcon,
   People as PeopleIcon,
   FileDownload as FileDownloadIcon,
@@ -252,25 +251,7 @@ const ProcessedSalaries: React.FC = () => {
     setDetailDialogOpen(true);
   };
 
-  const handleDeleteSalary = async (salary: MonthlySalaryResponse) => {
-    if (window.confirm(`Are you sure you want to delete the salary record for ${salary.employee_name || salary.employee_id}?`)) {
-      try {
-        await salaryProcessingApi.deleteMonthlySalary(
-          salary.employee_id,
-          salary.month,
-          taxYear // Pass as string, not number
-        );
-        
-        fetchSalaries();
-        fetchSummary();
-        
-        alert('Salary record deleted successfully');
-      } catch (err) {
-        console.error('Error deleting salary:', err);
-        alert('Failed to delete salary record');
-      }
-    }
-  };
+
 
   const handleRefresh = () => {
     fetchSalaries();
@@ -836,15 +817,7 @@ const ProcessedSalaries: React.FC = () => {
                             <VisibilityIcon />
                           </IconButton>
                         </Tooltip>
-                        <Tooltip title="Delete">
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDeleteSalary(salary)}
-                            color="error"
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Tooltip>
+
                       </Box>
                     </TableCell>
                   </TableRow>

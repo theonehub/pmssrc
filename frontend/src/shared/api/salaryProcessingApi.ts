@@ -214,19 +214,7 @@ export const salaryProcessingApi = {
     return response.data;
   },
 
-  /**
-   * Delete monthly salary record
-   */
-  async deleteMonthlySalary(
-    employeeId: string,
-    month: number,
-    taxYear: string
-  ): Promise<{ message: string }> {
-    const response = await apiClient.delete(
-      `/v2/taxation/monthly-salary/employee/${employeeId}/month/${month}/tax-year/${taxYear}`
-    );
-    return response.data;
-  },
+
 
   /**
    * Get salary history for a specific employee

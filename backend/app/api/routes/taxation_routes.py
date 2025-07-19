@@ -1201,48 +1201,7 @@ async def get_monthly_salary_summary(
             detail=f"Failed to get monthly salary summary: {str(e)}"
         )
 
-@router.delete("/monthly-salary/employee/{employee_id}/month/{month}/year/{year}",
-            status_code=status.HTTP_200_OK,
-            summary="Delete monthly salary record",
-            description="Delete a monthly salary record for an employee")
-async def delete_monthly_salary(
-    employee_id: str,
-    month: int,
-    year: int,
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UnifiedTaxationController = Depends(get_taxation_controller)
-) -> Dict[str, str]:
-    """
-    Delete monthly salary record for an employee.
-    
-    Args:
-        employee_id: Employee ID
-        month: Month number (1-12)
-        year: Year
-        current_user: Current authenticated user
-        
-    Returns:
-        Dict with success message
-        
-    Raises:
-        HTTPException: If error occurs
-    """
-    
-    try:
-        result = await controller.delete_monthly_salary(employee_id, month, year, current_user)
-        return {"message": result}
-        
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e)
-        )
-    except Exception as e:
-        logger.error(f"Error deleting monthly salary: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete monthly salary: {str(e)}"
-        )
+
 
 @router.post("/monthly-salary/bulk-compute",
             response_model=Dict[str, Any],

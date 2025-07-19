@@ -3448,7 +3448,7 @@ class UnifiedTaxationController:
             from app.domain.value_objects.employee_id import EmployeeId
             employee_id_vo = EmployeeId(employee_id)
             user = await self.user_repository.get_by_id(employee_id_vo, current_user.hostname)
-            response = self._convert_monthly_salary_entity_to_dto(monthly_salary, user)
+            response = await self._convert_monthly_salary_entity_to_dto(monthly_salary, user, current_user)
             logger.info(f"Successfully retrieved monthly salary for employee {employee_id}")
             return response
         except Exception as e:
@@ -3493,7 +3493,10 @@ class UnifiedTaxationController:
                 if department and user and getattr(user, 'department', None) != department:
                     continue
                 filtered_salaries.append((salary, user))
-            items = [self._convert_monthly_salary_entity_to_dto(salary, user) for salary, user in filtered_salaries]
+            items = []
+            for salary, user in filtered_salaries:
+                dto = await self._convert_monthly_salary_entity_to_dto(salary, user, current_user)
+                items.append(dto)
             total = len(filtered_salaries)
             return {
                 "items": items,
@@ -3538,60 +3541,13 @@ class UnifiedTaxationController:
             logger.error(f"Failed to get monthly salary summary: {str(e)}")
             raise
 
-    async def delete_monthly_salary(
-        self,
-        employee_id: str,
-        month: int,
-        year: int,
-        current_user: CurrentUser
-    ) -> str:
-        """
-        Delete monthly salary record for an employee.
-        
-        Args:
-            employee_id: Employee ID
-            month: Month number (1-12)
-            year: Year
-            current_user: Current user context
-            
-        Returns:
-            str: Success message
-            
-        Raises:
-            ValueError: If salary not found
-        """
-        
-        logger.info(f"Deleting monthly salary for employee {employee_id}, month {month}, year {year}")
-        
-        try:
-            # Check if salary exists
-            exists = await self.salary_package_repository.exists(
-                employee_id, month, year, current_user.hostname
-            )
-            
-            if not exists:
-                raise ValueError(f"Monthly salary not found for employee {employee_id}, month {month}, year {year}")
-            
-            # Delete the salary
-            deleted = await self.salary_package_repository.delete(
-                employee_id, month, year, current_user.hostname
-            )
-            
-            if not deleted:
-                raise RuntimeError(f"Failed to delete monthly salary for employee {employee_id}")
-            
-            message = f"Successfully deleted monthly salary for employee {employee_id}, month {month}, year {year}"
-            logger.info(message)
-            return message
-            
-        except Exception as e:
-            logger.error(f"Failed to delete monthly salary for employee {employee_id}: {str(e)}")
-            raise
 
-    def _convert_monthly_salary_entity_to_dto(
+
+    async def _convert_monthly_salary_entity_to_dto(
         self,
         monthly_salary,
-        user
+        user,
+        current_user
     ) -> MonthlySalaryResponseDTO:
         """
         Convert MonthlySalary entity to MonthlySalaryResponseDTO.
@@ -3604,15 +3560,15 @@ class UnifiedTaxationController:
             MonthlySalaryResponseDTO: Response DTO
         """
         
-        # Calculate gross salary
+        # Use already computed values from the entity instead of recomputing
+        # Get gross salary from salary income (already computed)
         gross_salary = monthly_salary.salary.calculate_gross_salary()
         
-        # Calculate deductions
-        epf_employee = self._calculate_monthly_epf(gross_salary)
-        epf_employer = self._calculate_monthly_epf(gross_salary)  # Employer PF is same as employee PF (12%)
-        esi_employee = self._calculate_monthly_esi(gross_salary)
+        # Use already computed tax amount
         tds = monthly_salary.tax_amount
-        total_deductions = epf_employee.add(esi_employee).add(tds)
+        
+        # Use already computed net salary
+        net_salary = monthly_salary.net_salary
         
         # Get loan EMI amount from perquisites payouts
         loan_emi = Money.zero()
@@ -3622,10 +3578,18 @@ class UnifiedTaxationController:
                     loan_emi = component.value
                     break
         
-        net_salary = self._safe_subtract(gross_salary, total_deductions)
+        # Calculate total deductions using already computed values
+        epf_employee = monthly_salary.salary.epf_employee
+        esi_employee = monthly_salary.salary.esi_contribution  # Fixed: use esi_contribution instead of esi_employee
+        total_deductions = epf_employee.add(esi_employee).add(tds).add(loan_emi)
         
-        # Get working days info
-        working_days_info = self._get_working_days_info(monthly_salary.month, monthly_salary.year)
+        # Use working days info from LWP details instead of recomputing
+        working_days_info = {
+            'total_days': monthly_salary.lwp.total_working_days if monthly_salary.lwp else 30,
+            'working_days': monthly_salary.lwp.total_working_days if monthly_salary.lwp else 26,
+            'lwp_days': monthly_salary.lwp.lwp_days if monthly_salary.lwp else 0,
+            'effective_days': (monthly_salary.lwp.total_working_days - monthly_salary.lwp.lwp_days) if monthly_salary.lwp else 26
+        }
         
         # Tax details - handle tax_regime robustly
         try:
@@ -3689,8 +3653,25 @@ class UnifiedTaxationController:
                 transfer_date=getattr(pf_status_entity, 'transfer_date', None)
             )
 
-        # Calculate professional tax
-        professional_tax = self._calculate_monthly_professional_tax(gross_salary)
+        # Get professional tax from salary package record's calculation result if available
+        professional_tax = Money.zero()
+        try:
+            # Get the salary package record to access the calculation result
+            salary_package_record = await self.salary_package_repository.get_salary_package_record(
+                monthly_salary.employee_id.value, 
+                str(monthly_salary.tax_year), 
+                current_user.hostname
+            )
+            if salary_package_record and salary_package_record.calculation_result:
+                # Professional tax is stored as annual amount, so divide by 12 for monthly
+                professional_tax = salary_package_record.calculation_result.professional_tax.divide(12)
+            else:
+                # Fallback to calculation if no calculation result available
+                professional_tax = self._calculate_monthly_professional_tax(gross_salary)
+        except Exception as e:
+            logger.warning(f"Error getting professional tax from calculation result: {e}")
+            # Fallback to calculation
+            professional_tax = self._calculate_monthly_professional_tax(gross_salary)
 
         return MonthlySalaryResponseDTO(
             employee_id=monthly_salary.employee_id.value,
@@ -3721,15 +3702,15 @@ class UnifiedTaxationController:
             vps_employee=monthly_salary.salary.vps_employee.to_float(),
             
             # Deductions
-            epf_employee=epf_employee.to_float(),
-            epf_employer=epf_employer.to_float(),
-            esi_employee=esi_employee.to_float(),
+            epf_employee=monthly_salary.salary.epf_employee.to_float(),
+            epf_employer=monthly_salary.salary.epf_employer.to_float(),
+            esi_employee=monthly_salary.salary.esi_contribution.to_float(),  # Fixed: use esi_contribution instead of esi_employee
             tds=tds.to_float(),
             advance_deduction=0.0,
             loan_deduction=loan_emi.to_float(),
             other_deductions=0.0,
             
-            # Calculated totals
+            # Calculated totals (use already computed values)
             gross_salary=gross_salary.to_float(),
             total_deductions=total_deductions.to_float(),
             net_salary=net_salary.to_float(),
@@ -3743,7 +3724,7 @@ class UnifiedTaxationController:
             tax_exemptions=0.0,  # Would need to calculate
             standard_deduction=0.0,  # Would need to calculate
             
-            # Working days
+            # Working days (use from LWP details)
             total_days_in_month=working_days_info['total_days'],
             working_days_in_period=working_days_info['working_days'],
             lwp_days=working_days_info['lwp_days'],
@@ -3972,7 +3953,7 @@ class UnifiedTaxationController:
             for salary in salary_entities:
                 employee_id_vo = EmployeeId(salary.employee_id.value)
                 user = await self.user_repository.get_by_id(employee_id_vo, current_user.hostname)
-                dto = self._convert_monthly_salary_entity_to_dto(salary, user)
+                dto = await self._convert_monthly_salary_entity_to_dto(salary, user, current_user)
                 items.append(dto)
             return items
         except Exception as e:
@@ -4532,5 +4513,5 @@ class UnifiedTaxationController:
 
         # Get user info for DTO
         user = await self.user_repository.get_by_id(EmployeeId(employee_id), current_user.hostname)
-        return self._convert_monthly_salary_entity_to_dto(ms, user)
+        return await self._convert_monthly_salary_entity_to_dto(ms, user, current_user)
  

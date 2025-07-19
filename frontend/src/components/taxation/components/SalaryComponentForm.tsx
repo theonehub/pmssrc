@@ -31,6 +31,8 @@ interface SalaryComponentData {
   basic_salary: number;
   dearness_allowance: number;
   hra_provided: number;
+  epf_employee: number;
+  epf_employer: number;
   eps_employee: number;
   eps_employer: number;
   esi_contribution: number;
@@ -142,6 +144,8 @@ const initialSalaryData: SalaryComponentData = {
   basic_salary: 0,
   dearness_allowance: 0,
   hra_provided: 0,
+  epf_employee: 0,
+  epf_employer: 0,
   eps_employee: 0,
   eps_employer: 0,
   esi_contribution: 0,
@@ -318,7 +322,7 @@ const SalaryComponentForm: React.FC = () => {
     const calculatedEmployeePF = computeEmployeePF();
     setSalaryData(prev => ({
       ...prev,
-      eps_employee: calculatedEmployeePF
+      epf_employee: calculatedEmployeePF
     }));
   }, [computeEmployeePF]);
 
@@ -327,7 +331,7 @@ const SalaryComponentForm: React.FC = () => {
     const calculatedEmployerPF = computeEmployerPF();
     setSalaryData(prev => ({
       ...prev,
-      eps_employer: calculatedEmployerPF
+      epf_employer: calculatedEmployerPF
     }));
   }, [computeEmployerPF]);
 
@@ -464,6 +468,8 @@ const SalaryComponentForm: React.FC = () => {
     const allowanceFields = [
       'dearness_allowance',
       'hra_provided', 
+      'epf_employee',
+      'epf_employer',
       'eps_employee',
       'eps_employer',
       'vps_employee',
@@ -537,8 +543,8 @@ const SalaryComponentForm: React.FC = () => {
     {
       label: 'PF Components(Monthly)',
       fields: [
-        { name: 'eps_employee', label: 'Employee PF (Auto-calculated)', type: 'number' } as NumberField,
-        { name: 'eps_employer', label: 'Employer PF (Auto-calculated)', type: 'number' } as NumberField,
+        { name: 'epf_employee', label: 'Employee PF (Auto-calculated)', type: 'number' } as NumberField,
+        { name: 'epf_employer', label: 'Employer PF (Auto-calculated)', type: 'number' } as NumberField,
         { name: 'esi_contribution', label: 'ESI (Auto-calculated)', type: 'number' } as NumberField,
         { name: 'vps_employee', label: 'Voluntary PF', type: 'number' } as NumberField
       ]
@@ -686,11 +692,11 @@ const SalaryComponentForm: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <Typography variant="body2" color="text.secondary">Employee's contribution</Typography>
-              <Typography variant="h6">₹{salaryData.eps_employee.toLocaleString('en-IN')}</Typography>
+              <Typography variant="h6">₹{salaryData.epf_employee.toLocaleString('en-IN')}</Typography>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <Typography variant="body2" color="text.secondary">Employer's contribution</Typography>
-              <Typography variant="h6">₹{salaryData.eps_employer.toLocaleString('en-IN')}</Typography>
+              <Typography variant="h6">₹{salaryData.epf_employer.toLocaleString('en-IN')}</Typography>
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <Typography variant="body2" color="text.secondary">ESI</Typography>
@@ -797,9 +803,9 @@ const SalaryComponentForm: React.FC = () => {
                               helperText={
                                 field.name === 'hra_provided' 
                                   ? "Auto-calculated as (Basic + DA) × 50%. Over&Above Salary." 
-                                  : field.name === 'eps_employee' 
+                                  : field.name === 'epf_employee' 
                                     ? "Auto-calculated as (Basic + DA) × 12%. Included in Salary." 
-                                    : field.name === 'eps_employer' 
+                                    : field.name === 'epf_employer' 
                                       ? "Auto-calculated as (Basic + DA) × 12%. Over&Above Salary." 
                                       : field.name === 'esi_contribution' 
                                         ? "Auto-calculated as (Basic + DA) × 0.075%. Over&Above Salary." 

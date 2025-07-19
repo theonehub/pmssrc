@@ -3458,7 +3458,7 @@ class UnifiedTaxationController:
     async def get_monthly_salaries_for_period(
         self,
         month: int,
-        year: int,
+        year: str,
         current_user: CurrentUser,
         salary_status: Optional[str] = None,
         department: Optional[str] = None,
@@ -3609,6 +3609,7 @@ class UnifiedTaxationController:
         
         # Calculate deductions
         epf_employee = self._calculate_monthly_epf(gross_salary)
+        epf_employer = self._calculate_monthly_epf(gross_salary)  # Employer PF is same as employee PF (12%)
         esi_employee = self._calculate_monthly_esi(gross_salary)
         tds = monthly_salary.tax_amount
         total_deductions = epf_employee.add(esi_employee).add(tds)
@@ -3721,6 +3722,7 @@ class UnifiedTaxationController:
             
             # Deductions
             epf_employee=epf_employee.to_float(),
+            epf_employer=epf_employer.to_float(),
             esi_employee=esi_employee.to_float(),
             tds=tds.to_float(),
             advance_deduction=0.0,

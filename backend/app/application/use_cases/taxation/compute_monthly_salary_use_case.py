@@ -378,6 +378,7 @@ class ComputeMonthlySalaryUseCase:
             
             # Deductions (statutory, calculated)
             epf_employee=monthly_salary.salary.eps_employee.to_float(),  # Employee Provident Fund (12% of basic+DA, includes EPS+VPF)
+            epf_employer=monthly_salary.salary.eps_employer.to_float(),  # Employer Provident Fund (12% of basic+DA)
             esi_employee=monthly_salary.salary.esi_contribution.to_float(),
             tds=tds.to_float(),
             advance_deduction=0.0,

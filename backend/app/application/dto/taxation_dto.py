@@ -1279,6 +1279,7 @@ class MonthlySalaryResponseDTO(BaseModel):
     
     # Deductions
     epf_employee: float = Field(default=0.0, description="EPF employee contribution")
+    epf_employer: float = Field(default=0.0, description="EPF employer contribution")
     esi_employee: float = Field(default=0.0, description="ESI employee contribution")
     tds: float = Field(default=0.0, description="TDS")
     advance_deduction: float = Field(default=0.0, description="Advance deduction")

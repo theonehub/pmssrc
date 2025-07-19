@@ -725,13 +725,7 @@ const PFReport: React.FC = () => {
                 <Grid item xs={6}>
                   <Tooltip title="Employee Pension Scheme (part of EPF, 8.33% of Basic + DA)"><Typography variant="body2" color="textSecondary">EPS (Employee)</Typography></Tooltip>
                   <Typography variant="body1" color="primary">
-                    {formatCurrency(selectedSalary.eps_employee || 0)}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Tooltip title="Employer's contribution to EPS (part of EPF)"><Typography variant="body2" color="textSecondary">EPS (Employer)</Typography></Tooltip>
-                  <Typography variant="body1" color="primary">
-                    {formatCurrency(selectedSalary.eps_employer || 0)}
+                    {formatCurrency(selectedSalary.epf_employee || 0)}
                   </Typography>
                 </Grid>
                 <Grid item xs={6}>

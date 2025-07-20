@@ -281,12 +281,21 @@ class InterestFreeConcessionalLoan:
         interest_paid = Money.zero()
         outstanding_amount = self.outstanding_amount
         monthly_payment_schedule = []
-        logger.info(f"Opening Balance: {outstanding_amount.to_float():.2f}")
-        logger.info(f"EMI Amount: {self.emi_amount.to_float():.2f}")
-        logger.info(f"Interest Rate: {interest_rate}")
-        logger.info(f"====================================================================================")
-        logger.info(f"Month   |  Outstanding Amount |  Interest Amount |  Principal Amount |  EMI Deducted")
-        logger.info(f"====================================================================================")
+        # Log loan details using table logger
+        from app.utils.table_logger import log_simple_table
+        
+        # Log loan summary
+        summary_data = {
+            'Opening Balance': f"₹{outstanding_amount.to_float():.2f}",
+            'EMI Amount': f"₹{self.emi_amount.to_float():.2f}",
+            'Interest Rate': f"{interest_rate}%"
+        }
+        
+        from app.utils.table_logger import log_salary_summary
+        log_salary_summary("LOAN DETAILS", summary_data)
+        
+        # Prepare monthly schedule data
+        schedule_data = []
         for month in range(1, 13):
             if outstanding_amount.is_zero():
                 break
@@ -313,8 +322,19 @@ class InterestFreeConcessionalLoan:
             
             # Calculate EMI deducted (principal + interest)
             emi_deducted = principal_amount.add(interest_amount)
-            logger.info(f"{month:02d}      |  {outstanding_amount.to_float():.2f}      |  {interest_amount.to_float():.2f}      |  {principal_amount.to_float():.2f}      |  {emi_deducted.to_float():.2f}")
-        logger.info(f"====================================================================================")
+            
+            # Add to schedule data for table logging
+            schedule_data.append([
+                f"{month:02d}",
+                f"₹{outstanding_amount.to_float():.2f}",
+                f"₹{interest_amount.to_float():.2f}",
+                f"₹{principal_amount.to_float():.2f}",
+                f"₹{emi_deducted.to_float():.2f}"
+            ])
+        
+        # Log monthly schedule table
+        headers = ['Month', 'Outstanding Amount', 'Interest Amount', 'Principal Amount', 'EMI Deducted']
+        log_simple_table("MONTHLY LOAN SCHEDULE", schedule_data, headers)
         return monthly_payment_schedule, interest_paid
 
     

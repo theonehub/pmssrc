@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional, List
 from uuid import uuid4
 from decimal import Decimal
 
-from app.utils.logger import get_logger
+from app.utils.logger import get_detailed_logger
 from app.domain.value_objects.employee_id import EmployeeId
 from app.domain.value_objects.money import Money
 from app.domain.value_objects.tax_year import TaxYear
@@ -27,7 +27,7 @@ from app.domain.entities.taxation.monthly_salary import MonthlySalary
 from app.domain.entities.taxation.lwp_details import LWPDetails
 from app.domain.entities.taxation.monthly_salary_status import TDSStatus
 
-logger = get_logger(__name__)
+logger = get_detailed_logger()
 
 @dataclass
 class SalaryPackageRecord:
@@ -96,7 +96,7 @@ class SalaryPackageRecord:
         
         # Initialize annual_salary_income if not already set
         if not hasattr(self, 'annual_salary_income') or self.annual_salary_income is None:
-            self._update_annual_salary_income()
+            self._update_annual_salary_income()     #Logically Correct
     
     def add_salary_income(self, salary_income: SalaryIncome) -> None:
         """
@@ -610,12 +610,10 @@ class SalaryPackageRecord:
             # Skip if salary period doesn't overlap with financial year
             if salary_start > financial_year_end or salary_end < financial_year_start:
                 continue
-            
             # Calculate the number of months this salary is applicable
             months_applicable = Decimal(str(self._calculate_months_between_dates(salary_start, salary_end)))
             
             if months_applicable > 0:
-                logger.info(f"Start date: {salary_start}, End date: {salary_end}, Months applicable: {months_applicable}")
                 # Add weighted components
                 total_months += months_applicable
                 weighted_basic_salary = weighted_basic_salary.add(
@@ -634,10 +632,10 @@ class SalaryPackageRecord:
                     salary_income.commission.multiply(months_applicable)
                 )
                 weighted_pf_employee_contribution = weighted_pf_employee_contribution.add(
-                    salary_income.eps_employee.multiply(months_applicable)
+                    salary_income.epf_employee.multiply(months_applicable)
                 )
                 weighted_pf_employer_contribution = weighted_pf_employer_contribution.add(
-                    salary_income.eps_employer.multiply(months_applicable)
+                    salary_income.epf_employer.multiply(months_applicable)
                 )
                 weighted_pf_voluntary_contribution = weighted_pf_voluntary_contribution.add(
                     salary_income.vps_employee.multiply(months_applicable)
@@ -645,6 +643,26 @@ class SalaryPackageRecord:
                 weighted_esi_contribution = weighted_esi_contribution.add(
                     salary_income.esi_contribution.multiply(months_applicable)
                 )
+                
+                # Log salary income summary using salary summary table logger
+                from app.utils.table_logger import log_salary_summary
+
+                summary_data = {
+                    'Start': str(salary_start),
+                    'Till': str(salary_end),
+                    'Months': str(months_applicable),
+                    'Basic': str(salary_income.basic_salary),
+                    'DA': str(salary_income.dearness_allowance),
+                    'HRA': str(salary_income.hra_provided),
+                    'Special': str(salary_income.special_allowance),
+                    'Commission': str(salary_income.commission),
+                    'EPF Employee': str(salary_income.epf_employee),
+                    'EPF Employer': str(salary_income.epf_employer),
+                    'VPS Employee': str(salary_income.vps_employee),
+                    'ESI': str(salary_income.esi_contribution)
+                }
+
+                log_salary_summary("SALARY INCOME SUMMARY", summary_data)
                 
                 # Handle specific allowances if present
                 if salary_income.specific_allowances:
@@ -670,8 +688,8 @@ class SalaryPackageRecord:
             annual_salary.hra_provided = weighted_hra_provided
             annual_salary.special_allowance = weighted_special_allowance
             annual_salary.commission = weighted_commission
-            annual_salary.eps_employee = weighted_pf_employee_contribution
-            annual_salary.eps_employer = weighted_pf_employer_contribution
+            annual_salary.epf_employee = weighted_pf_employee_contribution
+            annual_salary.epf_employer = weighted_pf_employer_contribution
             annual_salary.vps_employee = weighted_pf_voluntary_contribution
             annual_salary.esi_contribution = weighted_esi_contribution
             
@@ -694,10 +712,6 @@ class SalaryPackageRecord:
             if annual_salary.specific_allowances:
                 total_specific_allowances = annual_salary.specific_allowances.calculate_total_specific_allowances()
                 logger.info(f"Annual specific allowances included: {total_specific_allowances}")
-                logger.debug(f"Specific allowances breakdown - Hills: {annual_salary.specific_allowances.hills_allowance}, "
-                           f"Border: {annual_salary.specific_allowances.border_allowance}, "
-                           f"Transport: {annual_salary.specific_allowances.transport_employee_allowance}, "
-                           f"Children Education: {annual_salary.specific_allowances.children_education_allowance}")
         else:
             # If no applicable periods, use the latest salary as fallback
             latest_salary = self.get_latest_salary_income()
@@ -911,8 +925,17 @@ class SalaryPackageRecord:
         logger.info(f"TheOne: Annual Salary Income: {total}")
         ##compute one time arrear and one time bonus for all the MonthlySalary records
         for monthly_salary in self.monthly_salary_records:
-            logger.info(f"Month    | Bonus   | Arrear")
-            logger.info(f"{monthly_salary.month} | {monthly_salary.one_time_bonus} | {monthly_salary.one_time_arrear}")
+            # Log monthly salary data using table logger
+            from app.utils.table_logger import log_simple_table
+            
+            headers = ['Month', 'Bonus', 'Arrear']
+            data = [[
+                str(monthly_salary.month),
+                str(monthly_salary.one_time_bonus),
+                str(monthly_salary.one_time_arrear)
+            ]]
+            
+            log_simple_table("MONTHLY SALARY BONUS & ARREAR", data, headers)
             total = total.add(monthly_salary.one_time_arrear).add(monthly_salary.one_time_bonus)
         logger.info(f"*********************************************************************************************************")
         logger.info(f"Total: {total}")
@@ -954,9 +977,17 @@ class SalaryPackageRecord:
         """
         tds_deducted_till_date = Money.zero()
         for monthly_salary in self.monthly_salary_records:
-            logger.info(f"TheOne: TDS status Details")
-            logger.info(f"Month  | TDS Status    | TDS Amount")
-            logger.info(f"{monthly_salary.month} | {monthly_salary.tds_status.status} | {monthly_salary.tds_status.total_tax_liability}")
+            # Log TDS status data using table logger
+            from app.utils.table_logger import log_simple_table
+            
+            headers = ['Month', 'TDS Status', 'TDS Amount']
+            data = [[
+                str(monthly_salary.month),
+                str(monthly_salary.tds_status.status),
+                str(monthly_salary.tds_status.total_tax_liability)
+            ]]
+            
+            log_simple_table("TDS STATUS DETAILS", data, headers)
             if monthly_salary.tds_status.status == 'paid':
                 tds_deducted_till_date = tds_deducted_till_date.add(monthly_salary.tds_status.total_tax_liability)
             else:
@@ -1026,7 +1057,7 @@ class SalaryPackageRecord:
             "tax_calculation": {
                 "regime": self.regime.regime_type.value,
                 "basic_tax": tax_amount.to_float(),
-                "professional_tax": professional_tax.to_float() * 12,
+                "professional_tax": professional_tax.to_float(),
                 "surcharge": surcharge.to_float(),
                 "cess": cess.to_float(),
                 "total_tax": total_tax.to_float() + professional_tax.to_float()
@@ -1118,21 +1149,24 @@ class SalaryPackageRecord:
         Returns:
             Money: Total gross income from all sources
         """
-
+        total_income = Money.zero()
         # Calculate comprehensive gross income
-        total_income = self._get_gross_salary_income()
-        
+        gross_salary_income = self._get_gross_salary_income()
+        total_income = total_income.add(gross_salary_income)
+        summary_data = {
+            'gross_salary_income': gross_salary_income
+        }
 
         # Other income (if any) - now includes house property income and capital gains
         if self.other_income:
             other_income_slab_amount = self.other_income.calculate_total_other_income_slab_rates(self.regime, self.age)
-            logger.info(f"Other income slab amount: {other_income_slab_amount}")
             total_income = total_income.add(other_income_slab_amount)
+            summary_data['other_income_slab_amount'] = other_income_slab_amount
             adjustments_less = Money.zero()
             # Fix: Check if house_property_income is not None before calling get_house_property_loss
             if self.other_income.house_property_income is not None:
                 adjustments_less = self.other_income.house_property_income.get_house_property_loss(self.regime)
-            logger.info(f"HPI: Loss from house property: {adjustments_less}")
+                summary_data['adjustments_less (-) House Property Loss'] = adjustments_less
             total_income = total_income.subtract(adjustments_less)
                     
         # Perquisites (if any)
@@ -1143,6 +1177,11 @@ class SalaryPackageRecord:
         if self.retirement_benefits:
             total_income = total_income.add(self.retirement_benefits.calculate_total_retirement_income(self.regime, self.is_government_employee, self.age))
         
+        # Log the summary table
+        summary_data['Total_Gross_Income'] = total_income
+        from app.utils.table_logger import log_salary_summary
+        log_salary_summary("GROSS INCOME SUMMARY", summary_data)
+
         return total_income
 
     def calculate_exemptions(self) -> Money:
@@ -1153,20 +1192,32 @@ class SalaryPackageRecord:
             Money: Total exemptions from all sources
         """
         total_exemptions = Money.zero()
-        
+        summary_data = {}
         # Salary exemptions (core) - use latest salary income
-        total_exemptions = total_exemptions.add(self.annual_salary_income.calculate_total_exemptions(self.regime, self.is_government_employee))
+        core_salary_exemptions = self.annual_salary_income.calculate_total_exemptions(self.regime, self.is_government_employee)
+        summary_data['core_salary_exemptions'] = core_salary_exemptions
 
-        total_exemptions = total_exemptions.add(self.regime.get_standard_deduction())
-        
+        salary_standard_deduction = self.regime.get_standard_deduction()
+        total_exemptions = total_exemptions.add(core_salary_exemptions).add(salary_standard_deduction)
+        summary_data['salary_standard_deduction'] = salary_standard_deduction
+
         # Retirement benefits exemptions
         if self.retirement_benefits:
-            total_exemptions = total_exemptions.add(self.retirement_benefits.calculate_total_exemptions(self.regime, self.age))
-        
+            retirement_benefits_exemptions = self.retirement_benefits.calculate_total_exemptions(self.regime, self.age)
+            total_exemptions = total_exemptions.add(retirement_benefits_exemptions)
+            summary_data['retirement_benefits_exemptions'] = retirement_benefits_exemptions
         # Other income exemptions (interest exemptions)
         if self.other_income:
-            total_exemptions = total_exemptions.add(self.other_income.calculate_interest_exemptions(self.regime, self.age))
+            other_income_exemptions = self.other_income.calculate_interest_exemptions(self.regime, self.age)
+            total_exemptions = total_exemptions.add(other_income_exemptions)
+            summary_data['other_income_exemptions'] = other_income_exemptions
         
+        summary_data['Total Exemptions'] = total_exemptions
+
+        # Log the summary table
+        from app.utils.table_logger import log_salary_summary
+        log_salary_summary("EXEMPTIONS SUMMARY", summary_data)
+
         return total_exemptions
     
     def update_perquisites(self, new_perquisites: Optional[Perquisites]) -> None:

@@ -95,9 +95,18 @@ class CapitalGainsIncome:
         Returns:
             Money: STCG amount for slab taxation
         """
-        logger.info(f"CGI: stcg_other_assets: {self.stcg_other_assets}")
-        logger.info(f"CGI: stcg_debt_mf: {self.stcg_debt_mf}")
-        return self.stcg_other_assets.add(self.stcg_debt_mf)
+        stcg_for_slab_rates = self.stcg_other_assets.add(self.stcg_debt_mf)
+        summary_data = {
+            'stcg_other_assets': self.stcg_other_assets,
+            'stcg_debt_mf': self.stcg_debt_mf,
+            'stcg_for_slab_rates': stcg_for_slab_rates
+        }
+
+        # Log the summary table
+        from app.utils.table_logger import log_salary_summary
+        log_salary_summary("STCG FOR SLAB RATES", summary_data)
+
+        return stcg_for_slab_rates
     
     def calculate_total_capital_gains_income(self) -> Money:
         """

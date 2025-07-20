@@ -58,6 +58,9 @@ class LoggerConfig:
             'json': {
                 'format': '{"timestamp": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "line": %(lineno)d, "function": "%(funcName)s", "message": "%(message)s"}',
                 'datefmt': '%Y-%m-%d %H:%M:%S'
+            },
+            'message_only': {
+                'format': '%(message)s'
             }
         }
         
@@ -106,6 +109,18 @@ class LoggerConfig:
                     'handlers': handler_list,
                     'propagate': False
                 },
+                # Detailed logger with all information
+                'detailed': {
+                    'level': LOG_LEVEL,
+                    'handlers': handler_list,
+                    'propagate': False
+                },
+                # Simple logger with just the message
+                'simple': {
+                    'level': LOG_LEVEL,
+                    'handlers': handler_list,
+                    'propagate': False
+                },
                 'uvicorn': {
                     'level': 'INFO',
                     'handlers': handler_list,
@@ -148,6 +163,47 @@ class LoggerConfig:
         # Apply the configuration
         logging.config.dictConfig(config)
         
+        # Configure the detailed and simple loggers with specific formatters
+        detailed_logger = logging.getLogger('detailed')
+        simple_logger = logging.getLogger('simple')
+        
+        # Clear existing handlers and add new ones with specific formatters
+        detailed_logger.handlers.clear()
+        simple_logger.handlers.clear()
+        
+        # Add console handlers with specific formatters
+        detailed_console_handler = logging.StreamHandler()
+        detailed_console_handler.setLevel(LOG_LEVEL)
+        detailed_console_handler.setFormatter(logging.Formatter(
+            '%(asctime)s [%(levelname)s] %(name)s:%(lineno)d - %(funcName)s(): %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        ))
+        detailed_logger.addHandler(detailed_console_handler)
+        
+        simple_console_handler = logging.StreamHandler()
+        simple_console_handler.setLevel(LOG_LEVEL)
+        simple_console_handler.setFormatter(logging.Formatter('%(message)s'))
+        simple_logger.addHandler(simple_console_handler)
+        
+        # Add file handlers if logging to file is enabled
+        if LOG_TO_FILE:
+            detailed_file_handler = logging.handlers.RotatingFileHandler(
+                LOG_FILE_PATH, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUP_COUNT
+            )
+            detailed_file_handler.setLevel(LOG_LEVEL)
+            detailed_file_handler.setFormatter(logging.Formatter(
+                '%(asctime)s [%(levelname)s] %(name)s:%(lineno)d - %(funcName)s(): %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S'
+            ))
+            detailed_logger.addHandler(detailed_file_handler)
+            
+            simple_file_handler = logging.handlers.RotatingFileHandler(
+                LOG_FILE_PATH, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUP_COUNT
+            )
+            simple_file_handler.setLevel(LOG_LEVEL)
+            simple_file_handler.setFormatter(logging.Formatter('%(message)s'))
+            simple_logger.addHandler(simple_file_handler)
+        
         # Log the configuration
         logger = logging.getLogger('app.logger_config')
         logger.info(f"Logging configured - Level: {LOG_LEVEL}, Format: {LOG_FORMAT}, File: {LOG_TO_FILE}")
@@ -163,6 +219,32 @@ class LoggerConfig:
             logging.Logger: Configured logger instance
         """
         return logging.getLogger(name)
+    
+    def get_detailed_logger(self) -> logging.Logger:
+        """
+        Get a detailed logger with timestamp, level, name, line number, function name, and message.
+        
+        Returns:
+            logging.Logger: Detailed logger instance
+            
+        Example:
+            logger = get_detailed_logger()
+            logger.info("pushed data")  # Output: 2025-07-20 14:24:11 [INFO] detailed:153 - configure_logging(): pushed data
+        """
+        return logging.getLogger('detailed')
+    
+    def get_simple_logger(self) -> logging.Logger:
+        """
+        Get a simple logger with just the message content.
+        
+        Returns:
+            logging.Logger: Simple logger instance
+            
+        Example:
+            logger = get_simple_logger()
+            logger.info("pushed data")  # Output: pushed data
+        """
+        return logging.getLogger('simple')
     
     def set_log_level(self, level: str):
         """
@@ -189,6 +271,18 @@ class LoggerConfig:
         app_logger = logging.getLogger('app')
         app_logger.setLevel(level)
         for handler in app_logger.handlers:
+            handler.setLevel(level)
+        
+        # Update detailed and simple loggers
+        detailed_logger = logging.getLogger('detailed')
+        simple_logger = logging.getLogger('simple')
+        
+        detailed_logger.setLevel(level)
+        simple_logger.setLevel(level)
+        
+        for handler in detailed_logger.handlers:
+            handler.setLevel(level)
+        for handler in simple_logger.handlers:
             handler.setLevel(level)
         
         logger = logging.getLogger('app.logger_config')
@@ -255,6 +349,34 @@ def get_logger(name: str = None) -> logging.Logger:
             del frame
     
     return _logger_config.get_logger(name)
+
+def get_detailed_logger() -> logging.Logger:
+    """
+    Get a detailed logger with timestamp, level, name, line number, function name, and message.
+    
+    Returns:
+        logging.Logger: Detailed logger instance
+        
+    Example:
+        from utils.logger import get_detailed_logger
+        logger = get_detailed_logger()
+        logger.info("pushed data")  # Output: 2025-07-20 14:24:11 [INFO] detailed:153 - configure_logging(): pushed data
+    """
+    return _logger_config.get_detailed_logger()
+
+def get_simple_logger() -> logging.Logger:
+    """
+    Get a simple logger with just the message content.
+    
+    Returns:
+        logging.Logger: Simple logger instance
+        
+    Example:
+        from utils.logger import get_simple_logger
+        logger = get_simple_logger()
+        logger.info("pushed data")  # Output: pushed data
+    """
+    return _logger_config.get_simple_logger()
 
 def set_log_level(level: str):
     """

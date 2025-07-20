@@ -11,9 +11,12 @@ from typing import Dict, Any
 from app.domain.value_objects.money import Money
 from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
 
-from app.utils.logger import get_logger
+from app.utils.logger import get_detailed_logger, get_simple_logger
+from app.utils.table_logger import log_taxation_breakdown
 
-logger = get_logger(__name__)
+d_logger = get_detailed_logger()
+s_logger = get_simple_logger()
+
 
 @dataclass
 class SpecificAllowances:
@@ -233,6 +236,35 @@ class SpecificAllowances:
     
     def calculate_total_specific_allowances(self) -> Money:
         """Calculate total specific allowances received."""
+        d_logger.info(f"Start")
+        
+        # Prepare summary data for table logging
+        summary_data = {
+            'Monthly Hills Allowance': self.monthly_hills_allowance,
+            'Monthly Border Allowance': self.monthly_border_allowance,
+            'Transport Employee Allowance': self.transport_employee_allowance,
+            'Children Education Allowance': self.children_education_allowance,
+            'Hostel Allowance': self.hostel_allowance,
+            'Disabled Transport Allowance': self.disabled_transport_allowance,
+            'Underground Mines Allowance': self.underground_mines_allowance,
+            'Government Entertainment Allowance': self.government_entertainment_allowance,
+            'City Compensatory Allowance': self.city_compensatory_allowance,
+            'Rural Allowance': self.rural_allowance,
+            'Proctorship Allowance': self.proctorship_allowance,
+            'Wardenship Allowance': self.wardenship_allowance,
+            'Project Allowance': self.project_allowance,
+            'Deputation Allowance': self.deputation_allowance,
+            'Overtime Allowance': self.overtime_allowance,
+            'Interim Relief': self.interim_relief,
+            'Tiffin Allowance': self.tiffin_allowance,
+            'Fixed Medical Allowance': self.fixed_medical_allowance,
+            'Servant Allowance': self.servant_allowance,
+            'Any Other Allowance': self.any_other_allowance
+        }
+        
+        # Log the summary table
+        from app.utils.table_logger import log_salary_summary
+        log_salary_summary("SPECIFIC ALLOWANCES SUMMARY", summary_data)
         return (self.monthly_hills_allowance    
                 .add(self.monthly_border_allowance)
                 .add(self.transport_employee_allowance)
@@ -266,17 +298,52 @@ class SpecificAllowances:
     
     def calculate_total_specific_allowances_exemptions(self, regime: TaxRegime, basic_salary: Money, is_government_employee: bool) -> Money:
         """Calculate total exemptions for specific allowances."""
-        total = Money.zero()
-        total = total.add(self.calculate_hills_exemption(regime))
-        total = total.add(self.calculate_border_exemption(regime))
-        total = total.add(self.calculate_transport_employee_exemption(regime))
-        total = total.add(self.calculate_children_education_exemption(regime))
-        total = total.add(self.calculate_hostel_exemption(regime))
-        total = total.add(self.calculate_disabled_transport_exemption(regime))
-        total = total.add(self.calculate_underground_mines_exemption(regime))
-        total = total.add(self.calculate_government_entertainment_exemption(regime, basic_salary, is_government_employee))
-        total = total.add(self.calculate_section_10_exemptions(regime, is_government_employee))
-        total = total.add(self.calculate_any_other_allowance_exemption(regime))
+        d_logger.info(f"Start")
+
+        # Calculate all exemptions first
+        hills_exemption = self.calculate_hills_exemption(regime)
+        border_exemption = self.calculate_border_exemption(regime)
+        transport_exemption = self.calculate_transport_employee_exemption(regime)
+        children_edu_exemption = self.calculate_children_education_exemption(regime)
+        hostel_exemption = self.calculate_hostel_exemption(regime)
+        disabled_transport_exemption = self.calculate_disabled_transport_exemption(regime)
+        mines_exemption = self.calculate_underground_mines_exemption(regime)
+        govt_entertainment_exemption = self.calculate_government_entertainment_exemption(regime, basic_salary, is_government_employee)
+        section_10_exemptions = self.calculate_section_10_exemptions(regime, is_government_employee)
+        any_other_exemption = self.calculate_any_other_allowance_exemption(regime)
+        
+        total = (hills_exemption
+                .add(border_exemption)
+                .add(transport_exemption)
+                .add(children_edu_exemption)
+                .add(hostel_exemption)
+                .add(disabled_transport_exemption)
+                .add(mines_exemption)
+                .add(govt_entertainment_exemption)
+                .add(section_10_exemptions)
+                .add(any_other_exemption))
+        
+        summary_data = {
+            'regime': regime.regime_type.value,
+            'basic_salary': basic_salary,
+            'is_government_employee': is_government_employee,
+            'hills_exemption': hills_exemption,
+            'border_exemption': border_exemption,
+            'transport_exemption': transport_exemption,
+            'children_edu_exemption': children_edu_exemption,
+            'hostel_exemption': hostel_exemption,
+            'disabled_transport_exemption': disabled_transport_exemption,
+            'mines_exemption': mines_exemption,
+            'govt_entertainment_exemption': govt_entertainment_exemption,
+            'section_10_exemptions': section_10_exemptions,
+            'any_other_exemption': any_other_exemption,
+            'total_exemptions': total
+        }
+        
+        # Log the summary table
+        from app.utils.table_logger import log_salary_summary
+        log_salary_summary("SPECIFIC ALLOWANCES EXEMPTIONS SUMMARY", summary_data)
+        
         return total
 
 
@@ -325,23 +392,38 @@ class SalaryIncome:
         Returns:
             Money: Total gross salary
         """
+        specific_allowances = Money.zero()
+        if self.specific_allowances:
+            specific_allowances = self.specific_allowances.calculate_total_specific_allowances()
+        
         gross = (self.basic_salary                  #considered for doc 
                 .add(self.dearness_allowance)       #considered for doc
                 .add(self.commission)               #considered for doc
                 .add(self.hra_provided)             #considered for doc
-                .add(self.special_allowance))
-        
-        # Add specific allowances if available
-        if self.specific_allowances:
-            gross = gross.add(self.specific_allowances.calculate_total_specific_allowances())
-        
+                .add(self.special_allowance)
+                .add(specific_allowances))
+            
+        summary_data = {
+            'Basic Salary': self.basic_salary,
+            'Dearness Allowance': self.dearness_allowance,
+            'Commission': self.commission,
+            'HRA Provided': self.hra_provided,
+            'Special Allowance': self.special_allowance,
+            'Specific Allowances': specific_allowances,
+            'Total Gross Salary': gross
+        }
+
+        # Log the summary table
+        from app.utils.table_logger import log_salary_summary
+        log_salary_summary("GROSS SALARY SUMMARY", summary_data)
+
         return gross
     
     def get_pf_employee_contribution(self) -> Money:
         """
         Get the PF employee contribution.
         """
-        return self.eps_employee + self.vps_employee
+        return self.epf_employee + self.vps_employee
 
     def calculate_basic_plus_da(self) -> Money:
         """
@@ -366,10 +448,10 @@ class SalaryIncome:
         
         #TODO: Need to check if this is correct
         total_exemptions = Money.zero()
-        total_exemptions = self.eps_employee.add(self.vps_employee).min(Money.from_int(250000))
 
         # Specific allowances exemptions
         if self.specific_allowances:
+            
             total_exemptions = total_exemptions.add(self.specific_allowances.calculate_total_specific_allowances_exemptions(regime, self.basic_salary, is_government_employee))
         
         return total_exemptions

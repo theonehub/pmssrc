@@ -49,19 +49,20 @@ class DeductionSection80C:
     senior_citizen_savings: Money = Money.zero()
     other_80c_investments: Money = Money.zero()
     
-    def calculate_total_investment(self) -> Money:
+    def calculate_total_investment(self, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate total Section 80C investments."""
-        if self.life_insurance_premium.to_float() > 0: logger.info(f"TheOne: Life insurance premium: {self.life_insurance_premium}")
-        if self.nsc_investment.to_float() > 0: logger.info(f"TheOne: NSC investment: {self.nsc_investment}")
-        if self.tax_saving_fd.to_float() > 0: logger.info(f"TheOne: Tax saving FD: {self.tax_saving_fd}")
-        if self.elss_investment.to_float() > 0: logger.info(f"TheOne: ELSS investment: {self.elss_investment}")
-        if self.home_loan_principal.to_float() > 0: logger.info(f"TheOne: Home loan principal: {self.home_loan_principal}")
-        if self.tuition_fees.to_float() > 0: logger.info(f"TheOne: Tuition fees: {self.tuition_fees}")
-        if self.ulip_premium.to_float() > 0: logger.info(f"TheOne: ULP investment: {self.ulip_premium}")
-        if self.sukanya_samriddhi.to_float() > 0: logger.info(f"TheOne: Sukanya samriddhi: {self.sukanya_samriddhi}")
-        if self.stamp_duty_property.to_float() > 0: logger.info(f"TheOne: Stamp duty property: {self.stamp_duty_property}")
-        if self.senior_citizen_savings.to_float() > 0: logger.info(f"TheOne: Senior citizen savings: {self.senior_citizen_savings}")
-        if self.other_80c_investments.to_float() > 0: logger.info(f"TheOne: Other 80C investments: {self.other_80c_investments}")
+        if summary_data is not None:
+            summary_data['80C-life_insurance_premium'] = self.life_insurance_premium
+            summary_data['80C-nsc_investment'] = self.nsc_investment
+            summary_data['80C-tax_saving_fd'] = self.tax_saving_fd
+            summary_data['80C-elss_investment'] = self.elss_investment
+            summary_data['80C-home_loan_principal'] = self.home_loan_principal
+            summary_data['80C-tuition_fees'] = self.tuition_fees
+            summary_data['80C-ulip_premium'] = self.ulip_premium
+            summary_data['80C-sukanya_samriddhi'] = self.sukanya_samriddhi
+            summary_data['80C-stamp_duty_property'] = self.stamp_duty_property
+            summary_data['80C-senior_citizen_savings'] = self.senior_citizen_savings
+            summary_data['80C-other_80c_investments'] = self.other_80c_investments
         ret_val = (self.life_insurance_premium
                 .add(self.nsc_investment)
                 .add(self.tax_saving_fd)
@@ -73,7 +74,6 @@ class DeductionSection80C:
                 .add(self.stamp_duty_property)
                 .add(self.senior_citizen_savings)
                 .add(self.other_80c_investments))
-        logger.info(f"TheOne: Total investment: {ret_val}")
 
         return ret_val
     
@@ -206,7 +206,7 @@ class DeductionSection80D:
         else:
             return Money.from_int(25000)  # ₹25,000 for others
     
-    def calculate_eligible_deduction(self, regime: TaxRegime, employee_age: int) -> Money:
+    def calculate_eligible_deduction(self, regime: TaxRegime, employee_age: int, summary_data: Dict[str, Any] = None) -> Money:
         """
         Calculate eligible 80D deduction.
         
@@ -221,29 +221,35 @@ class DeductionSection80D:
         self_family_remaining_limit = Money.zero()
         # Self and family deduction
         self_family_limit = self.calculate_self_family_limit(employee_age)
-        logger.info(f"TheOne: Self and family limit: {self_family_limit}")
-        logger.info(f"TheOne: Self and family premium: {self.self_family_premium}")
         self_family_deduction = self.self_family_premium.min(self_family_limit)
-        logger.info(f"TheOne: Self and family deduction: {self_family_deduction}")
         if self_family_limit.is_greater_than(self_family_deduction):
             self_family_remaining_limit = self_family_limit.subtract(self_family_deduction)
-        logger.info(f"TheOne: Self and family remaining limit: {self_family_remaining_limit}")
+        else:
+            self_family_remaining_limit = Money.zero()
+        if summary_data is not None:
+            summary_data['80D-Self and family limit'] = self_family_limit
+            summary_data['80D-Self and family premium'] = self.self_family_premium
+            summary_data['80D-Self and family deduction'] = self_family_deduction
+            summary_data['80D-Self and family remaining limit'] = self_family_remaining_limit
         
         # Parent deduction
         parent_limit = self.calculate_parent_limit()
-        logger.info(f"TheOne: Parent limit: {parent_limit}")
-        logger.info(f"TheOne: Parent premium: {self.parent_premium}")
         parent_deduction = self.parent_premium.min(parent_limit)
-        logger.info(f"TheOne: Parent deduction: {parent_deduction}")
+        if summary_data is not None:
+            summary_data['80D-Parent limit'] = parent_limit
+            summary_data['80D-Parent premium'] = self.parent_premium
+            summary_data['80D-Parent deduction'] = parent_deduction
         # Preventive health checkup (max ₹5,000 and within above limits)
         preventive_limit = self_family_remaining_limit.min(Money.from_int(5000))
-        logger.info(f"TheOne: Preventive limit: {preventive_limit}")
-        logger.info(f"TheOne: Preventive health checkup: {self.preventive_health_checkup}")
         preventive_deduction = self.preventive_health_checkup.min(preventive_limit)
-        logger.info(f"TheOne: Preventive deduction: {preventive_deduction}")
+        if summary_data is not None:
+            summary_data['80D-Preventive limit'] = preventive_limit
+            summary_data['80D-Preventive health checkup'] = self.preventive_health_checkup
+            summary_data['80D-Preventive deduction'] = preventive_deduction
         # Total deduction (preventive is additional)
         total_deduction = self_family_deduction.add(parent_deduction).add(preventive_deduction)
-        logger.info(f"TheOne: Total deduction: {total_deduction}")
+        if summary_data is not None:
+            summary_data['80D-Total deduction'] = total_deduction
         return total_deduction
     
     def get_deduction_breakdown(self, regime: TaxRegime) -> Dict[str, Any]:
@@ -276,21 +282,28 @@ class DeductionSection80DD:
     disability_percentage: DisabilityPercentage
 
     #TODO: Need to prompt user to fill form Medical Certificate, Form 10-IA, Self-Declaration Certificate and Receipts of Insurance Premium Paid
-    def calculate_eligible_deduction(self, regime: TaxRegime) -> Money:
+    def calculate_eligible_deduction(self, regime: TaxRegime, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate Section 80DD deduction."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
+        
+        if summary_data is not None:
+            summary_data['80DD-Relation'] = self.relation
+            summary_data['80DD-Disability Percentage'] = self.disability_percentage
         
         if self.relation not in [RelationType.SPOUSE, RelationType.CHILD, 
                                 RelationType.PARENTS, RelationType.SIBLING]:
             return Money.zero()
         
         if self.disability_percentage == DisabilityPercentage.MODERATE:
-            return Money.from_int(75000)
+            deduction = Money.from_int(75000)
         elif self.disability_percentage in [DisabilityPercentage.SEVERE, DisabilityPercentage.SEVERE_DETAILED]:
-            return Money.from_int(125000)
+            deduction = Money.from_int(125000)
         
-        return Money.zero()
+        if summary_data is not None:
+            summary_data['80DD-Deduction'] = deduction
+        
+        return deduction
 
 
 @dataclass
@@ -301,10 +314,15 @@ class DeductionSection80DDB:
     medical_expenses: Money = Money.zero()
     relation: RelationType = RelationType.SELF
     
-    def calculate_eligible_deduction(self, regime: TaxRegime) -> Money:
+    def calculate_eligible_deduction(self, regime: TaxRegime, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate Section 80DDB deduction."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
+
+        if summary_data is not None:
+            summary_data['80DDB-Relation'] = self.relation
+            summary_data['80DDB-Dependent Age'] = self.dependent_age
+            summary_data['80DDB-Medical Expenses'] = self.medical_expenses
         
         if self.relation not in [RelationType.SELF, RelationType.SPOUSE, RelationType.CHILD,
                                 RelationType.PARENTS, RelationType.SIBLING]:
@@ -317,7 +335,11 @@ class DeductionSection80DDB:
         else:
             max_limit = Money.from_int(100000)
         
-        return self.medical_expenses.min(max_limit)
+        deduction = self.medical_expenses.min(max_limit)
+        if summary_data is not None:
+            summary_data['80DDB-Treatment (Specified Diseases)'] = deduction
+        
+        return deduction
 
 
 @dataclass
@@ -327,10 +349,14 @@ class DeductionSection80E:
     education_loan_interest: Money = Money.zero()
     relation: RelationType = RelationType.SELF
     
-    def calculate_eligible_deduction(self, regime: TaxRegime) -> Money:
+    def calculate_eligible_deduction(self, regime: TaxRegime, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate Section 80E deduction (no upper limit)."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
+        
+        if summary_data is not None:
+            summary_data['80E-Relation'] = self.relation
+            summary_data['80E-Education Loan Interest'] = self.education_loan_interest
         
         if self.relation not in [RelationType.SELF, RelationType.SPOUSE, RelationType.CHILD]:
             return Money.zero()
@@ -345,7 +371,7 @@ class DeductionSection80EEB:
     ev_loan_interest: Money = Money.zero()
     ev_purchase_date: Optional[date] = None
     
-    def calculate_eligible_deduction(self, regime: TaxRegime) -> Money:
+    def calculate_eligible_deduction(self, regime: TaxRegime, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate Section 80EEB deduction."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
@@ -353,6 +379,11 @@ class DeductionSection80EEB:
         if self.ev_purchase_date is None:
             return Money.zero()
         
+        if summary_data is not None:
+            summary_data['80E-Purchase Date'] = self.ev_purchase_date
+            summary_data['80E-EV Loan Interest'] = self.ev_loan_interest
+            summary_data['80E-Max Limit'] = Money.from_int(150000)
+
         # Check if purchase date is within eligible period
         if (self.ev_purchase_date >= date(2019, 4, 1) and 
             self.ev_purchase_date <= date(2025, 3, 31)):
@@ -404,25 +435,28 @@ class DeductionSection80G:
     other_charitable_donations: Money = Money.zero()
     other_50_percent_w_limit: Money = Money.zero()
     
-    def calculate_category_1_deduction(self) -> Money:
+    def calculate_category_1_deduction(self, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate 100% deduction without qualifying limit."""
-        logger.info(f"TheOne: PM relief fund: {self.pm_relief_fund}")
-        logger.info(f"TheOne: National defence fund: {self.national_defence_fund}")
-        logger.info(f"TheOne: National foundation communal harmony: {self.national_foundation_communal_harmony}")
-        logger.info(f"TheOne: Zila saksharta samiti: {self.zila_saksharta_samiti}")
-        logger.info(f"TheOne: National illness assistance fund: {self.national_illness_assistance_fund}")
-        logger.info(f"TheOne: National blood transfusion council: {self.national_blood_transfusion_council}")
-        logger.info(f"TheOne: National trust autism fund: {self.national_trust_autism_fund}")
-        logger.info(f"TheOne: National sports fund: {self.national_sports_fund}")
-        logger.info(f"TheOne: National cultural fund: {self.national_cultural_fund}")
-        logger.info(f"TheOne: Technology development fund: {self.technology_development_fund}")
-        logger.info(f"TheOne: National children fund: {self.national_children_fund}")
-        logger.info(f"TheOne: CM relief fund: {self.cm_relief_fund}")
-        logger.info(f"TheOne: Army naval air force funds: {self.army_naval_air_force_funds}")
-        logger.info(f"TheOne: Swachh bharat kosh: {self.swachh_bharat_kosh}")
-        logger.info(f"TheOne: Clean ganga fund: {self.clean_ganga_fund}")
-        logger.info(f"TheOne: Drug abuse control fund: {self.drug_abuse_control_fund}")
-        logger.info(f"TheOne: Other 100% without limit: {self.other_100_percent_wo_limit}")
+        if summary_data is not None:
+            summary_data['80G-PM Relief Fund'] = self.pm_relief_fund
+            summary_data['80G-National Defence Fund'] = self.national_defence_fund
+            summary_data['80G-National Foundation Communal Harmony'] = self.national_foundation_communal_harmony
+            summary_data['80G-Zila Saksharta Samiti'] = self.zila_saksharta_samiti
+            summary_data['80G-National Illness Assistance Fund'] = self.national_illness_assistance_fund
+            summary_data['80G-National Blood Transfusion Council'] = self.national_blood_transfusion_council
+            summary_data['80G-National Trust Autism Fund'] = self.national_trust_autism_fund
+            summary_data['80G-National Sports Fund'] = self.national_sports_fund
+            summary_data['80G-National Cultural Fund'] = self.national_cultural_fund
+            summary_data['80G-Technology Development Fund'] = self.technology_development_fund
+            summary_data['80G-National Children Fund'] = self.national_children_fund
+            summary_data['80G-CM Relief Fund'] = self.cm_relief_fund
+            summary_data['80G-Army Naval Air Force Funds'] = self.army_naval_air_force_funds
+            summary_data['80G-Swachh Bharat Kosh'] = self.swachh_bharat_kosh
+            summary_data['80G-Clean Ganga Fund'] = self.clean_ganga_fund
+            summary_data['80G-Drug Abuse Control Fund'] = self.drug_abuse_control_fund
+            summary_data['80G-Other 100% without limit'] = self.other_100_percent_wo_limit
+            
+            
         deduction = (self.pm_relief_fund
                 .add(self.national_defence_fund)
                 .add(self.national_foundation_communal_harmony)
@@ -440,74 +474,84 @@ class DeductionSection80G:
                 .add(self.clean_ganga_fund)
                 .add(self.drug_abuse_control_fund)
                 .add(self.other_100_percent_wo_limit))
-        logger.info(f"TheOne: Category 1 deduction: {deduction}")
+        if summary_data is not None:
+            summary_data['80G-100% without qualifying limit'] = deduction
         return deduction
     
-    def calculate_category_2_deduction(self) -> Money:
+    def calculate_category_2_deduction(self, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate 50% deduction without qualifying limit."""
-        logger.info(f"TheOne: JN memorial fund: {self.jn_memorial_fund}")
-        logger.info(f"TheOne: PM drought relief: {self.pm_drought_relief}")
-        logger.info(f"TheOne: Indira gandhi memorial trust: {self.indira_gandhi_memorial_trust}")
-        logger.info(f"TheOne: Rajiv gandhi foundation: {self.rajiv_gandhi_foundation}")
-        logger.info(f"TheOne: Other 50% without limit: {self.other_50_percent_wo_limit}")
+        if summary_data is not None:
+            summary_data['80G-JN Memorial Fund'] = self.jn_memorial_fund
+            summary_data['80G-PM Drought Relief'] = self.pm_drought_relief
+            summary_data['80G-Indira Gandhi Memorial Trust'] = self.indira_gandhi_memorial_trust
+            summary_data['80G-Rajiv Gandhi Foundation'] = self.rajiv_gandhi_foundation
+            summary_data['80G-Other 50% without limit'] = self.other_50_percent_wo_limit
         
         total_donations = (self.jn_memorial_fund
                           .add(self.pm_drought_relief)
                           .add(self.indira_gandhi_memorial_trust)
                           .add(self.rajiv_gandhi_foundation)
                           .add(self.other_50_percent_wo_limit))
-        logger.info(f"TheOne: Category 2 deduction: {total_donations} and percentage: {total_donations.percentage(50)}")
+        if summary_data is not None:
+            summary_data['80G-50% without qualifying limit'] = total_donations.percentage(50)
         return total_donations.percentage(50)
     
-    def calculate_category_3_deduction(self, gross_income: Money) -> Money:
+    def calculate_category_3_deduction(self, gross_income: Money, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate 100% deduction with qualifying limit."""
-        logger.info(f"TheOne: Family planning donation: {self.family_planning_donation}")
-        logger.info(f"TheOne: Indian olympic association: {self.indian_olympic_association}")
-        logger.info(f"TheOne: Other 100% with limit: {self.other_100_percent_w_limit}")
+        if summary_data is not None:
+            summary_data['80G-Family Planning Donation'] = self.family_planning_donation
+            summary_data['80G-Indian Olympic Association'] = self.indian_olympic_association
+            summary_data['80G-Other 100% with limit'] = self.other_100_percent_w_limit
         
         total_donations = (self.family_planning_donation
                           .add(self.indian_olympic_association)
                           .add(self.other_100_percent_w_limit))
         qualifying_limit = gross_income.percentage(10)
-        logger.info(f"TheOne: Total donations: {total_donations} and Qualifying limit: {qualifying_limit} and deduction: {total_donations.min(qualifying_limit)}")
+        if summary_data is not None:
+            summary_data['80G-Gross Income'] = gross_income
+            summary_data['80G-Qualifying limit'] = qualifying_limit
+            summary_data['80G-100% with qualifying limit'] = total_donations.min(qualifying_limit)
+            summary_data['80G-Total donations'] = total_donations
         return total_donations.min(qualifying_limit)
     
-    def calculate_category_4_deduction(self, gross_income: Money) -> Money:
+    def calculate_category_4_deduction(self, gross_income: Money, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate 50% deduction with qualifying limit."""
-        logger.info(f"TheOne: Govt charitable donations: {self.govt_charitable_donations}")
-        logger.info(f"TheOne: Housing authorities donations: {self.housing_authorities_donations}")
-        logger.info(f"TheOne: Religious renovation donations: {self.religious_renovation_donations}")
-        logger.info(f"TheOne: Other charitable donations: {self.other_charitable_donations}")
-        logger.info(f"TheOne: Other 50% with limit: {self.other_50_percent_w_limit}")
+
+        if summary_data is not None:
+            summary_data['80G-Govt Charitable Donations'] = self.govt_charitable_donations
+            summary_data['80G-Housing Authorities Donations'] = self.housing_authorities_donations
+            summary_data['80G-Religious Renovation Donations'] = self.religious_renovation_donations
+            summary_data['80G-Other Charitable Donations'] = self.other_charitable_donations
+            summary_data['80G-Other 50% with limit'] = self.other_50_percent_w_limit
         
         total_donations = (self.govt_charitable_donations
                           .add(self.housing_authorities_donations)
                           .add(self.religious_renovation_donations)
                           .add(self.other_charitable_donations)
                           .add(self.other_50_percent_w_limit))
-        logger.info(f"TheOne: Total donations: {total_donations}")
+        if summary_data is not None:
+            summary_data['80G-Total donations'] = total_donations
         deduction_50_percent = total_donations.percentage(50)
-        logger.info(f"TheOne: Deduction 50%: {deduction_50_percent}")
+        if summary_data is not None:
+            summary_data['80G-Deduction 50%'] = deduction_50_percent
         qualifying_limit = gross_income.percentage(10)
-        logger.info(f"TheOne: Qualifying limit: {qualifying_limit}")
-        logger.info(f"TheOne: Deduction 50% with limit: {deduction_50_percent.min(qualifying_limit)}")
+        if summary_data is not None:
+            summary_data['80G-Qualifying limit'] = qualifying_limit
+            summary_data['80G-Deduction 50% with limit'] = deduction_50_percent.min(qualifying_limit)
         return deduction_50_percent.min(qualifying_limit)
     
-    def calculate_eligible_deduction(self, regime: TaxRegime, gross_income: Money) -> Money:
+    def calculate_eligible_deduction(self, regime: TaxRegime, gross_income: Money, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate total Section 80G deduction."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
         
         logger.info(f"TheOne: Gross income: {gross_income}")
-        category_1 = self.calculate_category_1_deduction()
-        category_2 = self.calculate_category_2_deduction()
-        category_3 = self.calculate_category_3_deduction(gross_income)
-        category_4 = self.calculate_category_4_deduction(gross_income)
-        logger.info(f"TheOne: Category 1: {category_1}")
-        logger.info(f"TheOne: Category 2: {category_2}")
-        logger.info(f"TheOne: Category 3: {category_3}")
-        logger.info(f"TheOne: Category 4: {category_4}")
-        logger.info(f"TheOne: Total deductions: {category_1.add(category_2).add(category_3).add(category_4)}")
+        category_1 = self.calculate_category_1_deduction(summary_data)
+        category_2 = self.calculate_category_2_deduction(summary_data)
+        category_3 = self.calculate_category_3_deduction(gross_income, summary_data)
+        category_4 = self.calculate_category_4_deduction(gross_income, summary_data)
+        if summary_data is not None:
+            summary_data['80G-Total deductions'] = category_1.add(category_2).add(category_3).add(category_4)
         return category_1.add(category_2).add(category_3).add(category_4)
     
     def get_donation_breakdown(self, regime: TaxRegime) -> Dict[str, Any]:
@@ -610,7 +654,7 @@ class DeductionSection80GGC:
     
     political_party_contribution: Money = Money.zero()
     
-    def calculate_eligible_deduction(self, regime: TaxRegime) -> Money:
+    def calculate_eligible_deduction(self, regime: TaxRegime, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate Section 80GGC deduction (no upper limit)."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
@@ -625,17 +669,25 @@ class DeductionSection80U:
     
     disability_percentage: DisabilityPercentage
     
-    def calculate_eligible_deduction(self, regime: TaxRegime) -> Money:
+    def calculate_eligible_deduction(self, regime: TaxRegime, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate Section 80U deduction."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
         
-        if self.disability_percentage == DisabilityPercentage.MODERATE:
-            return Money.from_int(75000)
-        elif self.disability_percentage in [DisabilityPercentage.SEVERE, DisabilityPercentage.SEVERE_DETAILED]:
-            return Money.from_int(125000)
+        if summary_data is not None:
+            summary_data['80U-Disability Percentage'] = self.disability_percentage.value
         
-        return Money.zero()
+        if self.disability_percentage == DisabilityPercentage.MODERATE:
+            deduction = Money.from_int(75000)
+        elif self.disability_percentage in [DisabilityPercentage.SEVERE, DisabilityPercentage.SEVERE_DETAILED]:
+            deduction = Money.from_int(125000)
+        else:
+            deduction = Money.zero()
+        
+        if summary_data is not None:
+            summary_data['80U-Self Disability.'] = deduction
+        
+        return deduction
 
 
 @dataclass
@@ -1153,27 +1205,33 @@ class TaxDeductions:
     def interest_on_savings_deduction(self) -> Money:
         return self.savings_account_interest
     
-    def calculate_combined_80c_80ccc_80ccd1_deduction(self, regime: TaxRegime, eps_employee: Money) -> Money:
+    def calculate_combined_80c_80ccc_80ccd1_deduction(self, regime: TaxRegime, epf_employee: Money, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate combined 80C + 80CCC + 80CCD(1) deduction with ₹1.5L limit."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
         
         total_investment = Money.zero()
-        total_investment = total_investment.add(eps_employee)
+        total_investment = total_investment.add(epf_employee)
+        if summary_data is not None:
+            summary_data['80C-EPF Employee Contribution'] = epf_employee
         
         # Add 80C investments
         if self.section_80c:
-            total_investment = total_investment.add(self.section_80c.calculate_total_investment())
+            total_investment = total_investment.add(self.section_80c.calculate_total_investment(summary_data))
 
         # Add 80CCD(1) employee NPS
         if self.section_80ccd:
-            logger.info(f"TheOne: Employee NPS contribution: {self.section_80ccd.employee_nps_contribution}")
+            if summary_data is not None:
+                summary_data['80CCD-Employee NPS contribution'] = self.section_80ccd.employee_nps_contribution
             total_investment = total_investment.add(self.section_80ccd.employee_nps_contribution)
         
         # Apply combined limit of ₹1.5 lakh
-        logger.info(f"TheOne: Total investment: {total_investment}")
+        if summary_data is not None:
+            summary_data['80C-Total Investment'] = total_investment
         max_limit = Money.from_int(150000)
-        logger.info(f"TheOne: Max limit: {max_limit}")
+        if summary_data is not None:
+            summary_data['80C-Max Limit'] = max_limit
+        summary_data['80C-Final Deduction'] = total_investment.min(max_limit)
         return total_investment.min(max_limit)
     
     def calculate_adjusted_gross_income_for_80g(self, gross_total_income: Money, regime: TaxRegime, is_government_employee: bool) -> Money:
@@ -1269,85 +1327,97 @@ class TaxDeductions:
         Returns:
             Money: Total deductions
         """
+        summary_data = {
+            'regime': regime.regime_type.value,
+            'age': age,
+            'gross_income': gross_income,
+        }
+        
         if regime.regime_type == TaxRegimeType.NEW:
             # Only employer NPS contribution allowed in new regime
             if self.section_80ccd:
-                # For new regime, return employer NPS contribution directly (no cap applies
-                logger.info(f"TheOne: Employer NPS contribution: {self.section_80ccd.employer_nps_contribution}")
+                # For new regime, return employer NPS contribution directly (no cap applies)
+                summary_data['section_80ccd_employer_nps_contribution'] = self.section_80ccd.employer_nps_contribution
+                summary_data['Total Deductions'] = self.section_80ccd.employer_nps_contribution
+                from app.utils.table_logger import log_salary_summary
+                log_salary_summary("DEDUCTIONS SUMMARY", summary_data)
                 return self.section_80ccd.employer_nps_contribution
             return Money.zero()
         
         total = Money.zero()
         
         # Combined 80C + 80CCC + 80CCD(1) limit
-        total = total.add(self.calculate_combined_80c_80ccc_80ccd1_deduction(regime, eps_employee))
+        total = total.add(self.calculate_combined_80c_80ccc_80ccd1_deduction(regime, eps_employee, summary_data))
         
         # 80CCD(1B) - Additional NPS (separate ₹50,000 limit)
         if self.section_80ccd:
             additional_nps_contribution = self.section_80ccd.calculate_80ccd_1b_deduction() 
-            logger.info(f"TheOne: Additional NPS contribution: {additional_nps_contribution}")
+            summary_data['80CCD(1B)-Additional NPS contribution'] = additional_nps_contribution
             total = total.add(additional_nps_contribution)
         
         # 80CCD(2) - Employer NPS contribution
         if self.section_80ccd:
             # For 80CCD(2), use employer NPS contribution directly (simplified for now)
-            logger.info(f"TheOne: Employer NPS contribution: {self.section_80ccd.employer_nps_contribution}")
+            summary_data['80CCD(2)-Employer NPS contribution'] = self.section_80ccd.employer_nps_contribution
             total = total.add(self.section_80ccd.employer_nps_contribution)
         
         # 80D - Health Insurance
         if self.section_80d:
-            # Use a default age of 30 for now (simplified for quick fix)
-            deduction = self.section_80d.calculate_eligible_deduction(regime, age)
-            logger.info(f"TheOne: 80D deduction: {deduction}")
+            deduction = self.section_80d.calculate_eligible_deduction(regime, age, summary_data)
+            summary_data['80D-Health Insurance'] = deduction
             total = total.add(deduction)
         
         # 80DD - Disability (Dependent)
         if self.section_80dd:
-            deduction = self.section_80dd.calculate_eligible_deduction(regime)
-            logger.info(f"TheOne: 80DD deduction: {deduction}")
+            deduction = self.section_80dd.calculate_eligible_deduction(regime, summary_data)
             total = total.add(deduction)
         
         # 80DDB - Medical Treatment
         if self.section_80ddb:
-            deduction = self.section_80ddb.calculate_eligible_deduction(regime)
-            logger.info(f"TheOne: 80DDB deduction: {deduction}")
-            total = total.add(deduction)
+            deduction = self.section_80ddb.calculate_eligible_deduction(regime, summary_data)
+            summary_data['80DDB-Medical Treatment'] = deduction
+            total = total.add(deduction)    
         
         # 80E - Education Loan Interest
         if self.section_80e:
-            deduction = self.section_80e.calculate_eligible_deduction(regime)
-            logger.info(f"TheOne: 80E deduction: {deduction}")
+            deduction = self.section_80e.calculate_eligible_deduction(regime, summary_data)
+            summary_data['80E-Education Loan Interest'] = deduction
             total = total.add(deduction)
         
         # 80EEB - Electric Vehicle Loan Interest
         if self.section_80eeb:
-            deduction = self.section_80eeb.calculate_eligible_deduction(regime)
-            logger.info(f"TheOne: 80EEB deduction: {deduction}")
+            deduction = self.section_80eeb.calculate_eligible_deduction(regime, summary_data)
+            summary_data['80EEB-Electric Vehicle Loan Interest'] = deduction
             total = total.add(deduction)
         
-        # 80G - Charitable Donations
         if self.section_80g:
             # For simplified calculation, use zero as gross income for now
-            deduction = self.section_80g.calculate_eligible_deduction(regime, gross_income)
-            logger.info(f"TheOne: 80G deduction: {deduction}")
+            deduction = self.section_80g.calculate_eligible_deduction(regime, gross_income, summary_data)
+            summary_data['80G-Charitable Donations'] = deduction
             total = total.add(deduction)
         
         # 80GGC - Political Party Contributions
         if self.section_80ggc:
-            deduction = self.section_80ggc.calculate_eligible_deduction(regime)
-            logger.info(f"TheOne: 80GGC deduction: {deduction}")
+            deduction = self.section_80ggc.calculate_eligible_deduction(regime, summary_data)
+            summary_data['80GGC-Political Party Contributions(No Limit)'] = deduction
             total = total.add(deduction)
         
         # 80U - Self Disability
         if self.section_80u:
-            deduction = self.section_80u.calculate_eligible_deduction(regime)
-            logger.info(f"TheOne: 80U deduction: {deduction}")
+            deduction = self.section_80u.calculate_eligible_deduction(regime, summary_data)
             total = total.add(deduction)
         
         # Other deductions (for backward compatibility)
         if self.other_deductions:
-            total = total.add(self.other_deductions.calculate_total())
+            deduction = self.other_deductions.calculate_total()
+            summary_data['Other Deductions'] = deduction
+            total = total.add(deduction)
         
+
+        summary_data['Final Deductions'] = total
+        from app.utils.table_logger import log_salary_summary
+        log_salary_summary("DEDUCTIONS SUMMARY", summary_data)
+
         return total
     
     def calculate_interest_exemptions(self, regime: TaxRegime) -> Money:

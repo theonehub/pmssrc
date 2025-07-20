@@ -23,44 +23,56 @@ class InterestIncome:
     recurring_deposit_interest: Money = Money.zero()
     post_office_interest: Money = Money.zero()
     
-    def calculate_total_interest(self) -> Money:
+    def calculate_total_interest(self, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate total interest income."""
-        logger.info(f"II: savings_account_interest: {self.savings_account_interest}")
-        logger.info(f"II: fixed_deposit_interest: {self.fixed_deposit_interest}")
-        logger.info(f"II: recurring_deposit_interest: {self.recurring_deposit_interest}")
-        logger.info(f"II: post_office_interest: {self.post_office_interest}")
+        
+        if summary_data:
+            summary_data['savings_account_interest'] = self.savings_account_interest
+            summary_data['fixed_deposit_interest'] = self.fixed_deposit_interest
+            summary_data['recurring_deposit_interest'] = self.recurring_deposit_interest
+            summary_data['post_office_interest'] = self.post_office_interest
+            
         return (self.savings_account_interest
                 .add(self.fixed_deposit_interest)
                 .add(self.recurring_deposit_interest)
                 .add(self.post_office_interest))
     
-    def calculate_exemption_80tta_80ttb(self, regime: TaxRegime, age: int) -> Money:
+    def calculate_exemption_80tta_80ttb(self, regime: TaxRegime, age: int, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate interest exemption under 80TTA/80TTB."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
         
         if age >= 60:
             # Section 80TTB - All bank interest up to Rs. 50,000
-            total_interest = self.calculate_total_interest()
+            total_interest = self.calculate_total_interest(summary_data)
             max_limit = Money.from_int(50000)
-            logger.info(f"II: calculate_exemption_80tta_80ttb: max_limit: {max_limit}")
+            if summary_data is not None:
+                summary_data['max_limit'] = max_limit
             return total_interest.min(max_limit)
         else:
             # Section 80TTA - Only savings interest up to Rs. 10,000
             max_limit = Money.from_int(10000)
-            logger.info(f"II: calculate_exemption_80tta_80ttb: savings_account_interest: {self.savings_account_interest}")
-            logger.info(f"II: calculate_exemption_80tta_80ttb: post_office_interest: {self.post_office_interest}")
-            logger.info(f"II: calculate_exemption_80tta_80ttb: max_limit: {max_limit}")
+            if summary_data is not None:
+                summary_data['max_limit(80TTA:Not of FD & RD Interests)'] = max_limit
             return self.savings_account_interest.add(self.post_office_interest).min(max_limit)
     
     def calculate_taxable_interest(self, regime: TaxRegime, age: int) -> Money:
         """Calculate taxable interest income."""
-        logger.info(f"II: calculate_taxable_interest: regime: {regime}")
-        logger.info(f"II: calculate_taxable_interest: age: {age}")
-        total_interest = self.calculate_total_interest()
-        logger.info(f"II: calculate_taxable_interest: total_interest: {total_interest}")
-        exemption = self.calculate_exemption_80tta_80ttb(regime, age)
-        logger.info(f"II: calculate_taxable_interest: exemption: {exemption}")
+        summary_data = {
+            'regime': regime.regime_type.value,
+            'age': age
+        }
+
+        total_interest = self.calculate_total_interest(summary_data)
+        exemption = self.calculate_exemption_80tta_80ttb(regime, age, summary_data)
+        summary_data['total_interest'] = total_interest
+        summary_data['exemption'] = exemption
+        summary_data['taxable_interest'] = total_interest.subtract(exemption).max(Money.zero())
+
+        # Log the summary table
+        from app.utils.table_logger import log_salary_summary
+        log_salary_summary("INTEREST INCOME SUMMARY", summary_data)
+
         return total_interest.subtract(exemption).max(Money.zero())
     
     def get_interest_breakdown(self, regime: TaxRegime, age: int) -> Dict[str, Any]:
@@ -106,7 +118,6 @@ class OtherIncome:
         if regime.regime_type == TaxRegimeType.NEW:
             return self.gifts_received
 
-        logger.info(f"Gift: gifts_received: {self.gifts_received} and max limit: {Money.from_int(50000)}")
         if self.gifts_received < Money.from_int(50000):
             return Money.zero()
         else:
@@ -126,32 +137,44 @@ class OtherIncome:
         """
         total = Money.zero()
 
-        logger.info(f"BPI: business_professional_income: {self.business_professional_income}")
+        summary_data = {
+            'age': age,
+            'regime': regime.regime_type.value,
+            'business_professional_income': self.business_professional_income
+        }
+
         # Add business professional income
         total = total.add(self.business_professional_income)
 
         # Add house property income (if any)
         if self.house_property_income:
-            total = total.add(
-                self.house_property_income.calculate_net_income_from_house_property(regime)
-            )
+            net_house_property_income = self.house_property_income.calculate_net_income_from_house_property(regime)
+            total = total.add(net_house_property_income)
+            summary_data['house_property_income'] = net_house_property_income
         
         # Add taxable interest income (after exemptions)
-        total = total.add(self.interest_income.calculate_taxable_interest(regime, age))
-        logger.info(f"II: total interest income after exemptions: {total}")
+        taxable_interest_income = self.interest_income.calculate_taxable_interest(regime, age)
+        total = total.add(taxable_interest_income)
+        summary_data['taxable_interest_income'] = taxable_interest_income
         
         # Add capital gains income that goes to slab rates (if any)
         if self.capital_gains_income:
-            stcg_for_slab_rates = self.capital_gains_income.calculate_stcg_for_slab_rates()
-            logger.info(f"CGI: stcg_for_slab_rates: {stcg_for_slab_rates}")
-            total = total.add(stcg_for_slab_rates)
+            total_capital_gains_income = self.capital_gains_income.calculate_stcg_for_slab_rates()
+            total = total.add(total_capital_gains_income)
+            summary_data['total_capital_gains_income'] = total_capital_gains_income
         
         # Add other income sources (fully taxable)
         total = total.add(self.dividend_income)
-        logger.info(f"Dividend income: {self.dividend_income}")
+        summary_data['dividend_income'] = self.dividend_income
         total = total.add(self.calculate_taxable_gifts_received(regime))
-        logger.info(f"II: total gifts received: {total}")
+        summary_data['taxable_gifts_received(50K or nothing)'] = self.calculate_taxable_gifts_received(regime)
         total = total.add(self.other_miscellaneous_income)
+        summary_data['other_miscellaneous_income'] = self.other_miscellaneous_income
+        summary_data['total_other_income'] = total
+
+        # Log the summary table
+        from app.utils.table_logger import log_salary_summary
+        log_salary_summary("OTHER INCOME SUMMARY", summary_data)
         
         return total
     

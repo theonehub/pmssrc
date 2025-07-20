@@ -111,7 +111,6 @@ class TaxCalculationService:
         """
         self.salary_package_repository = salary_package_repository
         self.user_repository = user_repository
-        self.logger = get_logger(__name__)
 
 
     async def compute_monthly_tax(self, employee_id: str, current_user, computing_month: int = datetime.now().month) -> Dict[str, Any]:
@@ -137,67 +136,67 @@ class TaxCalculationService:
             month = computing_month
             year = now.year
             
-            self.logger.debug(f"compute_monthly_tax: Using current month={month}, year={year}")
+            logger.info(f"compute_monthly_tax: Using Computation month={month}, year={year}")
             
             # Validate inputs
             from app.domain.value_objects.tax_year import TaxYear
             current_tax_year = TaxYear.current()
             tax_year = str(current_tax_year)
             
-            self.logger.debug(f"compute_monthly_tax: Current tax year: {tax_year}")
+            logger.debug(f"compute_monthly_tax: Current Financial year: {tax_year}")
             
             # Check if required repositories are configured
             if not self.salary_package_repository:
-                self.logger.error("compute_monthly_tax: Salary package repository not configured")
+                logger.error("compute_monthly_tax: Salary package repository not configured")
                 raise ValueError("Salary package repository not configured for monthly tax computation")
             
-            self.logger.debug("compute_monthly_tax: Salary package repository is configured")
+            logger.debug("compute_monthly_tax: Salary package repository is configured")
             
             # Get salary package record for the employee and tax year
-            self.logger.debug(f"compute_monthly_tax: Fetching salary package record for employee {employee_id}, tax_year {tax_year}")
+            logger.debug(f"compute_monthly_tax: Fetching salary package record for employee {employee_id}, tax_year {tax_year}")
 
             salary_package_record = await self.salary_package_repository.get_salary_package_record(
                 employee_id, tax_year, current_user.hostname
             )
             
             if not salary_package_record:
-                self.logger.error(f"compute_monthly_tax: No salary package record found for employee {employee_id} in tax year {tax_year}")
+                logger.error(f"compute_monthly_tax: No salary package record found for employee {employee_id} in tax year {tax_year}")
                 raise ValueError(
                     f"Salary package record not found for employee {employee_id} "
                     f"in tax year {tax_year}. Please ensure salary data is configured."
                 )
             
-            self.logger.debug(f"compute_monthly_tax: Found salary package record. Salary incomes count: {len(salary_package_record.salary_incomes)}")
-            self.logger.debug(f"compute_monthly_tax: Record has perquisites: {salary_package_record.perquisites is not None}")
-            self.logger.debug(f"compute_monthly_tax: Record has other_income: {salary_package_record.other_income is not None}")
-            self.logger.debug(f"compute_monthly_tax: Record has retirement_benefits: {salary_package_record.retirement_benefits is not None}")
+            logger.debug(f"compute_monthly_tax: Found salary package record. Salary incomes count: {len(salary_package_record.salary_incomes)}")
+            logger.debug(f"compute_monthly_tax: Record has perquisites: {salary_package_record.perquisites is not None}")
+            logger.debug(f"compute_monthly_tax: Record has other_income: {salary_package_record.other_income is not None}")
+            logger.debug(f"compute_monthly_tax: Record has retirement_benefits: {salary_package_record.retirement_benefits is not None}")
             
             # Compute monthly tax using the salary package record
-            self.logger.debug("compute_monthly_tax: Computing monthly tax from salary package record")
-            logger.info(f"*********************************************************************************************************")
+            logger.info("compute_monthly_tax: Computing monthly tax from salary package record")
+            logger.info(f"***********************************************")
             calculation_result = salary_package_record.calculate_tax(self, computing_month)
 
             salary_package_record.last_calculated_at = datetime.utcnow()
             salary_package_record.calculation_result = calculation_result
             
             # Save the updated salary package record with calculation result to database
-            self.logger.debug("compute_monthly_tax: Saving updated salary package record to database")
+            logger.debug("compute_monthly_tax: Saving updated salary package record to database")
             try:
                 await self.salary_package_repository.save(salary_package_record, current_user.hostname)
-                self.logger.debug("compute_monthly_tax: Successfully saved updated salary package record to database")
+                logger.debug("compute_monthly_tax: Successfully saved updated salary package record to database")
             except Exception as save_error:
-                self.logger.error(f"compute_monthly_tax: Failed to save updated salary package record to database: {str(save_error)}")
+                logger.error(f"compute_monthly_tax: Failed to save updated salary package record to database: {str(save_error)}")
                 # Continue with computation even if save fails
-                self.logger.warning("compute_monthly_tax: Continuing with computation despite save failure")
+                logger.warning("compute_monthly_tax: Continuing with computation despite save failure")
             
             # Extract monthly tax amount from calculation result
             monthly_tax_amount = calculation_result.monthly_tax_liability.to_float()
-            self.logger.debug(f"compute_monthly_tax: Monthly tax amount: {monthly_tax_amount}")
+            logger.debug(f"compute_monthly_tax: Monthly tax amount: {monthly_tax_amount}")
             
             # Get additional details from the calculation result
             calculation_details = {}
             if calculation_result:
-                self.logger.debug("compute_monthly_tax: Extracting calculation details from salary package record")
+                logger.debug("compute_monthly_tax: Extracting calculation details from salary package record")
                 calculation_details = {
                     "annual_gross_income": calculation_result.total_income.to_float(),
                     "annual_exemptions": calculation_result.total_exemptions.to_float(),
@@ -208,11 +207,11 @@ class TaxCalculationService:
                     "tax_regime": salary_package_record.regime.regime_type.value,
                     "last_calculated_at": salary_package_record.last_calculated_at.isoformat() if salary_package_record.last_calculated_at else None
                 }
-                self.logger.debug(f"compute_monthly_tax: Annual gross income: {calculation_details['annual_gross_income']}")
-                self.logger.debug(f"compute_monthly_tax: Annual tax liability: {calculation_details['annual_tax_liability']}")
-                self.logger.debug(f"compute_monthly_tax: Tax regime: {calculation_details['tax_regime']}")
+                logger.debug(f"compute_monthly_tax: Annual gross income: {calculation_details['annual_gross_income']}")
+                logger.debug(f"compute_monthly_tax: Annual tax liability: {calculation_details['annual_tax_liability']}")
+                logger.debug(f"compute_monthly_tax: Tax regime: {calculation_details['tax_regime']}")
             else:
-                self.logger.warning("compute_monthly_tax: No calculation result available")
+                logger.warning("compute_monthly_tax: No calculation result available")
             
             # Build comprehensive response
             response = {
@@ -237,11 +236,11 @@ class TaxCalculationService:
                 "computed_at": datetime.utcnow().isoformat()
             }
             
-            self.logger.debug("compute_monthly_tax: Built response object with salary package info")
+            logger.debug("compute_monthly_tax: Built response object with salary package info")
             
             # Add latest salary breakdown
             if salary_package_record.salary_incomes:
-                self.logger.debug("compute_monthly_tax: Adding latest salary breakdown")
+                logger.debug("compute_monthly_tax: Adding latest salary breakdown")
                 latest_salary = salary_package_record.get_latest_salary_income()
                 response["latest_salary_info"] = {
                     "basic_salary": latest_salary.basic_salary.to_float(),
@@ -255,20 +254,20 @@ class TaxCalculationService:
                     "commission": latest_salary.commission.to_float(),
                     "gross_salary": latest_salary.calculate_gross_salary().to_float()
                 }
-                self.logger.debug(f"compute_monthly_tax: Latest salary basic: {response['latest_salary_info']['basic_salary']}")
-                self.logger.debug(f"compute_monthly_tax: Latest salary gross: {response['latest_salary_info']['gross_salary']}")
+                logger.debug(f"compute_monthly_tax: Latest salary basic: {response['latest_salary_info']['basic_salary']}")
+                logger.debug(f"compute_monthly_tax: Latest salary gross: {response['latest_salary_info']['gross_salary']}")
             else:
-                self.logger.warning("compute_monthly_tax: No salary incomes found in salary package record")
+                logger.warning("compute_monthly_tax: No salary incomes found in salary package record")
             
-            self.logger.debug(f"compute_monthly_tax: Successfully computed monthly tax for employee {employee_id}")
+            logger.debug(f"compute_monthly_tax: Successfully computed monthly tax for employee {employee_id}")
             return response
             
         except ValueError as e:
-            self.logger.error(f"compute_monthly_tax: Validation error for employee {employee_id}: {str(e)}")
+            logger.error(f"compute_monthly_tax: Validation error for employee {employee_id}: {str(e)}")
             # Re-raise validation errors
             raise e
         except Exception as e:
-            self.logger.error(f"compute_monthly_tax: Unexpected error for employee {employee_id}: {str(e)}", exc_info=True)
+            logger.error(f"compute_monthly_tax: Unexpected error for employee {employee_id}: {str(e)}", exc_info=True)
             # Wrap other errors in RuntimeError
             raise RuntimeError(f"Failed to compute monthly tax for employee {employee_id}: {str(e)}")
     
@@ -294,26 +293,26 @@ class TaxCalculationService:
             # Get salary package record for additional details
             tax_year = basic_result["tax_year"]
 
-            self.logger.debug(f"compute_monthly_tax_with_details: Fetching salary package record for additional details - employee {employee_id}, tax_year {tax_year}")
+            logger.debug(f"compute_monthly_tax_with_details: Fetching salary package record for additional details - employee {employee_id}, tax_year {tax_year}")
             
             salary_package_record = await self.salary_package_repository.get_salary_package_record(
                 employee_id, tax_year, current_user.hostname
             )
             
             if not salary_package_record:
-                self.logger.warning(f"compute_monthly_tax_with_details: No salary package record found for detailed breakdown - returning basic result")
+                logger.warning(f"compute_monthly_tax_with_details: No salary package record found for detailed breakdown - returning basic result")
                 return basic_result
             
-            self.logger.debug("compute_monthly_tax_with_details: Building detailed result with additional breakdown")
+            logger.debug("compute_monthly_tax_with_details: Building detailed result with additional breakdown")
             
             # Add detailed breakdown
             detailed_result = basic_result.copy()
             
-            self.logger.debug(f"compute_monthly_tax_with_details: Successfully completed detailed computation for employee {employee_id}")
+            logger.debug(f"compute_monthly_tax_with_details: Successfully completed detailed computation for employee {employee_id}")
             return detailed_result
             
         except Exception as e:
-            self.logger.error(f"compute_monthly_tax_with_details: Error in detailed computation for employee {employee_id}: {str(e)}", exc_info=True)
+            logger.error(f"compute_monthly_tax_with_details: Error in detailed computation for employee {employee_id}: {str(e)}", exc_info=True)
             raise RuntimeError(f"Failed to compute detailed monthly tax for employee {employee_id}: {str(e)}")
     
     def calculate_tax(self, input_data: TaxCalculationInput) -> TaxCalculationResult:

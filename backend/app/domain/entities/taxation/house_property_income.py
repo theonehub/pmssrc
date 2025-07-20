@@ -36,6 +36,7 @@ class HousePropertyIncome:
         Returns:
             Money: Annual rent received
         """
+        
         if self.property_type == PropertyType.SELF_OCCUPIED:
             return Money.zero()
         
@@ -105,32 +106,46 @@ class HousePropertyIncome:
         Returns:
             Money: Net income from house property (returns zero for losses)
         """
-        logger.info(f"HPI: regime: {regime}")
-        logger.info(f"HPI: HousePropertyIncome: {self}")
+        summary_data = {
+            'regime': regime.regime_type.value,
+            'property_type': self.property_type.value,
+            'annual_rent_received': self.annual_rent_received,
+            'municipal_taxes_paid': self.municipal_taxes_paid,
+            'annual_rent_received_after_taxes': self.calculate_net_annual_income_after_taxes(),
+            'standard_deduction(30%)': self.calculate_standard_deduction(),
+            'home_loan_interest': self.home_loan_interest,
+            'pre_construction_interest': self.pre_construction_interest,
+            'interest_deduction(2Lakh[Self-Occupied], No Limit[Let-Out])': self.calculate_interest_deduction(),
+            'pre_construction_deduction(1/5th over 5 years)': self.calculate_pre_construction_deduction()
+        }
+
 
         net_annual_value = self.calculate_net_annual_income_after_taxes()
-        logger.info(f"HPI: Effective net annual income after taxes: {net_annual_value}")
         standard_deduction = self.calculate_standard_deduction()
-        logger.info(f"HPI: Effective standard deduction: {standard_deduction}")
         interest_deduction = self.calculate_interest_deduction()
-        logger.info(f"HPI: Effective interest deduction: {interest_deduction}")
         pre_construction_deduction = self.calculate_pre_construction_deduction()
-        logger.info(f"HPI: Effective pre-construction deduction: {pre_construction_deduction}")
         
         total_deductions = (standard_deduction
                           .add(interest_deduction)
                           .add(pre_construction_deduction))
-        logger.info(f"HPI: Effective total deductions: {total_deductions}")
+        summary_data['total_deductions'] = total_deductions
         
         # Income from house property can be negative (loss)
         # Since Money class doesn't allow negative amounts, we return zero for losses
         # The actual loss amount can be retrieved via get_house_property_breakdown
         if total_deductions.is_greater_than(net_annual_value):
-            logger.info(f"HPI: Total deductions are greater than net annual value, returning zero, need to invoke get_house_property_loss")
-            return Money.zero()  # Loss case - return zero
+            summary_data['is_loss'] = True
+            retval = Money.zero()  # Loss case - return zero
         else:
-            logger.info(f"HPI: Total deductions are less than net annual value, returning net annual value minus total deductions")
-            return net_annual_value.subtract(total_deductions)
+            retval  = net_annual_value.subtract(total_deductions)
+            summary_data['is_loss'] = False
+            summary_data['net_income_from_house_property'] = retval
+
+        # Log the summary table
+        from app.utils.table_logger import log_salary_summary
+        log_salary_summary("HOUSE PROPERTY INCOME SUMMARY", summary_data)
+
+        return retval
     
     def get_house_property_loss(self, regime: TaxRegime) -> Money:
         """

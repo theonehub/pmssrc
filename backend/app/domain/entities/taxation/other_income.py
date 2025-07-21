@@ -27,6 +27,7 @@ class InterestIncome:
         """Calculate total interest income."""
         
         if summary_data:
+            summary_data['calculate_total_interest'] = True
             summary_data['savings_account_interest'] = self.savings_account_interest
             summary_data['fixed_deposit_interest'] = self.fixed_deposit_interest
             summary_data['recurring_deposit_interest'] = self.recurring_deposit_interest
@@ -56,22 +57,15 @@ class InterestIncome:
                 summary_data['max_limit(80TTA:Not of FD & RD Interests)'] = max_limit
             return self.savings_account_interest.add(self.post_office_interest).min(max_limit)
     
-    def calculate_taxable_interest(self, regime: TaxRegime, age: int) -> Money:
+    def calculate_taxable_interest(self, regime: TaxRegime, age: int, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate taxable interest income."""
-        summary_data = {
-            'regime': regime.regime_type.value,
-            'age': age
-        }
 
         total_interest = self.calculate_total_interest(summary_data)
         exemption = self.calculate_exemption_80tta_80ttb(regime, age, summary_data)
-        summary_data['total_interest'] = total_interest
-        summary_data['exemption'] = exemption
-        summary_data['taxable_interest'] = total_interest.subtract(exemption).max(Money.zero())
-
-        # Log the summary table
-        from app.utils.table_logger import log_salary_summary
-        log_salary_summary("INTEREST INCOME SUMMARY", summary_data)
+        if summary_data is not None:
+            summary_data['total_interest'] = total_interest
+            summary_data['exemption'] = exemption
+            summary_data['taxable_interest'] = total_interest.subtract(exemption).max(Money.zero())
 
         return total_interest.subtract(exemption).max(Money.zero())
     
@@ -112,19 +106,28 @@ class OtherIncome:
         if self.interest_income is None:
             self.interest_income = InterestIncome()
 
-    def calculate_taxable_gifts_received(self, regime: TaxRegime) -> Money:
+    def calculate_taxable_gifts_received(self, regime: TaxRegime, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate taxable gifts received."""
         """if gifts received is less than 50000, return zero or else return gifts received"""
         if regime.regime_type == TaxRegimeType.NEW:
+            if summary_data:
+                summary_data['calculate_taxable_gifts_received'] = True
+                summary_data['gifts_received'] = self.gifts_received
             return self.gifts_received
 
         if self.gifts_received < Money.from_int(50000):
+            if summary_data:
+                summary_data['calculate_taxable_gifts_received'] = True
+                summary_data['gifts_received'] = self.gifts_received
             return Money.zero()
         else:
+            if summary_data:
+                summary_data['calculate_taxable_gifts_received'] = True
+                summary_data['gifts_received'] = self.gifts_received
             return self.gifts_received
         
     
-    def calculate_total_other_income_slab_rates(self, regime: TaxRegime, age: int = 25) -> Money:
+    def calculate_total_other_income_slab_rates(self, regime: TaxRegime, age: int = 25, summary_data: Dict[str, Any] = None) -> Money:
         """
         Calculate total income from other sources.
         
@@ -137,45 +140,43 @@ class OtherIncome:
         """
         total = Money.zero()
 
-        summary_data = {
-            'age': age,
-            'regime': regime.regime_type.value,
-            'business_professional_income': self.business_professional_income
-        }
+        if summary_data:
+            summary_data['calculate_total_other_income_slab_rates'] = True
+            summary_data['business_professional_income'] = self.business_professional_income
 
         # Add business professional income
         total = total.add(self.business_professional_income)
 
         # Add house property income (if any)
         if self.house_property_income:
-            net_house_property_income = self.house_property_income.calculate_net_income_from_house_property(regime)
+            net_house_property_income = self.house_property_income.calculate_net_income_from_house_property(regime, summary_data)
             total = total.add(net_house_property_income)
-            summary_data['house_property_income'] = net_house_property_income
+            if summary_data is not None:
+                summary_data['house_property_income'] = net_house_property_income
         
         # Add taxable interest income (after exemptions)
-        taxable_interest_income = self.interest_income.calculate_taxable_interest(regime, age)
+        taxable_interest_income = self.interest_income.calculate_taxable_interest(regime, age, summary_data)
         total = total.add(taxable_interest_income)
-        summary_data['taxable_interest_income'] = taxable_interest_income
+        if summary_data is not None:
+            summary_data['taxable_interest_income'] = taxable_interest_income
         
         # Add capital gains income that goes to slab rates (if any)
         if self.capital_gains_income:
-            total_capital_gains_income = self.capital_gains_income.calculate_stcg_for_slab_rates()
+            total_capital_gains_income = self.capital_gains_income.calculate_stcg_for_slab_rates(summary_data)
             total = total.add(total_capital_gains_income)
-            summary_data['total_capital_gains_income'] = total_capital_gains_income
+            if summary_data is not None:
+                summary_data['total_capital_gains_income'] = total_capital_gains_income
         
         # Add other income sources (fully taxable)
         total = total.add(self.dividend_income)
-        summary_data['dividend_income'] = self.dividend_income
-        total = total.add(self.calculate_taxable_gifts_received(regime))
-        summary_data['taxable_gifts_received(50K or nothing)'] = self.calculate_taxable_gifts_received(regime)
+        if summary_data is not None:
+            summary_data['dividend_income'] = self.dividend_income
+        total = total.add(self.calculate_taxable_gifts_received(regime, summary_data))
         total = total.add(self.other_miscellaneous_income)
-        summary_data['other_miscellaneous_income'] = self.other_miscellaneous_income
-        summary_data['total_other_income'] = total
+        if summary_data is not None:
+            summary_data['other_miscellaneous_income'] = self.other_miscellaneous_income
+            summary_data['total_other_income'] = total
 
-        # Log the summary table
-        from app.utils.table_logger import log_salary_summary
-        log_salary_summary("OTHER INCOME SUMMARY", summary_data)
-        
         return total
     
     def calculate_interest_exemptions(self, regime: TaxRegime, age: int = 25) -> Money:
@@ -191,20 +192,7 @@ class OtherIncome:
         """
         return self.interest_income.calculate_exemption_80tta_80ttb(regime, age)
     
-    def calculate_capital_gains_tax_amount(self, regime: TaxRegime) -> Money:
-        """
-        Calculate total exemptions from capital gains.
-        
-        Args:
-            regime: Tax regime
-            
-        Returns:
-            Money: Total capital gains exemptions (separate tax)
-        """
-        if self.capital_gains_income:
-            return self.capital_gains_income.calculate_total_capital_gains_tax()
-        return Money.zero()
-    
+
     def get_other_income_breakdown(self, regime: TaxRegime, age: int = 25) -> Dict[str, Any]:
         """
         Get detailed breakdown of other income.

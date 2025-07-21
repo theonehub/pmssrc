@@ -292,7 +292,7 @@ class RetirementBenefits:
         if self.retrenchment_compensation is None:
             self.retrenchment_compensation = RetrenchmentCompensation()
     
-    def calculate_total_retirement_income(self, regime: TaxRegime, is_govt_employee: bool, age: int) -> Money:
+    def calculate_total_retirement_income(self, regime: TaxRegime, is_govt_employee: bool, age: int, summary_data: Dict[str, Any] = None) -> Money:
         """
         Calculate total taxable retirement income.
         

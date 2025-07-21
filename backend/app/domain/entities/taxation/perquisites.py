@@ -68,14 +68,20 @@ class AccommodationPerquisite:
     furniture_employee_payment: Money = Money.zero()
     is_furniture_owned_by_employer: bool = True
     
-    def calculate_accommodation_value(self, basic_plus_da: Money) -> Money:
+    def calculate_accommodation_value(self, basic_plus_da: Money, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate accommodation perquisite value."""
 
-        logger.info(f"Accommodation: employee_rent_payment: {self.employee_rent_payment}")
-        logger.info(f"Accommodation: license_fees: {self.license_fees}")
+        if summary_data:
+            summary_data['accommodation_type'] = self.accommodation_type
+            summary_data['employee_rent_payment'] = self.employee_rent_payment
+            summary_data['license_fees'] = self.license_fees
+        logger.debug(f"Accommodation: employee_rent_payment: {self.employee_rent_payment}")
+        logger.debug(f"Accommodation: license_fees: {self.license_fees}")
         if self.accommodation_type == AccommodationType.GOVERNMENT:
             taxable_value = self.employee_rent_payment.subtract(self.license_fees).max(Money.zero())
-            logger.info(f"Accommodation: Government Provided, Taxable Value: {taxable_value}")
+            logger.debug(f"Accommodation: Government Provided, Taxable Value: {taxable_value}")
+            if summary_data:
+                summary_data['taxable_value(employee_rent_payment - license_fees)'] = taxable_value
             return taxable_value
         
         elif self.accommodation_type == AccommodationType.EMPLOYER_OWNED:
@@ -85,52 +91,76 @@ class AccommodationPerquisite:
                 rate = Decimal('0.075')  # 7.5%
             else:
                 rate = Decimal('0.05')  # 5%
-            taxable_value = basic_plus_da.percentage(rate * 100)
-            logger.info(f"Accommodation: Employer Owned, Taxable Value: {rate * 100}% of {basic_plus_da} = {taxable_value}")
+            
+            taxable_value = basic_plus_da.percentage(rate)
+            logger.debug(f"Accommodation: Employer Owned, Taxable Value: {rate}% of {basic_plus_da} = {taxable_value}")
+            if summary_data:
+                summary_data['city_population'] = self.city_population
+                summary_data['rate'] = rate
+                summary_data['taxable_value(basic_plus_da * rate)'] = taxable_value
             return taxable_value
         
         elif self.accommodation_type == AccommodationType.EMPLOYER_LEASED:
             max_limit = basic_plus_da.percentage(10)  # 10% of basic + DA
-            logger.info(f"Accommodation: Employer Leased, Max Limit: {10}% of {basic_plus_da} = {max_limit}")
-            logger.info(f"Accommodation: Employer Leased, Rent Paid by Employer: {self.rent_paid_by_employer}")
+            logger.debug(f"Accommodation: Employer Leased, Max Limit: {10}% of {basic_plus_da} = {max_limit}")
+            logger.debug(f"Accommodation: Employer Leased, Rent Paid by Employer: {self.rent_paid_by_employer}")
             taxable_value = self.rent_paid_by_employer.min(max_limit)
-            logger.info(f"Accommodation: Employer Leased, Taxable Value: {taxable_value}")
+            if summary_data:
+                summary_data['max_limit(10% of basic_plus_da)'] = max_limit
+                summary_data['taxable_value(min(rent_paid_by_employer, max_limit))'] = taxable_value
+            logger.debug(f"Accommodation: Employer Leased, Taxable Value: {taxable_value}")
             return taxable_value
         
         elif self.accommodation_type == AccommodationType.HOTEL:
-            logger.info(f"Accommodation: Hotel, Stay Days: {self.stay_days}")
+            logger.debug(f"Accommodation: Hotel, Stay Days: {self.stay_days}")
             if self.stay_days >= 15:
                 max_limit = basic_plus_da.percentage(24)  # 24% of basic + DA
-                logger.info(f"Accommodation: Hotel, Max Limit: {24}% of {basic_plus_da} = {max_limit}")
-                logger.info(f"Accommodation: Hotel, Hotel Charges: {self.hotel_charges}")
+                logger.debug(f"Accommodation: Hotel, Max Limit: {24}% of {basic_plus_da} = {max_limit}")
+                logger.debug(f"Accommodation: Hotel, Hotel Charges: {self.hotel_charges}")
                 taxable_value = self.hotel_charges.min(max_limit)
-                logger.info(f"Accommodation: Hotel, Taxable Value: {taxable_value}")
+                if summary_data:
+                    summary_data['stay_days'] = self.stay_days
+                    summary_data['max_limit(24% of basic_plus_da)'] = max_limit
+                    summary_data['taxable_value(min(hotel_charges, max_limit))'] = taxable_value
+                logger.debug(f"Accommodation: Hotel, Taxable Value: {taxable_value}")
                 return taxable_value
         
         return Money.zero()
     
-    def calculate_furniture_value(self) -> Money:
+    def calculate_furniture_value(self, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate furniture perquisite value."""
         if self.is_furniture_owned_by_employer:
             furniture_value = self.furniture_cost.percentage(10)  # 10% of cost
-            logger.info(f"Accommodation: Furniture Value(10% of {self.furniture_cost}): {furniture_value}")
+            logger.debug(f"Accommodation: Furniture Value(10% of {self.furniture_cost}): {furniture_value}")
+            if summary_data:
+                summary_data['furniture_cost'] = self.furniture_cost
+                summary_data['furniture_value(10% of furniture_cost)'] = furniture_value
         else:
             furniture_value = self.furniture_cost  # Full hire/lease cost
-            logger.info(f"Accommodation: Furniture Value(Full Hire/Lease Cost): {furniture_value}")
+            logger.debug(f"Accommodation: Furniture Value(Full Hire/Lease Cost): {furniture_value}")
+            if summary_data:
+                summary_data['furniture_cost'] = self.furniture_cost
+                summary_data['furniture_value(Full Hire/Lease Cost)'] = furniture_value
         
         taxable_value = furniture_value.subtract(self.furniture_employee_payment).max(Money.zero())
-        logger.info(f"Accommodation: Taxable Value(Furniture): {taxable_value}")
+        logger.debug(f"Accommodation: Taxable Value(Furniture): {taxable_value}")
+        if summary_data:
+            summary_data['taxable_value(furniture_value - furniture_employee_payment)'] = taxable_value
         return taxable_value
     
-    def calculate_taxable_accommodation_value(self, basic_plus_da: Money) -> Money:
+    def calculate_taxable_accommodation_value(self, basic_plus_da: Money, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate total accommodation perquisite value."""
-        logger.info(f"Accommodation: basic_plus_da: {basic_plus_da}")
-        accommodation_value = self.calculate_accommodation_value(basic_plus_da)
-        furniture_value = self.calculate_furniture_value()
-        logger.info(f"Accommodation: Furniture Value: {furniture_value}")
-        logger.info(f"Accommodation: Accommodation Value: {accommodation_value}")
+        accommodation_value = self.calculate_accommodation_value(basic_plus_da, summary_data)
+        furniture_value = self.calculate_furniture_value(summary_data)
+        if summary_data:
+            summary_data['Furniture Value'] = furniture_value
+            summary_data['Accommodation Value'] = accommodation_value
+        logger.debug(f"Accommodation: Furniture Value: {furniture_value}")
+        logger.debug(f"Accommodation: Accommodation Value: {accommodation_value}")
         taxable_value = accommodation_value.add(furniture_value)
-        logger.info(f"Accommodation: Taxable Value(Accommodation + Furniture): {taxable_value}")
+        logger.debug(f"Accommodation: Taxable Value(Accommodation + Furniture): {taxable_value}")
+        if summary_data:
+            summary_data['Taxable Value(Accommodation + Furniture)'] = taxable_value
         return taxable_value
 
 
@@ -163,29 +193,42 @@ class CarPerquisite:
             total = total.add(self.driver_cost.divide(self.months_used))
         return total
     
-    def calculate_taxable_car_value(self) -> Money:
+    def calculate_taxable_car_value(self, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate car perquisite value."""
+        if summary_data:
+            summary_data['calculate_taxable_car_value'] = True
+            summary_data['car_use_type'] = self.car_use_type
+            summary_data['engine_capacity_cc'] = self.engine_capacity_cc
+            summary_data['months_used'] = self.months_used
+            summary_data['months_used_other_vehicle'] = self.months_used_other_vehicle
+            summary_data['car_cost_to_employer'] = self.car_cost_to_employer
+            summary_data['other_vehicle_cost'] = self.other_vehicle_cost
+            summary_data['driver_cost'] = self.driver_cost
+            summary_data['has_expense_reimbursement'] = self.has_expense_reimbursement
+            summary_data['driver_provided'] = self.driver_provided
         if self.car_use_type == CarUseType.BUSINESS:
-            logger.info(f"Car: Business Use, Not taxable")
+            logger.debug(f"Car: Business Use, Not taxable")
+            if summary_data:
+                summary_data['taxable_value'] = Money.zero()
             return Money.zero()  # Not taxable
-        
         elif self.car_use_type == CarUseType.PERSONAL:
-            logger.info(f"Car: Personal Use, Car Cost to Employer: {self.car_cost_to_employer}")
-            logger.info(f"Car: Personal Use, Other Vehicle Cost: {self.other_vehicle_cost}")
-            logger.info(f"Car: Personal Use, Months Used: {self.months_used}")
-            logger.info(f"Car: Personal Use, Months Used Other Vehicle: {self.months_used_other_vehicle}")
+            logger.debug(f"Car: Personal Use, Car Cost to Employer: {self.car_cost_to_employer}")
+            logger.debug(f"Car: Personal Use, Other Vehicle Cost: {self.other_vehicle_cost}")
+            logger.debug(f"Car: Personal Use, Months Used: {self.months_used}")
+            logger.debug(f"Car: Personal Use, Months Used Other Vehicle: {self.months_used_other_vehicle}")
             
             monthly_cost = self.car_cost_to_employer.multiply(self.months_used)
             monthly_cost_other_vehicle = self.other_vehicle_cost.multiply(self.months_used_other_vehicle)
             monthly_cost_total = monthly_cost.add(monthly_cost_other_vehicle)
-            logger.info(f"Car: Personal Use, Monthly Cost: {monthly_cost_total}")
+            logger.debug(f"Car: Personal Use, Monthly Cost: {monthly_cost_total}")
+            if summary_data:
+                summary_data['taxable_value'] = monthly_cost_total
             return monthly_cost_total
-        
         elif self.car_use_type == CarUseType.MIXED:
             # Monthly rates based on engine capacity
-            logger.info(f"Car: Mixed Use, Engine Capacity: {self.engine_capacity_cc}")
-            logger.info(f"Car: Mixed Use, Has Expense Reimbursement: {self.has_expense_reimbursement}")
-            logger.info(f"Car: Mixed Use, Driver Provided: {self.driver_provided}")
+            logger.debug(f"Car: Mixed Use, Engine Capacity: {self.engine_capacity_cc}")
+            logger.debug(f"Car: Mixed Use, Has Expense Reimbursement: {self.has_expense_reimbursement}")
+            logger.debug(f"Car: Mixed Use, Driver Provided: {self.driver_provided}")
             if self.engine_capacity_cc > 1600:
                 if self.has_expense_reimbursement:
                     monthly_rate = Money.from_int(2400)
@@ -196,23 +239,38 @@ class CarPerquisite:
                     monthly_rate = Money.from_int(1800)
                 else:
                     monthly_rate = Money.from_int(600)
-            logger.info(f"Car: Mixed Use, tax free value: {monthly_rate} * {self.months_used} = {monthly_rate.multiply(self.months_used)}")
+            logger.debug(f"Car: Mixed Use, tax free value: {monthly_rate} * {self.months_used} = {monthly_rate.multiply(self.months_used)}")
             car_tax_free_value = monthly_rate.multiply(self.months_used)
-            # Add driver cost if provided
+            if summary_data:
+                summary_data['monthly_rate'] = monthly_rate
+                summary_data['car_tax_free_value'] = car_tax_free_value
             if self.driver_provided:
                 driver_tax_free_value = Money.from_int(900).multiply(self.months_used)
                 tax_free_value = car_tax_free_value.add(driver_tax_free_value)
-            logger.info(f"Car: Mixed Use, Total Tax Free Value: {tax_free_value}")
+                if summary_data:
+                    summary_data['driver_tax_free_value'] = driver_tax_free_value
+                    summary_data['tax_free_value'] = tax_free_value
+            else:
+                tax_free_value = car_tax_free_value
+            logger.debug(f"Car: Mixed Use, Total Tax Free Value: {tax_free_value}")
             taxable_value = self.car_cost_to_employer.multiply(self.months_used).subtract(tax_free_value)
-            logger.info(f"Car: Mixed Use, First Vehicle Taxable Value: {taxable_value}")
+            logger.debug(f"Car: Mixed Use, First Vehicle Taxable Value: {taxable_value}")
+            if summary_data:
+                summary_data['first_vehicle_taxable_value'] = taxable_value
             if self.other_vehicle_cost.is_greater_than(Money.zero()):
                 exepmt_limit = Money.from_int(900).multiply(self.months_used_other_vehicle)
                 other_vehicle_taxable_value = self.other_vehicle_cost.subtract(exepmt_limit).max(Money.zero())
-                logger.info(f"Car: Mixed Use, Other Vehicle Taxable Value: {other_vehicle_taxable_value}")
+                logger.debug(f"Car: Mixed Use, Other Vehicle Taxable Value: {other_vehicle_taxable_value}")
                 taxable_value = taxable_value.add(other_vehicle_taxable_value)
-            logger.info(f"Car: Mixed Use, Total Taxable Value: {taxable_value}")
+                if summary_data:
+                    summary_data['exepmt_limit'] = exepmt_limit
+                    summary_data['other_vehicle_taxable_value'] = other_vehicle_taxable_value
+            logger.debug(f"Car: Mixed Use, Total Taxable Value: {taxable_value}")
+            if summary_data:
+                summary_data['taxable_value'] = taxable_value
             return taxable_value
-        
+        if summary_data:
+            summary_data['taxable_value'] = Money.zero()
         return Money.zero()
 
 @dataclass
@@ -230,8 +288,9 @@ class LTAPerquisite:
         #TODO check condition if LTA disbursement is done in the month
         return self.lta_allocated_yearly.divide(12)
     
-    def calculate_taxable_lta_value(self) -> Money:
+    def calculate_taxable_lta_value(self, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate taxable LTA value."""
+        
         if self.lta_claimed_count > 2:
             return self.lta_amount_claimed  # Fully taxable if more than 2 journeys in 4 years
         
@@ -247,8 +306,25 @@ class LTAPerquisite:
             eligible_exemption = self.public_transport_cost.min(self.lta_amount_claimed)
             
         if self.lta_allocated_yearly.is_greater_than(eligible_exemption):
-            return self.lta_allocated_yearly.subtract(eligible_exemption)
+            ret_val = self.lta_allocated_yearly.subtract(eligible_exemption)
+            if summary_data:
+                summary_data['is_monthly_paid'] = self.is_monthly_paid
+                summary_data['lta_allocated_yearly'] = self.lta_allocated_yearly
+                summary_data['lta_amount_claimed'] = self.lta_amount_claimed
+                summary_data['lta_claimed_count'] = self.lta_claimed_count
+                summary_data['public_transport_cost'] = self.public_transport_cost
+                summary_data['travel_mode'] = self.travel_mode
+                summary_data['taxable_lta_value'] = ret_val
+            return ret_val
         else:
+            if summary_data:
+                summary_data['is_monthly_paid'] = self.is_monthly_paid
+                summary_data['lta_allocated_yearly'] = self.lta_allocated_yearly
+                summary_data['lta_amount_claimed'] = self.lta_amount_claimed
+                summary_data['lta_claimed_count'] = self.lta_claimed_count
+                summary_data['public_transport_cost'] = self.public_transport_cost
+                summary_data['travel_mode'] = self.travel_mode
+                summary_data['taxable_lta_value'] = Money.zero()
             return Money.zero()
 
 @dataclass
@@ -275,25 +351,20 @@ class InterestFreeConcessionalLoan:
     # monthly_payment_schedule: list[MonthlyPaymentSchedule] = None
     # current_month: int = 1  # Track current month for payment processing
 
-    def calculate_monthly_payment_schedule(self, interest_rate: Decimal) -> tuple[list[MonthlyPaymentSchedule], Money]:
+    def calculate_monthly_payment_schedule(self, interest_rate: Decimal, summary_data: Dict[str, Any] = None) -> tuple[list[MonthlyPaymentSchedule], Money]:
         """Calculate monthly payment schedule for a loan."""
         #TODO: Add a condition to check if the loan start date is before tax year start date
         interest_paid = Money.zero()
         outstanding_amount = self.outstanding_amount
         monthly_payment_schedule = []
         # Log loan details using table logger
-        from app.utils.table_logger import log_simple_table
-        
-        # Log loan summary
-        summary_data = {
-            'Opening Balance': f"₹{outstanding_amount.to_float():.2f}",
-            'EMI Amount': f"₹{self.emi_amount.to_float():.2f}",
-            'Interest Rate': f"{interest_rate}%"
-        }
-        
-        from app.utils.table_logger import log_salary_summary
-        log_salary_summary("LOAN DETAILS", summary_data)
-        
+        if summary_data:
+            summary_data['loan_amount'] = self.loan_amount
+            summary_data['emi_amount'] = self.emi_amount
+            summary_data['outstanding_amount'] = self.outstanding_amount
+            summary_data['company_interest_rate'] = self.company_interest_rate
+            summary_data['sbi_interest_rate'] = self.sbi_interest_rate
+            summary_data['loan_start_date'] = self.loan_start_date
         # Prepare monthly schedule data
         schedule_data = []
         for month in range(1, 13):
@@ -324,6 +395,11 @@ class InterestFreeConcessionalLoan:
             emi_deducted = principal_amount.add(interest_amount)
             
             # Add to schedule data for table logging
+            if summary_data:
+                summary_data[f'outstanding_amount_{month}'] = outstanding_amount
+                summary_data[f'interest_paid_{month}'] = interest_paid
+                summary_data[f'principal_amount_{month}'] = principal_amount
+                summary_data[f'emi_deducted_{month}'] = emi_deducted
             schedule_data.append([
                 f"{month:02d}",
                 f"₹{outstanding_amount.to_float():.2f}",
@@ -332,20 +408,24 @@ class InterestFreeConcessionalLoan:
                 f"₹{emi_deducted.to_float():.2f}"
             ])
         
-        # Log monthly schedule table
-        headers = ['Month', 'Outstanding Amount', 'Interest Amount', 'Principal Amount', 'EMI Deducted']
-        log_simple_table("MONTHLY LOAN SCHEDULE", schedule_data, headers)
         return monthly_payment_schedule, interest_paid
 
     
-    def calculate_taxable_loan_value(self) -> Money:
+    def calculate_taxable_loan_value(self, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate taxable benefit from interest-free/concessional loan."""
 
         monthly_payment_schedule_company, interest_paid_company = self.calculate_monthly_payment_schedule(self.company_interest_rate)
         monthly_payment_schedule_sbi, interest_paid_sbi = self.calculate_monthly_payment_schedule(self.sbi_interest_rate)
+        if summary_data:
+            summary_data['calculate_taxable_loan_value'] = True
+            summary_data['monthly_payment_schedule_company'] = monthly_payment_schedule_company
+            summary_data['monthly_payment_schedule_sbi'] = monthly_payment_schedule_sbi
+            summary_data['interest_paid_company'] = interest_paid_company
+            summary_data['interest_paid_sbi'] = interest_paid_sbi
         if interest_paid_sbi.is_greater_than(interest_paid_company):
             interest_saved = interest_paid_sbi.subtract(interest_paid_company)
-            logger.info(f"CL: Interest Saved: {interest_saved.to_float():.2f}")
+            logger.debug(f"CL: Interest Saved: {interest_saved.to_float():.2f}")
+            summary_data['interest_saved'] = interest_saved
             return interest_saved
         else:
             return Money.zero()
@@ -359,7 +439,7 @@ class ESOPPerquisite:
     exercise_price: Money = Money.zero()
     allotment_price: Money = Money.zero()
     
-    def calculate_esop_allocation_gain(self) -> Money:
+    def calculate_esop_allocation_gain(self, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate ESOP allocation gain."""
         if self.shares_exercised <= 0:
             return Money.zero()
@@ -368,7 +448,15 @@ class ESOPPerquisite:
             gain_per_share = self.exercise_price.subtract(self.allotment_price)
         else:
             gain_per_share = Money.zero()
-        return gain_per_share.multiply(self.shares_exercised)
+        ret_val = gain_per_share.multiply(self.shares_exercised)
+        if summary_data:
+            summary_data['calculate_esop_allocation_gain'] = True
+            summary_data['gain_per_share'] = gain_per_share
+            summary_data['shares_exercised'] = self.shares_exercised
+            summary_data['exercise_price'] = self.exercise_price
+            summary_data['allotment_price'] = self.allotment_price
+            summary_data['esop_allocation_gain'] = ret_val
+        return ret_val
 
 
 @dataclass
@@ -385,8 +473,9 @@ class UtilitiesPerquisite:
     is_electricity_manufactured_by_employer: bool = False
     is_water_manufactured_by_employer: bool = False
     
-    def calculate_taxable_utilities_value(self) -> Money:
+    def calculate_taxable_utilities_value(self, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate taxable utilities value."""
+        
         employer_total = (self.gas_paid_by_employer
                          .add(self.electricity_paid_by_employer)
                          .add(self.water_paid_by_employer))
@@ -394,7 +483,19 @@ class UtilitiesPerquisite:
         employee_total = (self.gas_paid_by_employee
                          .add(self.electricity_paid_by_employee)
                          .add(self.water_paid_by_employee))
-        
+        if summary_data:
+            summary_data['calculate_taxable_utilities_value'] = True
+            summary_data['gas_paid_by_employer'] = self.gas_paid_by_employer
+            summary_data['electricity_paid_by_employer'] = self.electricity_paid_by_employer
+            summary_data['water_paid_by_employer'] = self.water_paid_by_employer
+            summary_data['gas_paid_by_employee'] = self.gas_paid_by_employee
+            summary_data['electricity_paid_by_employee'] = self.electricity_paid_by_employee
+            summary_data['water_paid_by_employee'] = self.water_paid_by_employee
+            summary_data['is_gas_manufactured_by_employer'] = self.is_gas_manufactured_by_employer
+            summary_data['is_electricity_manufactured_by_employer'] = self.is_electricity_manufactured_by_employer
+            summary_data['is_water_manufactured_by_employer'] = self.is_water_manufactured_by_employer
+            summary_data['employer_total'] = employer_total
+            summary_data['employee_total'] = employee_total 
         if employer_total.is_greater_than(employee_total):
             return employer_total.subtract(employee_total)
         else:
@@ -412,11 +513,12 @@ class FreeEducationPerquisite:
     employer_maintained_1st_child: bool = False
     employer_maintained_2nd_child: bool = False
     
-    def calculate_taxable_education_value(self) -> Money:
+    def calculate_taxable_education_value(self, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate taxable free education value."""
         exemption_per_child_per_month = Money.from_int(1000)
         total_taxable = Money.zero()
-        
+
+
         # Child 1
         if self.employer_maintained_1st_child and self.months_child1 > 0:
             if self.monthly_expenses_child1.is_greater_than(exemption_per_child_per_month):
@@ -434,6 +536,16 @@ class FreeEducationPerquisite:
                 monthly_taxable_child2 = Money.zero()
             child2_taxable = monthly_taxable_child2.multiply(self.months_child2)
             total_taxable = total_taxable.add(child2_taxable)
+
+        if summary_data:
+            summary_data['calculate_taxable_education_value'] = True
+            summary_data['monthly_expenses_child1'] = self.monthly_expenses_child1
+            summary_data['monthly_expenses_child2'] = self.monthly_expenses_child2
+            summary_data['months_child1'] = self.months_child1
+            summary_data['months_child2'] = self.months_child2
+            summary_data['employer_maintained_1st_child'] = self.employer_maintained_1st_child
+            summary_data['employer_maintained_2nd_child'] = self.employer_maintained_2nd_child  
+            summary_data['total_taxable'] = total_taxable
         
         return total_taxable
 
@@ -448,8 +560,18 @@ class MovableAssetUsage:
     employee_payment: Money = Money.zero()
     is_employer_owned: bool = True
     
-    def calculate_taxable_movable_asset_usage_value(self) -> Money:
+    def calculate_taxable_movable_asset_usage_value(self, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate taxable movable asset usage value."""
+
+        ret_val = Money.zero()
+        if summary_data:
+            summary_data['calculate_taxable_movable_asset_usage_value'] = "Employer-owned: 10% of asset value, otherwise hire cost"
+            summary_data['asset_type'] = self.asset_type
+            summary_data['asset_value'] = self.asset_value
+            summary_data['hire_cost'] = self.hire_cost
+            summary_data['employee_payment'] = self.employee_payment
+            summary_data['is_employer_owned'] = self.is_employer_owned
+
         if self.is_employer_owned:
             # Employer-owned: 10% of asset value
             asset_value = self.asset_value.percentage(10)
@@ -481,13 +603,27 @@ class MovableAssetTransfer:
         else:
             return Decimal('0.1')  # 10% per year
     
-    def calculate_taxable_movable_asset_transfer_value(self) -> Money:
+    def calculate_taxable_movable_asset_transfer_value(self, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate taxable movable asset transfer value."""
+
         depreciation_rate = self.get_depreciation_rate()
         annual_depreciation = self.asset_cost.percentage(float(depreciation_rate * 100))
         total_depreciation = annual_depreciation.multiply(self.years_of_use)
-        
+            
         depreciated_value = self.asset_cost.subtract(total_depreciation).max(Money.zero())
+
+                
+        if summary_data:
+            summary_data['calculate_taxable_movable_asset_transfer_value'] = True
+            summary_data['asset_type'] = self.asset_type
+            summary_data['asset_cost'] = self.asset_cost
+            summary_data['years_of_use'] = self.years_of_use
+            summary_data['employee_payment'] = self.employee_payment
+            summary_data['depreciation_rate'] = depreciation_rate
+            summary_data['annual_depreciation'] = annual_depreciation
+            summary_data['total_depreciation'] = total_depreciation
+            summary_data['depreciated_value'] = depreciated_value
+
         if depreciated_value.is_greater_than(self.employee_payment):
             return depreciated_value.subtract(self.employee_payment)
         else:
@@ -502,15 +638,23 @@ class LunchRefreshmentPerquisite:
     employee_payment: Money = Money.zero()
     meal_days_per_year: int = 250
     
-    def calculate_taxable_meal_value(self) -> Money:
+    def calculate_taxable_meal_value(self, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate taxable lunch/refreshment value."""
         exemption_per_meal = Money.from_int(50)
         annual_exemption = exemption_per_meal.multiply(self.meal_days_per_year)
-        
+
         if self.employer_cost.is_greater_than(self.employee_payment):
             net_employer_cost = self.employer_cost.subtract(self.employee_payment)
         else:
             net_employer_cost = Money.zero()
+
+        if summary_data:
+            summary_data['calculate_taxable_meal_value'] = True
+            summary_data['employer_cost'] = self.employer_cost
+            summary_data['employee_payment'] = self.employee_payment
+            summary_data['meal_days_per_year'] = self.meal_days_per_year
+            summary_data['annual_exemption'] = annual_exemption
+            summary_data['net_employer_cost'] = net_employer_cost
         
         if net_employer_cost.is_greater_than(annual_exemption):
             return net_employer_cost.subtract(annual_exemption)
@@ -524,9 +668,13 @@ class GiftVoucherPerquisite:
     
     gift_voucher_amount: Money = Money.zero()
     
-    def calculate_taxable_value(self) -> Money:
+    def calculate_taxable_value(self, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate taxable gift voucher value."""
         exemption_limit = Money.from_int(5000)
+        if summary_data:
+            summary_data['calculate_taxable_value'] = True
+            summary_data['gift_voucher_amount'] = self.gift_voucher_amount
+            summary_data['exemption_limit'] = exemption_limit
         if self.gift_voucher_amount.is_greater_than(exemption_limit):
             return self.gift_voucher_amount.subtract(exemption_limit)
         else:
@@ -541,8 +689,13 @@ class MonetaryBenefitsPerquisite:
     expenditure_for_official_purpose: Money = Money.zero()
     amount_paid_by_employee: Money = Money.zero()
     
-    def calculate_taxable_value(self) -> Money:
+    def calculate_taxable_value(self, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate taxable monetary benefits value."""
+        if summary_data:
+            summary_data['calculate_taxable_value'] = True
+            summary_data['monetary_amount_paid_by_employer'] = self.monetary_amount_paid_by_employer
+            summary_data['expenditure_for_official_purpose'] = self.expenditure_for_official_purpose
+            summary_data['amount_paid_by_employee'] = self.amount_paid_by_employee
         return (self.monetary_amount_paid_by_employer
                 .subtract(self.expenditure_for_official_purpose)
                 .subtract(self.amount_paid_by_employee)
@@ -557,8 +710,13 @@ class ClubExpensesPerquisite:
     club_expenses_paid_by_employee: Money = Money.zero()
     club_expenses_for_official_purpose: Money = Money.zero()
     
-    def calculate_taxable_value(self) -> Money:
+    def calculate_taxable_value(self, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate taxable club expenses value."""
+        if summary_data:
+            summary_data['calculate_taxable_value'] = True
+            summary_data['club_expenses_paid_by_employer'] = self.club_expenses_paid_by_employer
+            summary_data['club_expenses_paid_by_employee'] = self.club_expenses_paid_by_employee
+            summary_data['club_expenses_for_official_purpose'] = self.club_expenses_for_official_purpose
         return (self.club_expenses_paid_by_employer
                 .subtract(self.club_expenses_paid_by_employee)
                 .subtract(self.club_expenses_for_official_purpose)
@@ -572,8 +730,12 @@ class DomesticHelpPerquisite:
     domestic_help_paid_by_employer: Money = Money.zero()
     domestic_help_paid_by_employee: Money = Money.zero()
     
-    def calculate_taxable_domestic_help_value(self) -> Money:
+    def calculate_taxable_domestic_help_value(self, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate taxable domestic help value."""
+        if summary_data:
+            summary_data['calculate_taxable_domestic_help_value'] = True
+            summary_data['domestic_help_paid_by_employer'] = self.domestic_help_paid_by_employer
+            summary_data['domestic_help_paid_by_employee'] = self.domestic_help_paid_by_employee
         return (self.domestic_help_paid_by_employer
                 .subtract(self.domestic_help_paid_by_employee)
                 .max(Money.zero()))
@@ -632,7 +794,7 @@ class Perquisites:
     monetary_benefits: Optional[MonetaryBenefitsPerquisite] = None
     club_expenses: Optional[ClubExpensesPerquisite] = None
     
-    def calculate_total_perquisites(self, regime: TaxRegime, basic_plus_da: Money) -> Money:
+    def calculate_total_perquisites(self, regime: TaxRegime, basic_plus_da: Money, summary_data: Dict[str, Any] = None) -> Money:
         """
         Calculate total perquisite value for all perquisite types.
         
@@ -647,53 +809,54 @@ class Perquisites:
             return Money.zero()
         
         total = Money.zero()
-        
+        if summary_data:
+            summary_data['calculate_total_perquisites'] = 'start'
         # Core perquisites
         if self.accommodation:
-            total = total.add(self.accommodation.calculate_taxable_accommodation_value(basic_plus_da))
+            total = total.add(self.accommodation.calculate_taxable_accommodation_value(basic_plus_da, summary_data))
         
         if self.car:
-            total = total.add(self.car.calculate_taxable_car_value())
+            total = total.add(self.car.calculate_taxable_car_value(summary_data))
         
         if self.lta:
-            total = total.add(self.lta.calculate_taxable_lta_value())
+            total = total.add(self.lta.calculate_taxable_lta_value(summary_data))
         
         # Financial perquisites
         if self.interest_free_loan:
-            total = total.add(self.interest_free_loan.calculate_taxable_loan_value())
+            total = total.add(self.interest_free_loan.calculate_taxable_loan_value(summary_data))
         
         if self.esop:
-            total = total.add(self.esop.calculate_esop_allocation_gain())
+            total = total.add(self.esop.calculate_esop_allocation_gain(summary_data))
         
         # Utilities and facilities
         if self.utilities:
-            total = total.add(self.utilities.calculate_taxable_utilities_value())
+            total = total.add(self.utilities.calculate_taxable_utilities_value(summary_data))
         
         if self.free_education:
-            total = total.add(self.free_education.calculate_taxable_education_value())
+            total = total.add(self.free_education.calculate_taxable_education_value(summary_data))
         
         if self.lunch_refreshment:
-            total = total.add(self.lunch_refreshment.calculate_taxable_meal_value())
+            total = total.add(self.lunch_refreshment.calculate_taxable_meal_value(summary_data))
         
         if self.domestic_help:
-            total = total.add(self.domestic_help.calculate_taxable_domestic_help_value())
+            total = total.add(self.domestic_help.calculate_taxable_domestic_help_value(summary_data))
         
         # Asset-related perquisites
         if self.movable_asset_usage:
-            total = total.add(self.movable_asset_usage.calculate_taxable_movable_asset_usage_value())
+            total = total.add(self.movable_asset_usage.calculate_taxable_movable_asset_usage_value(summary_data))
         
         if self.movable_asset_transfer:
-            total = total.add(self.movable_asset_transfer.calculate_taxable_movable_asset_transfer_value())
+            total = total.add(self.movable_asset_transfer.calculate_taxable_movable_asset_transfer_value(summary_data))
         
         # Miscellaneous perquisites
         if self.gift_voucher:
-            total = total.add(self.gift_voucher.calculate_taxable_value())
+            total = total.add(self.gift_voucher.calculate_taxable_value(summary_data))
         
         if self.monetary_benefits:
-            total = total.add(self.monetary_benefits.calculate_taxable_value())
+            total = total.add(self.monetary_benefits.calculate_taxable_value(summary_data))
         
         if self.club_expenses:
-            total = total.add(self.club_expenses.calculate_taxable_value())
+            total = total.add(self.club_expenses.calculate_taxable_value(summary_data))
         
         return total
     

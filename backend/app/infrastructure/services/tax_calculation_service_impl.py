@@ -32,35 +32,3 @@ class TaxCalculationServiceImpl(TaxCalculationService):
             user_repository=user_repository
         )
     
-    def calculate_tax(self, input_data: TaxCalculationInput) -> TaxCalculationResult:
-        """
-        Calculate tax based on input data.
-        
-        Args:
-            input_data: Tax calculation input data
-            
-        Returns:
-            TaxCalculationResult: Tax calculation result
-        """
-        return super().calculate_tax(input_data)
-
-        """
-        Convert taxation record to tax calculation input.
-        
-        Args:
-            record: Taxation record
-            
-        Returns:
-            TaxCalculationInput: Tax calculation input
-        """
-        return TaxCalculationInput(
-            salary_income=record.salary_income,
-            perquisites=record.perquisites,
-            capital_gains_income=record.other_income.capital_gains_income if record.other_income else None,
-            retirement_benefits=record.retirement_benefits,
-            other_income=record.other_income,
-            deductions=record.deductions,
-            regime=record.regime,
-            age=record.age,
-            is_government_employee=record.is_government_employee
-        ) 

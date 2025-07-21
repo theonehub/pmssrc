@@ -166,14 +166,8 @@ class TaxCalculationService:
                     f"in tax year {tax_year}. Please ensure salary data is configured."
                 )
             
-            logger.debug(f"compute_monthly_tax: Found salary package record. Salary incomes count: {len(salary_package_record.salary_incomes)}")
-            logger.debug(f"compute_monthly_tax: Record has perquisites: {salary_package_record.perquisites is not None}")
-            logger.debug(f"compute_monthly_tax: Record has other_income: {salary_package_record.other_income is not None}")
-            logger.debug(f"compute_monthly_tax: Record has retirement_benefits: {salary_package_record.retirement_benefits is not None}")
-            
             # Compute monthly tax using the salary package record
             logger.info("compute_monthly_tax: Computing monthly tax from salary package record")
-            logger.info(f"***********************************************")
             calculation_result = salary_package_record.calculate_tax(self, computing_month)
 
             salary_package_record.last_calculated_at = datetime.utcnow()
@@ -315,150 +309,108 @@ class TaxCalculationService:
             logger.error(f"compute_monthly_tax_with_details: Error in detailed computation for employee {employee_id}: {str(e)}", exc_info=True)
             raise RuntimeError(f"Failed to compute detailed monthly tax for employee {employee_id}: {str(e)}")
     
-    def calculate_tax(self, input_data: TaxCalculationInput) -> TaxCalculationResult:
-        """
-        Calculate tax based on input data.
+    # def calculate_tax(self, input_data: TaxCalculationInput) -> TaxCalculationResult:
+    #     """
+    #     Calculate tax based on input data.
         
-        Args:
-            input_data: Tax calculation input data
+    #     Args:
+    #         input_data: Tax calculation input data
             
-        Returns:
-            TaxCalculationResult: Tax calculation result
-        """
-        # Calculate total income
-        total_income = self._calculate_total_income(input_data)
-        
-        # Calculate total exemptions
-        total_exemptions = self._calculate_total_exemptions(input_data)
-        
-        # Calculate total deductions
-        total_deductions = self._calculate_total_deductions(input_data)
-        
-        # Calculate taxable income
-        # First subtract exemptions, then deductions, ensuring we don't go negative
-        income_after_exemptions = total_income.subtract(total_exemptions) if total_income > total_exemptions else Money.zero()
-        taxable_income = income_after_exemptions.subtract(total_deductions) if income_after_exemptions > total_deductions else Money.zero()
-        
-        # Calculate tax liability
-        tax_amount, surcharge, cess, total_tax = self._calculate_tax_liability(
-            taxable_income,
-            input_data.regime,
-            input_data.age,
-            input_data.capital_gains_income.calculate_stcg_111a_tax(),
-            input_data.capital_gains_income.calculate_ltcg_112a_tax(),
-        )
-        
-        # Get tax breakdown
-        tax_breakdown = self._get_tax_breakdown(
-            total_income,
-            total_exemptions,
-            total_deductions,
-            taxable_income,
-            total_tax,
-            input_data
-        )
-        
-        # Skip regime comparison to avoid infinite recursion
-        regime_comparison = None
-        
-        return TaxCalculationResult(
-            total_income=total_income,
-            total_exemptions=total_exemptions,
-            total_deductions=total_deductions,
-            taxable_income=taxable_income,
-            tax_liability=total_tax,
-            tax_breakdown=tax_breakdown,
-            regime_comparison=regime_comparison
-        )
+    #     Returns:
+    #         TaxCalculationResult: Tax calculation result
+    #     """
 
-    def calculate_income_tax(self, 
-                           gross_income: Money,
-                           total_exemptions: Money, 
-                           total_deductions: Money,
-                           stcg_tax: Money,
-                           ltcg_tax: Money,
-                           regime: TaxRegime, 
-                           age: int) -> TaxCalculationResult:
-        """
-        Calculate income tax with provided totals - method expected by TaxationRecord.
+    #     summary_data = {
+    #         'regime': input_data.regime.regime_type.value,
+    #         'age': input_data.age
+    #     }
+
+    #     # Calculate total income
+    #     total_income = self._calculate_total_income(input_data, summary_data)
         
-        Args:
-            gross_income: Total gross income
-            total_exemptions: Total exemptions amount
-            total_deductions: Total deductions amount
-            regime: Tax regime
-            age: Employee age
-            
-        Returns:
-            TaxCalculationResult: Tax calculation result
-        """
-        # Calculate taxable income
-        income_after_exemptions = gross_income.subtract(total_exemptions) if gross_income > total_exemptions else Money.zero()
-        taxable_income = income_after_exemptions.subtract(total_deductions) if income_after_exemptions > total_deductions else Money.zero()
-        logger.info(f"TheOne: Taxable income: {taxable_income.to_float()}")
+    #     # Calculate total exemptions
+    #     total_exemptions = self._calculate_total_exemptions(input_data, summary_data)
         
-        # Calculate tax liability
-        tax_amount, surcharge, cess, total_tax = self._calculate_tax_liability(
-            taxable_income,
-            regime,
-            age,
-            stcg_tax,
-            ltcg_tax
-        )
+    #     # Calculate total deductions
+    #     total_deductions = self._calculate_total_deductions(input_data, summary_data)
         
-        # Create tax breakdown
-        tax_breakdown = {
-            "income_details": {
-                "gross_income": gross_income.to_float(),
-                "total_exemptions": total_exemptions.to_float(),
-                "income_after_exemptions": income_after_exemptions.to_float(),
-                "total_deductions": total_deductions.to_float(),
-                "taxable_income": taxable_income.to_float(),
-                "tax_liability": total_tax.to_float()
-            }
-        }
+    #     # Calculate taxable income
+    #     # First subtract exemptions, then deductions, ensuring we don't go negative
+    #     income_after_exemptions = total_income.subtract(total_exemptions) if total_income > total_exemptions else Money.zero()
+    #     taxable_income = income_after_exemptions.subtract(total_deductions) if income_after_exemptions > total_deductions else Money.zero()
         
-        return TaxCalculationResult(
-            total_income=gross_income,
-            total_exemptions=total_exemptions,
-            total_deductions=total_deductions,
-            taxable_income=taxable_income,
-            tax_liability=tax_liability,
-            tax_breakdown=tax_breakdown,
-            regime_comparison=None
-        )
-  
-    def _calculate_total_income(self, input_data: TaxCalculationInput) -> Money:
+    #     # Calculate tax liability
+    #     tax_amount, surcharge, cess, total_tax = self._calculate_tax_liability(
+    #         taxable_income,
+    #         input_data.regime,
+    #         input_data.age,
+    #         input_data.capital_gains_income.calculate_stcg_111a_tax(),
+    #         input_data.capital_gains_income.calculate_ltcg_112a_tax(),
+    #     )
+        
+    #     # Log the summary table
+    #     from app.utils.table_logger import log_salary_summary
+    #     log_salary_summary("TAX CALCULATION SUMMARY", summary_data)
+
+    #     # Get tax breakdown
+    #     tax_breakdown = self._get_tax_breakdown(
+    #         total_income,
+    #         total_exemptions,
+    #         total_deductions,
+    #         taxable_income,
+    #         total_tax,
+    #         input_data
+    #     )
+        
+    #     # Skip regime comparison to avoid infinite recursion
+    #     regime_comparison = None
+        
+    #     return TaxCalculationResult(
+    #         total_income=total_income,
+    #         total_exemptions=total_exemptions,
+    #         total_deductions=total_deductions,
+    #         taxable_income=taxable_income,
+    #         tax_liability=total_tax,
+    #         tax_breakdown=tax_breakdown,
+    #         regime_comparison=regime_comparison
+    #     )
+
+    def _calculate_total_income(self, input_data: TaxCalculationInput, summary_data: Dict[str, Any]) -> Money:
         """Calculate total income from all sources."""
+        summary_data['calculate_total_income'] = 'start'
         # Salary income - use the actual method from SalaryIncome entity
-        salary_total = input_data.salary_income.calculate_gross_salary()
+        salary_total = input_data.salary_income.calculate_gross_salary(summary_data)
         
         # Perquisites - use the actual method from Perquisites entity
-        perquisites_total = input_data.perquisites.calculate_total_perquisites(input_data.regime)
+        perquisites_total = input_data.perquisites.calculate_total_perquisites(input_data.regime, summary_data)
         
         # Capital gains income - use the actual method from CapitalGainsIncome entity
-        capital_gains_total = input_data.capital_gains_income.calculate_total_capital_gains_income()
+        capital_gains_total = input_data.capital_gains_income.calculate_total_capital_gains_income(summary_data)
         
         # Retirement benefits - use the actual method from RetirementBenefits entity
-        retirement_total = input_data.retirement_benefits.calculate_total_retirement_income(input_data.regime)
+        retirement_total = input_data.retirement_benefits.calculate_total_retirement_income(input_data.regime, summary_data)
         
         # Other income - use the actual method from OtherIncome entity (now includes house property income)
-        other_income_total = input_data.other_income.calculate_total_other_income_slab_rates(input_data.regime, input_data.age)
-        
-        return (
+        other_income_total = input_data.other_income.calculate_total_other_income_slab_rates(input_data.regime, input_data.age, summary_data)
+        total_income = (
             salary_total
             .add(perquisites_total)
             .add(capital_gains_total)
             .add(retirement_total)
             .add(other_income_total)
         )
+        summary_data['final_total_income'] = total_income
+        summary_data['calculate_total_income'] = 'end'
+        return total_income
     
-    def _calculate_total_exemptions(self, input_data: TaxCalculationInput) -> Money:
+    def _calculate_total_exemptions(self, input_data: TaxCalculationInput, summary_data: Dict[str, Any]) -> Money:
         """Calculate total exemptions."""
+        summary_data['calculate_total_exemptions'] = 'start'
         # Use the actual exemption methods from entities
-        salary_exemptions = input_data.salary_income.calculate_total_exemptions(input_data.regime)
+        salary_exemptions = input_data.salary_income.calculate_total_exemptions(input_data.regime, summary_data)
         
         # For now, return salary exemptions only (can be enhanced later)
+        summary_data['calculate_total_exemptions'] = 'end'
         return salary_exemptions
     
     def _calculate_total_deductions(self, input_data: TaxCalculationInput) -> Money:
@@ -467,31 +419,34 @@ class TaxCalculationService:
             return Money.zero()  # No deductions in new regime
         
         # Use the actual deduction methods from TaxDeductions entity
-        return Money.zero() #input_data.deductions.get_total_deductions()
+        return input_data.deductions.get_total_deductions()
     
     def _calculate_tax_liability(self,
                                taxable_income: Money,
                                regime: TaxRegime,
                                age: int,
-                               additional_tax_liability: Money
+                               additional_tax_liability: Money,
+                               summary_data: Dict[str, Any] = None
                                ) -> Tuple[Money, Money, Money, Money]:
         """Calculate tax liability based on tax slabs."""
         # Get tax slabs
         slabs = regime.get_tax_slabs(age)
-        print(f"TheOne: Slabs: {slabs}")
         rebate_limit = regime.get_rebate_87a_limit()
-        print(f"TheOne: Rebate limit: {rebate_limit}")
         max_rebate = regime.get_max_rebate_87a()
-        print(f"TheOne: Max rebate: {max_rebate}")
 
-        print(f"TheOne: Slabs: {slabs}")
+        if summary_data:
+            summary_data['calculate_tax_liability'] = 'start'
+            summary_data['rebate_limit'] = rebate_limit.to_float()
+            summary_data['max_rebate'] = max_rebate.to_float()
         
         # Calculate tax for each slab using progressive taxation
         tax_amount = Money(Decimal('0'))
         surcharge = Money(Decimal('0'))  # Ensure always defined
         cess = Money(Decimal('0'))  # Ensure always defined
         if taxable_income > rebate_limit:
+            loop_counter = 0
             for slab in slabs:
+                loop_counter += 1
                 slab_min = Money(slab["min"])
                 slab_max = Money(slab["max"]) if slab["max"] is not None else taxable_income
                 slab_rate = Decimal(str(slab["rate"])) / Decimal('100')
@@ -510,16 +465,26 @@ class TaxCalculationService:
                     if income_in_slab > Money.zero():
                         tax_for_slab = income_in_slab.multiply(slab_rate)
                         tax_amount = tax_amount.add(tax_for_slab)
-                        
-                        logger.info(f"TheOne: Slab ({slab_min.to_float()}-{slab_max.to_float() if slab['max'] else 'unlimited'}): "
+                        if summary_data:
+                            summary_data[f'slab_{loop_counter}'] = f'{slab_min.to_float()}-{slab_max.to_float() if slab["max"] else "unlimited"}'
+                            summary_data[f'slab_{loop_counter}_rate'] = slab_rate
+                            summary_data[f'slab_{loop_counter}_taxable_income'] = taxable_income.to_float()
+                            summary_data[f'slab_{loop_counter}_income_in_slab'] = income_in_slab.to_float()
+                            summary_data[f'slab_{loop_counter}_tax_for_slab'] = tax_for_slab.to_float()
+                            summary_data[f'slab_{loop_counter}_tax_amount'] = tax_amount.to_float()
+
+                        logger.debug(f"TheOne: Slab ({slab_min.to_float()}-{slab_max.to_float() if slab['max'] else 'unlimited'}): "
                                 f"income_in_slab={income_in_slab.to_float()}, rate={slab_rate}, "
                                 f"tax_for_slab={tax_for_slab.to_float()}, total_tax={tax_amount.to_float()}")
                 else:
-                    logger.info(f"TheOne: Skipping slab ({slab_min.to_float()}-{slab_max.to_float() if slab['max'] else 'unlimited'}): "
+                    logger.debug(f"TheOne: Skipping slab ({slab_min.to_float()}-{slab_max.to_float() if slab['max'] else 'unlimited'}): "
                             f"taxable_income {taxable_income.to_float()} <= slab_min {slab_min.to_float()}")
             
         # Add STCG tax
         tax_amount = tax_amount.add(additional_tax_liability)
+        if summary_data:
+            summary_data['additional_tax_liability'] = additional_tax_liability.to_float()
+            summary_data['tax_amount'] = tax_amount.to_float()
         
         # Add surcharge if applicable
         if taxable_income > Money(Decimal('5000000')):  # Above ₹50 lakh
@@ -530,15 +495,23 @@ class TaxCalculationService:
                 surcharge_rate = Decimal('0.25')  # 25% surcharge
             if taxable_income > Money(Decimal('50000000')):  # Above ₹5 crore
                 surcharge_rate = Decimal('0.37')  # 37% surcharge
-            
+
             surcharge = tax_amount.multiply(surcharge_rate)
             tax_amount = tax_amount.add(surcharge)
+            if summary_data:
+                summary_data['surcharge_rate'] = surcharge_rate
+                summary_data['surcharge'] = surcharge.to_float()
+                summary_data['tax_amount'] = tax_amount.to_float()
         
         # Add health and education cess
         cess_rate = Decimal('0.04')  # 4% cess
         cess = tax_amount.multiply(cess_rate)
         total_tax = tax_amount.add(cess)
-        logger.info(f"TheOne: Tax amount: {tax_amount.to_float(), surcharge.to_float(), cess.to_float()} => {total_tax.to_float()}")
+        if summary_data:
+            summary_data['cess_rate'] = cess_rate
+            summary_data['cess'] = cess.to_float()
+            summary_data['total_tax'] = total_tax.to_float()
+        logger.debug(f"TheOne: Tax amount: {tax_amount.to_float(), surcharge.to_float(), cess.to_float()} => {total_tax.to_float()}")
         
         return tax_amount, surcharge, cess, total_tax
     
@@ -719,54 +692,54 @@ class TaxCalculationService:
             }
         }
     
-    def _get_regime_comparison(self, input_data: TaxCalculationInput) -> Dict[str, Any]:
-        """Compare tax liability under old and new regimes."""
-        # Calculate tax under old regime
-        old_regime_result = self.calculate_tax(input_data)
+    # def _get_regime_comparison(self, input_data: TaxCalculationInput) -> Dict[str, Any]:
+    #     """Compare tax liability under old and new regimes."""
+    #     # Calculate tax under old regime
+    #     old_regime_result = self.calculate_tax(input_data)
         
-        # Calculate tax under new regime
-        new_regime_input = TaxCalculationInput(
-            salary_income=input_data.salary_income,
-            perquisites=input_data.perquisites,
-            capital_gains_income=input_data.capital_gains_income,
-            retirement_benefits=input_data.retirement_benefits,
-            other_income=input_data.other_income,
-            deductions=input_data.deductions,
-            regime=TaxRegime(TaxRegimeType.NEW),
-            age=input_data.age,
-            is_government_employee=input_data.is_government_employee
-        )
-        new_regime_result = self.calculate_tax(new_regime_input)
+    #     # Calculate tax under new regime
+    #     new_regime_input = TaxCalculationInput(
+    #         salary_income=input_data.salary_income,
+    #         perquisites=input_data.perquisites,
+    #         capital_gains_income=input_data.capital_gains_income,
+    #         retirement_benefits=input_data.retirement_benefits,
+    #         other_income=input_data.other_income,
+    #         deductions=input_data.deductions,
+    #         regime=TaxRegime(TaxRegimeType.NEW),
+    #         age=input_data.age,
+    #         is_government_employee=input_data.is_government_employee
+    #     )
+    #     new_regime_result = self.calculate_tax(new_regime_input)
         
-        return {
-            "old_regime": {
-                "taxable_income": old_regime_result.taxable_income.to_float(),
-                "tax_liability": old_regime_result.tax_liability.to_float(),
-                "total_deductions": old_regime_result.total_deductions.to_float()
-            },
-            "new_regime": {
-                "taxable_income": new_regime_result.taxable_income.to_float(),
-                "tax_liability": new_regime_result.tax_liability.to_float(),
-                "total_deductions": new_regime_result.total_deductions.to_float()
-            },
-            "difference": {
-                "tax_liability": (
-                    new_regime_result.tax_liability.subtract(old_regime_result.tax_liability) 
-                    if new_regime_result.tax_liability > old_regime_result.tax_liability
-                    else old_regime_result.tax_liability.subtract(new_regime_result.tax_liability).multiply(Decimal('-1'))
-                ).to_float(),
-                "percentage": float(
-                    (new_regime_result.tax_liability.subtract(old_regime_result.tax_liability) 
-                     if new_regime_result.tax_liability > old_regime_result.tax_liability
-                     else old_regime_result.tax_liability.subtract(new_regime_result.tax_liability).multiply(Decimal('-1')))
-                    .divide(old_regime_result.tax_liability).multiply(Decimal('100'))
-                ) if old_regime_result.tax_liability > Money(Decimal('0')) else 0.0
-            },
-            "recommended_regime": (
-                "new" if new_regime_result.tax_liability < old_regime_result.tax_liability
-                else "old"
-            )
-        }
+    #     return {
+    #         "old_regime": {
+    #             "taxable_income": old_regime_result.taxable_income.to_float(),
+    #             "tax_liability": old_regime_result.tax_liability.to_float(),
+    #             "total_deductions": old_regime_result.total_deductions.to_float()
+    #         },
+    #         "new_regime": {
+    #             "taxable_income": new_regime_result.taxable_income.to_float(),
+    #             "tax_liability": new_regime_result.tax_liability.to_float(),
+    #             "total_deductions": new_regime_result.total_deductions.to_float()
+    #         },
+    #         "difference": {
+    #             "tax_liability": (
+    #                 new_regime_result.tax_liability.subtract(old_regime_result.tax_liability) 
+    #                 if new_regime_result.tax_liability > old_regime_result.tax_liability
+    #                 else old_regime_result.tax_liability.subtract(new_regime_result.tax_liability).multiply(Decimal('-1'))
+    #             ).to_float(),
+    #             "percentage": float(
+    #                 (new_regime_result.tax_liability.subtract(old_regime_result.tax_liability) 
+    #                  if new_regime_result.tax_liability > old_regime_result.tax_liability
+    #                  else old_regime_result.tax_liability.subtract(new_regime_result.tax_liability).multiply(Decimal('-1')))
+    #                 .divide(old_regime_result.tax_liability).multiply(Decimal('100'))
+    #             ) if old_regime_result.tax_liability > Money(Decimal('0')) else 0.0
+    #         },
+    #         "recommended_regime": (
+    #             "new" if new_regime_result.tax_liability < old_regime_result.tax_liability
+    #             else "old"
+    #         )
+    #     }
     
     def _calculate_hra_exemption(self,
                                basic_salary: Money,

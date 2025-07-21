@@ -1317,7 +1317,7 @@ class TaxDeductions:
         # Now calculate total deductions normally
         return self.calculate_total_deductions(regime, age, gross_total_income, Money.zero()) #TODO: Need to add eps_employee
     
-    def calculate_total_deductions(self, regime: TaxRegime, age: int, gross_income: Money, eps_employee: Money) -> Money:
+    def calculate_total_deductions(self, regime: TaxRegime, age: int, gross_income: Money, epf_employee: Money, summary_data: Dict[str, Any] = None) -> Money:
         """
         Calculate total eligible deductions across all sections.
         
@@ -1327,11 +1327,6 @@ class TaxDeductions:
         Returns:
             Money: Total deductions
         """
-        summary_data = {
-            'regime': regime.regime_type.value,
-            'age': age,
-            'gross_income': gross_income,
-        }
         
         if regime.regime_type == TaxRegimeType.NEW:
             # Only employer NPS contribution allowed in new regime
@@ -1339,15 +1334,14 @@ class TaxDeductions:
                 # For new regime, return employer NPS contribution directly (no cap applies)
                 summary_data['section_80ccd_employer_nps_contribution'] = self.section_80ccd.employer_nps_contribution
                 summary_data['Total Deductions'] = self.section_80ccd.employer_nps_contribution
-                from app.utils.table_logger import log_salary_summary
-                log_salary_summary("DEDUCTIONS SUMMARY", summary_data)
+
                 return self.section_80ccd.employer_nps_contribution
             return Money.zero()
         
         total = Money.zero()
         
         # Combined 80C + 80CCC + 80CCD(1) limit
-        total = total.add(self.calculate_combined_80c_80ccc_80ccd1_deduction(regime, eps_employee, summary_data))
+        total = total.add(self.calculate_combined_80c_80ccc_80ccd1_deduction(regime, epf_employee, summary_data))
         
         # 80CCD(1B) - Additional NPS (separate ₹50,000 limit)
         if self.section_80ccd:
@@ -1415,8 +1409,6 @@ class TaxDeductions:
         
 
         summary_data['Final Deductions'] = total
-        from app.utils.table_logger import log_salary_summary
-        log_salary_summary("DEDUCTIONS SUMMARY", summary_data)
 
         return total
     

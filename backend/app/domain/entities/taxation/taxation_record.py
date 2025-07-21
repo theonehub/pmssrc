@@ -914,32 +914,24 @@ class SalaryPackageRecord:
             return total_projection_months
         
 
-    def _get_gross_salary_income(self) -> Money:
+    def _get_gross_salary_income(self, summary_data: Dict[str, Any] = None) -> Money:
         """
         Get the gross salary of the employee.
         
         Returns:
             Money: Gross salary of the employee
         """
-        total = self.get_annual_salary_income().calculate_gross_salary()
-        logger.info(f"TheOne: Annual Salary Income: {total}")
+        total = self.get_annual_salary_income().calculate_gross_salary(summary_data)
+        if summary_data:
+            summary_data['Annual Salary Income'] = total
         ##compute one time arrear and one time bonus for all the MonthlySalary records
         for monthly_salary in self.monthly_salary_records:
-            # Log monthly salary data using table logger
-            from app.utils.table_logger import log_simple_table
-            
-            headers = ['Month', 'Bonus', 'Arrear']
-            data = [[
-                str(monthly_salary.month),
-                str(monthly_salary.one_time_bonus),
-                str(monthly_salary.one_time_arrear)
-            ]]
-            
-            log_simple_table("MONTHLY SALARY BONUS & ARREAR", data, headers)
+            if summary_data:
+                summary_data[f'One Time Bonus({monthly_salary.month})'] = monthly_salary.one_time_bonus
+                summary_data[f'One Time Arrear({monthly_salary.month})'] = monthly_salary.one_time_arrear
             total = total.add(monthly_salary.one_time_arrear).add(monthly_salary.one_time_bonus)
-        logger.info(f"*********************************************************************************************************")
-        logger.info(f"Total: {total}")
-        logger.info(f"*********************************************************************************************************")
+        if summary_data:
+            summary_data[f'Total Gross Salary Income'] = total
         return total
     
     def get_pf_employee_contribution(self) -> Money:
@@ -1004,37 +996,47 @@ class SalaryPackageRecord:
         Returns:
             TaxCalculationResult: Complete calculation result
         """
-        gross_income = self.calculate_gross_income()
+        summary_data = {
+            'calculate_tax': 'start',
+            'regime': self.regime.regime_type.value,
+            'age': self.age
+        }
+        gross_income = self.calculate_gross_income(summary_data)
         logger.info(f"TheOne: Total income: {gross_income}")
         
         # Calculate total exemptions
-        total_exemptions = self.calculate_exemptions()
+        total_exemptions = self.calculate_exemptions(summary_data)
         logger.info(f"TheOne: Total exemptions: {total_exemptions}")
 
         # Calculate total deductions
         total_deductions = self.deductions.calculate_total_deductions(self.regime, self.age, 
-                                gross_income, self.get_pf_employee_contribution())
+                                gross_income, self.get_pf_employee_contribution(), summary_data)
         
         logger.info(f"TheOne: Total deductions: {total_deductions}")
+        summary_data['Total Deductions'] = total_deductions
 
         income_after_exemptions = gross_income.subtract(total_exemptions)
         logger.info(f"TheOne: Income after exemptions: {income_after_exemptions}")
+        summary_data['Income after exemptions'] = income_after_exemptions
 
         taxable_income = income_after_exemptions.subtract(total_deductions)
         logger.info(f"TheOne: Taxable income: {taxable_income}")
+        summary_data['Taxable income'] = taxable_income
         
         # Perform tax calculation
         tax_amount, surcharge, cess, total_tax = calculation_service._calculate_tax_liability(
             taxable_income,
             self.regime,
             self.age,
-            self.additional_tax_liability()
+            self.additional_tax_liability(),
+            summary_data
         )
         #Keeping professional tax here not with additional tax liability as Cess is not applicable on professional tax
         professional_tax = self.calculate_professional_tax(gross_income)
 
         tds_deducted_till_date = self.calculate_tds_deducted_till_date()
         tds_remaining = total_tax.subtract(tds_deducted_till_date)
+
         #get remaing months in current year
         months_passed = computing_month - 4#(april is 4th month)
         remaining_months = 12 - months_passed
@@ -1043,7 +1045,19 @@ class SalaryPackageRecord:
         else:
             monthly_tax = tds_remaining.divide(remaining_months)
 
+        if summary_data:
+            summary_data['professional_tax'] = professional_tax.to_float()
+            summary_data['total_tax'] = total_tax.to_float()
+            summary_data['tds_deducted_till_date'] = tds_deducted_till_date.to_float()
+            summary_data['tds_remaining'] = tds_remaining.to_float()
+            summary_data['remaining_months'] = remaining_months
+            summary_data['monthly_tax'] = monthly_tax.to_float()
+
         monthly_tax = monthly_tax.add(professional_tax.divide(Decimal('12')))   
+
+        if summary_data:
+            summary_data['professional_tax_monthly'] = (professional_tax.to_float()/12)
+            summary_data['total_tax_monthly'] = (total_tax.to_float()/12)
         
         # Create simplified tax breakdown
         tax_breakdown = {
@@ -1091,6 +1105,10 @@ class SalaryPackageRecord:
         self.last_calculated_at = datetime.utcnow()
         self.updated_at = datetime.utcnow()
         
+        # Log the summary table
+        from app.utils.table_logger import log_salary_summary
+        log_salary_summary("TAX CALCULATION SUMMARY", summary_data)
+
         # Raise domain event
         self._add_domain_event({
             "event_type": "TaxCalculated",
@@ -1142,7 +1160,7 @@ class SalaryPackageRecord:
         basic_plus_da = self.annual_salary_income.calculate_basic_plus_da()
         return basic_plus_da
     
-    def calculate_gross_income(self) -> Money:
+    def calculate_gross_income(self, summary_data: Dict[str, Any] = None) -> Money:
         """
         Calculate comprehensive gross income from all sources.
         
@@ -1151,15 +1169,12 @@ class SalaryPackageRecord:
         """
         total_income = Money.zero()
         # Calculate comprehensive gross income
-        gross_salary_income = self._get_gross_salary_income()
+        gross_salary_income = self._get_gross_salary_income(summary_data)
         total_income = total_income.add(gross_salary_income)
-        summary_data = {
-            'gross_salary_income': gross_salary_income
-        }
 
         # Other income (if any) - now includes house property income and capital gains
         if self.other_income:
-            other_income_slab_amount = self.other_income.calculate_total_other_income_slab_rates(self.regime, self.age)
+            other_income_slab_amount = self.other_income.calculate_total_other_income_slab_rates(self.regime, self.age, summary_data)
             total_income = total_income.add(other_income_slab_amount)
             summary_data['other_income_slab_amount'] = other_income_slab_amount
             adjustments_less = Money.zero()
@@ -1171,20 +1186,18 @@ class SalaryPackageRecord:
                     
         # Perquisites (if any)
         if self.perquisites:
-            total_income = total_income.add(self.perquisites.calculate_total_perquisites(self.regime, self.calculate_basic_plus_da()))
+            total_income = total_income.add(self.perquisites.calculate_total_perquisites(self.regime, self.calculate_basic_plus_da(), summary_data))
         
         # Retirement benefits (if any)
         if self.retirement_benefits:
-            total_income = total_income.add(self.retirement_benefits.calculate_total_retirement_income(self.regime, self.is_government_employee, self.age))
+            total_income = total_income.add(self.retirement_benefits.calculate_total_retirement_income(self.regime, self.is_government_employee, self.age, summary_data))
         
         # Log the summary table
         summary_data['Total_Gross_Income'] = total_income
-        from app.utils.table_logger import log_salary_summary
-        log_salary_summary("GROSS INCOME SUMMARY", summary_data)
 
         return total_income
 
-    def calculate_exemptions(self) -> Money:
+    def calculate_exemptions(self, summary_data: Dict[str, Any] = None) -> Money:
         """
         Calculate comprehensive exemptions from all sources.
         
@@ -1192,9 +1205,8 @@ class SalaryPackageRecord:
             Money: Total exemptions from all sources
         """
         total_exemptions = Money.zero()
-        summary_data = {}
         # Salary exemptions (core) - use latest salary income
-        core_salary_exemptions = self.annual_salary_income.calculate_total_exemptions(self.regime, self.is_government_employee)
+        core_salary_exemptions = self.annual_salary_income.calculate_total_exemptions(self.regime, self.is_government_employee, summary_data)
         summary_data['core_salary_exemptions'] = core_salary_exemptions
 
         salary_standard_deduction = self.regime.get_standard_deduction()
@@ -1213,10 +1225,6 @@ class SalaryPackageRecord:
             summary_data['other_income_exemptions'] = other_income_exemptions
         
         summary_data['Total Exemptions'] = total_exemptions
-
-        # Log the summary table
-        from app.utils.table_logger import log_salary_summary
-        log_salary_summary("EXEMPTIONS SUMMARY", summary_data)
 
         return total_exemptions
     

@@ -96,7 +96,7 @@ class HousePropertyIncome:
         # Pre-construction interest is allowed as 1/5th over 5 years
         return self.pre_construction_interest.divide(5)
     
-    def calculate_net_income_from_house_property(self, regime: TaxRegime) -> Money:
+    def calculate_net_income_from_house_property(self, regime: TaxRegime, summary_data: Dict[str, Any] = None) -> Money:
         """
         Calculate net income from house property.
         
@@ -106,19 +106,15 @@ class HousePropertyIncome:
         Returns:
             Money: Net income from house property (returns zero for losses)
         """
-        summary_data = {
-            'regime': regime.regime_type.value,
-            'property_type': self.property_type.value,
-            'annual_rent_received': self.annual_rent_received,
-            'municipal_taxes_paid': self.municipal_taxes_paid,
-            'annual_rent_received_after_taxes': self.calculate_net_annual_income_after_taxes(),
-            'standard_deduction(30%)': self.calculate_standard_deduction(),
-            'home_loan_interest': self.home_loan_interest,
-            'pre_construction_interest': self.pre_construction_interest,
-            'interest_deduction(2Lakh[Self-Occupied], No Limit[Let-Out])': self.calculate_interest_deduction(),
-            'pre_construction_deduction(1/5th over 5 years)': self.calculate_pre_construction_deduction()
-        }
-
+        if summary_data:
+            summary_data['calculate_net_income_from_house_property'] = True
+            summary_data['regime'] = regime.regime_type.value
+            summary_data['property_type'] = self.property_type.value
+            summary_data['annual_rent_received'] = self.annual_rent_received
+            summary_data['municipal_taxes_paid'] = self.municipal_taxes_paid
+            summary_data['home_loan_interest'] = self.home_loan_interest
+            summary_data['pre_construction_interest'] = self.pre_construction_interest
+            
 
         net_annual_value = self.calculate_net_annual_income_after_taxes()
         standard_deduction = self.calculate_standard_deduction()
@@ -128,22 +124,26 @@ class HousePropertyIncome:
         total_deductions = (standard_deduction
                           .add(interest_deduction)
                           .add(pre_construction_deduction))
-        summary_data['total_deductions'] = total_deductions
+        if summary_data:
+            summary_data['interest_deduction(2Lakh[Self-Occupied], No Limit[Let-Out])'] = interest_deduction
+            summary_data['pre_construction_deduction(1/5th over 5 years)'] = pre_construction_deduction
+            summary_data['annual_rent_received_after_taxes'] = net_annual_value
+            summary_data['standard_deduction(30%)'] = standard_deduction
         
         # Income from house property can be negative (loss)
         # Since Money class doesn't allow negative amounts, we return zero for losses
         # The actual loss amount can be retrieved via get_house_property_breakdown
         if total_deductions.is_greater_than(net_annual_value):
-            summary_data['is_loss'] = True
+            if summary_data:
+                summary_data['total_deductions'] = total_deductions
+                summary_data['is_loss'] = True
+                summary_data['net_income_from_house_property'] = Money.zero()
             retval = Money.zero()  # Loss case - return zero
         else:
             retval  = net_annual_value.subtract(total_deductions)
-            summary_data['is_loss'] = False
-            summary_data['net_income_from_house_property'] = retval
-
-        # Log the summary table
-        from app.utils.table_logger import log_salary_summary
-        log_salary_summary("HOUSE PROPERTY INCOME SUMMARY", summary_data)
+            if summary_data:
+                summary_data['is_loss'] = False
+                summary_data['net_income_from_house_property'] = retval
 
         return retval
     

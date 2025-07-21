@@ -88,7 +88,7 @@ class CapitalGainsIncome:
         
         return stcg_111a_tax.add(ltcg_112a_tax).add(ltcg_other_tax)
     
-    def calculate_stcg_for_slab_rates(self) -> Money:
+    def calculate_stcg_for_slab_rates(self, summary_data: Dict[str, Any] = None) -> Money:
         """
         Calculate STCG that will be taxed at slab rates (added to regular income).
         
@@ -96,19 +96,15 @@ class CapitalGainsIncome:
             Money: STCG amount for slab taxation
         """
         stcg_for_slab_rates = self.stcg_other_assets.add(self.stcg_debt_mf)
-        summary_data = {
-            'stcg_other_assets': self.stcg_other_assets,
-            'stcg_debt_mf': self.stcg_debt_mf,
-            'stcg_for_slab_rates': stcg_for_slab_rates
-        }
-
-        # Log the summary table
-        from app.utils.table_logger import log_salary_summary
-        log_salary_summary("STCG FOR SLAB RATES", summary_data)
+        if summary_data:
+            summary_data['calculate_stcg_for_slab_rates'] = True
+            summary_data['stcg_other_assets'] = self.stcg_other_assets
+            summary_data['stcg_debt_mf'] = self.stcg_debt_mf
+            summary_data['stcg_for_slab_rates'] = stcg_for_slab_rates
 
         return stcg_for_slab_rates
     
-    def calculate_total_capital_gains_income(self) -> Money:
+    def calculate_total_capital_gains_income(self, summary_data: Dict[str, Any] = None) -> Money:
         """
         Calculate total capital gains income.
         
@@ -123,6 +119,18 @@ class CapitalGainsIncome:
                      .add(self.ltcg_other_assets)
                      .add(self.ltcg_debt_mf))
         
+        if summary_data:
+            summary_data['calculate_total_capital_gains_income'] = True
+            summary_data['stcg_111a_equity_stt'] = self.stcg_111a_equity_stt
+            summary_data['stcg_other_assets'] = self.stcg_other_assets
+            summary_data['stcg_debt_mf'] = self.stcg_debt_mf
+            summary_data['ltcg_112a_equity_stt'] = self.ltcg_112a_equity_stt
+            summary_data['ltcg_other_assets'] = self.ltcg_other_assets
+            summary_data['ltcg_debt_mf'] = self.ltcg_debt_mf
+            summary_data['total_stcg'] = total_stcg
+            summary_data['total_ltcg'] = total_ltcg
+            summary_data['total_capital_gains_income'] = total_stcg.add(total_ltcg)
+            
         return total_stcg.add(total_ltcg)
     
     def get_capital_gains_breakdown(self, regime: TaxRegime) -> Dict[str, Any]:

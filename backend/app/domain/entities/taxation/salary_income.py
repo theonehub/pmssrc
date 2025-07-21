@@ -117,21 +117,27 @@ class SpecificAllowances:
     #########################################################
     # Calculate exemptions for specific allowances
     #########################################################
-    def calculate_hills_exemption(self, regime: TaxRegime) -> Money:
+    def calculate_hills_exemption(self, regime: TaxRegime, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate hills allowance exemption."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
         
+        if summary_data:
+            summary_data['monthly_hills_allowance'] = self.monthly_hills_allowance
+            summary_data['monthly_hills_exemption_limit'] = self.monthly_hills_exemption_limit
         return self.monthly_hills_allowance.min(self.monthly_hills_exemption_limit)
     
-    def calculate_border_exemption(self, regime: TaxRegime) -> Money:
+    def calculate_border_exemption(self, regime: TaxRegime, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate border area allowance exemption."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
         
+        if summary_data:
+            summary_data['monthly_border_allowance'] = self.monthly_border_allowance
+            summary_data['monthly_border_exemption_limit'] = self.monthly_border_exemption_limit
         return self.monthly_border_allowance.min(self.monthly_border_exemption_limit)
     
-    def calculate_transport_employee_exemption(self, regime: TaxRegime) -> Money:
+    def calculate_transport_employee_exemption(self, regime: TaxRegime, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate transport employee allowance exemption."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
@@ -139,10 +145,12 @@ class SpecificAllowances:
         limit_1 = Money.from_int(10000)
         limit_2 = self.transport_employee_allowance.percentage(70)
         exemption_limit = limit_1.min(limit_2)
-        
+        if summary_data:
+            summary_data['transport_employee_allowance'] = self.transport_employee_allowance
+            summary_data['transport_employee_exemption_limit min(10000, 70% of transport_employee_allowance)'] = exemption_limit
         return self.transport_employee_allowance.min(exemption_limit)
     
-    def calculate_children_education_exemption(self, regime: TaxRegime) -> Money:
+    def calculate_children_education_exemption(self, regime: TaxRegime, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate children education allowance exemption."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
@@ -150,10 +158,12 @@ class SpecificAllowances:
         # Rs. 100 per month per child (max 2 children)
         max_children = min(self.children_education_count, 2)
         exemption_limit = Money.from_int(100 * max_children)
-        
+        if summary_data:
+            summary_data['children_education_allowance'] = self.children_education_allowance
+            summary_data['children_education_exemption_limit max(100 * max_children, children_education_allowance)'] = exemption_limit
         return self.children_education_allowance.min(exemption_limit)
     
-    def calculate_hostel_exemption(self, regime: TaxRegime) -> Money:
+    def calculate_hostel_exemption(self, regime: TaxRegime, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate hostel allowance exemption."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
@@ -161,10 +171,12 @@ class SpecificAllowances:
         # Rs. 300 per month per child (max 2 children)
         max_children = min(self.children_hostel_count, 2)
         exemption_limit = Money.from_int(300 * max_children)
-        
+        if summary_data:
+            summary_data['hostel_allowance'] = self.hostel_allowance
+            summary_data['hostel_exemption_limit max(300 * max_children, hostel_allowance)'] = exemption_limit
         return self.hostel_allowance.min(exemption_limit)
     
-    def calculate_disabled_transport_exemption(self, regime: TaxRegime) -> Money:
+    def calculate_disabled_transport_exemption(self, regime: TaxRegime, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate disabled transport allowance exemption."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
@@ -174,18 +186,24 @@ class SpecificAllowances:
         
         # Rs. 3,200 per month
         exemption_limit = Money.from_int(3200)
+        if summary_data:
+            summary_data['disabled_transport_allowance'] = self.disabled_transport_allowance
+            summary_data['disabled_transport_exemption_limit 3200'] = exemption_limit
         return self.disabled_transport_allowance.min(exemption_limit)
     
-    def calculate_underground_mines_exemption(self, regime: TaxRegime) -> Money:
+    def calculate_underground_mines_exemption(self, regime: TaxRegime, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate underground mines allowance exemption."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
         
         # Rs. 800 per month
         exemption_limit = Money.from_int(800)
+        if summary_data:
+            summary_data['underground_mines_allowance'] = self.underground_mines_allowance
+            summary_data['underground_mines_exemption_limit 800'] = exemption_limit
         return self.underground_mines_allowance.min(exemption_limit)
     
-    def calculate_government_entertainment_exemption(self, regime: TaxRegime, basic_salary: Money, is_government_employee: bool) -> Money:
+    def calculate_government_entertainment_exemption(self, regime: TaxRegime, basic_salary: Money, is_government_employee: bool, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate government entertainment allowance exemption."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
@@ -197,17 +215,26 @@ class SpecificAllowances:
         #TODO: Need to check if basic salary is only basic salary or basic salary + dearness allowance
         limit_1 = basic_salary.percentage(20)
         limit_2 = Money.from_int(5000)
-        
+        if summary_data:
+            summary_data['government_entertainment_allowance'] = self.government_entertainment_allowance
+            summary_data['government_entertainment_exemption_limit min(20% of basic_salary)'] = limit_1
+            summary_data['government_entertainment_exemption_limit min(5000)'] = limit_2
         return self.government_entertainment_allowance.min(limit_1).min(limit_2)
     
-    def calculate_section_10_exemptions(self, regime: TaxRegime, is_government_employee: bool) -> Money:
+    def calculate_section_10_exemptions(self, regime: TaxRegime, is_government_employee: bool, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate Section 10 exempted allowances."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
-        
+        if summary_data:
+            summary_data['calculate_section_10_exemptions'] = True
         exemptions = Money.zero()
 
         if is_government_employee:
+            if summary_data:
+                summary_data['govt_employees_outside_india_allowance'] = self.govt_employees_outside_india_allowance
+                summary_data['supreme_high_court_judges_allowance'] = self.supreme_high_court_judges_allowance
+                summary_data['judge_compensatory_allowance'] = self.judge_compensatory_allowance
+                summary_data['section_10_14_special_allowances'] = self.section_10_14_special_allowances
             exemptions = exemptions.add(self.govt_employees_outside_india_allowance)
             exemptions = exemptions.add(self.supreme_high_court_judges_allowance)
             exemptions = exemptions.add(self.judge_compensatory_allowance)
@@ -219,53 +246,34 @@ class SpecificAllowances:
         exemptions = exemptions.add(self.helper_in_performace_of_duties)
         exemptions = exemptions.add(self.academic_research)
         exemptions = exemptions.add(self.uniform_allowance)
-        
+
+        if summary_data:
+            summary_data['travel_on_tour_allowance'] = self.travel_on_tour_allowance
+            summary_data['tour_daily_charge_allowance'] = self.tour_daily_charge_allowance
+            summary_data['conveyance_in_performace_of_duties'] = self.conveyance_in_performace_of_duties
+            summary_data['helper_in_performace_of_duties'] = self.helper_in_performace_of_duties
+            summary_data['academic_research'] = self.academic_research
+            summary_data['uniform_allowance'] = self.uniform_allowance
+
         # Section 10 allowances are fully exempt
         return exemptions
     
-    def calculate_any_other_allowance_exemption(self, regime: TaxRegime) -> Money:
+    def calculate_any_other_allowance_exemption(self, regime: TaxRegime, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate any other allowance exemption."""
         if regime.regime_type == TaxRegimeType.NEW:
             return Money.zero()
-        
+        if summary_data:
+            summary_data['any_other_allowance_exemption'] = self.any_other_allowance_exemption
         return self.any_other_allowance_exemption
     
     #########################################################
     # Calculate total specific allowances received
     #########################################################
     
-    def calculate_total_specific_allowances(self) -> Money:
+    def calculate_total_specific_allowances(self, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate total specific allowances received."""
-        d_logger.info(f"Start")
         
-        # Prepare summary data for table logging
-        summary_data = {
-            'Monthly Hills Allowance': self.monthly_hills_allowance,
-            'Monthly Border Allowance': self.monthly_border_allowance,
-            'Transport Employee Allowance': self.transport_employee_allowance,
-            'Children Education Allowance': self.children_education_allowance,
-            'Hostel Allowance': self.hostel_allowance,
-            'Disabled Transport Allowance': self.disabled_transport_allowance,
-            'Underground Mines Allowance': self.underground_mines_allowance,
-            'Government Entertainment Allowance': self.government_entertainment_allowance,
-            'City Compensatory Allowance': self.city_compensatory_allowance,
-            'Rural Allowance': self.rural_allowance,
-            'Proctorship Allowance': self.proctorship_allowance,
-            'Wardenship Allowance': self.wardenship_allowance,
-            'Project Allowance': self.project_allowance,
-            'Deputation Allowance': self.deputation_allowance,
-            'Overtime Allowance': self.overtime_allowance,
-            'Interim Relief': self.interim_relief,
-            'Tiffin Allowance': self.tiffin_allowance,
-            'Fixed Medical Allowance': self.fixed_medical_allowance,
-            'Servant Allowance': self.servant_allowance,
-            'Any Other Allowance': self.any_other_allowance
-        }
-        
-        # Log the summary table
-        from app.utils.table_logger import log_salary_summary
-        log_salary_summary("SPECIFIC ALLOWANCES SUMMARY", summary_data)
-        return (self.monthly_hills_allowance    
+        specific_allowances = (self.monthly_hills_allowance
                 .add(self.monthly_border_allowance)
                 .add(self.transport_employee_allowance)
                 .add(self.children_education_allowance)
@@ -294,23 +302,61 @@ class SpecificAllowances:
                 .add(self.conveyance_in_performace_of_duties)
                 .add(self.helper_in_performace_of_duties)
                 .add(self.academic_research)
-                .add(self.uniform_allowance))
+                .add(self.uniform_allowance)
+        )
+
+        if summary_data:
+            summary_data['calculate_total_specific_allowances'] = 'start'
+            summary_data['Monthly Hills Allowance'] = self.monthly_hills_allowance
+            summary_data['Monthly Border Allowance'] = self.monthly_border_allowance
+            summary_data['Transport Employee Allowance'] = self.transport_employee_allowance
+            summary_data['Children Education Allowance'] = self.children_education_allowance
+            summary_data['Hostel Allowance'] = self.hostel_allowance
+            summary_data['Disabled Transport Allowance'] = self.disabled_transport_allowance
+            summary_data['Underground Mines Allowance'] = self.underground_mines_allowance
+            summary_data['Government Entertainment Allowance'] = self.government_entertainment_allowance
+            summary_data['City Compensatory Allowance'] = self.city_compensatory_allowance
+            summary_data['Rural Allowance'] = self.rural_allowance
+            summary_data['Proctorship Allowance'] = self.proctorship_allowance
+            summary_data['Wardenship Allowance'] = self.wardenship_allowance
+            summary_data['Project Allowance'] = self.project_allowance
+            summary_data['Deputation Allowance'] = self.deputation_allowance
+            summary_data['Overtime Allowance'] = self.overtime_allowance
+            summary_data['Interim Relief'] = self.interim_relief
+            summary_data['Tiffin Allowance'] = self.tiffin_allowance
+            summary_data['Fixed Medical Allowance'] = self.fixed_medical_allowance
+            summary_data['Servant Allowance'] = self.servant_allowance
+            summary_data['Any Other Allowance'] = self.any_other_allowance
+            summary_data['Govt Employees Outside India Allowance'] = self.govt_employees_outside_india_allowance
+            summary_data['Supreme High Court Judges Allowance'] = self.supreme_high_court_judges_allowance
+            summary_data['Judge Compensatory Allowance'] = self.judge_compensatory_allowance
+            summary_data['Section 10 14 Special Allowances'] = self.section_10_14_special_allowances
+            summary_data['Travel On Tour Allowance'] = self.travel_on_tour_allowance
+            summary_data['Tour Daily Charge Allowance'] = self.tour_daily_charge_allowance
+            summary_data['Conveyance In Performace Of Duties'] = self.conveyance_in_performace_of_duties
+            summary_data['Helper In Performace Of Duties'] = self.helper_in_performace_of_duties
+            summary_data['Academic Research'] = self.academic_research
+            summary_data['Uniform Allowance'] = self.uniform_allowance
+            summary_data['Total Specific Allowances'] = specific_allowances
+
+        return specific_allowances
     
-    def calculate_total_specific_allowances_exemptions(self, regime: TaxRegime, basic_salary: Money, is_government_employee: bool) -> Money:
+    def calculate_total_specific_allowances_exemptions(self, regime: TaxRegime, basic_salary: Money, is_government_employee: bool, summary_data: Dict[str, Any] = None) -> Money:
         """Calculate total exemptions for specific allowances."""
         d_logger.info(f"Start")
-
+        if summary_data:
+            summary_data['calculate_total_specific_allowances_exemptions'] = 'start'
         # Calculate all exemptions first
-        hills_exemption = self.calculate_hills_exemption(regime)
-        border_exemption = self.calculate_border_exemption(regime)
-        transport_exemption = self.calculate_transport_employee_exemption(regime)
-        children_edu_exemption = self.calculate_children_education_exemption(regime)
-        hostel_exemption = self.calculate_hostel_exemption(regime)
-        disabled_transport_exemption = self.calculate_disabled_transport_exemption(regime)
-        mines_exemption = self.calculate_underground_mines_exemption(regime)
-        govt_entertainment_exemption = self.calculate_government_entertainment_exemption(regime, basic_salary, is_government_employee)
-        section_10_exemptions = self.calculate_section_10_exemptions(regime, is_government_employee)
-        any_other_exemption = self.calculate_any_other_allowance_exemption(regime)
+        hills_exemption = self.calculate_hills_exemption(regime, summary_data)
+        border_exemption = self.calculate_border_exemption(regime, summary_data)
+        transport_exemption = self.calculate_transport_employee_exemption(regime, summary_data)
+        children_edu_exemption = self.calculate_children_education_exemption(regime, summary_data)
+        hostel_exemption = self.calculate_hostel_exemption(regime, summary_data)
+        disabled_transport_exemption = self.calculate_disabled_transport_exemption(regime, summary_data)
+        mines_exemption = self.calculate_underground_mines_exemption(regime, summary_data)
+        govt_entertainment_exemption = self.calculate_government_entertainment_exemption(regime, basic_salary, is_government_employee, summary_data)
+        section_10_exemptions = self.calculate_section_10_exemptions(regime, is_government_employee, summary_data)
+        any_other_exemption = self.calculate_any_other_allowance_exemption(regime, summary_data)
         
         total = (hills_exemption
                 .add(border_exemption)
@@ -323,26 +369,18 @@ class SpecificAllowances:
                 .add(section_10_exemptions)
                 .add(any_other_exemption))
         
-        summary_data = {
-            'regime': regime.regime_type.value,
-            'basic_salary': basic_salary,
-            'is_government_employee': is_government_employee,
-            'hills_exemption': hills_exemption,
-            'border_exemption': border_exemption,
-            'transport_exemption': transport_exemption,
-            'children_edu_exemption': children_edu_exemption,
-            'hostel_exemption': hostel_exemption,
-            'disabled_transport_exemption': disabled_transport_exemption,
-            'mines_exemption': mines_exemption,
-            'govt_entertainment_exemption': govt_entertainment_exemption,
-            'section_10_exemptions': section_10_exemptions,
-            'any_other_exemption': any_other_exemption,
-            'total_exemptions': total
-        }
-        
-        # Log the summary table
-        from app.utils.table_logger import log_salary_summary
-        log_salary_summary("SPECIFIC ALLOWANCES EXEMPTIONS SUMMARY", summary_data)
+        if summary_data:
+            summary_data['hills_exemption'] = hills_exemption
+            summary_data['border_exemption'] = border_exemption
+            summary_data['transport_exemption'] = transport_exemption
+            summary_data['children_edu_exemption'] = children_edu_exemption
+            summary_data['hostel_exemption'] = hostel_exemption
+            summary_data['disabled_transport_exemption'] = disabled_transport_exemption
+            summary_data['mines_exemption'] = mines_exemption
+            summary_data['govt_entertainment_exemption'] = govt_entertainment_exemption
+            summary_data['section_10_exemptions'] = section_10_exemptions
+            summary_data['any_other_exemption'] = any_other_exemption
+            summary_data['total_exemptions'] = total
         
         return total
 
@@ -385,7 +423,7 @@ class SalaryIncome:
             self.specific_allowances = SpecificAllowances()
 
     
-    def calculate_gross_salary(self) -> Money:
+    def calculate_gross_salary(self, summary_data: Dict[str, Any] = None) -> Money:
         """
         Calculate gross salary (all components).
         
@@ -394,7 +432,7 @@ class SalaryIncome:
         """
         specific_allowances = Money.zero()
         if self.specific_allowances:
-            specific_allowances = self.specific_allowances.calculate_total_specific_allowances()
+            specific_allowances = self.specific_allowances.calculate_total_specific_allowances(summary_data)
         
         gross = (self.basic_salary                  #considered for doc 
                 .add(self.dearness_allowance)       #considered for doc
@@ -403,19 +441,15 @@ class SalaryIncome:
                 .add(self.special_allowance)
                 .add(specific_allowances))
             
-        summary_data = {
-            'Basic Salary': self.basic_salary,
-            'Dearness Allowance': self.dearness_allowance,
-            'Commission': self.commission,
-            'HRA Provided': self.hra_provided,
-            'Special Allowance': self.special_allowance,
-            'Specific Allowances': specific_allowances,
-            'Total Gross Salary': gross
-        }
-
-        # Log the summary table
-        from app.utils.table_logger import log_salary_summary
-        log_salary_summary("GROSS SALARY SUMMARY", summary_data)
+        if summary_data:
+            summary_data['calculate_gross_salary'] = 'start'
+            summary_data['Basic Salary'] = self.basic_salary
+            summary_data['Dearness Allowance'] = self.dearness_allowance
+            summary_data['Commission'] = self.commission
+            summary_data['HRA Provided'] = self.hra_provided
+            summary_data['Special Allowance'] = self.special_allowance
+            summary_data['Specific Allowances'] = specific_allowances
+            summary_data['Total Gross Salary'] = gross
 
         return gross
     
@@ -431,7 +465,7 @@ class SalaryIncome:
         """
         return self.basic_salary.add(self.dearness_allowance)
     
-    def calculate_total_exemptions(self, regime: TaxRegime, is_government_employee: bool = False) -> Money:
+    def calculate_total_exemptions(self, regime: TaxRegime, is_government_employee: bool = False, summary_data: Dict[str, Any] = None) -> Money:
         """
         Calculate total salary exemptions.
         Note: HRA exemption is now calculated in the deductions module.
@@ -451,8 +485,8 @@ class SalaryIncome:
 
         # Specific allowances exemptions
         if self.specific_allowances:
-            
-            total_exemptions = total_exemptions.add(self.specific_allowances.calculate_total_specific_allowances_exemptions(regime, self.basic_salary, is_government_employee))
+            specific_allowance_exemptions = self.specific_allowances.calculate_total_specific_allowances_exemptions(regime, self.basic_salary, is_government_employee, summary_data)
+            total_exemptions = total_exemptions.add(specific_allowance_exemptions)
         
         return total_exemptions
     

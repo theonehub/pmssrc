@@ -7,6 +7,7 @@ from typing import List, Dict, Any, Optional, Union, Callable
 from dataclasses import dataclass
 from enum import Enum
 import logging
+import textwrap
 
 from app.utils.logger import get_simple_logger
 
@@ -39,9 +40,10 @@ class TableColumn:
 class TableLogger:
     """Utility class for creating formatted tables in logs."""
     
-    def __init__(self, style: TableStyle = TableStyle.UNICODE):
+    def __init__(self, style: TableStyle = TableStyle.UNICODE, max_col_width: int = 40):
         self.style = style
         self.logger = s_logger
+        self.max_col_width = max_col_width
     
     def _get_border_chars(self) -> Dict[str, str]:
         """Get border characters based on style."""
@@ -180,7 +182,8 @@ class TableLogger:
                   columns: List[TableColumn],
                   data: List[List[Any]],
                   show_status: bool = False,
-                  status_checker: Optional[Callable[[List[Any]], bool]] = None) -> None:
+                  status_checker: Optional[Callable[[List[Any]], bool]] = None,
+                  max_col_width: Optional[int] = None) -> None:
         """
         Log a formatted table.
         
@@ -218,22 +221,24 @@ class TableLogger:
             self.logger.info(separator)
         
         # Create data rows
+        col_width = max_col_width or self.max_col_width
         for row_data in data:
-            if show_status and status_checker:
-                # Add status indicator to the row
-                status = status_checker(row_data)
-                status_symbol = "✓" if status else "✗"
-                row_with_status = row_data + [status_symbol]
-                
-                # Create temporary column for status
-                status_col = TableColumn("Status", 8, "center")
-                temp_columns = columns + [status_col]
-                
-                row_line = self._create_data_row(row_with_status, temp_columns, border_chars)
-            else:
-                row_line = self._create_data_row(row_data, columns, border_chars)
-            
-            self.logger.info(row_line)
+            # Word-wrap each cell if needed
+            wrapped_cells = []
+            for i, (col, value) in enumerate(zip(columns, row_data)):
+                formatted_value = col.format_value(value)
+                wrapped = textwrap.wrap(formatted_value, width=min(col.width, col_width)) or [""]
+                wrapped_cells.append(wrapped)
+            max_lines = max(len(cell) for cell in wrapped_cells)
+            # Pad cells to max_lines
+            for i in range(len(wrapped_cells)):
+                if len(wrapped_cells[i]) < max_lines:
+                    wrapped_cells[i] += ["" for _ in range(max_lines - len(wrapped_cells[i]))]
+            # Print each line
+            for line_idx in range(max_lines):
+                line_row = [wrapped_cells[i][line_idx] for i in range(len(columns))]
+                row_line = self._create_data_row(line_row, columns, border_chars)
+                self.logger.info(row_line)
         
         # Create bottom border
         bottom_border = self._create_bottom_border(columns, border_chars)
@@ -247,7 +252,8 @@ class TableLogger:
     def log_summary_table(self,
                          title: str,
                          summary_data: Dict[str, Any],
-                         value_formatter: Optional[Callable] = None) -> None:
+                         value_formatter: Optional[Callable] = None,
+                         max_col_width: int = 40) -> None:
         """
         Log a summary table with key-value pairs.
         
@@ -272,7 +278,7 @@ class TableLogger:
         # Convert to data rows
         data = [[key, value] for key, value in summary_data.items()]
         
-        self.log_table(title, columns, data)
+        self.log_table(title, columns, data, max_col_width=max_col_width)
     
     def log_breakdown_table(self,
                            title: str,
@@ -324,10 +330,10 @@ def log_taxation_breakdown(title: str, breakdown_items: List[Dict[str, Any]]) ->
     table_logger.log_breakdown_table(title, breakdown_items)
 
 
-def log_salary_summary(title: str, summary_data: Dict[str, Any]) -> None:
-    """Log salary summary with standard formatting."""
-    table_logger = TableLogger(TableStyle.UNICODE)
-    table_logger.log_summary_table(title, summary_data)
+def log_salary_summary(title: str, summary_data: Dict[str, Any], max_col_width: int = 40) -> None:
+    """Log salary summary with standard formatting and multi-line support for long keys/values."""
+    table_logger = TableLogger(TableStyle.UNICODE, max_col_width=max_col_width)
+    table_logger.log_summary_table(title, summary_data, max_col_width=max_col_width)
 
 
 def log_attendance_table(title: str, attendance_data: List[List[Any]], columns: List[TableColumn]) -> None:

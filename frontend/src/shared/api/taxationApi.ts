@@ -463,6 +463,15 @@ class TaxationAPI {
       throw error;
     }
   }
+
+  /**
+   * Download computation summary as TXT for an employee
+   */
+  async downloadComputationSummaryTxt(employeeId: string, taxYear?: string): Promise<Blob> {
+    const url = `/v2/exports/computation-summary/${employeeId}` + (taxYear ? `?tax_year=${encodeURIComponent(taxYear)}` : '');
+    const response = await this.baseApi.get(url, { responseType: 'blob' });
+    return response as Blob;
+  }
 }
 
 // Export singleton instance

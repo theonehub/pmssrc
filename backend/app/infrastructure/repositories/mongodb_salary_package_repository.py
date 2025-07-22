@@ -36,6 +36,8 @@ from app.domain.value_objects.employee_id import EmployeeId
 from app.domain.value_objects.tax_year import TaxYear
 from app.domain.services.taxation.tax_calculation_service import TaxCalculationResult
 from app.infrastructure.database.database_connector import DatabaseConnector
+from app.utils.table_logger import log_salary_summary
+import io
 
 logger = get_logger(__name__)
 
@@ -495,8 +497,9 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
 
             # Monthly salary records
             "monthly_salary_records": [self._serialize_monthly_salary(salary) for salary in record.monthly_salary_records],
+            "summary_data_text": record.summary_data_txt if hasattr(record, 'summary_data_txt') else None,
         }
-        
+     
         logger.debug(f"Successfully converted record to document with {len(document)} fields")
         return document
     
@@ -559,6 +562,9 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
             # Monthly salary records
             monthly_salary_records=monthly_salary_records,
         )
+        
+        # Attach summary_data_txt for export
+        record.summary_data_txt = document.get('summary_data_text')
         
         return record
 

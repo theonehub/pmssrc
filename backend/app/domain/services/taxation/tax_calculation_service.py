@@ -20,6 +20,8 @@ from app.domain.entities.taxation.capital_gains import CapitalGainsIncome
 from app.domain.entities.taxation.retirement_benefits import RetirementBenefits
 from app.domain.value_objects.employee_id import EmployeeId
 from app.utils.logger import get_logger
+from app.utils.table_logger import log_salary_summary
+import io
 
 logger = get_logger(__name__)
 
@@ -168,8 +170,17 @@ class TaxCalculationService:
             
             # Compute monthly tax using the salary package record
             logger.info("compute_monthly_tax: Computing monthly tax from salary package record")
-            calculation_result = salary_package_record.calculate_tax(self, computing_month)
+            calculation_result, summary_data = salary_package_record.calculate_tax(self, computing_month)
 
+            # Explicitly save summary_data in the record (redundant if already done in calculate_tax, but ensures persistence)
+                    
+            summary_data_txt = None
+            buf = io.StringIO()
+            log_salary_summary("TAX CALCULATION SUMMARY", summary_data, file=buf)
+            summary_data_txt = buf.getvalue()
+            salary_package_record.summary_data_txt = summary_data_txt
+   
+            
             salary_package_record.last_calculated_at = datetime.utcnow()
             salary_package_record.calculation_result = calculation_result
             

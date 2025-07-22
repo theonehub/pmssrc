@@ -553,6 +553,30 @@ class ExportController:
             logger.error(f"Error exporting PF report: {e}")
             raise
 
+    async def export_computation_summary_txt(
+        self,
+        employee_id: str,
+        tax_year: Optional[str],
+        current_user: CurrentUser
+    ) -> Tuple[bytes, str, str]:
+        """Export computation summary as a .txt file for download."""
+        try:
+            # Get the salary package record
+            record, execution_status = await self.taxation_controller._get_or_create_salary_package_record(
+                employee_id, tax_year, current_user
+            )
+            summary_txt = getattr(record, 'summary_data_txt', None)
+
+            print("Here is summary_txt")
+            print(summary_txt) 
+            if not summary_txt:
+                raise RuntimeError("No computation summary available for this employee/tax year.")
+            filename = f"computation_summary_{employee_id}_{tax_year or 'current'}.txt"
+            return summary_txt.encode('utf-8'), filename, 'text/plain'
+        except Exception as e:
+            logger.error(f"Error exporting computation summary txt: {e}")
+            raise
+
     def _calculate_monthly_epf(self, gross_salary):
         """Calculate monthly EPF contribution (12% of basic + DA)."""
         from app.domain.value_objects.money import Money

@@ -72,7 +72,7 @@ class SalaryPackageRecord:
     calculation_result: Optional[TaxCalculationResult] = None
     last_calculated_at: Optional[datetime] = None
     monthly_salary_records: List[MonthlySalary] = field(default_factory=list)
-    
+    summary_data_txt: Optional[str] = None
     # Metadata
     is_final: bool = False
     submitted_at: Optional[datetime] = None
@@ -1118,8 +1118,8 @@ class SalaryPackageRecord:
             "regime": self.regime.regime_type.value,
             "calculated_at": self.last_calculated_at.isoformat()
         })
-        
-        return self.calculation_result
+
+        return self.calculation_result, summary_data
 
     def get_calculation_summary(self) -> Dict[str, Any]:
         """

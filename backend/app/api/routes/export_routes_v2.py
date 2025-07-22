@@ -275,3 +275,27 @@ async def export_pf_report(
     except Exception as e:
         logger.error(f"Error exporting PF report: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@export_v2_router.get("/computation-summary/{employee_id}", summary="Download computation summary as TXT", description="Download the computation summary for an employee as a human-readable TXT file")
+async def export_computation_summary_txt(
+    employee_id: str = Path(..., description="Employee ID"),
+    tax_year: Optional[str] = Query(None, description="Tax year (e.g., '2025-26')"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: ExportController = Depends(get_export_controller)
+):
+    """Download computation summary as TXT file for an employee."""
+    try:
+        file_data, filename, content_type = await controller.export_computation_summary_txt(
+            employee_id=employee_id,
+            tax_year=tax_year,
+            current_user=current_user
+        )
+        return StreamingResponse(
+            BytesIO(file_data),
+            media_type=content_type,
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except Exception as e:
+        logger.error(f"Error exporting computation summary txt: {e}")
+        raise HTTPException(status_code=500, detail="Failed to export computation summary txt")

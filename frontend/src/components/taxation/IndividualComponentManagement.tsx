@@ -60,7 +60,8 @@ import {
   AttachMoney as AttachMoneyIcon,
   PlaylistAddCheck as PlaylistAddCheckIcon,
   Group as GroupIcon,
-  AccountBalanceWallet as AccountBalanceWalletIcon
+  AccountBalanceWallet as AccountBalanceWalletIcon,
+  Download as DownloadIcon
 } from '@mui/icons-material';
 import { getUserRole } from '../../shared/utils/auth';
 import { UserRole } from '../../shared/types';
@@ -1577,6 +1578,28 @@ const IndividualComponentManagement: React.FC = () => {
     setLoanProcessingEmployee(null);
   };
 
+  const handleDownloadComputationSummary = async (employee: EmployeeRecord) => {
+    try {
+      showToast('Downloading computation summary...', 'info');
+      const blob = await taxationApi.downloadComputationSummaryTxt(employee.employee_id, employee.tax_year);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `computation_summary_${employee.employee_id}_${employee.tax_year || 'current'}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      showToast('Computation summary downloaded.', 'success');
+    } catch (error: any) {
+      let backendMessage: string | undefined;
+      if (error && typeof error === 'object' && 'response' in error) {
+        backendMessage = (error as any).response?.data?.detail;
+      }
+      showToast(backendMessage || `Failed to download computation summary for ${employee.user_name || employee.employee_id}`, 'error');
+    }
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '70vh' }}>
@@ -1797,6 +1820,15 @@ const IndividualComponentManagement: React.FC = () => {
                               onClick={() => handleOpenLoanProcessingDialog(employee)}
                             >
                               <AccountBalanceWalletIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Download Computation Summary">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleDownloadComputationSummary(employee)}
+                            >
+                              <DownloadIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                         </Box>

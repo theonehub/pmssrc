@@ -38,8 +38,7 @@ class TableColumn:
 
 
 class TableLogger:
-    """Utility class for creating formatted tables in logs."""
-    
+    """Utility class for creating formatted tables in logs or files."""
     def __init__(self, style: TableStyle = TableStyle.UNICODE, max_col_width: int = 40):
         self.style = style
         self.logger = s_logger
@@ -183,7 +182,8 @@ class TableLogger:
                   data: List[List[Any]],
                   show_status: bool = False,
                   status_checker: Optional[Callable[[List[Any]], bool]] = None,
-                  max_col_width: Optional[int] = None) -> None:
+                  max_col_width: Optional[int] = None,
+                  file=None) -> None:
         """
         Log a formatted table.
         
@@ -193,32 +193,49 @@ class TableLogger:
             data: Table data as list of rows
             show_status: Whether to show status indicators
             status_checker: Function to check if a row has positive status
+            file: Optional file-like object to write to (if None, logs to logger)
         """
         border_chars = self._get_border_chars()
         
         # Log title
         if title:
-            if self.style == TableStyle.UNICODE:
-                title_line = f"║ {title.center(80)} ║"
-                self.logger.info(f"╔{'═' * 84}╗")
-                self.logger.info(title_line)
-                self.logger.info(f"╠{'═' * 84}╣")
+            if file:
+                if self.style == TableStyle.UNICODE:
+                    print(f"╔{'═' * 84}╗", file=file)
+                    print(f"║ {title.center(80)} ║", file=file)
+                    print(f"╠{'═' * 84}╣", file=file)
+                else:
+                    print(f"=== {title} ===", file=file)
             else:
-                self.logger.info(f"=== {title} ===")
+                if self.style == TableStyle.UNICODE:
+                    self.logger.info(f"╔{'═' * 84}╗")
+                    self.logger.info(f"║ {title.center(80)} ║")
+                    self.logger.info(f"╠{'═' * 84}╣")
+                else:
+                    self.logger.info(f"=== {title} ===")
         
         # Create top border
         top_border = self._create_top_border(columns, border_chars)
         if top_border:
-            self.logger.info(top_border)
+            if file:
+                print(top_border, file=file)
+            else:
+                self.logger.info(top_border)
         
         # Create header
         header = self._create_header_row(columns, border_chars)
-        self.logger.info(header)
+        if file:
+            print(header, file=file)
+        else:
+            self.logger.info(header)
         
         # Create separator
         separator = self._create_separator_row(columns, border_chars)
         if separator:
-            self.logger.info(separator)
+            if file:
+                print(separator, file=file)
+            else:
+                self.logger.info(separator)
         
         # Create data rows
         col_width = max_col_width or self.max_col_width
@@ -238,22 +255,32 @@ class TableLogger:
             for line_idx in range(max_lines):
                 line_row = [wrapped_cells[i][line_idx] for i in range(len(columns))]
                 row_line = self._create_data_row(line_row, columns, border_chars)
-                self.logger.info(row_line)
+                if file:
+                    print(row_line, file=file)
+                else:
+                    self.logger.info(row_line)
         
         # Create bottom border
         bottom_border = self._create_bottom_border(columns, border_chars)
         if bottom_border:
-            self.logger.info(bottom_border)
+            if file:
+                print(bottom_border, file=file)
+            else:
+                self.logger.info(bottom_border)
         
         # Close title box if using unicode style
         if title and self.style == TableStyle.UNICODE:
-            self.logger.info(f"╚{'═' * 84}╝")
-    
+            if file:
+                print(f"╚{'═' * 84}╝", file=file)
+            else:
+                self.logger.info(f"╚{'═' * 84}╝")
+
     def log_summary_table(self,
                          title: str,
                          summary_data: Dict[str, Any],
                          value_formatter: Optional[Callable] = None,
-                         max_col_width: int = 40) -> None:
+                         max_col_width: int = 40,
+                         file=None) -> None:
         """
         Log a summary table with key-value pairs.
         
@@ -261,6 +288,7 @@ class TableLogger:
             title: Table title
             summary_data: Dictionary of key-value pairs
             value_formatter: Optional formatter for values
+            file: Optional file-like object to write to (if None, logs to logger)
         """
         if not summary_data:
             return
@@ -278,7 +306,7 @@ class TableLogger:
         # Convert to data rows
         data = [[key, value] for key, value in summary_data.items()]
         
-        self.log_table(title, columns, data, max_col_width=max_col_width)
+        self.log_table(title, columns, data, max_col_width=max_col_width, file=file)
     
     def log_breakdown_table(self,
                            title: str,
@@ -324,16 +352,16 @@ class TableLogger:
 
 
 # Convenience functions for common use cases
-def log_taxation_breakdown(title: str, breakdown_items: List[Dict[str, Any]]) -> None:
+def log_taxation_breakdown(title: str, breakdown_items: List[Dict[str, Any]], file=None) -> None:
     """Log taxation breakdown with standard formatting."""
     table_logger = TableLogger(TableStyle.UNICODE)
-    table_logger.log_breakdown_table(title, breakdown_items)
+    table_logger.log_breakdown_table(title, breakdown_items, file=file)
 
 
-def log_salary_summary(title: str, summary_data: Dict[str, Any], max_col_width: int = 40) -> None:
-    """Log salary summary with standard formatting and multi-line support for long keys/values."""
+def log_salary_summary(title: str, summary_data: Dict[str, Any], max_col_width: int = 40, file=None) -> None:
+    """Log salary summary with standard formatting and multi-line support for long keys/values. If file is provided, output to file, else log as before."""
     table_logger = TableLogger(TableStyle.UNICODE, max_col_width=max_col_width)
-    table_logger.log_summary_table(title, summary_data, max_col_width=max_col_width)
+    table_logger.log_summary_table(title, summary_data, max_col_width=max_col_width, file=file)
 
 
 def log_attendance_table(title: str, attendance_data: List[List[Any]], columns: List[TableColumn]) -> None:

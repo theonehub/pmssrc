@@ -124,19 +124,19 @@ async def create_organisation(
         
         # Handle bank details
         bank_details = None
-        if "bank_details" in data:
-            bank_details = BankDetailsRequestDTO(
-                bank_name=data["bank_details"].get("bank_name", ""),
-                account_number=data["bank_details"].get("account_number", ""),
-                ifsc_code=data["bank_details"].get("ifsc_code", ""),
-                account_holder_name=data["bank_details"].get("account_holder_name", ""),
-                branch_name=data["bank_details"].get("branch_name"),
-                account_type=data["bank_details"].get("account_type")
-            )
-            # Validate bank details
-            errors = bank_details.validate()
-            if errors:
-                raise HTTPException(status_code=400, detail={"bank_details": errors})
+        bank_details = BankDetailsRequestDTO(
+            bank_name=data.get("bank_name", ""),
+            account_number=data.get("account_number"),
+            ifsc_code=data.get("ifsc_code"),
+            account_holder_name=data.get("account_holder_name"),
+            branch_name=data.get("branch_name"),
+            branch_address=data.get("branch_address"),
+            account_type=data.get("account_type")
+        )
+        # Validate bank details
+        errors = bank_details.validate()
+        if errors:
+            raise HTTPException(status_code=400, detail={"bank_details": errors})
 
         # Create organisation request DTO
         request = CreateOrganisationRequestDTO(
@@ -144,11 +144,23 @@ async def create_organisation(
             description=data.get("description", ""),
             hostname=data.get("hostname", ""),
             organisation_type=data.get("organisation_type", "private_limited"),
-            contact_information=data.get("contact_information", {}),
-            address=data.get("address", {}),
-            tax_information=data.get("tax_information", {}),
             bank_details=bank_details,
-            employee_strength=data.get("employee_strength", 0)
+            employee_strength=data.get("employee_strength", 0),
+            email=data.get("email", ""),
+            phone=data.get("phone", ""),
+            website=data.get("website", ""),
+            fax=data.get("fax", ""),
+            street_address=data.get("street_address", ""),
+            city=data.get("city", ""),
+            state=data.get("state", ""),
+            country=data.get("country", ""),
+            pin_code=data.get("pin_code", ""),
+            pan_number=data.get("pan_number", ""),
+            gst_number=data.get("gst_number", ""),
+            tan_number=data.get("tan_number", ""),
+            esi_establishment_id=data.get("esi_establishment_id", ""),
+            pf_establishment_id=data.get("pf_establishment_id", ""),
+            created_by=current_user.employee_id
         )
 
         # Handle logo upload if provided
@@ -167,7 +179,7 @@ async def create_organisation(
                 f.write(await logo.read())
 
         # Create organisation
-        result = await controller.create_organisation(request, logo_path, current_user)
+        result = await controller.create_organisation(request = request, logo_path = logo_path, created_by = current_user.employee_id)
         return result
 
     except json.JSONDecodeError:

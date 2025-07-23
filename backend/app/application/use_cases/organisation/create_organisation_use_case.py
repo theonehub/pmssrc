@@ -22,6 +22,7 @@ from app.application.interfaces.repositories.organisation_repository import (
 from app.application.interfaces.services.organisation_service import (
     OrganisationValidationService, OrganisationNotificationService
 )
+from app.application.interfaces.repositories.user_repository import UserCommandRepository
 
 
 logger = logging.getLogger(__name__)
@@ -54,12 +55,14 @@ class CreateOrganisationUseCase:
         command_repository: OrganisationCommandRepository,
         query_repository: OrganisationQueryRepository,
         validation_service: OrganisationValidationService,
-        notification_service: OrganisationNotificationService
+        notification_service: OrganisationNotificationService,
+        user_command_repository: UserCommandRepository
     ):
         self.command_repository = command_repository
         self.query_repository = query_repository
         self.validation_service = validation_service
         self.notification_service = notification_service
+        self.user_command_repository = user_command_repository
     
     async def execute(self, request: CreateOrganisationRequestDTO) -> OrganisationResponseDTO:
         """
@@ -113,8 +116,8 @@ class CreateOrganisationUseCase:
         # Step 6: Save organisation
         saved_organisation = await self.command_repository.save(organisation)
         
-        # TODO:Step 6: Create default user with admin role
-        # await self._create_default_admin_user()
+        # Step 6: Create default user with admin role
+        await self.user_command_repository._create_default_admin_user(organisation.hostname)
 
         # Step 7: Send notifications (non-blocking)
         try:
@@ -139,17 +142,26 @@ class CreateOrganisationUseCase:
             )
     
     async def _check_uniqueness_constraints(self, request: CreateOrganisationRequestDTO) -> None:
-        """Check uniqueness constraints"""
+        """Check uniqueness constraints and provide detailed errors"""
         uniqueness_errors = await self.validation_service.validate_uniqueness_constraints(
             name=request.name,
             hostname=request.hostname,
             pan_number=request.pan_number
         )
-        
+
         if uniqueness_errors:
+            # Parse errors to a dict for better API response
+            details = {}
+            for err in uniqueness_errors:
+                if "name" in err:
+                    details["name"] = err
+                if "hostname" in err:
+                    details["hostname"] = err
+                if "PAN" in err or "pan" in err:
+                    details["pan_number"] = err
             raise OrganisationConflictError(
                 "Organisation conflicts with existing data",
-                "uniqueness"
+                details
             )
     
     def _create_contact_information(self, request: CreateOrganisationRequestDTO) -> ContactInformation:

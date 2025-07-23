@@ -583,7 +583,8 @@ class DependencyContainer:
                 command_repository=organisation_repository,
                 query_repository=organisation_repository,
                 validation_service=organisation_service,
-                notification_service=organisation_service
+                notification_service=organisation_service,
+                user_command_repository=self._repositories['user']
             )
             
             update_use_case = UpdateOrganisationUseCase(

@@ -81,6 +81,11 @@ class UserCommandRepository(ABC):
         """
         pass
 
+    @abstractmethod
+    async def _create_default_admin_user(self, organisation_id: str) -> User:
+        """Create default admin user for the organisation."""
+        pass
+
 
 class UserQueryRepository(ABC):
     """

@@ -1688,3 +1688,40 @@ class MongoDBUserRepository(UserRepository):
         except Exception as e:
             logger.error(f"Error finding users with filters for organisation {hostname}: {e}")
             return [], 0 
+        
+    async def _create_default_admin_user(self, organisation_id: str) -> User:
+        """Create default admin user for the organisation."""
+        try:
+            collection = await self._get_collection(organisation_id)
+            user = User(
+                employee_id=EmployeeId(f"admin0001"),
+                username="admin0001",
+                personal_details=PersonalDetails(
+                    mobile="9876543210",
+                    gender=Gender.MALE,
+                    date_of_birth=datetime.now(),
+                    date_of_joining=datetime.now(),
+                ),
+                name="Admin",
+                email=f"admin@admin.com",
+                permissions=UserPermissions(role=UserRole.ADMIN),
+                status=UserStatus.ACTIVE,
+                created_by="system",
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+                is_deleted=False,
+                password=Password.from_plain_text("Admin@123"), #admin123
+                last_login_at=datetime.now(),
+            )
+
+            user_document = self._user_to_document(user)
+            user_document['created_at'] = datetime.now()
+            user_document['is_active'] = True
+
+            await collection.insert_one(user_document)
+
+            return user
+        
+        except Exception as e:
+            logger.error(f"Error creating default admin user for organisation {organisation_id}: {e}")
+            return None

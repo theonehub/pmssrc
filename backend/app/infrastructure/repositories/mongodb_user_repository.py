@@ -10,6 +10,7 @@ from bson import ObjectId
 from pymongo import ASCENDING, DESCENDING
 from pymongo.errors import DuplicateKeyError
 from pymongo.collection import Collection
+from dateutil.parser import parse as parse_datetime
 
 from app.domain.entities.user import User
 from app.domain.value_objects.employee_id import EmployeeId
@@ -217,6 +218,15 @@ class MongoDBUserRepository(UserRepository):
             from app.domain.value_objects.user_documents import UserDocuments
             from app.domain.value_objects.bank_details import BankDetails
 
+            # Helper to parse date/datetime fields robustly
+            def parse_date_field(val):
+                if isinstance(val, str):
+                    try:
+                        return parse_datetime(val)
+                    except Exception:
+                        return val  # fallback to original if parsing fails
+                return val
+
             # Parse value objects and handle missing fields
             employee_id = EmployeeId(document["employee_id"])
             name = document.get("name", "")
@@ -258,15 +268,15 @@ class MongoDBUserRepository(UserRepository):
             location = document.get("location")
             manager_id = EmployeeId(document.get("manager_id")) if document.get("manager_id") else None
             leave_balance = document.get("leave_balance", {})
-            created_at = document.get("created_at")
-            updated_at = document.get("updated_at")
+            created_at = parse_date_field(document.get("created_at"))
+            updated_at = parse_date_field(document.get("updated_at"))
             created_by = document.get("created_by")
             updated_by = document.get("updated_by")
-            last_login_at = document.get("last_login_at")
+            last_login_at = parse_date_field(document.get("last_login_at"))
             login_attempts = document.get("login_attempts", 0)
-            locked_until = document.get("locked_until")
+            locked_until = parse_date_field(document.get("locked_until"))
             is_deleted = document.get("is_deleted", False)
-            deleted_at = document.get("deleted_at")
+            deleted_at = parse_date_field(document.get("deleted_at"))
             deleted_by = document.get("deleted_by")
 
             # Construct the User entity

@@ -273,19 +273,17 @@ export class UserAPI {
   /**
    * Create user with file upload
    */
-  async createUserWithFiles(userData: CreateUserRequest, files: File[]): Promise<User> {
+  async createUserWithFiles(userData: CreateUserRequest, files: UserFiles): Promise<User> {
     try {
       const formData = new FormData();
-      
-      // Add user data
+      // Add user data as JSON string
       formData.append('user_data', JSON.stringify(userData));
-      
-      // Add files
-      files.forEach((file, index) => {
-        formData.append(`file_${index}`, file);
-      });
-
-      const response = await this.baseApi.upload<User>('/v2/users/with-files', formData);
+      // Add files with correct field names
+      if (files?.pan_file) formData.append('pan_file', files.pan_file);
+      if (files?.aadhar_file) formData.append('aadhar_file', files.aadhar_file);
+      if (files?.photo) formData.append('photo', files.photo);
+      // Use the correct endpoint
+      const response = await this.baseApi.upload<User>('/v2/users/create-with-files', formData);
       return response;
     } catch (error: any) {
       console.error('Error creating user with files:', error);

@@ -702,3 +702,166 @@ async def get_users(
     except Exception as e:
         logger.error(f"Error fetching users for organisation {current_user.hostname}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch users: {str(e)}")
+
+@router.post("/create", response_model=UserResponseDTO)
+async def create_user(
+    request: CreateUserRequestDTO,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+):
+    """Create a new user (JSON body, no files)."""
+    return await controller.create_user(request, current_user)
+
+@router.post("/create-with-files", response_model=UserResponseDTO)
+async def create_user_with_files(
+    user_data: str = Form(..., description="User data as JSON string"),
+    pan_file: UploadFile = File(None, description="PAN document"),
+    aadhar_file: UploadFile = File(None, description="Aadhar document"),
+    photo: UploadFile = File(None, description="Profile photo"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+):
+    """Create a new user with file uploads (multipart/form-data)."""
+    return await controller.create_user_with_files(
+        user_data=user_data,
+        current_user=current_user,
+        pan_file=pan_file,
+        aadhar_file=aadhar_file,
+        photo=photo
+    )
+
+# User update endpoints
+@router.put("/{employee_id}")
+async def update_user(
+    employee_id: str,
+    request: UpdateUserRequestDTO,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+) -> Dict[str, Any]:
+    """Update user information."""
+    try:
+        result = await controller.update_user(employee_id, request, current_user)
+        
+        logger.info(f"Updated user {employee_id} for organisation {current_user.hostname}")
+        
+        # Return flattened structure consistent with get_user_by_id
+        def safe_get(obj, attr, default=None):
+            try:
+                value = getattr(obj, attr, default)
+                return value if value is not None else default
+            except (AttributeError, TypeError):
+                return default
+        
+        def format_date(date_value):
+            if date_value is None:
+                return None
+            if hasattr(date_value, 'isoformat'):
+                return date_value.isoformat()
+            return str(date_value)
+        
+        user_data = {
+            "employee_id": str(safe_get(result, 'employee_id', '')),
+            "name": safe_get(result, 'name', ''),
+            "email": safe_get(result, 'email', ''),
+            "department": safe_get(result, 'department', ''),
+            "designation": safe_get(result, 'designation', ''),
+            "role": safe_get(result.permissions, 'role', 'user') if hasattr(result, 'permissions') and result.permissions else safe_get(result, 'role', 'user'),
+            "date_of_joining": format_date(safe_get(result, 'date_of_joining')),
+            "date_of_birth": format_date(safe_get(result.personal_details, 'date_of_birth') if hasattr(result, 'personal_details') and result.personal_details else safe_get(result, 'date_of_birth')),
+            "gender": safe_get(result.personal_details, 'gender') if hasattr(result, 'personal_details') and result.personal_details else safe_get(result, 'gender'),
+            "mobile": safe_get(result.personal_details, 'mobile') if hasattr(result, 'personal_details') and result.personal_details else safe_get(result, 'mobile'),
+            "status": safe_get(result, 'status', 'active'),
+            "manager_id": str(safe_get(result, 'manager_id', '')) if safe_get(result, 'manager_id') else '',
+            "address": safe_get(result, 'address', ''),
+            "emergency_contact": safe_get(result, 'emergency_contact', ''),
+            "blood_group": safe_get(result, 'blood_group', ''),
+            "location": safe_get(result, 'location', ''),
+            "pan_number": safe_get(result.personal_details, 'pan_number') if hasattr(result, 'personal_details') and result.personal_details else safe_get(result, 'pan_number'),
+            "aadhar_number": safe_get(result.personal_details, 'aadhar_number') if hasattr(result, 'personal_details') and result.personal_details else safe_get(result, 'aadhar_number'),
+            "uan_number": safe_get(result.personal_details, 'uan_number') if hasattr(result, 'personal_details') and result.personal_details else safe_get(result, 'uan_number'),
+            "esi_number": safe_get(result.personal_details, 'esi_number') if hasattr(result, 'personal_details') and result.personal_details else safe_get(result, 'esi_number'),
+            "pan_document_path": safe_get(result.documents, 'pan_document_path') if hasattr(result, 'documents') and result.documents else safe_get(result, 'pan_document_path'),
+            "aadhar_document_path": safe_get(result.documents, 'aadhar_document_path') if hasattr(result, 'documents') and result.documents else safe_get(result, 'aadhar_document_path'),
+            "photo_path": safe_get(result.documents, 'photo_path') if hasattr(result, 'documents') and result.documents else safe_get(result, 'photo_path'),
+            "organisation": current_user.hostname,
+            "created_at": format_date(safe_get(result, 'created_at')),
+            "updated_at": format_date(safe_get(result, 'updated_at')),
+            "is_active": safe_get(result, 'is_active', True),
+            "last_login_at": format_date(safe_get(result, 'last_login_at')),
+            # Banking details
+            "account_number": safe_get(result.bank_details, 'account_number') if hasattr(result, 'bank_details') and result.bank_details else '',
+            "bank_name": safe_get(result.bank_details, 'bank_name') if hasattr(result, 'bank_details') and result.bank_details else '',
+            "ifsc_code": safe_get(result.bank_details, 'ifsc_code') if hasattr(result, 'bank_details') and result.bank_details else '',
+            "account_holder_name": safe_get(result.bank_details, 'account_holder_name') if hasattr(result, 'bank_details') and result.bank_details else '',
+            "branch_name": safe_get(result.bank_details, 'branch_name') if hasattr(result, 'bank_details') and result.bank_details else '',
+            "account_type": safe_get(result.bank_details, 'account_type') if hasattr(result, 'bank_details') and result.bank_details else ''
+        }
+        
+        return user_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating user {employee_id} for organisation {current_user.hostname}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update user: {str(e)}"
+        )
+
+@router.patch("/{employee_id}/password", response_model=UserResponseDTO)
+async def change_user_password(
+    employee_id: str,
+    request: ChangeUserPasswordRequestDTO,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+) -> UserResponseDTO:
+    """Change user password."""
+    return await controller.change_user_password(employee_id, request, current_user)
+
+@router.patch("/{employee_id}/role", response_model=UserResponseDTO)
+async def change_user_role(
+    employee_id: str,
+    request: ChangeUserRoleRequestDTO,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+) -> UserResponseDTO:
+    """Change user role."""
+    return await controller.change_user_role(employee_id, request, current_user)
+
+@router.patch("/{employee_id}/status", response_model=UserResponseDTO)
+async def update_user_status(
+    employee_id: str,
+    request: UserStatusUpdateRequestDTO,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+) -> UserResponseDTO:
+    """Update user status (activate, deactivate, suspend, etc.)."""
+    return await controller.update_user_status(employee_id, request, current_user)
+
+@router.delete("/{employee_id}")
+async def delete_user(
+    employee_id: str,
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+) -> Dict[str, Any]:
+    """Delete/deactivate a user."""
+    try:
+        # Use controller to deactivate user with organisation context
+        request = UserStatusUpdateRequestDTO(status="inactive", reason="Deleted by admin")
+        result = await controller.update_user_status(employee_id, request, current_user)
+        
+        return {
+            "success": True,
+            "message": "User deactivated successfully",
+            "employee_id": result.employee_id,
+            "status": result.status,
+            "organisation": current_user.hostname,
+            "deactivated_at": datetime.now().isoformat(),
+            "deactivated_by": current_user.employee_id
+        }
+    except Exception as e:
+        logger.error(f"Error deleting user {employee_id} in organisation {current_user.hostname}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete user: {str(e)}"
+        )

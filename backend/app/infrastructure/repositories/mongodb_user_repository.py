@@ -1694,8 +1694,8 @@ class MongoDBUserRepository(UserRepository):
         try:
             collection = await self._get_collection(organisation_id)
             user = User(
-                employee_id=EmployeeId(f"admin0001"),
-                username="admin0001",
+                employee_id=EmployeeId(f"ADMIN0001"),
+                username="ADMIN0001",
                 personal_details=PersonalDetails(
                     mobile="9876543210",
                     gender=Gender.MALE,

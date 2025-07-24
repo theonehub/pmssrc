@@ -1709,8 +1709,8 @@ class MongoDBUserRepository(UserRepository):
                 personal_details=PersonalDetails(
                     mobile="9876543210",
                     gender=Gender.MALE,
-                    date_of_birth=datetime.now(),
-                    date_of_joining=datetime.now(),
+                    date_of_birth=datetime.now().date(),
+                    date_of_joining=datetime.now().date(),
                 ),
                 name="Admin",
                 email=f"admin@admin.com",

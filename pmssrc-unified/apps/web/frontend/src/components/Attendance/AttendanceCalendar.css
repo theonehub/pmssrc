@@ -1,0 +1,116 @@
+/* Modern Attendance Calendar Styles */
+
+/* Remove the old calendar grid styles as we're now using Material-UI Grid */
+.calendar-grid,
+.calendar-header,
+.calendar-body,
+.calendar-cell {
+  /* These styles are no longer needed as we're using Material-UI components */
+}
+
+/* Enhanced modal styles for better presentation */
+.attendance-calendar-modal {
+  max-width: 95%;
+  margin: 1.75rem auto;
+}
+
+/* Ensure the modal dialog is on top of the sidebar */
+.modal-dialog.attendance-calendar-modal {
+  position: relative !important;
+  z-index: 2000 !important;
+}
+
+/* Ensure the backdrop sits just below the modal but above other content */
+.modal-backdrop {
+  z-index: 1999 !important;
+}
+
+/* Custom animations for the new calendar */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Animation classes for enhanced UX */
+.calendar-fade-in {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+.calendar-pulse {
+  animation: pulse 0.6s ease-in-out;
+}
+
+/* Custom scrollbar for the modal content */
+.attendance-calendar-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.attendance-calendar-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.attendance-calendar-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.attendance-calendar-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Responsive enhancements */
+@media (max-width: 599px) {
+  .attendance-calendar-modal {
+    margin: 0.5rem;
+    max-width: calc(100% - 1rem);
+  }
+}
+
+@media (min-width: 600px) and (max-width: 959px) {
+  .attendance-calendar-modal {
+    margin: 1rem;
+    max-width: calc(100% - 2rem);
+  }
+}
+
+@media (min-width: 960px) {
+  .attendance-calendar-modal {
+    margin: 2rem auto;
+    max-width: 1200px;
+  }
+}
+
+/* Print styles for the calendar */
+@media print {
+  .attendance-calendar-modal {
+    position: static !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+  
+  .modal-backdrop {
+    display: none !important;
+  }
+} 

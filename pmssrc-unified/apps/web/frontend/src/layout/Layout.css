@@ -1,0 +1,27 @@
+/* layout.css */
+
+.sidebar {
+  width: 250px;
+  height: 100vh;
+}
+
+.list-group-item {
+  border: none;
+  cursor: pointer;
+}
+
+.list-group-item:hover {
+  opacity: 0.9;
+}
+
+.container {
+  padding: 2rem;
+}
+
+.navbar-brand {
+  font-weight: bold;
+}
+
+.bg-light {
+  background-color: #f8f9fa !important;
+}

@@ -1,0 +1,32 @@
+{
+  "name": "pmssrc-unified",
+  "version": "1.0.0",
+  "description": "PMSSRC Unified Monorepo - Web and Mobile Applications",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "cd apps/web && npm start",
+    "dev:mobile": "cd apps/mobile && npx expo start",
+    "build:web": "cd apps/web && npm run build",
+    "build:mobile": "cd apps/mobile && npx expo build",
+    "test:web": "cd apps/web && npm test",
+    "test:mobile": "cd apps/mobile && npm test",
+    "test:backend": "cd backend && python -m pytest",
+    "install:all": "npm install && cd apps/web && npm install && cd ../mobile && npm install",
+    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules",
+    "lint": "npm run lint:web && npm run lint:mobile",
+    "lint:web": "cd apps/web && npm run lint",
+    "lint:mobile": "cd apps/mobile && npm run lint"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+} 

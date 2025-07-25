@@ -1,0 +1,81 @@
+{
+  "expo": {
+    "name": "PMSSRC Mobile",
+    "slug": "pmssrc-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "pmssrc-mobile",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "jsEngine": "hermes",
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1976d2"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pmssrc.mobile",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app uses location to track attendance and ensure you're at the office when checking in.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app uses location to track attendance and ensure you're at the office when checking in.",
+        "NSFaceIDUsageDescription": "This app uses Face ID for secure authentication."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#1976d2"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.pmssrc.mobile",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "USE_BIOMETRIC",
+        "USE_FINGERPRINT"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow PMSSRC Mobile to use your location for attendance tracking."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow PMSSRC Mobile to use Face ID for secure authentication."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#1976d2"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "your-project-id"
+      }
+    }
+  }
+}

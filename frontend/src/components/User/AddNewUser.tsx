@@ -334,17 +334,45 @@ const AddNewUser: React.FC = () => {
 
     setIsSubmitting(true);
     try {
+      // Transform form data to match backend CreateUserRequestDTO structure
+      const userData = {
+        employee_id: formData.employee_id,
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        gender: formData.gender,
+        date_of_birth: formData.date_of_birth,
+        date_of_joining: formData.date_of_joining,
+        mobile: formData.mobile,
+        role: formData.role,
+        manager_id: formData.manager_id || undefined,
+        department: formData.department || undefined,
+        designation: formData.designation || undefined,
+        location: formData.location || undefined,
+        pan_number: formData.pan_number || undefined,
+        aadhar_number: formData.aadhar_number || undefined,
+        uan_number: formData.uan_number || undefined,
+        esi_number: formData.esi_number || undefined,
+        account_number: formData.account_number || undefined,
+        bank_name: formData.bank_name || undefined,
+        ifsc_code: formData.ifsc_code || undefined,
+        account_holder_name: formData.account_holder_name || undefined,
+        branch_name: formData.branch_name || undefined,
+        account_type: formData.account_type || undefined,
+        created_by: undefined // Will be set by backend
+      };
+
       const hasFiles = files.panFile || files.aadharFile || files.photo;
       
       if (hasFiles) {
-        // Only include non-null files in the payload
-        const filePayload: { panFile?: File; aadharFile?: File; photo?: File } = {};
-        if (files.panFile) filePayload.panFile = files.panFile;
-        if (files.aadharFile) filePayload.aadharFile = files.aadharFile;
+        // Transform files to match backend expectations
+        const filePayload: { pan_file?: File; aadhar_file?: File; photo?: File } = {};
+        if (files.panFile) filePayload.pan_file = files.panFile;
+        if (files.aadharFile) filePayload.aadhar_file = files.aadharFile;
         if (files.photo) filePayload.photo = files.photo;
-        await dataService.createUserWithFiles(formData, filePayload);
+        await dataService.createUserWithFiles(userData, filePayload);
       } else {
-        await dataService.createUser(formData);
+        await dataService.createUser(userData);
       }
       
       showToast('User created successfully!', 'success');
@@ -357,7 +385,7 @@ const AddNewUser: React.FC = () => {
         backendMessage = (error as any).response?.data?.detail;
       }
       setErrors(prev => ({ ...prev, general: backendMessage || 'Failed to create user. Please try again.' }));
-      showToast(backendMessage || 'Failed to ...', 'error');
+      showToast(backendMessage || 'Failed to create user', 'error');
     } finally {
       setIsSubmitting(false);
     }

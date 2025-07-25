@@ -114,18 +114,8 @@ const UserDetail: React.FC = () => {
 
     setLoading(true);
     try {
-      // Try to get user by ID first, then fall back to legacy endpoint if needed
-      let userData: User | null = null;
-      try {
-        userData = await dataService.getUserById(empId);
-      } catch (error: any) {
-        // If the direct lookup fails, try the legacy endpoint
-        if (error.response?.status === 404) {
-          userData = await dataService.getUserByEmpIdLegacy(empId);
-        } else {
-          throw error;
-        }
-      }
+      // Use the correct API endpoint
+      const userData: User | null = await dataService.getUserById(empId);
       
       if (userData) {
         setUser(userData);

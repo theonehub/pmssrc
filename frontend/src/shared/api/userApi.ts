@@ -277,7 +277,7 @@ export class UserAPI {
       const formData = new FormData();
       // Add user data as JSON string
       formData.append('user_data', JSON.stringify(userData));
-      // Add files with correct field names
+      // Add files with correct field names as expected by backend
       if (files?.pan_file) formData.append('pan_file', files.pan_file);
       if (files?.aadhar_file) formData.append('aadhar_file', files.aadhar_file);
       if (files?.photo) formData.append('photo', files.photo);
@@ -557,17 +557,6 @@ export class UserAPI {
       console.error('Error uploading user documents:', error);
       throw new Error(error.response?.data?.detail || 'Failed to upload user documents');
     }
-  }
-
-  // Add missing methods for legacy compatibility
-  async getUserByEmpIdLegacy(empId: string): Promise<User> {
-    const response = await this.baseApi.get(`/v2/users/${empId}`);
-    return response.data;
-  }
-
-  async updateUserLegacy(empId: string, userData: Partial<User>): Promise<User> {
-    const response = await this.baseApi.put(`/v2/users/${empId}`, userData);
-    return response.data;
   }
 }
 

@@ -339,16 +339,42 @@ const UserEdit: React.FC = () => {
     
     setSaving(true);
     try {
+      // Transform form data to match backend UpdateUserRequestDTO structure
+      const updateData = {
+        name: formData.name,
+        email: formData.email,
+        gender: formData.gender,
+        date_of_birth: formData.date_of_birth,
+        date_of_joining: formData.date_of_joining,
+        mobile: formData.mobile,
+        manager_id: formData.manager_id || undefined,
+        role: formData.role,
+        department: formData.department || undefined,
+        designation: formData.designation || undefined,
+        location: formData.location || undefined,
+        pan_number: formData.pan_number || undefined,
+        aadhar_number: formData.aadhar_number || undefined,
+        uan_number: formData.uan_number || undefined,
+        esi_number: formData.esi_number || undefined,
+        account_number: formData.account_number || undefined,
+        bank_name: formData.bank_name || undefined,
+        ifsc_code: formData.ifsc_code || undefined,
+        account_holder_name: formData.account_holder_name || undefined,
+        branch_name: formData.branch_name || undefined,
+        account_type: formData.account_type || undefined,
+        updated_by: undefined // Will be set by backend
+      };
+
       const hasFiles = files.panFile || files.aadharFile || files.photo;
       
       if (hasFiles) {
         // For file uploads, we might need to implement a separate endpoint
         // For now, let's use the regular update and handle files separately
         showToast('File upload during edit will be implemented soon. User data updated.', 'info');
-        await dataService.updateUserLegacy(empId!, formData);
+        await dataService.updateUser(empId!, updateData);
       } else {
         // Use the regular endpoint
-        await dataService.updateUserLegacy(empId!, formData);
+        await dataService.updateUser(empId!, updateData);
       }
       
       showToast('User updated successfully!', 'success');

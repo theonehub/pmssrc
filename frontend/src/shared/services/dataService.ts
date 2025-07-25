@@ -14,28 +14,28 @@ class DataService {
 
   async getUserByEmpIdLegacy(empId: string) {
     try {
-      return await userApi.getUserByEmpIdLegacy(empId);
+      return await userApi.getUserById(empId);
     } catch (error) {
       console.error('Error fetching user by emp ID:', error);
       throw error;
     }
   }
 
-  async updateUserLegacy(empId: string, userData: any) {
+  async updateUser(userId: string, userData: any) {
     try {
-      return await userApi.updateUserLegacy(empId, userData);
+      return await userApi.updateUser(userId, userData);
     } catch (error) {
-      console.error('Error updating user (legacy):', error);
+      console.error('Error updating user:', error);
       throw error;
     }
   }
 
-  async createUserWithFiles(userData: any, files?: { panFile?: File; aadharFile?: File; photo?: File }) {
+  async createUserWithFiles(userData: any, files?: { pan_file?: File; aadhar_file?: File; photo?: File }) {
     try {
       // Build UserFiles object with correct field names for backend
       const userFiles: any = {};
-      if (files?.panFile) userFiles.pan_file = files.panFile;
-      if (files?.aadharFile) userFiles.aadhar_file = files.aadharFile;
+      if (files?.pan_file) userFiles.pan_file = files.pan_file;
+      if (files?.aadhar_file) userFiles.aadhar_file = files.aadhar_file;
       if (files?.photo) userFiles.photo = files.photo;
       return await userApi.createUserWithFiles(userData, userFiles);
     } catch (error) {

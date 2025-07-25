@@ -79,8 +79,6 @@ class MongoDBUserRepository(UserRepository):
             # For global or None, use the global database name directly
             db_name = "pms_global_database"
         
-        # Force reconnection if the event loop has changed
-        # This is needed because tests create new event loops
         try:
             # Always try to get the database first
             db = self.db_connector.get_database(db_name)
@@ -88,34 +86,30 @@ class MongoDBUserRepository(UserRepository):
             logger.info(f"Successfully retrieved collection: {self._collection_name} from database: {db_name}")
             return collection
         except Exception as e:
-            # If we get an event loop error, force reconnection
-            if "Event loop is closed" in str(e) or "loop" in str(e).lower():
-                logger.info("Event loop changed, reconnecting to database...")
-                # Reset the connector
-                if hasattr(self.db_connector, '_client'):
-                    self.db_connector._client = None
-                if hasattr(self.db_connector, '_sync_client'):
-                    self.db_connector._sync_client = None
-                
-                # Reconnect
+            # If we get a connection error, try to connect first
+            if "Not connected to MongoDB" in str(e) or "MongoDB not connected" in str(e):
+                logger.info("MongoDB not connected, attempting to connect...")
                 try:
+                    # Get connection details
                     if self._connection_string and self._client_options:
                         connection_string = self._connection_string
                         options = self._client_options
                     else:
+                        from app.config.mongodb_config import get_mongodb_connection_string, get_mongodb_client_options
                         connection_string = get_mongodb_connection_string()
                         options = get_mongodb_client_options()
                     
+                    # Connect to MongoDB
                     await self.db_connector.connect(connection_string, **options)
                     
                     # Try again
                     db = self.db_connector.get_database(db_name)
                     collection = db[self._collection_name]
-                    logger.info(f"Successfully reconnected and retrieved collection: {self._collection_name} from database: {db_name}")
+                    logger.info(f"Successfully connected and retrieved collection: {self._collection_name} from database: {db_name}")
                     return collection
-                except Exception as reconnect_error:
-                    logger.error(f"Failed to reconnect to database: {reconnect_error}")
-                    raise RuntimeError(f"Database reconnection failed: {reconnect_error}")
+                except Exception as connect_error:
+                    logger.error(f"Failed to connect to MongoDB: {connect_error}")
+                    raise RuntimeError(f"Database connection failed: {connect_error}")
             else:
                 # Other database errors
                 logger.error(f"Failed to get collection {self._collection_name}: {e}")

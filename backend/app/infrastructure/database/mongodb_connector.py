@@ -100,18 +100,33 @@ class MongoDBConnector(DatabaseConnector):
             database_name: Name of the database
             
         Returns:
-            AsyncIOMotorDatabase instance
+            Database instance
             
         Raises:
             RuntimeError: If not connected to MongoDB
         """
         if not self._client:
-            raise RuntimeError(f"Not connected to MongoDB. Call connect() first. Connection string: {self._connection_string} and database_name: {database_name}")
-            
+            # Try to connect if not already connected
+            if self._connection_string:
+                logger.warning("MongoDB client not initialized, attempting to connect...")
+                import asyncio
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # If we're in an async context, we can't run sync code
+                        raise RuntimeError("MongoDB not connected. Please ensure connection is established before use.")
+                    else:
+                        # We can run the connection in the current loop
+                        loop.run_until_complete(self.connect(self._connection_string, **self._connection_params))
+                except Exception as e:
+                    logger.error(f"Failed to establish MongoDB connection: {e}")
+                    raise RuntimeError(f"Not connected to MongoDB. Call connect() first. Connection string: {self._connection_string} and database_name: {database_name}")
+            else:
+                raise RuntimeError(f"Not connected to MongoDB. Call connect() first. Connection string: {self._connection_string} and database_name: {database_name}")
+        
         if database_name not in self._databases:
             self._databases[database_name] = self._client[database_name]
-            logger.info(f"Database '{database_name}' cached")
-        
+            
         return self._databases[database_name]
     
     def get_collection(self, database_name: str, collection_name: str) -> AsyncIOMotorCollection:

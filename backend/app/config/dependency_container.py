@@ -87,9 +87,12 @@ class DependencyContainer:
         self._mongodb_connection_string = self._db_config["connection_string"]
         self._mongodb_client_options = self._db_config["client_options"]
         
-        # NOTE: Do NOT establish connection here! Let FastAPI's event loop handle it
+        # Initialize the database connection configuration
         logger.info(f"MongoDB connector configured with database: {self._db_config['database_name']}")
-        logger.info("MongoDB connection will be established lazily when first needed")
+        logger.info("MongoDB connection will be established when needed")
+        
+        # Don't connect here - let it connect when needed
+        # The connector will handle connection lazily
         
         # Password service
         self._password_service = PasswordService()

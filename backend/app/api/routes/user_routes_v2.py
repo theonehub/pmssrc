@@ -123,7 +123,7 @@ async def get_current_user_profile(
             raise HTTPException(status_code=404, detail="User not found")
             
         return {
-            "employee_id": user.employee_id,
+            "employee_id": str(user.employee_id),
             "name": user.name,
             "email": user.email,
             "department": user.department,

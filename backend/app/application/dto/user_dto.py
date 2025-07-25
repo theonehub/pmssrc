@@ -242,7 +242,7 @@ class ChangeUserRoleRequestDTO:
 class UserStatusUpdateRequestDTO:
     """DTO for updating user status"""
     
-    action: str  # activate, deactivate, suspend, unlock
+    status: str  # active, inactive, suspended, locked
     reason: Optional[str] = None
     suspension_duration_hours: Optional[int] = None  # Hours for suspension
     updated_by: Optional[str] = None
@@ -251,14 +251,14 @@ class UserStatusUpdateRequestDTO:
         """Validate the status update request"""
         errors = []
         
-        valid_actions = ["activate", "deactivate", "suspend", "unlock"]
-        if self.action not in valid_actions:
-            errors.append(f"Invalid action. Must be one of: {', '.join(valid_actions)}")
+        valid_statuses = ["active", "inactive", "suspended", "locked"]
+        if self.status not in valid_statuses:
+            errors.append(f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
         
-        if self.action in ["deactivate", "suspend"] and not self.reason:
-            errors.append(f"Reason is required for {self.action} action")
+        if self.status in ["inactive", "suspended"] and not self.reason:
+            errors.append(f"Reason is required for {self.status} status")
         
-        if self.action == "suspend" and self.suspension_duration_hours is not None:
+        if self.status == "suspended" and self.suspension_duration_hours is not None:
             if self.suspension_duration_hours <= 0:
                 errors.append("Suspension duration must be positive")
         

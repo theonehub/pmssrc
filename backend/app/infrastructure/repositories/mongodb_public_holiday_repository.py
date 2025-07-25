@@ -123,26 +123,21 @@ class MongoDBPublicHolidayRepository(PublicHolidayRepository):
         try:
             collection = await self._get_collection(hostname)
             holiday_dict = self._entity_to_dict(holiday)
-            
-            # if holiday.is_new():
-            #     # Insert new holiday
-            #     result = await collection.insert_one(holiday_dict)
-            #     holiday_dict["_id"] = result.inserted_id
-            #     self._logger.info(f"Saved new public holiday: {holiday.id}")
-            # else:
-            #     # Update existing holiday
-            #     result = await collection.replace_one(
-            #         {"id": str(holiday.id)},
-            #         holiday_dict
-            #     )
-            #     if result.matched_count > 0:
-            #         self._logger.info(f"Updated public holiday: {holiday.id}")
-            
-            result = await collection.insert_one(holiday_dict)
-            holiday_dict["_id"] = result.inserted_id
-            self._logger.info(f"Saved new public holiday: {holiday.id}")
+
+            # Use upsert to insert or update the holiday
+            result = await collection.replace_one(
+                {"id": str(holiday.id)},
+                holiday_dict,
+                upsert=True
+            )
+            if result.upserted_id:
+                holiday_dict["_id"] = result.upserted_id
+                self._logger.info(f"Inserted new public holiday: {holiday.id}")
+            elif result.matched_count > 0:
+                self._logger.info(f"Updated public holiday: {holiday.id}")
+            else:
+                self._logger.warning(f"No matching public holiday found to update or insert: {holiday.id}")
             return self._dict_to_entity(holiday_dict)
-            
         except Exception as e:
             logger.error(f"Error saving public holiday to database {hostname}: {e}")
             raise

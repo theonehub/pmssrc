@@ -111,7 +111,7 @@ export const useUpdatePublicHolidayMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: HolidayFormData }): Promise<PublicHoliday> => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<HolidayFormData> }): Promise<PublicHoliday> => {
       const response = await apiClient.put(`/v2/public-holidays/${id}`, data);
       return response.data;
     },

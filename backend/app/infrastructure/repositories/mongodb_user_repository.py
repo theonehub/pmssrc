@@ -30,6 +30,7 @@ from app.application.dto.user_dto import (
 from app.infrastructure.database.database_connector import DatabaseConnector
 from app.domain.events.user_events import UserCreated, UserUpdated, UserDeleted
 from app.config.mongodb_config import get_mongodb_connection_string, get_mongodb_client_options
+from app.utils.db_name_utils import sanitize_organisation_id
 
 logger = logging.getLogger(__name__)
 
@@ -68,57 +69,57 @@ class MongoDBUserRepository(UserRepository):
         self._client_options = client_options
         
     async def _get_collection(self, organisation_id: Optional[str] = None):
-        """
-        Get users collection for specific organisation or global.
-        
-        Ensures database connection is established in the correct event loop.
-        """
-        # Fix database name logic - if organisation_id is None or global, use global database directly
-        if organisation_id and organisation_id not in ["global", "pms_global_database"]:
-            # For specific organisation, use pms_organisationid format
-            from app.utils.db_name_utils import sanitize_organisation_id
-            safe_org_id = sanitize_organisation_id(organisation_id)
+        """Get MongoDB collection for the given organisation."""
+        # Determine database name based on organisation_id
+        if organisation_id:
+            # Inline sanitization to avoid import issues
+            safe_org_id = organisation_id.strip().replace('.', '_').replace(' ', '_') if organisation_id else organisation_id
             db_name = f"pms_{safe_org_id}"
         else:
             # For global or None, use the global database name directly
             db_name = "pms_global_database"
         
-        # Ensure database is connected in the current event loop
-        if not self.db_connector.is_connected:
-            logger.info("Database not connected, establishing connection...")
-            
-            try:
-                # Use stored connection configuration or fallback to config functions
-                if self._connection_string and self._client_options:
-                    logger.info("Using stored connection parameters from repository configuration")
-                    connection_string = self._connection_string
-                    options = self._client_options
-                else:
-                    # Fallback to config functions if connection config not set
-                    logger.info("Loading connection parameters from mongodb_config")
-                    connection_string = get_mongodb_connection_string()
-                    options = get_mongodb_client_options()
-                
-                await self.db_connector.connect(connection_string, **options)
-                logger.info("MongoDB connection established successfully in current event loop")
-                
-            except Exception as e:
-                logger.error(f"Failed to establish database connection: {e}")
-                raise RuntimeError(f"Database connection failed: {e}")
-        
-        # Verify connection and get collection
+        # Force reconnection if the event loop has changed
+        # This is needed because tests create new event loops
         try:
+            # Always try to get the database first
             db = self.db_connector.get_database(db_name)
             collection = db[self._collection_name]
             logger.info(f"Successfully retrieved collection: {self._collection_name} from database: {db_name}")
             return collection
-            
         except Exception as e:
-            logger.error(f"Failed to get collection {self._collection_name}: {e}")
-            # Reset connection state to force reconnection on next call
-            if hasattr(self.db_connector, '_client'):
-                self.db_connector._client = None
-            raise RuntimeError(f"Collection access failed: {e}")
+            # If we get an event loop error, force reconnection
+            if "Event loop is closed" in str(e) or "loop" in str(e).lower():
+                logger.info("Event loop changed, reconnecting to database...")
+                # Reset the connector
+                if hasattr(self.db_connector, '_client'):
+                    self.db_connector._client = None
+                if hasattr(self.db_connector, '_sync_client'):
+                    self.db_connector._sync_client = None
+                
+                # Reconnect
+                try:
+                    if self._connection_string and self._client_options:
+                        connection_string = self._connection_string
+                        options = self._client_options
+                    else:
+                        connection_string = get_mongodb_connection_string()
+                        options = get_mongodb_client_options()
+                    
+                    await self.db_connector.connect(connection_string, **options)
+                    
+                    # Try again
+                    db = self.db_connector.get_database(db_name)
+                    collection = db[self._collection_name]
+                    logger.info(f"Successfully reconnected and retrieved collection: {self._collection_name} from database: {db_name}")
+                    return collection
+                except Exception as reconnect_error:
+                    logger.error(f"Failed to reconnect to database: {reconnect_error}")
+                    raise RuntimeError(f"Database reconnection failed: {reconnect_error}")
+            else:
+                # Other database errors
+                logger.error(f"Failed to get collection {self._collection_name}: {e}")
+                raise RuntimeError(f"Collection access failed: {e}")
     
     def _user_to_document(self, user: User) -> Dict[str, Any]:
         """Convert domain entity to database document."""
@@ -420,9 +421,11 @@ class MongoDBUserRepository(UserRepository):
                 # Publish delete event
                 delete_event = UserDeleted(
                     employee_id=employee_id,
-                    organisation_id=hostname,
-                    soft_delete=soft_delete,
-                    deleted_at=datetime.utcnow()
+                    user_name=user.name,
+                    user_email=user.email,
+                    deletion_reason="User deleted via API",
+                    deleted_by="system",
+                    is_soft_delete=soft_delete
                 )
                 await self._publish_events([delete_event])
                 
@@ -867,8 +870,18 @@ class MongoDBUserRepository(UserRepository):
                 total_users=stats.get("total_users", 0),
                 active_users=stats.get("active_users", 0),
                 inactive_users=stats.get("inactive_users", 0),
-                total_roles=len(stats.get("roles", [])),
-                total_departments=len(stats.get("departments", []))
+                suspended_users=0,  # TODO: Add suspended users count
+                locked_users=0,  # TODO: Add locked users count
+                users_by_role={},  # TODO: Add role distribution
+                users_by_department={},  # TODO: Add department distribution
+                users_by_location={},  # TODO: Add location distribution
+                users_with_complete_profiles=0,  # TODO: Add profile completion stats
+                average_profile_completion=0.0,  # TODO: Add profile completion stats
+                users_logged_in_today=0,  # TODO: Add login activity stats
+                users_logged_in_this_week=0,  # TODO: Add login activity stats
+                users_logged_in_this_month=0,  # TODO: Add login activity stats
+                users_created_this_month=0,  # TODO: Add growth stats
+                users_created_this_year=0  # TODO: Add growth stats
             )
             
         except Exception as e:

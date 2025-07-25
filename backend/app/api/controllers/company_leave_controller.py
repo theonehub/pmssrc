@@ -84,17 +84,13 @@ class CompanyLeaveController:
     async def delete_company_leave(
         self, 
         company_leave_id: str, 
-        deletion_reason: str,
         current_user: "CurrentUser",
-        deleted_by: Optional[str] = None,
-        soft_delete: bool = True
+        deleted_by: Optional[str] = None
     ) -> bool:
         """Delete a company leave"""
-        self.logger.info(f"Deleting company leave: {company_leave_id} by {current_user.hostname} (soft: {soft_delete})")
+        self.logger.info(f"Deleting company leave: {company_leave_id} by {current_user.hostname}")
         return await self.service.delete_company_leave(
             company_leave_id, 
-            deletion_reason, 
             current_user, 
-            deleted_by, 
-            soft_delete
+            deleted_by
         ) 

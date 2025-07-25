@@ -9,6 +9,8 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Q
 from fastapi import status as http_status
 from fastapi.responses import JSONResponse
 from datetime import datetime
+import io
+from fastapi.responses import StreamingResponse
 
 from app.api.controllers.user_controller import UserController
 from app.application.dto.user_dto import (
@@ -24,6 +26,89 @@ logger = logging.getLogger(__name__)
 
 # Create router
 router = APIRouter(prefix="/v2/users", tags=["Users V2"])
+
+# Department and Designation endpoints (must come before generic routes)
+@router.get("/departments")
+async def get_departments(
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+) -> Dict[str, Any]:
+    """Get list of all departments in the organisation."""
+    try:
+        departments = await controller.get_departments(current_user)
+        return {
+            "departments": departments,
+            "organisation": current_user.hostname,
+            "count": len(departments)
+        }
+    except Exception as e:
+        logger.error(f"Error getting departments for organisation {current_user.hostname}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/designations")
+async def get_designations(
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+) -> Dict[str, Any]:
+    """Get list of all designations in the organisation."""
+    try:
+        designations = await controller.get_designations(current_user)
+        return {
+            "designations": designations,
+            "organisation": current_user.hostname,
+            "count": len(designations)
+        }
+    except Exception as e:
+        logger.error(f"Error getting designations for organisation {current_user.hostname}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Export endpoint (must come before generic routes)
+@router.get("/export")
+async def export_users(
+    format: str = Query("csv", description="Export format (csv, xlsx)"),
+    include_inactive: bool = Query(False, description="Include inactive users"),
+    include_deleted: bool = Query(False, description="Include deleted users"),
+    department: Optional[str] = Query(None, description="Filter by department"),
+    role: Optional[str] = Query(None, description="Filter by role"),
+    current_user: CurrentUser = Depends(get_current_user),
+    controller: UserController = Depends(get_user_controller)
+):
+    """Export users to CSV/Excel."""
+    try:
+        logger.info(f"Exporting users for organisation {current_user.hostname}")
+        
+        # Get all users for export
+        users_response = await controller.get_all_users(
+            skip=0,
+            limit=10000,  # Large limit to get all users
+            include_inactive=include_inactive,
+            include_deleted=include_deleted,
+            current_user=current_user
+        )
+        
+        # Extract users from the response
+        users = users_response.users
+        
+        # Export users using controller
+        file_content, filename = await controller.export_users(users, format, current_user)
+        
+        # Set appropriate content type based on format
+        if format == "csv":
+            media_type = "text/csv"
+        elif format == "xlsx":
+            media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        else:
+            media_type = "application/octet-stream"
+        
+        return StreamingResponse(
+            io.BytesIO(file_content),
+            media_type=media_type,
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except Exception as e:
+        logger.error(f"Error exporting users for organisation {current_user.hostname}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to export users: {str(e)}")
 
 # User query endpoints
 @router.get("/me")
@@ -128,9 +213,9 @@ async def get_user_stats(
             "total_users": stats.total_users,
             "active_users": stats.active_users,
             "inactive_users": stats.inactive_users,
-            "departments": stats.department_distribution,
-            "roles": stats.role_distribution,
-            "recent_joiners": stats.recent_joiners_count,
+            "departments": stats.users_by_department,
+            "roles": stats.users_by_role,
+            "recent_joiners": 0,  # TODO: Add recent joiners count
             "organisation": current_user.hostname,
             "generated_at": datetime.now().isoformat()
         }
@@ -325,18 +410,16 @@ async def delete_user(
 ) -> Dict[str, Any]:
     """Delete/deactivate a user."""
     try:
-        # Use controller to deactivate user with organisation context
-        request = UserStatusUpdateRequestDTO(status="inactive", reason="Deleted by admin")
-        result = await controller.update_user_status(employee_id, request, current_user)
+        # Use controller to delete user with organisation context
+        result = await controller.delete_user(employee_id, "Deleted by admin", current_user)
         
         return {
             "success": True,
-            "message": "User deactivated successfully",
-            "employee_id": result.employee_id,
-            "status": result.status,
+            "message": "User deleted successfully",
+            "employee_id": employee_id,
             "organisation": current_user.hostname,
-            "deactivated_at": datetime.now().isoformat(),
-            "deactivated_by": current_user.employee_id
+            "deleted_at": datetime.now().isoformat(),
+            "deleted_by": current_user.employee_id
         }
     except Exception as e:
         logger.error(f"Error deleting user {employee_id} in organisation {current_user.hostname}: {e}")
@@ -458,40 +541,6 @@ async def export_users(
         logger.error(f"Error exporting users for organisation {current_user.hostname}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to export users: {str(e)}")
 
-# Department and Designation endpoints
-@router.get("/departments")
-async def get_departments(
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller)
-) -> Dict[str, List[str]]:
-    """Get list of all departments in the organisation."""
-    try:
-        departments = await controller.get_departments(current_user)
-        return {
-            "departments": departments,
-            "organisation": current_user.hostname,
-            "count": len(departments)
-        }
-    except Exception as e:
-        logger.error(f"Error getting departments for organisation {current_user.hostname}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/designations")
-async def get_designations(
-    current_user: CurrentUser = Depends(get_current_user),
-    controller: UserController = Depends(get_user_controller)
-) -> Dict[str, List[str]]:
-    """Get list of all designations in the organisation."""
-    try:
-        designations = await controller.get_designations(current_user)
-        return {
-            "designations": designations,
-            "organisation": current_user.hostname,
-            "count": len(designations)
-        }
-    except Exception as e:
-        logger.error(f"Error getting designations for organisation {current_user.hostname}: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 # User attendance and leaves summary endpoints
 @router.get("/{employee_id}/attendance/summary")
@@ -846,18 +895,16 @@ async def delete_user(
 ) -> Dict[str, Any]:
     """Delete/deactivate a user."""
     try:
-        # Use controller to deactivate user with organisation context
-        request = UserStatusUpdateRequestDTO(status="inactive", reason="Deleted by admin")
-        result = await controller.update_user_status(employee_id, request, current_user)
+        # Use controller to delete user with organisation context
+        result = await controller.delete_user(employee_id, "Deleted by admin", current_user)
         
         return {
             "success": True,
-            "message": "User deactivated successfully",
-            "employee_id": result.employee_id,
-            "status": result.status,
+            "message": "User deleted successfully",
+            "employee_id": employee_id,
             "organisation": current_user.hostname,
-            "deactivated_at": datetime.now().isoformat(),
-            "deactivated_by": current_user.employee_id
+            "deleted_at": datetime.now().isoformat(),
+            "deleted_by": current_user.employee_id
         }
     except Exception as e:
         logger.error(f"Error deleting user {employee_id} in organisation {current_user.hostname}: {e}")

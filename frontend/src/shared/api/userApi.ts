@@ -85,7 +85,6 @@ export interface RoleChangeRequest {
 }
 
 export interface StatusChangeRequest {
-  is_active: boolean;
   status: string;
 }
 

@@ -328,3 +328,16 @@ class UserController:
         except Exception as e:
             logger.error(f"Error getting designations in organisation {current_user.hostname}: {e}")
             raise HTTPException(status_code=500, detail="Internal server error")
+
+    async def delete_user(
+        self,
+        employee_id: str,
+        deletion_reason: str,
+        current_user: CurrentUser
+    ) -> bool:
+        """Delete a user with organisation context from current_user."""
+        try:
+            return await self.user_service.delete_user(employee_id, deletion_reason, current_user)
+        except Exception as e:
+            logger.error(f"Error deleting user {employee_id} in organisation {current_user.hostname}: {e}")
+            raise HTTPException(status_code=400, detail=str(e))

@@ -40,6 +40,7 @@ export interface CompanyLeaveFormData {
   description?: string | null;
   encashable: boolean;
   is_active: boolean;
+  updated_by?: string; // Added to match backend update DTO
 }
 
 export interface CompanyLeaveFilters {

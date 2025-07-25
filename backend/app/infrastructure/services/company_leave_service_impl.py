@@ -74,20 +74,17 @@ class CompanyLeaveServiceImpl(CompanyLeaveService):
             event_publisher=event_publisher
         )
         
-        # TODO: Fix other use cases when we see their constructors
-        # For now, commenting them out to get the create use case working
-        # self._update_use_case = UpdateCompanyLeaveUseCase(
-        #     company_leave_repository=repository,
-        #     company_leave_query_repository=repository,
-        #     company_leave_validation_service=self,
-        #     company_leave_notification_service=self
-        # )
+        self._update_use_case = UpdateCompanyLeaveUseCase(
+            command_repository=repository,
+            query_repository=repository,
+            event_publisher=event_publisher
+        )
         
-        # self._delete_use_case = DeleteCompanyLeaveUseCase(
-        #     company_leave_repository=repository,
-        #     company_leave_query_repository=repository,
-        #     company_leave_notification_service=self
-        # )
+        self._delete_use_case = DeleteCompanyLeaveUseCase(
+            command_repository=repository,
+            query_repository=repository,
+            event_publisher=event_publisher
+        )
         
         # self._get_use_case = GetCompanyLeaveUseCase(
         #     company_leave_query_repository=repository,
@@ -156,7 +153,7 @@ class CompanyLeaveServiceImpl(CompanyLeaveService):
         """Update an existing company leave policy."""
         try:
             self.logger.info(f"Updating company leave: {leave_id} in organisation: {current_user.hostname}")
-            return await self._update_use_case.execute(leave_id, request, current_user)
+            return await self._update_use_case.execute(leave_id, request,current_user.employee_id, current_user)
         except Exception as e:
             self.logger.error(f"Error updating company leave {leave_id} in organisation {current_user.hostname}: {e}")
             raise
@@ -164,15 +161,13 @@ class CompanyLeaveServiceImpl(CompanyLeaveService):
     async def delete_company_leave(
         self, 
         leave_id: str, 
-        deletion_reason: str,
         current_user: "CurrentUser",
-        deleted_by: Optional[str] = None,
-        soft_delete: bool = True
+        deleted_by: Optional[str] = None
     ) -> bool:
         """Delete a company leave policy."""
         try:
-            self.logger.info(f"Deleting company leave: {leave_id} (soft: {soft_delete}) in organisation: {current_user.hostname}")
-            return await self._delete_use_case.execute(leave_id, deletion_reason, current_user, deleted_by, soft_delete)
+            self.logger.info(f"Deleting company leave: {leave_id} in organisation: {current_user.hostname}")
+            return await self._delete_use_case.execute(leave_id, current_user, deleted_by)
         except Exception as e:
             self.logger.error(f"Error deleting company leave {leave_id} in organisation {current_user.hostname}: {e}")
             raise

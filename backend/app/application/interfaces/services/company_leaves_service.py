@@ -88,20 +88,16 @@ class CompanyLeaveCommandService(ABC):
     async def delete_company_leave(
         self, 
         leave_id: str, 
-        deletion_reason: str,
         current_user: "CurrentUser",
-        deleted_by: Optional[str] = None,
-        soft_delete: bool = True
+        deleted_by: Optional[str] = None
     ) -> bool:
         """
         Delete a company leave policy.
         
         Args:
             leave_id: ID of leave policy to delete
-            deletion_reason: Reason for deletion
             current_user: Current authenticated user with organisation context
             deleted_by: User performing the deletion
-            soft_delete: Whether to perform soft delete
             
         Returns:
             True if deleted successfully

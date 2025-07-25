@@ -46,7 +46,7 @@ class DeleteCompanyLeaveUseCase:
     async def execute(
         self, 
         company_leave_id: str, 
-        force: bool, 
+        current_user: "CurrentUser",
         deleted_by: str
     ) -> bool:
         """
@@ -54,12 +54,12 @@ class DeleteCompanyLeaveUseCase:
         
         Business Rules:
         1. Company leave must exist
-        2. Check if deletion is allowed (unless forced)
+        2. Check if deletion is allowed
         3. Events must be published for downstream processing
         
         Args:
             company_leave_id: ID of company leave to delete
-            force: Whether to force deletion even if business rules prevent it
+            current_user: Current authenticated user with organisation context
             deleted_by: User performing the deletion
             
         Returns:
@@ -72,22 +72,21 @@ class DeleteCompanyLeaveUseCase:
         """
         
         try:
-            logger.info(f"Deleting company leave: {company_leave_id} by {deleted_by} (force: {force})")
+            logger.info(f"Deleting company leave: {company_leave_id} by {deleted_by}")
             
             # Step 1: Get existing company leave
-            company_leave = await self._query_repository.get_by_id(company_leave_id)
+            company_leave = await self._query_repository.get_by_id(company_leave_id, current_user.hostname)
             if not company_leave:
                 raise CompanyLeaveNotFoundError(f"Company leave {company_leave_id} not found")
             
             # Step 2: Check business rules (unless forced)
-            if not force:
-                await self._validate_deletion_rules(company_leave)
+            await self._validate_deletion_rules(company_leave)
             
             # Step 3: Perform soft delete (deactivate)
             company_leave.is_active = False
             company_leave.updated_by = deleted_by
             
-            success = await self._command_repository.update(company_leave)
+            success = await self._command_repository.update(company_leave, current_user.hostname)
             if not success:
                 raise Exception("Failed to delete company leave in database")
             

@@ -18,6 +18,7 @@ from app.application.interfaces.repositories.company_leave_repository import (
 )
 from app.application.interfaces.services.event_publisher import EventPublisher
 from app.domain.entities.company_leave import CompanyLeave
+from app.auth.auth_dependencies import CurrentUser
 
 
 logger = logging.getLogger(__name__)
@@ -49,7 +50,8 @@ class UpdateCompanyLeaveUseCase:
         self, 
         company_leave_id: str, 
         request: UpdateCompanyLeaveRequestDTO, 
-        updated_by: str
+        updated_by: str,
+        current_user: "CurrentUser"
     ) -> CompanyLeaveResponseDTO:
         """
         Execute company leave update workflow.
@@ -83,7 +85,7 @@ class UpdateCompanyLeaveUseCase:
                 raise CompanyLeaveDTOValidationError(validation_errors)
             
             # Step 2: Get existing company leave
-            company_leave = await self._query_repository.get_by_id(company_leave_id)
+            company_leave = await self._query_repository.get_by_id(company_leave_id, current_user.hostname)
             if not company_leave:
                 raise CompanyLeaveNotFoundError(f"Company leave {company_leave_id} not found")
             
@@ -91,6 +93,8 @@ class UpdateCompanyLeaveUseCase:
             self._validate_business_rules(request)
             
             # Step 4: Update company leave entity
+            if request.leave_name is not None:
+                company_leave.leave_name = request.leave_name
             if request.accrual_type is not None:
                 company_leave.accrual_type = request.accrual_type
             
@@ -111,7 +115,7 @@ class UpdateCompanyLeaveUseCase:
             company_leave.updated_by = updated_by
             
             # Step 5: Persist to database
-            success = await self._command_repository.update(company_leave)
+            success = await self._command_repository.update(company_leave, current_user.hostname)
             if not success:
                 raise Exception("Failed to update company leave in database")
             

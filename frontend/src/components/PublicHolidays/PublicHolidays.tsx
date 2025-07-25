@@ -26,7 +26,8 @@ import {
   DialogTitle,
   Chip,
   CircularProgress,
-  AlertColor
+  AlertColor,
+  Switch
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -186,6 +187,13 @@ const PublicHolidays: React.FC = () => {
   const handleEditClick = (holiday: PublicHoliday): void => {
     setSelectedHoliday(holiday);
     setOpenEditDialog(true);
+  };
+
+  const handleToggleActive = (holiday: PublicHoliday) => {
+    updateMutation.mutate({
+      id: holiday.id,
+      data: { is_active: !holiday.is_active },
+    });
   };
 
   // Handle React Query error
@@ -349,6 +357,7 @@ const PublicHolidays: React.FC = () => {
                 <TableCell>Date</TableCell>
                 <TableCell>Description</TableCell>
                 <TableCell>Created By</TableCell>
+                <TableCell align="center">Active</TableCell>
                 <TableCell align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -400,6 +409,20 @@ const PublicHolidays: React.FC = () => {
                           <Typography variant="body2">
                             {holiday.created_by || 'System'}
                           </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+                            <Switch
+                              checked={holiday.is_active}
+                              onChange={() => handleToggleActive(holiday)}
+                              color={holiday.is_active ? 'success' : 'error'}
+                              disabled={updateMutation.isPending}
+                              inputProps={{ 'aria-label': 'toggle active status' }}
+                            />
+                            {updateMutation.isPending && updateMutation.variables?.id === holiday.id && (
+                              <CircularProgress size={18} />
+                            )}
+                          </Box>
                         </TableCell>
                         <TableCell align="center">
                           <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>

@@ -3,6 +3,7 @@ Public Holiday Data Transfer Objects
 DTOs for public holiday API requests and responses
 """
 
+import typing
 from datetime import datetime, date
 from typing import Optional, List, Dict, Any
 from dataclasses import dataclass
@@ -34,9 +35,13 @@ class HolidayRecurrence(str, Enum):
 # Exception classes
 class PublicHolidayValidationError(Exception):
     """Exception raised for public holiday validation errors"""
-    def __init__(self, message: str):
+    def __init__(self, message: str, details: Any = None):
         self.message = message
-        super().__init__(message)
+        self.details = details
+        if details is not None:
+            super().__init__(message, details)
+        else:
+            super().__init__(message)
 
 
 class PublicHolidayDTOValidationError(Exception):
@@ -48,9 +53,13 @@ class PublicHolidayDTOValidationError(Exception):
 
 class PublicHolidayBusinessRuleError(Exception):
     """Exception raised for public holiday business rule violations"""
-    def __init__(self, message: str):
+    def __init__(self, message: str, details: Any = None):
         self.message = message
-        super().__init__(message)
+        self.details = details
+        if details is not None:
+            super().__init__(message, details)
+        else:
+            super().__init__(message)
 
 
 class PublicHolidayNotFoundError(Exception):

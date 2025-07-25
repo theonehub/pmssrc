@@ -337,17 +337,26 @@ class UserServiceImpl(UserService):
             if not user:
                 raise ValueError(f"User not found: {employee_id}")
             
-            old_status = user.credentials.status.value
+            old_status = user.status.value
             
-            # Update status
-            user.update_status(UserStatus(request.new_status.lower()), request.updated_by, request.reason)
+            # Update status based on the requested status
+            if request.status.lower() == "active":
+                user.activate(request.updated_by or current_user.employee_id, request.reason or "User activated")
+            elif request.status.lower() == "inactive":
+                user.deactivate(request.reason or "User deactivated", request.updated_by or current_user.employee_id)
+            elif request.status.lower() == "suspended":
+                user.suspend(request.reason or "User suspended", request.updated_by or current_user.employee_id)
+            elif request.status.lower() == "locked":
+                user.lock_account(request.reason or "User locked", request.updated_by or current_user.employee_id)
+            else:
+                raise ValueError(f"Invalid status: {request.status}")
             
             # Save updated user
             updated_user = await self.user_repository.save(user, current_user.hostname)
             
             # Send notification
             await self.send_status_change_notification(
-                updated_user, old_status, request.new_status, request.reason
+                updated_user, old_status, request.status, request.reason
             )
             
             return UserResponseDTO.from_entity(updated_user)
@@ -1642,7 +1651,7 @@ class UserServiceImpl(UserService):
         try:
             logger.info(f"Exporting {len(users)} users in {format} format for organisation {current_user.hostname}")
             
-            # Convert UserResponseDTO to dictionary format for export
+            # Convert UserSummaryDTO to dictionary format for export
             user_data = []
             for user in users:
                 user_dict = {
@@ -1650,35 +1659,35 @@ class UserServiceImpl(UserService):
                     "employee_id": user.employee_id,
                     "name": user.name,
                     "email": user.email,
-                    "mobile": user.personal_details.mobile if user.personal_details else "",
-                    "gender": user.personal_details.gender if user.personal_details else "",
-                    "date_of_birth": user.personal_details.date_of_birth if user.personal_details else "",
-                    "date_of_joining": user.personal_details.date_of_joining if user.personal_details else "",
-                    "role": user.permissions.role if user.permissions else "",
+                    "mobile": user.mobile or "",
+                    "gender": user.gender or "",
+                    "date_of_birth": "",  # Not available in UserSummaryDTO
+                    "date_of_joining": user.date_of_joining or "",
+                    "role": user.role or "",
                     "department": user.department or "",
                     "designation": user.designation or "",
-                    "location": user.location or "",
-                    "manager_id": user.manager_id or "",
+                    "location": "",  # Not available in UserSummaryDTO
+                    "manager_id": "",  # Not available in UserSummaryDTO
                     "status": user.status,
                     
-                    # Personal Details
-                    "pan_number": user.personal_details.pan_number if user.personal_details else "",
-                    "aadhar_number": user.personal_details.aadhar_number if user.personal_details else "",
-                    "uan_number": user.personal_details.uan_number if user.personal_details else "",
-                    "esi_number": user.personal_details.esi_number if user.personal_details else "",
+                    # Personal Details (not available in UserSummaryDTO)
+                    "pan_number": "",
+                    "aadhar_number": "",
+                    "uan_number": "",
+                    "esi_number": "",
                     
-                    # Bank Details
-                    "account_number": user.bank_details.account_number if user.bank_details else "",
-                    "bank_name": user.bank_details.bank_name if user.bank_details else "",
-                    "ifsc_code": user.bank_details.ifsc_code if user.bank_details else "",
-                    "account_holder_name": user.bank_details.account_holder_name if user.bank_details else "",
-                    "branch_name": user.bank_details.branch_name if user.bank_details else "",
-                    "account_type": user.bank_details.account_type if user.bank_details else "",
+                    # Bank Details (not available in UserSummaryDTO)
+                    "account_number": "",
+                    "bank_name": "",
+                    "ifsc_code": "",
+                    "account_holder_name": "",
+                    "branch_name": "",
+                    "account_type": "",
                     
                     # System Fields
                     "is_active": user.is_active,
-                    "created_at": user.created_at,
-                    "last_login_at": user.last_login_at
+                    "created_at": user.created_at or "",
+                    "last_login_at": user.last_login_at or ""
                 }
                 user_data.append(user_dict)
             
@@ -1793,7 +1802,7 @@ class UserServiceImpl(UserService):
             users = await self.user_repository.get_all(
                 skip=0,
                 limit=10000,  # Large limit to get all users
-                hostname=current_user.hostname
+                organisation_id=current_user.hostname
             )
             
             # Extract unique departments
@@ -1818,7 +1827,7 @@ class UserServiceImpl(UserService):
             users = await self.user_repository.get_all(
                 skip=0,
                 limit=10000,  # Large limit to get all users
-                hostname=current_user.hostname
+                organisation_id=current_user.hostname
             )
             
             # Extract unique designations

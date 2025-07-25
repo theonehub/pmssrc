@@ -19,7 +19,8 @@ from app.application.dto.company_leave_dto import (
     CompanyLeaveValidationError,
     CompanyLeaveBusinessRuleError,
     CompanyLeaveNotFoundError,
-    CompanyLeaveConflictError
+    CompanyLeaveConflictError,
+    CompanyLeaveDTOValidationError
 )
 from app.auth.auth_dependencies import CurrentUser, get_current_user
 from app.config.dependency_container import get_company_leave_controller
@@ -65,6 +66,12 @@ async def list_company_leaves(
         ),
         current_user
     )
+
+
+@router.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "service": "company-leaves"}
 
 
 @router.get("/{company_leave_id}", response_model=CompanyLeaveResponseDTO)
@@ -114,6 +121,10 @@ async def update_company_leave(
         logger.warning(f"Validation error updating company leave: {e}")
         raise HTTPException(status_code=400, detail={"error": "validation_error", "message": str(e)})
     
+    except CompanyLeaveDTOValidationError as e:
+        logger.warning(f"DTO validation error updating company leave: {e}")
+        raise HTTPException(status_code=400, detail={"error": "validation_error", "message": str(e)})
+    
     except CompanyLeaveConflictError as e:
         logger.warning(f"Conflict error updating company leave: {e}")
         raise HTTPException(status_code=409, detail={"error": "conflict_error", "message": str(e)})
@@ -130,7 +141,6 @@ async def update_company_leave(
 @router.delete("/{company_leave_id}")
 async def delete_company_leave(
     company_leave_id: str = Path(..., description="Company Leave ID"),
-    force: bool = Query(False, description="Force deletion even if business rules prevent it"),
     current_user: CurrentUser = Depends(get_current_user),
     controller: CompanyLeaveController = Depends(get_company_leave_controller)
 ):
@@ -138,8 +148,8 @@ async def delete_company_leave(
     try:
         await controller.delete_company_leave(
             company_leave_id=company_leave_id,
-            force=force,
-            current_user=current_user
+            current_user=current_user,
+            deleted_by=current_user.employee_id
         )
         
         return {"message": "Company leave deleted successfully"}
@@ -154,10 +164,4 @@ async def delete_company_leave(
     
     except Exception as e:
         logger.error(f"Unexpected error deleting company leave {company_leave_id}: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.get("/health")
-async def health_check():
-    """Health check endpoint"""
-    return {"status": "healthy", "service": "company-leaves"} 
+        raise HTTPException(status_code=500, detail="Internal server error") 

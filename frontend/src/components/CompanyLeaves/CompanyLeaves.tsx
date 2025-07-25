@@ -35,6 +35,7 @@ import {
   CompanyLeaveFormData,
   CompanyLeaveFilters
 } from '../../shared/hooks/useCompanyLeaves';
+import { useAuth } from '../../context/AuthContext';
 
 // Define interfaces for local state
 interface AlertState {
@@ -53,6 +54,7 @@ const CompanyLeaves: React.FC = () => {
     severity: 'success' 
   });
   const [filters] = useState<CompanyLeaveFilters>({});
+  const { user } = useAuth();
 
   // React Query hooks
   const { 
@@ -89,7 +91,6 @@ const CompanyLeaves: React.FC = () => {
   const handleSubmit = async (data: Partial<CompanyLeave>): Promise<void> => {
     try {
       const formData: CompanyLeaveFormData = {
-        leave_type: data.leave_type || '',
         leave_name: data.leave_name || '',
         accrual_type: data.accrual_type || '',
         annual_allocation: data.annual_allocation || 0,
@@ -103,7 +104,7 @@ const CompanyLeaves: React.FC = () => {
         // Update existing leave
         await updateMutation.mutateAsync({ 
           id: editingLeave.company_leave_id, 
-          data: formData 
+          data: { ...formData, updated_by: user?.employee_id || user?.id || user?.name || 'system' } 
         });
         showAlert('Company leave updated successfully!', 'success');
       } else {

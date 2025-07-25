@@ -926,7 +926,7 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
         if not retirement_benefits:
             return None
         
-        return {
+        doc = {
             "has_retirement_benefits": True,
             
             # Leave encashment
@@ -972,6 +972,10 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
                 "service_years": float(retirement_benefits.retrenchment_compensation.service_years) if retirement_benefits.retrenchment_compensation else 0.0,
             }
         }
+        # Serialize monthly_salary_paid
+        if hasattr(retirement_benefits, 'monthly_salary_paid') and retirement_benefits.monthly_salary_paid is not None:
+            doc["monthly_salary_paid"] = [float(m.amount) for m in retirement_benefits.monthly_salary_paid]
+        return doc
     
     def _serialize_other_income(self, other_income: Optional[OtherIncome]) -> Optional[dict]:
         """Serialize other income to document format."""
@@ -1544,12 +1548,18 @@ class MongoDBSalaryPackageRepository(SalaryPackageRepository):
                 service_years=Decimal(str(retrench_doc.get("service_years", 0.0)))
             )
         
+        # Deserialize monthly_salary_paid
+        monthly_salary_paid = None
+        if "monthly_salary_paid" in retirement_benefits_doc and isinstance(retirement_benefits_doc["monthly_salary_paid"], list):
+            monthly_salary_paid = [Money.from_float(float(x)) for x in retirement_benefits_doc["monthly_salary_paid"]]
+        
         return RetirementBenefits(
             leave_encashment=leave_encashment,
             gratuity=gratuity,
             vrs=vrs,
             pension=pension,
-            retrenchment_compensation=retrenchment_compensation
+            retrenchment_compensation=retrenchment_compensation,
+            monthly_salary_paid=monthly_salary_paid
         )
     
     def _deserialize_other_income(self, other_income_doc: Optional[dict]) -> Optional[OtherIncome]:

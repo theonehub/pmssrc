@@ -830,6 +830,7 @@ class RetirementBenefitsDTO(BaseModel):
     vrs: Optional[VRSDTO] = None
     pension: Optional[PensionDTO] = None
     retrenchment_compensation: Optional[RetrenchmentCompensationDTO] = None
+    monthly_salary_paid: Optional[List[float]] = Field(default=None, description="Last 12 months salary paid")
 
 
 # =============================================================================
@@ -1058,6 +1059,7 @@ class FlatRetirementBenefitsDTO(BaseModel):
     pension_amount: Decimal = Field(default=0, ge=0, description="Pension amount")
     commuted_pension_amount: Decimal = Field(default=0, ge=0, description="Commuted pension amount")
     other_retirement_benefits: Decimal = Field(default=0, ge=0, description="Other retirement benefits")
+    monthly_salary_paid: Optional[List[float]] = Field(default=None, description="Last 12 months salary paid")
     
     def to_nested_structure(self) -> RetirementBenefitsDTO:
         """Convert flat structure to nested structure."""
@@ -1091,7 +1093,8 @@ class FlatRetirementBenefitsDTO(BaseModel):
                 retrenchment_amount=self.other_retirement_benefits,
                 monthly_salary=Decimal(0),
                 service_years=Decimal(0)
-            ) if self.other_retirement_benefits > 0 else None
+            ) if self.other_retirement_benefits > 0 else None,
+            monthly_salary_paid=self.monthly_salary_paid
         )
 
 

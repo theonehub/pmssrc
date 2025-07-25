@@ -74,6 +74,60 @@ interface CheckboxField extends BaseField {
 
 type FormField = NumberField | CheckboxField;
 
+// Add type for monthly salary row
+interface MonthlySalaryRow {
+  month: string;
+  amount: number;
+}
+
+// Helper to get rolling months ending with previous month, with year suffix
+function getRollingMonthsWithYear(): { label: string, month: string, year: number }[] {
+  const allMonths = [
+    'April', 'May', 'June', 'July', 'August', 'September',
+    'October', 'November', 'December', 'January', 'February', 'March'
+  ];
+  // Get current date
+  const now = new Date();
+  const jsMonth = now.getMonth(); // 0=Jan, ..., 11=Dec
+  const jsYear = now.getFullYear();
+  // Fiscal year starts in April
+  // April=3, so fiscalMonth = (jsMonth+9)%12
+  const fiscalMonth = (jsMonth + 9) % 12;
+  let lastIdx = fiscalMonth - 1;
+  if (lastIdx < 0) lastIdx = 11;
+  // Determine the fiscal year for each month
+  // Fiscal year: April to March (e.g., 2024-25: April 2024 to March 2025)
+  // If current month is April 2025, last completed is March 2025, so March-25
+  // If current month is May 2025, last completed is April 2025, so April-25, March-25, ...
+  // Start from lastIdx, go back 11 months
+  const months: { label: string, month: string, year: number }[] = [];
+  let year = jsYear;
+  // If lastIdx >= 9 (Jan, Feb, Mar), year = jsYear; else year = jsYear - 1 for those months
+  // But we need to roll back 11 months, so we need to adjust year as we go
+  // We'll start from the last completed month and go backwards
+  let idx = lastIdx;
+  for (let i = 0; i < 12; i++) {
+    let m = allMonths[idx];
+    // For months Jan, Feb, Mar (idx 9,10,11), year is jsYear+1 if fiscal year has rolled over
+    let displayYear = year;
+    if (idx >= 9) {
+      // Jan, Feb, Mar belong to next calendar year in fiscal
+      displayYear = year + 1;
+    }
+    // Label: e.g., March-25, April-24
+    const shortYear = String(displayYear).slice(-2);
+    months.unshift({ label: `${m ?? ''}-${shortYear}`, month: m ?? '', year: displayYear });
+    idx--;
+    if (idx < 0) {
+      idx = 11;
+      year--;
+    }
+  }
+  return months;
+}
+
+const MONTHS_ORDER_WITH_YEAR = getRollingMonthsWithYear();
+const initialMonthlySalaryPaid: MonthlySalaryRow[] = MONTHS_ORDER_WITH_YEAR.map(m => ({ month: m.label, amount: 0 }));
 
 // Initial data structure
 const initialRetirementBenefitsData: RetirementBenefitsComponentData = {
@@ -144,6 +198,14 @@ const flattenRetirementBenefitsData = (nestedData: any): RetirementBenefitsCompo
         flattened.pension_gratuity_received = nestedData.pension.gratuity_received || false;
       }
     }
+    // Populate monthlySalaryPaid if present
+    if (nestedData && Array.isArray(nestedData.monthly_salary_paid)) {
+      // This state is managed by the component, so we don't set it here directly.
+      // The component will manage its own state and update it.
+    } else {
+      // This state is managed by the component, so we don't set it here directly.
+      // The component will manage its own state and update it.
+    }
   } catch (error) {
     console.error('Error flattening retirement benefits data:', error);
   }
@@ -151,7 +213,7 @@ const flattenRetirementBenefitsData = (nestedData: any): RetirementBenefitsCompo
   return flattened;
 };
 
-const steps: { label: string; description: string; fields: FormField[] }[] = [
+const steps: { label: string; description: string; fields?: FormField[]; isMonthlySalaryPaidStep?: boolean }[] = [
   {
     label: 'Gratuity',
     description: 'Detailed gratuity information',
@@ -171,6 +233,12 @@ const steps: { label: string; description: string; fields: FormField[] }[] = [
       { name: 'is_deceased', label: 'Employee is Deceased', type: 'checkbox', helperText: 'Check if employee is deceased (fully exempt)' } as CheckboxField,
       { name: 'during_employment', label: 'During Employment', type: 'checkbox', helperText: 'Check if encashment was during employment' } as CheckboxField
     ]
+  },
+  // Insert Monthly Salary Paid step here
+  {
+    label: 'Monthly Salary Paid',
+    description: 'Enter the gross salary paid for each month (April to March)',
+    isMonthlySalaryPaidStep: true
   },
   {
     label: 'VRS',
@@ -209,6 +277,7 @@ const RetirementBenefitsComponentForm: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>({ show: false, message: '', severity: 'success' });
   const [activeStep, setActiveStep] = useState<number>(0);
+  const [monthlySalaryPaid, setMonthlySalaryPaid] = useState<MonthlySalaryRow[]>(initialMonthlySalaryPaid);
   
   const taxYear = searchParams.get('year') || CURRENT_TAX_YEAR;
   const mode = searchParams.get('mode') || 'update';
@@ -269,6 +338,11 @@ const RetirementBenefitsComponentForm: React.FC = () => {
     }));
   };
 
+  // Add handler for monthly salary table
+  const handleMonthlySalaryChange = (idx: number, value: number) => {
+    setMonthlySalaryPaid(prev => prev.map((row, i) => i === idx ? { ...row, amount: value } : row));
+  };
+
   const handleSave = async (): Promise<void> => {
     if (!empId) return;
     
@@ -281,7 +355,10 @@ const RetirementBenefitsComponentForm: React.FC = () => {
       const request = {
         employee_id: empId,
         tax_year: taxYear,
-        retirement_benefits: formData,
+        retirement_benefits: {
+          ...formData,
+          monthly_salary_paid: monthlySalaryPaid.map(row => row.amount),
+        },
         notes: `Retirement benefits component ${isNewRevision ? 'created' : 'updated'} on ${new Date().toISOString()}`
       };
       
@@ -410,41 +487,59 @@ const RetirementBenefitsComponentForm: React.FC = () => {
               </StepLabel>
               <StepContent>
                 <Box sx={{ mt: 2 }}>
-                  <Grid container spacing={3}>
-                    {step.fields.map((field) => (
-                      <Grid item xs={12} md={6} key={field.name}>
-                        {field.type === 'checkbox' ? (
-                          <FormControlLabel
-                            control={
-                              <Checkbox
-                                checked={formData[field.name as keyof RetirementBenefitsComponentData] as boolean}
-                                onChange={(e) => handleInputChange(
-                                  field.name as keyof RetirementBenefitsComponentData,
-                                  e.target.checked
-                                )}
-                              />
-                            }
-                            label={field.label}
-                          />
-                        ) : (
+                  {step.isMonthlySalaryPaidStep ? (
+                    <Grid container spacing={2}>
+                      {monthlySalaryPaid.map((row, idx) => (
+                        <Grid item xs={12} sm={6} md={4} key={row.month}>
                           <TextField
                             fullWidth
-                            label={field.label}
+                            label={row.month}
                             type="number"
-                            value={formData[field.name as keyof RetirementBenefitsComponentData]}
-                            onChange={(e) => handleInputChange(
-                              field.name as keyof RetirementBenefitsComponentData,
-                              parseFloat(e.target.value) || 0
-                            )}
+                            value={row.amount}
+                            onChange={e => handleMonthlySalaryChange(idx, parseFloat(e.target.value) || 0)}
+                            inputProps={{ min: 0 }}
                             InputProps={{ startAdornment: '₹' }}
-                            helperText={field.helperText}
-                            sx={{ mb: 2 }}
+                            helperText={`Salary paid in ${row.month}`}
                           />
-                        )}
-                      </Grid>
-                    ))}
-                  </Grid>
-                  
+                        </Grid>
+                      ))}
+                    </Grid>
+                  ) : (
+                    <Grid container spacing={3}>
+                      {step.fields && step.fields.map((field) => (
+                        <Grid item xs={12} md={6} key={field.name}>
+                          {field.type === 'checkbox' ? (
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={formData[field.name as keyof RetirementBenefitsComponentData] as boolean}
+                                  onChange={(e) => handleInputChange(
+                                    field.name as keyof RetirementBenefitsComponentData,
+                                    e.target.checked
+                                  )}
+                                />
+                              }
+                              label={field.label}
+                            />
+                          ) : (
+                            <TextField
+                              fullWidth
+                              label={field.label}
+                              type="number"
+                              value={formData[field.name as keyof RetirementBenefitsComponentData]}
+                              onChange={(e) => handleInputChange(
+                                field.name as keyof RetirementBenefitsComponentData,
+                                parseFloat(e.target.value) || 0
+                              )}
+                              InputProps={{ startAdornment: '₹' }}
+                              helperText={field.helperText}
+                              sx={{ mb: 2 }}
+                            />
+                          )}
+                        </Grid>
+                      ))}
+                    </Grid>
+                  )}
                   <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
                     <Button
                       variant="outlined"

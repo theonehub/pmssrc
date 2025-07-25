@@ -93,6 +93,7 @@ export interface RetirementBenefitsDTO {
   leave_encashment: number;
   voluntary_retirement: number;
   retrenchment_compensation: number;
+  monthly_salary_paid?: number[]; // Last 12 months' salary
 }
 
 export interface OtherIncomeDTO {

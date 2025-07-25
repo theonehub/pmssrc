@@ -435,7 +435,46 @@ const ComponentsOverview: React.FC = () => {
     }
   }, [empId, taxYear]);
 
-  // 7. loadComponentsData
+  // 7. loadRetirementBenefitsComponent
+  const loadRetirementBenefitsComponent = useCallback(async (): Promise<ComponentSummary> => {
+    try {
+      const response = await taxationApi.getComponent(empId!, taxYear, 'retirement_benefits');
+      const data = response?.component_data || response;
+
+      // Calculate total retirement benefits from relevant fields
+      const totalRetirementBenefits =
+        (data.gratuity_amount || 0) +
+        (data.leave_encashment_amount || 0) +
+        (data.vrs_amount || 0) +
+        (data.pension_regular_pension || 0) +
+        (data.pension_commuted_pension || 0) +
+        (data.other_retirement_benefits || 0);
+
+      return {
+        id: 'retirement_benefits',
+        name: 'Retirement Benefits',
+        icon: <CardGiftcardIcon />,
+        color: 'secondary',
+        hasData: totalRetirementBenefits > 0,
+        totalValue: totalRetirementBenefits,
+        details: data
+      };
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail;
+      return {
+        id: 'retirement_benefits',
+        name: 'Retirement Benefits',
+        icon: <CardGiftcardIcon />,
+        color: 'secondary',
+        hasData: false,
+        totalValue: 0,
+        details: {},
+        error: backendMessage || 'Failed to fetch retirement benefits data.'
+      };
+    }
+  }, [empId, taxYear]);
+
+  // 8. loadComponentsData
   const loadComponentsData = useCallback(async (): Promise<void> => {
     try {
       setLoading(true);
@@ -447,7 +486,8 @@ const ComponentsOverview: React.FC = () => {
         loadHousePropertyComponent(),
         loadCapitalGainsComponent(),
         loadOtherIncomeComponent(),
-        loadPerquisitesComponent()
+        loadPerquisitesComponent(),
+        loadRetirementBenefitsComponent()
       ];
       
       const results = await Promise.allSettled(componentPromises);
@@ -468,7 +508,7 @@ const ComponentsOverview: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [loadSalaryComponent, loadDeductionsComponent, loadHousePropertyComponent, loadCapitalGainsComponent, loadOtherIncomeComponent, loadPerquisitesComponent]);
+  }, [loadSalaryComponent, loadDeductionsComponent, loadHousePropertyComponent, loadCapitalGainsComponent, loadOtherIncomeComponent, loadPerquisitesComponent, loadRetirementBenefitsComponent]);
 
   // 8. calculateComputedTax
   const calculateComputedTax = useCallback(async (): Promise<void> => {

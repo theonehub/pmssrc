@@ -867,12 +867,18 @@ class UnifiedTaxationController:
                 service_years=Decimal(str(rc_dto.service_years))
             )
         
+        # Convert monthly_salary_paid
+        monthly_salary_paid = None
+        if hasattr(retirement_dto, 'monthly_salary_paid') and retirement_dto.monthly_salary_paid is not None:
+            monthly_salary_paid = [Money.from_float(float(x)) for x in retirement_dto.monthly_salary_paid]
+        
         return RetirementBenefits(
             leave_encashment=leave_encashment,
             gratuity=gratuity,
             vrs=vrs,
             pension=pension,
-            retrenchment_compensation=retrenchment_compensation
+            retrenchment_compensation=retrenchment_compensation,
+            monthly_salary_paid=monthly_salary_paid
         )
     
     def _convert_other_income_dto_to_entity(self, other_income_dto) -> OtherIncome:
@@ -1260,7 +1266,7 @@ class UnifiedTaxationController:
             
             # Get or create salary package record (it should ideally be present)
             salary_package_record, found_record = await self._get_or_create_salary_package_record(
-                request.employee_id, request.tax_year, current_user.hostname
+                request.employee_id, request.tax_year, current_user
             )
             
             if not found_record:
@@ -1378,7 +1384,7 @@ class UnifiedTaxationController:
         try:
             # Get or create salary package record (it should ideally be present)
             salary_package_record, found_record = await self._get_or_create_salary_package_record(
-                request.employee_id, request.tax_year, current_user.hostname
+                request.employee_id, request.tax_year, current_user
             )
             
             return IsRegimeUpdateAllowedResponse(
@@ -1470,15 +1476,14 @@ class UnifiedTaxationController:
         # Handle frontend component type aliases
         component_type_mapping = {
             "salary": "salary_income",
-            "house_property_income": "house_property_income",
-            "capital_gains": "capital_gains_income",
-            "retirement_benefits": "retirement_benefits",
-            "other_income": "other_income",
-            "monthly_payroll": "monthly_payroll"
+            "capital_gains": "capital_gains_income"
         }
         
         # Map frontend component type to backend component type
         mapped_component_type = component_type_mapping.get(component_type, component_type)
+
+        if mapped_component_type == "deductions":
+            print("deductions")
         
         if mapped_component_type == "salary_income":
             # For salary package record, we use the latest salary income
@@ -1487,7 +1492,8 @@ class UnifiedTaxationController:
         elif mapped_component_type == "perquisites":
             return self._serialize_perquisites(salary_package_record.perquisites) if salary_package_record.perquisites else {}
         elif mapped_component_type == "deductions":
-            return self._serialize_deductions(salary_package_record.deductions)
+            deduct = self._serialize_deductions(salary_package_record.deductions)
+            return deduct
         elif mapped_component_type == "house_property_income":
             if salary_package_record.other_income and salary_package_record.other_income.house_property_income:
                 return self._serialize_house_property_income(salary_package_record.other_income.house_property_income)
@@ -1794,55 +1800,6 @@ class UnifiedTaxationController:
     
     def _serialize_deductions(self, deductions: TaxDeductions) -> Dict[str, Any]:
         """Serialize deductions to dict with comprehensive breakdown."""
-        if not deductions:
-            return {
-                "hra_exemption": {"actual_rent_paid": 0.0, "hra_city_type": "non_metro"},
-                "section_80c": {
-                    "life_insurance_premium": 0.0, "limit": 150000, "remaining_limit": 150000,
-                    "nsc_investment": 0.0, "tax_saving_fd": 0.0, "elss_investment": 0.0,
-                    "home_loan_principal": 0.0, "tuition_fees": 0.0, "ulip_premium": 0.0,
-                    "sukanya_samriddhi": 0.0, "stamp_duty_property": 0.0, "senior_citizen_savings": 0.0,
-                    "other_80c_investments": 0.0, "total_invested": 0.0
-                },
-                "section_80ccc": {"pension_fund_contribution": 0.0},
-                "section_80ccd": {
-                    "employee_nps_contribution": 0.0, "additional_nps_contribution": 0.0,
-                    "employer_nps_contribution": 0.0, "limit_80ccd_1b": 50000
-                },
-                "section_80d": {
-                    "self_family_premium": 0.0, "parent_premium": 0.0, "preventive_health_checkup": 0.0,
-                    "parent_age": 55, "self_family_limit": 25000, "parent_limit": 25000, "preventive_limit": 5000
-                },
-                "section_80dd": {"relation": None, "disability_percentage": None, "eligible_deduction": 0.0},
-                "section_80ddb": {"dependent_age": 0, "medical_expenses": 0.0, "relation": None, "eligible_deduction": 0.0},
-                "section_80e": {"education_loan_interest": 0.0, "relation": None},
-                "section_80eeb": {"ev_loan_interest": 0.0, "ev_purchase_date": None, "eligible_deduction": 0.0},
-                "section_80g": {
-                    "pm_relief_fund": 0.0, "national_defence_fund": 0.0, "national_foundation_communal_harmony": 0.0,
-                    "zila_saksharta_samiti": 0.0, "national_illness_assistance_fund": 0.0, "national_blood_transfusion_council": 0.0,
-                    "national_trust_autism_fund": 0.0, "national_sports_fund": 0.0, "national_cultural_fund": 0.0,
-                    "technology_development_fund": 0.0, "national_children_fund": 0.0, "cm_relief_fund": 0.0,
-                    "army_naval_air_force_funds": 0.0, "swachh_bharat_kosh": 0.0, "clean_ganga_fund": 0.0,
-                    "drug_abuse_control_fund": 0.0, "other_100_percent_wo_limit": 0.0, "jn_memorial_fund": 0.0,
-                    "pm_drought_relief": 0.0, "indira_gandhi_memorial_trust": 0.0, "rajiv_gandhi_foundation": 0.0,
-                    "other_50_percent_wo_limit": 0.0, "family_planning_donation": 0.0, "indian_olympic_association": 0.0,
-                    "other_100_percent_w_limit": 0.0, "govt_charitable_donations": 0.0, "housing_authorities_donations": 0.0,
-                    "religious_renovation_donations": 0.0, "other_charitable_donations": 0.0, "other_50_percent_w_limit": 0.0,
-                    "total_donations": 0.0
-                },
-                "section_80ggc": {"political_party_contribution": 0.0},
-                "section_80u": {"disability_percentage": None, "eligible_deduction": 0.0},
-                "section_80tta_ttb": {
-                    "savings_interest": 0.0, "fd_interest": 0.0, "rd_interest": 0.0, "post_office_interest": 0.0,
-                    "age": 25, "applicable_section": "80TTA", "exemption_limit": 10000, "eligible_exemption": 0.0
-                },
-                "other_deductions": {
-                    "education_loan_interest": 0.0, "charitable_donations": 0.0, "savings_interest": 0.0,
-                    "nps_contribution": 0.0, "other_deductions": 0.0, "total": 0.0
-                },
-                "summary": {"total_deductions": 0.0, "total_interest_exemptions": 0.0, "combined_80c_80ccc_80ccd1": 0.0, "regime_applicable": "old"}
-            }
-        
         # Create comprehensive deductions structure
         result = {
             # HRA Exemption
@@ -1910,10 +1867,7 @@ class UnifiedTaxationController:
                 "nps_contribution": float(deductions.section_80ccd.employee_nps_contribution.amount) if deductions.section_80ccd else 0.0,
                 "other_deductions": float(deductions.other_deductions.other_deductions.amount) if deductions.other_deductions else 0.0,
                 "total": float(deductions.other_deductions.calculate_total().amount) if deductions.other_deductions else 0.0
-            },
-            
-            # Summary totals
-            "summary": self._calculate_deductions_summary(deductions)
+            }
         }
         
         return result
@@ -2096,25 +2050,6 @@ class UnifiedTaxationController:
         
         return float(section_80u.calculate_eligible_deduction(regime).amount)
     
-    def _calculate_deductions_summary(self, deductions: TaxDeductions) -> Dict[str, Any]:
-        """Calculate summary totals for deductions."""
-        from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
-        
-        # Use old regime for calculation (deductions are primarily for old regime)
-        regime = TaxRegime(TaxRegimeType.OLD)
-        
-        # Use default values for age and gross_income since we don't have them in this context
-        total_deductions = float(deductions.calculate_total_deductions(regime, 30, Money.zero(), Money.zero()).amount)
-        total_interest_exemptions = float(deductions.calculate_interest_exemptions(regime).amount)
-        combined_80c_80ccc_80ccd1 = float(deductions.calculate_combined_80c_80ccc_80ccd1_deduction(regime).amount)
-        
-        return {
-            "total_deductions": total_deductions,
-            "total_interest_exemptions": total_interest_exemptions,
-            "combined_80c_80ccc_80ccd1": combined_80c_80ccc_80ccd1,
-            "regime_applicable": "old"
-        }
-    
     def _serialize_house_property_income(self, house_property_income: HousePropertyIncome) -> Dict[str, Any]:
         """Serialize house property income to dict."""
         return {
@@ -2191,6 +2126,10 @@ class UnifiedTaxationController:
                 "monthly_salary": float(rc.monthly_salary.amount),
                 "service_years": float(rc.service_years)
             }
+        
+        # Serialize monthly_salary_paid
+        if hasattr(retirement_benefits, 'monthly_salary_paid') and retirement_benefits.monthly_salary_paid is not None:
+            result["monthly_salary_paid"] = [float(m.amount) for m in retirement_benefits.monthly_salary_paid]
         
         return result
     

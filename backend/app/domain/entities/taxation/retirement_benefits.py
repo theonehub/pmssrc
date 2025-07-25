@@ -3,8 +3,8 @@ Retirement Benefits Entity
 Domain entity for handling retirement benefits calculations
 """
 
-from dataclasses import dataclass
-from typing import Dict, Any
+from dataclasses import dataclass, field
+from typing import Dict, Any, List
 from decimal import Decimal
 from app.domain.value_objects.money import Money
 from app.domain.value_objects.tax_regime import TaxRegime, TaxRegimeType
@@ -269,6 +269,9 @@ class RetrenchmentCompensation:
         return self.retrenchment_amount.subtract(exemption).max(Money.zero())
 
 
+def _default_monthly_salary_paid():
+    return [Money.zero() for _ in range(12)]
+
 @dataclass
 class RetirementBenefits:
     """Comprehensive retirement benefits entity."""
@@ -278,6 +281,7 @@ class RetirementBenefits:
     vrs: VRS = None
     pension: Pension = None
     retrenchment_compensation: RetrenchmentCompensation = None
+    monthly_salary_paid: List[Money] = field(default_factory=_default_monthly_salary_paid)
     
     def __post_init__(self):
         """Initialize default objects if not provided."""
